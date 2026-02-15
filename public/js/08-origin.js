@@ -54,7 +54,7 @@ ${originDetails}
 
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         console.log("ORIGIN: Fetching from API...");
         const response = await fetch('/api/gemini', {
@@ -89,6 +89,8 @@ ${originDetails}
 
     } catch (err) {
         console.error("AI_FAILURE:", err);
+        // Alert the user about the specific error for debugging
+        alert(`AIエラーが発生しました:\n${err.message}\n(詳細なログはコンソールを確認してください)`);
 
         const fallbackText = generateFallbackOrigin(givenName, combination);
         currentBuildResult.origin = fallbackText;
