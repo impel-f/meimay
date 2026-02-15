@@ -213,11 +213,10 @@ function loadStack() {
     const btnNext = document.getElementById('btn-next-char');
 
     if (btnPrev) {
-        if (currentPos > 0) {
-            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
-        } else {
-            btnPrev.classList.add('opacity-0', 'pointer-events-none');
-        }
+        btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+
+        // 1文字目の場合は「戻る」表記にするなどの調整も可能だが、統一感のためアイコンのままでも可
+        // ここでは特段の見た目変更はせず、機能のみ有効化
     }
 
     if (btnNext) {
@@ -467,6 +466,13 @@ function prevChar() {
         currentPos--;
         currentIdx = 0; // スタックの先頭に戻す
         loadStack();
+    } else {
+        // 1文字目の場合は前の画面（イメージ選択）に戻る
+        // ※要望により「苗字の画面」に戻りたいとのことだが、フロー上はvibeまたはsegmentに戻るのが自然
+        // ここでは直前の scr-vibe に戻す
+        if (confirm('イメージ選択画面に戻りますか？\n（現在の進行状況はリセットされます）')) {
+            changeScreen('scr-vibe');
+        }
     }
 }
 
