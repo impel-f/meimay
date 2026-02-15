@@ -220,20 +220,15 @@
         <div
             class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
 
-            <!-- Progress / Counters -->
-            <div class="absolute top-6 left-6 right-6 flex justify-between text-xs font-bold text-[#bca37f] z-20">
-                <span>残り: <span id="nickname-swipe-count">10</span></span>
-                <span>ストック: <span id="nickname-stock-count">0</span></span>
-            </div>
-
-            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-6">響きをひろげる</h2>
+            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-4">響きをひろげる</h2>
             <p class="text-[10px] text-[#bca37f] mb-4">気になる響きを右へスワイプ！</p>
 
+            <!-- Main Card Container -->
             <div id="nickname-swipe-container"
                 class="relative flex-1 bg-[#fffaf0] rounded-3xl border border-[#ede5d8] overflow-hidden mb-4">
                 <!-- Cards injected here -->
                 <div id="nickname-swipe-msg"
-                    class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden">
+                    class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
                     <div class="text-center">
                         <p class="mb-2">10件チェックしました！</p>
                         <button onclick="showNicknameList()"
@@ -251,6 +246,18 @@
                     class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-md bg-white">★</button>
                 <button onclick="nicknameSwipeAction('like')"
                     class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between px-4 pb-2">
+                <button onclick="undoNicknameSwipe()"
+                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
+                    <span class="text-lg">↩</span> 戻る
+                </button>
+                <button onclick="showNicknameList()"
+                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
+                    リストを見る <span class="text-lg">→</span>
+                </button>
             </div>
 
             <!-- List of liked readings -->
@@ -272,23 +279,61 @@
         </div>
     </div>
 
-    <!-- NEW: Base Kanji Selection (Was Tomeji) -->
-    <div id="scr-base-kanji-selection" class="screen">
-        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">漢字を決める</h2>
-            <h3 id="base-kanji-reading-display" class="text-3xl font-black text-[#5d5444] mb-4 tracking-widest"></h3>
-
-            <p class="text-xs text-[#bca37f] mb-6">
-                まずは、もとになる「<span id="base-kana-display"></span>」の漢字を選んでください。<br>
-                残りの部分はあとで組み合わせます。
+    <!-- NEW: Base Kanji Selection (Swipe Version) -->
+    <div id="scr-base-kanji-swipe" class="screen">
+        <div
+            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
+            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-4">漢字をえらぶ</h2>
+            <p class="text-[10px] text-[#bca37f] mb-4">
+                「<span id="base-kanji-target-reading" class="font-bold text-[#8b7e66]"></span>」の漢字を決めています
             </p>
 
-            <div id="base-kanji-grid" class="grid grid-cols-3 gap-3 mb-8">
-                <!-- Base Kanji Candidates -->
+            <div id="kanji-swipe-container"
+                class="relative flex-1 bg-[#fffaf0] rounded-3xl border border-[#ede5d8] overflow-hidden mb-4">
+                <!-- Cards injected here -->
+                <div id="kanji-swipe-msg"
+                    class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
+                    <div class="text-center">
+                        <p class="mb-4">候補を一通り見ました</p>
+                        <button onclick="showKanjiList()" class="btn-gold px-6 py-3 shadow-md">決定・リストを見る</button>
+                    </div>
+                </div>
             </div>
 
-            <button onclick="skipBaseKanji()"
-                class="text-[#bca37f] text-sm border-b border-[#bca37f] pb-1">漢字はあとで決める（スキップ）</button>
+            <div class="flex justify-center gap-6 mb-4 items-center">
+                <button onclick="kanjiSwipeAction('nope')"
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-md bg-white">✕</button>
+                <button onclick="kanjiSwipeAction('super')"
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-md bg-white">★</button>
+                <button onclick="kanjiSwipeAction('like')"
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
+            </div>
+
+            <div class="flex justify-between px-4 pb-2">
+                <button onclick="undoKanjiSwipe()"
+                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
+                    <span class="text-lg">↩</span> 戻る
+                </button>
+                <button onclick="showKanjiList()"
+                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
+                    リストを見る <span class="text-lg">→</span>
+                </button>
+            </div>
+
+            <!-- List of liked kanji -->
+            <div id="kanji-liked-list" class="hidden absolute inset-0 bg-white z-50 rounded-[40px] flex flex-col p-6">
+                <h3 class="text-lg font-bold text-[#8b7e66] mb-2">キープした漢字</h3>
+                <div id="kanji-candidates-grid"
+                    class="flex-1 overflow-y-auto grid grid-cols-3 gap-3 content-start pb-20">
+                    <!-- Buttons -->
+                </div>
+                <div class="flex gap-4 mt-4">
+                    <button onclick="resetKanjiSwipe()" class="text-sm text-[#bca37f] flex-1">やり直す</button>
+                    <button onclick="closeKanjiList()"
+                        class="text-sm text-[#8b7e66] font-bold border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5] flex-1">閉じる</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
