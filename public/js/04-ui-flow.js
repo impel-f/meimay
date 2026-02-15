@@ -341,6 +341,32 @@ function startSwiping() {
         loadStack();
     }
     changeScreen('scr-main');
+
+    // 初回チュートリアル表示
+    setTimeout(() => {
+        showTutorial();
+    }, 500);
+}
+
+/**
+ * チュートリアル表示
+ */
+function showTutorial() {
+    // 既に表示済みならスキップ
+    if (localStorage.getItem('meimay_tutorial_shown')) return;
+
+    const modal = document.getElementById('modal-tutorial');
+    if (modal) {
+        modal.classList.add('active');
+        localStorage.setItem('meimay_tutorial_shown', 'true');
+    }
+}
+
+function closeTutorial() {
+    const modal = document.getElementById('modal-tutorial');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 /**
@@ -381,5 +407,7 @@ window.startSwiping = startSwiping;
 window.setGender = setGender;
 window.setRule = setRule;
 window.goBack = goBack;
+window.showTutorial = showTutorial;
+window.closeTutorial = closeTutorial;
 
-console.log("UI_FLOW: Module loaded (Wizard Edition)");
+console.log("UI_FLOW: Module loaded (Wizard Edition + Tutorial)");

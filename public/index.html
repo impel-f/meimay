@@ -287,13 +287,25 @@
             <div id="stack" class="w-full h-full"></div>
         </div>
 
-        <div class="fixed bottom-[110px] left-0 w-full flex justify-center gap-10 z-[1500] pointer-events-none">
-            <button onclick="manual('left')" class="btn-circle text-[#f28b82] pointer-events-auto"
-                aria-label="却下">✕</button>
-            <button onclick="manual('up')" class="btn-circle text-[#8ab4f8] pointer-events-auto"
-                aria-label="超いいね">★</button>
-            <button onclick="manual('right')" class="btn-circle text-[#81c995] pointer-events-auto"
-                aria-label="いいね">♥</button>
+        <div class="fixed bottom-[110px] left-0 w-full flex justify-center gap-8 z-[1500] pointer-events-none">
+            <div class="flex flex-col items-center gap-1 pointer-events-auto group">
+                <button onclick="manual('left')"
+                    class="btn-circle text-[#f28b82] group-active:scale-90 transition-transform"
+                    aria-label="却下">✕</button>
+                <span class="text-[9px] font-black text-[#f28b82] tracking-wider">NOPE</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 pointer-events-auto group">
+                <button onclick="manual('up')"
+                    class="btn-circle text-[#8ab4f8] group-active:scale-90 transition-transform"
+                    aria-label="超いいね">★</button>
+                <span class="text-[9px] font-black text-[#8ab4f8] tracking-wider">SUPER</span>
+            </div>
+            <div class="flex flex-col items-center gap-1 pointer-events-auto group">
+                <button onclick="manual('right')"
+                    class="btn-circle text-[#81c995] group-active:scale-90 transition-transform"
+                    aria-label="いいね">♥</button>
+                <span class="text-[9px] font-black text-[#81c995] tracking-wider">LIKE</span>
+            </div>
         </div>
 
         <div class="h-40"></div>
@@ -440,6 +452,40 @@
                     </h3>
                     <div id="detail-yojijukugo" class="space-y-3"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-tutorial" class="overlay" style="background: rgba(0,0,0,0.85);">
+        <div class="w-full h-full flex flex-col items-center justify-center relative p-6 text-white"
+            onclick="closeTutorial()">
+
+            <!-- Cards Guide -->
+            <div class="absolute top-[20%] left-1/2 -translate-x-1/2 text-center w-full max-w-xs pointer-events-none">
+                <div class="flex justify-between items-center w-full px-4 mb-4">
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl mb-1">👈</span>
+                        <span class="text-sm font-bold text-[#f28b82]">NOPE</span>
+                        <span class="text-[10px] opacity-80">イマイチ...</span>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-3xl mb-1">👉</span>
+                        <span class="text-sm font-bold text-[#81c995]">LIKE</span>
+                        <span class="text-[10px] opacity-80">キープ！</span>
+                    </div>
+                </div>
+
+                <div
+                    class="border-2 border-white rounded-[40px] h-64 w-full flex items-center justify-center mb-4 opacity-50 relative">
+                    <span class="font-bold">TAP for DETAIL</span>
+                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                        <span class="text-3xl">👆</span>
+                        <span class="text-sm font-bold text-[#8ab4f8]">SUPER LIKE</span>
+                        <span class="text-[10px] opacity-80">超いいね！</span>
+                    </div>
+                </div>
+
+                <p class="text-sm font-bold mt-8 animate-pulse">画面をタップしてスタート！</p>
             </div>
         </div>
     </div>
