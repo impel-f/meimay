@@ -332,7 +332,7 @@ function renderNicknameCard() {
         <div class="w-full px-6">
              <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
                 <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-serif">
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
                    ${exampleHtml}
                 </div>
              </div>
@@ -407,7 +407,7 @@ function renderNicknameCardForce() {
         <div class="w-full px-6">
              <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
                 <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-serif">
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
                    ${exampleHtml}
                 </div>
              </div>
@@ -673,6 +673,51 @@ function initNicknameCardEvents(card) {
         window.removeEventListener('mousemove', mouseMoveHandler);
         window.removeEventListener('mouseup', mouseUpHandler);
     };
+}
+
+function nicknameSwipeAction(action) {
+    if (currentSwipeIndex >= generatedCandidates.length) return;
+
+    const container = document.getElementById('nickname-swipe-container');
+    const card = container.querySelector('.nickname-card');
+    if (!card) return;
+
+    let x = 0;
+    let r = 0;
+
+    if (action === 'like') {
+        x = 500; r = 20;
+        likedReadings.push(generatedCandidates[currentSwipeIndex]);
+    } else if (action === 'super') {
+        x = 0; r = 0;
+        // Super logic: Add to liked, maybe special flag
+        const item = generatedCandidates[currentSwipeIndex];
+        item.isSuper = true;
+        likedReadings.push(item);
+
+        // Fly up animation
+        card.style.transition = 'all 0.4s ease';
+        card.style.transform = 'translateY(-500px) scale(1.2)';
+        card.style.opacity = '0';
+
+        setTimeout(() => {
+            currentSwipeIndex++;
+            renderNicknameCard();
+        }, 300);
+        return;
+
+    } else {
+        x = -500; r = -20;
+    }
+
+    card.style.transition = 'all 0.4s ease';
+    card.style.transform = `translate(${x}px, 50px) rotate(${r}deg)`;
+    card.style.opacity = '0';
+
+    setTimeout(() => {
+        currentSwipeIndex++;
+        renderNicknameCard();
+    }, 300);
 }
 
 /**
@@ -1168,6 +1213,6 @@ window.nextTutorialStep = nextTutorialStep;
 window.processNickname = processNickname;
 window.nicknameSwipeAction = nicknameSwipeAction;
 window.resetNicknameSwipe = resetNicknameSwipe;
-window.skipTomeji = skipTomeji;
+window.skipBaseKanji = skipBaseKanji;
 
 console.log("UI_FLOW: Module loaded (Wizard Edition + Tutorial v2)");
