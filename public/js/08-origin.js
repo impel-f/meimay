@@ -66,7 +66,17 @@ ${originDetails}
 
         clearTimeout(timeoutId);
 
-        if (!response.ok) throw new Error(`API疎通エラー (Status: ${response.status})`);
+        if (!response.ok) {
+            let errorMsg = `API疎通エラー (Status: ${response.status})`;
+            try {
+                const errData = await response.json();
+                if (errData.error) errorMsg += `\n${errData.error}`;
+                if (errData.details) errorMsg += `\n${errData.details}`;
+            } catch (e) {
+                // JSON parse error, ignore
+            }
+            throw new Error(errorMsg);
+        }
 
         const data = await response.json();
         const aiText = data.text || '由来を生成できませんでした。';
