@@ -1,0 +1,701 @@
+/* ============================================================
+   MEIMAY - PREMIUM CSS (V13.0 - 2024)
+   問題修正版：タップ領域拡大、レスポンシブ強化
+   ============================================================ */
+
+:root {
+    --bg: #fdfaf5;
+    --card: #fffefb;
+    --main: #5d5444;
+    --accent: #d4c5af;
+    --gold: #bca37f;
+    --nope: #f28b82;
+    --like: #81c995;
+    --super: #8ab4f8;
+    --alert: #e53e3e;
+    --shadow-sm: 0 4px 12px rgba(93, 84, 68, 0.05);
+    --shadow-md: 0 12px 24px rgba(93, 84, 68, 0.08);
+    --shadow-lg: 0 20px 45px rgba(93, 84, 68, 0.12);
+    --shadow-xl: 0 30px 60px rgba(93, 84, 68, 0.18);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background: var(--bg);
+    background-image: radial-gradient(var(--accent) 0.5px, transparent 0.5px);
+    background-size: 24px 24px;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    color: var(--main);
+    margin: 0;
+    padding: 0;
+    overflow: hidden; 
+    width: 100vw;
+    height: 100vh;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   SCREEN MANAGEMENT
+   ============================================================ */
+
+.screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    position: absolute; 
+    inset: 0;
+    padding: 24px 24px 160px 24px;
+    overflow-y: auto; 
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.screen.active {
+    display: flex !important;
+    opacity: 1;
+}
+
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
+
+.title-premium {
+    font-size: clamp(2rem, 5vw, 2.5rem);
+    font-weight: 900;
+    color: #8b7e66;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+}
+
+.subtitle-premium {
+    font-size: clamp(10px, 2.5vw, 11px);
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    margin-bottom: 4rem;
+    opacity: 0.8;
+}
+
+.label-mini {
+    font-size: 10px;
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+#bottom-nav {
+    position: fixed;
+    bottom: 0; 
+    left: 0; 
+    right: 0;
+    z-index: 10000 !important;
+    background: rgba(253, 250, 245, 0.96);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(139, 126, 102, 0.15);
+    padding: 16px 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.03);
+    pointer-events: all;
+}
+
+.nav-item {
+    transition: all 0.2s;
+    padding: 8px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    pointer-events: all !important;
+    position: relative;
+    z-index: 1;
+}
+
+.nav-item:active span:first-child {
+    transform: scale(1.2);
+}
+
+.nav-item.active-nav {
+    background: rgba(188, 163, 127, 0.1);
+}
+
+.nav-item.active-nav span:last-child {
+    color: var(--gold);
+    font-weight: 900;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn-premium-select {
+    width: 100%;
+    padding: 22px;
+    background: white;
+    border: 2px solid var(--accent);
+    border-radius: 40px;
+    font-weight: 900;
+    font-size: clamp(14px, 3vw, 15px);
+    color: var(--main);
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 12px;
+}
+
+.btn-premium-select:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-premium-select:active {
+    transform: scale(0.98);
+}
+
+.btn-gender {
+    padding: 14px 24px;
+    border: 2px solid var(--accent);
+    border-radius: 25px;
+    font-weight: 900;
+    font-size: 13px;
+    transition: all 0.4s;
+    background: white;
+    color: var(--accent);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    min-width: 90px;
+}
+
+.btn-gender.active-gender {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: white;
+    box-shadow: 0 10px 25px rgba(188, 163, 127, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-gender:active {
+    transform: scale(0.95);
+}
+
+.btn-gold {
+    width: 100%;
+    background: linear-gradient(135deg, #c7b399, #bca37f);
+    color: white;
+    border-radius: 40px;
+    font-weight: 900;
+    padding: 22px;
+    box-shadow: 0 15px 35px rgba(188, 163, 127, 0.3);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: clamp(14px, 3vw, 15px);
+}
+
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px rgba(188, 163, 127, 0.4);
+}
+
+.btn-gold:active {
+    transform: scale(0.98);
+}
+
+.btn-circle {
+    width: 75px;
+    height: 75px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    border: none;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.btn-circle:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-circle:active {
+    transform: scale(0.95);
+}
+
+/* ============================================================
+   INPUTS
+   ============================================================ */
+
+.premium-input {
+    border: none;
+    border-bottom: 2.5px solid var(--accent);
+    padding: 16px 0;
+    font-size: clamp(2rem, 6vw, 2.5rem);
+    font-weight: 900;
+    text-align: center;
+    width: 100%;
+    outline: none;
+    background: transparent;
+    color: var(--main);
+    transition: all 0.3s ease;
+}
+
+.premium-input:focus { 
+    border-bottom-color: var(--gold); 
+}
+
+.premium-input::placeholder {
+    color: var(--accent);
+    opacity: 0.5;
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+
+.card {
+    background: var(--card);
+    border: 1px solid rgba(139, 126, 102, 0.12);
+    border-radius: 70px;
+    box-shadow: var(--shadow-lg);
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 50px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 40px;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    touch-action: none;
+    user-select: none;
+    z-index: 10;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* 親要素をグリッド化して4列にする */
+#liked-list-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4列に分割 */
+    gap: 8px; /* カード間の隙間 */
+    padding: 10px;
+}
+
+/* カード自体の調整（サイズを小さく） */
+.stock-card {
+    background: white;
+    border-radius: 16px; /* 枠が小さいので丸みも少し抑える */
+    padding: 10px 4px;   /* 上下を少し空けて左右を詰める */
+    margin-bottom: 0;    /* gridのgapを使うので不要 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1 / 1.1; /* 綺麗な長方形を維持 */
+}
+
+/* 漢字を4列に収まるサイズへ */
+.stock-kanji { 
+    font-size: 24px !important; /* clampを外してサイズを固定 */
+}
+.stock-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.stock-kanji { 
+    font-size: clamp(48px, 12vw, 56px);
+    font-weight: 900; 
+    color: var(--main); 
+    line-height: 1; 
+}
+
+/* ============================================================
+   SWIPE STAMPS
+   ============================================================ */
+
+.stamp-premium {
+    position: absolute;
+    top: 35%;
+    z-index: 100;
+    font-family: 'Zen Maru Gothic', sans-serif;
+    font-weight: 900;
+    font-size: clamp(24px, 6vw, 28px);
+    padding: 10px 32px;
+    border: 3px solid;
+    border-radius: 24px;
+    opacity: 0;
+    pointer-events: none;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    letter-spacing: 0.1em;
+    transition: opacity 0.1s;
+}
+
+#badge-like { 
+    color: var(--like); 
+    border-color: var(--like); 
+    right: 10%; 
+    transform: rotate(15deg); 
+}
+
+#badge-nope { 
+    color: var(--nope); 
+    border-color: var(--nope); 
+    left: 10%; 
+    transform: rotate(-15deg); 
+}
+
+#badge-super { 
+    color: var(--super); 
+    border-color: var(--super); 
+    left: 50%; 
+    top: 25%;
+    transform: translateX(-50%); 
+    font-size: clamp(28px, 7vw, 32px);
+}
+
+/* ============================================================
+   SWIPE ANIMATIONS
+   ============================================================ */
+
+.swipe-right { 
+    transform: translate(150vw, 0) rotate(30deg) !important; 
+    opacity: 0 !important; 
+    transition: all 0.5s ease-in !important; 
+}
+
+.swipe-left { 
+    transform: translate(-150vw, 0) rotate(-30deg) !important; 
+    opacity: 0 !important; 
+    transition: all 0.5s ease-in !important; 
+}
+
+.swipe-up { 
+    transform: translate(0, -150vh) scale(0.5) !important; 
+    opacity: 0 !important; 
+    transition: all 0.5s ease-in !important; 
+}
+
+/* ============================================================
+   MODALS & OVERLAYS
+   ============================================================ */
+
+.overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(93, 84, 68, 0.55); 
+    backdrop-filter: blur(15px);
+    z-index: 9999 !important;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.overlay.active { 
+    display: flex !important; 
+}
+
+.detail-sheet {
+    width: 100%;
+    max-width: 440px;
+    background: white;
+    border-radius: 65px;
+    padding: 50px;
+    position: relative;
+    box-shadow: var(--shadow-xl);
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(212, 197, 175, 0.2);
+    border: none;
+    font-size: 24px;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-close-btn:hover {
+    background: rgba(212, 197, 175, 0.3);
+    transform: scale(1.1);
+}
+
+.modal-close-btn:active {
+    transform: scale(0.95);
+}
+
+/* ============================================================
+   SELECTORS & CONTROLS
+   ============================================================ */
+
+.dot-selector {
+    width: 26px;
+    height: 26px;
+    border: 2.5px solid var(--accent);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.dot-selector.active { 
+    border-color: var(--gold); 
+}
+
+.dot-selector.active::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    background: var(--gold);
+    border-radius: 50%;
+}
+
+.read-tag {
+    display: inline-block;
+    padding: 8px 16px;
+    margin: 4px;
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: 900;
+    background: white;
+    transition: all 0.2s;
+}
+
+/* ============================================================
+   BUILD PIECES
+   ============================================================ */
+
+.build-piece-btn {
+    min-width: 70px;
+    height: 95px;
+    padding: 10px;
+    margin: 0 3px;
+    border: 1.5px solid rgba(139, 126, 102, 0.15);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.build-piece-btn:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-4px);
+}
+
+.build-piece-btn.selected {
+    background: white !important;
+    border: 2.5px solid var(--gold) !important;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-8px);
+}
+
+.build-kanji-text {
+    font-size: clamp(2rem, 5vw, 2.2rem);
+    font-weight: 900;
+    color: var(--accent); 
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.build-piece-btn.selected .build-kanji-text {
+    color: var(--main);
+    transform: scale(1.08);
+}
+
+/* ============================================================
+   FORTUNE DISPLAY
+   ============================================================ */
+
+.text-daikichi { 
+    color: var(--alert) !important; 
+    font-weight: 900 !important; 
+}
+
+.reading-part-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    border: 1.5px solid var(--accent);
+    padding: 6px 18px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+    margin: 4px;
+}
+
+.reading-label-mini {
+    font-size: 9px;
+    font-weight: 900;
+    color: white;
+    background: var(--gold);
+    padding: 3px 10px;
+    border-radius: 10px;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 6px rgba(188, 163, 127, 0.3);
+}
+
+.reading-text-main {
+    font-size: clamp(14px, 3.5vw, 15px);
+    font-weight: 900;
+    color: var(--main);
+    letter-spacing: 0.12em;
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+.rule-box {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 20px;
+}
+
+.hud-top-mini {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 24px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.slot-name-mini {
+    font-size: 12px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+}
+
+.no-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+
+.no-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+.animate-fade-in { 
+    animation: fadeIn 0.5s ease forwards; 
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(15px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================ */
+
+@media (max-width: 380px) {
+    .btn-circle {
+        width: 65px;
+        height: 65px;
+        font-size: 1.8rem;
+    }
+    
+    .card {
+        padding: 30px;
+        border-radius: 60px;
+    }
+    
+    .detail-sheet {
+        padding: 40px 30px;
+        border-radius: 55px;
+    }
+}
+
+@media (min-width: 768px) {
+    .screen {
+        padding: 40px 40px 180px 40px;
+    }
+}
+
+/* 運勢図解用 */
+.map-node-sharp {
+    border-radius: 0 !important;
+}
+
+/* ============================================================
+   全体文字サイズ調整（小さめ）
+   ============================================================ */
+body {
+    font-size: clamp(13px, 3.5vw, 14px);
+    line-height: 1.5;
+}
+
+h1 { font-size: clamp(1.6rem, 5vw, 2rem); }
+h2 { font-size: clamp(1.3rem, 4.5vw, 1.6rem); }
+h3 { font-size: clamp(1.1rem, 4vw, 1.4rem); }
+
+/* ボタン文字サイズ */
+button {
+    font-size: clamp(13px, 3.5vw, 14px);
+}
+
+.btn-gold, .btn-premium-select {
+    font-size: clamp(13px, 3.5vw, 14px) !important;
+}
+
+cat public/css/settings-style.css >> public/css/main.css
+
+git add public/css/main.css
+git commit -m "Fix: settings-style統合"
+git push origin main

@@ -1,0 +1,5 @@
+    <!-- 履歴ボタン（右上固定） -->
+    <button onclick="openHistory()" class="fixed top-6 right-6 z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform" style="border: 2px solid #eee5d8;">
+        📚
+    </button>
+

@@ -1,0 +1,4 @@
+Verification File
+If you can see this, the server is serving files from:
+c:\Users\8mits.DESKTOP-4N9QJ6A\OneDrive\ドキュメント\antigravity-meimay\meimay-app-main\public
+Timestamp: 2026-02-14

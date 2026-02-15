@@ -1,0 +1,27 @@
+{
+  "name": "メイメー - 赤ちゃんの命名アプリ",
+  "short_name": "メイメー",
+  "description": "めぇ〜っと見つかる、運命の名前。姓名判断とAI由来生成で赤ちゃんの名前を楽しく選べるアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdfaf5",
+  "theme_color": "#bca37f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "utilities"],
+  "lang": "ja",
+  "dir": "ltr"
+}
