@@ -15,27 +15,27 @@ async function generateOrigin() {
 
     const modal = document.getElementById('modal-origin');
     if (!modal) return;
-    
+
     modal.classList.add('active');
-    modal.innerHTML = \`
+    modal.innerHTML = `
         <div class="detail-sheet animate-fade-in flex flex-col items-center">
             <div class="text-[10px] font-black text-[#bca37f] mb-8 tracking-widest opacity-60 uppercase">AI Writing Service</div>
             <div class="flex flex-col items-center py-20 text-center">
                 <div class="w-10 h-10 border-4 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mb-6"></div>
                 <p class="text-[12px] font-bold text-[#7a6f5a] leading-loose">
-                    「\${givenName}」の由来を<br>生成しています。
+                    「${givenName}」の由来を<br>生成しています。
                 </p>
             </div>
         </div>
-    \`;
+    `;
 
     const originDetails = combination.map(c => {
         const src = (typeof liked !== 'undefined') ? liked.find(l => l['漢字'] === c['漢字']) : null;
-        return \`【\${c['漢字']}】：\${src ? src['意味'] : "良い意味"}\`;
-    }).join('\\n');
+        return `【${c['漢字']}】：${src ? src['意味'] : "良い意味"}`;
+    }).join('\n');
 
-    const prompt = \`
-名前「\${givenName}」の由来を、以下の漢字データのみを使って、漢字の意味を生かして100文字から150文字程度で簡潔に作成してください。
+    const prompt = `
+名前「${givenName}」の由来を、以下の漢字データのみを使って、漢字の意味を生かして100文字から150文字程度で簡潔に作成してください。
 【禁止事項】
 ・「生命の誕生は～」「親の愛は～」などの前置きは一切不要。
 ・名字についての言及、名字との響きについての解説も一切書かないでください。
