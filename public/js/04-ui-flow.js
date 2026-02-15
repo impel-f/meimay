@@ -162,9 +162,18 @@ function goBack() {
         changeScreen('scr-mode');
     } else if (id === 'scr-input-reading' || id === 'scr-input-nickname') {
         changeScreen('scr-gender');
+    } else if (id === 'scr-nickname-swipe') {
+        changeScreen('scr-input-nickname');
+    } else if (id === 'scr-tomeji-selection') {
+        // Show the list again on the swipe screen
+        document.getElementById('nickname-liked-list').classList.remove('hidden');
+        changeScreen('scr-nickname-swipe');
     } else if (id === 'scr-vibe') {
         if (appMode === 'free') {
             changeScreen('scr-gender');
+        } else if (appMode === 'nickname') {
+            // From vibe back to tomeji
+            changeScreen('scr-tomeji-selection');
         } else {
             // 読みモードの場合、分割選択画面に戻る
             changeScreen('scr-segment');
@@ -177,7 +186,12 @@ function goBack() {
     } else if (id === 'scr-diagnosis-input') {
         changeScreen('scr-mode');
     } else if (id === 'scr-segment') {
-        if (appMode === 'nickname') changeScreen('scr-input-nickname');
+        if (appMode === 'nickname') {
+            // Should go back to tomeji? 
+            // Usually nickname flow skips segment screen or auto-passes it. 
+            // If we are here, we go back to tomeji.
+            changeScreen('scr-tomeji-selection');
+        }
         else changeScreen('scr-input-reading');
     }
 }
@@ -185,6 +199,15 @@ function goBack() {
 /**
  * ニックネーム処理
  */
+/**
+ * ニックネーム処理 (V2: Expansion Flow)
+ */
+let generatedCandidates = [];
+let likedReadings = [];
+let currentSwipeIndex = 0;
+let selectedReadingForTomeji = '';
+let selectedTomeji = null; // { kanji: '斗', reading: 'と' }
+
 function processNickname() {
     const el = document.getElementById('in-nickname');
     let val = el.value.trim();
@@ -199,19 +222,300 @@ function processNickname() {
 
     // ひらがな化
     val = toHira(val);
-
     if (!val) {
         alert('読みが正しく判定できませんでした');
         return;
     }
 
-    // 入力欄にセットして計算へ (scr-input-readingのinputを利用)
-    const nameInput = document.getElementById('in-name');
-    if (nameInput) nameInput.value = val;
+    // 位置取得
+    const posRadios = document.getElementsByName('nickname-pos');
+    let pos = 'prefix';
+    for (let r of posRadios) if (r.checked) pos = r.value;
 
-    // 直接計算へ
-    calcSegments();
+    console.log(`FLOW: Nickname ${val}, Pos ${pos}, Gender ${gender}`);
+
+    // 候補生成
+    if (typeof generateNameCandidates !== 'function') {
+        alert("Generator module not loaded.");
+        return;
+    }
+
+    generatedCandidates = generateNameCandidates(val, gender, pos);
+
+    if (generatedCandidates.length === 0) {
+        alert('候補が見つかりませんでした。別の読みを試してください。');
+        return;
+    }
+
+    // スワイプ画面初期化
+    startNicknameSwipe();
 }
+
+/**
+ * 読みスワイプ開始
+ */
+function startNicknameSwipe() {
+    currentSwipeIndex = 0;
+    likedReadings = [];
+    changeScreen('scr-nickname-swipe');
+    renderNicknameCard();
+
+    // リスト画面を隠す
+    document.getElementById('nickname-liked-list').classList.add('hidden');
+    document.getElementById('nickname-swipe-msg').classList.add('hidden');
+}
+
+/**
+ * 読みカード表示
+ */
+function renderNicknameCard() {
+    const container = document.getElementById('nickname-swipe-container');
+    // Clear old cards (except msg)
+    const cards = container.querySelectorAll('.nickname-card');
+    cards.forEach(c => c.remove());
+
+    if (currentSwipeIndex >= generatedCandidates.length) {
+        showNicknameList();
+        return;
+    }
+
+    const item = generatedCandidates[currentSwipeIndex];
+
+    // Card Element
+    const card = document.createElement('div');
+    card.className = 'nickname-card absolute inset-2 bg-white rounded-2xl shadow-sm border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300';
+    card.style.zIndex = 10;
+
+    card.innerHTML = `
+        <div class="text-sm text-[#bca37f] mb-2 font-bold">${item.type === 'original' ? 'そのまま' : (item.type === 'prefix' ? '後ろにつける' : '広がり')}</div>
+        <div class="text-4xl font-black text-[#5d5444] mb-4">${item.reading}</div>
+        <div class="text-xs text-[#a6967a] bg-[#fdfaf5] px-3 py-1 rounded-full">
+            ${getSampleKanji(item.reading)}
+        </div>
+    `;
+
+    container.appendChild(card);
+}
+
+/**
+ * 簡易漢字サンプル取得 (ダミー実装、後でMasterから引くのがベスト)
+ */
+function getSampleKanji(reading) {
+    // 簡易的に末尾だけで判定したり、ランダムにそれっぽいものを返す
+    return "響きをチェック";
+}
+
+function nicknameSwipeAction(action) {
+    if (currentSwipeIndex >= generatedCandidates.length) return;
+
+    const container = document.getElementById('nickname-swipe-container');
+    const card = container.querySelector('.nickname-card');
+    if (!card) return;
+
+    if (action === 'like') {
+        likedReadings.push(generatedCandidates[currentSwipeIndex]);
+        card.style.transform = 'translate(100px, 20px) rotate(10deg)';
+        card.style.opacity = '0';
+    } else {
+        card.style.transform = 'translate(-100px, 20px) rotate(-10deg)';
+        card.style.opacity = '0';
+    }
+
+    setTimeout(() => {
+        currentSwipeIndex++;
+        renderNicknameCard();
+    }, 200);
+}
+
+function showNicknameList() {
+    const listContainer = document.getElementById('nickname-liked-list');
+    const grid = document.getElementById('nickname-candidates-grid');
+    grid.innerHTML = '';
+
+    if (likedReadings.length === 0) {
+        alert("気に入った読みがありませんでした。もう一度スワイプしますか？");
+        startNicknameSwipe();
+        return;
+    }
+
+    likedReadings.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-[#fdfaf5] border border-[#ede5d8] p-4 rounded-xl text-lg font-bold text-[#5d5444] hover:bg-white hover:border-[#bca37f] active:scale-95 transition-all text-center';
+        btn.innerText = item.reading;
+        btn.onclick = () => confirmReading(item.reading);
+        grid.appendChild(btn);
+    });
+
+    listContainer.classList.remove('hidden');
+}
+
+function resetNicknameSwipe() {
+    startNicknameSwipe();
+}
+
+/**
+ * 読み決定 -> 止め字選択へ
+ */
+function confirmReading(reading) {
+    console.log(`FLOW: Confirmed reading ${reading}`);
+    selectedReadingForTomeji = reading;
+    selectedTomeji = null;
+
+    // 止め字（末尾文字）を抽出
+    // 後方一致で「まさはる」のような場合、「はる」全体を固定すべきか？
+    // シンプルに「最後の1文字」を提案するロジックにする
+    const lastChar = reading.slice(-1);
+    // よぉ、りゅう、など拗音対応が必要だが一旦簡易実装
+
+    // 画面遷移
+    changeScreen('scr-tomeji-selection');
+    initTomejiScreen(lastChar);
+}
+
+/**
+ * 止め字画面初期化
+ */
+function initTomejiScreen(char) {
+    const title = document.getElementById('tomeji-title');
+    const grid = document.getElementById('tomeji-grid');
+
+    title.innerText = `「${char}」の漢字`;
+    grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">読み込み中...</div>';
+
+    // 漢字データ検索 (masterから)
+    setTimeout(() => {
+        if (!master) return;
+
+        // スコア順に検索
+        let candidates = master.filter(k => k['読み'] === char || k['読み'].includes(char)); // 簡易
+
+        // より正確な検索: その読みを持つもの
+        // masterには "読み": "アイ" のようにカタカナで入ってる場合と "あ" のようにひらがなの場合があるか確認が必要
+        // 01-core.jsを見ると toKata(k['読み']) === toKata(char) で比較すべき
+        const kataChar = toKata(char);
+
+        const matches = master.filter(k => {
+            // 読み文字数チェック（完全一致おすすめ）
+            // データ構造: k['読み'] は カタカナスペース区切り？ いえ、ひらがなかカタカナの文字列
+            return toKata(k['読み']) === kataChar;
+        });
+
+        // スコアソート等
+        if (typeof calculateKanjiScore === 'function') {
+            matches.forEach(k => k.score = calculateKanjiScore(k));
+            matches.sort((a, b) => b.score - a.score);
+        }
+
+        grid.innerHTML = '';
+        matches.slice(0, 12).forEach(k => {
+            const btn = document.createElement('button');
+            btn.className = 'aspect-square bg-white rounded-xl shadow-sm border border-[#ede5d8] text-2xl font-black text-[#5d5444] hover:border-[#bca37f] hover:bg-[#fffbeb] active:scale-95';
+            btn.innerText = k['漢字'];
+            btn.onclick = () => decideTomeji(k, char);
+            grid.appendChild(btn);
+        });
+
+        if (matches.length === 0) {
+            grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">候補が見つかりませんでした</div>';
+        }
+    }, 100);
+}
+
+function decideTomeji(kanjiObj, reading) {
+    selectedTomeji = { kanji: kanjiObj['漢字'], reading: reading, obj: kanjiObj };
+    console.log("FLOW: Tomeji decided", selectedTomeji);
+    finalizeNicknameFlow();
+}
+
+function skipTomeji() {
+    selectedTomeji = null;
+    finalizeNicknameFlow();
+}
+
+/**
+ * ニックネームフロー完了 -> 通常フローへ合流
+ */
+function finalizeNicknameFlow() {
+    // データセット
+    // reading: selectedReadingForTomeji
+    const nameInput = document.getElementById('in-name');
+    if (nameInput) nameInput.value = selectedReadingForTomeji;
+
+    // 分割計算 (calcSegments) を呼ぶ
+    // ただし、最後の文字を固定するための引数を渡す必要がある
+    // calcSegmentsを改造するか、あるいは segments を直接いじるか
+
+    // 02-engine.js の calcSegments は引数なしでDOMを読む
+    // まず普通に計算させる
+
+    // Note: calcSegments is async-ish in nature? No, sync.
+    // しかし segments global 変数を更新する
+
+    calcSegments();
+
+    // もし止め字が決まっていれば、segments の末尾に対応する liked をセットする
+    if (selectedTomeji) {
+        // segments配列チェック
+        // 例：はると -> [は, る, と] or [はる, と]
+        // 末尾が一致しているか確認
+        const lastSeg = segments[segments.length - 1];
+        if (lastSeg === selectedTomeji.reading) {
+            // 末尾一致。liked に追加
+            // liked は {漢字:..., slot: index} の形
+            // slotは 0-index. 
+            // Swipe画面 (loadStack) は segments[currentPos] を見る。
+            // 既に liked に slot corresponding to lastSeg があれば、Swipe画面はどうなる？
+
+            // 簡易実装: likedに突っ込む
+            const slotIdx = segments.length - 1;
+
+            // 既存の同slotのものを消す
+            const existingIdx = liked.findIndex(l => l.slot === slotIdx);
+            if (existingIdx > -1) liked.splice(existingIdx, 1);
+
+            liked.push({
+                ...selectedTomeji.obj,
+                slot: slotIdx,
+                sessionReading: uniqueId() // dummy
+            });
+
+            console.log("FLOW: Auto-liked tomeji", liked);
+        } else {
+            console.warn("FLOW: Segments checking failed for tomeji", lastSeg, selectedTomeji.reading);
+            // 分割が合わない場合（稀だが）、無理やりは適用しない
+        }
+    }
+
+    // 画面は calcSegments 内で 'scr-segment' に変わる
+    // しかし、分割が1通りしかなければ自動で次に行くロジックがほしい
+    // あるいは、ここで強制的に 'scr-vibe' に飛ばす？
+
+    // ユーザー体験的には「分割確認」→「イメージ」→「スワイプ」でOK
+    // ただし、止め字が決まってるなら分割画面でそれをアピールしたい（今後の課題）
+
+    // スワイプ開始時に最後の文字が「決定済み」に見えるようにするのは 05-ui-render.js の仕事
+}
+
+// Helper uniqueId
+function uniqueId() { return Math.random().toString(36).substr(2, 9); }
+
+/**
+ * GoBack Override extension
+ */
+const originalGoBack = window.goBack;
+window.goBack = function () {
+    const active = document.querySelector('.screen.active');
+    if (active && active.id === 'scr-nickname-swipe') {
+        changeScreen('scr-input-nickname');
+        return;
+    }
+    if (active && active.id === 'scr-tomeji-selection') {
+        document.getElementById('nickname-liked-list').classList.remove('hidden');
+        changeScreen('scr-nickname-swipe');
+        return;
+    }
+    originalGoBack();
+};
 
 /**
  * 自由選択モード初期化 (簡易カタログ表示)
@@ -488,5 +792,9 @@ window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.closeTutorial = closeTutorial;
 window.nextTutorialStep = nextTutorialStep;
+window.processNickname = processNickname;
+window.nicknameSwipeAction = nicknameSwipeAction;
+window.resetNicknameSwipe = resetNicknameSwipe;
+window.skipTomeji = skipTomeji;
 
 console.log("UI_FLOW: Module loaded (Wizard Edition + Tutorial v2)");
