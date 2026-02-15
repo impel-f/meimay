@@ -40,11 +40,27 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('API Exception:', error);
+
+    // Debug: List available models to see what IS allowed
+    let availableModels = [];
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`);
+      const listData = await listRes.json();
+      if (listData.models) {
+        availableModels = listData.models.map(m => m.name); // e.g. "models/gemini-pro"
+      } else {
+        availableModels = ["Unable to list models: " + JSON.stringify(listData)];
+      }
+    } catch (listErr) {
+      availableModels = ["List Check Failed: " + listErr.message];
+    }
+
     return res.status(500).json({
       error: 'AI Generation Failed',
       details: error.message,
       debug_model_str: MODEL_NAME,
-      debug_model_codes: modelCodes, // Verify if hyphen is 45
+      debug_model_codes: modelCodes,
+      available_models: availableModels, // CRITICAL DEBUG INFO
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
