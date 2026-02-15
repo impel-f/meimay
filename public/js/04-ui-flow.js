@@ -451,14 +451,40 @@ function initBaseKanjiScreen(baseReading) {
     grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">読み込み中...</div>';
 
     setTimeout(() => {
+        // Helper to find top kanji for a reading
+        const findKanji = (readingSegment) => {
+            const target = toHira(readingSegment); // Compare in Hiragana for consistency?
+            // Actually, validReadingsSet is in Hiragana.
+            // master fields are mixed (Katakana for On, Hiragana for Kun usually).
+            // Let's normalize everything to Hiragana for comparison.
+
+            let cands = master.filter(m => {
+                const allReadings = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
+                // rudimentary check
+                return allReadings.indexOf(readingSegment) > -1 ||
+                    toHira(allReadings).indexOf(target) > -1;
+            });
+
+            // Stricter check: must match one of the readings exactly
+            cands = cands.filter(m => {
+                const arr = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
+                const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
+                return splits.includes(target);
+            });
+
+            return cands.slice(0, 2).map(c => c['漢字']);
+        };
+
         if (!master) return;
 
-        const baseKata = toKata(baseReading);
+        const baseHira = toHira(baseReading);
 
-        // Search for Kanji that matches this base reading
-        let matches = master.filter(k => toKata(k['読み']) === baseKata);
-
-        // If few matches, try fuzzy? No, stick to exact for base.
+        // Search for Kanji that matches this reading exactly
+        let matches = master.filter(k => {
+            const arr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
+            const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
+            return splits.includes(baseHira);
+        });
 
         // Sort by commonality/score
         if (typeof calculateKanjiScore === 'function') {
