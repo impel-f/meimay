@@ -351,6 +351,8 @@ function startSwiping() {
 /**
  * チュートリアル表示
  */
+let tutorialInterval;
+
 function showTutorial() {
     // 既に表示済みならスキップ
     if (localStorage.getItem('meimay_tutorial_shown')) return;
@@ -359,13 +361,32 @@ function showTutorial() {
     if (modal) {
         modal.classList.add('active');
         localStorage.setItem('meimay_tutorial_shown', 'true');
+
+        // アニメーションシーケンス開始
+        startTutorialAnimation(modal);
     }
+}
+
+function startTutorialAnimation(modal) {
+    if (tutorialInterval) clearInterval(tutorialInterval);
+
+    let step = 0;
+    const update = () => {
+        modal.classList.remove('anim-stage-1', 'anim-stage-2');
+        if (step % 2 === 0) modal.classList.add('anim-stage-1'); // Right (Like)
+        else modal.classList.add('anim-stage-2'); // Left (Nope)
+        step++;
+    };
+
+    update();
+    tutorialInterval = setInterval(update, 2000); // 2秒ごとに切り替え
 }
 
 function closeTutorial() {
     const modal = document.getElementById('modal-tutorial');
     if (modal) {
         modal.classList.remove('active');
+        if (tutorialInterval) clearInterval(tutorialInterval);
     }
 }
 

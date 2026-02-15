@@ -456,37 +456,190 @@
         </div>
     </div>
 
-    <div id="modal-tutorial" class="overlay" style="background: rgba(0,0,0,0.85);">
-        <div class="w-full h-full flex flex-col items-center justify-center relative p-6 text-white"
+    <div id="modal-tutorial" class="overlay" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);">
+        <div class="w-full h-full flex flex-col items-center justify-center relative p-6 pointer-events-auto"
             onclick="closeTutorial()">
 
-            <!-- Cards Guide -->
-            <div class="absolute top-[20%] left-1/2 -translate-x-1/2 text-center w-full max-w-xs pointer-events-none">
-                <div class="flex justify-between items-center w-full px-4 mb-4">
-                    <div class="flex flex-col items-center">
-                        <span class="text-3xl mb-1">👈</span>
-                        <span class="text-sm font-bold text-[#f28b82]">NOPE</span>
-                        <span class="text-[10px] opacity-80">イマイチ...</span>
+            <!-- Tutorial Content Wrapper -->
+            <div
+                class="relative w-full max-w-sm aspect-[3/4] flex flex-col items-center justify-center pointer-events-none">
+
+                <!-- Demo Card (Animated) -->
+                <div id="tutorial-demo-card"
+                    class="w-64 h-80 bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center relative overflow-hidden transform transition-transform border-4 border-white/50">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#fdfaf5] to-white opacity-50"></div>
+                    <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">例</div>
+                    <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">10画</div>
+                    <div class="bg-white/60 px-3 py-1 rounded-full text-xs text-[#a6967a] font-bold relative z-10">#サンプル
                     </div>
-                    <div class="flex flex-col items-center">
-                        <span class="text-3xl mb-1">👉</span>
-                        <span class="text-sm font-bold text-[#81c995]">LIKE</span>
-                        <span class="text-[10px] opacity-80">キープ！</span>
-                    </div>
+
+                    <!-- Badges (Hidden by default) -->
+                    <div id="tut-badge-like"
+                        class="absolute top-4 left-4 border-4 border-[#81c995] text-[#81c995] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20">
+                        LIKE</div>
+                    <div id="tut-badge-nope"
+                        class="absolute top-4 right-4 border-4 border-[#f28b82] text-[#f28b82] font-black text-2xl px-2 py-1 rounded opacity-0 transform rotate-12 z-20">
+                        NOPE</div>
                 </div>
 
-                <div
-                    class="border-2 border-white rounded-[40px] h-64 w-full flex items-center justify-center mb-4 opacity-50 relative">
-                    <span class="font-bold">TAP for DETAIL</span>
-                    <div class="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                        <span class="text-3xl">👆</span>
-                        <span class="text-sm font-bold text-[#8ab4f8]">SUPER LIKE</span>
-                        <span class="text-[10px] opacity-80">超いいね！</span>
-                    </div>
+                <!-- Hand Cursor -->
+                <div id="tutorial-hand"
+                    class="absolute bottom-10 right-10 text-6xl drop-shadow-xl z-50 transition-transform">
+                    👆
                 </div>
 
-                <p class="text-sm font-bold mt-8 animate-pulse">画面をタップしてスタート！</p>
+                <!-- Text Guide -->
+                <div class="absolute -bottom-24 w-full text-center">
+                    <p class="text-white text-lg font-bold mb-2 text-shadow">直感でスワイプ！</p>
+                    <p class="text-white/80 text-xs">画面タップでスタート</p>
+                </div>
             </div>
+
+            <style>
+                @keyframes tutorial-swipe-right {
+
+                    0%,
+                    100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+
+                    20% {
+                        transform: translate(10px, 10px) rotate(0deg);
+                    }
+
+                    /* Press */
+                    50% {
+                        transform: translate(120px, 20px) rotate(15deg);
+                    }
+
+                    /* Swipe Right */
+                    60% {
+                        transform: translate(120px, 20px) rotate(15deg);
+                        opacity: 0;
+                    }
+
+                    61% {
+                        transform: translate(0, 0) rotate(0deg);
+                        opacity: 0;
+                    }
+
+                    70% {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes tutorial-card-right {
+
+                    0%,
+                    100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+
+                    20% {
+                        transform: scale(0.98);
+                    }
+
+                    50% {
+                        transform: translate(100px, 10px) rotate(10deg);
+                    }
+
+                    60% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+                }
+
+                @keyframes tutorial-swipe-left {
+
+                    0%,
+                    100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+
+                    20% {
+                        transform: translate(-10px, 10px) rotate(0deg);
+                    }
+
+                    /* Press */
+                    50% {
+                        transform: translate(-120px, 20px) rotate(-15deg);
+                    }
+
+                    /* Swipe Left */
+                    60% {
+                        transform: translate(-120px, 20px) rotate(-15deg);
+                        opacity: 0;
+                    }
+
+                    61% {
+                        transform: translate(0, 0) rotate(0deg);
+                        opacity: 0;
+                    }
+
+                    70% {
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes tutorial-card-left {
+
+                    0%,
+                    100% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+
+                    20% {
+                        transform: scale(0.98);
+                    }
+
+                    50% {
+                        transform: translate(-100px, 10px) rotate(-10deg);
+                    }
+
+                    60% {
+                        transform: translate(0, 0) rotate(0deg);
+                    }
+                }
+
+                /* Animation Sequence */
+                .anim-stage-1 #tutorial-hand {
+                    animation: tutorial-swipe-right 2s ease-in-out infinite;
+                }
+
+                .anim-stage-1 #tutorial-demo-card {
+                    animation: tutorial-card-right 2s ease-in-out infinite;
+                }
+
+                .anim-stage-1 #tut-badge-like {
+                    animation: badge-fade 2s ease-in-out infinite;
+                }
+
+                .anim-stage-2 #tutorial-hand {
+                    animation: tutorial-swipe-left 2s ease-in-out infinite;
+                }
+
+                .anim-stage-2 #tutorial-demo-card {
+                    animation: tutorial-card-left 2s ease-in-out infinite;
+                }
+
+                .anim-stage-2 #tut-badge-nope {
+                    animation: badge-fade 2s ease-in-out infinite;
+                }
+
+                @keyframes badge-fade {
+
+                    0%,
+                    20%,
+                    60%,
+                    100% {
+                        opacity: 0;
+                    }
+
+                    40%,
+                    50% {
+                        opacity: 1;
+                    }
+                }
+            </style>
         </div>
     </div>
 
