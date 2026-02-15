@@ -109,18 +109,11 @@ function toSeion(str) {
         .replace(/[ばびぶべぼ]/g, s => String.fromCharCode(s.charCodeAt(0) - 1))
         .replace(/[ぱぴぷぺぽ]/g, s => String.fromCharCode(s.charCodeAt(0) - 2));
 }
-const input = document.getElementById('in-surname');
-if (!input) return;
-
-surnameStr = input.value.trim();
-const chars = surnameStr.split('');
-
-surnameData = chars.map(c => {
-    const found = master.find(k => k['漢字'] === c);
-    return {
-        kanji: c,
-        strokes: found ? (parseInt(found['画数']) || 0) : 0
-    };
+const found = master.find(k => k['漢字'] === c);
+return {
+    kanji: c,
+    strokes: found ? (parseInt(found['画数']) || 0) : 0
+};
 });
 
 console.log("CORE: Surname data updated ->", surnameData);
