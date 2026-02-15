@@ -72,6 +72,7 @@ ${originDetails}
                 const errData = await response.json();
                 if (errData.error) errorMsg += `\n${errData.error}`;
                 if (errData.details) errorMsg += `\n${errData.details}`;
+                if (errData.debug_model_codes) errorMsg += `\nCodes: ${JSON.stringify(errData.debug_model_codes)}`;
             } catch (e) {
                 // JSON parse error, ignore
             }
