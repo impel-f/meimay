@@ -391,6 +391,17 @@ function getSampleKanjiHtml(item) {
 
 
 /**
+ * Helper: toKata
+ */
+function toKata(str) {
+    if (!str) return '';
+    return str.replace(/[\u3041-\u3096]/g, function (match) {
+        var chr = match.charCodeAt(0) + 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+/**
  * Touch Event Handling for Swipe
  */
 function initCardTouchEvents(card) {
@@ -413,8 +424,8 @@ function initCardTouchEvents(card) {
         card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
 
         // Visual Feedback
-        if (currentX > 50) card.style.borderColor = '#8ab4f8';
-        else if (currentX < -50) card.style.borderColor = '#f28b82';
+        if (currentX > 50) card.style.borderColor = '#81c995'; // Green for Like
+        else if (currentX < -50) card.style.borderColor = '#f28b82'; // Red for Nope
         else card.style.borderColor = '#ede5d8';
     };
 
