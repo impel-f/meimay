@@ -351,35 +351,92 @@ function startSwiping() {
 /**
  * チュートリアル表示
  */
+/**
+ * チュートリアル制御
+ */
 let tutorialInterval;
+let tutorialStep = 1; // 1: Swipe, 2: Detail, 3: Build
 
 function showTutorial() {
-    // 既に表示済みならスキップ
-    if (localStorage.getItem('meimay_tutorial_shown')) return;
+    // 既に表示済みならスキップ (デバッグ用に一時的に無効化する場合はここをコメントアウト)
+    if (localStorage.getItem('meimay_tutorial_shown_v2')) return;
 
     const modal = document.getElementById('modal-tutorial');
     if (modal) {
         modal.classList.add('active');
-        localStorage.setItem('meimay_tutorial_shown', 'true');
+        localStorage.setItem('meimay_tutorial_shown_v2', 'true'); // バージョン変えて再表示させる
 
-        // アニメーションシーケンス開始
-        startTutorialAnimation(modal);
+        // ステップ1から開始
+        tutorialStep = 1;
+        updateTutorialScene();
     }
 }
 
-function startTutorialAnimation(modal) {
+function nextTutorialStep() {
+    tutorialStep++;
+    if (tutorialStep > 3) {
+        closeTutorial();
+    } else {
+        updateTutorialScene();
+    }
+}
+
+function updateTutorialScene() {
+    const modal = document.getElementById('modal-tutorial');
+    if (!modal) return;
+
+    // Dots
+    [1, 2, 3].forEach(i => {
+        const dot = document.getElementById(`tut-dot-${i}`);
+        if (dot) dot.classList.toggle('opacity-100', i === tutorialStep);
+        if (dot) dot.classList.toggle('opacity-30', i !== tutorialStep);
+    });
+
+    // Scenes
+    [1, 2, 3].forEach(i => {
+        const scene = document.getElementById(`tut-scene-${i}`);
+        if (scene) {
+            if (i === tutorialStep) scene.classList.remove('hidden');
+            else scene.classList.add('hidden');
+        }
+    });
+
+    // Reset Animations
     if (tutorialInterval) clearInterval(tutorialInterval);
+
+    // Start Scene Specific Animation
+    if (tutorialStep === 1) startScene1Anim();
+    else if (tutorialStep === 2) startScene2Anim();
+    else if (tutorialStep === 3) startScene3Anim();
+}
+
+function startScene1Anim() {
+    const scene = document.getElementById('tut-scene-1');
+    if (!scene) return;
 
     let step = 0;
     const update = () => {
-        modal.classList.remove('anim-stage-1', 'anim-stage-2');
-        if (step % 2 === 0) modal.classList.add('anim-stage-1'); // Right (Like)
-        else modal.classList.add('anim-stage-2'); // Left (Nope)
+        scene.classList.remove('anim-swipe-right', 'anim-swipe-left', 'anim-swipe-up');
+        const s = step % 3;
+        if (s === 0) scene.classList.add('anim-swipe-right');
+        else if (s === 1) scene.classList.add('anim-swipe-left');
+        else scene.classList.add('anim-swipe-up');
         step++;
     };
-
     update();
-    tutorialInterval = setInterval(update, 2000); // 2秒ごとに切り替え
+    tutorialInterval = setInterval(update, 2000);
+}
+
+function startScene2Anim() {
+    const scene = document.getElementById('tut-scene-2');
+    if (!scene) return;
+    scene.classList.add('anim-tap');
+}
+
+function startScene3Anim() {
+    const scene = document.getElementById('tut-scene-3');
+    if (!scene) return;
+    scene.classList.add('anim-fly');
 }
 
 function closeTutorial() {
