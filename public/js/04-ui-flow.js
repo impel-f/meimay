@@ -430,5 +430,6 @@ window.setRule = setRule;
 window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.closeTutorial = closeTutorial;
+window.nextTutorialStep = nextTutorialStep;
 
-console.log("UI_FLOW: Module loaded (Wizard Edition + Tutorial)");
+console.log("UI_FLOW: Module loaded (Wizard Edition + Tutorial v2)");
