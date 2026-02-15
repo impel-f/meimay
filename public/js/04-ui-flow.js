@@ -675,6 +675,92 @@ function initNicknameCardEvents(card) {
     };
 }
 
+/**
+ * 漢字サンプルHTML生成
+ */
+function getSampleKanjiHtml(item) {
+    if (!master) return '<span class="text-xs text-[#d4c5af]">Loading...</span>';
+
+    // item.reading (e.g. "はると")
+    const r = item.reading;
+    let parts = [];
+
+    // Simple Heuristic Segmentation
+    if (r.length === 3) {
+        parts = [[r.substring(0, 2), r.substring(2)]]; // Haru-to
+        parts.push([r.substring(0, 1), r.substring(1)]); // Ha-ruto
+    } else if (r.length === 4) {
+        parts = [[r.substring(0, 2), r.substring(2)]]; // Masa-haru
+    } else if (r.length === 2) {
+        parts = [[r.substring(0, 1), r.substring(1)]]; // Haru
+    } else {
+        parts = [[r]];
+    }
+
+    // Example limit
+    let count = 0;
+
+    // Helper to find top kanji for a reading (using correct field check)
+    const findKanji = (readingSegment) => {
+        const target = toHira(readingSegment);
+
+        let cands = master.filter(m => {
+            const allReadings = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
+            return toHira(allReadings).indexOf(target) > -1;
+        });
+
+        // Exact match preference
+        const exacts = cands.filter(m => {
+            const arr = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
+            const splits = arr.split(/[、,，\s/]+/).map(x => toHira(x));
+            return splits.includes(target);
+        });
+
+        if (exacts.length > 0) cands = exacts;
+
+        // Sort by score if available, or just take top
+        return cands.slice(0, 2).map(c => c['漢字']);
+    };
+
+    let generatedExamples = new Set();
+
+    // Attempt to generate examples from parts
+    for (let p of parts) {
+        if (generatedExamples.size >= 3) break;
+
+        let segs = p;
+        if (segs.length === 1) {
+            const ks = findKanji(segs[0]);
+            ks.forEach(k => generatedExamples.add(k));
+        } else {
+            const k1s = findKanji(segs[0]);
+            const k2s = findKanji(segs[1]);
+
+            if (k1s.length > 0 && k2s.length > 0) {
+                generatedExamples.add(`${k1s[0]}${k2s[0]}`);
+                if (k1s[1] && k2s[1]) generatedExamples.add(`${k1s[1]}${k2s[1]}`);
+            }
+        }
+    }
+
+    if (generatedExamples.size === 0) return '<span class="text-xs text-[#d4c5af]">漢字例なし</span>';
+
+    return Array.from(generatedExamples).slice(0, 3).map(ex =>
+        `<span class="text-lg font-bold mx-1">${ex}</span>`
+    ).join('');
+}
+
+/**
+ * Helper: toKata
+ */
+function toKata(str) {
+    if (!str) return '';
+    return str.replace(/[\u3041-\u3096]/g, function (match) {
+        var chr = match.charCodeAt(0) + 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
 function showNicknameList() {
     const listContainer = document.getElementById('nickname-liked-list');
     const grid = document.getElementById('nickname-candidates-grid');
