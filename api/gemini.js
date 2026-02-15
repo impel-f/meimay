@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
 
     console.log(`API Start: Length of prompt = ${prompt.length}`);
 
-    const MODEL_NAME = "gemini-1.5-flash";
+    const MODEL_NAME = "gemini-1.5-flash-latest";
     console.log(`API Model: Using model ${MODEL_NAME}`);
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
