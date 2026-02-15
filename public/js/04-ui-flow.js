@@ -270,7 +270,6 @@ function startNicknameSwipe() {
  */
 function renderNicknameCard() {
     const container = document.getElementById('nickname-swipe-container');
-    // Clear old cards (except msg)
     const cards = container.querySelectorAll('.nickname-card');
     cards.forEach(c => c.remove());
 
@@ -283,27 +282,170 @@ function renderNicknameCard() {
 
     // Card Element
     const card = document.createElement('div');
-    card.className = 'nickname-card absolute inset-2 bg-white rounded-2xl shadow-sm border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300';
+    card.className = 'nickname-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
     card.style.zIndex = 10;
 
+    // Example Kanji Generation
+    const exampleHtml = getSampleKanjiHtml(item);
+
     card.innerHTML = `
-        <div class="text-sm text-[#bca37f] mb-2 font-bold">${item.type === 'original' ? 'そのまま' : (item.type === 'prefix' ? '後ろにつける' : '広がり')}</div>
-        <div class="text-4xl font-black text-[#5d5444] mb-4">${item.reading}</div>
-        <div class="text-xs text-[#a6967a] bg-[#fdfaf5] px-3 py-1 rounded-full">
-            ${getSampleKanji(item.reading)}
+        <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
+            ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
+        </div>
+        <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
+        
+        <div class="w-full px-6">
+             <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
+                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-serif">
+                   ${exampleHtml}
+                </div>
+             </div>
         </div>
     `;
 
     container.appendChild(card);
+
+    // Attach Touch Events !!
+    initCardTouchEvents(card);
 }
 
 /**
- * 簡易漢字サンプル取得 (ダミー実装、後でMasterから引くのがベスト)
+ * 漢字サンプルHTML生成
  */
-function getSampleKanji(reading) {
-    // 簡易的に末尾だけで判定したり、ランダムにそれっぽいものを返す
-    return "響きをチェック";
+function getSampleKanjiHtml(item) {
+    if (!master) return '<span class="text-xs text-[#d4c5af]">Loading...</span>';
+
+    // item.reading (e.g. "はると")
+    // Try to split it?
+    // We don't have exact segmentation here, but we can guess.
+    // Or we can just find *any* Kanji that matches a chunk.
+
+    // 簡易ロジック:
+    // 2文字～4文字の名前。
+    // "はると" -> "Haru" + "To" is likely.
+
+    let samples = [];
+
+    // Try to find exact matches for the whole reading first (unlikely for long names)
+    // const exacts = master.filter(k => toKata(k.reading) === toKata(item.reading)); 
+    // ^ No, master contains single kanji usually.
+
+    // Segments generation (Simple Heuristic for Display)
+    // Try 2-char split for 3-mora name: 2+1, 1+2
+    // Try 2-char split for 4-mora name: 2+2
+
+    const r = item.reading;
+    let parts = [];
+
+    if (r.length === 3) {
+        parts = [[r.substring(0, 2), r.substring(2)]]; // Haru-to
+        parts.push([r.substring(0, 1), r.substring(1)]); // Ha-ruto
+    } else if (r.length === 4) {
+        parts = [[r.substring(0, 2), r.substring(2)]]; // Masa-haru
+    } else if (r.length === 2) {
+        parts = [[r.substring(0, 1), r.substring(1)]]; // Haru
+    } else {
+        parts = [[r]];
+    }
+
+    // Generate 1-2 examples
+    let count = 0;
+
+    // Helper to find top kanji for a reading
+    const findKanji = (readingSegment) => {
+        // filter master for kanji with this reading
+        const kata = toKata(readingSegment);
+        let cands = master.filter(m => toKata(m['読み']) === kata);
+        // Sort by commonality logic (not present here, so random/length)
+        // Assume master is somewhat ordered or random
+        return cands.slice(0, 2).map(c => c['漢字']);
+    };
+
+    let generatedExamples = new Set();
+
+    for (let p of parts) {
+        if (count >= 3) break;
+
+        let segs = p;
+        if (segs.length === 1) {
+            const ks = findKanji(segs[0]);
+            ks.forEach(k => generatedExamples.add(k));
+        } else {
+            const k1s = findKanji(segs[0]);
+            const k2s = findKanji(segs[1]);
+
+            if (k1s.length > 0 && k2s.length > 0) {
+                generatedExamples.add(`${k1s[0]}${k2s[0]}`);
+                if (k1s[1] && k2s[1]) generatedExamples.add(`${k1s[1]}${k2s[1]}`);
+            }
+        }
+    }
+
+    if (generatedExamples.size === 0) return '<span class="text-xs text-[#d4c5af]">漢字例なし</span>';
+
+    return Array.from(generatedExamples).slice(0, 3).map(ex =>
+        `<span class="text-lg font-bold mx-1">${ex}</span>`
+    ).join('');
 }
+
+
+/**
+ * Touch Event Handling for Swipe
+ */
+function initCardTouchEvents(card) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    const threshold = 100;
+
+    const onStart = (x) => {
+        startX = x;
+        isDragging = true;
+        card.style.transition = 'none';
+        card.style.cursor = 'grabbing';
+    };
+
+    const onMove = (x) => {
+        if (!isDragging) return;
+        currentX = x - startX;
+        const rotate = currentX * 0.05;
+        card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+
+        // Visual Feedback
+        if (currentX > 50) card.style.borderColor = '#8ab4f8';
+        else if (currentX < -50) card.style.borderColor = '#f28b82';
+        else card.style.borderColor = '#ede5d8';
+    };
+
+    const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+        card.style.cursor = 'grab';
+        card.style.borderColor = '#ede5d8';
+
+        if (currentX > threshold) {
+            nicknameSwipeAction('like');
+        } else if (currentX < -threshold) {
+            nicknameSwipeAction('nope');
+        } else {
+            // Reset
+            card.style.transform = 'translateX(0) rotate(0)';
+        }
+    };
+
+    // Touch
+    card.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
+    card.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX), { passive: true });
+    card.addEventListener('touchend', onEnd);
+
+    // Mouse (for desktop testing)
+    card.addEventListener('mousedown', (e) => onStart(e.clientX));
+    window.addEventListener('mousemove', (e) => { if (isDragging) onMove(e.clientX); });
+    window.addEventListener('mouseup', onEnd);
+}
+
 
 function nicknameSwipeAction(action) {
     if (currentSwipeIndex >= generatedCandidates.length) return;
@@ -312,45 +454,42 @@ function nicknameSwipeAction(action) {
     const card = container.querySelector('.nickname-card');
     if (!card) return;
 
+    let x = 0;
+    let r = 0;
+
     if (action === 'like') {
+        x = 500; r = 20;
         likedReadings.push(generatedCandidates[currentSwipeIndex]);
-        card.style.transform = 'translate(100px, 20px) rotate(10deg)';
+    } else if (action === 'super') {
+        x = 0; r = 0;
+        // Super logic: Add to liked, maybe special flag
+        const item = generatedCandidates[currentSwipeIndex];
+        item.isSuper = true;
+        likedReadings.push(item);
+
+        // Fly up animation
+        card.style.transition = 'all 0.4s ease';
+        card.style.transform = 'translateY(-500px) scale(1.2)';
         card.style.opacity = '0';
+
+        setTimeout(() => {
+            currentSwipeIndex++;
+            renderNicknameCard();
+        }, 300);
+        return;
+
     } else {
-        card.style.transform = 'translate(-100px, 20px) rotate(-10deg)';
-        card.style.opacity = '0';
+        x = -500; r = -20;
     }
+
+    card.style.transition = 'all 0.4s ease';
+    card.style.transform = `translate(${x}px, 50px) rotate(${r}deg)`;
+    card.style.opacity = '0';
 
     setTimeout(() => {
         currentSwipeIndex++;
         renderNicknameCard();
-    }, 200);
-}
-
-function showNicknameList() {
-    const listContainer = document.getElementById('nickname-liked-list');
-    const grid = document.getElementById('nickname-candidates-grid');
-    grid.innerHTML = '';
-
-    if (likedReadings.length === 0) {
-        alert("気に入った読みがありませんでした。もう一度スワイプしますか？");
-        startNicknameSwipe();
-        return;
-    }
-
-    likedReadings.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'bg-[#fdfaf5] border border-[#ede5d8] p-4 rounded-xl text-lg font-bold text-[#5d5444] hover:bg-white hover:border-[#bca37f] active:scale-95 transition-all text-center';
-        btn.innerText = item.reading;
-        btn.onclick = () => confirmReading(item.reading);
-        grid.appendChild(btn);
-    });
-
-    listContainer.classList.remove('hidden');
-}
-
-function resetNicknameSwipe() {
-    startNicknameSwipe();
+    }, 300);
 }
 
 /**
@@ -416,9 +555,42 @@ function initTomejiScreen(char) {
         });
 
         if (matches.length === 0) {
-            grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">候補が見つかりませんでした</div>';
+            grid.innerHTML = '<div class="col-span-3 text-sm text-[#d4c5af]">候補が見つかりませんでした</div>';
         }
     }, 100);
+}
+
+function showNicknameList() {
+    const listContainer = document.getElementById('nickname-liked-list');
+    const grid = document.getElementById('nickname-candidates-grid');
+    grid.innerHTML = '';
+
+    if (likedReadings.length === 0) {
+        alert("気に入った読みがありませんでした。もう一度スワイプしますか？");
+        startNicknameSwipe();
+        return;
+    }
+
+    likedReadings.forEach(item => {
+        const btn = document.createElement('button');
+        let classes = 'p-4 rounded-xl text-lg font-bold transition-all text-center flex flex-col items-center justify-center gap-1 active:scale-95 ';
+
+        if (item.isSuper) {
+            classes += 'bg-[#fffbeb] border-2 border-[#fbbc04] text-[#5d5444] shadow-md';
+        } else {
+            classes += 'bg-[#fdfaf5] border border-[#ede5d8] text-[#5d5444] hover:bg-white hover:border-[#bca37f]';
+        }
+
+        btn.className = classes;
+        btn.innerHTML = `
+            ${item.isSuper ? '<span class="text-[10px] text-[#fbbc04]">★ SUPER</span>' : ''}
+            <span>${item.reading}</span>
+        `;
+        btn.onclick = () => confirmReading(item.reading);
+        grid.appendChild(btn);
+    });
+
+    listContainer.classList.remove('hidden');
 }
 
 function decideTomeji(kanjiObj, reading) {
