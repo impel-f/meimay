@@ -13,8 +13,17 @@ module.exports = async (req, res) => {
     const { prompt } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
-    if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+    if (!prompt) {
+      console.error('API Error: Prompt is missing');
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (!apiKey) {
+      console.error('API Error: GEMINI_API_KEY is not set in environment variables');
+      return res.status(500).json({ error: 'API key configuration missing' });
+    }
+
+    console.log(`API Start: Length of prompt = ${prompt.length}`);
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -23,9 +32,16 @@ module.exports = async (req, res) => {
     const response = await result.response;
     const text = response.text();
 
+    console.log('API Success: Generated text length =', text.length);
+
     return res.status(200).json({ text });
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Gemini API Exception:', error);
+    // Return the actual error message to help debugging (in dev/admin contexts)
+    return res.status(500).json({
+      error: 'AI Generation Failed',
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
