@@ -218,8 +218,15 @@
     <!-- NEW: Nickname Expansion Swipe -->
     <div id="scr-nickname-swipe" class="screen">
         <div
-            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col">
-            <h2 class="text-lg font-bold mb-2 text-[#8b7e66]">響きをひろげる</h2>
+            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
+
+            <!-- Progress / Counters -->
+            <div class="absolute top-6 left-6 right-6 flex justify-between text-xs font-bold text-[#bca37f] z-20">
+                <span>残り: <span id="nickname-swipe-count">10</span></span>
+                <span>ストック: <span id="nickname-stock-count">0</span></span>
+            </div>
+
+            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-6">響きをひろげる</h2>
             <p class="text-[10px] text-[#bca37f] mb-4">気になる響きを右へスワイプ！</p>
 
             <div id="nickname-swipe-container"
@@ -227,7 +234,13 @@
                 <!-- Cards injected here -->
                 <div id="nickname-swipe-msg"
                     class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden">
-                    完了！リストから選択してください
+                    <div class="text-center">
+                        <p class="mb-2">10件チェックしました！</p>
+                        <button onclick="showNicknameList()"
+                            class="btn-gold px-6 py-2 shadow-md mb-3 text-sm">リストを確認</button>
+                        <button onclick="continueNicknameSwipe()"
+                            class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5">もっと見る</button>
+                    </div>
                 </div>
             </div>
 
@@ -240,32 +253,41 @@
                     class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
             </div>
 
-            <!-- List of liked readings to final select -->
+            <!-- List of liked readings -->
             <div id="nickname-liked-list"
                 class="hidden absolute inset-0 bg-white z-50 rounded-[40px] flex flex-col p-6">
-                <h3 class="text-lg font-bold text-[#8b7e66] mb-4">この中から選ぶ</h3>
+                <h3 class="text-lg font-bold text-[#8b7e66] mb-2">候補リスト</h3>
+                <p class="text-xs text-[#a6967a] mb-4">選択した読みから漢字を決めます。<br>まず「ベース（元の呼び名）」の漢字を選びましょう。</p>
+
                 <div id="nickname-candidates-grid"
                     class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-20">
                     <!-- Buttons -->
                 </div>
-                <button onclick="resetNicknameSwipe()" class="text-sm text-[#bca37f] mt-4">やり直す</button>
+                <div class="flex gap-4 mt-4">
+                    <button onclick="resetNicknameSwipe()" class="text-sm text-[#bca37f] flex-1">やり直す</button>
+                    <button onclick="closeNicknameList()"
+                        class="text-sm text-[#8b7e66] font-bold border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5] flex-1">閉じる</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- NEW: Tomeji Selection -->
-    <div id="scr-tomeji-selection" class="screen">
+    <!-- NEW: Base Kanji Selection (Was Tomeji) -->
+    <div id="scr-base-kanji-selection" class="screen">
         <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <h2 class="text-xl font-bold mb-4 text-[#8b7e66]" id="tomeji-title">終わりの漢字</h2>
+            <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">漢字を決める</h2>
+            <h3 id="base-kanji-reading-display" class="text-3xl font-black text-[#5d5444] mb-4 tracking-widest"></h3>
+
             <p class="text-xs text-[#bca37f] mb-6">
-                名前の「締め」となる漢字を先に決めると<br>イメージが固まりやすくなります。
+                まずは、もとになる「<span id="base-kana-display"></span>」の漢字を選んでください。<br>
+                残りの部分はあとで組み合わせます。
             </p>
 
-            <div id="tomeji-grid" class="grid grid-cols-3 gap-3 mb-8">
-                <!-- Tomeji Candidates -->
+            <div id="base-kanji-grid" class="grid grid-cols-3 gap-3 mb-8">
+                <!-- Base Kanji Candidates -->
             </div>
 
-            <button onclick="skipTomeji()"
+            <button onclick="skipBaseKanji()"
                 class="text-[#bca37f] text-sm border-b border-[#bca37f] pb-1">漢字はあとで決める（スキップ）</button>
         </div>
     </div>

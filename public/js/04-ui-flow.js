@@ -205,8 +205,8 @@ function goBack() {
 let generatedCandidates = [];
 let likedReadings = [];
 let currentSwipeIndex = 0;
-let selectedReadingForTomeji = '';
-let selectedTomeji = null; // { kanji: '斗', reading: 'と' }
+let nicknameBaseReading = ""; // "はる" (from input)
+let nicknamePosition = "prefix"; // "prefix" or "suffix"
 
 function processNickname() {
     const el = document.getElementById('in-nickname');
@@ -227,10 +227,13 @@ function processNickname() {
         return;
     }
 
+    nicknameBaseReading = val;
+
     // 位置取得
     const posRadios = document.getElementsByName('nickname-pos');
     let pos = 'prefix';
     for (let r of posRadios) if (r.checked) pos = r.value;
+    nicknamePosition = pos;
 
     console.log(`FLOW: Nickname ${val}, Pos ${pos}, Gender ${gender}`);
 
@@ -256,13 +259,37 @@ function processNickname() {
  */
 function startNicknameSwipe() {
     currentSwipeIndex = 0;
-    likedReadings = [];
+    // Don't clear likedReadings if we are continuing? 
+    // Usually start fresh unless "continue" mode. 
+    // But nickname flow is simple linear.
+    if (likedReadings.length > 0 && confirm("前の選択をクリアして最初から始めますか？")) {
+        likedReadings = [];
+    } else if (likedReadings.length === 0) {
+        likedReadings = [];
+    }
+
     changeScreen('scr-nickname-swipe');
+    updateNicknameCounters();
     renderNicknameCard();
 
     // リスト画面を隠す
     document.getElementById('nickname-liked-list').classList.add('hidden');
     document.getElementById('nickname-swipe-msg').classList.add('hidden');
+}
+
+function updateNicknameCounters() {
+    const elLeft = document.getElementById('nickname-swipe-count');
+    const elStock = document.getElementById('nickname-stock-count');
+
+    // Show remaining in current "batch" of 10? OR Total?
+    // User wants "10個聞いたら進むか続けるか聞いて" -> 10 item batch.
+
+    const BATCH_SIZE = 10;
+    const currentBatchCount = currentSwipeIndex % BATCH_SIZE;
+    const remainingInBatch = BATCH_SIZE - currentBatchCount;
+
+    if (elLeft) elLeft.innerText = remainingInBatch;
+    if (elStock) elStock.innerText = likedReadings.length;
 }
 
 /**
@@ -272,6 +299,14 @@ function renderNicknameCard() {
     const container = document.getElementById('nickname-swipe-container');
     const cards = container.querySelectorAll('.nickname-card');
     cards.forEach(c => c.remove());
+
+    updateNicknameCounters();
+
+    // Check if we hit the batch limit (every 10 items)
+    if (currentSwipeIndex > 0 && currentSwipeIndex % 10 === 0) {
+        showNicknameBatchLimitModal();
+        return;
+    }
 
     if (currentSwipeIndex >= generatedCandidates.length) {
         showNicknameList();
@@ -306,133 +341,270 @@ function renderNicknameCard() {
 
     container.appendChild(card);
 
-    // Attach Touch Events !!
-    initCardTouchEvents(card);
+    // Attach Touch Events (Updated logic)
+    initNicknameCardEvents(card);
+}
+
+function showNicknameBatchLimitModal() {
+    document.getElementById('nickname-swipe-msg').classList.remove('hidden');
+}
+
+function continueNicknameSwipe() {
+    document.getElementById('nickname-swipe-msg').classList.add('hidden');
+    // Increment index to skip the check?? No, the index is already at 10.
+    // We just render next card.
+    // Wait, renderNicknameCard checks `currentSwipeIndex % 10 === 0`.
+    // We need a flag to bypass this check OR just increment one temporary step?
+    // No, that would skip a candidate.
+
+    // Hack: We can just render the card and bypass the check logic by passing a flag?
+    // Or cleaner: store a "lastBreakpoint" index.
+
+    // Simple fix: increment currentSwipeIndex ?? NO. The item at index 10 hasn't been shown yet! 
+    // Actually, `currentSwipeIndex` points to the NEXT item to show.
+    // So if index is 10, we are about to show the 11th item (index 10).
+    // So we should show the modal BEFORE showing item 10.
+    // Correct.
+
+    // To proceed, we need to allow rendering. 
+    // Let's use a temporary property on the container or a global flag.
+    // But easier: `currentSwipeIndex` is strictly used for "next item".
+    // 10 items done means we finished indices 0-9. `currentSwipeIndex` is 10.
+    // We pause here.
+
+    // To continue, we must NOT show the modal again immediately for 10.
+    // Maybe we change the condition to `currentSwipeIndex > 0 && currentSwipeIndex % 10 === 0 && !wasBatchModalShown`.
+
+    // Let's just force render by shifting logic.
+    // We will use a separate function to "force render"
+
+    renderNicknameCardForce();
+    document.getElementById('nickname-swipe-msg').classList.add('hidden');
+}
+
+function renderNicknameCardForce() {
+    // Exact copy but skips the modal check
+    const container = document.getElementById('nickname-swipe-container');
+    const cards = container.querySelectorAll('.nickname-card');
+    cards.forEach(c => c.remove());
+
+    if (currentSwipeIndex >= generatedCandidates.length) {
+        showNicknameList();
+        return;
+    }
+
+    const item = generatedCandidates[currentSwipeIndex];
+    const card = document.createElement('div');
+    card.className = 'nickname-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
+    card.style.zIndex = 10;
+    const exampleHtml = getSampleKanjiHtml(item);
+
+    card.innerHTML = `
+        <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
+            ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
+        </div>
+        <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
+        <div class="w-full px-6">
+             <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
+                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-serif">
+                   ${exampleHtml}
+                </div>
+             </div>
+        </div>
+    `;
+    container.appendChild(card);
+    initNicknameCardEvents(card);
 }
 
 /**
- * 漢字サンプルHTML生成
+ * 決定 -> ベース漢字選択画面へ
  */
-function getSampleKanjiHtml(item) {
-    if (!master) return '<span class="text-xs text-[#d4c5af]">Loading...</span>';
+function confirmReading(reading) {
+    console.log(`FLOW: Confirmed reading ${reading} (Base: ${nicknameBaseReading})`);
 
-    // item.reading (e.g. "はると")
-    // Try to split it?
-    // We don't have exact segmentation here, but we can guess.
-    // Or we can just find *any* Kanji that matches a chunk.
+    // ユーザー要望: 「最初に選ぶ漢字はやはりもとになる音」
+    // つまり、ニックネーム部分（ベース）の漢字を先に決める。
+    // 例：入力「はる」 -> 選択「はると」 -> 先に「はる」の漢字を決める。
 
-    // 簡易ロジック:
-    // 2文字～4文字の名前。
-    // "はると" -> "Haru" + "To" is likely.
+    // ベース部分の抽出
+    // Prefix mode: "はる" (Base) + "と" (Suffix)
+    // Suffix mode: "まさ" (Prefix) + "はる" (Base)
 
-    let samples = [];
+    // 今回は複数選択可能だが、ユーザーは「リストから1つを選んで」進むフロー（showNicknameListの実装依存）。
+    // 現状の実装では `confirmReading` は1つの `reading` を引数に取る。
+    // つまり、1つの名前に絞ってから漢字を選ぶフロー。
 
-    // Try to find exact matches for the whole reading first (unlikely for long names)
-    // const exacts = master.filter(k => toKata(k.reading) === toKata(item.reading)); 
-    // ^ No, master contains single kanji usually.
+    selectedReadingForTomeji = reading; // Variable name reuse (meaning "Target Name Reading")
 
-    // Segments generation (Simple Heuristic for Display)
-    // Try 2-char split for 3-mora name: 2+1, 1+2
-    // Try 2-char split for 4-mora name: 2+2
+    changeScreen('scr-base-kanji-selection');
+    initBaseKanjiScreen(nicknameBaseReading);
+}
 
-    const r = item.reading;
-    let parts = [];
+function initBaseKanjiScreen(baseReading) {
+    const title = document.getElementById('base-kanji-reading-display');
+    const kanaDisplay = document.getElementById('base-kana-display');
+    const grid = document.getElementById('base-kanji-grid');
 
-    if (r.length === 3) {
-        parts = [[r.substring(0, 2), r.substring(2)]]; // Haru-to
-        parts.push([r.substring(0, 1), r.substring(1)]); // Ha-ruto
-    } else if (r.length === 4) {
-        parts = [[r.substring(0, 2), r.substring(2)]]; // Masa-haru
-    } else if (r.length === 2) {
-        parts = [[r.substring(0, 1), r.substring(1)]]; // Haru
-    } else {
-        parts = [[r]];
-    }
+    title.innerText = baseReading; // "はる"
+    kanaDisplay.innerText = baseReading;
+    grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">読み込み中...</div>';
 
-    // Generate 1-2 examples
-    let count = 0;
+    setTimeout(() => {
+        if (!master) return;
 
-    // Helper to find top kanji for a reading
-    const findKanji = (readingSegment) => {
-        // filter master for kanji with this reading
-        const kata = toKata(readingSegment);
-        let cands = master.filter(m => toKata(m['読み']) === kata);
-        // Sort by commonality logic (not present here, so random/length)
-        // Assume master is somewhat ordered or random
-        return cands.slice(0, 2).map(c => c['漢字']);
-    };
+        const baseKata = toKata(baseReading);
 
-    let generatedExamples = new Set();
+        // Search for Kanji that matches this base reading
+        let matches = master.filter(k => toKata(k['読み']) === baseKata);
 
-    for (let p of parts) {
-        if (count >= 3) break;
+        // If few matches, try fuzzy? No, stick to exact for base.
 
-        let segs = p;
-        if (segs.length === 1) {
-            const ks = findKanji(segs[0]);
-            ks.forEach(k => generatedExamples.add(k));
-        } else {
-            const k1s = findKanji(segs[0]);
-            const k2s = findKanji(segs[1]);
+        // Sort by commonality/score
+        if (typeof calculateKanjiScore === 'function') {
+            matches.forEach(k => k.score = calculateKanjiScore(k));
+            matches.sort((a, b) => b.score - a.score);
+        }
 
-            if (k1s.length > 0 && k2s.length > 0) {
-                generatedExamples.add(`${k1s[0]}${k2s[0]}`);
-                if (k1s[1] && k2s[1]) generatedExamples.add(`${k1s[1]}${k2s[1]}`);
-            }
+        grid.innerHTML = '';
+        matches.slice(0, 15).forEach(k => {
+            const btn = document.createElement('button');
+            btn.className = 'aspect-square bg-white rounded-xl shadow-sm border border-[#ede5d8] text-3xl font-black text-[#5d5444] hover:border-[#bca37f] hover:bg-[#fffbeb] active:scale-95 transition-all';
+            btn.innerText = k['漢字'];
+            btn.onclick = () => decideBaseKanji(k, baseReading);
+            grid.appendChild(btn);
+        });
+
+        if (matches.length === 0) {
+            grid.innerHTML = '<div class="col-span-3 text-sm text-[#d4c5af]">候補が見つかりませんでした</div>';
+        }
+    }, 100);
+}
+
+function decideBaseKanji(kanjiObj, reading) {
+    console.log("FLOW: Base Kanji decided", kanjiObj);
+
+    // Store this decision
+    // We want to lock this Kanji for the specific part of the name.
+    // Segments calculation needed.
+    // Example: Name "Ha-ru-to". Base "Ha-ru".
+    // We lock "Ha-ru" -> "春".
+
+    // Update global liked array to pre-fill?
+    // Need to know which segment index corresponds to the base.
+
+    // First, let's process the full reading (selectedReadingForTomeji) into segments.
+    // Then find the segment(s) matching the base.
+
+    const fullReading = selectedReadingForTomeji;
+    const nameInput = document.getElementById('in-name');
+    if (nameInput) nameInput.value = fullReading;
+
+    // Trigger standard segment calculation
+    calcSegments();
+
+    // Now look at `segments` global
+    // e.g. ["はる", "と"] or ["は", "る", "と"]
+
+    // Try to match `reading` (base) to segments.
+    // 1. Exact match of a segment?
+    // 2. Combination of segments? (e.g. segments=["は","る"], base="はる" -> Difficult to lock 2 segments to 1 Kanji here unless we merge segments)
+
+    // If segments don't match base reading structure, we might need to FORCE segments.
+    // e.g. Base="はる", Full="はると". calcSegments might say ["は","る","と"].
+    // We want ["はる","と"] if user selected '春' (read as Haru).
+
+    // Check if the selected Kanji's reading matches the base perfectly.
+    // kanjiObj.reading usually covers it.
+
+    // Ideally, we force the segmentation to respect the base.
+    // But modifying `calcSegments` is risky.
+
+    // Simple approach:
+    // If `segments` contains the base reading as one chunk, lock it.
+    // If not, we just pass the info to the next screen (Main) and let user handle, or try to merge.
+
+    // Let's iterate segments and find match
+    let locked = false;
+    for (let i = 0; i < segments.length; i++) {
+        if (segments[i] === reading) {
+            // Found exact segment match!
+            // Lock it.
+            // Clear existing lock for this slot
+            const existingIdx = liked.findIndex(l => l.slot === i);
+            if (existingIdx > -1) liked.splice(existingIdx, 1);
+
+            liked.push({
+                ...kanjiObj,
+                slot: i,
+                sessionReading: uniqueId()
+            });
+            locked = true;
+            break;
         }
     }
 
-    if (generatedExamples.size === 0) return '<span class="text-xs text-[#d4c5af]">漢字例なし</span>';
+    if (!locked) {
+        // Fallback: The segmentation didn't produce the base reading as a single chunk.
+        // e.g. Base="はる", Segments=["は", "る", "と"].
+        // User wants "春(はる)" + "と".
+        // Use `forceSegments` logic? (Not available globally easily).
+        // For now, we just proceed. User might need to re-segment manually in scr-segment if available.
+        // Or we warn?
+        console.warn("FLOW: Could not lock base kanji to segments automatically.", segments, reading);
+    }
 
-    return Array.from(generatedExamples).slice(0, 3).map(ex =>
-        `<span class="text-lg font-bold mx-1">${ex}</span>`
-    ).join('');
+    // Proceed to Main Swipe (skip separate segment screen if possible, or go to it)
+    // "scr-vibe" is next usually.
+    changeScreen('scr-vibe');
 }
 
+function skipBaseKanji() {
+    const fullReading = selectedReadingForTomeji;
+    const nameInput = document.getElementById('in-name');
+    if (nameInput) nameInput.value = fullReading;
+    calcSegments();
+    changeScreen('scr-vibe');
+}
 
-/**
- * Helper: toKata
- */
-function toKata(str) {
-    if (!str) return '';
-    return str.replace(/[\u3041-\u3096]/g, function (match) {
-        var chr = match.charCodeAt(0) + 0x60;
-        return String.fromCharCode(chr);
-    });
+function closeNicknameList() {
+    document.getElementById('nickname-liked-list').classList.add('hidden');
 }
 
 /**
- * Touch Event Handling for Swipe
+ * Updated Physics for Nickname Card (mimic Main)
  */
-function initCardTouchEvents(card) {
+function initNicknameCardEvents(card) {
     let startX = 0;
     let currentX = 0;
     let isDragging = false;
-    const threshold = 100;
+    const threshold = 100; // Same as main? Main uses 120 or so.
 
-    const onStart = (x) => {
-        startX = x;
+    const onStart = (clientX, clientY) => {
+        startX = clientX;
         isDragging = true;
         card.style.transition = 'none';
         card.style.cursor = 'grabbing';
     };
 
-    const onMove = (x) => {
+    const onMove = (clientX, clientY) => {
         if (!isDragging) return;
-        currentX = x - startX;
-        const rotate = currentX * 0.05;
-        card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+        currentX = clientX - startX;
 
-        // Visual Feedback
-        if (currentX > 50) card.style.borderColor = '#81c995'; // Green for Like
-        else if (currentX < -50) card.style.borderColor = '#f28b82'; // Red for Nope
+        // Rotation physics similar to main
+        const rotate = currentX * 0.08;
+
+        card.style.transform = `translate(${currentX}px, ${Math.abs(currentX) * 0.05}px) rotate(${rotate}deg)`;
+
+        // Visual Feedback (Colors)
+        if (currentX > 50) card.style.borderColor = '#81c995'; // LIKE
+        else if (currentX < -50) card.style.borderColor = '#f28b82'; // NOPE
         else card.style.borderColor = '#ede5d8';
     };
 
     const onEnd = () => {
         if (!isDragging) return;
         isDragging = false;
-        card.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
         card.style.cursor = 'grab';
         card.style.borderColor = '#ede5d8';
 
@@ -442,133 +614,39 @@ function initCardTouchEvents(card) {
             nicknameSwipeAction('nope');
         } else {
             // Reset
-            card.style.transform = 'translateX(0) rotate(0)';
+            card.style.transition = 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+            card.style.transform = 'translate(0, 0) rotate(0)';
         }
+        currentX = 0;
     };
 
     // Touch
-    card.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX), { passive: true });
-    card.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX), { passive: true });
+    card.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     card.addEventListener('touchend', onEnd);
 
-    // Mouse (for desktop testing)
-    card.addEventListener('mousedown', (e) => onStart(e.clientX));
-    window.addEventListener('mousemove', (e) => { if (isDragging) onMove(e.clientX); });
-    window.addEventListener('mouseup', onEnd);
-}
+    // Mouse
+    card.addEventListener('mousedown', (e) => {
+        onStart(e.clientX, e.clientY);
+        e.preventDefault(); // Prevent text selection
+    });
 
-
-function nicknameSwipeAction(action) {
-    if (currentSwipeIndex >= generatedCandidates.length) return;
-
-    const container = document.getElementById('nickname-swipe-container');
-    const card = container.querySelector('.nickname-card');
-    if (!card) return;
-
-    let x = 0;
-    let r = 0;
-
-    if (action === 'like') {
-        x = 500; r = 20;
-        likedReadings.push(generatedCandidates[currentSwipeIndex]);
-    } else if (action === 'super') {
-        x = 0; r = 0;
-        // Super logic: Add to liked, maybe special flag
-        const item = generatedCandidates[currentSwipeIndex];
-        item.isSuper = true;
-        likedReadings.push(item);
-
-        // Fly up animation
-        card.style.transition = 'all 0.4s ease';
-        card.style.transform = 'translateY(-500px) scale(1.2)';
-        card.style.opacity = '0';
-
-        setTimeout(() => {
-            currentSwipeIndex++;
-            renderNicknameCard();
-        }, 300);
-        return;
-
-    } else {
-        x = -500; r = -20;
-    }
-
-    card.style.transition = 'all 0.4s ease';
-    card.style.transform = `translate(${x}px, 50px) rotate(${r}deg)`;
-    card.style.opacity = '0';
-
-    setTimeout(() => {
-        currentSwipeIndex++;
-        renderNicknameCard();
-    }, 300);
-}
-
-/**
- * 読み決定 -> 止め字選択へ
- */
-function confirmReading(reading) {
-    console.log(`FLOW: Confirmed reading ${reading}`);
-    selectedReadingForTomeji = reading;
-    selectedTomeji = null;
-
-    // 止め字（末尾文字）を抽出
-    // 後方一致で「まさはる」のような場合、「はる」全体を固定すべきか？
-    // シンプルに「最後の1文字」を提案するロジックにする
-    const lastChar = reading.slice(-1);
-    // よぉ、りゅう、など拗音対応が必要だが一旦簡易実装
-
-    // 画面遷移
-    changeScreen('scr-tomeji-selection');
-    initTomejiScreen(lastChar);
-}
-
-/**
- * 止め字画面初期化
- */
-function initTomejiScreen(char) {
-    const title = document.getElementById('tomeji-title');
-    const grid = document.getElementById('tomeji-grid');
-
-    title.innerText = `「${char}」の漢字`;
-    grid.innerHTML = '<div class="col-span-3 text-sm text-[#bca37f]">読み込み中...</div>';
-
-    // 漢字データ検索 (masterから)
-    setTimeout(() => {
-        if (!master) return;
-
-        // スコア順に検索
-        let candidates = master.filter(k => k['読み'] === char || k['読み'].includes(char)); // 簡易
-
-        // より正確な検索: その読みを持つもの
-        // masterには "読み": "アイ" のようにカタカナで入ってる場合と "あ" のようにひらがなの場合があるか確認が必要
-        // 01-core.jsを見ると toKata(k['読み']) === toKata(char) で比較すべき
-        const kataChar = toKata(char);
-
-        const matches = master.filter(k => {
-            // 読み文字数チェック（完全一致おすすめ）
-            // データ構造: k['読み'] は カタカナスペース区切り？ いえ、ひらがなかカタカナの文字列
-            return toKata(k['読み']) === kataChar;
-        });
-
-        // スコアソート等
-        if (typeof calculateKanjiScore === 'function') {
-            matches.forEach(k => k.score = calculateKanjiScore(k));
-            matches.sort((a, b) => b.score - a.score);
+    const mouseMoveHandler = (e) => { if (isDragging) onMove(e.clientX, e.clientY); };
+    const mouseUpHandler = () => {
+        if (isDragging) {
+            onEnd();
         }
+    };
 
-        grid.innerHTML = '';
-        matches.slice(0, 12).forEach(k => {
-            const btn = document.createElement('button');
-            btn.className = 'aspect-square bg-white rounded-xl shadow-sm border border-[#ede5d8] text-2xl font-black text-[#5d5444] hover:border-[#bca37f] hover:bg-[#fffbeb] active:scale-95';
-            btn.innerText = k['漢字'];
-            btn.onclick = () => decideTomeji(k, char);
-            grid.appendChild(btn);
-        });
+    // Bind window for mouse move/up to catch drag outside
+    window.addEventListener('mousemove', mouseMoveHandler);
+    window.addEventListener('mouseup', mouseUpHandler);
 
-        if (matches.length === 0) {
-            grid.innerHTML = '<div class="col-span-3 text-sm text-[#d4c5af]">候補が見つかりませんでした</div>';
-        }
-    }, 100);
+    // Cleanup helper (not strictly needed since cars remove, but good practice)
+    card._cleanup = () => {
+        window.removeEventListener('mousemove', mouseMoveHandler);
+        window.removeEventListener('mouseup', mouseUpHandler);
+    };
 }
 
 function showNicknameList() {
