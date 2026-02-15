@@ -728,20 +728,45 @@ function showFortuneRanking() {
         }));
         const fortune = FortuneLogic.calculate(surnameData, givArr);
         let score = 0;
-        if (fortune && fortune.so) {
-            if (fortune.so.res.label === '大吉') score += 1000;
-            else if (fortune.so.res.label === '吉') score += 500;
-            else if (fortune.so.res.label === '中吉') score += 250;
+        if (fortune) {
+            // 吉凶のスコア化関数
+            const getLuckScore = (label) => {
+                if (label === '大吉') return 1000;
+                if (label === '吉') return 500;
+                if (label === '中吉') return 300;
+                if (label === '小吉') return 100;
+                if (label === '末吉') return 50;
+                if (label === '凶') return -500;
+                if (label === '大凶') return -1000;
+                return 0;
+            };
 
-            if (fortune.so.val === 24) score += 500;
-            if (fortune.so.val === 31) score += 500;
-            if (fortune.so.val === 32) score += 500;
-            if (fortune.so.val === 15) score += 400;
-            if (fortune.so.val === 16) score += 400;
-            if (fortune.so.val === 21) score += 400;
+            // 五格の重み付け加算
+            // 総格(x2.0): 最も重要
+            // 人格(x1.5): 主運、性格、中年期
+            // 地格(x1.2): 初年運、基礎
+            // 外格(x1.0): 対人運
+            // 天格(x0.5): 祖先運（自分では変えられないため影響度低め）
+            score += getLuckScore(fortune.so.res.label) * 2.0;
+            score += getLuckScore(fortune.jin.res.label) * 1.5;
+            score += getLuckScore(fortune.chi.res.label) * 1.2;
+            score += getLuckScore(fortune.gai.res.label) * 1.0;
+            score += getLuckScore(fortune.ten.res.label) * 0.5;
+
+            // 三才配置（バランス）ボーナス
+            if (fortune.sansai) {
+                if (fortune.sansai.label === '大吉') score += 1500;
+                else if (fortune.sansai.label === '吉') score += 800;
+                else if (fortune.sansai.label === '中吉') score += 300;
+            }
+
+            // 特殊画数ボーナス（総格）
+            const val = fortune.so.val;
+            if ([15, 16, 21, 23, 24, 31, 32, 41, 45].includes(val)) score += 500;
         }
+
         const superCount = combo.pieces.filter(p => p.isSuper).length;
-        score += superCount * 200;
+        score += superCount * 100; // Superボーナスは少し控えめに
         return { combination: combo, fortune: fortune, score: score };
     });
     ranked.sort((a, b) => b.score - a.score);
