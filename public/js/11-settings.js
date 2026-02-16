@@ -128,7 +128,33 @@ function renderSettingsScreen() {
             </div>
             
             <div class="settings-divider-unified"></div>
-            
+
+            <!-- 夫婦シェア -->
+            <div class="settings-item-unified" onclick="shareData()">
+                <div class="item-icon-circle" style="background: #ecfdf5;">
+                    <span style="color: #34d399;">💑</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">パートナーに共有</div>
+                    <div class="item-value-unified">ストック・保存済みを送る</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <!-- データを受け取る -->
+            <div class="settings-item-unified" onclick="receiveSharedData()">
+                <div class="item-icon-circle" style="background: #ede9fe;">
+                    <span style="color: #8b5cf6;">📥</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">データを受け取る</div>
+                    <div class="item-value-unified">パートナーのデータを取り込む</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <div class="settings-divider-unified"></div>
+
             <!-- 履歴・保存済み -->
             <div class="settings-item-unified" onclick="openHistory()">
                 <div class="item-icon-circle" style="background: #fef3f2;">
@@ -337,6 +363,8 @@ function editFortunePriority() {
  */
 function resetToTop() {
     if (confirm('最初の画面に戻りますか？\n現在のストックは保持されます。')) {
+        // NOPEリストをリセット（最初から選び直す）
+        if (typeof noped !== 'undefined') noped.clear();
         changeScreen('scr-mode');
     }
 }

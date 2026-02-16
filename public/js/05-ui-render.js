@@ -403,6 +403,30 @@ async function showKanjiDetail(data) {
         }
     }
 
+    // AI生成ボタン
+    const existingAiBtn = modal.querySelector('#btn-ai-kanji-detail');
+    if (existingAiBtn) existingAiBtn.remove();
+
+    // 現在の読み（名乗り）を特定
+    const currentReadingForAI = segments && segments[currentPos] ? segments[currentPos] : null;
+
+    const aiSection = document.createElement('div');
+    aiSection.id = 'btn-ai-kanji-detail';
+    aiSection.className = 'mb-4';
+    aiSection.innerHTML = `
+        <button onclick="generateKanjiDetail('${data['漢字']}', ${currentReadingForAI ? `'${currentReadingForAI}'` : 'null'})"
+                class="w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
+            <span>🤖</span> AIで漢字の成り立ち・意味を深掘り
+        </button>
+        <div id="ai-kanji-result" class="mt-3"></div>
+    `;
+
+    // 四字熟語の上に挿入
+    const yojiWrapper = yojijukugoEl.parentNode;
+    if (yojiWrapper && yojiWrapper.parentNode) {
+        yojiWrapper.parentNode.insertBefore(aiSection, yojiWrapper);
+    }
+
     // 四字熟語・ことわざ表示
     if (window.idiomsData && window.idiomsData.length > 0) {
         const kanji = data['漢字'];

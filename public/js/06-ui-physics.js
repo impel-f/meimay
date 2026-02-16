@@ -146,6 +146,11 @@ function executeSwipe(dir, data) {
     el.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
     el.classList.add('swipe-' + dir);
     
+    // NOPEの場合はnopedセットに追加
+    if (data && dir === 'left') {
+        noped.add(data['漢字']);
+    }
+
     // データ処理（左以外はストック）
     if (data && dir !== 'left') {
         // 重複チェック：既に同じ漢字が同じスロットに存在しないか確認

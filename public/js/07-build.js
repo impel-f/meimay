@@ -889,6 +889,8 @@ function reselectSlot(slotIdx) {
         const toRemove = [];
         liked.forEach(item => { if (item.slot === slotIdx) toRemove.push(item['漢字']); });
         toRemove.forEach(kanji => seen.delete(kanji));
+        // NOPEリストもリセット（選び直し時）
+        if (typeof noped !== 'undefined') noped.clear();
 
         // 組み立て済み名前を削除
         currentBuildResult = {

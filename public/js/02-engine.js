@@ -243,36 +243,53 @@ function loadStack() {
         }
 
         // ユーザー要望：戻った時に、そのターンで選んだ（ストック済み）漢字は候補に出さない
-        // これにより、他の候補を探しやすくなる
         const alreadyLiked = liked.some(l => l.slot == currentPos && l['漢字'] === k['漢字']);
         if (alreadyLiked) {
             console.log(`ENGINE: Skipping ${k['漢字']} because it is already liked at slot ${currentPos}`);
             return false;
         }
 
-        // 読みデータの取得
-        const readings = (k['音'] + ',' + k['訓'] + ',' + k['伝統名のり'])
+        // NOPEした漢字は出さない（最初から選び直し時にリセット）
+        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) {
+            return false;
+        }
+
+        // 読みデータの取得（メジャー/マイナー区分）
+        const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
             .split(/[、,，\s/]+/)
             .map(x => toHira(x))
             .filter(x => x);
+        const minorReadings = (k['伝統名のり'] || '')
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x))
+            .filter(x => x);
+        const readings = [...majorReadings, ...minorReadings];
 
         // 読みマッチング判定
-        // 連濁対応：入力が「ぞら」でも「そら」（清音）の読みを持つ漢字をヒットさせる
-        // ただし、優先順位をつける： 完全一致 > 清音化一致 > 部分一致
+        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
 
-        const isExact = readings.includes(target);
+        const isMajorExact = majorReadings.includes(target);
+        const isMinorExact = minorReadings.includes(target);
+        const isExact = isMajorExact || isMinorExact;
         const isSeionMatch = target !== targetSeion && readings.includes(targetSeion);
         const isPartial = readings.some(r => r.startsWith(target)) || readings.some(r => r.startsWith(targetSeion));
 
-        if (isExact) {
-            k.priority = 1;
+        if (isMajorExact) {
+            k.priority = 1;      // メジャー読み完全一致（最優先）
+            k.readingTier = 1;
+        } else if (isMinorExact) {
+            k.priority = 1;      // マイナー（名乗り）完全一致
+            k.readingTier = 2;   // メジャーの後に表示
         } else if (isSeionMatch) {
             k.priority = 2;
+            k.readingTier = 3;
         } else if (isPartial) {
             k.priority = 3;
+            k.readingTier = 4;
         } else {
             k.priority = 0;
+            k.readingTier = 99;
         }
 
         // ルールに応じてフィルタ
@@ -318,14 +335,19 @@ function loadStack() {
         if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
     });
 
-    // 優先度でソート
+    // 優先度でソート（メジャー/マイナー区分対応）
     stack.sort((a, b) => {
         // 々（繰り返し記号）は最優先
         if (a['漢字'] === '々') return -1;
         if (b['漢字'] === '々') return 1;
 
-        // まず読みの優先度 (1:完全一致, 2:部分一致)
+        // まず読みの優先度 (1:完全一致, 2:清音一致, 3:部分一致)
         if (a.priority !== b.priority) return a.priority - b.priority;
+
+        // 同じpriority内でメジャー/マイナー区分（readingTier）
+        const tierA = a.readingTier || 99;
+        const tierB = b.readingTier || 99;
+        if (tierA !== tierB) return tierA - tierB;
 
         // 次に総合スコア（降順）
         return b.score - a.score;

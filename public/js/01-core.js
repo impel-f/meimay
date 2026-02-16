@@ -9,6 +9,7 @@ let segments = [];
 let currentPos = 0;
 let liked = [];
 let seen = new Set();
+let noped = new Set(); // NOPEした漢字を記録（スタック再生成時にフィルタ）
 let validReadingsSet = new Set();
 let rule = 'strict';
 let stack = [];
@@ -162,6 +163,18 @@ function changeScreen(id) {
     } else {
         console.error(`CORE: Screen not found: ${id}`);
         return;
+    }
+
+    // 右上フローティング履歴ボタンの表示制御
+    const historyFloat = document.getElementById('btn-history-float');
+    if (historyFloat) {
+        // スワイプ画面・モーダル系・フッター表示画面では非表示
+        const hideHistoryScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal'];
+        if (hideHistoryScreens.includes(id)) {
+            historyFloat.classList.add('hidden');
+        } else {
+            historyFloat.classList.remove('hidden');
+        }
     }
 
     // フッターの表示制御

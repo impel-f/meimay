@@ -21,9 +21,9 @@
 
 <body>
 
-    <button onclick="openHistory()"
-        class="fixed top-6 right-6 z-50 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center text-2xl hover:scale-110 transition-transform"
-        style="border: 2px solid #eee5d8;">
+    <button id="btn-history-float" onclick="openHistory()"
+        class="fixed top-4 right-4 z-40 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center text-lg hover:scale-110 transition-all"
+        style="border: 1.5px solid #eee5d8;">
         📚
     </button>
 
@@ -60,12 +60,23 @@
                         </div>
                     </button>
 
+                    <button onclick="startMode('sound')"
+                        class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-base text-[#5d5444] font-black">響きから選ぶ</div>
+                                <div class="text-[10px] text-[#a6967a]">名前の響きをスワイプで発見</div>
+                            </div>
+                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🎵</div>
+                        </div>
+                    </button>
+
                     <button onclick="startMode('free')"
                         class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
                         <div class="flex justify-between items-center">
                             <div>
                                 <div class="text-base text-[#5d5444] font-black">自由に探す</div>
-                                <div class="text-[10px] text-[#a6967a]">カタログから直感で</div>
+                                <div class="text-[10px] text-[#a6967a]">漢字を直感でスワイプ</div>
                             </div>
                             <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">✨</div>
                         </div>
@@ -75,16 +86,28 @@
 
             <div class="w-full max-w-sm px-6 mb-2">
                 <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">▼ その他</div>
-                <button onclick="startMode('diagnosis')"
-                    class="w-full group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
-                    <div class="flex justify-between items-center">
-                        <div>
-                            <div class="text-base text-[#5d5444] font-black">姓名判断・診断</div>
-                            <div class="text-[10px] text-[#a6967a]">名前の運勢を確認</div>
+                <div class="grid grid-cols-1 gap-3">
+                    <button onclick="openKanjiSearch()"
+                        class="w-full group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-base text-[#5d5444] font-black">漢字を検索・絞り込み</div>
+                                <div class="text-[10px] text-[#a6967a]">イメージや読みで検索</div>
+                            </div>
+                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🔎</div>
                         </div>
-                        <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🔮</div>
-                    </div>
-                </button>
+                    </button>
+                    <button onclick="startMode('diagnosis')"
+                        class="w-full group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-base text-[#5d5444] font-black">姓名判断・診断</div>
+                                <div class="text-[10px] text-[#a6967a]">名前の運勢を確認</div>
+                            </div>
+                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🔮</div>
+                        </div>
+                    </button>
+                </div>
             </div>
 
             <!-- History/Stock on Top -->
@@ -98,7 +121,7 @@
                     📚 履歴を見る
                 </button>
             </div>
-            <div class="absolute top-4 right-4 text-[10px] text-[#bca37f] font-mono font-bold">v15.2</div>
+            <div class="absolute top-4 right-4 text-[10px] text-[#bca37f] font-mono font-bold">v16.0</div>
         </div>
     </div>
 
@@ -299,6 +322,33 @@
                     <span id="free-stock-badge"
                         class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center hidden">0</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanji Search/Filter Screen -->
+    <div id="scr-kanji-search" class="screen">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+            <div class="flex items-center gap-3 mb-4">
+                <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
+            </div>
+
+            <!-- Search Input -->
+            <div class="flex gap-2 mb-3">
+                <input type="text" id="kanji-search-input" placeholder="読み・漢字・意味で検索"
+                    class="flex-1 px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
+                    oninput="executeKanjiSearch()">
+            </div>
+
+            <!-- Image Tag Filter -->
+            <div id="kanji-search-tags" class="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+                <!-- JS populated -->
+            </div>
+
+            <!-- Results -->
+            <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-32 overflow-y-auto flex-1 content-start">
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">検索キーワードを入力してください</div>
             </div>
         </div>
     </div>
@@ -1034,7 +1084,6 @@
     <!-- Module 02.5: Generator -->
     <script src="js/engine_v2_generator.js"></script>
 
-    <script src="js/engine_v2_generator.js"></script>
     <script src="js/01-core.js"></script>
     <script src="/js/02-engine.js?v=15.5"></script>
     <script src="/js/03-fortune.js?v=15.5"></script>
