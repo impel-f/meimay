@@ -300,8 +300,12 @@ function processNickname() {
         },
         onNext: (selectedItems) => {
             selectedNicknames = selectedItems;
-            console.log("Next: Base Kanji with", selectedItems);
-            startBaseKanjiSwipe(nicknameBaseReading);
+            console.log("Next: Confirm Reading", selectedItems[0]);
+            // Currently taking the first one to proceed to standard flow
+            // Future: Support batch creation or selection from list
+            if (selectedItems.length > 0) {
+                confirmReading(selectedItems[0].reading);
+            }
         }
     });
 }
@@ -336,160 +340,12 @@ let selectedBaseKanjis = [];
 /**
  * BASE KANJI SWIPE (Step 2)
  */
-function startBaseKanjiSwipe(baseReading) {
-    if (!master) return;
-    const baseHira = toHira(baseReading);
+// REMOVED startBaseKanjiSwipe
+// REMOVED startTomejiSwipe
 
-    let matches = master.filter(k => {
-        const arr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
-        const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
-        return splits.includes(baseHira);
-    });
 
-    const priorities = COMMON_KANJI_MAP[baseHira] || [];
-    matches.forEach(k => {
-        k.priorityScore = 0;
-        if (priorities.includes(k['漢字'])) k.priorityScore = 100 + (10 - priorities.indexOf(k['漢字']));
-    });
-    matches.sort((a, b) => b.priorityScore - a.priorityScore);
+// REMOVED buildAndShowResults
 
-    startUniversalSwipe('base', matches, {
-        title: 'ベース漢字をえらぶ',
-        subtitle: `「${baseReading}」の漢字候補`,
-        renderCard: (item) => {
-            let placeholder = "〇";
-            let mainHtml = '';
-            if (nicknamePosition === 'prefix') {
-                mainHtml = `<span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span><span class="text-6xl font-bold text-[#d4c5af] opacity-50">${placeholder}</span>`;
-            } else {
-                mainHtml = `<span class="text-6xl font-bold text-[#d4c5af] opacity-50">${placeholder}</span><span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span>`;
-            }
-
-            return `
-                <div class="flex flex-col items-center gap-4">
-                    <div class="flex items-end justify-center gap-2 mb-4">
-                        ${mainHtml}
-                    </div>
-                     <div class="mt-8 px-6 text-center">
-                        <p class="text-xs text-[#a6967a]">意味・イメージ</p>
-                        <p class="text-sm text-[#5d5444] mt-1 font-bold">${item['意味'] || '（意味データなし）'}</p>
-                    </div>
-                </div>
-            `;
-        },
-        onNext: (selectedItems) => {
-            selectedBaseKanjis = selectedItems;
-            startTomejiSwipe();
-        }
-    });
-}
-
-/**
- * TOMEJI SWIPE (Step 3 - Mixed)
- */
-function startTomejiSwipe() {
-    let endings = new Set();
-    selectedNicknames.forEach(n => {
-        if (n.reading.startsWith(nicknameBaseReading)) {
-            endings.add(n.reading.substring(nicknameBaseReading.length));
-        } else if (n.reading.endsWith(nicknameBaseReading)) {
-            endings.add(n.reading.substring(0, n.reading.length - nicknameBaseReading.length));
-        }
-    });
-
-    let mixedCandidates = [];
-    endings.forEach(ending => {
-        const hira = toHira(ending);
-        let matches = master.filter(k => {
-            const arr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
-            const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
-            return splits.includes(hira);
-        });
-
-        const priorities = COMMON_KANJI_MAP[hira] || [];
-        matches.forEach(k => {
-            k.priorityScore = 0;
-            if (priorities.includes(k['漢字'])) k.priorityScore = 100;
-            k.targetReadings = [ending];
-        });
-        matches.sort((a, b) => b.priorityScore - a.priorityScore);
-        mixedCandidates.push(...matches.slice(0, 10)); // Top 10 per ending
-    });
-
-    mixedCandidates.sort(() => Math.random() - 0.5); // Shuffle
-
-    startUniversalSwipe('tomeji', mixedCandidates, {
-        title: '組み合わせの漢字（止め字）',
-        subtitle: '選んだ響きに合う漢字をミックスして提案',
-        renderCard: (item) => {
-            const readingsStr = item.targetReadings.join(',');
-            const randomBase = selectedBaseKanjis[Math.floor(Math.random() * selectedBaseKanjis.length)];
-            const baseChar = randomBase ? randomBase['漢字'] : '〇';
-
-            let mainHtml = '';
-            if (nicknamePosition === 'prefix') {
-                mainHtml = `<span class="text-6xl font-bold text-[#d4c5af] opacity-50">${baseChar}</span><span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span>`;
-            } else {
-                mainHtml = `<span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span><span class="text-6xl font-bold text-[#d4c5af] opacity-50">${baseChar}</span>`;
-            }
-
-            return `
-                <div class="flex flex-col items-center gap-4">
-                     <div class="flex items-end justify-center gap-2 mb-4">
-                        ${mainHtml}
-                    </div>
-                     <div class="mt-4 px-6 text-center">
-                        <p class="text-xs text-[#a6967a] mb-1">読み: ${readingsStr}</p>
-                        <p class="text-xs text-[#a6967a]">意味・イメージ</p>
-                        <p class="text-sm text-[#5d5444] mt-1 font-bold">${item['meaning'] || item['意味'] || ''}</p>
-                    </div>
-                </div>
-            `;
-        },
-        onNext: (selectedItems) => {
-            buildAndShowResults(selectedBaseKanjis, selectedItems);
-        }
-    });
-}
-
-function buildAndShowResults(bases, endings) {
-    let results = [];
-    bases.forEach(baseK => {
-        endings.forEach(endK => {
-            const endReadings = endK.targetReadings || [];
-            endReadings.forEach(r => {
-                let fullReading = '';
-                let fullName = '';
-                if (nicknamePosition === 'prefix') {
-                    fullReading = nicknameBaseReading + r;
-                    fullName = baseK['漢字'] + endK['漢字'];
-                } else {
-                    fullReading = r + nicknameBaseReading;
-                    fullName = endK['漢字'] + baseK['漢字'];
-                }
-                const isValidNick = selectedNicknames.some(sn => sn.reading === fullReading);
-                if (isValidNick) {
-                    results.push({
-                        fullName: fullName,
-                        reading: fullReading,
-                        baseKanji: baseK,
-                        endKanji: endK
-                    });
-                }
-            });
-        });
-    });
-
-    // Show in Stock directly?
-    liked = [];
-    // We need to adapt `liked` structure to be compatible with `scr-build` or `scr-stock`.
-    // Meimay core usually uses `liked` as segments.
-    // Here we have full names.
-    // Let's just push to `savedNames` or show a simple result list.
-    // Using Alert for now as requested by plan, or simple log.
-    alert(`生成完了！ ${results.length}件の候補ができました。\n例: ${results.slice(0, 3).map(r => r.fullName + '(' + r.reading + ')').join(', ')}`);
-    console.log(results);
-}
 // UI ACTIONS
 
 function renderUniversalCard() {
