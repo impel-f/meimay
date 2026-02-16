@@ -215,122 +215,66 @@
         </div>
     </div>
 
-    <!-- NEW: Nickname Expansion Swipe -->
-    <div id="scr-nickname-swipe" class="screen">
+    <!-- UNIVERSAL SWIPE SCREEN -->
+    <div id="scr-swipe-universal" class="screen">
         <div
             class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
 
-            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-4">響きをひろげる</h2>
-            <p class="text-[10px] text-[#bca37f] mb-4">気になる響きを右へスワイプ！</p>
+            <!-- Header (Dynamic) -->
+            <h2 id="uni-swipe-title" class="text-lg font-bold mb-2 text-[#8b7e66] mt-4"></h2>
+            <p id="uni-swipe-subtitle" class="text-[10px] text-[#bca37f] mb-4"></p>
 
             <!-- Main Card Container -->
-            <div id="nickname-swipe-container"
+            <div id="uni-swipe-container"
                 class="relative flex-1 bg-[#fffaf0] rounded-3xl border border-[#ede5d8] overflow-hidden mb-4">
                 <!-- Cards injected here -->
-                <div id="nickname-swipe-msg"
+                <div id="uni-swipe-msg"
                     class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
                     <div class="text-center">
-                        <p class="mb-2">10件チェックしました！</p>
-                        <button onclick="showNicknameList()"
-                            class="btn-gold px-6 py-2 shadow-md mb-3 text-sm">リストを確認</button>
-                        <button onclick="continueNicknameSwipe()"
-                            class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5">もっと見る</button>
+                        <p class="mb-4">チェック完了！</p>
+                        <button onclick="showUniversalList()" class="btn-gold px-6 py-3 shadow-md">リストを確認</button>
+                        <button onclick="continueUniversalSwipe()" id="uni-swipe-continue-btn"
+                            class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-4 block mx-auto">もっと見る</button>
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-center gap-6 mb-4 items-center">
-                <button onclick="nicknameSwipeAction('nope')"
+                <button onclick="universalSwipeAction('nope')"
                     class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-md bg-white">✕</button>
-                <button onclick="nicknameSwipeAction('super')"
+                <button onclick="universalSwipeAction('super')"
                     class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-md bg-white">★</button>
-                <button onclick="nicknameSwipeAction('like')"
+                <button onclick="universalSwipeAction('like')"
                     class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
             </div>
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between px-4 pb-2">
-                <button onclick="undoNicknameSwipe()"
+                <button onclick="undoUniversalSwipe()"
                     class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
                     <span class="text-lg">↩</span> 戻る
                 </button>
-                <button onclick="showNicknameList()"
+                <button onclick="showUniversalList()"
                     class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
                     リストを見る <span class="text-lg">→</span>
                 </button>
             </div>
 
-            <!-- List of liked readings -->
-            <div id="nickname-liked-list"
-                class="hidden absolute inset-0 bg-white z-50 rounded-[40px] flex flex-col p-6">
-                <h3 class="text-lg font-bold text-[#8b7e66] mb-2">候補リスト</h3>
-                <p class="text-xs text-[#a6967a] mb-4">選択した読みから漢字を決めます。<br>まず「ベース（元の呼び名）」の漢字を選びましょう。</p>
+            <!-- Universal List Modal -->
+            <div id="uni-liked-list" class="hidden absolute inset-0 bg-white z-50 rounded-[40px] flex flex-col p-6">
+                <h3 id="uni-list-title" class="text-lg font-bold text-[#8b7e66] mb-2">候補リスト</h3>
+                <p id="uni-list-desc" class="text-xs text-[#a6967a] mb-4">複数選択できます</p>
 
-                <div id="nickname-candidates-grid"
-                    class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-20">
-                    <!-- Buttons -->
+                <div id="uni-candidates-grid" class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-20">
+                    <!-- Buttons generated dynamically -->
                 </div>
+
                 <div class="flex gap-4 mt-4">
-                    <button onclick="resetNicknameSwipe()" class="text-sm text-[#bca37f] flex-1">やり直す</button>
-                    <button onclick="closeNicknameList()"
-                        class="text-sm text-[#8b7e66] font-bold border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5] flex-1">閉じる</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- NEW: Base Kanji Selection (Swipe Version) -->
-    <div id="scr-base-kanji-swipe" class="screen">
-        <div
-            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
-            <h2 class="text-lg font-bold mb-2 text-[#8b7e66] mt-4">漢字をえらぶ</h2>
-            <p class="text-[10px] text-[#bca37f] mb-4">
-                「<span id="base-kanji-target-reading" class="font-bold text-[#8b7e66]"></span>」の漢字を決めています
-            </p>
-
-            <div id="kanji-swipe-container"
-                class="relative flex-1 bg-[#fffaf0] rounded-3xl border border-[#ede5d8] overflow-hidden mb-4">
-                <!-- Cards injected here -->
-                <div id="kanji-swipe-msg"
-                    class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
-                    <div class="text-center">
-                        <p class="mb-4">候補を一通り見ました</p>
-                        <button onclick="showKanjiList()" class="btn-gold px-6 py-3 shadow-md">決定・リストを見る</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-center gap-6 mb-4 items-center">
-                <button onclick="kanjiSwipeAction('nope')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-md bg-white">✕</button>
-                <button onclick="kanjiSwipeAction('super')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-md bg-white">★</button>
-                <button onclick="kanjiSwipeAction('like')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
-            </div>
-
-            <div class="flex justify-between px-4 pb-2">
-                <button onclick="undoKanjiSwipe()"
-                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    <span class="text-lg">↩</span> 戻る
-                </button>
-                <button onclick="showKanjiList()"
-                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    リストを見る <span class="text-lg">→</span>
-                </button>
-            </div>
-
-            <!-- List of liked kanji -->
-            <div id="kanji-liked-list" class="hidden absolute inset-0 bg-white z-50 rounded-[40px] flex flex-col p-6">
-                <h3 class="text-lg font-bold text-[#8b7e66] mb-2">キープした漢字</h3>
-                <div id="kanji-candidates-grid"
-                    class="flex-1 overflow-y-auto grid grid-cols-3 gap-3 content-start pb-20">
-                    <!-- Buttons -->
-                </div>
-                <div class="flex gap-4 mt-4">
-                    <button onclick="resetKanjiSwipe()" class="text-sm text-[#bca37f] flex-1">やり直す</button>
-                    <button onclick="closeKanjiList()"
-                        class="text-sm text-[#8b7e66] font-bold border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5] flex-1">閉じる</button>
+                    <button onclick="resetUniversalSwipe()" class="text-sm text-[#bca37f] flex-1">リセット</button>
+                    <button onclick="closeUniversalList()"
+                        class="text-sm text-[#8b7e66] border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5]">閉じる</button>
+                    <button onclick="submitUniversalSelection()"
+                        class="text-sm text-white font-bold bg-[#8b7e66] px-6 py-2 rounded-lg flex-[2] shadow-md">次へ</button>
                 </div>
             </div>
 

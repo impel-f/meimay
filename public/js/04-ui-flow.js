@@ -200,13 +200,45 @@ function goBack() {
  * ニックネーム処理
  */
 /**
- * ニックネーム処理 (V2: Expansion Flow)
+ * ニックネーム処理 (V4: Universal Controller)
  */
-let generatedCandidates = [];
-let likedReadings = [];
-let currentSwipeIndex = 0;
-let nicknameBaseReading = ""; // "はる" (from input)
-let nicknamePosition = "prefix"; // "prefix" or "suffix"
+
+// ==========================================
+// UNIVERSAL SWIPE CONTROLLER
+// ==========================================
+
+const SwipeState = {
+    mode: 'none', // 'nickname', 'base', 'tomeji'
+    candidates: [],
+    currentIndex: 0,
+    liked: [], // Items liked in this session
+    selected: [], // Items selected from the list (for multi-select)
+    history: [], // For undo
+    config: {} // { title, subtitle, renderCard, onNext }
+};
+
+// Common Kanji Map
+const COMMON_KANJI_MAP = {
+    'はる': ['春', '晴', '陽', '遥', '悠', '暖', '大'],
+    'まさ': ['雅', '正', '昌', '真', '将', '政'],
+    'よし': ['義', '吉', '良', '佳', '芳', '慶'],
+    'たか': ['隆', '貴', '孝', '高', '尊', '崇'],
+    'ひろ': ['広', '博', '弘', '寛', '大', '洋'],
+    'かず': ['和', '一', '知', '数', '員'],
+    'ゆ': ['結', '優', '友', '有', '悠', '由'],
+    'な': ['菜', '奈', '那', '名', '凪', '南'],
+    'み': ['美', '実', '未', '海', '心', '水'],
+    'か': ['花', '香', '果', '佳', '華', '夏'],
+    'り': ['莉', '里', '理', '梨', '璃', '利'],
+    'あ': ['愛', 'あ', '亜', '安', '明'],
+    'ま': ['真', '麻', '舞', '万', '茉'],
+    'さ': ['咲', '沙', '紗', '彩', '早'],
+    'き': ['希', '季', '稀', '紀', '喜'],
+    'と': ['斗', '人', '翔', '都', '登']
+};
+
+let nicknameBaseReading = ""; // "はる"
+let nicknamePosition = "prefix";
 
 function processNickname() {
     const el = document.getElementById('in-nickname');
@@ -217,10 +249,7 @@ function processNickname() {
         return;
     }
 
-    // ちゃん、くん、さん 等を除去
     val = val.replace(/(ちゃん|くん|さん|たん|りん)$/g, '');
-
-    // ひらがな化
     val = toHira(val);
     if (!val) {
         alert('読みが正しく判定できませんでした');
@@ -229,7 +258,6 @@ function processNickname() {
 
     nicknameBaseReading = val;
 
-    // 位置取得
     const posRadios = document.getElementsByName('nickname-pos');
     let pos = 'prefix';
     for (let r of posRadios) if (r.checked) pos = r.value;
@@ -237,113 +265,439 @@ function processNickname() {
 
     console.log(`FLOW: Nickname ${val}, Pos ${pos}, Gender ${gender}`);
 
-    // 候補生成
     if (typeof generateNameCandidates !== 'function') {
         alert("Generator module not loaded.");
         return;
     }
 
-    generatedCandidates = generateNameCandidates(val, gender, pos);
+    const candidates = generateNameCandidates(val, gender, pos);
 
-    if (generatedCandidates.length === 0) {
+    if (candidates.length === 0) {
         alert('候補が見つかりませんでした。別の読みを試してください。');
         return;
     }
 
-    // スワイプ画面初期化
-    startNicknameSwipe();
-}
-
-/**
- * 読みスワイプ開始
- */
-function startNicknameSwipe() {
-    currentSwipeIndex = 0;
-    nicknameActionHistory = []; // Reset history
-    // Don't clear likedReadings if we are continuing? 
-    // Usually start fresh unless "continue" mode. 
-    // But nickname flow is simple linear.
-    if (likedReadings.length > 0 && confirm("前の選択をクリアして最初から始めますか？")) {
-        likedReadings = [];
-    } else if (likedReadings.length === 0) {
-        likedReadings = [];
-    }
-
-    changeScreen('scr-nickname-swipe');
-    updateNicknameCounters();
-    renderNicknameCard();
-
-    // リスト画面を隠す
-    document.getElementById('nickname-liked-list').classList.add('hidden');
-    document.getElementById('nickname-swipe-msg').classList.add('hidden');
-}
-
-function updateNicknameCounters() {
-    const elLeft = document.getElementById('nickname-swipe-count');
-    const elStock = document.getElementById('nickname-stock-count');
-
-    // Show remaining in current "batch" of 10? OR Total?
-    // User wants "10個聞いたら進むか続けるか聞いて" -> 10 item batch.
-
-    const BATCH_SIZE = 10;
-    const currentBatchCount = currentSwipeIndex % BATCH_SIZE;
-    const remainingInBatch = BATCH_SIZE - currentBatchCount;
-
-    if (elLeft) elLeft.innerText = remainingInBatch;
-    if (elStock) elStock.innerText = likedReadings.length;
-}
-
-/**
- * 読みカード表示
- */
-function renderNicknameCard() {
-    const container = document.getElementById('nickname-swipe-container');
-    const cards = container.querySelectorAll('.nickname-card');
-    cards.forEach(c => c.remove());
-
-    updateNicknameCounters();
-
-    // Check if we hit the batch limit (every 10 items)
-    if (currentSwipeIndex > 0 && currentSwipeIndex % 10 === 0) {
-        showNicknameBatchLimitModal();
-        return;
-    }
-
-    if (currentSwipeIndex >= generatedCandidates.length) {
-        showNicknameList();
-        return;
-    }
-
-    const item = generatedCandidates[currentSwipeIndex];
-
-    // Card Element
-    const card = document.createElement('div');
-    card.className = 'nickname-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
-    card.style.zIndex = 10;
-
-    // Example Kanji Generation
-    const exampleHtml = getSampleKanjiHtml(item);
-
-    card.innerHTML = `
-        <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
-            ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
-        </div>
-        <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
-        
-        <div class="w-full px-6">
-             <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
-                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
-                   ${exampleHtml}
+    // Config for Nickname Swipe
+    startUniversalSwipe('nickname', candidates, {
+        title: '響きをひろげる',
+        subtitle: `「${nicknameBaseReading}」をベースにした候補`,
+        renderCard: (item) => {
+            const exampleHtml = getSampleKanjiHtml(item);
+            return `
+                <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
+                    ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
                 </div>
-             </div>
+                <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
+                <div class="w-full px-6">
+                     <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
+                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                        <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
+                           ${exampleHtml}
+                        </div>
+                     </div>
+                </div>
+            `;
+        },
+        onNext: (selectedItems) => {
+            selectedNicknames = selectedItems;
+            console.log("Next: Base Kanji with", selectedItems);
+            startBaseKanjiSwipe(nicknameBaseReading);
+        }
+    });
+}
+
+
+/**
+ * START SWIPE
+ */
+function startUniversalSwipe(mode, candidates, configOverride = {}) {
+    console.log(`SWIPE: Starting mode ${mode} with ${candidates.length} items`);
+
+    // Reset State
+    SwipeState.mode = mode;
+    SwipeState.candidates = candidates;
+    SwipeState.currentIndex = 0;
+    SwipeState.liked = [];
+    SwipeState.selected = [];
+    SwipeState.history = [];
+    SwipeState.config = configOverride;
+
+    // UI Setup
+    document.getElementById('uni-swipe-title').innerText = configOverride.title || 'スワイプ';
+    document.getElementById('uni-swipe-subtitle').innerText = configOverride.subtitle || '';
+
+    changeScreen('scr-swipe-universal');
+    renderUniversalCard();
+}
+
+let selectedNicknames = [];
+let selectedBaseKanjis = [];
+
+/**
+ * BASE KANJI SWIPE (Step 2)
+ */
+function startBaseKanjiSwipe(baseReading) {
+    if (!master) return;
+    const baseHira = toHira(baseReading);
+
+    let matches = master.filter(k => {
+        const arr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
+        const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
+        return splits.includes(baseHira);
+    });
+
+    const priorities = COMMON_KANJI_MAP[baseHira] || [];
+    matches.forEach(k => {
+        k.priorityScore = 0;
+        if (priorities.includes(k['漢字'])) k.priorityScore = 100 + (10 - priorities.indexOf(k['漢字']));
+    });
+    matches.sort((a, b) => b.priorityScore - a.priorityScore);
+
+    startUniversalSwipe('base', matches, {
+        title: 'ベース漢字をえらぶ',
+        subtitle: `「${baseReading}」の漢字候補`,
+        renderCard: (item) => {
+            let placeholder = "〇";
+            let mainHtml = '';
+            if (nicknamePosition === 'prefix') {
+                mainHtml = `<span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span><span class="text-6xl font-bold text-[#d4c5af] opacity-50">${placeholder}</span>`;
+            } else {
+                mainHtml = `<span class="text-6xl font-bold text-[#d4c5af] opacity-50">${placeholder}</span><span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span>`;
+            }
+
+            return `
+                <div class="flex flex-col items-center gap-4">
+                    <div class="flex items-end justify-center gap-2 mb-4">
+                        ${mainHtml}
+                    </div>
+                     <div class="mt-8 px-6 text-center">
+                        <p class="text-xs text-[#a6967a]">意味・イメージ</p>
+                        <p class="text-sm text-[#5d5444] mt-1 font-bold">${item['意味'] || '（意味データなし）'}</p>
+                    </div>
+                </div>
+            `;
+        },
+        onNext: (selectedItems) => {
+            selectedBaseKanjis = selectedItems;
+            startTomejiSwipe();
+        }
+    });
+}
+
+/**
+ * TOMEJI SWIPE (Step 3 - Mixed)
+ */
+function startTomejiSwipe() {
+    let endings = new Set();
+    selectedNicknames.forEach(n => {
+        if (n.reading.startsWith(nicknameBaseReading)) {
+            endings.add(n.reading.substring(nicknameBaseReading.length));
+        } else if (n.reading.endsWith(nicknameBaseReading)) {
+            endings.add(n.reading.substring(0, n.reading.length - nicknameBaseReading.length));
+        }
+    });
+
+    let mixedCandidates = [];
+    endings.forEach(ending => {
+        const hira = toHira(ending);
+        let matches = master.filter(k => {
+            const arr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
+            const splits = arr.split(/[、,，\s/]+/).map(r => toHira(r));
+            return splits.includes(hira);
+        });
+
+        const priorities = COMMON_KANJI_MAP[hira] || [];
+        matches.forEach(k => {
+            k.priorityScore = 0;
+            if (priorities.includes(k['漢字'])) k.priorityScore = 100;
+            k.targetReadings = [ending];
+        });
+        matches.sort((a, b) => b.priorityScore - a.priorityScore);
+        mixedCandidates.push(...matches.slice(0, 10)); // Top 10 per ending
+    });
+
+    mixedCandidates.sort(() => Math.random() - 0.5); // Shuffle
+
+    startUniversalSwipe('tomeji', mixedCandidates, {
+        title: '組み合わせの漢字（止め字）',
+        subtitle: '選んだ響きに合う漢字をミックスして提案',
+        renderCard: (item) => {
+            const readingsStr = item.targetReadings.join(',');
+            const randomBase = selectedBaseKanjis[Math.floor(Math.random() * selectedBaseKanjis.length)];
+            const baseChar = randomBase ? randomBase['漢字'] : '〇';
+
+            let mainHtml = '';
+            if (nicknamePosition === 'prefix') {
+                mainHtml = `<span class="text-6xl font-bold text-[#d4c5af] opacity-50">${baseChar}</span><span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span>`;
+            } else {
+                mainHtml = `<span class="text-8xl font-black text-[#5d5444]">${item['漢字']}</span><span class="text-6xl font-bold text-[#d4c5af] opacity-50">${baseChar}</span>`;
+            }
+
+            return `
+                <div class="flex flex-col items-center gap-4">
+                     <div class="flex items-end justify-center gap-2 mb-4">
+                        ${mainHtml}
+                    </div>
+                     <div class="mt-4 px-6 text-center">
+                        <p class="text-xs text-[#a6967a] mb-1">読み: ${readingsStr}</p>
+                        <p class="text-xs text-[#a6967a]">意味・イメージ</p>
+                        <p class="text-sm text-[#5d5444] mt-1 font-bold">${item['meaning'] || item['意味'] || ''}</p>
+                    </div>
+                </div>
+            `;
+        },
+        onNext: (selectedItems) => {
+            buildAndShowResults(selectedBaseKanjis, selectedItems);
+        }
+    });
+}
+
+function buildAndShowResults(bases, endings) {
+    let results = [];
+    bases.forEach(baseK => {
+        endings.forEach(endK => {
+            const endReadings = endK.targetReadings || [];
+            endReadings.forEach(r => {
+                let fullReading = '';
+                let fullName = '';
+                if (nicknamePosition === 'prefix') {
+                    fullReading = nicknameBaseReading + r;
+                    fullName = baseK['漢字'] + endK['漢字'];
+                } else {
+                    fullReading = r + nicknameBaseReading;
+                    fullName = endK['漢字'] + baseK['漢字'];
+                }
+                const isValidNick = selectedNicknames.some(sn => sn.reading === fullReading);
+                if (isValidNick) {
+                    results.push({
+                        fullName: fullName,
+                        reading: fullReading,
+                        baseKanji: baseK,
+                        endKanji: endK
+                    });
+                }
+            });
+        });
+    });
+
+    // Show in Stock directly?
+    liked = [];
+    // We need to adapt `liked` structure to be compatible with `scr-build` or `scr-stock`.
+    // Meimay core usually uses `liked` as segments.
+    // Here we have full names.
+    // Let's just push to `savedNames` or show a simple result list.
+    // Using Alert for now as requested by plan, or simple log.
+    alert(`生成完了！ ${results.length}件の候補ができました。\n例: ${results.slice(0, 3).map(r => r.fullName + '(' + r.reading + ')').join(', ')}`);
+    console.log(results);
+}
+// UI ACTIONS
+
+function renderUniversalCard() {
+    const container = document.getElementById('uni-swipe-container');
+    container.innerHTML = `
+        <div id="uni-swipe-msg" class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
+             <div class="text-center">
+                <p class="mb-4">チェック完了！</p>
+                <button onclick="showUniversalList()" class="btn-gold px-6 py-3 shadow-md">リストを確認</button>
+                 <button onclick="continueUniversalSwipe()" class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-4 block mx-auto">もっと見る</button>
+            </div>
         </div>
     `;
 
+    if (SwipeState.currentIndex >= SwipeState.candidates.length) {
+        document.getElementById('uni-swipe-msg').classList.remove('hidden');
+        return;
+    }
+
+    const item = SwipeState.candidates[SwipeState.currentIndex];
+    const card = document.createElement('div');
+    card.className = 'uni-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
+    card.style.zIndex = 10;
+
+    // Render content
+    card.innerHTML = SwipeState.config.renderCard(item);
+
     container.appendChild(card);
 
-    // Attach Touch Events (Updated logic)
-    initNicknameCardEvents(card);
+    // Physics
+    initUniversalSwipePhysics(card);
+}
+
+function initUniversalSwipePhysics(card) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    const threshold = 100;
+
+    const onStart = (clientX, clientY) => {
+        startX = clientX;
+        isDragging = true;
+        card.style.transition = 'none';
+        card.style.cursor = 'grabbing';
+    };
+
+    const onMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        currentX = clientX - startX;
+        const rotate = currentX * 0.08;
+        card.style.transform = `translate(${currentX}px, ${Math.abs(currentX) * 0.05}px) rotate(${rotate}deg)`;
+
+        if (currentX > 50) card.style.borderColor = '#81c995';
+        else if (currentX < -50) card.style.borderColor = '#f28b82';
+        else card.style.borderColor = '#ede5d8';
+    };
+
+    const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        card.style.cursor = 'grab';
+        card.style.borderColor = '#ede5d8';
+
+        if (currentX > threshold) {
+            universalSwipeAction('like');
+        } else if (currentX < -threshold) {
+            universalSwipeAction('nope');
+        } else {
+            card.style.transition = 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
+            card.style.transform = 'translate(0, 0) rotate(0)';
+        }
+        currentX = 0;
+    };
+
+    card.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    card.addEventListener('touchend', onEnd);
+    card.addEventListener('mousedown', (e) => { onStart(e.clientX, e.clientY); e.preventDefault(); });
+    const mM = (e) => { if (isDragging) onMove(e.clientX, e.clientY); };
+    const mU = () => { if (isDragging) onEnd(); };
+    window.addEventListener('mousemove', mM);
+    window.addEventListener('mouseup', mU);
+    card._cleanup = () => { window.removeEventListener('mousemove', mM); window.removeEventListener('mouseup', mU); };
+}
+
+function universalSwipeAction(action) {
+    if (SwipeState.currentIndex >= SwipeState.candidates.length) return;
+
+    // Update data
+    const item = SwipeState.candidates[SwipeState.currentIndex];
+
+    if (action === 'like' || action === 'super') {
+        if (action === 'super') item.isSuper = true;
+        SwipeState.liked.push(item);
+    }
+
+    SwipeState.history.push({ action: action, item: item });
+
+    // Animation
+    const container = document.getElementById('uni-swipe-container');
+    const card = container.querySelector('.uni-card');
+    if (card) {
+        let x = (action === 'like' || action === 'super') ? 500 : -500;
+        let r = (action === 'like' || action === 'super') ? 20 : -20;
+        if (action === 'super') { x = 0; r = 0; }
+
+        card.style.transition = 'all 0.4s ease';
+        if (action === 'super') {
+            card.style.transform = 'translateY(-500px) scale(1.2)';
+            card.style.opacity = '0';
+        } else {
+            card.style.transform = `translate(${x}px, 50px) rotate(${r}deg)`;
+            card.style.opacity = '0';
+        }
+
+        setTimeout(() => {
+            SwipeState.currentIndex++;
+            renderUniversalCard();
+        }, 300);
+    }
+}
+
+function undoUniversalSwipe() {
+    if (SwipeState.history.length > 0) {
+        const last = SwipeState.history.pop();
+        SwipeState.currentIndex--;
+
+        if (last.action === 'like' || last.action === 'super') {
+            SwipeState.liked.pop(); // Remove last added
+        }
+        renderUniversalCard();
+    }
+}
+
+function showUniversalList() {
+    const list = document.getElementById('uni-liked-list');
+    const grid = document.getElementById('uni-candidates-grid');
+    grid.innerHTML = '';
+
+    if (SwipeState.liked.length === 0) {
+        // Show all candidates? or just Alert?
+        // Alert for now
+    }
+
+    // Deduplicate?
+    const unique = [...new Set(SwipeState.liked)];
+
+    unique.forEach((item, idx) => {
+        // Determine label (Kanji or Reading)
+        const label = item['漢字'] || item.reading;
+
+        const btn = document.createElement('div');
+        btn.className = 'bg-[#fdfaf5] border border-[#ede5d8] rounded-xl p-3 flex items-center justify-between';
+
+        const text = document.createElement('span');
+        text.className = 'text-xl font-bold text-[#5d5444]';
+        text.innerText = label;
+
+        // Checkbox
+        const chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.className = 'w-6 h-6 accent-[#8b7e66]';
+        chk.checked = true; // Default select all
+        chk.onchange = (e) => {
+            item._selected = e.target.checked;
+        };
+        item._selected = true; // Default
+
+        btn.appendChild(text);
+        btn.appendChild(chk);
+        grid.appendChild(btn);
+    });
+
+    list.classList.remove('hidden');
+}
+
+function submitUniversalSelection() {
+    // Filter selected
+    const selected = SwipeState.liked.filter(i => i._selected);
+
+    if (selected.length === 0) {
+        alert("少なくとも1つ選んでください");
+        return;
+    }
+
+    document.getElementById('uni-liked-list').classList.add('hidden');
+
+    if (SwipeState.config.onNext) {
+        SwipeState.config.onNext(selected);
+    }
+}
+
+function continueUniversalSwipe() {
+    document.getElementById('uni-swipe-msg').classList.add('hidden');
+    alert("これ以上の候補はありません");
+}
+
+function resetUniversalSwipe() {
+    SwipeState.currentIndex = 0;
+    SwipeState.liked = [];
+    SwipeState.history = [];
+    renderUniversalCard();
+    document.getElementById('uni-liked-list').classList.add('hidden');
+    document.getElementById('uni-swipe-msg').classList.add('hidden');
+}
+
+function closeUniversalList() {
+    document.getElementById('uni-liked-list').classList.add('hidden');
 }
 
 function showNicknameBatchLimitModal() {
@@ -1412,18 +1766,17 @@ window.showTutorial = showTutorial;
 window.closeTutorial = closeTutorial;
 window.nextTutorialStep = nextTutorialStep;
 window.processNickname = processNickname;
-window.nicknameSwipeAction = nicknameSwipeAction;
-window.resetNicknameSwipe = resetNicknameSwipe;
-window.skipBaseKanji = skipBaseKanji;
+window.universalSwipeAction = universalSwipeAction;
+window.undoUniversalSwipe = undoUniversalSwipe;
+window.showUniversalList = showUniversalList;
+window.submitUniversalSelection = submitUniversalSelection;
+window.resetUniversalSwipe = resetUniversalSwipe;
+window.continueUniversalSwipe = continueUniversalSwipe;
+window.closeUniversalList = closeUniversalList;
+window.startUniversalSwipe = startUniversalSwipe; // debug
 
-window.undoNicknameSwipe = undoNicknameSwipe;
-window.undoKanjiSwipe = undoKanjiSwipe;
-window.kanjiSwipeAction = kanjiSwipeAction;
-window.showKanjiList = showKanjiList;
-window.closeKanjiList = closeKanjiList;
-window.resetKanjiSwipe = resetKanjiSwipe;
-window.showNicknameList = showNicknameList;
-window.continueNicknameSwipe = continueNicknameSwipe;
-window.closeNicknameList = closeNicknameList;
+// CLEANUP EXPORTS
+window.nicknameSwipeAction = null; // Removed
+window.kanjiSwipeAction = null; // Removed
 
-console.log("UI_FLOW: Module loaded (Phase 3 Complete)");
+console.log("UI_FLOW: Module loaded (Phase 4: Universal Swipe & Multi-Select)");
