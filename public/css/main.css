@@ -758,3 +758,136 @@ button {
         min-height: 44px;
     }
 }
+
+/* ============================================================
+   SIDE DRAWER (X/Twitter style)
+   ============================================================ */
+
+#side-drawer.open {
+    transform: translateX(0) !important;
+}
+
+#drawer-overlay.open {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+.drawer-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #5d5444;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.drawer-menu-item:active {
+    background: rgba(188, 163, 127, 0.1);
+}
+
+.drawer-icon {
+    font-size: 20px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+
+#top-bar {
+    transition: transform 0.3s ease;
+}
+
+/* Hide top bar on swipe screen to avoid interference */
+body.hide-top-bar #top-bar {
+    transform: translateY(-100%);
+}
+
+/* Adjust screen padding for top bar */
+.screen {
+    padding-top: 60px !important;
+}
+
+/* ============================================================
+   INITIAL WIZARD
+   ============================================================ */
+
+.wizard-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d4c5af;
+    transition: all 0.3s ease;
+}
+
+.wizard-dot.active {
+    background: #bca37f;
+    width: 24px;
+    border-radius: 4px;
+}
+
+.wizard-step {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.4s ease forwards;
+}
+
+.wizard-step.active {
+    display: flex !important;
+}
+
+.wiz-role-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 8px;
+    background: white;
+    border: 2px solid #eee5d8;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #5d5444;
+}
+
+.wiz-role-btn:active {
+    transform: scale(0.95);
+}
+
+.wiz-role-btn.selected {
+    border-color: #bca37f;
+    background: #fffbeb;
+    box-shadow: 0 4px 12px rgba(188, 163, 127, 0.2);
+}
+
+.wiz-gender-btn {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    background: white;
+    border: 2px solid #eee5d8;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.wiz-gender-btn:active {
+    transform: scale(0.98);
+}
+
+.wiz-gender-btn.selected {
+    border-color: #bca37f;
+    background: #fffbeb;
+    box-shadow: 0 4px 12px rgba(188, 163, 127, 0.2);
+}

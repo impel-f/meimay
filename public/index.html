@@ -21,107 +21,314 @@
 
 <body>
 
-    <button id="btn-history-float" onclick="openHistory()"
-        class="fixed top-4 right-4 z-40 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center text-lg hover:scale-110 transition-all"
-        style="border: 1.5px solid #eee5d8;">
-        📚
-    </button>
+    <!-- ============================================================
+         SIDE DRAWER (X/Twitter style)
+         ============================================================ -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-[9990] hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
+    <aside id="side-drawer" class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[9991] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+        <!-- Profile -->
+        <div id="side-profile" class="pt-12 pb-4 px-6 border-b border-[#eee5d8]">
+            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-2xl font-black mb-3" id="drawer-avatar">P</div>
+            <div class="text-lg font-black text-[#5d5444]" id="drawer-username">ゲスト</div>
+            <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@苗字未設定</div>
+        </div>
 
-    <div id="scr-mode" class="screen active">
-        <div class="flex flex-col items-center h-full overflow-y-auto pt-12 pb-10 w-full">
-            <h1 class="title-premium mb-2">メイメー</h1>
-            <p class="subtitle-premium mb-6">Meimay - Baby Name Building</p>
-            <div id="status" class="text-[10px] text-[#bca37f] mb-4 tracking-widest font-bold uppercase">
-                Initializing...</div>
+        <!-- Menu Items -->
+        <nav class="flex-1 overflow-y-auto py-4">
+            <button onclick="drawerNavigate('home')" class="drawer-menu-item">
+                <span class="drawer-icon">🏠</span>
+                <span>ホーム</span>
+            </button>
+            <button onclick="drawerNavigate('stock')" class="drawer-menu-item">
+                <span class="drawer-icon">📋</span>
+                <span>ストック</span>
+            </button>
+            <button onclick="drawerNavigate('build')" class="drawer-menu-item">
+                <span class="drawer-icon">⚒️</span>
+                <span>ビルド</span>
+            </button>
+            <button onclick="drawerNavigate('history')" class="drawer-menu-item">
+                <span class="drawer-icon">📚</span>
+                <span>履歴・保存済み</span>
+            </button>
+            <button onclick="drawerNavigate('search')" class="drawer-menu-item">
+                <span class="drawer-icon">🔎</span>
+                <span>漢字を検索</span>
+            </button>
+            <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
+                <span class="drawer-icon">🔮</span>
+                <span>姓名判断・診断</span>
+            </button>
 
-            <div class="w-full max-w-sm px-6 mb-6">
-                <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">▼ 1文字ずつ選ぶ</div>
+            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
 
-                <div class="grid grid-cols-1 gap-3">
-                    <button onclick="startMode('reading')"
-                        class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+            <div class="px-6 py-2">
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">モード</p>
+            </div>
+            <button onclick="drawerNavigate('mode-reading')" class="drawer-menu-item" id="drawer-mode-reading">
+                <span class="drawer-icon">👆</span>
+                <span>読みから探す</span>
+            </button>
+            <button onclick="drawerNavigate('mode-nickname')" class="drawer-menu-item" id="drawer-mode-nickname">
+                <span class="drawer-icon">💭</span>
+                <span>ニックネームから探す</span>
+            </button>
+            <button onclick="drawerNavigate('mode-sound')" class="drawer-menu-item" id="drawer-mode-sound">
+                <span class="drawer-icon">🎵</span>
+                <span>響きから選ぶ</span>
+            </button>
+            <button onclick="drawerNavigate('mode-free')" class="drawer-menu-item" id="drawer-mode-free">
+                <span class="drawer-icon">✨</span>
+                <span>自由に探す</span>
+            </button>
+
+            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
+
+            <button onclick="drawerNavigate('share')" class="drawer-menu-item">
+                <span class="drawer-icon">💑</span>
+                <span>パートナーに共有</span>
+            </button>
+            <button onclick="drawerNavigate('receive')" class="drawer-menu-item">
+                <span class="drawer-icon">📥</span>
+                <span>データを受け取る</span>
+            </button>
+            <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
+                <span class="drawer-icon">⚙️</span>
+                <span>設定</span>
+            </button>
+        </nav>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
+            メイメー v17.0
+        </div>
+    </aside>
+
+    <!-- Top Bar (replaces floating history button) -->
+    <div id="top-bar" class="fixed top-0 left-0 right-0 z-[100] flex items-center px-4 h-12 bg-[#fdfaf5]/95 backdrop-blur-md border-b border-[#eee5d8]/50">
+        <button onclick="openDrawer()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95" id="btn-hamburger">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5d5444" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="flex-1 text-center">
+            <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
+        </div>
+        <button id="btn-history-float" onclick="openHistory()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
+            📚
+        </button>
+    </div>
+
+    <!-- ============================================================
+         INITIAL WIZARD
+         ============================================================ -->
+    <div id="scr-wizard" class="screen">
+        <div class="w-full max-w-sm mx-auto flex flex-col items-center pt-8 pb-10 h-full">
+            <!-- Progress -->
+            <div class="flex gap-2 mb-8">
+                <div class="wizard-dot active" id="wiz-dot-1"></div>
+                <div class="wizard-dot" id="wiz-dot-2"></div>
+                <div class="wizard-dot" id="wiz-dot-3"></div>
+                <div class="wizard-dot" id="wiz-dot-4"></div>
+            </div>
+
+            <!-- Step 1: Welcome -->
+            <div id="wiz-step-1" class="wizard-step active w-full px-6">
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">ようこそ</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">まずはあなたについて教えてください</p>
+
+                <div class="mb-6">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block">あなたの呼び名</label>
+                    <input type="text" id="wiz-username" placeholder="例：たかし"
+                        class="w-full px-4 py-3.5 bg-white border-2 border-[#eee5d8] rounded-2xl text-base font-bold text-[#5d5444] focus:border-[#bca37f] outline-none transition-all">
+                </div>
+
+                <div class="mb-8">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-3 block">あなたの役割</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <button onclick="selectWizRole('papa')" class="wiz-role-btn" data-role="papa">
+                            <div class="text-2xl mb-1">👨</div>
+                            <div class="text-xs font-bold">パパ</div>
+                        </button>
+                        <button onclick="selectWizRole('mama')" class="wiz-role-btn" data-role="mama">
+                            <div class="text-2xl mb-1">👩</div>
+                            <div class="text-xs font-bold">ママ</div>
+                        </button>
+                        <button onclick="selectWizRole('other')" class="wiz-role-btn" data-role="other">
+                            <div class="text-2xl mb-1">👤</div>
+                            <div class="text-xs font-bold">その他</div>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="wizNext(1)" class="btn-gold py-4 shadow-lg">次へ</button>
+            </div>
+
+            <!-- Step 2: Surname -->
+            <div id="wiz-step-2" class="wizard-step w-full px-6">
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">苗字を入力</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">姓名判断・字面バランスの計算に使います</p>
+
+                <div class="mb-8">
+                    <input type="text" id="wiz-surname" placeholder="例：山田"
+                        class="w-full px-4 py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-2xl font-black text-[#5d5444] text-center focus:border-[#bca37f] outline-none transition-all">
+                </div>
+
+                <button onclick="wizNext(2)" class="btn-gold py-4 shadow-lg mb-3">次へ</button>
+                <button onclick="wizNext(2)" class="text-sm text-[#bca37f] hover:underline">あとで設定する</button>
+            </div>
+
+            <!-- Step 3: Gender -->
+            <div id="wiz-step-3" class="wizard-step w-full px-6">
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">赤ちゃんの性別</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">検索結果の精度が上がります（任意）</p>
+
+                <div class="flex flex-col gap-3 mb-8">
+                    <button onclick="selectWizGender('male')" class="wiz-gender-btn" data-gender="male">
+                        <span class="text-xl mr-3">👦</span>
+                        <span class="text-base font-bold text-[#5d5444]">男の子</span>
+                    </button>
+                    <button onclick="selectWizGender('female')" class="wiz-gender-btn" data-gender="female">
+                        <span class="text-xl mr-3">👧</span>
+                        <span class="text-base font-bold text-[#5d5444]">女の子</span>
+                    </button>
+                    <button onclick="selectWizGender('neutral')" class="wiz-gender-btn" data-gender="neutral">
+                        <span class="text-xl mr-3">👶</span>
+                        <span class="text-base font-bold text-[#5d5444]">まだわからない</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Route -->
+            <div id="wiz-step-4" class="wizard-step w-full px-6">
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">どこから始める？</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">いつでもサイドメニューから変更できます</p>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="wizFinish('reading')"
+                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
                         <div class="flex justify-between items-center">
                             <div>
                                 <div class="text-base text-[#5d5444] font-black">読みから探す</div>
-                                <div class="text-[10px] text-[#a6967a]">好みの響きから</div>
+                                <div class="text-[10px] text-[#a6967a] mt-1">好みの響きから漢字を選ぶ</div>
                             </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">👆</div>
+                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">👆</div>
                         </div>
                     </button>
-
-                    <button onclick="startMode('nickname')"
-                        class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                    <button onclick="wizFinish('nickname')"
+                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
                         <div class="flex justify-between items-center">
                             <div>
                                 <div class="text-base text-[#5d5444] font-black">ニックネームから探す</div>
-                                <div class="text-[10px] text-[#a6967a]">あだ名・呼び名から</div>
+                                <div class="text-[10px] text-[#a6967a] mt-1">あだ名から名前を広げる</div>
                             </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">💭</div>
+                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">💭</div>
                         </div>
                     </button>
-
-                    <button onclick="startMode('sound')"
-                        class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                    <button onclick="wizFinish('sound')"
+                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
                         <div class="flex justify-between items-center">
                             <div>
                                 <div class="text-base text-[#5d5444] font-black">響きから選ぶ</div>
-                                <div class="text-[10px] text-[#a6967a]">名前の響きをスワイプで発見</div>
+                                <div class="text-[10px] text-[#a6967a] mt-1">人気の名前をスワイプ</div>
                             </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🎵</div>
+                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">🎵</div>
                         </div>
                     </button>
-
-                    <button onclick="startMode('free')"
-                        class="group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
+                    <button onclick="wizFinish('free')"
+                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
                         <div class="flex justify-between items-center">
                             <div>
                                 <div class="text-base text-[#5d5444] font-black">自由に探す</div>
-                                <div class="text-[10px] text-[#a6967a]">漢字を直感でスワイプ</div>
+                                <div class="text-[10px] text-[#a6967a] mt-1">漢字を直感でスワイプ</div>
                             </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">✨</div>
+                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">✨</div>
                         </div>
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="w-full max-w-sm px-6 mb-2">
-                <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">▼ その他</div>
-                <div class="grid grid-cols-1 gap-3">
+    <!-- ============================================================
+         MAIN HOME SCREEN (restructured)
+         ============================================================ -->
+    <div id="scr-mode" class="screen">
+        <div class="flex flex-col items-center h-full overflow-y-auto pt-14 pb-10 w-full">
+            <h1 class="title-premium mb-1">メイメー</h1>
+            <p class="subtitle-premium" style="margin-bottom: 1.5rem;">Meimay - Baby Name Building</p>
+            <div id="status" class="text-[10px] text-[#bca37f] mb-4 tracking-widest font-bold uppercase">
+                Initializing...</div>
+
+            <!-- Greeting -->
+            <div class="w-full max-w-sm px-6 mb-4" id="home-greeting">
+                <div class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm">
+                    <p class="text-sm font-bold text-[#5d5444]" id="home-greeting-text">こんにちは！</p>
+                    <p class="text-[10px] text-[#a6967a] mt-1">左上のメニューから各機能にアクセスできます</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="w-full max-w-sm px-6 mb-4">
+                <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">名前を探す</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="startMode('reading')"
+                        class="group bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">👆</div>
+                        <div class="text-sm text-[#5d5444] font-black">読みから</div>
+                        <div class="text-[9px] text-[#a6967a]">好みの響きから</div>
+                    </button>
+                    <button onclick="startMode('nickname')"
+                        class="group bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">💭</div>
+                        <div class="text-sm text-[#5d5444] font-black">ニックネーム</div>
+                        <div class="text-[9px] text-[#a6967a]">あだ名から</div>
+                    </button>
+                    <button onclick="startMode('sound')"
+                        class="group bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">🎵</div>
+                        <div class="text-sm text-[#5d5444] font-black">響きから</div>
+                        <div class="text-[9px] text-[#a6967a]">人気の名前</div>
+                    </button>
+                    <button onclick="startMode('free')"
+                        class="group bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">✨</div>
+                        <div class="text-sm text-[#5d5444] font-black">自由に探す</div>
+                        <div class="text-[9px] text-[#a6967a]">直感スワイプ</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tools -->
+            <div class="w-full max-w-sm px-6 mb-4">
+                <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">ツール</div>
+                <div class="grid grid-cols-2 gap-3">
                     <button onclick="openKanjiSearch()"
-                        class="w-full group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">漢字を検索・絞り込み</div>
-                                <div class="text-[10px] text-[#a6967a]">イメージや読みで検索</div>
-                            </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🔎</div>
-                        </div>
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-lg mb-0.5">🔎</div>
+                        <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
                     </button>
                     <button onclick="startMode('diagnosis')"
-                        class="w-full group relative overflow-hidden bg-white/60 hover:bg-white p-3.5 rounded-2xl border border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">姓名判断・診断</div>
-                                <div class="text-[10px] text-[#a6967a]">名前の運勢を確認</div>
-                            </div>
-                            <div class="text-xl opacity-30 group-hover:opacity-100 transition-all">🔮</div>
-                        </div>
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-lg mb-0.5">🔮</div>
+                        <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
                     </button>
                 </div>
             </div>
 
-            <!-- History/Stock on Top -->
-            <div class="flex gap-3 w-full max-w-sm px-6 mb-8">
+            <!-- Quick Access -->
+            <div class="flex gap-3 w-full max-w-sm px-6 mb-6">
                 <button onclick="openStock()"
                     class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
-                    📋 ストックを見る
+                    📋 ストック
+                </button>
+                <button onclick="openBuild()"
+                    class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
+                    ⚒️ ビルド
                 </button>
                 <button onclick="openHistory()"
                     class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
-                    📚 履歴を見る
+                    📚 履歴
                 </button>
             </div>
-            <div class="absolute top-4 right-4 text-[10px] text-[#bca37f] font-mono font-bold">v16.0</div>
         </div>
     </div>
 
@@ -1085,17 +1292,18 @@
     <script src="js/engine_v2_generator.js"></script>
 
     <script src="js/01-core.js"></script>
-    <script src="/js/02-engine.js?v=15.5"></script>
-    <script src="/js/03-fortune.js?v=15.5"></script>
-    <script src="/js/04-ui-flow.js?v=15.5"></script>
-    <script src="/js/05-ui-render.js?v=15.5"></script>
-    <script src="/js/06-ui-physics.js?v=15.5"></script>
-    <script src="/js/07-build.js?v=15.5"></script>
-    <script src="/js/08-origin.js?v=15.5"></script>
-    <script src="/js/09-storage.js?v=15.5"></script>
-    <script src="/js/10-choice.js?v=15.5"></script>
-    <script src="/js/11-settings.js?v=15.5"></script>
-    <script src="/js/12-history.js?v=15.5"></script>
+    <script src="/js/02-engine.js?v=17.0"></script>
+    <script src="/js/03-fortune.js?v=17.0"></script>
+    <script src="/js/04-ui-flow.js?v=17.0"></script>
+    <script src="/js/05-ui-render.js?v=17.0"></script>
+    <script src="/js/06-ui-physics.js?v=17.0"></script>
+    <script src="/js/07-build.js?v=17.0"></script>
+    <script src="/js/08-origin.js?v=17.0"></script>
+    <script src="/js/09-storage.js?v=17.0"></script>
+    <script src="/js/10-choice.js?v=17.0"></script>
+    <script src="/js/11-settings.js?v=17.0"></script>
+    <script src="/js/12-history.js?v=17.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=17.0"></script>
 
 </body>
 
