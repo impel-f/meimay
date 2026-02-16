@@ -166,8 +166,118 @@ function copyOriginToClipboard() {
     }
 }
 
+/**
+ * 漢字詳細AIを生成（成り立ち・意味・熟語・名乗り理由）
+ */
+async function generateKanjiDetail(kanji, currentReading) {
+    const resultEl = document.getElementById('ai-kanji-result');
+    if (!resultEl) return;
+
+    // ローディング表示
+    resultEl.innerHTML = `
+        <div class="flex items-center justify-center py-6">
+            <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
+            <span class="text-sm text-[#7a6f5a]">AIが分析中...</span>
+        </div>
+    `;
+
+    // 漢字データを取得
+    const kanjiData = master.find(k => k['漢字'] === kanji);
+    if (!kanjiData) {
+        resultEl.innerHTML = '<p class="text-xs text-[#f28b82]">漢字データが見つかりません</p>';
+        return;
+    }
+
+    const meaning = clean(kanjiData['意味'] || '');
+    const readings = [kanjiData['音'], kanjiData['訓'], kanjiData['伝統名のり']]
+        .filter(x => clean(x)).join('、');
+
+    // 名乗り理由プロンプト
+    let nanoriPrompt = '';
+    if (currentReading) {
+        nanoriPrompt = `\n\n【名乗り読み「${currentReading}」の理由】\nこの漢字「${kanji}」が名前で「${currentReading}」と読まれる理由や由来を、歴史的背景や音韻の変化を含めて説明してください。なぜ日本人はこの漢字をそう読むのか、わかりやすく教えてください。`;
+    }
+
+    const prompt = `
+漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
+
+【基本情報】
+読み: ${readings}
+意味: ${meaning}
+
+【回答項目】
+1. 【成り立ち】この漢字がどのように作られたか（象形・会意・形声など）を50〜80文字で説明
+2. 【意味の深掘り】元々の意味と、名前に使われるときのポジティブな意味合いを50〜80文字で
+3. 【代表的な熟語】この漢字を使った有名な熟語を3〜5個、読みと意味付きで
+4. 【名前での使用例】この漢字を使った有名人や歴史上の人物を2〜3人${nanoriPrompt}
+
+各項目は【】で区切って書いてください。簡潔で分かりやすい日本語でお願いします。
+`.trim();
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        const response = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiText = data.text || '';
+
+        // テキストをセクションに分割して表示
+        const sections = aiText.split(/【(.+?)】/).filter(s => s.trim());
+        let html = '';
+
+        for (let i = 0; i < sections.length; i += 2) {
+            const title = sections[i] || '';
+            const content = sections[i + 1] || '';
+            if (title && content) {
+                html += `
+                    <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                        <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
+                            <span>${title.includes('成り立ち') ? '📜' : title.includes('意味') ? '💡' : title.includes('熟語') ? '📖' : title.includes('名乗り') ? '🎓' : '✨'}</span>
+                            ${title}
+                        </div>
+                        <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content.trim()}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // セクション分割がうまくいかなかった場合はそのまま表示
+        if (!html) {
+            html = `
+                <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm">
+                    <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${aiText}</p>
+                </div>
+            `;
+        }
+
+        resultEl.innerHTML = html;
+
+    } catch (err) {
+        console.error("AI_KANJI_DETAIL:", err);
+        resultEl.innerHTML = `
+            <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82]">
+                AI生成に失敗しました: ${err.message}
+            </div>
+        `;
+    }
+}
+
 // Global Exports
 window.generateOrigin = generateOrigin;
+window.generateKanjiDetail = generateKanjiDetail;
 window.closeOriginModal = closeOriginModal;
 window.copyOriginToClipboard = copyOriginToClipboard;
 

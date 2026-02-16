@@ -236,4 +236,115 @@ window.addEventListener('beforeunload', () => {
     StorageBox.saveAll();
 });
 
-console.log("STORAGE: Module loaded");
+/**
+ * 夫婦シェア機能
+ * データをJSON文字列としてエクスポート/インポート
+ */
+function shareData() {
+    const data = {
+        liked: liked.map(l => ({ '漢字': l['漢字'], '画数': l['画数'], slot: l.slot, sessionReading: l.sessionReading })),
+        savedNames: getSavedNames ? getSavedNames() : savedNames,
+        exportDate: new Date().toISOString(),
+        version: 'meimay-share-v1'
+    };
+
+    const json = JSON.stringify(data);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+
+    // クリップボードにコピー
+    const shareText = `meimay://${encoded}`;
+
+    if (navigator.share) {
+        navigator.share({
+            title: 'メイメー - 名前候補を共有',
+            text: `パートナーから名前候補が届きました！\nアプリで「データを受け取る」からこのテキストを貼り付けてください。`,
+            url: ''
+        }).catch(() => {
+            copyShareToClipboard(shareText);
+        });
+    } else {
+        copyShareToClipboard(shareText);
+    }
+}
+
+function copyShareToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('共有データをコピーしました！\nパートナーに送って「データを受け取る」から貼り付けてもらってください。');
+    }).catch(() => {
+        // フォールバック
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('共有データをコピーしました！');
+    });
+}
+
+function receiveSharedData() {
+    const input = prompt('パートナーから受け取ったデータを貼り付けてください：');
+    if (!input) return;
+
+    try {
+        let json;
+        if (input.startsWith('meimay://')) {
+            const encoded = input.replace('meimay://', '');
+            json = decodeURIComponent(escape(atob(encoded)));
+        } else {
+            json = input;
+        }
+
+        const data = JSON.parse(json);
+
+        if (data.version !== 'meimay-share-v1') {
+            alert('データ形式が正しくありません');
+            return;
+        }
+
+        // 確認
+        const likedCount = data.liked ? data.liked.length : 0;
+        const savedCount = data.savedNames ? data.savedNames.length : 0;
+
+        if (!confirm(`パートナーのデータを読み込みます：\n・ストック漢字：${likedCount}件\n・保存済み名前：${savedCount}件\n\n既存のデータとマージしますか？`)) {
+            return;
+        }
+
+        // マージ（重複は除外）
+        if (data.liked) {
+            data.liked.forEach(item => {
+                // masterから完全データを取得
+                const full = master.find(k => k['漢字'] === item['漢字']);
+                if (full) {
+                    const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot);
+                    if (!exists) {
+                        liked.push({ ...full, slot: item.slot || -1, sessionReading: item.sessionReading || 'SHARED' });
+                    }
+                }
+            });
+        }
+
+        if (data.savedNames) {
+            const existing = typeof getSavedNames === 'function' ? getSavedNames() : [];
+            data.savedNames.forEach(name => {
+                const exists = existing.some(n => n.fullName === name.fullName);
+                if (!exists) {
+                    existing.push(name);
+                }
+            });
+            localStorage.setItem('meimay_saved', JSON.stringify(existing));
+        }
+
+        StorageBox.saveLiked();
+        alert('データを読み込みました！');
+
+    } catch (e) {
+        console.error("SHARE: Import failed", e);
+        alert('データの読み込みに失敗しました。\nコピーしたテキストが正しいか確認してください。');
+    }
+}
+
+window.shareData = shareData;
+window.receiveSharedData = receiveSharedData;
+
+console.log("STORAGE: Module loaded (with sharing)");
