@@ -493,13 +493,13 @@
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between px-4 pb-2">
-                <button onclick="undoUniversalSwipe()"
+                <button onclick="goBack()"
                     class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    <span class="text-lg">↩</span> 戻る
+                    <span class="text-lg">←</span> 戻る
                 </button>
                 <button onclick="showUniversalList()"
                     class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    リストを見る <span class="text-lg">→</span>
+                    完了 <span class="text-lg">→</span>
                 </button>
             </div>
 
@@ -685,12 +685,26 @@
 
 
     <div id="scr-stock" class="screen">
-        <div class="w-full max-w-md px-4 pt-10 mx-auto">
-            <h2 class="text-2xl font-bold text-center mb-2 text-[#8b7e66]">ストック</h2>
-            <p class="text-[10px] text-center text-[#bca37f] mb-4 tracking-widest uppercase">Selected Parts</p>
-            <!-- 読みストックセクション（JSで動的挿入） -->
-            <div id="reading-stock-section"></div>
-            <div id="stock-list" class="grid grid-cols-4 gap-3 pb-40"></div>
+        <div class="w-full max-w-md px-4 pt-2 mx-auto">
+            <!-- タブ -->
+            <div class="flex border-b border-[#eee5d8] mb-4" id="stock-tabs">
+                <button onclick="switchStockTab('reading')" id="stock-tab-reading"
+                    class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">読みストック</button>
+                <button onclick="switchStockTab('kanji')" id="stock-tab-kanji"
+                    class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">漢字ストック</button>
+            </div>
+            <!-- 読みストック -->
+            <div id="stock-reading-panel">
+                <div id="reading-stock-section"></div>
+                <div id="reading-stock-empty" class="text-center py-16 hidden">
+                    <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
+                    <p class="text-sm text-[#a6967a]">響きをひろげるで読みを選びましょう</p>
+                </div>
+            </div>
+            <!-- 漢字ストック -->
+            <div id="stock-kanji-panel" class="hidden">
+                <div id="stock-list" class="grid grid-cols-4 gap-3 pb-40"></div>
+            </div>
         </div>
     </div>
 
@@ -1380,19 +1394,19 @@
     <script src="js/engine_v2_generator.js"></script>
 
     <script src="js/01-core.js"></script>
-    <script src="/js/02-engine.js?v=20.0"></script>
-    <script src="/js/03-fortune.js?v=20.0"></script>
-    <script src="/js/04-ui-flow.js?v=20.0"></script>
-    <script src="/js/05-ui-render.js?v=20.0"></script>
-    <script src="/js/06-ui-physics.js?v=20.0"></script>
-    <script src="/js/07-build.js?v=20.0"></script>
-    <script src="/js/08-origin.js?v=20.0"></script>
-    <script src="/js/09-storage.js?v=20.0"></script>
-    <script src="/js/10-choice.js?v=20.0"></script>
-    <script src="/js/11-settings.js?v=20.0"></script>
-    <script src="/js/12-history.js?v=20.0"></script>
-    <script src="/js/13-drawer-wizard.js?v=20.0"></script>
-    <script src="/js/14-admob.js?v=20.0"></script>
+    <script src="/js/02-engine.js?v=21.0"></script>
+    <script src="/js/03-fortune.js?v=21.0"></script>
+    <script src="/js/04-ui-flow.js?v=21.0"></script>
+    <script src="/js/05-ui-render.js?v=21.0"></script>
+    <script src="/js/06-ui-physics.js?v=21.0"></script>
+    <script src="/js/07-build.js?v=21.0"></script>
+    <script src="/js/08-origin.js?v=21.0"></script>
+    <script src="/js/09-storage.js?v=21.0"></script>
+    <script src="/js/10-choice.js?v=21.0"></script>
+    <script src="/js/11-settings.js?v=21.0"></script>
+    <script src="/js/12-history.js?v=21.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=21.0"></script>
+    <script src="/js/14-admob.js?v=21.0"></script>
 
 </body>
 

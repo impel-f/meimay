@@ -169,7 +169,7 @@ function changeScreen(id) {
     const footer = document.getElementById('bottom-nav');
     const uniFooter = document.getElementById('universal-footer');
     const noFooterScreens = ['scr-wizard', 'scr-mode'];
-    const mainFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings'];
+    const mainFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal'];
 
     if (footer) {
         if (mainFooterScreens.includes(id)) {

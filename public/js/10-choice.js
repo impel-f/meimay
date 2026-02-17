@@ -70,7 +70,12 @@ function openChoice() {
                 changeScreen('scr-main');
             } else {
                 closeChoiceModal();
-                if (typeof openBuild === 'function') {
+                // ニックネーム漢字キューが有効な場合 → 次のsuffix読みへ
+                if (typeof isNicknameKanjiQueueActive === 'function' && isNicknameKanjiQueueActive()) {
+                    if (typeof advanceNicknameKanjiQueue === 'function') {
+                        advanceNicknameKanjiQueue();
+                    }
+                } else if (typeof openBuild === 'function') {
                     openBuild();
                 }
             }
@@ -131,8 +136,23 @@ function openChoiceModal(slotIdx) {
             closeChoiceModal();
 
             if (isLastSlot) {
-                // 最終スロット：ビルド画面へ
-                openBuild();
+                // ニックネーム漢字キューが有効な場合 → 次のsuffix読みへ
+                if (typeof isNicknameKanjiQueueActive === 'function' && isNicknameKanjiQueueActive()) {
+                    // 先頭スロット（slot 0）の選択済みを保存
+                    if (typeof nicknameSharedPrefixLiked !== 'undefined' && nicknameSharedPrefixLiked.length === 0) {
+                        const currentReading = segments.join('');
+                        const slot0Items = liked.filter(l => l.slot === 0 && (!l.sessionReading || l.sessionReading === currentReading));
+                        if (typeof nicknameSharedPrefixLiked !== 'undefined') {
+                            slot0Items.forEach(item => nicknameSharedPrefixLiked.push(item));
+                        }
+                    }
+                    if (typeof advanceNicknameKanjiQueue === 'function') {
+                        advanceNicknameKanjiQueue();
+                    }
+                } else {
+                    // 通常：ビルド画面へ
+                    openBuild();
+                }
             } else {
                 // 次のスロットへ
                 currentPos++;
