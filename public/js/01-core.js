@@ -165,27 +165,24 @@ function changeScreen(id) {
         return;
     }
 
-    // 右上フローティング履歴ボタンの表示制御
-    const historyFloat = document.getElementById('btn-history-float');
-    if (historyFloat) {
-        // スワイプ画面・モーダル系・フッター表示画面では非表示
-        const hideHistoryScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal'];
-        if (hideHistoryScreens.includes(id)) {
-            historyFloat.classList.add('hidden');
-        } else {
-            historyFloat.classList.remove('hidden');
-        }
-    }
-
     // フッターの表示制御
     const footer = document.getElementById('bottom-nav');
+    const uniFooter = document.getElementById('universal-footer');
+    const noFooterScreens = ['scr-wizard', 'scr-mode'];
+    const mainFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal'];
+
     if (footer) {
-        // フッターを表示する画面IDリスト
-        const showFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings'];
-        if (showFooterScreens.includes(id)) {
+        if (mainFooterScreens.includes(id)) {
             footer.classList.remove('hidden');
         } else {
             footer.classList.add('hidden');
+        }
+    }
+    if (uniFooter) {
+        if (!mainFooterScreens.includes(id) && !noFooterScreens.includes(id)) {
+            uniFooter.classList.remove('hidden');
+        } else {
+            uniFooter.classList.add('hidden');
         }
     }
 

@@ -3,6 +3,12 @@
  * ニックネームからの名前候補生成ロジック
  */
 
+// 人気の止め字 TOP10（ハードコード・性別別）
+const POPULAR_SUFFIXES = {
+    male: ['と', 'た', 'き', 'ま', 'すけ', 'ろう', 'し', 'せい', 'だい', 'ひろ'],
+    female: ['な', 'か', 'こ', 'み', 'り', 'え', 'ほ', 'さ', 'ね', 'の']
+};
+
 // Suffix/Prefix Definitions
 const NAME_PATTERNS = {
     male: {
@@ -111,8 +117,66 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
         }
     });
 
-    console.log(`GEN: Generated ${uniqueCandidates.length} candidates`);
-    return uniqueCandidates;
+    // 止め字順序: 人気TOP10を先頭に、残りはランダム
+    const ordered = orderByPopularSuffixes(uniqueCandidates, gender, position);
+
+    // AI候補リオーダー（好みの音パターンがあれば適用）
+    const final = (typeof aiReorderCandidates === 'function')
+        ? aiReorderCandidates(ordered)
+        : ordered;
+
+    console.log(`GEN: Generated ${final.length} candidates (popular first + AI reorder)`);
+    return final;
+}
+
+/**
+ * 人気止め字順に候補を並べる
+ * 人気TOP10に該当する止め字の候補を先頭に、残りはランダム
+ */
+function orderByPopularSuffixes(candidates, gender, position) {
+    if (position !== 'prefix') return candidates; // suffix位置の場合はprefixの人気順は不要
+
+    // 対象の人気止め字リスト（gender別）
+    let popularList = [];
+    if (gender === 'male') popularList = POPULAR_SUFFIXES.male;
+    else if (gender === 'female') popularList = POPULAR_SUFFIXES.female;
+    else popularList = [...POPULAR_SUFFIXES.male, ...POPULAR_SUFFIXES.female];
+
+    const popular = [];
+    const rest = [];
+
+    candidates.forEach(c => {
+        if (c.type === 'original') {
+            popular.unshift(c); // originalは常に先頭
+            return;
+        }
+        // 止め字（suffix部分）が人気リストに含まれるか
+        const matchIdx = popularList.findIndex(suf => {
+            const reading = c.reading || '';
+            return reading.endsWith(suf);
+        });
+        if (matchIdx !== -1) {
+            c._popularOrder = matchIdx;
+            popular.push(c);
+        } else {
+            rest.push(c);
+        }
+    });
+
+    // 人気は順位順でソート
+    popular.sort((a, b) => {
+        if (a.type === 'original') return -1;
+        if (b.type === 'original') return 1;
+        return (a._popularOrder || 0) - (b._popularOrder || 0);
+    });
+
+    // 残りはシャッフル
+    for (let i = rest.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [rest[i], rest[j]] = [rest[j], rest[i]];
+    }
+
+    return [...popular, ...rest];
 }
 
 /**
@@ -147,11 +211,12 @@ function isValidReading(reading) {
 function getPatternScore(pattern, gender) {
     let score = 50;
 
-    const highValueMale = ['と', 'き', 'た', 'ま', 'すけ', 'たろう'];
-    const highValueFemale = ['な', 'か', 'こ', 'み', 'り', 'え'];
-
-    if (gender === 'male' && highValueMale.includes(pattern)) score += 30;
-    if (gender === 'female' && highValueFemale.includes(pattern)) score += 30;
+    // 人気TOP10の止め字は高スコア
+    const popular = POPULAR_SUFFIXES[gender] || [];
+    const popIdx = popular.indexOf(pattern);
+    if (popIdx !== -1) {
+        score += 30 + (10 - popIdx); // 1位=40, 10位=31
+    }
 
     return score;
 }
