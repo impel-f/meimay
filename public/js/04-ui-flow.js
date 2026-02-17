@@ -25,40 +25,63 @@ const VIBES = [
 ];
 
 /**
- * モード開始
+ * モード開始（性別はウィザードで設定済みなのでスキップ）
  */
 function startMode(mode) {
     console.log(`UI_FLOW: Start mode ${mode}`);
     appMode = mode;
 
-    // 診断モードの場合はイメージ等は不要（要望によりスキップ）
+    // 診断モードの場合はイメージ等は不要
     if (mode === 'diagnosis') {
+        // 名字を自動入力（ウィザードで設定済み）
+        const diagSurnameInput = document.getElementById('diag-surname');
+        if (diagSurnameInput && surnameStr) {
+            diagSurnameInput.value = surnameStr;
+        }
         changeScreen('scr-diagnosis-input');
         return;
     }
 
-    changeScreen('scr-gender');
+    // 性別はウィザードで設定済みなので、直接各モードの入力画面へ
+    if (mode === 'free') {
+        initVibeScreen();
+        changeScreen('scr-vibe');
+    } else if (mode === 'nickname') {
+        changeScreen('scr-input-nickname');
+    } else if (mode === 'sound') {
+        initSoundMode();
+    } else {
+        // reading mode
+        changeScreen('scr-input-reading');
+    }
 }
 
 /**
- * 性別選択
+ * 性別選択（ウィザードから設定済みだが互換性のため残す）
  */
 function selectGender(g) {
     gender = g;
     console.log(`UI_FLOW: Gender selected ${g}`);
 
+    // ウィザードで既に設定済みなので、startModeと同じルーティング
     if (appMode === 'free') {
-        // 自由選択モード: 性別 -> イメージ -> スワイプカタログ
         initVibeScreen();
         changeScreen('scr-vibe');
     } else if (appMode === 'nickname') {
         changeScreen('scr-input-nickname');
     } else if (appMode === 'sound') {
-        // 響きから選ぶ: 性別 -> 読みスワイプ -> 漢字スワイプ
         initSoundMode();
     } else {
         changeScreen('scr-input-reading');
     }
+}
+
+/**
+ * 性別設定（グローバル）
+ */
+function setGender(g) {
+    gender = g;
+    console.log(`UI_FLOW: Gender set to ${g}`);
 }
 
 /**
@@ -132,6 +155,7 @@ function toggleVibe(id, btn) {
 
 /**
  * イメージ確定 -> 各入力画面へ
+ * 苗字はウィザードで設定済みなのでスキップ
  */
 function submitVibe() {
     // グローバル変数更新
@@ -147,9 +171,8 @@ function submitVibe() {
         initFreeMode();
         changeScreen('scr-free-mode');
     } else {
-        // 読み・ニックネームモード -> 苗字入力へ
-        // (注: エンジン側でselectSegment後にchangeScreen('scr-vibe')するように変更が必要)
-        changeScreen('scr-surname-settings');
+        // 苗字はウィザードで設定済みなので直接スワイプ開始
+        startSwiping();
     }
 }
 
@@ -197,6 +220,19 @@ function initSoundMode() {
             }
         }
     });
+
+    // AI分析ボタンをスワイプ画面に追加
+    setTimeout(() => {
+        const swipeScreen = document.getElementById('scr-swipe-universal');
+        if (swipeScreen && !document.getElementById('btn-ai-sound-analyze')) {
+            const aiBtn = document.createElement('button');
+            aiBtn.id = 'btn-ai-sound-analyze';
+            aiBtn.className = 'fixed bottom-4 right-4 z-[200] bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 hover:shadow-xl transition-all active:scale-95';
+            aiBtn.innerHTML = '🤖 AI分析';
+            aiBtn.onclick = aiAnalyzeSoundPreferences;
+            swipeScreen.appendChild(aiBtn);
+        }
+    }, 500);
 }
 
 /**
@@ -273,7 +309,7 @@ function proceedWithSoundReading(reading) {
 }
 
 /**
- * 戻るボタン処理
+ * 戻るボタン処理（性別・苗字画面はスキップ済み）
  */
 function goBack() {
     const active = document.querySelector('.screen.active');
@@ -283,38 +319,31 @@ function goBack() {
     if (id === 'scr-gender') {
         changeScreen('scr-mode');
     } else if (id === 'scr-input-reading' || id === 'scr-input-nickname') {
-        changeScreen('scr-gender');
+        changeScreen('scr-mode');
     } else if (id === 'scr-nickname-swipe') {
         changeScreen('scr-input-nickname');
     } else if (id === 'scr-tomeji-selection') {
-        // Show the list again on the swipe screen
         document.getElementById('nickname-liked-list').classList.remove('hidden');
         changeScreen('scr-nickname-swipe');
     } else if (id === 'scr-vibe') {
         if (appMode === 'free') {
-            changeScreen('scr-gender');
+            changeScreen('scr-mode');
         } else if (appMode === 'nickname') {
-            // From vibe back to tomeji
             changeScreen('scr-tomeji-selection');
         } else {
-            // 読みモードの場合、分割選択画面に戻る
             changeScreen('scr-segment');
         }
     } else if (id === 'scr-free-mode') {
-        changeScreen('scr-vibe');
-    } else if (id === 'scr-surname-settings') {
-        // イメージ選択に戻る
         changeScreen('scr-vibe');
     } else if (id === 'scr-diagnosis-input') {
         changeScreen('scr-mode');
     } else if (id === 'scr-segment') {
         if (appMode === 'nickname') {
-            // Should go back to tomeji? 
-            // Usually nickname flow skips segment screen or auto-passes it. 
-            // If we are here, we go back to tomeji.
             changeScreen('scr-tomeji-selection');
         }
         else changeScreen('scr-input-reading');
+    } else if (id === 'scr-saved' || id === 'scr-history') {
+        changeScreen('scr-mode');
     }
 }
 
@@ -1582,7 +1611,6 @@ window.submitVibe = submitVibe;
 window.toggleVibe = toggleVibe;
 window.processNickname = processNickname;
 window.initFreeMode = initFreeMode;
-window.toggleStockFree = toggleStockFree;
 window.finishFreeMode = finishFreeMode;
 window.runDiagnosis = runDiagnosis;
 window.startSwiping = startSwiping;
@@ -1611,114 +1639,163 @@ window.renderFreeBuild = renderFreeBuild;
 
 /**
  * ============================================================
- * 漢字検索・フィルター機能
+ * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
  * ============================================================
  */
-let searchSelectedTags = new Set();
+let searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
+let searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
+let searchReadingFilter = ''; // text input for reading filter
 
 function openKanjiSearch() {
     changeScreen('scr-kanji-search');
-    renderSearchTags();
+    // Reset filters
+    searchStrokeFilter = '';
+    searchClassFilter = '';
+    searchReadingFilter = '';
+    const input = document.getElementById('kanji-search-input');
+    if (input) input.value = '';
+    renderSearchFilters();
+    // Show initial message instead of loading all kanji
+    const container = document.getElementById('kanji-search-results');
+    if (container) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+    }
+}
+
+function renderSearchFilters() {
+    // Stroke count filters
+    const strokeContainer = document.getElementById('search-stroke-filters');
+    if (strokeContainer) {
+        const strokes = [
+            { val: '', label: '全て' },
+            { val: '1-5', label: '1-5画' },
+            { val: '6-10', label: '6-10画' },
+            { val: '11-15', label: '11-15画' },
+            { val: '16-20', label: '16-20画' },
+            { val: '21+', label: '21画+' }
+        ];
+        strokeContainer.innerHTML = strokes.map(s => `
+            <button onclick="setStrokeFilter('${s.val}')"
+                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
+                    ${searchStrokeFilter === s.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
+                ${s.label}
+            </button>
+        `).join('');
+    }
+
+    // Classification filters
+    const classContainer = document.getElementById('search-class-filters');
+    if (classContainer) {
+        const classes = [
+            { val: '', label: '全て', icon: '✨' },
+            { val: 'nature', label: '自然', icon: '🌿' },
+            { val: 'light', label: '光・明', icon: '☀️' },
+            { val: 'water', label: '水・海', icon: '🌊' },
+            { val: 'strength', label: '力・健', icon: '💪' },
+            { val: 'kindness', label: '愛・優', icon: '💗' },
+            { val: 'wisdom', label: '知・才', icon: '📚' },
+            { val: 'beauty', label: '美・華', icon: '🌸' },
+            { val: 'tradition', label: '伝統・和', icon: '⛩️' }
+        ];
+        classContainer.innerHTML = classes.map(c => `
+            <button onclick="setClassFilter('${c.val}')"
+                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
+                    ${searchClassFilter === c.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
+                ${c.icon} ${c.label}
+            </button>
+        `).join('');
+    }
+}
+
+function setStrokeFilter(val) {
+    searchStrokeFilter = val;
+    renderSearchFilters();
     executeKanjiSearch();
 }
 
-function renderSearchTags() {
-    const container = document.getElementById('kanji-search-tags');
-    if (!container) return;
-
-    const tags = [
-        { id: 'none', label: '全て', icon: '✨' },
-        { id: 'nature', label: '自然', icon: '🌿' },
-        { id: 'brightness', label: '明るさ', icon: '☀️' },
-        { id: 'water', label: '水', icon: '🌊' },
-        { id: 'strength', label: '力強さ', icon: '💪' },
-        { id: 'kindness', label: '優しさ', icon: '💗' },
-        { id: 'intelligence', label: '知性', icon: '📚' },
-        { id: 'beauty', label: '美しさ', icon: '✨' },
-        { id: 'tradition', label: '伝統', icon: '🎎' },
-        { id: 'elegance', label: '品格', icon: '👑' },
-    ];
-
-    container.innerHTML = tags.map(tag => `
-        <button onclick="toggleSearchTag('${tag.id}')"
-                class="search-tag-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-all
-                ${searchSelectedTags.has(tag.id) || (searchSelectedTags.size === 0 && tag.id === 'none')
-                    ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}"
-                data-tag="${tag.id}">
-            ${tag.icon} ${tag.label}
-        </button>
-    `).join('');
-}
-
-function toggleSearchTag(tagId) {
-    if (tagId === 'none') {
-        searchSelectedTags.clear();
-    } else {
-        if (searchSelectedTags.has(tagId)) {
-            searchSelectedTags.delete(tagId);
-        } else {
-            searchSelectedTags.add(tagId);
-        }
-    }
-    renderSearchTags();
+function setClassFilter(val) {
+    searchClassFilter = val;
+    renderSearchFilters();
     executeKanjiSearch();
 }
 
 function executeKanjiSearch() {
     const input = document.getElementById('kanji-search-input');
     const container = document.getElementById('kanji-search-results');
-    if (!container || !master) return;
+    if (!container) return;
+
+    // masterが未ロードの場合
+    if (!master || master.length === 0) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">漢字データを読み込み中です...</div>';
+        return;
+    }
 
     const query = input ? toHira(input.value.trim()) : '';
     const rawQuery = input ? input.value.trim() : '';
 
-    let results = master.filter(k => {
-        if (k['不適切フラグ']) return false;
+    // フィルターが何も設定されていない場合はメッセージ表示
+    if (!query && !rawQuery && !searchStrokeFilter && !searchClassFilter) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+        return;
+    }
 
-        // テキスト検索
+    let results = master.filter(k => {
+        // 不適切フラグチェック
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
+
+        // テキスト検索（読み・漢字・意味）
         if (query || rawQuery) {
             const allReadings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
                 .split(/[、,，\s/]+/)
                 .map(x => toHira(x));
 
-            const matchReading = allReadings.some(r => r.includes(query));
+            const matchReading = allReadings.some(r => r && r.includes(query));
             const matchKanji = k['漢字'] === rawQuery;
             const matchMeaning = (k['意味'] || '').includes(rawQuery);
-            const matchImage = (k['名前のイメージ'] || '').includes(rawQuery);
 
-            if (!matchReading && !matchKanji && !matchMeaning && !matchImage) return false;
+            if (!matchReading && !matchKanji && !matchMeaning) return false;
         }
 
-        // タグフィルター
-        if (searchSelectedTags.size > 0) {
-            const tagKeywords = {
-                'nature': ['自然', '植物', '樹木', '草', '森', '木', '緑'],
-                'brightness': ['明るさ', '輝き', '晴れ', '朗らか', '光', '陽', '太陽'],
-                'water': ['海', '水', '川', '波', '流れ', '清らか', '洋', '源'],
-                'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '壮大', '武'],
-                'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '心', '愛', '恵'],
-                'intelligence': ['知性', '賢さ', '才能', '優秀', '学問', '智恵', '理', '聡'],
-                'beauty': ['美', '麗しい', '艶やか', '華麗', '美しい', '彩', '綾'],
-                'tradition': ['伝統', '古風', '和', '雅', '古典', '歴史'],
-                'elegance': ['品格', '高貴', '気品', '上品', '優雅']
+        // 画数フィルター
+        if (searchStrokeFilter) {
+            const strokes = parseInt(k['画数']) || 0;
+            if (searchStrokeFilter === '1-5' && (strokes < 1 || strokes > 5)) return false;
+            if (searchStrokeFilter === '6-10' && (strokes < 6 || strokes > 10)) return false;
+            if (searchStrokeFilter === '11-15' && (strokes < 11 || strokes > 15)) return false;
+            if (searchStrokeFilter === '16-20' && (strokes < 16 || strokes > 20)) return false;
+            if (searchStrokeFilter === '21+' && strokes < 21) return false;
+        }
+
+        // 分類フィルター
+        if (searchClassFilter) {
+            const classKeywords = {
+                'nature': ['自然', '植物', '樹木', '草', '森', '木', '緑', '山', '花', '葉'],
+                'light': ['明るさ', '輝き', '晴れ', '光', '陽', '太陽', '明', '輝', '照', '煌'],
+                'water': ['海', '水', '川', '波', '流れ', '清', '洋', '源', '泉', '湖', '河'],
+                'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '壮大', '武', '豪', '剛', '健'],
+                'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '心', '愛', '恵', '慈', '仁'],
+                'wisdom': ['知性', '賢さ', '才能', '優秀', '学問', '智', '理', '聡', '哲', '賢'],
+                'beauty': ['美', '麗', '艶', '華', '彩', '綾', '雅', '麗しい'],
+                'tradition': ['伝統', '古風', '和', '雅', '古典', '歴史', '典', '礼']
             };
 
-            const combined = (k['名前のイメージ'] || '') + (k['意味'] || '') + (k['分類'] || '');
-            const matchesTag = Array.from(searchSelectedTags).some(tagId => {
-                const keywords = tagKeywords[tagId] || [];
-                return keywords.some(kw => combined.includes(kw));
-            });
-
-            if (!matchesTag) return false;
+            const combined = (k['名前のイメージ'] || '') + (k['意味'] || '') + (k['分類'] || '') + (k['漢字'] || '');
+            const keywords = classKeywords[searchClassFilter] || [];
+            const matches = keywords.some(kw => combined.includes(kw));
+            if (!matches) return false;
         }
 
         return true;
     });
 
-    // スコア順
+    // スコア順ソート
     if (typeof calculateKanjiScore === 'function') {
         results.forEach(k => k.score = calculateKanjiScore(k));
-        results.sort((a, b) => b.score - a.score);
+        results.sort((a, b) => (b.score || 0) - (a.score || 0));
+    } else {
+        // スコア関数がない場合は画数でソート
+        results.sort((a, b) => (parseInt(a['画数']) || 0) - (parseInt(b['画数']) || 0));
     }
 
     // 表示
@@ -1728,25 +1805,27 @@ function executeKanjiSearch() {
     }
 
     container.innerHTML = '';
-    results.slice(0, 200).forEach(k => {
-        const isStocked = liked.some(l => l['漢字'] === k['漢字']);
-        const btn = document.createElement('button');
-        btn.className = `aspect-square bg-white rounded-xl shadow-sm border flex flex-col items-center justify-center hover:border-[#bca37f] relative transition-all active:scale-95
-            ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'}`;
-        btn.innerHTML = `
-            <span class="text-2xl font-black text-[#5d5444]">${k['漢字']}</span>
-            <span class="text-[8px] text-[#a6967a]">${k['画数']}画</span>
-            ${isStocked ? '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>' : ''}
-        `;
-        btn.onclick = () => toggleSearchStock(k, btn);
-        container.appendChild(btn);
-    });
 
     // 結果件数
     const countDiv = document.createElement('div');
     countDiv.className = 'col-span-4 text-center text-[10px] text-[#a6967a] py-2';
     countDiv.innerText = `${results.length}件${results.length > 200 ? '（上位200件表示）' : ''}`;
-    container.prepend(countDiv);
+    container.appendChild(countDiv);
+
+    results.slice(0, 200).forEach(k => {
+        const isStocked = liked.some(l => l['漢字'] === k['漢字']);
+        const strokes = parseInt(k['画数']) || '?';
+        const btn = document.createElement('button');
+        btn.className = `aspect-square bg-white rounded-xl shadow-sm border flex flex-col items-center justify-center hover:border-[#bca37f] relative transition-all active:scale-95
+            ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'}`;
+        btn.innerHTML = `
+            <span class="text-2xl font-black text-[#5d5444]">${k['漢字']}</span>
+            <span class="text-[8px] text-[#a6967a]">${strokes}画</span>
+            ${isStocked ? '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>' : ''}
+        `;
+        btn.onclick = () => toggleSearchStock(k, btn);
+        container.appendChild(btn);
+    });
 }
 
 function toggleSearchStock(k, btn) {
@@ -1755,21 +1834,204 @@ function toggleSearchStock(k, btn) {
         liked.splice(idx, 1);
         btn.classList.remove('bg-[#fffbeb]', 'border-[#bca37f]');
         btn.classList.add('border-[#eee5d8]');
-        btn.querySelector('span:last-child')?.remove();
+        const heart = btn.querySelector('.absolute');
+        if (heart) heart.remove();
     } else {
         const item = { ...k, slot: -1, sessionReading: 'SEARCH' };
         liked.push(item);
         btn.classList.add('bg-[#fffbeb]', 'border-[#bca37f]');
         btn.classList.remove('border-[#eee5d8]');
+        if (!btn.querySelector('.absolute')) {
+            btn.insertAdjacentHTML('beforeend', '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>');
+        }
     }
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
+}
+
+/**
+ * ============================================================
+ * AI響き分析（Sound Mode Enhancement）
+ * ============================================================
+ */
+let soundAnalysisLiked = [];
+let soundAnalysisNoped = [];
+
+function aiAnalyzeSoundPreferences() {
+    if (SwipeState.liked.length < 3) {
+        alert('AI分析には3つ以上の「いいね」が必要です');
+        return;
+    }
+
+    soundAnalysisLiked = SwipeState.liked.map(i => i.reading);
+    soundAnalysisNoped = SwipeState.history.filter(h => h.action === 'nope').map(h => h.item.reading);
+
+    // AI分析画面を表示
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    modal.classList.add('active');
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md animate-fade-in" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
+            <div class="text-center py-8">
+                <div class="text-[10px] font-black text-[#bca37f] mb-6 tracking-widest uppercase">AI Sound Analysis</div>
+                <div class="w-12 h-12 border-4 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mx-auto mb-6"></div>
+                <p class="text-sm font-bold text-[#5d5444] mb-2">好みを分析しています...</p>
+                <div id="ai-sound-progress" class="text-xs text-[#a6967a] space-y-1 mt-4">
+                    <p class="animate-pulse">好きな響きのパターンを解析中...</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // プログレス更新
+    setTimeout(() => {
+        const prog = document.getElementById('ai-sound-progress');
+        if (prog) prog.innerHTML += '<p class="animate-pulse">音の傾向を分析中...</p>';
+    }, 1000);
+    setTimeout(() => {
+        const prog = document.getElementById('ai-sound-progress');
+        if (prog) prog.innerHTML += '<p class="animate-pulse">類似する名前を生成中...</p>';
+    }, 2000);
+
+    // AIに分析依頼
+    const genderLabel = gender === 'male' ? '男の子' : gender === 'female' ? '女の子' : '中性的';
+    const prompt = `
+日本の赤ちゃんの名前（${genderLabel}）の響きの好みを分析して、新しい候補を提案してください。
+
+【好きな響き】
+${soundAnalysisLiked.join('、')}
+
+${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisNoped.join('、')}` : ''}
+
+【回答形式（厳守）】
+まず【分析】タグで、好みの傾向を3行程度で分析してください（音の特徴、文字数の傾向、音の柔らかさ/力強さなど）。
+
+次に【候補】タグで、分析に基づいて${gender === 'male' ? '男の子' : gender === 'female' ? '女の子' : ''}の新しい名前の読みを10個、以下の形式で1行ずつ提案してください：
+読み|文字数|特徴の一言説明
+
+例：
+そうすけ|4|力強く古風な響き
+
+【注意】好きな響きと重複しない新しい候補を出してください。
+`.trim();
+
+    fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+    })
+    .then(res => res.json())
+    .then(data => {
+        const aiText = data.text || '';
+        parseAndShowAISoundResults(aiText);
+    })
+    .catch(err => {
+        console.error("AI_SOUND:", err);
+        modal.innerHTML = `
+            <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+                <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
+                <div class="text-center py-8">
+                    <p class="text-sm text-[#f28b82] mb-4">AI分析に失敗しました</p>
+                    <p class="text-xs text-[#a6967a]">${err.message}</p>
+                    <button onclick="closeAISoundModal()" class="btn-gold mt-6 py-3 px-8">閉じる</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function parseAndShowAISoundResults(aiText) {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    // 分析テキストを抽出
+    let analysis = '';
+    let candidates = [];
+
+    const analysisMatch = aiText.match(/【分析】([\s\S]*?)(?=【候補】|$)/);
+    if (analysisMatch) analysis = analysisMatch[1].trim();
+
+    const candidatesMatch = aiText.match(/【候補】([\s\S]*?)$/);
+    if (candidatesMatch) {
+        const lines = candidatesMatch[1].trim().split('\n').filter(l => l.trim());
+        lines.forEach(line => {
+            const parts = line.split('|').map(p => p.trim());
+            if (parts.length >= 2) {
+                candidates.push({
+                    reading: parts[0].replace(/[・、。]/g, ''),
+                    charCount: parts[1] || '',
+                    desc: parts[2] || ''
+                });
+            }
+        });
+    }
+
+    // フォールバック：候補が取れなかった場合はテキスト全体から読みを抽出
+    if (candidates.length === 0) {
+        const namePattern = /([ぁ-ん]{2,6})/g;
+        let match;
+        const seen = new Set(soundAnalysisLiked);
+        while ((match = namePattern.exec(aiText)) !== null) {
+            if (!seen.has(match[1]) && candidates.length < 10) {
+                candidates.push({ reading: match[1], charCount: String(match[1].length), desc: '' });
+                seen.add(match[1]);
+            }
+        }
+    }
+
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
+            <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase text-center">AI Analysis Result</div>
+
+            ${analysis ? `
+                <div class="bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl p-4 mb-6">
+                    <p class="text-xs font-bold text-[#8b7e66] mb-2">あなたの好みの傾向</p>
+                    <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${analysis}</p>
+                </div>
+            ` : ''}
+
+            <p class="text-xs font-bold text-[#8b7e66] mb-3">AIおすすめの響き（${candidates.length}件）</p>
+            <div class="space-y-2 mb-6" id="ai-sound-candidates">
+                ${candidates.map((c, i) => `
+                    <div class="flex items-center gap-3 bg-white rounded-xl border border-[#eee5d8] p-3 transition-all hover:border-[#bca37f]">
+                        <div class="flex-1">
+                            <div class="text-lg font-black text-[#5d5444]">${c.reading}</div>
+                            <div class="text-[10px] text-[#a6967a]">${c.charCount}文字 ${c.desc ? '・ ' + c.desc : ''}</div>
+                        </div>
+                        <button onclick="useAISoundReading('${c.reading}', this)"
+                                class="px-3 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all active:scale-95">
+                            この読みで探す
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button onclick="closeAISoundModal()" class="btn-gold py-4 w-full">閉じる</button>
+        </div>
+    `;
+}
+
+function useAISoundReading(reading, btn) {
+    closeAISoundModal();
+    proceedWithSoundReading(reading);
+}
+
+function closeAISoundModal() {
+    const modal = document.getElementById('modal-ai-sound');
+    if (modal) modal.classList.remove('active');
 }
 
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
 window.proceedWithSoundReading = proceedWithSoundReading;
-window.toggleSearchTag = toggleSearchTag;
+window.setStrokeFilter = setStrokeFilter;
+window.setClassFilter = setClassFilter;
 window.executeKanjiSearch = executeKanjiSearch;
 window.toggleSearchStock = toggleSearchStock;
+window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
+window.closeAISoundModal = closeAISoundModal;
+window.useAISoundReading = useAISoundReading;
 
-console.log("UI_FLOW: Module loaded (Phase 6: Search, Sound Mode, Enhanced Features)");
+console.log("UI_FLOW: Module loaded (V18 - Search Filters, AI Sound, Skip Gender)");

@@ -179,7 +179,10 @@ function drawerNavigate(target) {
                 if (typeof openBuild === 'function') openBuild();
                 break;
             case 'history':
-                if (typeof openHistory === 'function') openHistory();
+                if (typeof openReadingHistory === 'function') openReadingHistory();
+                break;
+            case 'saved':
+                if (typeof openSavedNames === 'function') openSavedNames();
                 break;
             case 'search':
                 if (typeof openKanjiSearch === 'function') openKanjiSearch();
@@ -289,7 +292,9 @@ function updateTopBarTitle(screenId) {
         'scr-swipe-universal': 'スワイプ',
         'scr-free-mode': '自由モード',
         'scr-kanji-search': '漢字検索',
-        'scr-diagnosis-input': '姓名判断'
+        'scr-diagnosis-input': '姓名判断',
+        'scr-saved': '保存済み',
+        'scr-history': '検索履歴'
     };
 
     title.innerText = titles[screenId] || 'メイメー';

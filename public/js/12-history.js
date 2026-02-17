@@ -159,144 +159,123 @@ function getReadingHistory() {
 }
 
 /**
- * 保存済み・履歴画面を開く
+ * 保存済み画面を開く（独立画面）
  */
-function openHistory() {
-    const modal = document.getElementById('modal-history');
-    if (!modal) {
-        console.error("HISTORY: Modal not found");
-        return;
-    }
-
-    renderHistory();
-    modal.classList.add('active');
-
-    // フッターを表示（TOPから遷移した場合などのため）
-    const footer = document.getElementById('bottom-nav');
-    if (footer) footer.classList.remove('hidden');
+function openSavedNames() {
+    changeScreen('scr-saved');
+    renderSavedScreen();
 }
 
 /**
- * 履歴画面のレンダリング（タブ切り替え）
+ * 検索履歴画面を開く（独立画面）
  */
-function renderHistory() {
-    const container = document.getElementById('history-content');
+function openReadingHistory() {
+    changeScreen('scr-history');
+    renderHistoryScreen();
+}
+
+/**
+ * 互換性のためopenHistoryは保存済みを開く
+ */
+function openHistory() {
+    openSavedNames();
+}
+
+/**
+ * 保存済み画面のレンダリング
+ */
+function renderSavedScreen() {
+    const container = document.getElementById('saved-list-content');
     if (!container) return;
 
     const saved = getSavedNames();
-    const history = getReadingHistory();
 
-    container.innerHTML = `
-        <!-- タブ -->
-        <div class="flex gap-2 mb-6 border-b-2 border-[#eee5d8]">
-            <button onclick="switchHistoryTab('saved')" id="tab-saved" class="flex-1 py-3 font-bold text-sm transition-all border-b-2 -mb-0.5">
-                保存済み（${saved.length}）
-            </button>
-            <button onclick="switchHistoryTab('history')" id="tab-history" class="flex-1 py-3 font-bold text-sm transition-all border-b-2 -mb-0.5">
-                履歴（${history.length}）
-            </button>
-        </div>
-        
-        <!-- 保存済みタブ -->
-        <div id="content-saved" class="space-y-3">
-            ${saved.length > 0 ? saved.map((item, index) => `
-                <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex-1">
-                            <div class="text-lg font-black text-[#5d5444]">${item.fullName}</div>
-                            <div class="text-xs text-[#a6967a]">${item.reading}</div>
-                            ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">💬 ${item.message}</div>` : ''}
-                        </div>
-                        ${item.fortune ? `
-                            <div class="text-right ml-3">
-                                <div class="text-sm font-bold ${item.fortune.so.res?.color || 'text-[#bca37f]'}">${item.fortune.so.val || item.fortune.so}画</div>
-                                <div class="text-xs ${item.fortune.so.res?.color || 'text-[#bca37f]'}">${item.fortune.so.res?.label || item.fortune.label}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="loadSavedName(${index})" class="flex-1 py-2 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all">
-                            詳細を見る
-                        </button>
-                        <button onclick="deleteSavedName(${index})" class="px-4 py-2 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all">
-                            削除
-                        </button>
-                    </div>
+    container.innerHTML = saved.length > 0 ? saved.map((item, index) => `
+        <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+            <div class="flex items-start justify-between mb-2">
+                <div class="flex-1">
+                    <div class="text-lg font-black text-[#5d5444]">${item.fullName || ''}</div>
+                    <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                    ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">💬 ${item.message}</div>` : ''}
                 </div>
-            `).join('') : `
-                <div class="text-center py-16 text-sm text-[#a6967a]">
-                    保存された名前はまだありません
-                </div>
-            `}
-        </div>
-        
-        <!-- 履歴タブ -->
-        <div id="content-history" class="space-y-3 hidden">
-            ${history.length > 0 ? history.map((item, index) => `
-                <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#eee5d8] cursor-pointer hover:shadow-md transition-all">
-                    <div class="flex items-center justify-between mb-3" onclick="loadReadingHistory(${index})">
-                        <div>
-                            <div class="text-xl font-black text-[#5d5444]">${item.reading}</div>
-                            <div class="text-xs text-[#a6967a] mt-1">
-                                ${item.segments.join(' • ')} 
-                                ${item.settings.gender === 'male' ? '👦' : item.settings.gender === 'female' ? '👧' : ''}
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs font-bold text-[#bca37f]">${item.likedCount}個</div>
-                            <div class="text-xs text-[#a6967a]">選択済み</div>
-                        </div>
+                ${item.fortune ? `
+                    <div class="text-right ml-3">
+                        <div class="text-sm font-bold text-[#bca37f]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</div>
                     </div>
-                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-[#eee5d8]">
-                        <div class="text-[10px] text-[#a6967a]">
-                            ${new Date(item.searchedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                        <button onclick="event.stopPropagation(); deleteReadingHistory(${index})" class="px-3 py-1 bg-[#fef2f2] rounded-lg text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all">
-                            削除
-                        </button>
-                    </div>
-                </div>
-            `).join('') : `
-                <div class="text-center py-16 text-sm text-[#a6967a]">
-                    検索履歴はまだありません
-                </div>
-            `}
-            ${history.length > 0 ? `
-                <button onclick="clearReadingHistory()" class="w-full mt-4 py-3 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all">
-                    履歴をクリア
+                ` : ''}
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button onclick="loadSavedName(${index})" class="flex-1 py-2.5 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all active:scale-95">
+                    詳細を見る
                 </button>
-            ` : ''}
+                <button onclick="deleteSavedName(${index})" class="px-4 py-2.5 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all active:scale-95">
+                    削除
+                </button>
+            </div>
+        </div>
+    `).join('') : `
+        <div class="text-center py-20 text-sm text-[#a6967a]">
+            <div class="text-4xl mb-4 opacity-50">📝</div>
+            <p>保存された名前はまだありません</p>
+            <p class="text-[10px] mt-2">ビルドした名前を保存するとここに表示されます</p>
         </div>
     `;
-
-    // 保存済みタブを初期選択
-    switchHistoryTab('saved');
 }
 
 /**
- * タブ切り替え
+ * 検索履歴画面のレンダリング
  */
-function switchHistoryTab(tab) {
-    const savedTab = document.getElementById('tab-saved');
-    const historyTab = document.getElementById('tab-history');
-    const savedContent = document.getElementById('content-saved');
-    const historyContent = document.getElementById('content-history');
+function renderHistoryScreen() {
+    const container = document.getElementById('history-list-content');
+    if (!container) return;
 
-    if (tab === 'saved') {
-        savedTab.classList.add('text-[#bca37f]', 'border-[#bca37f]');
-        savedTab.classList.remove('text-[#a6967a]', 'border-transparent');
-        historyTab.classList.add('text-[#a6967a]', 'border-transparent');
-        historyTab.classList.remove('text-[#bca37f]', 'border-[#bca37f]');
-        savedContent.classList.remove('hidden');
-        historyContent.classList.add('hidden');
-    } else {
-        historyTab.classList.add('text-[#bca37f]', 'border-[#bca37f]');
-        historyTab.classList.remove('text-[#a6967a]', 'border-transparent');
-        savedTab.classList.add('text-[#a6967a]', 'border-transparent');
-        savedTab.classList.remove('text-[#bca37f]', 'border-[#bca37f]');
-        historyContent.classList.remove('hidden');
-        savedContent.classList.add('hidden');
-    }
+    const history = getReadingHistory();
+
+    container.innerHTML = history.length > 0 ? `
+        ${history.map((item, index) => `
+            <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm cursor-pointer hover:shadow-md transition-all active:scale-[0.99]">
+                <div class="flex items-center justify-between mb-2" onclick="loadReadingHistory(${index})">
+                    <div>
+                        <div class="text-xl font-black text-[#5d5444]">${item.reading}</div>
+                        <div class="text-xs text-[#a6967a] mt-1">
+                            ${item.segments.join(' / ')}
+                            ${item.settings.gender === 'male' ? '👦' : item.settings.gender === 'female' ? '👧' : '👶'}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-bold text-[#bca37f]">${item.likedCount}個</div>
+                        <div class="text-[10px] text-[#a6967a]">ストック</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-[#eee5d8]">
+                    <div class="text-[10px] text-[#a6967a]">
+                        ${new Date(item.searchedAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <button onclick="event.stopPropagation(); deleteReadingHistory(${index})" class="px-3 py-1.5 bg-[#fef2f2] rounded-lg text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all active:scale-95">
+                        削除
+                    </button>
+                </div>
+            </div>
+        `).join('')}
+        <button onclick="clearReadingHistory()" class="w-full mt-4 py-3 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all">
+            履歴をすべてクリア
+        </button>
+    ` : `
+        <div class="text-center py-20 text-sm text-[#a6967a]">
+            <div class="text-4xl mb-4 opacity-50">🕐</div>
+            <p>検索履歴はまだありません</p>
+            <p class="text-[10px] mt-2">読みを検索すると自動で記録されます</p>
+        </div>
+    `;
+}
+
+/**
+ * 互換性のための関数（旧タブ切り替え）
+ */
+function renderHistory() { renderSavedScreen(); }
+function switchHistoryTab(tab) {
+    if (tab === 'history') openReadingHistory();
+    else openSavedNames();
 }
 
 /**
@@ -310,11 +289,9 @@ function loadSavedName(index) {
 
     // 設定を復元
     if (item.combination && item.combination.length > 0) {
-        // 読み方のセグメントを復元
         const reading = item.reading || '';
-        segments = reading.split('').map(c => c); // ひらがな1文字ずつ
+        segments = reading.split('').map(c => c);
 
-        // 候補をlikedに復元
         item.combination.forEach((kanji, idx) => {
             const existing = liked.find(l => l['漢字'] === kanji['漢字'] && l.slot === idx);
             if (!existing) {
@@ -327,17 +304,16 @@ function loadSavedName(index) {
         });
     }
 
-    // ビルド結果を設定
     currentBuildResult = item;
 
-    closeHistory();
-
-    // ビルド画面に遷移して候補と結果の両方を表示
+    // ビルド画面に遷移
     changeScreen('scr-build');
     if (typeof renderBuildSelection === 'function') {
         renderBuildSelection();
     }
-    renderBuildResult();
+    if (typeof renderBuildResult === 'function') {
+        renderBuildResult();
+    }
 
     console.log('HISTORY: Loaded saved name with combination', item);
 }
@@ -387,8 +363,6 @@ function loadReadingHistory(index) {
         loadStack();
     }
 
-    closeHistory();
-
     // ビルド画面に遷移
     changeScreen('scr-build');
     if (typeof renderBuildSelection === 'function') {
@@ -408,7 +382,7 @@ function deleteSavedName(index) {
     saved.splice(index, 1);
     localStorage.setItem('meimay_saved', JSON.stringify(saved));
 
-    renderHistory();
+    renderSavedScreen();
     console.log('HISTORY: Deleted saved name at index', index);
 }
 
@@ -420,15 +394,13 @@ function clearReadingHistory() {
 
     localStorage.removeItem('meimay_reading_history');
 
-    // ストックも全削除（ユーザー要望：履歴削除と同期）
     if (typeof liked !== 'undefined') {
-        liked.splice(0, liked.length); // 配列を空にする
-        if (typeof saveLiked === 'function') saveLiked();
+        liked.splice(0, liked.length);
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
     }
 
-    renderHistory();
+    renderHistoryScreen();
 
-    // ストック画面更新
     if (typeof renderStock === 'function') {
         renderStock();
     }
@@ -437,31 +409,26 @@ function clearReadingHistory() {
 }
 
 /**
- * 履歴画面を閉じる
+ * 履歴/保存済み画面を閉じる（ホームに戻る）
  */
 function closeHistory() {
-    const modal = document.getElementById('modal-history');
-    if (modal) modal.classList.remove('active');
-
-    // 現在の画面がTOPなどの場合はフッターを再び隠す
-    const currentScreen = document.querySelector('.screen.active');
-    const footer = document.getElementById('bottom-nav');
-    if (currentScreen && footer) {
-        const showFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings'];
-        if (!showFooterScreens.includes(currentScreen.id)) {
-            footer.classList.add('hidden');
-        }
-    }
+    changeScreen('scr-mode');
 }
 
 // グローバルに公開
 window.saveName = saveName;
 window.executeSaveWithMessage = executeSaveWithMessage;
 window.closeSaveMessageModal = closeSaveMessageModal;
+window.openSavedNames = openSavedNames;
+window.openReadingHistory = openReadingHistory;
+window.openHistory = openHistory;
 window.switchHistoryTab = switchHistoryTab;
 window.loadReadingHistory = loadReadingHistory;
+window.loadSavedName = loadSavedName;
 window.clearReadingHistory = clearReadingHistory;
 window.deleteReadingHistory = deleteReadingHistory;
+window.deleteSavedName = deleteSavedName;
+window.closeHistory = closeHistory;
 
 /**
  * 読み方履歴を削除（ストックも同期削除）
@@ -492,7 +459,7 @@ function deleteReadingHistory(index) {
         history.splice(index, 1);
         localStorage.setItem('meimay_reading_history', JSON.stringify(history));
 
-        renderHistory();
+        renderHistoryScreen();
         console.log('HISTORY: Deleted reading history at index', index);
 
         // ストック画面が開いていたら更新

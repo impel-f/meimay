@@ -47,9 +47,13 @@
                 <span class="drawer-icon">⚒️</span>
                 <span>ビルド</span>
             </button>
+            <button onclick="drawerNavigate('saved')" class="drawer-menu-item">
+                <span class="drawer-icon">💾</span>
+                <span>保存済み</span>
+            </button>
             <button onclick="drawerNavigate('history')" class="drawer-menu-item">
-                <span class="drawer-icon">📚</span>
-                <span>履歴・保存済み</span>
+                <span class="drawer-icon">🕐</span>
+                <span>検索履歴</span>
             </button>
             <button onclick="drawerNavigate('search')" class="drawer-menu-item">
                 <span class="drawer-icon">🔎</span>
@@ -100,7 +104,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v17.0
+            メイメー v18.0
         </div>
     </aside>
 
@@ -112,8 +116,8 @@
         <div class="flex-1 text-center">
             <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
         </div>
-        <button id="btn-history-float" onclick="openHistory()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
-            📚
+        <button id="btn-history-float" onclick="openSavedNames()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
+            💾
         </button>
     </div>
 
@@ -315,18 +319,22 @@
             </div>
 
             <!-- Quick Access -->
-            <div class="flex gap-3 w-full max-w-sm px-6 mb-6">
+            <div class="grid grid-cols-4 gap-2 w-full max-w-sm px-6 mb-6">
                 <button onclick="openStock()"
-                    class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
+                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
                     📋 ストック
                 </button>
                 <button onclick="openBuild()"
-                    class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
+                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
                     ⚒️ ビルド
                 </button>
-                <button onclick="openHistory()"
-                    class="flex-1 bg-white/40 hover:bg-white/80 p-3 rounded-xl border border-[#ede5d8] text-xs font-bold text-[#8b7e66] transition-all shadow-sm">
-                    📚 履歴
+                <button onclick="openSavedNames()"
+                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
+                    💾 保存済み
+                </button>
+                <button onclick="openReadingHistory()"
+                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
+                    🕐 履歴
                 </button>
             </div>
         </div>
@@ -533,29 +541,40 @@
         </div>
     </div>
 
-    <!-- Kanji Search/Filter Screen -->
+    <!-- Kanji Search/Filter Screen (V2 - reading/stroke/classification) -->
     <div id="scr-kanji-search" class="screen">
         <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
-            <div class="flex items-center gap-3 mb-4">
+            <div class="flex items-center gap-3 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
             </div>
 
             <!-- Search Input -->
-            <div class="flex gap-2 mb-3">
+            <div class="mb-2">
                 <input type="text" id="kanji-search-input" placeholder="読み・漢字・意味で検索"
-                    class="flex-1 px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
+                    class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
                     oninput="executeKanjiSearch()">
             </div>
 
-            <!-- Image Tag Filter -->
-            <div id="kanji-search-tags" class="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
-                <!-- JS populated -->
+            <!-- Stroke Count Filter -->
+            <div class="mb-2">
+                <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">画数</p>
+                <div id="search-stroke-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    <!-- JS populated -->
+                </div>
+            </div>
+
+            <!-- Classification Filter -->
+            <div class="mb-3">
+                <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
+                <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    <!-- JS populated -->
+                </div>
             </div>
 
             <!-- Results -->
             <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-32 overflow-y-auto flex-1 content-start">
-                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">検索キーワードを入力してください</div>
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>
             </div>
         </div>
     </div>
@@ -1280,30 +1299,51 @@
         </div>
     </div>
 
-    <div id="modal-history" class="overlay">
-        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
-            <button class="modal-close-btn" onclick="closeHistory()">✕</button>
-            <h2 class="text-2xl font-black text-[#5d5444] mb-6">📚 保存済み・履歴</h2>
-            <div id="history-content" class="max-h-[60vh] overflow-y-auto"></div>
+    <!-- 保存済み画面（独立スクリーン） -->
+    <div id="scr-saved" class="screen">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+            <div class="flex items-center gap-3 mb-4">
+                <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">保存済みの名前</h2>
+            </div>
+            <div id="saved-list-content" class="space-y-3 overflow-y-auto flex-1 pb-32">
+                <!-- JS populated -->
+            </div>
         </div>
     </div>
+
+    <!-- 検索履歴画面（独立スクリーン） -->
+    <div id="scr-history" class="screen">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+            <div class="flex items-center gap-3 mb-4">
+                <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">検索履歴</h2>
+            </div>
+            <div id="history-list-content" class="space-y-3 overflow-y-auto flex-1 pb-32">
+                <!-- JS populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI響き分析モーダル -->
+    <div id="modal-ai-sound" class="overlay"></div>
 
     <!-- Module 02.5: Generator -->
     <script src="js/engine_v2_generator.js"></script>
 
     <script src="js/01-core.js"></script>
-    <script src="/js/02-engine.js?v=17.0"></script>
-    <script src="/js/03-fortune.js?v=17.0"></script>
-    <script src="/js/04-ui-flow.js?v=17.0"></script>
-    <script src="/js/05-ui-render.js?v=17.0"></script>
-    <script src="/js/06-ui-physics.js?v=17.0"></script>
-    <script src="/js/07-build.js?v=17.0"></script>
-    <script src="/js/08-origin.js?v=17.0"></script>
-    <script src="/js/09-storage.js?v=17.0"></script>
-    <script src="/js/10-choice.js?v=17.0"></script>
-    <script src="/js/11-settings.js?v=17.0"></script>
-    <script src="/js/12-history.js?v=17.0"></script>
-    <script src="/js/13-drawer-wizard.js?v=17.0"></script>
+    <script src="/js/02-engine.js?v=18.0"></script>
+    <script src="/js/03-fortune.js?v=18.0"></script>
+    <script src="/js/04-ui-flow.js?v=18.0"></script>
+    <script src="/js/05-ui-render.js?v=18.0"></script>
+    <script src="/js/06-ui-physics.js?v=18.0"></script>
+    <script src="/js/07-build.js?v=18.0"></script>
+    <script src="/js/08-origin.js?v=18.0"></script>
+    <script src="/js/09-storage.js?v=18.0"></script>
+    <script src="/js/10-choice.js?v=18.0"></script>
+    <script src="/js/11-settings.js?v=18.0"></script>
+    <script src="/js/12-history.js?v=18.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=18.0"></script>
 
 </body>
 
