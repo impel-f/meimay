@@ -886,6 +886,23 @@ body.hide-top-bar #top-bar {
     transform: scale(0.98);
 }
 
+/* ============================================================
+   AD BANNER & UNIVERSAL FOOTER
+   ============================================================ */
+
+body.has-ad-banner .screen {
+    padding-bottom: 40px !important;
+}
+
+body.has-ad-banner #bottom-nav,
+body.has-ad-banner #universal-footer {
+    bottom: 40px !important;
+}
+
+#universal-footer {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 .wiz-gender-btn.selected {
     border-color: #bca37f;
     background: #fffbeb;

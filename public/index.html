@@ -86,6 +86,11 @@
                 <span>自由に探す</span>
             </button>
 
+            <button onclick="drawerNavigate('akinator')" class="drawer-menu-item" id="drawer-akinator">
+                <span class="drawer-icon">🎯</span>
+                <span>AIおすすめ漢字</span>
+            </button>
+
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
 
             <button onclick="drawerNavigate('share')" class="drawer-menu-item">
@@ -104,7 +109,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v18.0
+            メイメー v19.0
         </div>
     </aside>
 
@@ -704,6 +709,20 @@
         </div>
     </div>
 
+    <!-- Akinator-style AI screen -->
+    <div id="scr-akinator" class="screen">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+            <div class="flex items-center gap-3 mb-4">
+                <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">AIおすすめ漢字</h2>
+            </div>
+            <div id="akinator-content" class="flex-1 overflow-y-auto pb-32">
+                <!-- JS populated -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Swipe mode footer -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-6">
             <button onclick="changeScreen('scr-main')"
@@ -728,6 +747,33 @@
             </button>
         </div>
     </nav>
+
+    <!-- Universal footer (for screens without bottom-nav) -->
+    <nav id="universal-footer" class="fixed bottom-0 left-0 right-0 z-[90] bg-[#fdfaf5]/95 backdrop-blur-md border-t border-[#eee5d8]/50 py-2 hidden">
+        <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
+            <button onclick="changeScreen('scr-mode')" class="flex flex-col items-center gap-0.5 p-1">
+                <span class="text-lg">🏠</span>
+                <span class="text-[8px] font-bold text-[#a6967a]">ホーム</span>
+            </button>
+            <button onclick="openStock()" class="flex flex-col items-center gap-0.5 p-1">
+                <span class="text-lg">📋</span>
+                <span class="text-[8px] font-bold text-[#a6967a]">ストック</span>
+            </button>
+            <button onclick="openBuild()" class="flex flex-col items-center gap-0.5 p-1">
+                <span class="text-lg">⚒️</span>
+                <span class="text-[8px] font-bold text-[#a6967a]">ビルド</span>
+            </button>
+            <button onclick="openSavedNames()" class="flex flex-col items-center gap-0.5 p-1">
+                <span class="text-lg">💾</span>
+                <span class="text-[8px] font-bold text-[#a6967a]">保存済み</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- AdMob Banner Container -->
+    <div id="admob-banner" class="fixed bottom-0 left-0 right-0 z-[80] flex justify-center" style="display:none;">
+        <!-- AdMob banner will be injected here by native bridge or web fallback -->
+    </div>
 
     <div id="modal-detail" class="overlay">
         <div class="detail-sheet" onclick="event.stopPropagation()">
@@ -1332,18 +1378,19 @@
     <script src="js/engine_v2_generator.js"></script>
 
     <script src="js/01-core.js"></script>
-    <script src="/js/02-engine.js?v=18.0"></script>
-    <script src="/js/03-fortune.js?v=18.0"></script>
-    <script src="/js/04-ui-flow.js?v=18.0"></script>
-    <script src="/js/05-ui-render.js?v=18.0"></script>
-    <script src="/js/06-ui-physics.js?v=18.0"></script>
-    <script src="/js/07-build.js?v=18.0"></script>
-    <script src="/js/08-origin.js?v=18.0"></script>
-    <script src="/js/09-storage.js?v=18.0"></script>
-    <script src="/js/10-choice.js?v=18.0"></script>
-    <script src="/js/11-settings.js?v=18.0"></script>
-    <script src="/js/12-history.js?v=18.0"></script>
-    <script src="/js/13-drawer-wizard.js?v=18.0"></script>
+    <script src="/js/02-engine.js?v=19.0"></script>
+    <script src="/js/03-fortune.js?v=19.0"></script>
+    <script src="/js/04-ui-flow.js?v=19.0"></script>
+    <script src="/js/05-ui-render.js?v=19.0"></script>
+    <script src="/js/06-ui-physics.js?v=19.0"></script>
+    <script src="/js/07-build.js?v=19.0"></script>
+    <script src="/js/08-origin.js?v=19.0"></script>
+    <script src="/js/09-storage.js?v=19.0"></script>
+    <script src="/js/10-choice.js?v=19.0"></script>
+    <script src="/js/11-settings.js?v=19.0"></script>
+    <script src="/js/12-history.js?v=19.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=19.0"></script>
+    <script src="/js/14-admob.js?v=19.0"></script>
 
 </body>
 

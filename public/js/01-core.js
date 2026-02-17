@@ -167,13 +167,22 @@ function changeScreen(id) {
 
     // フッターの表示制御
     const footer = document.getElementById('bottom-nav');
+    const uniFooter = document.getElementById('universal-footer');
+    const noFooterScreens = ['scr-wizard', 'scr-mode'];
+    const mainFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings'];
+
     if (footer) {
-        // フッターを表示する画面IDリスト
-        const showFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings'];
-        if (showFooterScreens.includes(id)) {
+        if (mainFooterScreens.includes(id)) {
             footer.classList.remove('hidden');
         } else {
             footer.classList.add('hidden');
+        }
+    }
+    if (uniFooter) {
+        if (!mainFooterScreens.includes(id) && !noFooterScreens.includes(id)) {
+            uniFooter.classList.remove('hidden');
+        } else {
+            uniFooter.classList.add('hidden');
         }
     }
 

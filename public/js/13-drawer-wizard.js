@@ -190,6 +190,9 @@ function drawerNavigate(target) {
             case 'diagnosis':
                 startMode('diagnosis');
                 break;
+            case 'akinator':
+                if (typeof openAkinator === 'function') openAkinator();
+                break;
             case 'mode-reading':
                 startMode('reading');
                 break;
@@ -294,7 +297,8 @@ function updateTopBarTitle(screenId) {
         'scr-kanji-search': '漢字検索',
         'scr-diagnosis-input': '姓名判断',
         'scr-saved': '保存済み',
-        'scr-history': '検索履歴'
+        'scr-history': '検索履歴',
+        'scr-akinator': 'AIおすすめ'
     };
 
     title.innerText = titles[screenId] || 'メイメー';

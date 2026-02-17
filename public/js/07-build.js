@@ -530,105 +530,70 @@ function showFortuneDetail() {
     const isSingleGiv = giv.length === 1;
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-10 p-8 bg-white rounded-[50px] border border-[#eee5d8] shadow-sm animate-fade-in flex flex-col items-center";
+    mapArea.className = "mb-6 p-5 bg-white rounded-3xl border border-[#eee5d8] shadow-sm animate-fade-in flex flex-col items-center";
 
+    // コンパクトな五格サマリーカード
     mapArea.innerHTML = `
-        <div class="text-[11px] font-black text-[#5d5444] tracking-[0.3em] mb-14 opacity-60">姓名判断 鑑定図解</div>
+        <div class="text-[10px] font-black text-[#5d5444] tracking-[0.2em] mb-4 opacity-60">姓名判断</div>
 
-        <div class="flex items-start justify-center gap-4 w-full max-w-[380px]">
-            <div class="flex items-center self-stretch">
-                <div class="flex flex-col items-center mr-1">
-                    <div class="map-node-sharp bg-[#fdfaf5] border border-[#eee5d8] w-14 py-2 flex flex-col items-center shadow-inner">
-                        <span class="text-xs font-black text-[#5d5444]">${getNum(res.gai)}画</span>
-                        <span class="${res.gai.res.color} text-[9px] font-black">${res.gai.res.label}</span>
-                    </div>
-                    <span class="text-[8px] font-black text-[#a6967a] mt-1">外格</span>
-                </div>
-                <div class="relative w-3 self-stretch flex items-center">
-                    <div class="absolute border-l-2 border-t-2 border-b-2 border-[#eee5d8] rounded-l-sm" 
-                         style="top: 24px; bottom: 24px; left: 0; right: 0;"></div>
-                </div>
+        <!-- 名前表示 -->
+        <div class="flex items-center gap-1 mb-4">
+            <div class="flex gap-0.5">
+                ${sur.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-[#fdfaf5] border border-[#eee5d8] font-black text-lg text-[#bca37f] rounded-lg">${c}</div>`).join('')}
             </div>
-
-            <div class="flex flex-col items-center">
-                <div class="flex flex-col gap-2">
-                    ${sur.map(c => `<div class="w-12 h-12 flex items-center justify-center bg-[#fdfaf5] border border-[#eee5d8] font-black text-xl text-[#bca37f]">${c}</div>`).join('')}
-                </div>
-                <div style="height: ${midGap}px;" class="flex items-center justify-center opacity-10 text-xl font-thin select-none">/</div>
-                <div class="flex flex-col gap-2">
-                    ${giv.map(c => `<div class="w-12 h-12 flex items-center justify-center bg-white border border-[#bca37f] font-black text-xl text-[#5d5444] shadow-sm">${c}</div>`).join('')}
-                </div>
-            </div>
-
-            <div class="flex flex-col self-stretch ml-2">
-                <div class="relative flex items-center" style="height: ${surH}px;">
-                    ${isSingleSur ? `<div class="absolute left-[-14px] top-1/2 -translate-y-1/2 w-4 h-0.5 bg-[#eee5d8]"></div>` : ''}
-                    <div class="absolute left-0 border-r-2 border-t-2 border-b-2 border-[#eee5d8] rounded-r-sm" 
-                         style="top: 24px; bottom: 16px; width: 8px;"></div>
-                    <div class="flex flex-col items-center ml-5">
-                        <div class="map-node-sharp bg-[#fdfaf5] border border-[#eee5d8] w-14 py-1.5 flex flex-col items-center">
-                            <span class="text-[10px] font-black">${getNum(res.ten)}画</span>
-                            <span class="${res.ten.res.color} text-[8px] font-black">${res.ten.res.label}</span>
-                        </div>
-                        <span class="text-[7px] font-black text-[#a6967a] mt-0.5">天格</span>
-                    </div>
-                </div>
-
-                <div class="relative flex items-center justify-center" style="height: ${midGap}px;">
-                    <div class="absolute left-0 border-r-2 border-t-2 border-b-2 border-[#bca37f] rounded-r-sm" 
-                         style="top: -16px; bottom: -16px; width: 12px;"></div>
-                    <div class="flex flex-col items-center ml-6">
-                        <div class="map-node-sharp bg-white border-2 border-[#bca37f] w-14 py-1.5 flex flex-col items-center shadow-md">
-                            <span class="text-[10px] font-black">${getNum(res.jin)}画</span>
-                            <span class="${res.jin.res.color} text-[8px] font-black">${res.jin.res.label}</span>
-                        </div>
-                        <span class="text-[7px] font-black text-[#bca37f] mt-0.5">人格</span>
-                    </div>
-                </div>
-
-                <div class="relative flex items-center" style="height: ${givH}px;">
-                    ${isSingleGiv ? `<div class="absolute left-[-14px] top-1/2 -translate-y-1/2 w-4 h-0.5 bg-[#eee5d8]"></div>` : ''}
-                    <div class="absolute left-0 border-r-2 border-t-2 border-b-2 border-[#eee5d8] rounded-r-sm" 
-                         style="top: 16px; bottom: 24px; width: 8px;"></div>
-                    <div class="flex flex-col items-center ml-5">
-                        <div class="map-node-sharp bg-[#fdfaf5] border border-[#eee5d8] w-14 py-1.5 flex flex-col items-center">
-                            <span class="text-[10px] font-black">${getNum(res.chi)}画</span>
-                            <span class="${res.chi.res.color} text-[8px] font-black">${res.chi.res.label}</span>
-                        </div>
-                        <span class="text-[7px] font-black text-[#a6967a] mt-0.5">地格</span>
-                    </div>
-                </div>
+            <div class="text-[#d4c5af] mx-1 text-sm">/</div>
+            <div class="flex gap-0.5">
+                ${giv.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-white border border-[#bca37f] font-black text-lg text-[#5d5444] rounded-lg shadow-sm">${c}</div>`).join('')}
             </div>
         </div>
 
-        <div class="mt-12 w-full pt-8 border-t border-[#eee5d8] flex flex-col items-center">
-            <span class="text-[10px] font-black text-[#a6967a] mb-3 uppercase tracking-widest">総格（総合運）</span>
-            <div class="bg-white border border-[#5d5444] px-10 py-3 flex items-center gap-5 map-node-sharp shadow-sm">
-                <span class="text-3xl font-black text-[#5d5444]">${getNum(res.so)} <span class="text-xs font-bold ml-1">画</span></span>
-                <div class="w-[1px] h-6 bg-[#eee5d8]"></div>
-                <span class="${res.so.res.color} text-base font-black">${res.so.res.label}</span>
+        <!-- 総格 -->
+        <div class="bg-gradient-to-r from-[#fdfaf5] to-white border border-[#eee5d8] rounded-2xl px-6 py-3 flex items-center gap-4 mb-4 w-full max-w-[280px]">
+            <div class="flex-1 text-center">
+                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-wider">総格</span>
+                <div class="text-2xl font-black text-[#5d5444]">${getNum(res.so)}画</div>
             </div>
+            <div class="w-px h-8 bg-[#eee5d8]"></div>
+            <div class="flex-1 text-center">
+                <div class="${res.so.res.color} text-lg font-black">${res.so.res.label}</div>
+            </div>
+        </div>
+
+        <!-- 五格グリッド -->
+        <div class="grid grid-cols-4 gap-2 w-full max-w-[320px]">
+            ${[
+                { k: '天格', d: res.ten, icon: '🏛️' },
+                { k: '人格', d: res.jin, icon: '💎' },
+                { k: '地格', d: res.chi, icon: '🌱' },
+                { k: '外格', d: res.gai, icon: '🌍' }
+            ].map(p => `
+                <div class="bg-[#fdfaf5] border border-[#eee5d8] rounded-xl p-2 text-center" onclick="showFortuneTerm('${p.k}')">
+                    <div class="text-[8px] text-[#a6967a] font-bold">${p.icon} ${p.k}</div>
+                    <div class="text-sm font-black text-[#5d5444]">${getNum(p.d)}</div>
+                    <div class="${p.d.res.color} text-[9px] font-black">${p.d.res.label}</div>
+                </div>
+            `).join('')}
         </div>
     `;
     container.appendChild(mapArea);
 
     if (res.sansai) {
         const sansai = document.createElement('div');
-        sansai.className = "mb-8 bg-[#fdfaf5] p-6 rounded-[40px] border border-[#eee5d8] shadow-inner animate-fade-in";
+        sansai.className = "mb-4 bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8] shadow-inner animate-fade-in";
         sansai.innerHTML = `
-            <div class="flex justify-between items-center mb-5 px-1 relative">
+            <div class="flex justify-between items-center mb-3">
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase">五行・三才配置</span>
-                    <button onclick="showFortuneTerm('五行・三才')" class="w-5 h-5 bg-[#bca37f] text-white rounded-full text-[10px] flex items-center justify-center shadow-sm hover:bg-[#a6967a] transition-colors">?</button>
+                    <span class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase">五行・三才</span>
+                    <button onclick="showFortuneTerm('五行・三才')" class="w-4 h-4 bg-[#bca37f] text-white rounded-full text-[8px] flex items-center justify-center">?</button>
                 </div>
-                <span class="px-4 py-1 bg-white rounded-full text-[10px] font-black ${res.sansai.label === '大吉' ? 'text-amber-600' : 'text-[#5d5444]'} shadow-sm">
+                <span class="px-3 py-0.5 bg-white rounded-full text-[10px] font-black ${res.sansai.label === '大吉' ? 'text-amber-600' : 'text-[#5d5444]'} shadow-sm">
                     ${res.sansai.label}
                 </span>
             </div>
-            <div class="flex gap-2 items-center mb-5 px-1">
-                ${['t', 'j', 'c'].map(k => `<div class="flex-grow bg-white py-2.5 rounded-2xl border border-[#eee5d8] text-center shadow-sm"><div class="text-[8px] font-bold text-[#a6967a] mb-0.5">${k === 't' ? '天' : k === 'j' ? '人' : '地'}</div><div class="text-sm font-black text-[#5d5444]">${res.sansai[k] || '-'}</div></div>`).join('<div class="text-[#eee5d8] text-[8px]">▶</div>')}
+            <div class="flex gap-1.5 items-center mb-3">
+                ${['t', 'j', 'c'].map(k => `<div class="flex-grow bg-white py-2 rounded-xl border border-[#eee5d8] text-center"><div class="text-[8px] font-bold text-[#a6967a]">${k === 't' ? '天' : k === 'j' ? '人' : '地'}</div><div class="text-sm font-black text-[#5d5444]">${res.sansai[k] || '-'}</div></div>`).join('<div class="text-[#eee5d8] text-[8px]">▶</div>')}
             </div>
-            <p class="text-[13px] leading-relaxed text-[#5d5444] font-medium text-center px-2">${res.sansai.desc || ''}</p>
+            <p class="text-[11px] leading-relaxed text-[#5d5444] text-center">${res.sansai.desc || ''}</p>
         `;
         container.appendChild(sansai);
     }
@@ -671,23 +636,23 @@ function renderFortuneDetails(container, res, getNum) {
     items.forEach(p => {
         if (!p.d) return;
 
-        // 【天格】などの表記を削除
         const descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
 
         const row = document.createElement('div');
-        row.className = "flex items-center gap-4 mb-3 w-full animate-fade-in";
+        row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
         row.innerHTML = `
-            <div class="relative w-24 flex-shrink-0 bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl py-3 flex flex-col items-center justify-center shadow-sm h-24 group">
-                <button onclick="showFortuneTerm('${p.k}')" class="absolute -top-2 -right-2 w-5 h-5 bg-[#bca37f] text-white rounded-full text-[10px] flex items-center justify-center shadow-md z-10 hover:bg-[#a6967a] transition-colors">?</button>
-                <div class="text-[10px] font-bold text-[#a6967a] mb-1 uppercase tracking-tighter flex items-center gap-1"><span>${p.icon}</span>${p.k}</div>
-                <div class="text-2xl font-black text-[#5d5444] mb-1">${getNum(p.d)}</div>
-                <div class="${p.d.res.color} text-xs font-black">${p.d.res.label}</div>
-            </div>
-            <div class="flex-grow bg-white border border-dashed border-[#eee5d8] rounded-2xl px-4 py-3 flex items-center shadow-sm min-h-[96px]">
-                <div class="text-[13px] leading-relaxed text-[#5d5444] font-medium text-justify">
-                    ${descText}
+            <div class="flex items-center gap-3 mb-1">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-sm">${p.icon}</span>
+                    <span class="text-xs font-black text-[#a6967a]">${p.k}</span>
+                    <button onclick="showFortuneTerm('${p.k}')" class="w-4 h-4 bg-[#bca37f] text-white rounded-full text-[8px] flex items-center justify-center">?</button>
+                </div>
+                <div class="flex items-center gap-2 ml-auto">
+                    <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>
+                    <span class="${p.d.res.color} text-sm font-black">${p.d.res.label}</span>
                 </div>
             </div>
+            <p class="text-[11px] leading-relaxed text-[#7a6f5a] line-clamp-3">${descText}</p>
         `;
         container.appendChild(row);
     });
