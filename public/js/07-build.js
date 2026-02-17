@@ -12,6 +12,10 @@ function openStock() {
     console.log("BUILD: Opening stock screen");
     renderStock();
     changeScreen('scr-stock');
+    // 読みストックセクションも描画
+    if (typeof renderReadingStockSection === 'function') {
+        setTimeout(() => renderReadingStockSection(), 50);
+    }
 }
 
 /**

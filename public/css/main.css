@@ -891,12 +891,17 @@ body.hide-top-bar #top-bar {
    ============================================================ */
 
 body.has-ad-banner .screen {
-    padding-bottom: 40px !important;
+    padding-bottom: 80px !important;
 }
 
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
     bottom: 40px !important;
+}
+
+/* 広告表示時のスワイプ画面調整 */
+body.has-ad-banner #scr-swipe-universal .glass-card {
+    height: calc(80vh - 40px) !important;
 }
 
 #universal-footer {

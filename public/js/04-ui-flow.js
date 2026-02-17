@@ -448,20 +448,15 @@ function processNickname() {
     startUniversalSwipe('nickname', candidates, {
         title: '響きをひろげる',
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
+        disableSuper: true,
         renderCard: (item) => {
-            const exampleHtml = getSampleKanjiHtml(item);
             return `
                 <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
                     ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
                 </div>
                 <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
-                <div class="w-full px-6">
-                     <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
-                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                        <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
-                           ${exampleHtml}
-                        </div>
-                     </div>
+                <div class="text-xs text-[#a6967a] px-4 text-center leading-relaxed">
+                    ${item.type === 'original' ? 'そのままの読み' : (item.type === 'prefix' ? '後ろに続く候補' : '読みを広げた候補')}
                 </div>
             `;
         },
@@ -472,20 +467,20 @@ function processNickname() {
             if (selectedItems.length === 0) return;
 
             if (selectedItems.length === 1) {
-                // 1つだけ選択 → そのまま通常フローへ
+                // 1つだけ選択 → 読みから探すフローへ
                 proceedWithNicknameReading(selectedItems[0].reading);
             } else {
-                // 複数選択 → 読み方選択画面を表示
-                showNicknameReadingSelection(selectedItems);
+                // 複数選択 → 1つ選んで残りはストックへ
+                showNicknameReadingSelectionWithStock(selectedItems);
             }
         }
     });
 }
 
 /**
- * ニックネーム：複数読みの選択画面
+ * ニックネーム：複数読みの選択画面（1つ選んで残りはストックへ）
  */
-function showNicknameReadingSelection(items) {
+function showNicknameReadingSelectionWithStock(items) {
     const container = document.getElementById('uni-candidates-grid');
     const list = document.getElementById('uni-liked-list');
     if (!container || !list) return;
@@ -494,8 +489,8 @@ function showNicknameReadingSelection(items) {
 
     const title = document.getElementById('uni-list-title');
     const desc = document.getElementById('uni-list-desc');
-    if (title) title.innerText = '読みを選んでください';
-    if (desc) desc.innerText = '選んだ読みごとに漢字をスワイプで選びます';
+    if (title) title.innerText = '1つ選んでください';
+    if (desc) desc.innerText = '選んだ読みの漢字を探します。残りは読みストックに保存されます。';
 
     items.forEach(item => {
         const btn = document.createElement('div');
@@ -503,12 +498,26 @@ function showNicknameReadingSelection(items) {
         btn.innerHTML = `<div class="text-xl font-black text-[#5d5444]">${item.reading}</div>`;
         btn.onclick = () => {
             list.classList.add('hidden');
+            // 選ばれなかったものをストックに追加
+            const others = items.filter(i => i.reading !== item.reading);
+            others.forEach(o => addReadingToStock(o.reading));
+            if (others.length > 0) {
+                showToast(`${others.length}件の読みをストックに保存しました`);
+            }
+            // 選んだ1つで漢字探しへ
             proceedWithNicknameReading(item.reading);
         };
         container.appendChild(btn);
     });
 
     list.classList.remove('hidden');
+}
+
+/**
+ * showNicknameReadingSelection (互換性維持)
+ */
+function showNicknameReadingSelection(items) {
+    showNicknameReadingSelectionWithStock(items);
 }
 
 /**
@@ -535,6 +544,12 @@ function proceedWithNicknameReading(reading) {
 function startUniversalSwipe(mode, candidates, configOverride = {}) {
     console.log(`SWIPE: Starting mode ${mode} with ${candidates.length} items`);
 
+    // AIボタンのクリーンアップ（前のモードから残っている場合）
+    const aiSoundBtn = document.getElementById('btn-ai-sound-analyze');
+    if (aiSoundBtn) aiSoundBtn.remove();
+    const aiFreeBtn = document.getElementById('btn-ai-free-learn');
+    if (aiFreeBtn) aiFreeBtn.remove();
+
     // Reset State
     SwipeState.mode = mode;
     SwipeState.candidates = candidates;
@@ -549,6 +564,13 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     document.getElementById('uni-swipe-subtitle').innerText = configOverride.subtitle || '';
 
     changeScreen('scr-swipe-universal');
+
+    // スーパーライクボタンの表示/非表示
+    const superBtn = document.querySelector('#scr-swipe-universal button[onclick="universalSwipeAction(\'super\')"]');
+    if (superBtn) {
+        superBtn.style.display = configOverride.disableSuper ? 'none' : '';
+    }
+
     renderUniversalCard();
 }
 
@@ -670,6 +692,11 @@ function universalSwipeAction(action) {
     }
 
     SwipeState.history.push({ action: action, item: item });
+
+    // 10スワイプごとにチェック
+    if (SwipeState.history.length > 0 && SwipeState.history.length % 10 === 0) {
+        showUniversalSwipeCheckpoint();
+    }
 
     // Animation
     const container = document.getElementById('uni-swipe-container');
@@ -835,20 +862,14 @@ function renderNicknameCardForce() {
     const card = document.createElement('div');
     card.className = 'nickname-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
     card.style.zIndex = 10;
-    const exampleHtml = getSampleKanjiHtml(item);
 
     card.innerHTML = `
         <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
             ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
         </div>
         <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
-        <div class="w-full px-6">
-             <div class="bg-[#fdfaf5] rounded-2xl p-4 border border-[#f5efe4]">
-                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold">
-                   ${exampleHtml}
-                </div>
-             </div>
+        <div class="text-xs text-[#a6967a] px-4 text-center leading-relaxed">
+            ${item.type === 'original' ? 'そのままの読み' : (item.type === 'prefix' ? '後ろに続く候補' : '読みを広げた候補')}
         </div>
     `;
     container.appendChild(card);
@@ -1545,7 +1566,193 @@ function autoInheritSameReadings() {
     });
 }
 
+// ==========================================
+// 読みストック機能
+// ==========================================
+
+const READING_STOCK_KEY = 'meimay_reading_stock';
+
+function getReadingStock() {
+    try {
+        const data = localStorage.getItem(READING_STOCK_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveReadingStock(stock) {
+    try {
+        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(stock));
+    } catch (e) {
+        console.error("STOCK: Failed to save reading stock", e);
+    }
+}
+
+function addReadingToStock(reading) {
+    const stock = getReadingStock();
+    if (!stock.some(s => s.reading === reading)) {
+        stock.push({ reading: reading, addedAt: new Date().toISOString() });
+        saveReadingStock(stock);
+        console.log("STOCK: Added reading to stock:", reading);
+    }
+}
+
+function removeReadingFromStock(reading) {
+    let stock = getReadingStock();
+    stock = stock.filter(s => s.reading !== reading);
+    saveReadingStock(stock);
+}
+
+/**
+ * 読みストック画面を表示
+ */
+function openReadingStock() {
+    const stock = getReadingStock();
+    const container = document.getElementById('stock-list');
+    if (!container) return;
+
+    changeScreen('scr-stock');
+
+    // ストック画面に読みストックセクションを追加表示
+    renderReadingStockSection();
+}
+
+/**
+ * 読みストックのUI描画（既存ストック画面に統合）
+ */
+function renderReadingStockSection() {
+    const stock = getReadingStock();
+    const section = document.getElementById('reading-stock-section');
+    if (!section) return;
+
+    if (stock.length === 0) {
+        section.innerHTML = '';
+        return;
+    }
+
+    section.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+            <div class="text-xs font-bold text-[#8b7e66] ml-1">読みストック</div>
+            <span class="text-[10px] text-[#a6967a]">${stock.length}件</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-6" id="reading-stock-grid">
+            ${stock.map(s => `
+                <div class="bg-white/80 border border-[#ede5d8] rounded-xl p-3 flex items-center justify-between group hover:border-[#bca37f] transition-all">
+                    <button onclick="startReadingFromStock('${s.reading}')" class="flex-1 text-left active:scale-95 transition-transform">
+                        <div class="text-lg font-black text-[#5d5444]">${s.reading}</div>
+                        <div class="text-[9px] text-[#bca37f]">タップして漢字を探す</div>
+                    </button>
+                    <button onclick="removeReadingFromStock('${s.reading}');renderReadingStockSection()" class="text-[#d4c5af] text-sm ml-2 p-1.5 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82] transition-all">✕</button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+/**
+ * 読みストックから漢字探しへ
+ */
+function startReadingFromStock(reading) {
+    console.log("STOCK: Starting kanji search from stock reading:", reading);
+
+    // ストックから削除
+    removeReadingFromStock(reading);
+
+    // 読みから探すフローに合流
+    appMode = 'nickname';
+    proceedWithNicknameReading(reading);
+}
+
+/**
+ * トースト通知
+ */
+function showToast(message) {
+    const existing = document.getElementById('meimay-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'meimay-toast';
+    toast.className = 'fixed top-16 left-1/2 -translate-x-1/2 z-[10000] bg-[#5d5444] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg transition-all';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-10px)';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+}
+
+/**
+ * ユニバーサルスワイプの10枚チェックポイント
+ */
+function showUniversalSwipeCheckpoint() {
+    const likedCount = SwipeState.liked.length;
+    const totalSwipes = SwipeState.history.length;
+
+    const modal = document.getElementById('modal-choice');
+    const label = document.getElementById('choice-count-label');
+    const msg = document.getElementById('choice-message');
+    const btn = document.getElementById('choice-main-btn');
+
+    if (!modal) return;
+
+    if (label) label.innerText = `${totalSwipes}`;
+
+    if (msg) {
+        msg.innerHTML = `
+            <div class="mb-4">
+                <span class="text-2xl font-black text-[#bca37f]">${totalSwipes}枚</span>
+                <span class="text-sm">スワイプしました</span>
+            </div>
+            <p class="text-sm text-[#7a6f5a] leading-relaxed">
+                <b class="text-[#5d5444]">${likedCount}件</b>を候補に追加済みです。<br>
+                このまま候補リストを確認しますか？
+            </p>
+        `;
+    }
+
+    if (btn) {
+        btn.innerText = '候補リストを見る →';
+        btn.onclick = () => {
+            modal.classList.remove('active');
+            showUniversalList();
+        };
+    }
+
+    // 「もっと探す」ボタンの動作
+    const continueBtn = modal.querySelector('button[onclick="closeChoiceAndRefetch()"]');
+    if (continueBtn) {
+        continueBtn.onclick = () => {
+            modal.classList.remove('active');
+        };
+    }
+
+    modal.classList.add('active');
+}
+
+/**
+ * 探すボタンのアクション（モードに応じて分岐）
+ */
+function navSearchAction() {
+    if (appMode === 'nickname') {
+        // ニックネームモードの場合は響きを広げるへ
+        changeScreen('scr-input-nickname');
+    } else {
+        changeScreen('scr-main');
+    }
+}
+
 // Expose functions to global scope
+window.navSearchAction = navSearchAction;
 window.startMode = startMode;
 window.selectGender = selectGender;
 window.submitVibe = submitVibe;
@@ -1571,12 +1778,21 @@ window.continueUniversalSwipe = continueUniversalSwipe;
 window.closeUniversalList = closeUniversalList;
 window.startUniversalSwipe = startUniversalSwipe;
 window.showNicknameReadingSelection = showNicknameReadingSelection;
+window.showNicknameReadingSelectionWithStock = showNicknameReadingSelectionWithStock;
 window.proceedWithNicknameReading = proceedWithNicknameReading;
 window.freeSwipeAction = freeSwipeAction;
 window.toggleFreeBuildPiece = toggleFreeBuildPiece;
 window.clearFreeBuild = clearFreeBuild;
 window.executeFreeBuild = executeFreeBuild;
 window.renderFreeBuild = renderFreeBuild;
+window.getReadingStock = getReadingStock;
+window.addReadingToStock = addReadingToStock;
+window.removeReadingFromStock = removeReadingFromStock;
+window.openReadingStock = openReadingStock;
+window.renderReadingStockSection = renderReadingStockSection;
+window.startReadingFromStock = startReadingFromStock;
+window.showToast = showToast;
+window.showUniversalSwipeCheckpoint = showUniversalSwipeCheckpoint;
 
 /**
  * ============================================================

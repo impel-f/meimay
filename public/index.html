@@ -109,7 +109,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v19.0
+            メイメー v20.0
         </div>
     </aside>
 
@@ -687,7 +687,9 @@
     <div id="scr-stock" class="screen">
         <div class="w-full max-w-md px-4 pt-10 mx-auto">
             <h2 class="text-2xl font-bold text-center mb-2 text-[#8b7e66]">ストック</h2>
-            <p class="text-[10px] text-center text-[#bca37f] mb-8 tracking-widest uppercase">Selected Parts</p>
+            <p class="text-[10px] text-center text-[#bca37f] mb-4 tracking-widest uppercase">Selected Parts</p>
+            <!-- 読みストックセクション（JSで動的挿入） -->
+            <div id="reading-stock-section"></div>
             <div id="stock-list" class="grid grid-cols-4 gap-3 pb-40"></div>
         </div>
     </div>
@@ -725,7 +727,7 @@
     <!-- Swipe mode footer -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-6">
-            <button onclick="changeScreen('scr-main')"
+            <button onclick="navSearchAction()"
                 class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-search">
                 <span class="text-2xl transition-transform duration-200">🔍</span>
                 <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">さがす</span>
@@ -1378,19 +1380,19 @@
     <script src="js/engine_v2_generator.js"></script>
 
     <script src="js/01-core.js"></script>
-    <script src="/js/02-engine.js?v=19.0"></script>
-    <script src="/js/03-fortune.js?v=19.0"></script>
-    <script src="/js/04-ui-flow.js?v=19.0"></script>
-    <script src="/js/05-ui-render.js?v=19.0"></script>
-    <script src="/js/06-ui-physics.js?v=19.0"></script>
-    <script src="/js/07-build.js?v=19.0"></script>
-    <script src="/js/08-origin.js?v=19.0"></script>
-    <script src="/js/09-storage.js?v=19.0"></script>
-    <script src="/js/10-choice.js?v=19.0"></script>
-    <script src="/js/11-settings.js?v=19.0"></script>
-    <script src="/js/12-history.js?v=19.0"></script>
-    <script src="/js/13-drawer-wizard.js?v=19.0"></script>
-    <script src="/js/14-admob.js?v=19.0"></script>
+    <script src="/js/02-engine.js?v=20.0"></script>
+    <script src="/js/03-fortune.js?v=20.0"></script>
+    <script src="/js/04-ui-flow.js?v=20.0"></script>
+    <script src="/js/05-ui-render.js?v=20.0"></script>
+    <script src="/js/06-ui-physics.js?v=20.0"></script>
+    <script src="/js/07-build.js?v=20.0"></script>
+    <script src="/js/08-origin.js?v=20.0"></script>
+    <script src="/js/09-storage.js?v=20.0"></script>
+    <script src="/js/10-choice.js?v=20.0"></script>
+    <script src="/js/11-settings.js?v=20.0"></script>
+    <script src="/js/12-history.js?v=20.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=20.0"></script>
+    <script src="/js/14-admob.js?v=20.0"></script>
 
 </body>
 
