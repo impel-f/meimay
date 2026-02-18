@@ -326,8 +326,6 @@ function goBack() {
     } else if (id === 'scr-vibe') {
         if (appMode === 'free') {
             changeScreen('scr-mode');
-        } else if (appMode === 'nickname') {
-            changeScreen('scr-tomeji-selection');
         } else {
             changeScreen('scr-segment');
         }
@@ -336,10 +334,7 @@ function goBack() {
     } else if (id === 'scr-diagnosis-input') {
         changeScreen('scr-mode');
     } else if (id === 'scr-segment') {
-        if (appMode === 'nickname') {
-            changeScreen('scr-tomeji-selection');
-        }
-        else changeScreen('scr-input-reading');
+        changeScreen('scr-input-reading');
     } else if (id === 'scr-saved' || id === 'scr-history') {
         changeScreen('scr-mode');
     } else if (id === 'scr-swipe-universal') {
