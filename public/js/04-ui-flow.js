@@ -1593,9 +1593,6 @@ function startSwiping() {
         updateSurnameData();
     }
 
-    const nav = document.getElementById('bottom-nav');
-    if (nav) nav.classList.remove('hidden');
-
     currentPos = 0;
     swipes = 0;
     seen.clear();

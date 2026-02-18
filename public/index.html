@@ -734,9 +734,14 @@
         </div>
     </div>
 
-    <!-- Swipe mode footer -->
+    <!-- 統一フッター: ホーム / さがす / ストック / ビルド -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-6">
+            <button onclick="changeScreen('scr-mode')"
+                class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-home">
+                <span class="text-2xl transition-transform duration-200">🏠</span>
+                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ホーム</span>
+            </button>
             <button onclick="navSearchAction()"
                 class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-search">
                 <span class="text-2xl transition-transform duration-200">🔍</span>
@@ -751,33 +756,6 @@
                 id="nav-build">
                 <span class="text-2xl transition-transform duration-200">⚒️</span>
                 <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
-            </button>
-            <button onclick="openSettings()" class="nav-item flex flex-col items-center gap-1.5 group outline-none"
-                id="nav-settings">
-                <span class="text-2xl transition-transform duration-200">⚙️</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">設定</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Universal footer (for screens without bottom-nav) -->
-    <nav id="universal-footer" class="fixed bottom-0 left-0 right-0 z-[90] bg-[#fdfaf5]/95 backdrop-blur-md border-t border-[#eee5d8]/50 py-2 hidden">
-        <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
-            <button onclick="changeScreen('scr-mode')" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">🏠</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ホーム</span>
-            </button>
-            <button onclick="openStock()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">📋</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ストック</span>
-            </button>
-            <button onclick="openBuild()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">⚒️</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ビルド</span>
-            </button>
-            <button onclick="openSavedNames()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">💾</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">保存済み</span>
             </button>
         </div>
     </nav>
