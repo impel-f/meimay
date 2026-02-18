@@ -854,43 +854,54 @@ function displayFortuneRankingModal(rankedList) {
     const descEl = document.getElementById('for-desc');
 
     nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML = '<p class="text-sm text-center text-[#a6967a] mb-4">タップして選択すると自動的に反映されます</p>';
+    gridEl.innerHTML = '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
+    // 同スコア同順位（dense ranking）
+    const ranks = [];
+    rankedList.forEach((item, i) => {
+        if (i === 0) { ranks.push(1); return; }
+        ranks.push(item.score === rankedList[i - 1].score ? ranks[i - 1] : ranks[i - 1] + 1);
+    });
+
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
     rankedList.forEach((item, index) => {
-        const fullName = surnameStr + item.combination.name;
+        const rank = ranks[index];
+        const fullName = surnameStr ? `${surnameStr} ${item.combination.name}` : item.combination.name;
         const f = item.fortune;
         const card = document.createElement('div');
-        card.className = 'mb-3 p-5 bg-white rounded-3xl border-2 cursor-pointer hover:shadow-xl transition-all active:scale-98';
+        card.className = 'mb-2 p-3 bg-white rounded-2xl border-2 cursor-pointer transition-all active:scale-98';
 
-        if (index === 0) card.classList.add('border-[#bca37f]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-[#f8f5ef]');
-        else if (index === 1) card.classList.add('border-[#d4c5af]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-white');
-        else if (index === 2) card.classList.add('border-[#e5dfd5]', 'bg-gradient-to-br', 'from-white', 'to-[#fdfaf5]');
+        if (rank === 1) card.classList.add('border-[#bca37f]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-[#f8f5ef]');
+        else if (rank === 2) card.classList.add('border-[#d4c5af]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-white');
+        else if (rank === 3) card.classList.add('border-[#e5dfd5]');
         else card.classList.add('border-[#eee5d8]');
 
         card.onclick = () => applyRankedCombination(item.combination);
 
-        const medals = ['🥇', '🥈', '🥉'];
-        const medal = medals[index] || `${index + 1}位`;
+        const rankBadge = medals[rank]
+            ? `<span style="font-size:22px;line-height:1;flex-shrink:0">${medals[rank]}</span>`
+            : `<div style="width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div>`;
 
         card.innerHTML = `
-            <div class="flex items-start justify-between mb-3">
-                <div class="flex items-start gap-3">
-                    <span class="text-3xl">${medal}</span>
-                    <div>
-                        <div class="text-2xl font-black text-[#5d5444] mb-1">${fullName}</div>
-                        <div class="text-xs text-[#a6967a] mb-2">${item.combination.reading}</div>
-                        <div class="flex gap-1.5 flex-wrap">
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.ten.res.color} border border-[#eee5d8]">天:${f.ten.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.jin.res.color} border border-[#eee5d8]">人:${f.jin.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.chi.res.color} border border-[#eee5d8]">地:${f.chi.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.gai.res.color} border border-[#eee5d8]">外:${f.gai.res.label}</span>
-                        </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                ${rankBadge}
+                <div style="flex:1;min-width:0;overflow:hidden">
+                    <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">
+                        <span style="font-size:17px;font-weight:900;color:#5d5444;white-space:nowrap">${fullName}</span>
+                        <span style="font-size:10px;color:#a6967a;white-space:nowrap">${item.combination.reading}</span>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden">
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.ten.res.color}">天:${f.ten.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.jin.res.color}">人:${f.jin.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.chi.res.color}">地:${f.chi.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.gai.res.color}">外:${f.gai.res.label}</span>
                     </div>
                 </div>
-                <div class="text-right flex-shrink-0">
-                    <div class="text-3xl font-black ${f.so.res.color}">${f.so.val}</div>
-                    <div class="text-sm font-bold ${f.so.res.color}">${f.so.res.label}</div>
+                <div style="text-align:right;flex-shrink:0;margin-left:4px">
+                    <div style="font-size:20px;font-weight:900;line-height:1" class="${f.so.res.color}">${f.so.val}</div>
+                    <div style="font-size:10px;font-weight:700" class="${f.so.res.color}">${f.so.res.label}</div>
                 </div>
             </div>
         `;

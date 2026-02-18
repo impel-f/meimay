@@ -415,7 +415,7 @@ body {
     inset: 0;
     background: rgba(93, 84, 68, 0.55); 
     backdrop-filter: blur(15px);
-    z-index: 9999 !important;
+    z-index: 10001 !important;
     align-items: center;
     justify-content: center;
     padding: 20px;
