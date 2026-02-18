@@ -1386,6 +1386,25 @@
     <!-- AI響き分析モーダル -->
     <div id="modal-ai-sound" class="overlay"></div>
 
+    <!-- 引き継ぎ確認モーダル -->
+    <div id="modal-inherit" class="overlay">
+        <div class="detail-sheet text-center" onclick="event.stopPropagation()">
+            <div class="text-4xl mb-3">✨</div>
+            <h3 class="text-xl font-black text-[#5d5444] mb-3" id="inherit-modal-title"></h3>
+            <p class="text-sm text-[#8b7e66] mb-6 leading-relaxed" id="inherit-modal-body"></p>
+            <div class="flex gap-3">
+                <button onclick="inheritModalAction('skip')"
+                    class="flex-1 py-3 rounded-full border border-[#d4c5af] text-[#8b7e66] font-bold text-sm">
+                    スキップ
+                </button>
+                <button onclick="inheritModalAction('add')"
+                    class="flex-1 py-3 rounded-full bg-[#bca37f] text-white font-bold text-sm">
+                    追加で選ぶ
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Module 02.5: Generator -->
     <script src="js/engine_v2_generator.js"></script>
 
