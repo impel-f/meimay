@@ -517,7 +517,7 @@ function showFortuneDetail() {
     // 鑑定図解：3カラム（外格＋[括弧 ｜ 漢字列 ｜ ]括弧×3＋天人地格）＋下部総格
     const BOX_H = 40;   // 漢字ボックス高さ px
     const BOX_W = 40;   // 漢字ボックス幅 px
-    const GAP   = 6;    // 行間 px
+    const GAP   = 8;    // 行間 px（広めに）
     const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
     const BC    = '#bca37f'; // 括弧の色
     const BW    = 2;    // 括弧の線幅 px
@@ -536,10 +536,19 @@ function showFortuneDetail() {
     const totalH  = nGiv > 0 ? givBot(nGiv - 1) : (nSur > 0 ? surBot(nSur - 1) : 80);
 
     // 各格の括弧スパン（各文字の中央から中央へ）
-    const tenSpan = { top: nSur > 0 ? surMid(0)          : 0,      bot: nSur > 0 ? surMid(nSur - 1)  : 0      };
-    const jinSpan = { top: nSur > 0 ? surMid(nSur - 1)   : 0,      bot: nGiv > 0 ? givMid(0)          : 0      };
-    const chiSpan = { top: nGiv > 0 ? givMid(0)           : totalH, bot: nGiv > 0 ? givMid(nGiv - 1)  : totalH };
-    const gaiSpan = { top: nSur > 0 ? surMid(0)           : 0,      bot: nGiv > 0 ? givMid(nGiv - 1)  : totalH };
+    // 隣接する括弧がOFFSET分ずれて重ならないようにする
+    const OFFSET = 5; // 隣接括弧アームの重複防止オフセット px
+    const _tenRaw = { top: nSur > 0 ? surMid(0) : 0,        bot: nSur > 0 ? surMid(nSur - 1) : 0      };
+    const _jinRaw = { top: nSur > 0 ? surMid(nSur - 1) : 0, bot: nGiv > 0 ? givMid(0) : 0             };
+    const _chiRaw = { top: nGiv > 0 ? givMid(0) : totalH,   bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
+    // オフセット適用（単一文字スパン=h≤0 はそのまま）
+    const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
+    const jinSpan = (() => {
+        const t = _jinRaw.top + OFFSET, b = _jinRaw.bot - OFFSET;
+        return (t < b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
+    })();
+    const chiSpan = { top: _chiRaw.bot > _chiRaw.top ? _chiRaw.top + OFFSET : _chiRaw.top, bot: _chiRaw.bot };
+    const gaiSpan = { top: nSur > 0 ? surMid(0) : 0, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
 
     const spanMid = (s) => (s.top + s.bot) / 2;
 
@@ -632,7 +641,7 @@ function showFortuneDetail() {
         </div>
 
         <!-- 下部：総格 -->
-        <div style="margin-top:16px;text-align:center">
+        <div style="margin-top:10px;text-align:center">
             <div style="display:inline-block;padding:6px 20px;background:linear-gradient(to right,#fdfaf5,white);border-radius:12px;border:1.5px solid #bca37f;box-shadow:0 1px 4px rgba(188,163,127,0.15);cursor:pointer"
                  onclick="showFortuneTerm('総格')">
                 <div style="font-size:8px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
@@ -650,7 +659,7 @@ function showFortuneDetail() {
             <div class="flex justify-between items-center mb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase">五行・三才</span>
-                    <button onclick="showFortuneTerm('五行・三才')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;line-height:1;padding:0">?</button>
+                    <span onclick="showFortuneTerm('五行・三才')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
                 <span class="px-3 py-0.5 bg-white rounded-full text-[10px] font-black ${res.sansai.label === '大吉' ? 'text-amber-600' : 'text-[#5d5444]'} shadow-sm">
                     ${res.sansai.label}
@@ -702,7 +711,9 @@ function renderFortuneDetails(container, res, getNum) {
     items.forEach(p => {
         if (!p.d) return;
 
-        const descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
+        let descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
+        // 副題（例：祖先運）が先頭に来る場合は除去
+        descText = descText.replace(new RegExp(`^${p.sub}[。、|｜\\s]*`), '');
 
         const row = document.createElement('div');
         row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
@@ -711,7 +722,7 @@ function renderFortuneDetails(container, res, getNum) {
                 <div class="flex items-center gap-1.5">
                     <span class="text-sm">${p.icon}</span>
                     <span class="text-xs font-black text-[#a6967a]">${p.k}（${p.sub}）</span>
-                    <button onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;line-height:1;padding:0">?</button>
+                    <span onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
                 <div class="flex items-center gap-2 ml-auto">
                     <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>

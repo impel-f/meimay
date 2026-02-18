@@ -799,8 +799,8 @@
         </div>
     </div>
 
-    <div id="modal-fortune-detail" class="overlay" onclick="closeFortuneDetail()">
-        <div class="detail-sheet overflow-y-auto max-h-[85vh] w-[95%] max-w-md" onclick="event.stopPropagation()">
+    <div id="modal-fortune-detail" class="overlay" style="padding-bottom:90px;align-items:flex-start;padding-top:24px;overflow-y:auto" onclick="closeFortuneDetail()">
+        <div class="detail-sheet overflow-y-auto w-[95%] max-w-md" style="padding:28px 24px;max-height:calc(100dvh - 120px);flex-shrink:0" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>
             <h2 id="for-name" class="text-2xl font-black text-center mb-4 text-[#5d5444]"></h2>
             <div id="for-grid" class="flex flex-col w-full relative"></div>
