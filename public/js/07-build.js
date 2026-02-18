@@ -508,61 +508,90 @@ function showFortuneDetail() {
     container.innerHTML = '';
     container.className = "flex flex-col w-full relative";
 
-    const sur = (surnameStr || "").split('');
-    const giv = givens.map(g => g.kanji);
-
-    const unitH = 56;
-    const surH = sur.length * unitH;
-    const givH = giv.length * unitH;
-    const midGap = 140;
-
-    const isSingleSur = sur.length === 1;
-    const isSingleGiv = giv.length === 1;
+    // 姓のデータ（画数込み）
+    const surChars = (surnameData || []).filter(s => s.kanji);
+    const givChars = givens;
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-6 p-5 bg-white rounded-3xl border border-[#eee5d8] shadow-sm animate-fade-in flex flex-col items-center";
+    mapArea.className = "mb-4 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
 
-    // コンパクトな五格サマリーカード
+    // 鑑定図解：漢字列（左）＋格ラベル（右）の伝統的レイアウト
     mapArea.innerHTML = `
-        <div class="text-[10px] font-black text-[#5d5444] tracking-[0.2em] mb-4 opacity-60">姓名判断</div>
+        <div class="text-center text-[9px] font-black tracking-[0.2em] text-[#5d5444] opacity-50 mb-3">姓名判断 鑑定図解</div>
 
-        <!-- 名前表示 -->
-        <div class="flex items-center gap-1 mb-4">
-            <div class="flex gap-0.5">
-                ${sur.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-[#fdfaf5] border border-[#eee5d8] font-black text-lg text-[#bca37f] rounded-lg">${c}</div>`).join('')}
+        <div class="flex gap-2 items-stretch">
+            <!-- 左列：漢字ボックス（画数付き） -->
+            <div class="flex flex-col shrink-0" style="gap:4px">
+                ${surChars.map(s => `
+                    <div class="flex items-center gap-1">
+                        <div class="w-[32px] h-[32px] flex items-center justify-center bg-[#fdfaf5] border border-[#eee5d8] rounded-md font-black text-[14px] text-[#bca37f] leading-none">${s.kanji}</div>
+                        <span class="text-[8px] text-[#c9b89a] font-bold w-3">${s.strokes}</span>
+                    </div>
+                `).join('')}
+                ${surChars.length > 0 ? `<div style="height:10px" class="flex items-center mx-1"><div class="w-full border-t border-dashed border-[#d4c5af]"></div></div>` : ''}
+                ${givChars.map(g => `
+                    <div class="flex items-center gap-1">
+                        <div class="w-[32px] h-[32px] flex items-center justify-center bg-white border border-[#bca37f] rounded-md font-black text-[14px] text-[#5d5444] shadow-sm leading-none">${g.kanji}</div>
+                        <span class="text-[8px] text-[#c9b89a] font-bold w-3">${g.strokes}</span>
+                    </div>
+                `).join('')}
             </div>
-            <div class="text-[#d4c5af] mx-1 text-sm">/</div>
-            <div class="flex gap-0.5">
-                ${giv.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-white border border-[#bca37f] font-black text-lg text-[#5d5444] rounded-lg shadow-sm">${c}</div>`).join('')}
-            </div>
-        </div>
 
-        <!-- 総格 -->
-        <div class="bg-gradient-to-r from-[#fdfaf5] to-white border border-[#eee5d8] rounded-2xl px-6 py-3 flex items-center gap-4 mb-4 w-full max-w-[280px]">
-            <div class="flex-1 text-center">
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-wider">総格</span>
-                <div class="text-2xl font-black text-[#5d5444]">${getNum(res.so)}画</div>
-            </div>
-            <div class="w-px h-8 bg-[#eee5d8]"></div>
-            <div class="flex-1 text-center">
-                <div class="${res.so.res.color} text-lg font-black">${res.so.res.label}</div>
-            </div>
-        </div>
+            <!-- 区切り線 -->
+            <div class="w-px self-stretch bg-[#e8ddd0] rounded-full mx-1 my-1 shrink-0"></div>
 
-        <!-- 五格グリッド -->
-        <div class="grid grid-cols-4 gap-2 w-full max-w-[320px]">
-            ${[
-                { k: '天格', d: res.ten, icon: '🏛️' },
-                { k: '人格', d: res.jin, icon: '💎' },
-                { k: '地格', d: res.chi, icon: '🌱' },
-                { k: '外格', d: res.gai, icon: '🌍' }
-            ].map(p => `
-                <div class="bg-[#fdfaf5] border border-[#eee5d8] rounded-xl p-2 text-center" onclick="showFortuneTerm('${p.k}')">
-                    <div class="text-[8px] text-[#a6967a] font-bold">${p.icon} ${p.k}</div>
-                    <div class="text-sm font-black text-[#5d5444]">${getNum(p.d)}</div>
-                    <div class="${p.d.res.color} text-[9px] font-black">${p.d.res.label}</div>
+            <!-- 右列：格ラベル（上下均等配置） -->
+            <div class="flex flex-col justify-between flex-1 py-1">
+                <div class="flex items-center gap-1.5 cursor-pointer" onclick="showFortuneTerm('天格')">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#d4c5af] shrink-0"></div>
+                    <div>
+                        <div class="text-[8px] font-bold text-[#a6967a] leading-tight">天格</div>
+                        <div class="flex items-baseline gap-0.5 leading-tight">
+                            <span class="text-[15px] font-black text-[#5d5444]">${getNum(res.ten)}</span>
+                            <span class="text-[8px] text-[#a6967a]">画</span>
+                            <span class="${res.ten.res.color} text-[10px] font-black">${res.ten.res.label}</span>
+                        </div>
+                    </div>
                 </div>
-            `).join('')}
+
+                <div class="flex items-center gap-1.5 cursor-pointer" onclick="showFortuneTerm('人格')">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#bca37f] shrink-0"></div>
+                    <div>
+                        <div class="text-[8px] font-bold text-[#a6967a] leading-tight">人格</div>
+                        <div class="flex items-baseline gap-0.5 leading-tight">
+                            <span class="text-[15px] font-black text-[#5d5444]">${getNum(res.jin)}</span>
+                            <span class="text-[8px] text-[#a6967a]">画</span>
+                            <span class="${res.jin.res.color} text-[10px] font-black">${res.jin.res.label}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 cursor-pointer" onclick="showFortuneTerm('地格')">
+                    <div class="w-1.5 h-1.5 rounded-full bg-[#d4c5af] shrink-0"></div>
+                    <div>
+                        <div class="text-[8px] font-bold text-[#a6967a] leading-tight">地格</div>
+                        <div class="flex items-baseline gap-0.5 leading-tight">
+                            <span class="text-[15px] font-black text-[#5d5444]">${getNum(res.chi)}</span>
+                            <span class="text-[8px] text-[#a6967a]">画</span>
+                            <span class="${res.chi.res.color} text-[10px] font-black">${res.chi.res.label}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下段：外格 + 総格 -->
+        <div class="flex gap-2 mt-3">
+            <div class="flex-1 flex items-center justify-center gap-1 bg-[#fdfaf5] rounded-xl p-2 border border-[#eee5d8] cursor-pointer" onclick="showFortuneTerm('外格')">
+                <span class="text-[8px] font-bold text-[#a6967a]">外格</span>
+                <span class="text-sm font-black text-[#5d5444]">${getNum(res.gai)}画</span>
+                <span class="${res.gai.res.color} text-[10px] font-black">${res.gai.res.label}</span>
+            </div>
+            <div class="flex-1 flex items-center justify-center gap-1 bg-gradient-to-r from-[#fdfaf5] to-white rounded-xl p-2 border border-[#bca37f] cursor-pointer" onclick="showFortuneTerm('総格')">
+                <span class="text-[8px] font-bold text-[#a6967a]">総格</span>
+                <span class="text-base font-black text-[#5d5444]">${getNum(res.so)}画</span>
+                <span class="${res.so.res.color} text-[10px] font-black">${res.so.res.label}</span>
+            </div>
         </div>
     `;
     container.appendChild(mapArea);
