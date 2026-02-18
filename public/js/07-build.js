@@ -511,6 +511,8 @@ function showFortuneDetail() {
     // 姓のデータ（画数込み）
     const surChars = (surnameData || []).filter(s => s.kanji);
     const givChars = givens;
+    const nSur = surChars.length;
+    const nGiv = givChars.length;
 
     // 鑑定図解：3カラム（外格＋[括弧 ｜ 漢字列 ｜ ]括弧×3＋天人地格）＋下部総格
     const BOX_H = 40;   // 漢字ボックス高さ px
