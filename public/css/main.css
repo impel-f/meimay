@@ -899,10 +899,20 @@ body.has-ad-banner #universal-footer {
     bottom: 40px !important;
 }
 
-/* 広告表示時のスワイプ画面調整 */
-body.has-ad-banner #scr-swipe-universal .glass-card {
-    height: calc(80vh - 40px) !important;
+/* h-screen を使った内部コンテナを画面内に収める
+   .screen は position:absolute; inset:0; padding: 60px 24px 80-160px なので
+   内部コンテナは max-height:100% で収まるようにする */
+#scr-free-mode > div,
+#scr-kanji-search > div,
+#scr-akinator > div,
+#scr-saved > div,
+#scr-history > div {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden;
 }
+
+/* scr-swipe-universal は flex-1 min-h-0 に変更済みなので高さ固定不要 */
 
 #universal-footer {
     padding-bottom: env(safe-area-inset-bottom, 0);

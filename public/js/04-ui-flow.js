@@ -466,20 +466,13 @@ function processNickname() {
 
             if (selectedItems.length === 0) return;
 
-            // 全てを読みストックに追加
+            // 全て読みストックに追加 → 読みストック画面へ
             selectedItems.forEach(item => {
                 addReadingToStock(item.reading, nicknameBaseReading);
             });
 
-            if (selectedItems.length === 1) {
-                // 1つだけ → ストックから削除して漢字探しへ
-                removeReadingFromStock(selectedItems[0].reading);
-                proceedWithNicknameReading(selectedItems[0].reading);
-            } else {
-                // 複数 → ストックから削除して共通prefix順次スワイプへ
-                selectedItems.forEach(item => removeReadingFromStock(item.reading));
-                startMultiReadingKanjiFlow(selectedItems);
-            }
+            showToast(`${selectedItems.length}件の読みを読みストックに保存しました`);
+            if (typeof openStock === 'function') openStock('reading');
         }
     });
 }
