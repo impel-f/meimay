@@ -1449,13 +1449,153 @@ function setRule(r) {
     if (bLax) bLax.classList.toggle('active', r === 'lax');
 }
 
+// ==========================================
+// 読み方引き継ぎフロー
+// ==========================================
+
+/**
+ * 同じ読み方スロットにストック済み漢字がある候補を探す
+ */
+function findInheritCandidates() {
+    if (!segments || segments.length === 0) return [];
+
+    const currentReading = segments.join('');
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+
+    const candidates = [];
+
+    segments.forEach((seg, slotIdx) => {
+        const inheritItems = liked.filter(item => {
+            if (!item.sessionReading || item.sessionReading === currentReading) return false;
+            if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
+            if (item.slot !== slotIdx) return false;
+            const itemSegs = readingToSegments[item.sessionReading];
+            if (!itemSegs) return false;
+            return itemSegs[slotIdx] === seg;
+        });
+
+        // 現セッションにまだない漢字のみ
+        const newItems = inheritItems.filter(item =>
+            !liked.some(l =>
+                l['漢字'] === item['漢字'] &&
+                l.slot === slotIdx &&
+                l.sessionReading === currentReading
+            )
+        );
+
+        if (newItems.length > 0) {
+            candidates.push({ slot: slotIdx, segReading: seg, items: newItems });
+        }
+    });
+
+    return candidates;
+}
+
+/**
+ * 引き継ぎ候補を liked[] に追加
+ */
+function doInheritKanji(candidates) {
+    const currentReading = segments.join('');
+    candidates.forEach(c => {
+        c.items.forEach(item => {
+            const exists = liked.some(l =>
+                l['漢字'] === item['漢字'] &&
+                l.slot === c.slot &&
+                l.sessionReading === currentReading
+            );
+            if (!exists) {
+                liked.push({ ...item, slot: c.slot, sessionReading: currentReading });
+            }
+        });
+    });
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+}
+
+let _inheritCallback = null;
+
+/**
+ * 引き継ぎモーダルのボタンアクション（HTML onclick から呼ばれる）
+ */
+function inheritModalAction(action) {
+    const modal = document.getElementById('modal-inherit');
+    if (modal) modal.classList.remove('active');
+    if (_inheritCallback) {
+        const cb = _inheritCallback;
+        _inheritCallback = null;
+        cb(action);
+    }
+}
+
+/**
+ * 引き継ぎ確認モーダルを表示
+ */
+function showInheritModal(segReading, kanjiList, callback) {
+    const modal = document.getElementById('modal-inherit');
+    if (!modal) { callback('skip'); return; }
+
+    const title = document.getElementById('inherit-modal-title');
+    const body = document.getElementById('inherit-modal-body');
+
+    if (title) title.textContent = `「${segReading}」の漢字`;
+    if (body) body.innerHTML =
+        `<span class="font-bold text-[#bca37f] text-lg">${kanjiList}</span><br><br>` +
+        `がすでにストックされています。<br>追加で選びますか？`;
+
+    _inheritCallback = callback;
+    modal.classList.add('active');
+}
+
+/**
+ * 引き継ぎ候補をモーダルで順番に確認し、完了後に onDone(startPos) を呼ぶ
+ */
+function processInheritCandidates(candidates, index, answers, onDone) {
+    if (index >= candidates.length) {
+        // 全候補を引き継ぎ
+        doInheritKanji(candidates);
+
+        // "追加で選ぶ" が最初にあったスロットを開始位置にする
+        const addIdx = answers.findIndex(a => a === 'add');
+        if (addIdx >= 0) {
+            onDone(candidates[addIdx].slot);
+        } else {
+            // 全スキップ → 引き継いでいないスロットから開始
+            const inheritedSlots = new Set(candidates.map(c => c.slot));
+            let startPos = 0;
+            while (inheritedSlots.has(startPos) && startPos < segments.length) {
+                startPos++;
+            }
+            if (startPos >= segments.length) {
+                // 全スロット引き継ぎ済み → ビルド画面へ
+                showToast('全ての漢字を引き継ぎました');
+                if (typeof openBuild === 'function') openBuild();
+            } else {
+                onDone(startPos);
+            }
+        }
+        return;
+    }
+
+    const c = candidates[index];
+    const kanjiList = [...new Set(c.items.map(i => i['漢字']))].join('・');
+    showInheritModal(c.segReading, kanjiList, (action) => {
+        answers.push(action);
+        processInheritCandidates(candidates, index + 1, answers, onDone);
+    });
+}
+
+// autoInheritSameReadings は processInheritCandidates に統合済み（互換用空定義）
+function autoInheritSameReadings() {}
+
 /**
  * スワイプモード開始 (Existing, modified)
  */
 function startSwiping() {
     console.log("UI_FLOW: Starting swipe mode");
 
-    // 名字データの確実な更新
     if (typeof updateSurnameData === 'function') {
         updateSurnameData();
     }
@@ -1467,18 +1607,20 @@ function startSwiping() {
     swipes = 0;
     seen.clear();
 
-    // Auto inherit
-    autoInheritSameReadings();
+    const candidates = findInheritCandidates();
 
-    if (typeof loadStack === 'function') {
-        loadStack();
+    function beginSwiping(startPos) {
+        currentPos = startPos;
+        if (typeof loadStack === 'function') loadStack();
+        changeScreen('scr-main');
+        setTimeout(() => showTutorial(), 500);
     }
-    changeScreen('scr-main');
 
-    // 初回チュートリアル表示
-    setTimeout(() => {
-        showTutorial();
-    }, 500);
+    if (candidates.length > 0) {
+        processInheritCandidates(candidates, 0, [], beginSwiping);
+    } else {
+        beginSwiping(0);
+    }
 }
 
 /**
@@ -1580,30 +1722,6 @@ function closeTutorial() {
     }
 }
 
-/**
- * 同じ読みの自動引き継ぎ (Existing)
- */
-function autoInheritSameReadings() {
-    if (!segments || segments.length === 0) return;
-    const readingCount = {};
-    segments.forEach(seg => {
-        readingCount[seg] = (readingCount[seg] || 0) + 1;
-    });
-    Object.keys(readingCount).forEach(reading => {
-        if (readingCount[reading] >= 2) {
-            const firstIndex = segments.indexOf(reading);
-            if (firstIndex !== -1) {
-                segments.autoInheritIndices = segments.autoInheritIndices || [];
-                segments.forEach((seg, idx) => {
-                    if (seg === reading && idx > firstIndex) {
-                        segments.autoInheritIndices.push({ from: firstIndex, to: idx, reading: reading });
-                    }
-                });
-            }
-        }
-    });
-}
-
 // ==========================================
 // 読みストック機能（ニックネーム元グルーピング対応）
 // ==========================================
@@ -1647,39 +1765,91 @@ function removeReadingFromStock(reading) {
 }
 
 /**
- * 読みストックのUI描画（ニックネーム元でグルーピング）
+ * 読みストックのUI描画
+ * - 完了済み読み（liked[] のsessionReadingから導出）: ビルドへ / 追加ボタン
+ * - 未選択の読み（READING_STOCK_KEY）: 漢字を探すボタン
  */
 function renderReadingStockSection() {
-    const stock = getReadingStock();
+    const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
     if (!section) return;
 
-    // 空メッセージ制御
-    const emptyMsg = document.getElementById('reading-stock-empty');
-    if (emptyMsg) emptyMsg.classList.toggle('hidden', stock.length > 0);
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
 
-    if (stock.length === 0) {
+    // liked[] から完了済み読みを導出（FREE/SEARCH/slot<0 を除外）
+    const completedReadings = [...new Set(
+        liked
+            .filter(item =>
+                item.sessionReading &&
+                item.sessionReading !== 'FREE' &&
+                item.sessionReading !== 'SEARCH' &&
+                item.slot >= 0
+            )
+            .map(item => item.sessionReading)
+    )];
+
+    // 未選択の読みから完了済みを除外
+    const pendingOnly = pendingStock.filter(s => !completedReadings.includes(s.reading));
+
+    const hasContent = completedReadings.length > 0 || pendingOnly.length > 0;
+    const emptyMsg = document.getElementById('reading-stock-empty');
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent);
+
+    if (!hasContent) {
         section.innerHTML = '';
         return;
     }
 
-    // ニックネーム元でグルーピング
-    const groups = {};
-    stock.forEach(s => {
-        const key = s.baseNickname || 'その他';
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(s);
-    });
-
     let html = '';
-    Object.keys(groups).forEach(nickname => {
-        const items = groups[nickname];
-        html += `
-            <div class="mb-5">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xs font-black text-[#bca37f]">「${nickname}」</span>
-                    <span class="text-[10px] text-[#a6967a]">${items.length}件</span>
-                </div>
+
+    // 完了済み読み
+    if (completedReadings.length > 0) {
+        html += `<div class="mb-6">
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字を選んだ読み</div>
+            <div class="space-y-2">`;
+
+        completedReadings.forEach(reading => {
+            const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
+            const segs = readingToSegments[reading];
+            const display = segs ? segs.join('/') : reading;
+            html += `
+                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-lg font-black text-[#5d5444]">${display}</div>
+                        <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
+                    </div>
+                    <button onclick="openBuildFromReading('${reading}')"
+                        class="text-xs font-bold text-white bg-[#bca37f] px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95">
+                        ビルドへ →
+                    </button>
+                    <button onclick="addMoreForReading('${reading}')"
+                        class="text-xs font-bold text-[#8b7e66] border border-[#d4c5af] px-3 py-1.5 rounded-full whitespace-nowrap hover:border-[#bca37f] transition-all active:scale-95">
+                        + 追加
+                    </button>
+                </div>`;
+        });
+
+        html += `</div></div>`;
+    }
+
+    // 未選択の読み（pending）
+    if (pendingOnly.length > 0) {
+        const groups = {};
+        pendingOnly.forEach(s => {
+            const key = s.baseNickname || 'その他';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(s);
+        });
+
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">未選択の読み</div>`;
+
+        Object.keys(groups).forEach(nickname => {
+            const items = groups[nickname];
+            html += `<div class="mb-3">
+                <div class="text-[10px] text-[#bca37f] mb-1">「${nickname}」より</div>
                 <div class="grid grid-cols-2 gap-2">
                     ${items.map(s => `
                         <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center justify-between hover:border-[#bca37f] transition-all">
@@ -1691,11 +1861,46 @@ function renderReadingStockSection() {
                         </div>
                     `).join('')}
                 </div>
-            </div>
-        `;
-    });
+            </div>`;
+        });
+
+        html += `</div>`;
+    }
 
     section.innerHTML = html;
+}
+
+/**
+ * 特定の読みでビルド画面を開く
+ */
+function openBuildFromReading(reading) {
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const entry = history.find(h => h.reading === reading);
+    if (entry && entry.segments) {
+        segments = entry.segments;
+        const nameInput = document.getElementById('in-name');
+        if (nameInput) nameInput.value = reading;
+    }
+    if (typeof openBuild === 'function') openBuild();
+}
+
+/**
+ * 特定の読みで漢字追加（スワイプ画面へ）
+ */
+function addMoreForReading(reading) {
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const entry = history.find(h => h.reading === reading);
+    if (entry && entry.segments) {
+        segments = entry.segments;
+        const nameInput = document.getElementById('in-name');
+        if (nameInput) nameInput.value = reading;
+    }
+    if (typeof updateSurnameData === 'function') updateSurnameData();
+    currentPos = 0;
+    swipes = 0;
+    seen.clear();
+    if (typeof loadStack === 'function') loadStack();
+    changeScreen('scr-main');
 }
 
 /**
@@ -2000,6 +2205,9 @@ window.addReadingToStock = addReadingToStock;
 window.removeReadingFromStock = removeReadingFromStock;
 window.renderReadingStockSection = renderReadingStockSection;
 window.startReadingFromStock = startReadingFromStock;
+window.openBuildFromReading = openBuildFromReading;
+window.addMoreForReading = addMoreForReading;
+window.inheritModalAction = inheritModalAction;
 window.showToast = showToast;
 window.showUniversalSwipeCheckpoint = showUniversalSwipeCheckpoint;
 window.startMultiReadingKanjiFlow = startMultiReadingKanjiFlow;

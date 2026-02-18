@@ -44,7 +44,9 @@ function switchStockTab(tab) {
 window.switchStockTab = switchStockTab;
 
 /**
- * ストック一覧のレンダリング（読み方別折りたたみ対応）
+ * ストック一覧のレンダリング（読み方別・重複排除）
+ * セグメント読み（はる / と / き）単位でグループ化し、
+ * 同じ漢字は複数の読みセッションをまたいで1回だけ表示する
  */
 function renderStock() {
     const container = document.getElementById('stock-list');
@@ -52,7 +54,14 @@ function renderStock() {
 
     container.innerHTML = '';
 
-    if (liked.length === 0) {
+    // FREE/SEARCH/slot<0 を除いた有効アイテムのみ対象
+    const validItems = liked.filter(item =>
+        item.slot >= 0 &&
+        item.sessionReading !== 'FREE' &&
+        item.sessionReading !== 'SEARCH'
+    );
+
+    if (validItems.length === 0) {
         container.innerHTML = `
             <div class="col-span-4 text-center py-20">
                 <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
@@ -62,118 +71,70 @@ function renderStock() {
         return;
     }
 
-    // 現在の読み方を取得
-    const currentReading = segments.join('');
-
-    // 全ての読み方でグループ化
-    const allReadings = {};
-
-    // 履歴から読み方ごとのセグメント情報を取得
+    // 履歴からセグメント情報を取得
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
-    history.forEach(h => {
-        readingToSegments[h.reading] = h.segments;
+    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+
+    // セグメント読みでグループ化（重複排除）
+    const segGroups = {}; // { "はる": [item, ...], "と": [...] }
+    validItems.forEach(item => {
+        const itemSegs = readingToSegments[item.sessionReading] || segments;
+        const seg = (itemSegs && itemSegs[item.slot]) || '不明';
+        if (!segGroups[seg]) segGroups[seg] = [];
+
+        const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
+        if (!dup) {
+            segGroups[seg].push(item);
+        } else if (item.isSuper && !dup.isSuper) {
+            // スーパーライクで上書き
+            dup.isSuper = true;
+        }
     });
 
-    liked.forEach(item => {
-        // itemにsessionReadingがあればそれを使用、なければ現在の読み方
-        const itemReading = item.sessionReading || currentReading;
-        if (!allReadings[itemReading]) {
-            allReadings[itemReading] = {};
-        }
+    // セグメントごとに表示
+    Object.keys(segGroups).forEach(seg => {
+        const items = segGroups[seg];
+        if (items.length === 0) return;
 
-        const targetSegments = readingToSegments[itemReading] || segments;
-        const seg = targetSegments[item.slot] || '不明';
-        if (!allReadings[itemReading][seg]) {
-            allReadings[itemReading][seg] = [];
-        }
-        allReadings[itemReading][seg].push(item);
-    });
-
-    // 読み方ごとに表示
-    Object.keys(allReadings).sort((a, b) => {
-        // 現在の読み方を最初に
-        if (a === currentReading) return -1;
-        if (b === currentReading) return 1;
-        return b.localeCompare(a);
-    }).forEach(reading => {
-        const isCurrent = reading === currentReading;
-        const segmentGroups = allReadings[reading];
-        const totalCount = Object.values(segmentGroups).reduce((sum, arr) => sum + arr.length, 0);
-
-        // 読み方ヘッダー（折りたたみ可能）
-        const readingHeader = document.createElement('div');
-        readingHeader.className = 'col-span-4 mt-8 mb-4';
-        readingHeader.innerHTML = `
-            <div onclick="toggleReadingGroup('${reading}')" class="flex items-center gap-3 cursor-pointer bg-white rounded-full px-6 py-3 shadow-md hover:shadow-lg transition-all ${isCurrent ? 'border-2 border-[#bca37f]' : 'border border-[#eee5d8]'}">
-                <span class="text-2xl" id="icon-${reading}">${isCurrent ? '▼' : '▶'}</span>
-                <span class="flex-1 text-lg font-black ${isCurrent ? 'text-[#bca37f]' : 'text-[#a6967a]'}">
-                    ${reading} ${isCurrent ? '（現在）' : ''}
-                </span>
-                <span class="text-sm font-bold text-[#a6967a] bg-[#fdfaf5] px-3 py-1 rounded-full mr-2">
-                    ${totalCount}個
-                </span>
-                <button onclick="event.stopPropagation(); deleteStockGroup('${reading}')" class="w-8 h-8 flex items-center justify-center rounded-full bg-[#fef2f2] text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all" title="この読み方のストックを削除">
-                    ✕
-                </button>
-            </div>
-        `;
-        container.appendChild(readingHeader);
-
-        // 漢字グループコンテナ
-        const groupContainer = document.createElement('div');
-        groupContainer.id = `group-${reading}`;
-        groupContainer.className = `col-span-4 ${isCurrent ? '' : 'hidden'}`;
-
-        // 各音節ごとに表示
-        Object.keys(segmentGroups).forEach(seg => {
-            const items = segmentGroups[seg];
-
-            if (items.length > 0) {
-                // 音節ヘッダー
-                const segHeader = document.createElement('div');
-                segHeader.className = 'col-span-4 mt-4 mb-2';
-                segHeader.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                        <span class="text-sm font-black text-[#bca37f] uppercase tracking-widest px-3 py-1 bg-white rounded-full border border-[#d4c5af]">
-                            ${seg} (${items.length}個)
-                        </span>
-                        <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                    </div>
-                `;
-                groupContainer.appendChild(segHeader);
-
-                // スーパーライク優先でソート
-                items.sort((a, b) => {
-                    if (a.isSuper && !b.isSuper) return -1;
-                    if (!a.isSuper && b.isSuper) return 1;
-                    return 0;
-                });
-
-                // 漢字カードグリッド（4列）
-                const cardsGrid = document.createElement('div');
-                cardsGrid.className = 'grid grid-cols-4 gap-3 mb-4';
-
-                items.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'stock-card';
-                    card.onclick = () => showDetailByData(item);
-
-                    card.innerHTML = `
-                        <div class="stock-kanji">${item['漢字']}</div>
-                        <div class="stock-strokes">${item['画数']}画</div>
-                        <div class="stock-position">${item.slot + 1}文字目</div>
-                        ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
-                    `;
-                    cardsGrid.appendChild(card);
-                });
-
-                groupContainer.appendChild(cardsGrid);
-            }
+        // スーパーライク優先ソート
+        items.sort((a, b) => {
+            if (a.isSuper && !b.isSuper) return -1;
+            if (!a.isSuper && b.isSuper) return 1;
+            return 0;
         });
 
-        container.appendChild(groupContainer);
+        // セグメントヘッダー
+        const segHeader = document.createElement('div');
+        segHeader.className = 'col-span-4 mt-6 mb-3';
+        segHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af]">
+                    ${seg}（${items.length}個）
+                </span>
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+            </div>
+        `;
+        container.appendChild(segHeader);
+
+        // 4列グリッド
+        const cardsGrid = document.createElement('div');
+        cardsGrid.className = 'col-span-4 grid grid-cols-4 gap-3 mb-4';
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'stock-card';
+            card.onclick = () => showDetailByData(item);
+            card.innerHTML = `
+                <div class="stock-kanji">${item['漢字']}</div>
+                <div class="stock-strokes">${item['画数']}画</div>
+                ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
+            `;
+            cardsGrid.appendChild(card);
+        });
+
+        container.appendChild(cardsGrid);
     });
 }
 
