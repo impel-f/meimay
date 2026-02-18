@@ -188,9 +188,11 @@ function closeChoiceModal() {
  */
 function closeChoiceAndRefetch() {
     console.log("CHOICE: User chose to continue searching");
+    // モーダルを閉じる前に現在のスワイプ画面を判定する
+    const isUniversal = document.getElementById('scr-swipe-universal')?.classList.contains('active');
     closeChoiceModal();
-    // スワイプ画面に戻る
-    changeScreen('scr-main');
+    // スワイプ画面に戻る（ユニバーサルスワイプ使用中の場合はそちらへ）
+    changeScreen(isUniversal ? 'scr-swipe-universal' : 'scr-main');
 }
 
 /**
