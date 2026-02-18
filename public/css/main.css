@@ -887,11 +887,22 @@ body.hide-top-bar #top-bar {
 }
 
 /* ============================================================
-   AD BANNER & UNIVERSAL FOOTER
+   BOTTOM SAFE ZONE
+   ============================================================
+   ナビバー高さ計算：
+   - 通常: bottom:0, 高さ約80px → padding-bottom 160px で十分
+   - 広告あり: bottom:40px + 高さ約80px = 底面から120px占有
+     → padding-bottom は 160px 以上必要（80px では不足）
    ============================================================ */
 
+/* スクリーン基本 padding-bottom にセーフエリアを加算 */
+.screen {
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* 広告あり: ナビバーが bottom:40px 分上がるため合計 160px で統一 */
 body.has-ad-banner .screen {
-    padding-bottom: 80px !important;
+    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner #bottom-nav,
@@ -899,20 +910,22 @@ body.has-ad-banner #universal-footer {
     bottom: 40px !important;
 }
 
-/* h-screen を使った内部コンテナを画面内に収める
-   .screen は position:absolute; inset:0; padding: 60px 24px 80-160px なので
-   内部コンテナは max-height:100% で収まるようにする */
+/* h-screen を使った内部コンテナを flexbox で正しく収める
+   flex:1 で .screen の padding を除いた残り高さを占有する */
 #scr-free-mode > div,
 #scr-kanji-search > div,
 #scr-akinator > div,
 #scr-saved > div,
 #scr-history > div {
-    height: 100% !important;
-    max-height: 100% !important;
+    flex: 1 !important;
+    min-height: 0 !important;
     overflow: hidden;
 }
 
-/* scr-swipe-universal は flex-1 min-h-0 に変更済みなので高さ固定不要 */
+/* scr-swipe-universal ガラスカードが画面内に収まるよう max-height を保証 */
+#scr-swipe-universal > div {
+    max-height: 100%;
+}
 
 #universal-footer {
     padding-bottom: env(safe-area-inset-bottom, 0);
