@@ -518,35 +518,50 @@ function showFortuneDetail() {
     const BOX_H = 40;   // 漢字ボックス高さ px
     const BOX_W = 40;   // 漢字ボックス幅 px
     const GAP   = 6;    // 行間 px
-    const DIV_H = 18;   // 「/」区切り高さ px
+    const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
     const BC    = '#bca37f'; // 括弧の色
     const BW    = 2;    // 括弧の線幅 px
     const BARM  = 10;   // 括弧のアーム幅 px
 
     // 各文字の Y 座標（flex column + gap での実座標）
-    const surTop = (i) => i * (BOX_H + GAP);
-    const surBot = (i) => surTop(i) + BOX_H;
+    const surTop  = (i) => i * (BOX_H + GAP);
+    const surBot  = (i) => surTop(i) + BOX_H;
+    const surMid  = (i) => surTop(i) + BOX_H / 2;
     const divTopY = nSur > 0 ? nSur * (BOX_H + GAP) : 0;
     const divBotY = divTopY + DIV_H;
     const givTop  = (i) => divBotY + GAP + i * (BOX_H + GAP);
     const givBot  = (i) => givTop(i) + BOX_H;
+    const givMid  = (i) => givTop(i) + BOX_H / 2;
     const totalH  = nGiv > 0 ? givBot(nGiv - 1) : (nSur > 0 ? surBot(nSur - 1) : 80);
 
-    // 各格の括弧スパン
-    const tenSpan = { top: 0,                                  bot: nSur > 0 ? surBot(nSur - 1) : 0 };
-    const jinSpan = { top: nSur > 0 ? surTop(nSur - 1) : 0,   bot: nGiv > 0 ? givBot(0) : 0 };
-    const chiSpan = { top: nGiv > 0 ? givTop(0) : 0,          bot: totalH };
-    const gaiSpan = { top: 0,                                  bot: totalH };
+    // 各格の括弧スパン（各文字の中央から中央へ）
+    const tenSpan = { top: nSur > 0 ? surMid(0)          : 0,      bot: nSur > 0 ? surMid(nSur - 1)  : 0      };
+    const jinSpan = { top: nSur > 0 ? surMid(nSur - 1)   : 0,      bot: nGiv > 0 ? givMid(0)          : 0      };
+    const chiSpan = { top: nGiv > 0 ? givMid(0)           : totalH, bot: nGiv > 0 ? givMid(nGiv - 1)  : totalH };
+    const gaiSpan = { top: nSur > 0 ? surMid(0)           : 0,      bot: nGiv > 0 ? givMid(nGiv - 1)  : totalH };
 
     const spanMid = (s) => (s.top + s.bot) / 2;
 
-    // 括弧の CSS スタイル文字列
+    // 括弧の CSS スタイル文字列（高さ 0 = 1文字のみ → 横線）
     const bStyle = (span, side) => {
+        const h = span.bot - span.top;
+        if (h <= 1) {
+            return `position:absolute;top:${span.top}px;height:0;left:0;right:0;border-top:${BW}px solid ${BC};`;
+        }
         const corners = side === 'left'
             ? `border-left:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:3px 0 0 3px;`
             : `border-right:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:0 3px 3px 0;`;
-        return `position:absolute;top:${span.top}px;height:${span.bot - span.top}px;left:0;right:0;${corners}`;
+        return `position:absolute;top:${span.top}px;height:${h}px;left:0;right:0;${corners}`;
     };
+
+    // 格ボックスの Y 位置（重なり防止：最小間隔を保証）
+    const FBOX_H = 54;
+    const rawY = [spanMid(tenSpan), spanMid(jinSpan), spanMid(chiSpan)];
+    const yPos = [...rawY];
+    for (let i = 1; i < yPos.length; i++) {
+        yPos[i] = Math.max(yPos[i], yPos[i - 1] + FBOX_H);
+    }
+    const [yTen, yJin, yChi] = yPos;
 
     // 格ボックス HTML
     const fBox = (obj, label) => `
@@ -594,15 +609,15 @@ function showFortuneDetail() {
                     <div style="${bStyle(jinSpan, 'right')}"></div>
                     <div style="${bStyle(chiSpan, 'right')}"></div>
                 </div>
-                <!-- 格ボックス列（absolute 配置で各スパン中央に） -->
-                <div style="position:relative;height:${totalH}px;min-width:60px">
-                    <div style="position:absolute;top:${spanMid(tenSpan)}px;transform:translateY(-50%);left:0">
+                <!-- 格ボックス列（absolute 配置・重なり防止クランプ済み） -->
+                <div style="position:relative;height:${Math.max(totalH, yChi + FBOX_H / 2)}px;min-width:60px">
+                    <div style="position:absolute;top:${yTen}px;transform:translateY(-50%);left:0">
                         ${fBox(res.ten, '天格')}
                     </div>
-                    <div style="position:absolute;top:${spanMid(jinSpan)}px;transform:translateY(-50%);left:0">
+                    <div style="position:absolute;top:${yJin}px;transform:translateY(-50%);left:0">
                         ${fBox(res.jin, '人格')}
                     </div>
-                    <div style="position:absolute;top:${spanMid(chiSpan)}px;transform:translateY(-50%);left:0">
+                    <div style="position:absolute;top:${yChi}px;transform:translateY(-50%);left:0">
                         ${fBox(res.chi, '地格')}
                     </div>
                 </div>
