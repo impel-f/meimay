@@ -920,7 +920,7 @@ body.has-ad-banner #swipe-action-btns {
 
 /* セッション中コンテンツ: top-bar(48px)下〜×★♡+nav上まで */
 #main-session-content {
-    padding-top: 48px;
+    top: 48px;
     padding-bottom: calc(168px + env(safe-area-inset-bottom, 0px));
 }
 body.has-ad-banner #main-session-content {
