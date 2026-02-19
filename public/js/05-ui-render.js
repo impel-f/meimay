@@ -70,16 +70,14 @@ function getUnifiedTags(rawString) {
  */
 function updateSwipeMainState() {
     const actionBtns = document.getElementById('swipe-action-btns');
-    const swipeHud = document.getElementById('main-swipe-hud');
+    const sessionContent = document.getElementById('main-session-content');
     const emptyState = document.getElementById('main-empty-state');
-    const stackContainer = document.getElementById('stack-container');
 
     const hasSession = segments && segments.length > 0;
     const hasCards = hasSession && stack && stack.length > 0 && currentIdx < stack.length;
 
     if (emptyState) emptyState.classList.toggle('hidden', hasSession);
-    if (swipeHud) swipeHud.classList.toggle('hidden', !hasSession);
-    if (stackContainer) stackContainer.classList.toggle('hidden', !hasSession);
+    if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
     if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
 }
 

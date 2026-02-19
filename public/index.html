@@ -656,34 +656,39 @@
             </div>
         </div>
 
-        <!-- スワイプ中HUD: セッション中のみ表示（インライン、top-barの下に配置） -->
-        <div id="main-swipe-hud" class="w-full px-4 pt-10 pb-2 hidden">
-            <div class="flex items-center justify-between max-w-[330px] mx-auto bg-white/80 backdrop-blur-sm rounded-2xl px-3 py-2 shadow-sm border border-[#eee5d8]/60">
-                <button onclick="prevChar()" id="btn-prev-char"
-                    class="h-9 px-3 rounded-xl text-[#bca37f] font-black flex items-center justify-center transition-all opacity-0 pointer-events-none active:scale-95 text-xs whitespace-nowrap">
-                    &lt; 戻る
-                </button>
-                <div class="flex flex-col items-center gap-0 leading-tight">
-                    <span id="pos-indicator" class="slot-name-mini whitespace-nowrap">---</span>
-                    <span id="swipe-counter" class="text-[9px] font-bold text-[#a6967a] tracking-wide whitespace-nowrap">-- / --</span>
+        <!-- セッション中コンテンツ: absolute flex-col でビューポート全体を占有 -->
+        <!-- HUD + stack が上下に分かれてスペースを埋める -->
+        <div id="main-session-content" class="hidden absolute inset-0 flex flex-col overflow-hidden">
+
+            <!-- HUD: 固定高さ -->
+            <div id="main-swipe-hud" class="w-full px-4 pb-2 flex-shrink-0">
+                <div class="flex items-center justify-between max-w-[330px] mx-auto bg-white/80 backdrop-blur-sm rounded-2xl px-3 py-2 shadow-sm border border-[#eee5d8]/60">
+                    <button onclick="prevChar()" id="btn-prev-char"
+                        class="h-9 px-3 rounded-xl text-[#bca37f] font-black flex items-center justify-center transition-all opacity-0 pointer-events-none active:scale-95 text-xs whitespace-nowrap">
+                        &lt; 戻る
+                    </button>
+                    <div class="flex flex-col items-center gap-0 leading-tight">
+                        <span id="pos-indicator" class="slot-name-mini whitespace-nowrap">---</span>
+                        <span id="swipe-counter" class="text-[9px] font-bold text-[#a6967a] tracking-wide whitespace-nowrap">-- / --</span>
+                    </div>
+                    <button onclick="nextChar()" id="btn-next-char"
+                        class="h-9 px-3 rounded-xl bg-[#bca37f] text-white font-black flex items-center justify-center transition-all text-xs active:scale-95 whitespace-nowrap shadow-sm">
+                        次へ &gt;
+                    </button>
                 </div>
-                <button onclick="nextChar()" id="btn-next-char"
-                    class="h-9 px-3 rounded-xl bg-[#bca37f] text-white font-black flex items-center justify-center transition-all text-xs active:scale-95 whitespace-nowrap shadow-sm">
-                    次へ &gt;
-                </button>
             </div>
+
+            <!-- スタック: flex-1 で残りスペースをすべて使う -->
+            <div id="stack-container" class="relative flex-1 min-h-0 w-full max-w-sm mx-auto">
+                <div id="badge-like" class="stamp-premium">LIKE</div>
+                <div id="badge-nope" class="stamp-premium">NOPE</div>
+                <div id="badge-super" class="stamp-premium">SUPER</div>
+                <div id="stack" class="w-full h-full"></div>
+            </div>
+
         </div>
 
-        <!-- スタック: セッション中のみ表示 -->
-        <div id="stack-container"
-            class="relative w-full max-w-sm h-[calc(100vh-260px)] min-h-[420px] max-h-[600px] mt-2 mx-auto hidden">
-            <div id="badge-like" class="stamp-premium">LIKE</div>
-            <div id="badge-nope" class="stamp-premium">NOPE</div>
-            <div id="badge-super" class="stamp-premium">SUPER</div>
-            <div id="stack" class="w-full h-full"></div>
-        </div>
-
-        <!-- ×★♡ ボタン: カードがある時のみ表示（ピルスタイル） -->
+        <!-- ×★♡ ボタン: カードがある時のみ表示（ピルスタイル、fixed） -->
         <div id="swipe-action-btns"
             class="hidden fixed left-0 w-full flex justify-center z-[1500] pointer-events-none">
             <div class="flex items-center gap-5 pointer-events-auto bg-white/85 backdrop-blur-md rounded-full px-8 py-3 shadow-xl border border-[#eee5d8]/70">
@@ -698,8 +703,6 @@
                     aria-label="いいね">♥</button>
             </div>
         </div>
-
-        <div class="h-40"></div>
     </div>
 
     <!-- ... (scr-stock, scr-build, scr-settings omitted) ... -->
