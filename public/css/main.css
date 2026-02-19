@@ -910,22 +910,6 @@ body.has-ad-banner #universal-footer {
     bottom: 40px !important;
 }
 
-/* スワイプ操作ボタン（×★♡）の位置: フッターナビ上に浮かせる */
-#swipe-action-btns {
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-}
-body.has-ad-banner #swipe-action-btns {
-    bottom: calc(132px + env(safe-area-inset-bottom, 0px));
-}
-
-/* セッション中コンテンツ: top-bar(48px)下〜×★♡+nav上まで */
-#main-session-content {
-    top: 48px;
-    padding-bottom: calc(168px + env(safe-area-inset-bottom, 0px));
-}
-body.has-ad-banner #main-session-content {
-    padding-bottom: calc(212px + env(safe-area-inset-bottom, 0px));
-}
 
 /* h-screen を使った内部コンテナを flexbox で正しく収める
    flex:1 で .screen の padding を除いた残り高さを占有する */
