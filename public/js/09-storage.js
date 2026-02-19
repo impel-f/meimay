@@ -9,6 +9,7 @@ const StorageBox = {
     KEY_SURNAME: 'naming_app_surname',
     KEY_SEGMENTS: 'naming_app_segments',
     KEY_SETTINGS: 'naming_app_settings',
+    KEY_KANJI_AI_CACHE: 'naming_app_kanji_ai_cache',
 
     /**
      * 全状態を保存
@@ -117,6 +118,28 @@ const StorageBox = {
         } catch (e) {
             console.error("STORAGE: Save savedNames failed", e);
             return false;
+        }
+    },
+
+    saveKanjiAiCache: function(kanji, text) {
+        try {
+            const raw = localStorage.getItem(this.KEY_KANJI_AI_CACHE);
+            const cache = raw ? JSON.parse(raw) : {};
+            cache[kanji] = { text, savedAt: new Date().toISOString() };
+            localStorage.setItem(this.KEY_KANJI_AI_CACHE, JSON.stringify(cache));
+        } catch (e) {
+            console.error("STORAGE: kanji AI cache save failed", e);
+        }
+    },
+
+    getKanjiAiCache: function(kanji) {
+        try {
+            const raw = localStorage.getItem(this.KEY_KANJI_AI_CACHE);
+            if (!raw) return null;
+            const cache = JSON.parse(raw);
+            return cache[kanji] || null;
+        } catch (e) {
+            return null;
         }
     },
 

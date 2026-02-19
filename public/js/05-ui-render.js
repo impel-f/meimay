@@ -446,6 +446,17 @@ async function showKanjiDetail(data) {
         yojiWrapper.parentNode.insertBefore(aiSection, yojiWrapper);
     }
 
+    // キャッシュ済みAI結果があれば自動表示
+    if (typeof StorageBox !== 'undefined' && StorageBox.getKanjiAiCache) {
+        const cached = StorageBox.getKanjiAiCache(data['漢字']);
+        if (cached && cached.text && typeof renderKanjiDetailText === 'function') {
+            const resultEl = document.getElementById('ai-kanji-result');
+            if (resultEl) {
+                renderKanjiDetailText(resultEl, cached.text, data['漢字'], currentReadingForAI);
+            }
+        }
+    }
+
     // 四字熟語・ことわざ表示
     if (window.idiomsData && window.idiomsData.length > 0) {
         const kanji = data['漢字'];
