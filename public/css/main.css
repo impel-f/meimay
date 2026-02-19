@@ -599,7 +599,7 @@ body {
 
 .hud-top-mini {
     position: fixed;
-    top: 20px;
+    top: 52px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
