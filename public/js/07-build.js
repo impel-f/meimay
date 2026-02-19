@@ -508,61 +508,146 @@ function showFortuneDetail() {
     container.innerHTML = '';
     container.className = "flex flex-col w-full relative";
 
-    const sur = (surnameStr || "").split('');
-    const giv = givens.map(g => g.kanji);
+    // 姓のデータ（画数込み）
+    const surChars = (surnameData || []).filter(s => s.kanji);
+    const givChars = givens;
+    const nSur = surChars.length;
+    const nGiv = givChars.length;
 
-    const unitH = 56;
-    const surH = sur.length * unitH;
-    const givH = giv.length * unitH;
-    const midGap = 140;
+    // 鑑定図解：3カラム（外格＋[括弧 ｜ 漢字列 ｜ ]括弧×3＋天人地格）＋下部総格
+    const BOX_H = 40;   // 漢字ボックス高さ px
+    const BOX_W = 40;   // 漢字ボックス幅 px
+    const GAP   = 8;    // 行間 px（広めに）
+    const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
+    const BC    = '#bca37f'; // 括弧の色
+    const BW    = 2;    // 括弧の線幅 px
+    const BARM  = 10;   // 括弧のアーム幅 px
+    const LINE  = 12;   // 括弧中央から格ボックスへの横線長 px
 
-    const isSingleSur = sur.length === 1;
-    const isSingleGiv = giv.length === 1;
+    // 各文字の Y 座標（flex column + gap での実座標）
+    const surTop  = (i) => i * (BOX_H + GAP);
+    const surBot  = (i) => surTop(i) + BOX_H;
+    const surMid  = (i) => surTop(i) + BOX_H / 2;
+    const divTopY = nSur > 0 ? nSur * (BOX_H + GAP) : 0;
+    const divBotY = divTopY + DIV_H;
+    const givTop  = (i) => divBotY + GAP + i * (BOX_H + GAP);
+    const givBot  = (i) => givTop(i) + BOX_H;
+    const givMid  = (i) => givTop(i) + BOX_H / 2;
+    const totalH  = nGiv > 0 ? givBot(nGiv - 1) : (nSur > 0 ? surBot(nSur - 1) : 80);
+
+    // 各格の括弧スパン（各文字の中央から中央へ）
+    // 隣接する括弧がOFFSET分ずれて重ならないようにする
+    const OFFSET = 5; // 隣接括弧アームの重複防止オフセット px
+    const _tenRaw = { top: nSur > 0 ? surMid(0) : 0,        bot: nSur > 0 ? surMid(nSur - 1) : 0      };
+    const _jinRaw = { top: nSur > 0 ? surMid(nSur - 1) : 0, bot: nGiv > 0 ? givMid(0) : 0             };
+    const _chiRaw = { top: nGiv > 0 ? givMid(0) : totalH,   bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
+    // オフセット適用（単一文字スパン=h≤0 はそのまま）
+    const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
+    const jinSpan = (() => {
+        const t = _jinRaw.top + OFFSET, b = _jinRaw.bot - OFFSET;
+        return (t < b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
+    })();
+    const chiSpan = { top: _chiRaw.bot > _chiRaw.top ? _chiRaw.top + OFFSET : _chiRaw.top, bot: _chiRaw.bot };
+    const gaiSpan = { top: nSur > 0 ? surMid(0) : 0, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
+
+    const spanMid = (s) => (s.top + s.bot) / 2;
+
+    // 括弧の CSS スタイル文字列（高さ 0 = 1文字のみ → 横線）
+    const bStyle = (span, side) => {
+        const h = span.bot - span.top;
+        if (h <= 1) {
+            return `position:absolute;top:${span.top}px;height:0;left:0;right:0;border-top:${BW}px solid ${BC};`;
+        }
+        const corners = side === 'left'
+            ? `border-left:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:3px 0 0 3px;`
+            : `border-right:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:0 3px 3px 0;`;
+        return `position:absolute;top:${span.top}px;height:${h}px;left:0;right:0;${corners}`;
+    };
+
+    // 格ボックスの Y 位置（重なり防止：最小間隔を保証）
+    const FBOX_H = 36; // fBoxを横並びにしてコンパクト化
+    const rawY = [spanMid(tenSpan), spanMid(jinSpan), spanMid(chiSpan)];
+    const yPos = [...rawY];
+    for (let i = 1; i < yPos.length; i++) {
+        yPos[i] = Math.max(yPos[i], yPos[i - 1] + FBOX_H);
+    }
+    const [yTen, yJin, yChi] = yPos;
+    const rightColH = Math.max(totalH, yChi + FBOX_H / 2 + 4);
+
+    // 格ボックス HTML（コンパクト横並びレイアウト）
+    const fBox = (obj, label) => `
+        <div style="text-align:center;cursor:pointer;white-space:nowrap" onclick="showFortuneTerm('${label}')">
+            <div style="padding:2px 6px;background:#fdfaf5;border:1.5px solid #eee5d8;border-radius:6px;display:inline-block">
+                <span style="font-size:12px;font-weight:900;color:#5d5444">${getNum(obj)}</span><span style="font-size:7px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${obj.res.color}">${obj.res.label}</span>
+            </div>
+            <div style="font-size:7px;font-weight:700;color:#a6967a;margin-top:1px">${label}</div>
+        </div>`;
+
+    // 漢字ボックス HTML
+    const kBox = (char, isSur) => `
+        <div style="width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}">${char}</div>`;
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-6 p-5 bg-white rounded-3xl border border-[#eee5d8] shadow-sm animate-fade-in flex flex-col items-center";
-
-    // コンパクトな五格サマリーカード
+    mapArea.className = "mb-4 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
     mapArea.innerHTML = `
-        <div class="text-[10px] font-black text-[#5d5444] tracking-[0.2em] mb-4 opacity-60">姓名判断</div>
+        <div style="text-align:center;font-size:9px;font-weight:900;letter-spacing:0.2em;color:#5d5444;opacity:0.5;margin-bottom:14px">姓名判断 鑑定図解</div>
 
-        <!-- 名前表示 -->
-        <div class="flex items-center gap-1 mb-4">
-            <div class="flex gap-0.5">
-                ${sur.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-[#fdfaf5] border border-[#eee5d8] font-black text-lg text-[#bca37f] rounded-lg">${c}</div>`).join('')}
-            </div>
-            <div class="text-[#d4c5af] mx-1 text-sm">/</div>
-            <div class="flex gap-0.5">
-                ${giv.map(c => `<div class="w-10 h-10 flex items-center justify-center bg-white border border-[#bca37f] font-black text-lg text-[#5d5444] rounded-lg shadow-sm">${c}</div>`).join('')}
-            </div>
-        </div>
+        <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
-        <!-- 総格 -->
-        <div class="bg-gradient-to-r from-[#fdfaf5] to-white border border-[#eee5d8] rounded-2xl px-6 py-3 flex items-center gap-4 mb-4 w-full max-w-[280px]">
-            <div class="flex-1 text-center">
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-wider">総格</span>
-                <div class="text-2xl font-black text-[#5d5444]">${getNum(res.so)}画</div>
-            </div>
-            <div class="w-px h-8 bg-[#eee5d8]"></div>
-            <div class="flex-1 text-center">
-                <div class="${res.so.res.color} text-lg font-black">${res.so.res.label}</div>
-            </div>
-        </div>
-
-        <!-- 五格グリッド -->
-        <div class="grid grid-cols-4 gap-2 w-full max-w-[320px]">
-            ${[
-                { k: '天格', d: res.ten, icon: '🏛️' },
-                { k: '人格', d: res.jin, icon: '💎' },
-                { k: '地格', d: res.chi, icon: '🌱' },
-                { k: '外格', d: res.gai, icon: '🌍' }
-            ].map(p => `
-                <div class="bg-[#fdfaf5] border border-[#eee5d8] rounded-xl p-2 text-center" onclick="showFortuneTerm('${p.k}')">
-                    <div class="text-[8px] text-[#a6967a] font-bold">${p.icon} ${p.k}</div>
-                    <div class="text-sm font-black text-[#5d5444]">${getNum(p.d)}</div>
-                    <div class="${p.d.res.color} text-[9px] font-black">${p.d.res.label}</div>
+            <!-- 左：外格ボックス ＋ 横線 ＋ [ 括弧（右から左へ：bracket|line|box） -->
+            <div style="display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px">
+                <div style="position:relative;width:${BARM}px;height:${totalH}px;flex-shrink:0">
+                    <div style="${bStyle(gaiSpan, 'left')}"></div>
                 </div>
-            `).join('')}
+                <div style="position:relative;width:${LINE}px;height:${totalH}px;flex-shrink:0">
+                    <div style="position:absolute;top:${spanMid(gaiSpan)}px;left:0;right:0;height:0;border-top:${BW}px solid ${BC}"></div>
+                </div>
+                <div style="height:${totalH}px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+                    ${fBox(res.gai, '外格')}
+                </div>
+            </div>
+
+            <!-- 中央：漢字列 -->
+            <div style="display:flex;flex-direction:column;gap:${GAP}px;flex-shrink:0;align-items:center">
+                ${surChars.map(s => kBox(s.kanji, true)).join('')}
+                <div style="height:${DIV_H}px;display:flex;align-items:center;justify-content:center;color:#d4c5af;font-size:16px;font-weight:900;line-height:1">/</div>
+                ${givChars.map(g => kBox(g.kanji, false)).join('')}
+            </div>
+
+            <!-- 右：] 括弧×3 ＋ 横線コネクタ ＋ 格ボックス（全て絶対配置） -->
+            <div style="position:relative;height:${rightColH}px;width:${BARM + LINE + 80}px;flex-shrink:0">
+                <!-- ] 括弧列 -->
+                <div style="position:absolute;top:0;left:0;width:${BARM}px;height:${totalH}px">
+                    <div style="${bStyle(tenSpan, 'right')}"></div>
+                    <div style="${bStyle(jinSpan, 'right')}"></div>
+                    <div style="${bStyle(chiSpan, 'right')}"></div>
+                </div>
+                <!-- 横線コネクタ（クランプ済み Y 位置から伸ばす） -->
+                <div style="position:absolute;top:${yTen}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
+                <div style="position:absolute;top:${yJin}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
+                <div style="position:absolute;top:${yChi}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
+                <!-- 格ボックス -->
+                <div style="position:absolute;top:${yTen}px;left:${BARM + LINE}px;transform:translateY(-50%)">
+                    ${fBox(res.ten, '天格')}
+                </div>
+                <div style="position:absolute;top:${yJin}px;left:${BARM + LINE}px;transform:translateY(-50%)">
+                    ${fBox(res.jin, '人格')}
+                </div>
+                <div style="position:absolute;top:${yChi}px;left:${BARM + LINE}px;transform:translateY(-50%)">
+                    ${fBox(res.chi, '地格')}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 下部：総格 -->
+        <div style="margin-top:10px;text-align:center">
+            <div style="display:inline-block;padding:6px 20px;background:linear-gradient(to right,#fdfaf5,white);border-radius:12px;border:1.5px solid #bca37f;box-shadow:0 1px 4px rgba(188,163,127,0.15);cursor:pointer"
+                 onclick="showFortuneTerm('総格')">
+                <div style="font-size:8px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
+                <div style="font-size:16px;font-weight:900;color:#5d5444;line-height:1.2">${getNum(res.so)}<span style="font-size:9px;font-weight:400;color:#a6967a">画</span></div>
+                <div style="font-size:11px;font-weight:900" class="${res.so.res.color}">${res.so.res.label}</div>
+            </div>
         </div>
     `;
     container.appendChild(mapArea);
@@ -574,7 +659,7 @@ function showFortuneDetail() {
             <div class="flex justify-between items-center mb-3">
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase">五行・三才</span>
-                    <button onclick="showFortuneTerm('五行・三才')" class="w-4 h-4 bg-[#bca37f] text-white rounded-full text-[8px] flex items-center justify-center">?</button>
+                    <span onclick="showFortuneTerm('五行・三才')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
                 <span class="px-3 py-0.5 bg-white rounded-full text-[10px] font-black ${res.sansai.label === '大吉' ? 'text-amber-600' : 'text-[#5d5444]'} shadow-sm">
                     ${res.sansai.label}
@@ -617,16 +702,18 @@ function showFortuneTerm(term) {
  */
 function renderFortuneDetails(container, res, getNum) {
     const items = [
-        { k: "天格", d: res.ten, icon: "🏛️" },
-        { k: "人格", d: res.jin, icon: "💎" },
-        { k: "地格", d: res.chi, icon: "🌱" },
-        { k: "外格", d: res.gai, icon: "🌍" },
-        { k: "総格", d: res.so, icon: "🏆" }
+        { k: "天格", sub: "祖先運", d: res.ten, icon: "🏛️" },
+        { k: "人格", sub: "主運",   d: res.jin, icon: "💎" },
+        { k: "地格", sub: "初年運", d: res.chi, icon: "🌱" },
+        { k: "外格", sub: "対人運", d: res.gai, icon: "🌍" },
+        { k: "総格", sub: "総合運", d: res.so,  icon: "🏆" }
     ];
     items.forEach(p => {
         if (!p.d) return;
 
-        const descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
+        let descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
+        // 副題（例：祖先運）が先頭に来る場合は除去
+        descText = descText.replace(new RegExp(`^${p.sub}[。、|｜\\s]*`), '');
 
         const row = document.createElement('div');
         row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
@@ -634,8 +721,8 @@ function renderFortuneDetails(container, res, getNum) {
             <div class="flex items-center gap-3 mb-1">
                 <div class="flex items-center gap-1.5">
                     <span class="text-sm">${p.icon}</span>
-                    <span class="text-xs font-black text-[#a6967a]">${p.k}</span>
-                    <button onclick="showFortuneTerm('${p.k}')" class="w-4 h-4 bg-[#bca37f] text-white rounded-full text-[8px] flex items-center justify-center">?</button>
+                    <span class="text-xs font-black text-[#a6967a]">${p.k}（${p.sub}）</span>
+                    <span onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
                 <div class="flex items-center gap-2 ml-auto">
                     <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>
@@ -767,43 +854,54 @@ function displayFortuneRankingModal(rankedList) {
     const descEl = document.getElementById('for-desc');
 
     nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML = '<p class="text-sm text-center text-[#a6967a] mb-4">タップして選択すると自動的に反映されます</p>';
+    gridEl.innerHTML = '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
+    // 同スコア同順位（dense ranking）
+    const ranks = [];
+    rankedList.forEach((item, i) => {
+        if (i === 0) { ranks.push(1); return; }
+        ranks.push(item.score === rankedList[i - 1].score ? ranks[i - 1] : ranks[i - 1] + 1);
+    });
+
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
     rankedList.forEach((item, index) => {
-        const fullName = surnameStr + item.combination.name;
+        const rank = ranks[index];
+        const fullName = surnameStr ? `${surnameStr} ${item.combination.name}` : item.combination.name;
         const f = item.fortune;
         const card = document.createElement('div');
-        card.className = 'mb-3 p-5 bg-white rounded-3xl border-2 cursor-pointer hover:shadow-xl transition-all active:scale-98';
+        card.className = 'mb-2 p-3 bg-white rounded-2xl border-2 cursor-pointer transition-all active:scale-98';
 
-        if (index === 0) card.classList.add('border-[#bca37f]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-[#f8f5ef]');
-        else if (index === 1) card.classList.add('border-[#d4c5af]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-white');
-        else if (index === 2) card.classList.add('border-[#e5dfd5]', 'bg-gradient-to-br', 'from-white', 'to-[#fdfaf5]');
+        if (rank === 1) card.classList.add('border-[#bca37f]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-[#f8f5ef]');
+        else if (rank === 2) card.classList.add('border-[#d4c5af]', 'bg-gradient-to-br', 'from-[#fdfaf5]', 'to-white');
+        else if (rank === 3) card.classList.add('border-[#e5dfd5]');
         else card.classList.add('border-[#eee5d8]');
 
         card.onclick = () => applyRankedCombination(item.combination);
 
-        const medals = ['🥇', '🥈', '🥉'];
-        const medal = medals[index] || `${index + 1}位`;
+        const rankBadge = medals[rank]
+            ? `<span style="font-size:22px;line-height:1;flex-shrink:0">${medals[rank]}</span>`
+            : `<div style="width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div>`;
 
         card.innerHTML = `
-            <div class="flex items-start justify-between mb-3">
-                <div class="flex items-start gap-3">
-                    <span class="text-3xl">${medal}</span>
-                    <div>
-                        <div class="text-2xl font-black text-[#5d5444] mb-1">${fullName}</div>
-                        <div class="text-xs text-[#a6967a] mb-2">${item.combination.reading}</div>
-                        <div class="flex gap-1.5 flex-wrap">
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.ten.res.color} border border-[#eee5d8]">天:${f.ten.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.jin.res.color} border border-[#eee5d8]">人:${f.jin.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.chi.res.color} border border-[#eee5d8]">地:${f.chi.res.label}</span>
-                            <span class="px-2 py-0.5 bg-white rounded-full text-[10px] font-bold ${f.gai.res.color} border border-[#eee5d8]">外:${f.gai.res.label}</span>
-                        </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                ${rankBadge}
+                <div style="flex:1;min-width:0;overflow:hidden">
+                    <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">
+                        <span style="font-size:17px;font-weight:900;color:#5d5444;white-space:nowrap">${fullName}</span>
+                        <span style="font-size:10px;color:#a6967a;white-space:nowrap">${item.combination.reading}</span>
+                    </div>
+                    <div style="display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden">
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.ten.res.color}">天:${f.ten.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.jin.res.color}">人:${f.jin.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.chi.res.color}">地:${f.chi.res.label}</span>
+                        <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.gai.res.color}">外:${f.gai.res.label}</span>
                     </div>
                 </div>
-                <div class="text-right flex-shrink-0">
-                    <div class="text-3xl font-black ${f.so.res.color}">${f.so.val}</div>
-                    <div class="text-sm font-bold ${f.so.res.color}">${f.so.res.label}</div>
+                <div style="text-align:right;flex-shrink:0;margin-left:4px">
+                    <div style="font-size:20px;font-weight:900;line-height:1" class="${f.so.res.color}">${f.so.val}</div>
+                    <div style="font-size:10px;font-weight:700" class="${f.so.res.color}">${f.so.res.label}</div>
                 </div>
             </div>
         `;

@@ -24,8 +24,8 @@
     <!-- ============================================================
          SIDE DRAWER (X/Twitter style)
          ============================================================ -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-[9990] hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
-    <aside id="side-drawer" class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[9991] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-[10001] hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
+    <aside id="side-drawer" class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[10002] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
         <!-- Profile -->
         <div id="side-profile" class="pt-12 pb-4 px-6 border-b border-[#eee5d8]">
             <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-2xl font-black mb-3" id="drawer-avatar">P</div>
@@ -408,7 +408,7 @@
     <div id="scr-vibe" class="screen">
         <!-- Compact height, 3 cols -->
         <div
-            class="glass-card p-5 rounded-[40px] w-full max-w-sm text-center mt-4 shadow-2xl mx-auto flex flex-col h-auto max-h-[90vh]">
+            class="glass-card p-5 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto flex flex-col flex-1 min-h-0 overflow-hidden">
             <h2 class="text-lg font-bold mb-1 text-[#8b7e66]">名前のイメージ</h2>
             <p class="text-[10px] text-[#a6967a] mb-2">当てはまるものを直感で選択</p>
 
@@ -425,18 +425,18 @@
     </div>
 
     <div id="scr-input-nickname" class="screen">
-        <div class="glass-card p-10 rounded-[60px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <h2 class="text-xl font-bold mb-4 text-[#8b7e66]">呼び名を入力</h2>
-            <p class="text-xs text-[#bca37f] mb-8 leading-relaxed">
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-4 shadow-2xl mx-auto">
+            <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">呼び名を入力</h2>
+            <p class="text-xs text-[#bca37f] mb-4 leading-relaxed">
                 呼びたい「あだ名」や「響き」を入力してください。<br>
                 そこから名前の候補を広げます。
             </p>
 
             <input type="text" id="in-nickname" placeholder="例：はる"
-                class="premium-input mb-8 text-center text-3xl tracking-widest ime-active">
+                class="premium-input mb-4 text-center text-3xl tracking-widest ime-active">
 
             <!-- Position Selection -->
-            <div class="flex flex-col gap-3 mb-8 text-left pl-4">
+            <div class="flex flex-col gap-3 mb-4 text-left pl-4">
                 <label class="flex items-center gap-3 cursor-pointer group">
                     <input type="radio" name="nickname-pos" value="prefix" checked class="accent-[#bca37f] w-5 h-5">
                     <div>
@@ -453,15 +453,15 @@
                 </label>
             </div>
 
-            <button onclick="processNickname()" class="btn-gold py-5 shadow-xl w-full">次へ →</button>
-            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-6 hover:underline">戻る</button>
+            <button onclick="processNickname()" class="btn-gold py-4 shadow-xl w-full">次へ →</button>
+            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-3 hover:underline">戻る</button>
         </div>
     </div>
 
     <!-- UNIVERSAL SWIPE SCREEN -->
     <div id="scr-swipe-universal" class="screen">
         <div
-            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-6 shadow-2xl mx-auto h-[80vh] flex flex-col relative">
+            class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto flex-1 min-h-0 flex flex-col relative overflow-hidden">
 
             <!-- Header (Dynamic) -->
             <h2 id="uni-swipe-title" class="text-lg font-bold mb-2 text-[#8b7e66] mt-4"></h2>
@@ -508,16 +508,16 @@
                 <h3 id="uni-list-title" class="text-lg font-bold text-[#8b7e66] mb-2">候補リスト</h3>
                 <p id="uni-list-desc" class="text-xs text-[#a6967a] mb-4">複数選択できます</p>
 
-                <div id="uni-candidates-grid" class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-20">
+                <div id="uni-candidates-grid" class="flex-1 overflow-y-auto grid grid-cols-2 gap-3 content-start pb-2">
                     <!-- Buttons generated dynamically -->
                 </div>
 
-                <div class="flex gap-4 mt-4">
+                <div class="flex gap-4 pt-3 shrink-0">
                     <button onclick="resetUniversalSwipe()" class="text-sm text-[#bca37f] flex-1">リセット</button>
                     <button onclick="closeUniversalList()"
                         class="text-sm text-[#8b7e66] border border-[#ede5d8] px-4 py-2 rounded-lg bg-[#fdfaf5]">閉じる</button>
                     <button onclick="submitUniversalSelection()"
-                        class="text-sm text-white font-bold bg-[#8b7e66] px-6 py-2 rounded-lg flex-[2] shadow-md">次へ</button>
+                        class="text-sm text-white font-bold bg-[#8b7e66] px-6 py-2 rounded-lg flex-[2] shadow-md">読みストックへ</button>
                 </div>
             </div>
 
@@ -734,9 +734,14 @@
         </div>
     </div>
 
-    <!-- Swipe mode footer -->
+    <!-- 統一フッター: ホーム / さがす / ストック / ビルド -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-6">
+            <button onclick="changeScreen('scr-mode')"
+                class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-home">
+                <span class="text-2xl transition-transform duration-200">🏠</span>
+                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ホーム</span>
+            </button>
             <button onclick="navSearchAction()"
                 class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-search">
                 <span class="text-2xl transition-transform duration-200">🔍</span>
@@ -751,33 +756,6 @@
                 id="nav-build">
                 <span class="text-2xl transition-transform duration-200">⚒️</span>
                 <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
-            </button>
-            <button onclick="openSettings()" class="nav-item flex flex-col items-center gap-1.5 group outline-none"
-                id="nav-settings">
-                <span class="text-2xl transition-transform duration-200">⚙️</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">設定</span>
-            </button>
-        </div>
-    </nav>
-
-    <!-- Universal footer (for screens without bottom-nav) -->
-    <nav id="universal-footer" class="fixed bottom-0 left-0 right-0 z-[90] bg-[#fdfaf5]/95 backdrop-blur-md border-t border-[#eee5d8]/50 py-2 hidden">
-        <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
-            <button onclick="changeScreen('scr-mode')" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">🏠</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ホーム</span>
-            </button>
-            <button onclick="openStock()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">📋</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ストック</span>
-            </button>
-            <button onclick="openBuild()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">⚒️</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">ビルド</span>
-            </button>
-            <button onclick="openSavedNames()" class="flex flex-col items-center gap-0.5 p-1">
-                <span class="text-lg">💾</span>
-                <span class="text-[8px] font-bold text-[#a6967a]">保存済み</span>
             </button>
         </div>
     </nav>
@@ -821,10 +799,10 @@
         </div>
     </div>
 
-    <div id="modal-fortune-detail" class="overlay" onclick="closeFortuneDetail()">
-        <div class="detail-sheet overflow-y-auto max-h-[85vh] w-[95%] max-w-md" onclick="event.stopPropagation()">
+    <div id="modal-fortune-detail" class="overlay" style="padding-bottom:90px;align-items:flex-start;padding-top:24px;overflow-y:auto" onclick="closeFortuneDetail()">
+        <div class="detail-sheet overflow-y-auto w-[95%] max-w-md" style="padding:28px 24px;max-height:calc(100dvh - 120px);flex-shrink:0" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>
-            <h2 id="for-name" class="text-4xl font-black text-center mb-10 text-[#5d5444]"></h2>
+            <h2 id="for-name" class="text-2xl font-black text-center mb-4 text-[#5d5444]"></h2>
             <div id="for-grid" class="flex flex-col w-full relative"></div>
             <div id="for-desc" class="space-y-6 text-xs pt-8 pb-8"></div>
         </div>

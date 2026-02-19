@@ -165,24 +165,15 @@ function changeScreen(id) {
         return;
     }
 
-    // フッターの表示制御
+    // フッターの表示制御（ウィザード以外は常に表示）
     const footer = document.getElementById('bottom-nav');
-    const uniFooter = document.getElementById('universal-footer');
-    const noFooterScreens = ['scr-wizard', 'scr-mode'];
-    const mainFooterScreens = ['scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal'];
+    const wizardScreens = ['scr-wizard'];
 
     if (footer) {
-        if (mainFooterScreens.includes(id)) {
-            footer.classList.remove('hidden');
-        } else {
+        if (wizardScreens.includes(id)) {
             footer.classList.add('hidden');
-        }
-    }
-    if (uniFooter) {
-        if (!mainFooterScreens.includes(id) && !noFooterScreens.includes(id)) {
-            uniFooter.classList.remove('hidden');
         } else {
-            uniFooter.classList.add('hidden');
+            footer.classList.remove('hidden');
         }
     }
 
@@ -197,10 +188,11 @@ function updateNavHighlight(screenId) {
     document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
 
     const navMap = {
+        'scr-mode': 'nav-home',
         'scr-main': 'nav-search',
+        'scr-swipe-universal': 'nav-search',
         'scr-stock': 'nav-stock',
         'scr-build': 'nav-build',
-        'scr-settings': 'nav-settings'
     };
 
     const navId = navMap[screenId];

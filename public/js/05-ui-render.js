@@ -408,7 +408,26 @@ async function showKanjiDetail(data) {
     if (existingAiBtn) existingAiBtn.remove();
 
     // 現在の読み（名乗り）を特定
-    const currentReadingForAI = segments && segments[currentPos] ? segments[currentPos] : null;
+    // scr-main アクティブ（スワイプ中）の場合のみ segments[currentPos] を信頼する。
+    // それ以外（ストック/検索等から開いた場合）は liked 配列からその漢字の読みを引く。
+    let currentReadingForAI = null;
+    const mainSwipeScreen = document.getElementById('scr-main');
+    const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
+    if (inActiveSwipe && segments && segments[currentPos]) {
+        currentReadingForAI = segments[currentPos];
+    } else if (typeof liked !== 'undefined') {
+        const likedItem = liked.find(l =>
+            l['漢字'] === data['漢字'] && l.slot >= 0 &&
+            l.sessionReading && l.sessionReading !== 'FREE' &&
+            l.sessionReading !== 'SEARCH' && l.sessionReading !== 'SHARED'
+        );
+        if (likedItem) {
+            const segs = (typeof readingToSegments !== 'undefined') ? readingToSegments[likedItem.sessionReading] : null;
+            if (segs && segs[likedItem.slot]) {
+                currentReadingForAI = segs[likedItem.slot];
+            }
+        }
+    }
 
     const aiSection = document.createElement('div');
     aiSection.id = 'btn-ai-kanji-detail';
