@@ -191,7 +191,8 @@ function renderSavedScreen() {
     const saved = getSavedNames();
 
     container.innerHTML = saved.length > 0 ? saved.map((item, index) => `
-        <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+        <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm relative">
+            ${item.fromPartner ? `<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">👩 パートナーから</div>` : ''}
             <div class="flex items-start justify-between mb-2">
                 <div class="flex-1">
                     <div class="text-lg font-black text-[#5d5444]">${item.fullName || ''}</div>

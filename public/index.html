@@ -771,10 +771,17 @@
             <!-- ログイン済み時 -->
             <div id="account-info-area" class="hidden">
                 <div class="text-center mb-8">
+                    <!-- アバター -->
                     <div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-3xl font-black mx-auto mb-4"
                         id="account-avatar-big">P</div>
-                    <h2 class="text-xl font-black text-[#5d5444] mb-1" id="account-display-name">ユーザー</h2>
-                    <p class="text-xs text-[#a6967a]" id="account-email">-</p>
+
+                    <!-- 名前とID領域（画像デザイン準拠） -->
+                    <div class="flex flex-col items-center justify-center mb-2">
+                        <h2 class="text-xl font-black text-[#5d5444] tracking-wide" id="account-display-name">ユーザー</h2>
+                        <div class="flex items-center text-sm font-bold text-[#a6967a] mt-1">
+                            <span>@苗字未設定</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="bg-white border-2 border-[#eee5d8] rounded-2xl p-4 mb-4">
@@ -793,41 +800,61 @@
                     📤 今すぐクラウドに同期
                 </button>
 
-                <!-- ペアリングセクション（ログイン時のみ） -->
-                <div id="pairing-section-area" class="mb-6 pt-4 border-t border-[#eee5d8]">
-                    <h3 class="text-sm font-black text-[#8b7e66] mb-4 text-center">パートナーと紐付け</h3>
+                <!-- ペアリングセクション（アコーディオン化） -->
+                <div id="pairing-section-accordion" class="mb-4">
+                    <!-- 新規追加: 画像デザイン準拠の「パートナー連携」ゴーストボタン -->
+                    <button id="btn-toggle-pairing" onclick="togglePairingSection()"
+                        class="w-full py-3 mb-2 border-2 border-[#d4c5af] text-[#8b7e66] rounded-2xl font-bold text-sm hover:bg-[#f8f5ef] transition-all">
+                        パートナーと連携
+                    </button>
 
-                    <!-- 未ペアリング時 -->
-                    <div id="pairing-not-linked">
-                        <button id="btn-generate-code" onclick="window.handleGenerateCode?.()"
-                            class="w-full py-3 mb-3 bg-white border border-[#bca37f] text-[#bca37f] rounded-2xl font-bold text-sm hover:bg-[#fdfaf5] transition-all shadow-sm">
-                            招待コードを発行する
-                        </button>
-                        <div id="pairing-code-display"
-                            class="hidden text-center text-3xl font-black tracking-widest text-[#5d5444] mb-3 p-3 bg-[#fdfaf5] rounded-xl border border-[#eee5d8] select-all">
+                    <!-- アコーディオン本体（初期非表示） -->
+                    <div id="pairing-section-area"
+                        class="hidden mt-4 p-4 bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl">
+                        <!-- 未ペアリング時 -->
+                        <div id="pairing-not-linked">
+                            <button id="btn-generate-code" onclick="window.handleGenerateCode?.()"
+                                class="w-full py-3 mb-3 bg-white border border-[#bca37f] text-[#bca37f] rounded-xl font-bold text-sm hover:bg-[#fdfaf5] transition-all shadow-sm">
+                                招待コードを発行する
+                            </button>
+                            <div id="pairing-code-display"
+                                class="hidden text-center text-3xl font-black tracking-widest text-[#5d5444] mb-3 p-3 bg-white rounded-xl border border-[#eee5d8] select-all">
+                            </div>
+
+                            <div class="flex gap-2">
+                                <input type="text" id="pairing-code-input" placeholder="コードを入力"
+                                    class="flex-1 px-3 py-2.5 bg-white rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
+                                <button onclick="window.handleEnterCode?.()"
+                                    class="px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all shadow-sm">連携</button>
+                            </div>
                         </div>
 
-                        <div class="flex gap-2">
-                            <input type="text" id="pairing-code-input" placeholder="コードを入力"
-                                class="flex-1 px-3 py-2.5 bg-[#fdfaf5] rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
-                            <button onclick="window.handleEnterCode?.()"
-                                class="px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all shadow-sm">連携</button>
+                        <!-- ペアリング済み時 -->
+                        <div id="pairing-linked"
+                            class="hidden text-center bg-white p-4 rounded-xl border border-[#eee5d8]">
+                            <div class="text-3xl mb-2">💑</div>
+                            <div class="text-sm font-bold text-[#5d5444] mb-1">
+                                <span id="pairing-partner-name">パートナー</span> と連携中
+                            </div>
+                            <button onclick="window.confirmUnpair?.()"
+                                class="text-xs text-[#a6967a] underline mt-3 hover:text-[#f28b82] transition-colors">
+                                連携を解除する
+                            </button>
                         </div>
-                    </div>
-
-                    <!-- ペアリング済み時 -->
-                    <div id="pairing-linked"
-                        class="hidden text-center bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8]">
-                        <div class="text-3xl mb-2">💑</div>
-                        <div class="text-sm font-bold text-[#5d5444] mb-1">
-                            <span id="pairing-partner-name">パートナー</span> と連携中
-                        </div>
-                        <button onclick="MeimayPairing.unpair()"
-                            class="text-xs text-[#a6967a] underline mt-3 hover:text-[#f28b82] transition-colors">
-                            連携を解除する
-                        </button>
                     </div>
                 </div>
+
+                <script>
+                    function togglePairingSection() {
+                        const area = document.getElementById('pairing-section-area');
+                        area.classList.toggle('hidden');
+                    }
+                    function confirmUnpair() {
+                        if (confirm("パートナーとの連携を解除しますか？")) {
+                            MeimayPairing.unpair();
+                        }
+                    }
+                </script>
 
                 <!-- ログアウトボタン（一番下） -->
                 <button onclick="MeimayAuth.signOut()"

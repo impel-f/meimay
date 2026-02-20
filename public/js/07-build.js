@@ -124,9 +124,10 @@ function renderStock() {
 
         items.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'stock-card';
+            card.className = 'stock-card relative';
             card.onclick = () => showDetailByData(item);
             card.innerHTML = `
+                ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${item['画数']}画</div>
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
@@ -262,7 +263,7 @@ function renderBuildSelection() {
 
             items.forEach((item, itemIdx) => {
                 const btn = document.createElement('button');
-                btn.className = 'build-piece-btn';
+                btn.className = 'build-piece-btn relative'; // modified: added relative
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
                 btn.onclick = () => selectBuildPiece(idx, item, btn);
@@ -273,7 +274,10 @@ function renderBuildSelection() {
                     fortuneIndicator = `<div class="text-lg mt-1">${badges[itemIdx]}</div>`;
                 }
 
+                let partnerBadge = item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : '';
+
                 btn.innerHTML = `
+                    ${partnerBadge}
                     <div class="build-kanji-text">${item['漢字']}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${item['画数']}画</div>
                     ${item.isSuper ? '<div class="text-[#8ab4f8] text-sm mt-1">★</div>' : ''}

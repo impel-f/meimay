@@ -373,9 +373,8 @@ if (firebaseAuth) {
             await MeimaySync.downloadData();
             await MeimaySync.uploadData();
 
-            // ペアリング状態を読み込み & 共有リスニング開始
-            await MeimayPairing.loadPartnerInfo();
-            MeimayShare.listenForShared();
+            // パートナー情報の監視を開始（連携されていれば共有リスニングもこの中で開始される）
+            MeimayPairing.listenForPartner();
 
             // ログイン画面にいた場合、ホームには戻らずアカウント画面に留まる（ペアリング等ができるように）。
             // 以前は changeScreen('scr-mode') で戻していたが、コメントアウトもしくは削除。
@@ -385,6 +384,7 @@ if (firebaseAuth) {
         } else {
             console.log("FIREBASE: Auth state -> logged out");
             MeimayShare.stopListening();
+            if (typeof MeimayPairing !== 'undefined') MeimayPairing.stopListeningPartner();
         }
     });
 }
@@ -552,22 +552,54 @@ const MeimayPairing = {
         }
     },
 
-    // パートナー情報読み込み
-    loadPartnerInfo: async function () {
+    _partnerUnsub: null,
+
+    // パートナー情報のリスニング（リアルタイム検知）
+    listenForPartner: function () {
         const user = MeimayAuth.getCurrentUser();
         if (!user) return;
 
-        try {
-            const doc = await firebaseDb.collection('users').doc(user.uid).get();
-            if (doc.exists && doc.data().partnerId) {
-                this.partnerId = doc.data().partnerId;
-                this.partnerName = doc.data().partnerName || 'パートナー';
-                updatePairingUI();
-                console.log(`PAIRING: Loaded partner ${this.partnerName}`);
+        if (this._partnerUnsub) this._partnerUnsub();
+
+        this._partnerUnsub = firebaseDb.collection('users').doc(user.uid).onSnapshot((doc) => {
+            if (doc.exists) {
+                const data = doc.data();
+
+                // パートナーIDに変化があった場合
+                if (data.partnerId !== this.partnerId) {
+                    this.partnerId = data.partnerId;
+                    this.partnerName = data.partnerName || 'パートナー';
+
+                    if (this.partnerId) {
+                        console.log(`PAIRING: Partner linked: ${this.partnerName}`);
+                        updatePairingUI();
+                        // 連携されたら共有リスニングを開始
+                        MeimayShare.listenForShared();
+                    } else {
+                        console.log('PAIRING: Partner unlinked');
+                        updatePairingUI();
+                        // 解除されたら共有リスニングを停止
+                        MeimayShare.stopListening();
+                    }
+                } else if (data.partnerId && data.partnerName !== this.partnerName) {
+                    // 名前だけ変わった場合
+                    this.partnerName = data.partnerName;
+                    updatePairingUI();
+                }
             }
-        } catch (e) {
-            console.warn('PAIRING: Load partner info failed', e);
+        }, (error) => {
+            console.warn('PAIRING: Listen partner info failed', error);
+        });
+    },
+
+    // リスニング停止
+    stopListeningPartner: function () {
+        if (this._partnerUnsub) {
+            this._partnerUnsub();
+            this._partnerUnsub = null;
         }
+        this.partnerId = null;
+        this.partnerName = null;
     }
 };
 
@@ -652,10 +684,12 @@ const MeimayShare = {
         this._likedUnsub = sharedRef.doc('liked').onSnapshot((doc) => {
             if (doc.exists && doc.data().items) {
                 const data = doc.data();
-                showToast(`${data.fromName}からストックが届きました！`, '📥', () => {
-                    this.mergeSharedLiked(data.items);
-                });
-                console.log(`SHARE: Received ${data.items.length} liked from ${data.fromName}`);
+                // 自動取り込み＆フラグ付与
+                const added = this.mergeSharedLiked(data.items, data.fromName);
+                if (added > 0) {
+                    showToast(`${data.fromName}からストック ${added}件 が届き、追加されました！`, '📥');
+                    console.log(`SHARE: Auto-merged ${added} liked from ${data.fromName}`);
+                }
             }
         });
 
@@ -663,10 +697,12 @@ const MeimayShare = {
         this._savedUnsub = sharedRef.doc('savedNames').onSnapshot((doc) => {
             if (doc.exists && doc.data().items) {
                 const data = doc.data();
-                showToast(`${data.fromName}から保存名前が届きました！`, '📥', () => {
-                    this.mergeSharedSaved(data.items);
-                });
-                console.log(`SHARE: Received ${data.items.length} saved names from ${data.fromName}`);
+                // 自動取り込み＆フラグ付与
+                const added = this.mergeSharedSaved(data.items, data.fromName);
+                if (added > 0) {
+                    showToast(`${data.fromName}から保存名前 ${added}件 が届き、追加されました！`, '📥');
+                    console.log(`SHARE: Auto-merged ${added} saved names from ${data.fromName}`);
+                }
             }
         });
 
@@ -678,39 +714,56 @@ const MeimayShare = {
         if (this._savedUnsub) { this._savedUnsub(); this._savedUnsub = null; }
     },
 
-    // 受信ストックをマージ
-    mergeSharedLiked: function (items) {
-        if (typeof liked === 'undefined') return;
+    // 受信ストックを自動マージして追加件数を返す
+    mergeSharedLiked: function (items, partnerName) {
+        if (typeof liked === 'undefined') return 0;
         let added = 0;
         items.forEach(item => {
             const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot && l.sessionReading === item.sessionReading);
             if (!exists) {
+                // パートナー由来フラグを付与
+                item.fromPartner = true;
+                item.partnerName = partnerName || 'パートナー';
                 liked.push(item);
                 added++;
             }
         });
-        if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-        showToast(`ストック ${added}件 を取り込みました！`, '✅');
-        console.log(`SHARE: Merged ${added} liked items`);
+        if (added > 0) {
+            if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
+            // 画面更新 (ストック画面が開かれている場合)
+            if (typeof renderStock === 'function' && document.getElementById('scr-stock') && document.getElementById('scr-stock').classList.contains('active')) {
+                renderStock();
+            }
+        }
+        return added;
     },
 
-    // 受信保存名前をマージ
-    mergeSharedSaved: function (items) {
+    // 受信保存名前を自動マージして追加件数を返す
+    mergeSharedSaved: function (items, partnerName) {
         try {
             const local = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
             let added = 0;
             items.forEach(item => {
                 const exists = local.some(l => l.fullName === item.fullName);
                 if (!exists) {
+                    // パートナー由来フラグを付与
+                    item.fromPartner = true;
+                    item.partnerName = partnerName || 'パートナー';
                     local.push(item);
                     added++;
                 }
             });
-            localStorage.setItem('meimay_saved', JSON.stringify(local));
-            showToast(`保存名前 ${added}件 を取り込みました！`, '✅');
-            console.log(`SHARE: Merged ${added} saved names`);
+            if (added > 0) {
+                localStorage.setItem('meimay_saved', JSON.stringify(local));
+                // 画面更新 (保存済み画面が開かれている場合)
+                if (typeof renderSavedList === 'function' && document.getElementById('scr-saved') && document.getElementById('scr-saved').classList.contains('active')) {
+                    renderSavedList();
+                }
+            }
+            return added;
         } catch (e) {
             console.error('SHARE: Merge saved failed', e);
+            return 0;
         }
     }
 };
