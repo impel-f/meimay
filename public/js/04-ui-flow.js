@@ -2148,6 +2148,7 @@ function navSearchAction() {
         changeScreen('scr-input-nickname');
     } else {
         changeScreen('scr-main');
+        if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
     }
 }
 

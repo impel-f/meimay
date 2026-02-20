@@ -63,9 +63,29 @@ function getUnifiedTags(rawString) {
 }
 
 /**
+ * scr-main の表示状態を3状態で制御する
+ *  - セッションなし : empty-state 表示、HUD/stack/actionBtns 非表示
+ *  - カードあり     : HUD/stack/actionBtns 表示、empty-state 非表示
+ *  - カード枯渇     : HUD/stack 表示、actionBtns/empty-state 非表示
+ */
+function updateSwipeMainState() {
+    const actionBtns = document.getElementById('swipe-action-btns');
+    const sessionContent = document.getElementById('main-session-content');
+    const emptyState = document.getElementById('main-empty-state');
+
+    const hasSession = segments && segments.length > 0;
+    const hasCards = hasSession && stack && stack.length > 0 && currentIdx < stack.length;
+
+    if (emptyState) emptyState.classList.toggle('hidden', hasSession);
+    if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
+    if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
+}
+
+/**
  * カードのレンダリング
  */
 function render() {
+    updateSwipeMainState();
     const container = document.getElementById('stack');
     if (!container) {
         console.error("RENDER: 'stack' container not found");
@@ -446,6 +466,17 @@ async function showKanjiDetail(data) {
         yojiWrapper.parentNode.insertBefore(aiSection, yojiWrapper);
     }
 
+    // キャッシュ済みAI結果があれば自動表示
+    if (typeof StorageBox !== 'undefined' && StorageBox.getKanjiAiCache) {
+        const cached = StorageBox.getKanjiAiCache(data['漢字']);
+        if (cached && cached.text && typeof renderKanjiDetailText === 'function') {
+            const resultEl = document.getElementById('ai-kanji-result');
+            if (resultEl) {
+                renderKanjiDetailText(resultEl, cached.text, data['漢字'], currentReadingForAI);
+            }
+        }
+    }
+
     // 四字熟語・ことわざ表示
     if (window.idiomsData && window.idiomsData.length > 0) {
         const kanji = data['漢字'];
@@ -521,5 +552,7 @@ function closeKanjiDetail() {
     const modal = document.getElementById('modal-kanji-detail');
     if (modal) modal.classList.remove('active');
 }
+
+window.updateSwipeMainState = updateSwipeMainState;
 
 console.log("UI RENDER: Module loaded (v14.1 - Full tap area)");

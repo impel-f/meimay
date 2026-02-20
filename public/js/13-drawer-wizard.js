@@ -363,7 +363,7 @@ if (_originalChangeScreen) {
         // Show/hide top bar on swipe screen
         const topBar = document.getElementById('top-bar');
         if (topBar) {
-            const hideTopBarScreens = ['scr-main'];
+            const hideTopBarScreens = [];
             if (hideTopBarScreens.includes(id)) {
                 document.body.classList.add('hide-top-bar');
             } else {

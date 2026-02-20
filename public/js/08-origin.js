@@ -249,50 +249,77 @@ async function generateKanjiDetail(kanji, currentReading) {
         const data = await response.json();
         const aiText = data.text || '';
 
-        // テキストをセクションに分割して表示
-        const sections = aiText.split(/【(.+?)】/).filter(s => s.trim());
-        let html = '';
-
-        for (let i = 0; i < sections.length; i += 2) {
-            const title = sections[i] || '';
-            const content = sections[i + 1] || '';
-            if (title && content) {
-                html += `
-                    <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                        <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
-                            <span>${title.includes('成り立ち') ? '📜' : title.includes('意味') ? '💡' : title.includes('熟語') ? '📖' : title.includes('名乗り') ? '🎓' : '✨'}</span>
-                            ${title}
-                        </div>
-                        <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content.trim()}</p>
-                    </div>
-                `;
-            }
+        // キャッシュに保存
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveKanjiAiCache) {
+            StorageBox.saveKanjiAiCache(kanji, aiText);
         }
 
-        // セクション分割がうまくいかなかった場合はそのまま表示
-        if (!html) {
-            html = `
-                <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm">
-                    <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${aiText}</p>
-                </div>
-            `;
-        }
-
-        resultEl.innerHTML = html;
+        renderKanjiDetailText(resultEl, aiText, kanji, currentReading);
 
     } catch (err) {
         console.error("AI_KANJI_DETAIL:", err);
         resultEl.innerHTML = `
-            <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82]">
+            <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82] mb-2">
                 AI生成に失敗しました: ${err.message}
             </div>
         `;
+        const regenBtnErr = document.createElement('button');
+        regenBtnErr.className = 'w-full mt-2 py-3 border border-[#eee5d8] bg-[#fdfaf5] text-[#a6967a] font-bold rounded-2xl text-xs active:scale-95 transition-transform flex items-center justify-center gap-2';
+        regenBtnErr.innerHTML = '🔄 再出力する';
+        regenBtnErr.onclick = () => generateKanjiDetail(kanji, currentReading);
+        resultEl.appendChild(regenBtnErr);
     }
+}
+
+/**
+ * AI漢字詳細テキストをパースしてDOMに描画し、再出力ボタンを追加する
+ */
+function renderKanjiDetailText(resultEl, aiText, kanji, currentReading) {
+    const sections = aiText.split(/【(.+?)】/).filter(s => s.trim());
+    let html = '';
+
+    for (let i = 0; i < sections.length; i += 2) {
+        const title = sections[i] || '';
+        const content = sections[i + 1] || '';
+        if (title && content) {
+            const icon = title.includes('成り立ち') ? '📜'
+                : title.includes('意味') ? '💡'
+                : title.includes('熟語') ? '📖'
+                : title.includes('名乗り') ? '🎓' : '✨';
+            html += `
+                <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                    <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
+                        <span>${icon}</span>
+                        ${title}
+                    </div>
+                    <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content.trim()}</p>
+                </div>
+            `;
+        }
+    }
+
+    if (!html) {
+        html = `
+            <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${aiText}</p>
+            </div>
+        `;
+    }
+
+    resultEl.innerHTML = html;
+
+    // 再出力ボタン
+    const regenBtn = document.createElement('button');
+    regenBtn.className = 'w-full mt-2 py-3 border border-[#eee5d8] bg-[#fdfaf5] text-[#a6967a] font-bold rounded-2xl text-xs active:scale-95 transition-transform flex items-center justify-center gap-2';
+    regenBtn.innerHTML = '🔄 再出力する';
+    regenBtn.onclick = () => generateKanjiDetail(kanji, currentReading);
+    resultEl.appendChild(regenBtn);
 }
 
 // Global Exports
 window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
+window.renderKanjiDetailText = renderKanjiDetailText;
 window.closeOriginModal = closeOriginModal;
 window.copyOriginToClipboard = copyOriginToClipboard;
 

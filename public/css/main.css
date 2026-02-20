@@ -599,7 +599,7 @@ body {
 
 .hud-top-mini {
     position: fixed;
-    top: 20px;
+    top: 52px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 100;
@@ -909,6 +909,7 @@ body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
     bottom: 40px !important;
 }
+
 
 /* h-screen を使った内部コンテナを flexbox で正しく収める
    flex:1 で .screen の padding を除いた残り高さを占有する */
