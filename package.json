@@ -1,6 +1,6 @@
 {
   "name": "meimay",
-  "version": "1.0.0",
+  "version": "21.0.0",
   "description": "メイメー - 赤ちゃんの命名アプリ",
   "main": "index.js",
   "scripts": {
