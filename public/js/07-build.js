@@ -517,30 +517,30 @@ function showFortuneDetail() {
     // 鑑定図解：3カラム（外格＋[括弧 ｜ 漢字列 ｜ ]括弧×3＋天人地格）＋下部総格
     const BOX_H = 40;   // 漢字ボックス高さ px
     const BOX_W = 40;   // 漢字ボックス幅 px
-    const GAP   = 8;    // 行間 px（広めに）
+    const GAP = 8;    // 行間 px（広めに）
     const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
-    const BC    = '#bca37f'; // 括弧の色
-    const BW    = 2;    // 括弧の線幅 px
-    const BARM  = 10;   // 括弧のアーム幅 px
-    const LINE  = 12;   // 括弧中央から格ボックスへの横線長 px
+    const BC = '#bca37f'; // 括弧の色
+    const BW = 2;    // 括弧の線幅 px
+    const BARM = 10;   // 括弧のアーム幅 px
+    const LINE = 12;   // 括弧中央から格ボックスへの横線長 px
 
     // 各文字の Y 座標（flex column + gap での実座標）
-    const surTop  = (i) => i * (BOX_H + GAP);
-    const surBot  = (i) => surTop(i) + BOX_H;
-    const surMid  = (i) => surTop(i) + BOX_H / 2;
+    const surTop = (i) => i * (BOX_H + GAP);
+    const surBot = (i) => surTop(i) + BOX_H;
+    const surMid = (i) => surTop(i) + BOX_H / 2;
     const divTopY = nSur > 0 ? nSur * (BOX_H + GAP) : 0;
     const divBotY = divTopY + DIV_H;
-    const givTop  = (i) => divBotY + GAP + i * (BOX_H + GAP);
-    const givBot  = (i) => givTop(i) + BOX_H;
-    const givMid  = (i) => givTop(i) + BOX_H / 2;
-    const totalH  = nGiv > 0 ? givBot(nGiv - 1) : (nSur > 0 ? surBot(nSur - 1) : 80);
+    const givTop = (i) => divBotY + GAP + i * (BOX_H + GAP);
+    const givBot = (i) => givTop(i) + BOX_H;
+    const givMid = (i) => givTop(i) + BOX_H / 2;
+    const totalH = nGiv > 0 ? givBot(nGiv - 1) : (nSur > 0 ? surBot(nSur - 1) : 80);
 
     // 各格の括弧スパン（各文字の中央から中央へ）
     // 隣接する括弧がOFFSET分ずれて重ならないようにする
     const OFFSET = 5; // 隣接括弧アームの重複防止オフセット px
-    const _tenRaw = { top: nSur > 0 ? surMid(0) : 0,        bot: nSur > 0 ? surMid(nSur - 1) : 0      };
-    const _jinRaw = { top: nSur > 0 ? surMid(nSur - 1) : 0, bot: nGiv > 0 ? givMid(0) : 0             };
-    const _chiRaw = { top: nGiv > 0 ? givMid(0) : totalH,   bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
+    const _tenRaw = { top: nSur > 0 ? surMid(0) : 0, bot: nSur > 0 ? surMid(nSur - 1) : 0 };
+    const _jinRaw = { top: nSur > 0 ? surMid(nSur - 1) : 0, bot: nGiv > 0 ? givMid(0) : 0 };
+    const _chiRaw = { top: nGiv > 0 ? givMid(0) : totalH, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
     // オフセット適用（単一文字スパン=h≤0 はそのまま）
     const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
     const jinSpan = (() => {
@@ -703,10 +703,10 @@ function showFortuneTerm(term) {
 function renderFortuneDetails(container, res, getNum) {
     const items = [
         { k: "天格", sub: "祖先運", d: res.ten, icon: "🏛️" },
-        { k: "人格", sub: "主運",   d: res.jin, icon: "💎" },
+        { k: "人格", sub: "主運", d: res.jin, icon: "💎" },
         { k: "地格", sub: "初年運", d: res.chi, icon: "🌱" },
         { k: "外格", sub: "対人運", d: res.gai, icon: "🌍" },
-        { k: "総格", sub: "総合運", d: res.so,  icon: "🏆" }
+        { k: "総格", sub: "総合運", d: res.so, icon: "🏆" }
     ];
     items.forEach(p => {
         if (!p.d) return;
@@ -1021,5 +1021,74 @@ window.reselectSlot = reselectSlot;
 window.addMoreToSlot = addMoreToSlot;
 window.clearBuildSelection = clearBuildSelection;
 window.showFortuneTerm = showFortuneTerm;
+
+// ============================================================
+// STOCK TAB SWIPE GESTURE
+// 読みストック ↔ 漢字ストック をスワイプで切り替え
+// ============================================================
+(function initStockSwipe() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    function handleTouchStart(e) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+    }
+
+    function handleTouchEnd(e) {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        const dt = Date.now() - touchStartTime;
+
+        // スワイプ判定: 水平50px以上、水平>垂直、500ms以内
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) || dt > 500) return;
+
+        // ストック画面が表示中かチェック
+        const stockScreen = document.getElementById('scr-stock');
+        if (!stockScreen || !stockScreen.classList.contains('active')) return;
+
+        const readingPanel = document.getElementById('stock-reading-panel');
+        const kanjiPanel = document.getElementById('stock-kanji-panel');
+        if (!readingPanel || !kanjiPanel) return;
+
+        if (dx < 0 && currentStockTab === 'reading') {
+            // 左スワイプ → 漢字ストックへ
+            readingPanel.style.animation = 'slideOutLeft 0.25s ease-out';
+            setTimeout(() => {
+                switchStockTab('kanji');
+                readingPanel.style.animation = '';
+                kanjiPanel.style.animation = 'slideInRight 0.25s ease-out';
+                setTimeout(() => { kanjiPanel.style.animation = ''; }, 250);
+            }, 200);
+        } else if (dx > 0 && currentStockTab === 'kanji') {
+            // 右スワイプ → 読みストックへ
+            kanjiPanel.style.animation = 'slideOutRight 0.25s ease-out';
+            setTimeout(() => {
+                switchStockTab('reading');
+                kanjiPanel.style.animation = '';
+                readingPanel.style.animation = 'slideInLeft 0.25s ease-out';
+                setTimeout(() => { readingPanel.style.animation = ''; }, 250);
+            }, 200);
+        }
+    }
+
+    // DOMReady後にイベント登録
+    function attach() {
+        const stockScreen = document.getElementById('scr-stock');
+        if (stockScreen) {
+            stockScreen.addEventListener('touchstart', handleTouchStart, { passive: true });
+            stockScreen.addEventListener('touchend', handleTouchEnd, { passive: true });
+            console.log('STOCK: Swipe gesture attached');
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attach);
+    } else {
+        setTimeout(attach, 100);
+    }
+})();
 
 console.log("BUILD: Module loaded");
