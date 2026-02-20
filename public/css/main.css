@@ -120,8 +120,8 @@ body {
 
 .nav-item {
     transition: all 0.2s;
-    padding: 8px 16px;
-    border-radius: 16px;
+    padding: 6px 8px;
+    border-radius: 12px;
     cursor: pointer;
     pointer-events: all !important;
     position: relative;

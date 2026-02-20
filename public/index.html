@@ -24,11 +24,15 @@
     <!-- ============================================================
          SIDE DRAWER (X/Twitter style)
          ============================================================ -->
-    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-[10001] hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
-    <aside id="side-drawer" class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[10002] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+    <div id="drawer-overlay"
+        class="fixed inset-0 bg-black/50 z-[10001] hidden opacity-0 transition-opacity duration-300"
+        onclick="closeDrawer()"></div>
+    <aside id="side-drawer"
+        class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[10002] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
         <!-- Profile -->
         <div id="side-profile" class="pt-12 pb-4 px-6 border-b border-[#eee5d8]">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-2xl font-black mb-3" id="drawer-avatar">P</div>
+            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-2xl font-black mb-3"
+                id="drawer-avatar">P</div>
             <div class="text-lg font-black text-[#5d5444]" id="drawer-username">ゲスト</div>
             <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@苗字未設定</div>
         </div>
@@ -114,14 +118,23 @@
     </aside>
 
     <!-- Top Bar (replaces floating history button) -->
-    <div id="top-bar" class="fixed top-0 left-0 right-0 z-[100] flex items-center px-4 h-12 bg-[#fdfaf5]/95 backdrop-blur-md border-b border-[#eee5d8]/50">
-        <button onclick="openDrawer()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95" id="btn-hamburger">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5d5444" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <div id="top-bar"
+        class="fixed top-0 left-0 right-0 z-[100] flex items-center px-4 h-12 bg-[#fdfaf5]/95 backdrop-blur-md border-b border-[#eee5d8]/50">
+        <button onclick="openDrawer()"
+            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95"
+            id="btn-hamburger">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5d5444" stroke-width="2.5"
+                stroke-linecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
         </button>
         <div class="flex-1 text-center">
             <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
         </div>
-        <button id="btn-history-float" onclick="openSavedNames()" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
+        <button id="btn-history-float" onclick="openSavedNames()"
+            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
             💾
         </button>
     </div>
@@ -493,8 +506,7 @@
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between px-4 pb-2">
-                <button onclick="goBack()"
-                    class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
+                <button onclick="goBack()" class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
                     <span class="text-lg">←</span> 戻る
                 </button>
                 <button onclick="showUniversalList()"
@@ -734,28 +746,33 @@
         </div>
     </div>
 
-    <!-- 統一フッター: ホーム / さがす / ストック / ビルド -->
+    <!-- 統一フッター: ホーム / さがす / ストック / ビルド / 保存済み -->
     <nav id="bottom-nav" class="hidden">
-        <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-6">
+        <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
             <button onclick="changeScreen('scr-mode')"
-                class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-home">
-                <span class="text-2xl transition-transform duration-200">🏠</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ホーム</span>
+                class="nav-item flex flex-col items-center gap-1 group outline-none" id="nav-home">
+                <span class="text-xl transition-transform duration-200">🏠</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">ホーム</span>
             </button>
-            <button onclick="navSearchAction()"
-                class="nav-item flex flex-col items-center gap-1.5 group outline-none" id="nav-search">
-                <span class="text-2xl transition-transform duration-200">🔍</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">さがす</span>
+            <button onclick="navSearchAction()" class="nav-item flex flex-col items-center gap-1 group outline-none"
+                id="nav-search">
+                <span class="text-xl transition-transform duration-200">🔍</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">さがす</span>
             </button>
-            <button onclick="openStock()" class="nav-item flex flex-col items-center gap-1.5 group outline-none"
+            <button onclick="openStock()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-stock">
-                <span class="text-2xl transition-transform duration-200">📋</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ストック</span>
+                <span class="text-xl transition-transform duration-200">📋</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">ストック</span>
             </button>
-            <button onclick="openBuild()" class="nav-item flex flex-col items-center gap-1.5 group outline-none"
+            <button onclick="openBuild()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-build">
-                <span class="text-2xl transition-transform duration-200">⚒️</span>
-                <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
+                <span class="text-xl transition-transform duration-200">⚒️</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
+            </button>
+            <button onclick="openSavedNames()" class="nav-item flex flex-col items-center gap-1 group outline-none"
+                id="nav-saved">
+                <span class="text-xl transition-transform duration-200">💾</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">保存済み</span>
             </button>
         </div>
     </nav>
@@ -799,8 +816,11 @@
         </div>
     </div>
 
-    <div id="modal-fortune-detail" class="overlay" style="padding-bottom:90px;align-items:flex-start;padding-top:24px;overflow-y:auto" onclick="closeFortuneDetail()">
-        <div class="detail-sheet overflow-y-auto w-[95%] max-w-md" style="padding:28px 24px;max-height:calc(100dvh - 120px);flex-shrink:0" onclick="event.stopPropagation()">
+    <div id="modal-fortune-detail" class="overlay"
+        style="padding-bottom:90px;align-items:flex-start;padding-top:24px;overflow-y:auto"
+        onclick="closeFortuneDetail()">
+        <div class="detail-sheet overflow-y-auto w-[95%] max-w-md"
+            style="padding:28px 24px;max-height:calc(100dvh - 120px);flex-shrink:0" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>
             <h2 id="for-name" class="text-2xl font-black text-center mb-4 text-[#5d5444]"></h2>
             <div id="for-grid" class="flex flex-col w-full relative"></div>

@@ -193,6 +193,8 @@ function updateNavHighlight(screenId) {
         'scr-swipe-universal': 'nav-search',
         'scr-stock': 'nav-stock',
         'scr-build': 'nav-build',
+        'scr-saved': 'nav-saved',
+        'scr-history': 'nav-saved',
     };
 
     const navId = navMap[screenId];
