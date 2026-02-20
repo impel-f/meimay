@@ -450,7 +450,7 @@ function deleteReadingHistory(index) {
             liked = liked.filter(item => item.sessionReading !== targetReading);
 
             if (liked.length < initialCount) {
-                if (typeof saveLiked === 'function') saveLiked();
+                if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
                 console.log('HISTORY: Synced stock deletion', initialCount - liked.length, 'items removed');
             }
         }

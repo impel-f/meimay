@@ -17,7 +17,7 @@ const AdMobConfig = {
 const PremiumManager = {
     KEY: 'meimay_premium',
 
-    isPremium: function() {
+    isPremium: function () {
         try {
             const data = localStorage.getItem(this.KEY);
             if (!data) return false;
@@ -28,7 +28,7 @@ const PremiumManager = {
         }
     },
 
-    activate: function() {
+    activate: function () {
         localStorage.setItem(this.KEY, JSON.stringify({
             active: true,
             activatedAt: new Date().toISOString()
@@ -37,13 +37,13 @@ const PremiumManager = {
         updatePremiumUI();
     },
 
-    deactivate: function() {
+    deactivate: function () {
         localStorage.removeItem(this.KEY);
         showAdBanner();
         updatePremiumUI();
     },
 
-    toggle: function() {
+    toggle: function () {
         if (this.isPremium()) {
             this.deactivate();
         } else {
@@ -137,7 +137,7 @@ function hideAdBanner() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
         try {
             window.Capacitor.Plugins.AdMob.hideBanner();
-        } catch (e) {}
+        } catch (e) { console.warn('ADMOB: hideBanner failed', e); }
     }
 }
 
