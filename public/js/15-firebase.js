@@ -373,6 +373,10 @@ if (firebaseAuth) {
             await MeimaySync.downloadData();
             await MeimaySync.uploadData();
 
+            // ペアリング状態を読み込み & 共有リスニング開始
+            await MeimayPairing.loadPartnerInfo();
+            MeimayShare.listenForShared();
+
             // ログイン画面にいたらホームに戻す
             const loginScreen = document.getElementById('scr-login');
             if (loginScreen && loginScreen.classList.contains('active')) {
@@ -383,6 +387,7 @@ if (firebaseAuth) {
             if (typeof closeDrawer === 'function') closeDrawer();
         } else {
             console.log("FIREBASE: Auth state -> logged out");
+            MeimayShare.stopListening();
         }
     });
 }
@@ -443,8 +448,382 @@ if (firebaseAuth) {
     setTimeout(() => clearInterval(waitForDrawerNav), 10000);
 })();
 
+// ============================================================
+// PAIRING - パートナーペアリング
+// ============================================================
+const MeimayPairing = {
+    partnerId: null,
+    partnerName: null,
+
+    // 6桁招待コード生成
+    generateCode: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user) { showLoginError('先にログインしてください'); return null; }
+
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        try {
+            await firebaseDb.collection('pairingCodes').doc(code).set({
+                uid: user.uid,
+                displayName: user.displayName || user.email?.split('@')[0] || 'ユーザー',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            // 10分後に自動削除
+            setTimeout(async () => {
+                try { await firebaseDb.collection('pairingCodes').doc(code).delete(); } catch (e) { }
+            }, 10 * 60 * 1000);
+
+            console.log(`PAIRING: Code generated: ${code}`);
+            return code;
+        } catch (e) {
+            console.error('PAIRING: Code generation failed', e);
+            return null;
+        }
+    },
+
+    // コードを入力してペアリング
+    enterCode: async function (code) {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user) { return { success: false, error: '先にログインしてください' }; }
+        if (!code || code.length < 4) { return { success: false, error: 'コードを入力してください' }; }
+
+        try {
+            const codeDoc = await firebaseDb.collection('pairingCodes').doc(code.toUpperCase()).get();
+            if (!codeDoc.exists) {
+                return { success: false, error: 'コードが見つかりません（期限切れの可能性があります）' };
+            }
+
+            const data = codeDoc.data();
+            if (data.uid === user.uid) {
+                return { success: false, error: '自分自身のコードです' };
+            }
+
+            const partnerUid = data.uid;
+            const partnerName = data.displayName || 'パートナー';
+
+            // 相互にpartnerIdをセット
+            const batch = firebaseDb.batch();
+            batch.set(firebaseDb.collection('users').doc(user.uid), { partnerId: partnerUid, partnerName: partnerName }, { merge: true });
+            batch.set(firebaseDb.collection('users').doc(partnerUid), {
+                partnerId: user.uid,
+                partnerName: user.displayName || user.email?.split('@')[0] || 'ユーザー'
+            }, { merge: true });
+            await batch.commit();
+
+            // コードを削除
+            await firebaseDb.collection('pairingCodes').doc(code.toUpperCase()).delete();
+
+            this.partnerId = partnerUid;
+            this.partnerName = partnerName;
+            updatePairingUI();
+
+            // 共有リスニング開始
+            MeimayShare.listenForShared();
+
+            console.log(`PAIRING: Paired with ${partnerUid}`);
+            return { success: true, partnerName: partnerName };
+        } catch (e) {
+            console.error('PAIRING: Enter code failed', e);
+            return { success: false, error: 'ペアリングに失敗しました' };
+        }
+    },
+
+    // ペアリング解除
+    unpair: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user || !this.partnerId) return;
+
+        try {
+            const batch = firebaseDb.batch();
+            batch.update(firebaseDb.collection('users').doc(user.uid), {
+                partnerId: firebase.firestore.FieldValue.delete(),
+                partnerName: firebase.firestore.FieldValue.delete()
+            });
+            batch.update(firebaseDb.collection('users').doc(this.partnerId), {
+                partnerId: firebase.firestore.FieldValue.delete(),
+                partnerName: firebase.firestore.FieldValue.delete()
+            });
+            await batch.commit();
+
+            MeimayShare.stopListening();
+            this.partnerId = null;
+            this.partnerName = null;
+            updatePairingUI();
+            console.log('PAIRING: Unpaired');
+        } catch (e) {
+            console.error('PAIRING: Unpair failed', e);
+        }
+    },
+
+    // パートナー情報読み込み
+    loadPartnerInfo: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user) return;
+
+        try {
+            const doc = await firebaseDb.collection('users').doc(user.uid).get();
+            if (doc.exists && doc.data().partnerId) {
+                this.partnerId = doc.data().partnerId;
+                this.partnerName = doc.data().partnerName || 'パートナー';
+                updatePairingUI();
+                console.log(`PAIRING: Loaded partner ${this.partnerName}`);
+            }
+        } catch (e) {
+            console.warn('PAIRING: Load partner info failed', e);
+        }
+    }
+};
+
+// ============================================================
+// SHARE - パートナーとのデータ共有
+// ============================================================
+const MeimayShare = {
+    _likedUnsub: null,
+    _savedUnsub: null,
+
+    // ストック漢字をパートナーに共有
+    shareLiked: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        const partnerId = MeimayPairing.partnerId;
+        if (!user || !partnerId) {
+            showToast('パートナーとペアリングしてください', '⚠️');
+            return;
+        }
+
+        if (typeof liked === 'undefined' || liked.length === 0) {
+            showToast('共有するストックがありません', '⚠️');
+            return;
+        }
+
+        try {
+            await firebaseDb.collection('users').doc(partnerId)
+                .collection('shared').doc('liked').set({
+                    items: liked,
+                    fromUid: user.uid,
+                    fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
+                    sentAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            showToast(`ストック ${liked.length}件 を共有しました！`, '📤');
+            console.log(`SHARE: Sent ${liked.length} liked items`);
+        } catch (e) {
+            console.error('SHARE: Send liked failed', e);
+            showToast('共有に失敗しました', '❌');
+        }
+    },
+
+    // 保存した名前をパートナーに共有
+    shareSavedNames: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        const partnerId = MeimayPairing.partnerId;
+        if (!user || !partnerId) {
+            showToast('パートナーとペアリングしてください', '⚠️');
+            return;
+        }
+
+        try {
+            const saved = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+            if (saved.length === 0) {
+                showToast('共有する保存名前がありません', '⚠️');
+                return;
+            }
+
+            await firebaseDb.collection('users').doc(partnerId)
+                .collection('shared').doc('savedNames').set({
+                    items: saved,
+                    fromUid: user.uid,
+                    fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
+                    sentAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            showToast(`保存名前 ${saved.length}件 を共有しました！`, '📤');
+            console.log(`SHARE: Sent ${saved.length} saved names`);
+        } catch (e) {
+            console.error('SHARE: Send saved names failed', e);
+            showToast('共有に失敗しました', '❌');
+        }
+    },
+
+    // リアルタイム受信リスナー
+    listenForShared: function () {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user) return;
+
+        this.stopListening();
+
+        const sharedRef = firebaseDb.collection('users').doc(user.uid).collection('shared');
+
+        // ストック共有の受信
+        this._likedUnsub = sharedRef.doc('liked').onSnapshot((doc) => {
+            if (doc.exists && doc.data().items) {
+                const data = doc.data();
+                showToast(`${data.fromName}からストックが届きました！`, '📥', () => {
+                    this.mergeSharedLiked(data.items);
+                });
+                console.log(`SHARE: Received ${data.items.length} liked from ${data.fromName}`);
+            }
+        });
+
+        // 保存名前の受信
+        this._savedUnsub = sharedRef.doc('savedNames').onSnapshot((doc) => {
+            if (doc.exists && doc.data().items) {
+                const data = doc.data();
+                showToast(`${data.fromName}から保存名前が届きました！`, '📥', () => {
+                    this.mergeSharedSaved(data.items);
+                });
+                console.log(`SHARE: Received ${data.items.length} saved names from ${data.fromName}`);
+            }
+        });
+
+        console.log('SHARE: Listening for shared data');
+    },
+
+    stopListening: function () {
+        if (this._likedUnsub) { this._likedUnsub(); this._likedUnsub = null; }
+        if (this._savedUnsub) { this._savedUnsub(); this._savedUnsub = null; }
+    },
+
+    // 受信ストックをマージ
+    mergeSharedLiked: function (items) {
+        if (typeof liked === 'undefined') return;
+        let added = 0;
+        items.forEach(item => {
+            const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot && l.sessionReading === item.sessionReading);
+            if (!exists) {
+                liked.push(item);
+                added++;
+            }
+        });
+        if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
+        showToast(`ストック ${added}件 を取り込みました！`, '✅');
+        console.log(`SHARE: Merged ${added} liked items`);
+    },
+
+    // 受信保存名前をマージ
+    mergeSharedSaved: function (items) {
+        try {
+            const local = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+            let added = 0;
+            items.forEach(item => {
+                const exists = local.some(l => l.fullName === item.fullName);
+                if (!exists) {
+                    local.push(item);
+                    added++;
+                }
+            });
+            localStorage.setItem('meimay_saved', JSON.stringify(local));
+            showToast(`保存名前 ${added}件 を取り込みました！`, '✅');
+            console.log(`SHARE: Merged ${added} saved names`);
+        } catch (e) {
+            console.error('SHARE: Merge saved failed', e);
+        }
+    }
+};
+
+// ============================================================
+// PAIRING UI HELPERS
+// ============================================================
+function updatePairingUI() {
+    const pairingNotLinked = document.getElementById('pairing-not-linked');
+    const pairingLinked = document.getElementById('pairing-linked');
+    const partnerNameEl = document.getElementById('pairing-partner-name');
+    const shareButtons = document.querySelectorAll('.partner-share-btn');
+
+    if (MeimayPairing.partnerId) {
+        if (pairingNotLinked) pairingNotLinked.classList.add('hidden');
+        if (pairingLinked) pairingLinked.classList.remove('hidden');
+        if (partnerNameEl) partnerNameEl.textContent = MeimayPairing.partnerName || 'パートナー';
+        shareButtons.forEach(btn => btn.classList.remove('hidden'));
+    } else {
+        if (pairingNotLinked) pairingNotLinked.classList.remove('hidden');
+        if (pairingLinked) pairingLinked.classList.add('hidden');
+        shareButtons.forEach(btn => btn.classList.add('hidden'));
+    }
+}
+
+// 招待コード発行UI
+async function handleGenerateCode() {
+    const codeDisplay = document.getElementById('pairing-code-display');
+    const btn = document.getElementById('btn-generate-code');
+    if (btn) btn.disabled = true;
+
+    const code = await MeimayPairing.generateCode();
+    if (code && codeDisplay) {
+        codeDisplay.textContent = code;
+        codeDisplay.classList.remove('hidden');
+    }
+    if (btn) btn.disabled = false;
+}
+
+// コード入力してペアリング
+async function handleEnterCode() {
+    const input = document.getElementById('pairing-code-input');
+    const code = input?.value?.trim();
+    const result = await MeimayPairing.enterCode(code);
+    if (result.success) {
+        showToast(`${result.partnerName}とペアリングしました！`, '💑');
+        if (input) input.value = '';
+    } else {
+        showToast(result.error, '⚠️');
+    }
+}
+
+// ============================================================
+// TOAST NOTIFICATION
+// ============================================================
+function showToast(message, icon = '📢', onAction = null) {
+    // 既存トーストを削除
+    const existing = document.getElementById('meimay-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'meimay-toast';
+    toast.style.cssText = `
+        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+        background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
+        border-radius: 16px; font-size: 13px; font-weight: 700;
+        z-index: 99999; display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(12px);
+        animation: toastIn 0.3s ease-out;
+        max-width: 90vw;
+    `;
+
+    let html = `<span style="font-size:18px">${icon}</span><span>${message}</span>`;
+    if (onAction) {
+        html += `<button onclick="this.parentElement._onAction?.(); this.parentElement.remove()" style="
+            margin-left:8px; padding:4px 12px; background:rgba(255,255,255,0.2);
+            border:none; color:white; border-radius:8px; font-size:11px; font-weight:900; cursor:pointer;
+        ">取り込む</button>`;
+    }
+    toast.innerHTML = html;
+    if (onAction) toast._onAction = onAction;
+
+    document.body.appendChild(toast);
+
+    // 自動消去
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'toastOut 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, onAction ? 10000 : 4000);
+}
+
+// Toast CSS animations
+(function addToastCSS() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(-20px); } }
+    `;
+    document.head.appendChild(style);
+})();
+
 // Global exports
 window.MeimayAuth = MeimayAuth;
 window.MeimaySync = MeimaySync;
+window.MeimayPairing = MeimayPairing;
+window.MeimayShare = MeimayShare;
+window.handleGenerateCode = handleGenerateCode;
+window.handleEnterCode = handleEnterCode;
+window.showToast = showToast;
 
-console.log("FIREBASE: Module loaded (v21.0)");
+console.log("FIREBASE: Module loaded (v21.0 + pairing)");
