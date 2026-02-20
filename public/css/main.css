@@ -32,7 +32,7 @@ body {
     color: var(--main);
     margin: 0;
     padding: 0;
-    overflow: hidden; 
+    overflow: hidden;
     width: 100vw;
     height: 100vh;
     touch-action: pan-y;
@@ -49,10 +49,11 @@ body {
     display: none;
     flex-direction: column;
     align-items: center;
-    position: absolute; 
+    position: absolute;
     inset: 0;
-    padding: 24px 24px 160px 24px;
-    overflow-y: auto; 
+    padding: 56px 24px 160px 24px;
+    /* top: 48px(top-bar) + 8px余白 */
+    overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     z-index: 10;
@@ -104,8 +105,8 @@ body {
 
 #bottom-nav {
     position: fixed;
-    bottom: 0; 
-    left: 0; 
+    bottom: 0;
+    left: 0;
     right: 0;
     z-index: 10000 !important;
     background: rgba(253, 250, 245, 0.96);
@@ -114,7 +115,7 @@ body {
     border-top: 1px solid rgba(139, 126, 102, 0.15);
     padding: 16px 0;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.03);
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.03);
     pointer-events: all;
 }
 
@@ -261,8 +262,8 @@ body {
     transition: all 0.3s ease;
 }
 
-.premium-input:focus { 
-    border-bottom-color: var(--gold); 
+.premium-input:focus {
+    border-bottom-color: var(--gold);
 }
 
 .premium-input::placeholder {
@@ -304,38 +305,46 @@ body {
 /* 親要素をグリッド化して4列にする */
 #liked-list-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4列に分割 */
-    gap: 8px; /* カード間の隙間 */
+    grid-template-columns: repeat(4, 1fr);
+    /* 4列に分割 */
+    gap: 8px;
+    /* カード間の隙間 */
     padding: 10px;
 }
 
 /* カード自体の調整（サイズを小さく） */
 .stock-card {
     background: white;
-    border-radius: 16px; /* 枠が小さいので丸みも少し抑える */
-    padding: 10px 4px;   /* 上下を少し空けて左右を詰める */
-    margin-bottom: 0;    /* gridのgapを使うので不要 */
+    border-radius: 16px;
+    /* 枠が小さいので丸みも少し抑える */
+    padding: 10px 4px;
+    /* 上下を少し空けて左右を詰める */
+    margin-bottom: 0;
+    /* gridのgapを使うので不要 */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1 / 1.1; /* 綺麗な長方形を維持 */
+    aspect-ratio: 1 / 1.1;
+    /* 綺麗な長方形を維持 */
 }
 
 /* 漢字を4列に収まるサイズへ */
-.stock-kanji { 
-    font-size: 24px !important; /* clampを外してサイズを固定 */
+.stock-kanji {
+    font-size: 24px !important;
+    /* clampを外してサイズを固定 */
 }
+
 .stock-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-md);
 }
 
-.stock-kanji { 
+.stock-kanji {
     font-size: clamp(48px, 12vw, 56px);
-    font-weight: 900; 
-    color: var(--main); 
-    line-height: 1; 
+    font-weight: 900;
+    color: var(--main);
+    line-height: 1;
 }
 
 /* ============================================================
@@ -354,32 +363,32 @@ body {
     border-radius: 24px;
     opacity: 0;
     pointer-events: none;
-    background: rgba(255,255,255,0.85);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(8px);
     letter-spacing: 0.1em;
     transition: opacity 0.1s;
 }
 
-#badge-like { 
-    color: var(--like); 
-    border-color: var(--like); 
-    right: 10%; 
-    transform: rotate(15deg); 
+#badge-like {
+    color: var(--like);
+    border-color: var(--like);
+    right: 10%;
+    transform: rotate(15deg);
 }
 
-#badge-nope { 
-    color: var(--nope); 
-    border-color: var(--nope); 
-    left: 10%; 
-    transform: rotate(-15deg); 
+#badge-nope {
+    color: var(--nope);
+    border-color: var(--nope);
+    left: 10%;
+    transform: rotate(-15deg);
 }
 
-#badge-super { 
-    color: var(--super); 
-    border-color: var(--super); 
-    left: 50%; 
+#badge-super {
+    color: var(--super);
+    border-color: var(--super);
+    left: 50%;
     top: 25%;
-    transform: translateX(-50%); 
+    transform: translateX(-50%);
     font-size: clamp(28px, 7vw, 32px);
 }
 
@@ -387,22 +396,22 @@ body {
    SWIPE ANIMATIONS
    ============================================================ */
 
-.swipe-right { 
-    transform: translate(150vw, 0) rotate(30deg) !important; 
-    opacity: 0 !important; 
-    transition: all 0.5s ease-in !important; 
+.swipe-right {
+    transform: translate(150vw, 0) rotate(30deg) !important;
+    opacity: 0 !important;
+    transition: all 0.5s ease-in !important;
 }
 
-.swipe-left { 
-    transform: translate(-150vw, 0) rotate(-30deg) !important; 
-    opacity: 0 !important; 
-    transition: all 0.5s ease-in !important; 
+.swipe-left {
+    transform: translate(-150vw, 0) rotate(-30deg) !important;
+    opacity: 0 !important;
+    transition: all 0.5s ease-in !important;
 }
 
-.swipe-up { 
-    transform: translate(0, -150vh) scale(0.5) !important; 
-    opacity: 0 !important; 
-    transition: all 0.5s ease-in !important; 
+.swipe-up {
+    transform: translate(0, -150vh) scale(0.5) !important;
+    opacity: 0 !important;
+    transition: all 0.5s ease-in !important;
 }
 
 /* ============================================================
@@ -413,7 +422,7 @@ body {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(93, 84, 68, 0.55); 
+    background: rgba(93, 84, 68, 0.55);
     backdrop-filter: blur(15px);
     z-index: 10001 !important;
     align-items: center;
@@ -421,8 +430,8 @@ body {
     padding: 20px;
 }
 
-.overlay.active { 
-    display: flex !important; 
+.overlay.active {
+    display: flex !important;
 }
 
 .detail-sheet {
@@ -478,8 +487,8 @@ body {
     transition: all 0.3s;
 }
 
-.dot-selector.active { 
-    border-color: var(--gold); 
+.dot-selector.active {
+    border-color: var(--gold);
 }
 
 .dot-selector.active::after {
@@ -538,7 +547,7 @@ body {
 .build-kanji-text {
     font-size: clamp(2rem, 5vw, 2.2rem);
     font-weight: 900;
-    color: var(--accent); 
+    color: var(--accent);
     transition: all 0.2s;
     line-height: 1;
 }
@@ -552,9 +561,9 @@ body {
    FORTUNE DISPLAY
    ============================================================ */
 
-.text-daikichi { 
-    color: var(--alert) !important; 
-    font-weight: 900 !important; 
+.text-daikichi {
+    color: var(--alert) !important;
+    font-weight: 900 !important;
 }
 
 .reading-part-box {
@@ -616,27 +625,28 @@ body {
     letter-spacing: 0.1em;
 }
 
-.no-scrollbar::-webkit-scrollbar { 
-    display: none; 
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
 }
 
-.no-scrollbar { 
-    -ms-overflow-style: none; 
-    scrollbar-width: none; 
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
-.animate-fade-in { 
-    animation: fadeIn 0.5s ease forwards; 
+.animate-fade-in {
+    animation: fadeIn 0.5s ease forwards;
 }
 
 @keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(15px); 
+    from {
+        opacity: 0;
+        transform: translateY(15px);
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -650,12 +660,12 @@ body {
         height: 65px;
         font-size: 1.8rem;
     }
-    
+
     .card {
         padding: 30px;
         border-radius: 60px;
     }
-    
+
     .detail-sheet {
         padding: 40px 30px;
         border-radius: 55px;
@@ -681,16 +691,25 @@ body {
     line-height: 1.5;
 }
 
-h1 { font-size: clamp(1.6rem, 5vw, 2rem); }
-h2 { font-size: clamp(1.3rem, 4.5vw, 1.6rem); }
-h3 { font-size: clamp(1.1rem, 4vw, 1.4rem); }
+h1 {
+    font-size: clamp(1.6rem, 5vw, 2rem);
+}
+
+h2 {
+    font-size: clamp(1.3rem, 4.5vw, 1.6rem);
+}
+
+h3 {
+    font-size: clamp(1.1rem, 4vw, 1.4rem);
+}
 
 /* ボタン文字サイズ */
 button {
     font-size: clamp(13px, 3.5vw, 14px);
 }
 
-.btn-gold, .btn-premium-select {
+.btn-gold,
+.btn-premium-select {
     font-size: clamp(13px, 3.5vw, 14px) !important;
 }
 
@@ -700,6 +719,7 @@ button {
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
+
 .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -721,8 +741,15 @@ button {
 
 /* Pulse animation for new items */
 @keyframes gentlePulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(188, 163, 127, 0); }
-    50% { box-shadow: 0 0 0 6px rgba(188, 163, 127, 0.15); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(188, 163, 127, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px rgba(188, 163, 127, 0.15);
+    }
 }
 
 .pulse-new {
@@ -733,6 +760,7 @@ button {
 .search-tag-btn {
     transition: all 0.2s ease;
 }
+
 .search-tag-btn:active {
     transform: scale(0.95);
 }
@@ -744,8 +772,15 @@ button {
 
 /* Slide-up animation */
 @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .animate-slide-up {
@@ -913,18 +948,18 @@ body.has-ad-banner #universal-footer {
 
 /* h-screen を使った内部コンテナを flexbox で正しく収める
    flex:1 で .screen の padding を除いた残り高さを占有する */
-#scr-free-mode > div,
-#scr-kanji-search > div,
-#scr-akinator > div,
-#scr-saved > div,
-#scr-history > div {
+#scr-free-mode>div,
+#scr-kanji-search>div,
+#scr-akinator>div,
+#scr-saved>div,
+#scr-history>div {
     flex: 1 !important;
     min-height: 0 !important;
     overflow: hidden;
 }
 
 /* scr-swipe-universal ガラスカードが画面内に収まるよう max-height を保証 */
-#scr-swipe-universal > div {
+#scr-swipe-universal>div {
     max-height: 100%;
 }
 
