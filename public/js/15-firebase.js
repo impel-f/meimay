@@ -377,11 +377,8 @@ if (firebaseAuth) {
             await MeimayPairing.loadPartnerInfo();
             MeimayShare.listenForShared();
 
-            // ログイン画面にいたらホームに戻す
-            const loginScreen = document.getElementById('scr-login');
-            if (loginScreen && loginScreen.classList.contains('active')) {
-                if (typeof changeScreen === 'function') changeScreen('scr-mode');
-            }
+            // ログイン画面にいた場合、ホームには戻らずアカウント画面に留まる（ペアリング等ができるように）。
+            // 以前は changeScreen('scr-mode') で戻していたが、コメントアウトもしくは削除。
 
             // ドロワーを閉じる
             if (typeof closeDrawer === 'function') closeDrawer();
