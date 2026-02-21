@@ -10,7 +10,7 @@
 const WizardData = {
     KEY: 'meimay_wizard',
 
-    get: function() {
+    get: function () {
         try {
             const saved = localStorage.getItem(this.KEY);
             return saved ? JSON.parse(saved) : null;
@@ -19,7 +19,7 @@ const WizardData = {
         }
     },
 
-    save: function(data) {
+    save: function (data) {
         try {
             localStorage.setItem(this.KEY, JSON.stringify(data));
         } catch (e) {
@@ -27,7 +27,7 @@ const WizardData = {
         }
     },
 
-    isCompleted: function() {
+    isCompleted: function () {
         const data = this.get();
         return data && data.completed === true;
     }
@@ -48,17 +48,11 @@ function selectWizRole(role) {
     });
 }
 
-function selectWizGender(g) {
-    wizGender = g;
-    gender = g; // Set global
+function selectWizGender(gender) {
+    wizGender = gender;
 
-    // Update UI
-    document.querySelectorAll('.wiz-gender-btn').forEach(btn => {
-        btn.classList.toggle('selected', btn.getAttribute('data-gender') === g);
-    });
-
-    // Auto-advance after short delay
-    setTimeout(() => wizNext(3), 300);
+    // Instead of going to step 4, finish the wizard
+    wizFinish(null);
 }
 
 function wizNext(currentStep) {
@@ -90,7 +84,7 @@ function wizNext(currentStep) {
 }
 
 function updateWizardDots(step) {
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
         const dot = document.getElementById(`wiz-dot-${i}`);
         if (dot) {
             dot.classList.toggle('active', i === step);
@@ -109,7 +103,6 @@ function wizFinish(mode) {
         role: wizRole,
         surname: surname ? surname.value.trim() : '',
         gender: wizGender,
-        preferredMode: mode,
         completedAt: new Date().toISOString()
     };
 
@@ -127,14 +120,11 @@ function wizFinish(mode) {
     // Update drawer profile
     updateDrawerProfile();
 
-    // Navigate to home then start mode
-    changeScreen('scr-mode');
-    updateHomeGreeting();
+    // Set flag so Firebase auth state change knows where to route next
+    window.isWizardLoginFlow = true;
 
-    // Start the selected mode
-    setTimeout(() => {
-        startMode(mode);
-    }, 300);
+    // Navigate to Login/Signup screen instead of Home
+    changeScreen('scr-login');
 }
 
 // ==========================================
@@ -213,6 +203,12 @@ function drawerNavigate(target) {
                 break;
             case 'settings':
                 if (typeof openSettings === 'function') openSettings();
+                break;
+            case 'legal-terms':
+                if (typeof openLegalScreen === 'function') openLegalScreen('terms');
+                break;
+            case 'legal-privacy':
+                if (typeof openLegalScreen === 'function') openLegalScreen('privacy');
                 break;
         }
     }, 200);
@@ -356,7 +352,7 @@ function initDrawerWizard() {
 // Hook into changeScreen to update top bar
 const _originalChangeScreen = window.changeScreen;
 if (_originalChangeScreen) {
-    window.changeScreen = function(id) {
+    window.changeScreen = function (id) {
         _originalChangeScreen(id);
         updateTopBarTitle(id);
 

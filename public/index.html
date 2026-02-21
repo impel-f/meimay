@@ -117,6 +117,15 @@
                 <span class="drawer-icon">⚙️</span>
                 <span>設定</span>
             </button>
+            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
+            <button onclick="drawerNavigate('legal-terms')" class="drawer-menu-item">
+                <span class="drawer-icon">📄</span>
+                <span>利用規約</span>
+            </button>
+            <button onclick="drawerNavigate('legal-privacy')" class="drawer-menu-item">
+                <span class="drawer-icon">🛡️</span>
+                <span>プライバシーポリシー</span>
+            </button>
         </nav>
 
         <!-- Footer -->
@@ -226,55 +235,6 @@
                     </button>
                 </div>
             </div>
-
-            <!-- Step 4: Route -->
-            <div id="wiz-step-4" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">どこから始める？</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">いつでもサイドメニューから変更できます</p>
-
-                <div class="flex flex-col gap-3">
-                    <button onclick="wizFinish('reading')"
-                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">読みから探す</div>
-                                <div class="text-[10px] text-[#a6967a] mt-1">好みの響きから漢字を選ぶ</div>
-                            </div>
-                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">👆</div>
-                        </div>
-                    </button>
-                    <button onclick="wizFinish('nickname')"
-                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">ニックネームから探す</div>
-                                <div class="text-[10px] text-[#a6967a] mt-1">あだ名から名前を広げる</div>
-                            </div>
-                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">💭</div>
-                        </div>
-                    </button>
-                    <button onclick="wizFinish('sound')"
-                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">響きから選ぶ</div>
-                                <div class="text-[10px] text-[#a6967a] mt-1">人気の名前をスワイプ</div>
-                            </div>
-                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">🎵</div>
-                        </div>
-                    </button>
-                    <button onclick="wizFinish('free')"
-                        class="group relative overflow-hidden bg-white hover:bg-[#fffbeb] p-4 rounded-2xl border-2 border-[#ede5d8] text-left transition-all shadow-sm hover:shadow-md hover:border-[#bca37f] active:scale-98">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <div class="text-base text-[#5d5444] font-black">自由に探す</div>
-                                <div class="text-[10px] text-[#a6967a] mt-1">漢字を直感でスワイプ</div>
-                            </div>
-                            <div class="text-xl opacity-40 group-hover:opacity-100 transition-all">✨</div>
-                        </div>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -283,16 +243,11 @@
          ============================================================ -->
     <div id="scr-mode" class="screen">
         <div class="flex flex-col items-center h-full overflow-y-auto pt-14 pb-10 w-full">
-            <h1 class="title-premium mb-1">メイメー</h1>
-            <p class="subtitle-premium" style="margin-bottom: 1.5rem;">Meimay - Baby Name Building</p>
-            <div id="status" class="text-[10px] text-[#bca37f] mb-4 tracking-widest font-bold uppercase">
-                Initializing...</div>
-
-            <!-- Greeting -->
-            <div class="w-full max-w-sm px-6 mb-4" id="home-greeting">
-                <div class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm">
-                    <p class="text-sm font-bold text-[#5d5444]" id="home-greeting-text">こんにちは！</p>
-                    <p class="text-[10px] text-[#a6967a] mt-1">左上のメニューから各機能にアクセスできます</p>
+            <!-- 今日の一字 -->
+            <div class="w-full max-w-sm px-6 mb-4 mt-2" id="todays-kanji-container">
+                <div
+                    class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[100px]">
+                    <p class="text-[10px] font-bold text-[#bca37f] tracking-widest uppercase mb-2">準備中...</p>
                 </div>
             </div>
 
@@ -881,7 +836,7 @@
                 </button>
             </div>
             <!-- 読みストック -->
-            <div id="stock-reading-panel">
+            <div id="reading-stock-panel">
                 <div id="reading-stock-section"></div>
                 <div id="reading-stock-empty" class="text-center py-16 hidden">
                     <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
@@ -1530,6 +1485,40 @@
         </div>
     </div>
 
+    <!-- 規約・プライバシーポリシー画面（独立スクリーン） -->
+    <div id="scr-legal" class="screen">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col pb-6">
+            <h2 class="text-lg font-bold text-center mb-4 text-[#8b7e66]">利用規約・プライバシーポリシー</h2>
+
+            <!-- Toggle Tabs -->
+            <div
+                class="flex bg-white/60 border border-[#ede5d8] rounded-2xl overflow-hidden mb-4 shadow-sm p-1 shrink-0">
+                <button id="legal-tab-terms" onclick="switchLegalTab('terms')"
+                    class="flex-1 py-1.5 rounded-[10px] text-[11px] font-bold bg-[#bca37f] text-white shadow-sm transition-all">
+                    利用規約
+                </button>
+                <button id="legal-tab-privacy" onclick="switchLegalTab('privacy')"
+                    class="flex-1 py-1.5 rounded-[10px] text-[11px] font-bold bg-transparent text-[#bca37f] hover:bg-[#bca37f]/10 transition-all">
+                    プライバシーポリシー
+                </button>
+            </div>
+
+            <!-- Content Area -->
+            <div id="legal-scroll-area"
+                class="flex-1 overflow-y-auto glass-card rounded-[30px] p-6 shadow-sm border border-[#ede5d8]/50 text-xs text-[#5d5444] leading-loose mb-4">
+                <div id="legal-content"></div>
+            </div>
+
+            <!-- Back -->
+            <div class="shrink-0 flex justify-center">
+                <button onclick="changeScreen('scr-mode')"
+                    class="text-sm text-[#bca37f] font-bold border border-[#bca37f] px-10 py-3 rounded-full hover:bg-[#fdfaf5] transition-colors">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 保存済み画面（独立スクリーン） -->
     <div id="scr-saved" class="screen">
         <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1 pt-2">
@@ -1595,6 +1584,9 @@
     <script src="/js/13-drawer-wizard.js?v=21.0"></script>
     <script src="/js/14-admob.js?v=21.0"></script>
     <script src="/js/15-firebase.js?v=21.0"></script>
+    <script src="/js/data/legal-docs.js?v=21.0"></script>
+    <script src="/js/16-legal.js?v=21.0"></script>
+    <script src="/js/17-todays-kanji.js?v=21.0"></script>
 
 </body>
 

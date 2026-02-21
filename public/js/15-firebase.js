@@ -376,8 +376,12 @@ if (firebaseAuth) {
             // パートナー情報の監視を開始（連携されていれば共有リスニングもこの中で開始される）
             MeimayPairing.listenForPartner();
 
-            // ログイン画面にいた場合、ホームには戻らずアカウント画面に留まる（ペアリング等ができるように）。
-            // 以前は changeScreen('scr-mode') で戻していたが、コメントアウトもしくは削除。
+            // もしウィザードからのログインフローならホームへ遷移
+            if (window.isWizardLoginFlow) {
+                window.isWizardLoginFlow = false;
+                if (typeof changeScreen === 'function') changeScreen('scr-mode');
+                if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
+            }
 
             // ドロワーを閉じる
             if (typeof closeDrawer === 'function') closeDrawer();

@@ -62,10 +62,9 @@ window.onload = () => {
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
 
-            // UI更新
-            if (statusEl) {
-                statusEl.innerText = `READY: ${master.length}字 読込完了`;
-                statusEl.style.color = "#81c995";
+            // UI更新 (今日の一字)
+            if (typeof initTodaysKanji === 'function') {
+                initTodaysKanji();
             }
 
             // LocalStorageから復元

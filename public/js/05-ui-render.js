@@ -407,20 +407,23 @@ async function showKanjiDetail(data) {
     const existingStockBtn = modal.querySelector('#btn-stock-toggle-modal');
     if (existingStockBtn) existingStockBtn.remove();
 
+    const stockBtn = document.createElement('button');
+    stockBtn.id = 'btn-stock-toggle-modal';
+
     if (isLiked) {
-        const stockBtn = document.createElement('button');
-        stockBtn.id = 'btn-stock-toggle-modal';
-        stockBtn.className = 'w-full mt-6 mb-6 py-4 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2';
+        stockBtn.className = 'w-full mt-6 mb-4 py-4 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2';
         stockBtn.innerHTML = '<span>🗑️</span> この漢字をストックから外す';
-        stockBtn.onclick = () => toggleStockFromModal(data);
+        stockBtn.onclick = () => toggleStockFromModal(data, true);
+    } else {
+        stockBtn.className = 'w-full mt-6 mb-4 py-4 bg-gradient-to-r from-[#ff9a9e] to-[#fecfef] rounded-2xl text-base font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2';
+        stockBtn.innerHTML = '<span class="text-xl">♥</span> ストックに追加';
+        stockBtn.onclick = () => toggleStockFromModal(data, false);
+    }
 
-        stockBtn.onclick = () => toggleStockFromModal(data);
-
-        // 四字熟語(yojijukugoElの親div)の上に配置
-        const yojiWrapper = yojijukugoEl.parentNode;
-        if (yojiWrapper && yojiWrapper.parentNode) {
-            yojiWrapper.parentNode.insertBefore(stockBtn, yojiWrapper);
-        }
+    // 四字熟語(yojijukugoElの親div)の上に配置
+    const yojiWrapper = yojijukugoEl.parentNode;
+    if (yojiWrapper && yojiWrapper.parentNode) {
+        yojiWrapper.parentNode.insertBefore(stockBtn, yojiWrapper);
     }
 
     // AI生成ボタン
@@ -461,9 +464,9 @@ async function showKanjiDetail(data) {
     `;
 
     // 四字熟語の上に挿入
-    const yojiWrapper = yojijukugoEl.parentNode;
-    if (yojiWrapper && yojiWrapper.parentNode) {
-        yojiWrapper.parentNode.insertBefore(aiSection, yojiWrapper);
+    const yojiWrapperAi = yojijukugoEl.parentNode;
+    if (yojiWrapperAi && yojiWrapperAi.parentNode) {
+        yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
     }
 
     // キャッシュ済みAI結果があれば自動表示
@@ -526,22 +529,51 @@ async function showKanjiDetail(data) {
 /**
  * モーダルからストックを切り替え
  */
-function toggleStockFromModal(data) {
-    if (!confirm(`「${data['漢字']}」をストックから外しますか？`)) return;
+function toggleStockFromModal(data, isCurrentlyLiked) {
+    if (isCurrentlyLiked) {
+        if (!confirm(`「${data['漢字']}」をストックから外しますか？`)) return;
 
-    // ストックから削除
-    const index = liked.findIndex(l => l['漢字'] === data['漢字']);
-    if (index > -1) {
-        liked.splice(index, 1);
+        // ストックから削除
+        const index = liked.findIndex(l => l['漢字'] === data['漢字']);
+        if (index > -1) {
+            liked.splice(index, 1);
+            if (typeof saveLiked === 'function') saveLiked();
+
+            const scrStock = document.getElementById('scr-stock');
+            if (scrStock && scrStock.classList.contains('active') && typeof renderStock === 'function') {
+                renderStock();
+            }
+
+            alert('ストックから外しました');
+            closeKanjiDetail();
+        }
+    } else {
+        // ストックに追加
+        let sessionReading = 'MANUAL';
+        let slot = -1;
+
+        // もしスワイプ画面からの追加なら文脈を引き継ぐ
+        const mainSwipeScreen = document.getElementById('scr-main');
+        if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') && segments && segments[currentPos]) {
+            sessionReading = segments.join('');
+            slot = currentPos;
+        }
+
+        const readingToSave = [data['音'], data['訓'], data['伝統名のり']].filter(x => x).join(',');
+
+        const likeData = {
+            ...data,
+            timestamp: new Date().toISOString(),
+            sessionReading: sessionReading,
+            slot: slot,
+            kanji_reading: readingToSave
+        };
+
+        liked.push(likeData);
         if (typeof saveLiked === 'function') saveLiked();
 
-        alert('ストックから外しました');
+        alert('ストックに追加しました！');
         closeKanjiDetail();
-
-        // 画面更新
-        if (typeof renderStock === 'function' && document.getElementById('scr-stock').style.display !== 'none') {
-            renderStock();
-        }
     }
 }
 
