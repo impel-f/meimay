@@ -54,22 +54,6 @@
 
         <!-- Menu Items -->
         <nav class="flex-1 overflow-y-auto py-4">
-            <button onclick="drawerNavigate('home')" class="drawer-menu-item">
-                <span class="drawer-icon">🏠</span>
-                <span>ホーム</span>
-            </button>
-            <button onclick="drawerNavigate('stock')" class="drawer-menu-item">
-                <span class="drawer-icon">📋</span>
-                <span>ストック</span>
-            </button>
-            <button onclick="drawerNavigate('build')" class="drawer-menu-item">
-                <span class="drawer-icon">⚒️</span>
-                <span>ビルド</span>
-            </button>
-            <button onclick="drawerNavigate('saved')" class="drawer-menu-item">
-                <span class="drawer-icon">💾</span>
-                <span>保存済み</span>
-            </button>
             <button onclick="drawerNavigate('history')" class="drawer-menu-item">
                 <span class="drawer-icon">🕐</span>
                 <span>検索履歴</span>
@@ -132,9 +116,7 @@
         </nav>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v21.0
-        </div>
+        メイメー v22.0
     </aside>
 
     <!-- Top Bar (replaces floating history button) -->
@@ -288,7 +270,12 @@
             <!-- Tools -->
             <div class="w-full max-w-sm px-6 mb-4">
                 <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">ツール</div>
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="openReadingHistory()"
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-lg mb-0.5">🕐</div>
+                        <div class="text-xs text-[#5d5444] font-bold">検索履歴</div>
+                    </button>
                     <button onclick="openKanjiSearch()"
                         class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-lg mb-0.5">🔎</div>
@@ -302,25 +289,6 @@
                 </div>
             </div>
 
-            <!-- Quick Access -->
-            <div class="grid grid-cols-4 gap-2 w-full max-w-sm px-6 mb-6">
-                <button onclick="openStock()"
-                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
-                    📋 ストック
-                </button>
-                <button onclick="openBuild()"
-                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
-                    ⚒️ ビルド
-                </button>
-                <button onclick="openSavedNames()"
-                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
-                    💾 保存済み
-                </button>
-                <button onclick="openReadingHistory()"
-                    class="bg-white/40 hover:bg-white/80 p-2.5 rounded-xl border border-[#ede5d8] text-[10px] font-bold text-[#8b7e66] transition-all shadow-sm">
-                    🕐 履歴
-                </button>
-            </div>
         </div>
     </div>
 
