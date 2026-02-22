@@ -633,7 +633,7 @@ const MeimayShare = {
         }
 
         if (typeof liked === 'undefined' || liked.length === 0) {
-            showToast('共有するストックがありません', '⚠️');
+            if (!silent) showToast('共有するストックがありません', '⚠️');
             return;
         }
 
@@ -666,7 +666,7 @@ const MeimayShare = {
         try {
             const saved = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
             if (saved.length === 0) {
-                showToast('共有する保存名前がありません', '⚠️');
+                if (!silent) showToast('共有する保存名前がありません', '⚠️');
                 return;
             }
 
@@ -892,4 +892,5 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+
  
