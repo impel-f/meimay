@@ -1576,7 +1576,7 @@ function processInheritCandidates(candidates, index, answers, onDone) {
 }
 
 // autoInheritSameReadings は processInheritCandidates に統合済み（互換用空定義）
-function autoInheritSameReadings() {}
+function autoInheritSameReadings() { }
 
 /**
  * スワイプモード開始 (Existing, modified)
@@ -1747,6 +1747,31 @@ function removeReadingFromStock(reading) {
     let stock = getReadingStock();
     stock = stock.filter(s => s.reading !== reading);
     saveReadingStock(stock);
+    console.log("STOCK: Removed reading from stock:", reading);
+}
+
+function removeCompletedReadingFromStock(reading) {
+    if (!confirm(`「${reading}」のストックと、この読みで選んだ全ての漢字を削除しますか？`)) return;
+
+    // 1. liked[] から関連する漢字を削除
+    const beforeCount = liked.length;
+    liked = liked.filter(item => item.sessionReading !== reading);
+    const afterCount = liked.length;
+
+    // 2. pending stock からも削除 (あれば)
+    removeReadingFromStock(reading);
+
+    // 3. 保存
+    if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
+
+    // 4. クラウド同期
+    if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
+
+    console.log(`STOCK: Removed completed reading "${reading}". Liked items: ${beforeCount} -> ${afterCount}`);
+    showToast(`「${reading}」を削除しました`, '🗑️');
+
+    // 5. 表示更新
+    renderReadingStockSection();
 }
 
 /**
@@ -1800,19 +1825,23 @@ function renderReadingStockSection() {
             const segs = readingToSegments[reading];
             const display = segs ? segs.join('/') : reading;
             html += `
-                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all">
+                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all relative">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black text-[#5d5444]">${display}</div>
                         <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="openBuildFromReading('${reading}')"
-                        class="text-xs font-bold text-white bg-[#bca37f] px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95">
-                        ビルドへ →
-                    </button>
-                    <button onclick="addMoreForReading('${reading}')"
-                        class="text-xs font-bold text-[#8b7e66] border border-[#d4c5af] px-3 py-1.5 rounded-full whitespace-nowrap hover:border-[#bca37f] transition-all active:scale-95">
-                        + 追加
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="openBuildFromReading('${reading}')"
+                            class="text-xs font-bold text-white bg-[#bca37f] px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95">
+                            ビルドへ →
+                        </button>
+                        <button onclick="addMoreForReading('${reading}')"
+                            class="text-xs font-bold text-[#8b7e66] border border-[#d4c5af] px-3 py-1.5 rounded-full whitespace-nowrap hover:border-[#bca37f] transition-all active:scale-95">
+                            + 追加
+                        </button>
+                    </div>
+                    <button onclick="removeCompletedReadingFromStock('${reading}')" 
+                        class="absolute -top-2 -right-2 w-6 h-6 bg-white border border-[#eee5d8] text-[#d4c5af] rounded-full flex items-center justify-center text-xs shadow-sm hover:text-[#f28b82] hover:border-[#f28b82] transition-all active:scale-90">✕</button>
                 </div>`;
         });
 
@@ -2062,7 +2091,8 @@ function aiReorderCandidates(candidates) {
 
 function getVowelPattern(reading) {
     if (!reading) return '';
-    const vowelMap = { 'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
+    const vowelMap = {
+        'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
         'か': 'a', 'き': 'i', 'く': 'u', 'け': 'e', 'こ': 'o',
         'さ': 'a', 'し': 'i', 'す': 'u', 'せ': 'e', 'そ': 'o',
         'た': 'a', 'ち': 'i', 'つ': 'u', 'て': 'e', 'と': 'o',
@@ -2497,14 +2527,14 @@ ${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisN
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
     })
-    .then(res => res.json())
-    .then(data => {
-        const aiText = data.text || '';
-        parseAndShowAISoundResults(aiText);
-    })
-    .catch(err => {
-        console.error("AI_SOUND:", err);
-        modal.innerHTML = `
+        .then(res => res.json())
+        .then(data => {
+            const aiText = data.text || '';
+            parseAndShowAISoundResults(aiText);
+        })
+        .catch(err => {
+            console.error("AI_SOUND:", err);
+            modal.innerHTML = `
             <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
                 <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
                 <div class="text-center py-8">
@@ -2514,7 +2544,7 @@ ${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisN
                 </div>
             </div>
         `;
-    });
+        });
 }
 
 function parseAndShowAISoundResults(aiText) {
@@ -2646,24 +2676,24 @@ ${likedKanji}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
     })
-    .then(res => res.json())
-    .then(data => {
-        const lines = (data.text || '').split('\n').filter(l => l.includes('|'));
-        const suggestions = lines.map(l => {
-            const parts = l.split('|').map(p => p.trim());
-            return { kanji: parts[0], strokes: parts[1], desc: parts[2] || '' };
-        }).filter(s => s.kanji && s.kanji.length === 1);
+        .then(res => res.json())
+        .then(data => {
+            const lines = (data.text || '').split('\n').filter(l => l.includes('|'));
+            const suggestions = lines.map(l => {
+                const parts = l.split('|').map(p => p.trim());
+                return { kanji: parts[0], strokes: parts[1], desc: parts[2] || '' };
+            }).filter(s => s.kanji && s.kanji.length === 1);
 
-        modal.innerHTML = `
+            modal.innerHTML = `
             <div class="detail-sheet max-w-md max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
                 <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
                 <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase text-center">AI Kanji Suggestion</div>
                 <p class="text-xs text-[#8b7e66] font-bold mb-3">あなたの好みに近い漢字（${suggestions.length}件）</p>
                 <div class="space-y-2 mb-6">
                     ${suggestions.map(s => {
-                        const inMaster = master.find(m => m['漢字'] === s.kanji);
-                        const isStocked = liked.some(l => l['漢字'] === s.kanji);
-                        return `
+                const inMaster = master.find(m => m['漢字'] === s.kanji);
+                const isStocked = liked.some(l => l['漢字'] === s.kanji);
+                return `
                         <div class="flex items-center gap-3 bg-white rounded-xl border ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'} p-3">
                             <div class="text-3xl font-black text-[#5d5444] w-12 text-center">${s.kanji}</div>
                             <div class="flex-1">
@@ -2675,20 +2705,20 @@ ${likedKanji}
                             </button>
                         </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
                 <button onclick="closeAISoundModal()" class="btn-gold py-4 w-full">閉じる</button>
             </div>
         `;
-    })
-    .catch(err => {
-        modal.innerHTML = `
+        })
+        .catch(err => {
+            modal.innerHTML = `
             <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
                 <button class="modal-close-btn" onclick="closeAISoundModal()">✕</button>
                 <p class="text-sm text-[#f28b82] text-center py-8">AI提案に失敗しました</p>
             </div>
         `;
-    });
+        });
 }
 
 function stockAISuggestion(kanji, btn) {
@@ -2823,25 +2853,25 @@ ${answersText}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
     })
-    .then(res => res.json())
-    .then(data => {
-        const text = data.text || '';
-        const lines = text.split('\n').filter(l => l.includes('|'));
-        const suggestions = lines.map(l => {
-            const parts = l.split('|').map(p => p.trim());
-            return { kanji: parts[0], reading: parts[1] || '', strokes: parts[2] || '', desc: parts[3] || '' };
-        }).filter(s => s.kanji && s.kanji.length === 1);
+        .then(res => res.json())
+        .then(data => {
+            const text = data.text || '';
+            const lines = text.split('\n').filter(l => l.includes('|'));
+            const suggestions = lines.map(l => {
+                const parts = l.split('|').map(p => p.trim());
+                return { kanji: parts[0], reading: parts[1] || '', strokes: parts[2] || '', desc: parts[3] || '' };
+            }).filter(s => s.kanji && s.kanji.length === 1);
 
-        container.innerHTML = `
+            container.innerHTML = `
             <div class="text-center mb-6">
                 <div class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase mb-2">AI Recommendation</div>
                 <p class="text-sm text-[#5d5444] font-bold">あなたにおすすめの漢字</p>
             </div>
             <div class="space-y-2 mb-6">
                 ${suggestions.map(s => {
-                    const inMaster = master.find(m => m['漢字'] === s.kanji);
-                    const isStocked = liked.some(l => l['漢字'] === s.kanji);
-                    return `
+                const inMaster = master.find(m => m['漢字'] === s.kanji);
+                const isStocked = liked.some(l => l['漢字'] === s.kanji);
+                return `
                     <div class="flex items-center gap-3 bg-white rounded-xl border ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'} p-3">
                         <div class="text-3xl font-black text-[#5d5444] w-12 text-center">${s.kanji}</div>
                         <div class="flex-1 min-w-0">
@@ -2854,18 +2884,18 @@ ${answersText}
                         </button>
                     </div>
                     `;
-                }).join('')}
+            }).join('')}
             </div>
             <div class="flex gap-3">
                 <button onclick="akinatorStep=0;akinatorAnswers=[];renderAkinatorStep()" class="flex-1 py-3 border border-[#d4c5af] rounded-2xl text-sm text-[#a6967a] font-bold">もう一度</button>
                 <button onclick="changeScreen('scr-mode')" class="flex-1 py-3 bg-[#bca37f] text-white rounded-2xl font-bold text-sm">ホームへ</button>
             </div>
         `;
-    })
-    .catch(err => {
-        container.innerHTML = `<p class="text-sm text-[#f28b82] text-center py-8">AI提案に失敗しました: ${err.message}</p>
+        })
+        .catch(err => {
+            container.innerHTML = `<p class="text-sm text-[#f28b82] text-center py-8">AI提案に失敗しました: ${err.message}</p>
             <button onclick="changeScreen('scr-mode')" class="btn-gold py-3 w-full mt-4">ホームへ</button>`;
-    });
+        });
 }
 
 window.openKanjiSearch = openKanjiSearch;
