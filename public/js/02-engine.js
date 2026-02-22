@@ -503,9 +503,19 @@ function prevChar() {
  */
 function nextChar() {
     if (currentPos < segments.length - 1) {
-        currentPos++;
-        currentIdx = 0;
-        loadStack();
+        // 次のスロットへ進む前に、引き継ぎ候補のチェックとモーダル表示を行う（04-ui-flow.jsで定義）
+        if (typeof checkInheritForSlot === 'function') {
+            checkInheritForSlot(currentPos + 1, () => {
+                currentPos++;
+                currentIdx = 0;
+                loadStack();
+            });
+        } else {
+            // 定義されていなければそのまま進む
+            currentPos++;
+            currentIdx = 0;
+            loadStack();
+        }
     } else {
         // 最後の文字ならストック確認してビルドへ
         if (liked.length === 0) {

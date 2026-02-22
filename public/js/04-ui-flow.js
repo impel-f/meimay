@@ -1541,37 +1541,71 @@ function showInheritModal(segReading, kanjiList, callback) {
  * 引き継ぎ候補をモーダルで順番に確認し、完了後に onDone(startPos) を呼ぶ
  */
 function processInheritCandidates(candidates, index, answers, onDone) {
-    if (index >= candidates.length) {
-        // 全候補を引き継ぎ
-        doInheritKanji(candidates);
+    // 互換性維持のため残すが、現在は使用しない（checkInheritForSlotに移行）
+    onDone(0);
+}
 
-        // "追加で選ぶ" が最初にあったスロットを開始位置にする
-        const addIdx = answers.findIndex(a => a === 'add');
-        if (addIdx >= 0) {
-            onDone(candidates[addIdx].slot);
-        } else {
-            // 全スキップ → 引き継いでいないスロットから開始
-            const inheritedSlots = new Set(candidates.map(c => c.slot));
-            let startPos = 0;
-            while (inheritedSlots.has(startPos) && startPos < segments.length) {
-                startPos++;
-            }
-            if (startPos >= segments.length) {
-                // 全スロット引き継ぎ済み → ビルド画面へ
-                showToast('全ての漢字を引き継ぎました');
-                if (typeof openBuild === 'function') openBuild();
-            } else {
-                onDone(startPos);
-            }
-        }
+/**
+ * 指定したスロット用の引き継ぎ候補があればモーダルを出す
+ */
+function checkInheritForSlot(slotIdx, onDone) {
+    if (!segments || slotIdx >= segments.length) {
+        onDone();
         return;
     }
 
-    const c = candidates[index];
-    const kanjiList = [...new Set(c.items.map(i => i['漢字']))].join('・');
-    showInheritModal(c.segReading, kanjiList, (action) => {
-        answers.push(action);
-        processInheritCandidates(candidates, index + 1, answers, onDone);
+    const currentReading = segments.join('');
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+
+    // 指定スロットの引き継ぎアイテムを探す
+    const seg = segments[slotIdx];
+    const inheritItems = liked.filter(item => {
+        if (!item.sessionReading || item.sessionReading === currentReading) return false;
+        if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
+        if (item.slot !== slotIdx) return false;
+        const itemSegs = readingToSegments[item.sessionReading];
+        if (!itemSegs) return false;
+        return itemSegs[slotIdx] === seg;
+    });
+
+    // 既に現在セッションで選ばれているか除外
+    const newItems = inheritItems.filter(item =>
+        !liked.some(l =>
+            l['漢字'] === item['漢字'] &&
+            l.slot === slotIdx &&
+            l.sessionReading === currentReading
+        )
+    );
+
+    if (newItems.length === 0) {
+        onDone(); // 候補がなければそのまま次へ
+        return;
+    }
+
+    // 候補があればモーダル表示
+    const kanjiList = [...new Set(newItems.map(i => i['漢字']))].join('・');
+    showInheritModal(seg, kanjiList, (action) => {
+        if (action === 'skip') {
+            // スキップ：そのスロットには何もしない（裏で全自動引き継ぎさせる要望もあったが、ここでは純粋に「追加で選ぶか飛ばすか」の形。全選択済みとして次スロットへ飛ばすのが旧仕様だったが、今回は「そのスロットの漢字を改めて選ばなくていいように自動で継承する」処理を行う方が親切）
+            // 仕様：スキップ＝「もう前の漢字を引き継ぐだけでいいから、この文字のスワイプは飛ばす」
+            doInheritKanji([{ slot: slotIdx, segReading: seg, items: newItems }]);
+
+            // 次のスロットのチェックへ行くが、これが最後のスロットならビルドへ
+            if (slotIdx >= segments.length - 1) {
+                showToast('全ての漢字を引き継ぎました', '✨');
+                if (typeof openBuild === 'function') openBuild();
+            } else {
+                checkInheritForSlot(slotIdx + 1, onDone);
+            }
+        } else {
+            // 追加で選ぶ：既に選んだ分は保持した上で、このスロットのスワイプデッキに入る
+            doInheritKanji([{ slot: slotIdx, segReading: seg, items: newItems }]);
+            // 該当スロットのスワイプを開始
+            currentPos = slotIdx;
+            onDone();
+        }
     });
 }
 
@@ -1592,20 +1626,17 @@ function startSwiping() {
     swipes = 0;
     seen.clear();
 
-    const candidates = findInheritCandidates();
-
-    function beginSwiping(startPos) {
-        currentPos = startPos;
+    function beginSwiping() {
         if (typeof loadStack === 'function') loadStack();
         changeScreen('scr-main');
-        setTimeout(() => showTutorial(), 500);
+        // 初回のみ少し遅れてチュートリアル表示（slot0の場合のみ）
+        if (currentPos === 0) {
+            setTimeout(() => showTutorial(), 500);
+        }
     }
 
-    if (candidates.length > 0) {
-        processInheritCandidates(candidates, 0, [], beginSwiping);
-    } else {
-        beginSwiping(0);
-    }
+    // 最初のスロット（slot 0）の引き継ぎチェックから開始
+    checkInheritForSlot(0, beginSwiping);
 }
 
 /**
