@@ -45,26 +45,49 @@ function initTodaysKanji() {
     }
 
     const todayDate = TodaysKanji.getCurrentDateString();
-    let history = TodaysKanji.getHistory();
-    let todaysRecord = history.find(h => h.date === todayDate);
+    const mmdd = todayDate.substring(5); // 'MM-DD'
 
+    let history = TodaysKanji.getHistory();
     let selectedKanjiData = null;
 
-    if (todaysRecord) {
-        // すでに今日の漢字が決定している場合
-        selectedKanjiData = master.find(k => k['漢字'] === todaysRecord.kanji);
+    // 誕生日データを優先して探す
+    if (typeof TodaysKanjiData !== 'undefined' && TodaysKanjiData[mmdd]) {
+        const plannedKanji = TodaysKanjiData[mmdd].kanji;
+        let matchedKanji = master.find(k => k['漢字'] === plannedKanji);
+        if (matchedKanji) {
+            selectedKanjiData = { ...matchedKanji, _birthdayPerson: TodaysKanjiData[mmdd].person };
+        } else {
+            // マスターにない漢字でも表示できるように仮データを作成
+            selectedKanjiData = {
+                '漢字': plannedKanji,
+                '音': 'ー',
+                '訓': 'ー',
+                '伝統名のり': 'ー',
+                '意味': 'この漢字の詳細は準備中です',
+                _birthdayPerson: TodaysKanjiData[mmdd].person
+            };
+        }
     }
 
-    // データがない、もしくは今日の記録がない場合新しく選出
     if (!selectedKanjiData) {
-        selectedKanjiData = selectRandomGoodKanji(history.map(h => h.kanji));
-        if (selectedKanjiData) {
-            history.push({
-                date: todayDate,
-                kanji: selectedKanjiData['漢字']
-            });
-            TodaysKanji.saveHistory(history);
+        // 誕生日データが無い場合は既存の記録またはランダム選出
+        let todaysRecord = history.find(h => h.date === todayDate);
+        if (todaysRecord) {
+            selectedKanjiData = master.find(k => k['漢字'] === todaysRecord.kanji);
         }
+
+        if (!selectedKanjiData) {
+            selectedKanjiData = selectRandomGoodKanji(history.map(h => h.kanji));
+        }
+    }
+
+    // 履歴に反映
+    if (selectedKanjiData && !history.find(h => h.date === todayDate)) {
+        history.push({
+            date: todayDate,
+            kanji: selectedKanjiData['漢字']
+        });
+        TodaysKanji.saveHistory(history);
     }
 
     if (selectedKanjiData) {
@@ -115,6 +138,11 @@ function renderTodaysKanji(data) {
         meaning = meaning.substring(0, 33) + '...';
     }
 
+    let personHtml = '';
+    if (data._birthdayPerson) {
+        personHtml = `<p class="text-[9px] text-[#a6967a] mt-1.5 bg-white/50 px-2 py-0.5 rounded-full inline-block border border-[#ede5d8]">🎂 ${data._birthdayPerson} のお誕生日</p>`;
+    }
+
     const html = `
         <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1 flex items-center gap-1">
             <span class="text-[14px]">📅</span> 今日の一字
@@ -132,6 +160,7 @@ function renderTodaysKanji(data) {
                 <div class="flex-1 min-w-0">
                     <p class="text-[10px] font-bold text-[#bca37f] mb-0.5 truncate">${readings}</p>
                     <p class="text-xs text-[#5d5444] leading-relaxed line-clamp-2">${meaning}</p>
+                    ${personHtml}
                 </div>
                 <div class="shrink-0 text-[#bca37f] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
                     <span class="text-xl">→</span>

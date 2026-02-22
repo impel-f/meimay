@@ -164,9 +164,18 @@ function changeScreen(id) {
         return;
     }
 
-    // フッターの表示制御（ウィザード以外は常に表示）
+    // フッターの表示制御（ウィザードや入力フローでは非表示にする）
     const footer = document.getElementById('bottom-nav');
-    const wizardScreens = ['scr-wizard'];
+    const wizardScreens = [
+        'scr-wizard',
+        'scr-login',
+        'scr-gender',
+        'scr-vibe',
+        'scr-input-nickname',
+        'scr-input-reading',
+        'scr-diagnosis-input',
+        'scr-akinator'
+    ];
 
     if (footer) {
         if (wizardScreens.includes(id)) {
