@@ -305,7 +305,7 @@ function getAuthErrorMessage(code) {
 
 function updateAuthUI(user) {
     const loginBtn = document.getElementById('drawer-login-btn');
-    const logoutBtn = document.getElementById('drawer-logout-btn');
+    const accountBtn = document.getElementById('drawer-account-btn');
     const avatar = document.getElementById('drawer-avatar');
     const username = document.getElementById('drawer-username');
     const loginForm = document.getElementById('login-form-area');
@@ -324,7 +324,7 @@ function updateAuthUI(user) {
         }[provider] || '匿名';
 
         if (loginBtn) loginBtn.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (accountBtn) accountBtn.classList.remove('hidden');
         if (avatar) avatar.textContent = initial;
         if (username) username.textContent = name;
         if (menuAccount) {
@@ -347,7 +347,7 @@ function updateAuthUI(user) {
     } else {
         // 未ログイン
         if (loginBtn) loginBtn.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (accountBtn) accountBtn.classList.add('hidden');
         if (avatar) avatar.textContent = 'P';
         if (username) username.textContent = 'ゲスト';
         if (menuAccount) {
@@ -892,5 +892,6 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+
 
  
