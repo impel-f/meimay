@@ -308,20 +308,22 @@ function initDrawerWizard() {
     // Check if wizard has been completed
     if (!WizardData.isCompleted()) {
         // Show wizard as first screen
-        // Remove active from scr-mode
-        const modeScreen = document.getElementById('scr-mode');
-        if (modeScreen) modeScreen.classList.remove('active');
-
-        const wizScreen = document.getElementById('scr-wizard');
-        if (wizScreen) wizScreen.classList.add('active');
-
-        // Hide top bar history button during wizard
-        const historyBtn = document.getElementById('btn-history-float');
-        if (historyBtn) historyBtn.classList.add('hidden');
+        if (typeof changeScreen === 'function') {
+            changeScreen('scr-wizard');
+        } else {
+            const modeScreen = document.getElementById('scr-mode');
+            if (modeScreen) modeScreen.classList.remove('active');
+            const wizScreen = document.getElementById('scr-wizard');
+            if (wizScreen) wizScreen.classList.add('active');
+        }
     } else {
         // Wizard completed - show home
-        const modeScreen = document.getElementById('scr-mode');
-        if (modeScreen) modeScreen.classList.add('active');
+        if (typeof changeScreen === 'function') {
+            changeScreen('scr-mode');
+        } else {
+            const modeScreen = document.getElementById('scr-mode');
+            if (modeScreen) modeScreen.classList.add('active');
+        }
 
         updateDrawerProfile();
         updateHomeGreeting();
