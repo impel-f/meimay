@@ -358,7 +358,7 @@ function updateAuthUI(user) {
 
     if (user) {
         // ログイン済み
-        const wizData = WizardData.load() || {};
+        const wizData = WizardData.get() || {};
         const name = wizData.username || user.displayName || user.email?.split('@')[0] || 'ユーザー';
         const initial = name.charAt(0).toUpperCase();
         const provider = user.providerData?.[0]?.providerId || 'anonymous';
@@ -954,6 +954,7 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+
 
 
 
