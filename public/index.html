@@ -111,7 +111,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v23.2
+            メイメー v23.3
         </div>
     </aside>
 
@@ -699,11 +699,16 @@
 
                     <!-- 名前とID領域（画像デザイン準拠） -->
                     <div class="flex flex-col items-center justify-center mb-2">
-                        <h2 class="text-xl font-black text-[#5d5444] tracking-wide cursor-pointer hover:opacity-70 transition-opacity"
-                            id="account-display-name" onclick="MeimayAuth.editNickname()">ユーザー</h2>
-                        <div class="flex items-center text-sm font-bold text-[#a6967a] mt-1 cursor-pointer hover:opacity-70 transition-opacity"
+                        <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
+                            onclick="MeimayAuth.editNickname()">
+                            <h2 class="text-xl font-black text-[#5d5444] tracking-wide" id="account-display-name">ユーザー
+                            </h2>
+                            <span class="text-[#bca37f] text-sm">✎</span>
+                        </div>
+                        <div class="flex items-center text-sm font-bold text-[#a6967a] mt-1 cursor-pointer hover:opacity-70 transition-opacity gap-1.5"
                             onclick="MeimayAuth.editSurname()">
                             <span id="account-surname">@苗字未設定</span>
+                            <span class="text-[#bca37f] text-[10px]">✎</span>
                         </div>
                     </div>
                 </div>
@@ -1562,27 +1567,27 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=23.2"></script>
+    <script src="/js/engine_v2_generator.js?v=23.3"></script>
 
-    <script src="/js/01-core.js?v=23.2"></script>
-    <script src="/js/02-engine.js?v=23.2"></script>
-    <script src="/js/03-fortune.js?v=23.2"></script>
-    <script src="/js/04-ui-flow.js?v=23.2"></script>
-    <script src="/js/05-ui-render.js?v=23.2"></script>
-    <script src="/js/06-ui-physics.js?v=23.2"></script>
-    <script src="/js/07-build.js?v=23.2"></script>
-    <script src="/js/08-origin.js?v=23.2"></script>
-    <script src="/js/09-storage.js?v=23.2"></script>
-    <script src="/js/10-choice.js?v=23.2"></script>
-    <script src="/js/11-settings.js?v=23.2"></script>
-    <script src="/js/12-history.js?v=23.2"></script>
-    <script src="/js/13-drawer-wizard.js?v=23.2"></script>
-    <script src="/js/14-admob.js?v=23.2"></script>
-    <script src="/js/15-firebase.js?v=23.2"></script>
-    <script src="/js/data/legal-docs.js?v=23.2"></script>
-    <script src="/js/16-legal.js?v=23.2"></script>
-    <script src="/js/data/todays-kanji-data.js?v=23.2"></script>
-    <script src="/js/17-todays-kanji.js?v=23.2"></script>
+    <script src="/js/01-core.js?v=23.3"></script>
+    <script src="/js/02-engine.js?v=23.3"></script>
+    <script src="/js/03-fortune.js?v=23.3"></script>
+    <script src="/js/04-ui-flow.js?v=23.3"></script>
+    <script src="/js/05-ui-render.js?v=23.3"></script>
+    <script src="/js/06-ui-physics.js?v=23.3"></script>
+    <script src="/js/07-build.js?v=23.3"></script>
+    <script src="/js/08-origin.js?v=23.3"></script>
+    <script src="/js/09-storage.js?v=23.3"></script>
+    <script src="/js/10-choice.js?v=23.3"></script>
+    <script src="/js/11-settings.js?v=23.3"></script>
+    <script src="/js/12-history.js?v=23.3"></script>
+    <script src="/js/13-drawer-wizard.js?v=23.3"></script>
+    <script src="/js/14-admob.js?v=23.3"></script>
+    <script src="/js/15-firebase.js?v=23.3"></script>
+    <script src="/js/data/legal-docs.js?v=23.3"></script>
+    <script src="/js/16-legal.js?v=23.3"></script>
+    <script src="/js/data/todays-kanji-data.js?v=23.3"></script>
+    <script src="/js/17-todays-kanji.js?v=23.3"></script>
 
 </body>
 
