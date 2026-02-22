@@ -136,6 +136,54 @@ const MeimayAuth = {
 
     getCurrentUser: function () {
         return this.currentUser;
+    },
+
+    // ニックネーム変更
+    editNickname: function () {
+        const wizData = WizardData.get() || {};
+        const oldName = wizData.username || '';
+        const newName = prompt('新しいニックネーム（呼び名）を入力してください', oldName);
+        if (newName === null) return;
+        const trimmed = newName.trim();
+        if (!trimmed) {
+            alert('ニックネームを入力してください');
+            return;
+        }
+        wizData.username = trimmed;
+        WizardData.save(wizData);
+        updateAuthUI(this.currentUser);
+        // ドロワーの名前も更新
+        if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+        // ホーム画面の挨拶も更新
+        if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
+        // クラウド同期
+        if (this.currentUser) MeimaySync.uploadData();
+        showToast('ニックネームを更新しました', '✨');
+    },
+
+    // 名字変更
+    editSurname: function () {
+        const wizData = WizardData.get() || {};
+        const oldSurname = wizData.surname || '';
+        const newSurname = prompt('新しい名字を入力してください', oldSurname);
+        if (newSurname === null) return;
+        const trimmed = newSurname.trim();
+
+        wizData.surname = trimmed;
+        WizardData.save(wizData);
+
+        // グローバル変数も更新
+        if (typeof surnameStr !== 'undefined') {
+            surnameStr = trimmed;
+            const surnameInput = document.getElementById('in-surname');
+            if (surnameInput) surnameInput.value = surnameStr;
+            if (typeof updateSurnameData === 'function') updateSurnameData();
+        }
+
+        updateAuthUI(this.currentUser);
+        // クラウド同期
+        if (this.currentUser) MeimaySync.uploadData();
+        showToast('名字を更新しました', '✨');
     }
 };
 
@@ -389,6 +437,12 @@ function updateAuthUI(user) {
         if (dispName) dispName.textContent = name;
         if (emailEl) emailEl.textContent = user.email || '(メールなし)';
         if (provEl) provEl.textContent = providerLabel;
+
+        const surnameEl = document.getElementById('account-surname');
+        if (surnameEl) {
+            const sn = wizData.surname || '';
+            surnameEl.textContent = sn ? `@${sn}` : '@苗字未設定';
+        }
 
         // メール認証状態の表示
         const verifyArea = document.getElementById('email-verification-area');
@@ -954,6 +1008,7 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+
 
 
 
