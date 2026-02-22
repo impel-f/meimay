@@ -35,12 +35,19 @@ const MeimayAuth = {
     signInWithGoogle: async function () {
         try {
             showLoginLoading(true);
+            showLoginError(''); // エラー表示をクリア
             const provider = new firebase.auth.GoogleAuthProvider();
+            // 一部環境でポップアップがブロックされるため、エラー時はRedirectを誘導するなどの考慮が必要だが
+            // まずはポップアップで試行し、エラー内容をログに出力
             await firebaseAuth.signInWithPopup(provider);
             console.log("FIREBASE: Google sign-in success");
         } catch (e) {
             console.error("FIREBASE: Google sign-in failed", e);
-            showLoginError(getAuthErrorMessage(e.code));
+            let msg = getAuthErrorMessage(e.code);
+            if (e.code === 'auth/popup-blocked') {
+                msg = 'ポップアップがブロックされました。ブラウザの設定を確認してください。';
+            }
+            showLoginError(msg);
         } finally {
             showLoginLoading(false);
         }
@@ -71,11 +78,33 @@ const MeimayAuth = {
         if (pass.length < 6) { showLoginError('パスワードは6文字以上にしてください'); return; }
         try {
             showLoginLoading(true);
-            await firebaseAuth.createUserWithEmailAndPassword(email, pass);
-            console.log("FIREBASE: Email sign-up success");
+            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, pass);
+            const user = userCredential.user;
+
+            // メール認証を送信
+            await user.sendEmailVerification();
+            showToast('確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。', '📧');
+
+            console.log("FIREBASE: Email sign-up success and verification sent");
         } catch (e) {
             console.error("FIREBASE: Email sign-up failed", e);
             showLoginError(getAuthErrorMessage(e.code));
+        } finally {
+            showLoginLoading(false);
+        }
+    },
+
+    // 認証メール再送
+    resendVerificationEmail: async function () {
+        const user = firebaseAuth.currentUser;
+        if (!user) return;
+        try {
+            showLoginLoading(true);
+            await user.sendEmailVerification();
+            showToast('確認メールを再送しました。', '📧');
+        } catch (e) {
+            console.error("FIREBASE: Resend verification failed", e);
+            showToast('再送に失敗しました。しばらく時間を置いてから再度お試しください。', '❌');
         } finally {
             showLoginLoading(false);
         }
@@ -121,6 +150,14 @@ const MeimaySync = {
     uploadData: async function () {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { console.warn("SYNC: No user, skip upload"); return; }
+
+        // メール認証チェック (パスワード認証のみ)
+        const providerId = user.providerData?.[0]?.providerId;
+        if (providerId === 'password' && !user.emailVerified) {
+            console.warn("SYNC: Email not verified, skip upload");
+            return;
+        }
+
         if (this._uploading) return;
         this._uploading = true;
 
@@ -198,6 +235,13 @@ const MeimaySync = {
     downloadData: async function () {
         const user = MeimayAuth.getCurrentUser();
         if (!user) return;
+
+        // メール認証チェック
+        const providerId = user.providerData?.[0]?.providerId;
+        if (providerId === 'password' && !user.emailVerified) {
+            console.warn("SYNC: Email not verified, skip download");
+            return;
+        }
 
         try {
             const userRef = firebaseDb.collection('users').doc(user.uid);
@@ -345,6 +389,17 @@ function updateAuthUI(user) {
         if (dispName) dispName.textContent = name;
         if (emailEl) emailEl.textContent = user.email || '(メールなし)';
         if (provEl) provEl.textContent = providerLabel;
+
+        // メール認証状態の表示
+        const verifyArea = document.getElementById('email-verification-area');
+        if (verifyArea) {
+            const isPasswordUser = provider === 'password';
+            if (isPasswordUser && !user.emailVerified) {
+                verifyArea.classList.remove('hidden');
+            } else {
+                verifyArea.classList.add('hidden');
+            }
+        }
     } else {
         // 未ログイン
         if (loginBtn) loginBtn.classList.remove('hidden');
@@ -370,12 +425,18 @@ if (firebaseAuth) {
 
         if (user) {
             console.log(`FIREBASE: Auth state -> logged in (${user.uid})`);
-            // ログイン直後: クラウドからダウンロード → ローカルとマージ → アップロード
-            await MeimaySync.downloadData();
-            await MeimaySync.uploadData();
 
-            // パートナー情報の監視を開始（連携されていれば共有リスニングもこの中で開始される）
-            MeimayPairing.listenForPartner();
+            // 認証済みかGoogleユーザーのみ同期・監視を開始
+            const isVerified = (user.providerData?.[0]?.providerId !== 'password' || user.emailVerified);
+
+            if (isVerified) {
+                // ログイン直後: クラウドからダウンロード → ローカルとマージ → アップロード
+                await MeimaySync.downloadData();
+                await MeimaySync.uploadData();
+
+                // パートナー情報の監視を開始
+                if (typeof MeimayPairing !== 'undefined') MeimayPairing.listenForPartner();
+            }
 
             // もしウィザードからのログインフローならホームへ遷移
             if (window.isWizardLoginFlow) {
@@ -893,6 +954,7 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+
 
 
 

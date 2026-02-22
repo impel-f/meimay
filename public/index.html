@@ -111,7 +111,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v22.4
+            メイメー v23.0
         </div>
     </aside>
 
@@ -704,6 +704,20 @@
                             <span>@苗字未設定</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- メール未認証警告 (パスワード認証のみ表示) -->
+                <div id="email-verification-area"
+                    class="hidden border-2 border-red-200 bg-red-50 rounded-2xl p-4 mb-4 text-center">
+                    <p class="text-xs text-red-600 font-bold mb-2">メールアドレスが未認証です</p>
+                    <p class="text-[10px] text-red-500 leading-relaxed mb-3">
+                        送信されたメールのリンクをクリックして<br>認証を完了してください。
+                    </p>
+                    <button onclick="MeimayAuth.resendVerificationEmail()"
+                        class="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-full text-[10px] font-bold shadow-sm active:scale-95 transition-all">
+                        認証メールを再送する
+                    </button>
+                    <p class="text-[9px] text-red-400 mt-2 font-medium italic">※認証後は一度リロードしてください</p>
                 </div>
 
                 <div class="bg-white border-2 border-[#eee5d8] rounded-2xl p-4 mb-4">
@@ -1546,27 +1560,27 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=22.4"></script>
+    <script src="/js/engine_v2_generator.js?v=23.0"></script>
 
-    <script src="/js/01-core.js?v=22.4"></script>
-    <script src="/js/02-engine.js?v=22.4"></script>
-    <script src="/js/03-fortune.js?v=22.4"></script>
-    <script src="/js/04-ui-flow.js?v=22.4"></script>
-    <script src="/js/05-ui-render.js?v=22.4"></script>
-    <script src="/js/06-ui-physics.js?v=22.4"></script>
-    <script src="/js/07-build.js?v=22.4"></script>
-    <script src="/js/08-origin.js?v=22.4"></script>
-    <script src="/js/09-storage.js?v=22.4"></script>
-    <script src="/js/10-choice.js?v=22.4"></script>
-    <script src="/js/11-settings.js?v=22.4"></script>
-    <script src="/js/12-history.js?v=22.4"></script>
-    <script src="/js/13-drawer-wizard.js?v=22.4"></script>
-    <script src="/js/14-admob.js?v=22.4"></script>
-    <script src="/js/15-firebase.js?v=22.4"></script>
-    <script src="/js/data/legal-docs.js?v=22.4"></script>
-    <script src="/js/16-legal.js?v=22.4"></script>
-    <script src="/js/data/todays-kanji-data.js?v=22.4"></script>
-    <script src="/js/17-todays-kanji.js?v=22.4"></script>
+    <script src="/js/01-core.js?v=23.0"></script>
+    <script src="/js/02-engine.js?v=23.0"></script>
+    <script src="/js/03-fortune.js?v=23.0"></script>
+    <script src="/js/04-ui-flow.js?v=23.0"></script>
+    <script src="/js/05-ui-render.js?v=23.0"></script>
+    <script src="/js/06-ui-physics.js?v=23.0"></script>
+    <script src="/js/07-build.js?v=23.0"></script>
+    <script src="/js/08-origin.js?v=23.0"></script>
+    <script src="/js/09-storage.js?v=23.0"></script>
+    <script src="/js/10-choice.js?v=23.0"></script>
+    <script src="/js/11-settings.js?v=23.0"></script>
+    <script src="/js/12-history.js?v=23.0"></script>
+    <script src="/js/13-drawer-wizard.js?v=23.0"></script>
+    <script src="/js/14-admob.js?v=23.0"></script>
+    <script src="/js/15-firebase.js?v=23.0"></script>
+    <script src="/js/data/legal-docs.js?v=23.0"></script>
+    <script src="/js/16-legal.js?v=23.0"></script>
+    <script src="/js/data/todays-kanji-data.js?v=23.0"></script>
+    <script src="/js/17-todays-kanji.js?v=23.0"></script>
 
 </body>
 
