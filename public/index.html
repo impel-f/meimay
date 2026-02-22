@@ -111,7 +111,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v22.2
+            メイメー v22.4
         </div>
     </aside>
 
@@ -718,9 +718,21 @@
                 </div>
 
                 <button onclick="MeimaySync.uploadData()"
-                    class="w-full py-3 mb-2 bg-[#bca37f] text-white rounded-2xl font-bold text-sm hover:bg-[#8b7e66] transition-all hidden">
+                    class="w-full py-3 mb-4 bg-[#bca37f] text-white rounded-2xl font-bold text-sm hover:bg-[#8b7e66] transition-all hidden">
                     📤 今すぐクラウドに同期
                 </button>
+
+                <!-- パートナー共有設定 -->
+                <div class="bg-white rounded-2xl p-4 border border-[#ede5d8] shadow-sm mb-4 cursor-pointer hover:bg-[#f8f5ef] active:scale-95 transition-all"
+                    onclick="editShareMode()">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold text-[#8b7e66]">パートナー共有設定</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-[#5d5444]" id="account-share-mode-display">自動連携</span>
+                            <span class="text-[#bca37f] text-lg">›</span>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ペアリングセクション（アコーディオン化） -->
                 <div id="pairing-section-accordion" class="mb-4">
@@ -1534,27 +1546,27 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=22.2"></script>
+    <script src="/js/engine_v2_generator.js?v=22.4"></script>
 
-    <script src="/js/01-core.js?v=22.2"></script>
-    <script src="/js/02-engine.js?v=22.2"></script>
-    <script src="/js/03-fortune.js?v=22.2"></script>
-    <script src="/js/04-ui-flow.js?v=22.2"></script>
-    <script src="/js/05-ui-render.js?v=22.2"></script>
-    <script src="/js/06-ui-physics.js?v=22.2"></script>
-    <script src="/js/07-build.js?v=22.2"></script>
-    <script src="/js/08-origin.js?v=22.2"></script>
-    <script src="/js/09-storage.js?v=22.2"></script>
-    <script src="/js/10-choice.js?v=22.2"></script>
-    <script src="/js/11-settings.js?v=22.2"></script>
-    <script src="/js/12-history.js?v=22.2"></script>
-    <script src="/js/13-drawer-wizard.js?v=22.2"></script>
-    <script src="/js/14-admob.js?v=22.2"></script>
-    <script src="/js/15-firebase.js?v=22.2"></script>
-    <script src="/js/data/legal-docs.js?v=22.2"></script>
-    <script src="/js/16-legal.js?v=22.2"></script>
-    <script src="/js/data/todays-kanji-data.js?v=22.2"></script>
-    <script src="/js/17-todays-kanji.js?v=22.2"></script>
+    <script src="/js/01-core.js?v=22.4"></script>
+    <script src="/js/02-engine.js?v=22.4"></script>
+    <script src="/js/03-fortune.js?v=22.4"></script>
+    <script src="/js/04-ui-flow.js?v=22.4"></script>
+    <script src="/js/05-ui-render.js?v=22.4"></script>
+    <script src="/js/06-ui-physics.js?v=22.4"></script>
+    <script src="/js/07-build.js?v=22.4"></script>
+    <script src="/js/08-origin.js?v=22.4"></script>
+    <script src="/js/09-storage.js?v=22.4"></script>
+    <script src="/js/10-choice.js?v=22.4"></script>
+    <script src="/js/11-settings.js?v=22.4"></script>
+    <script src="/js/12-history.js?v=22.4"></script>
+    <script src="/js/13-drawer-wizard.js?v=22.4"></script>
+    <script src="/js/14-admob.js?v=22.4"></script>
+    <script src="/js/15-firebase.js?v=22.4"></script>
+    <script src="/js/data/legal-docs.js?v=22.4"></script>
+    <script src="/js/16-legal.js?v=22.4"></script>
+    <script src="/js/data/todays-kanji-data.js?v=22.4"></script>
+    <script src="/js/17-todays-kanji.js?v=22.4"></script>
 
 </body>
 
