@@ -168,7 +168,6 @@ function changeScreen(id) {
     const footer = document.getElementById('bottom-nav');
     const wizardScreens = [
         'scr-wizard',
-        'scr-login',
         'scr-gender',
         'scr-vibe',
         'scr-input-nickname',
