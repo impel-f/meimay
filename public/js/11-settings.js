@@ -56,18 +56,6 @@ function renderSettingsScreen() {
 
     container.innerHTML = `
         <div class="settings-screen-content">
-            <!-- 読み方（最上部） -->
-            <div class="settings-item-unified" onclick="editReadingFull()">
-                <div class="item-icon-circle" style="background: #eff6ff;">
-                    <span style="color: #60a5fa;">あ</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">読み方</div>
-                    <div class="item-value-unified">${currentReading}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-            
             <!-- 苗字 -->
             <div class="settings-item-unified" onclick="openSurnameInput()">
                 <div class="item-icon-circle" style="background: #fef2f2;">
@@ -92,82 +80,7 @@ function renderSettingsScreen() {
                 <div class="item-arrow-unified">›</div>
             </div>
             
-            <!-- イメージ -->
-            <div class="settings-item-unified" onclick="editImageTags()">
-                <div class="item-icon-circle" style="background: #fef9c3;">
-                    <span style="color: #facc15;">🎨</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">イメージ</div>
-                    <div class="item-value-unified">${tagCount}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-            
-            <!-- 読みの厳密さ -->
-            <div class="settings-item-unified" onclick="openReadingStyleInput()">
-                <div class="item-icon-circle" style="background: #f5f3ff;">
-                    <span style="color: #a78bfa;">🔍</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">読みの厳密さ</div>
-                    <div class="item-value-unified">${strictText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-            
-            <!-- 姓名判断 -->
-            <div class="settings-item-unified" onclick="editFortunePriority()">
-                <div class="item-icon-circle" style="background: #fef3c7;">
-                    <span style="color: #f59e0b;">⭐</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">姓名判断</div>
-                    <div class="item-value-unified">${fortuneText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-            
             <div class="settings-divider-unified"></div>
-
-            <div class="settings-divider-unified"></div>
-
-            <!-- 夫婦シェア枠 -->
-            <div class="settings-item-unified" onclick="shareData()">
-                <div class="item-icon-circle" style="background: #ecfdf5;">
-                    <span style="color: #34d399;">💑</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">パートナーに手動構成のテキスト共有</div>
-                    <div class="item-value-unified">ストック・保存済みのテキストを送る</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <!-- データを受け取る -->
-            <div class="settings-item-unified" onclick="receiveSharedData()">
-                <div class="item-icon-circle" style="background: #ede9fe;">
-                    <span style="color: #8b5cf6;">📥</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">データを受け取る</div>
-                    <div class="item-value-unified">パートナーのデータを取り込む</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <div class="settings-divider-unified"></div>
-
-            <!-- 履歴・保存済み -->
-            <div class="settings-item-unified" onclick="openHistory()">
-                <div class="item-icon-circle" style="background: #fef3f2;">
-                    <span style="color: #f97316;">📚</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">履歴・保存済み</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
             
             <!-- 使い方ガイド -->
             <div class="settings-item-unified" onclick="showGuide()">
@@ -179,64 +92,11 @@ function renderSettingsScreen() {
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
-            
-            <!-- モードを変える -->
-            <div class="settings-item-unified" onclick="resetToTop()">
-                <div class="item-icon-circle" style="background: #faf5ff;">
-                    <span style="color: #a855f7;">🔄</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">モードを変える</div>
-                    <div class="item-value-unified">最初から選び直す</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
         </div>
     `;
 }
 
-/**
- * 読み方編集（現在の読み表示 + 変更ボタン）
- */
-function editReadingFull() {
-    const currentReading = segments.join('') || '未設定';
 
-    const modal = `
-        <div class="overlay active modal-overlay-dark" id="reading-modal" onclick="if(event.target.id==='reading-modal')closeReadingModal()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
-                <button class="modal-close-x" onclick="closeReadingModal()">✕</button>
-                <h3 class="modal-title">読み方</h3>
-                <div class="modal-body">
-                    <div class="current-reading-display">
-                        <div class="current-reading-label">現在の読み方</div>
-                        <div class="current-reading-value">${currentReading}</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button onclick="changeReading()" class="btn-modal-primary">変更する</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', modal);
-}
-
-function closeReadingModal() {
-    document.getElementById('reading-modal')?.remove();
-}
-
-function changeReading() {
-    closeReadingModal();
-
-    // ビルド画面をリセット
-    if (typeof clearBuildSelection === 'function') {
-        clearBuildSelection();
-    }
-
-    // 読み方入力画面に戻る
-    changeScreen('scr-input-reading');
-}
 
 /**
  * 苗字入力
@@ -273,93 +133,7 @@ function openGenderInput() {
     });
 }
 
-/**
- * 読みの厳密さ
- */
-function openReadingStyleInput() {
-    showChoiceModal('読みの厳密さ', '', [
-        { label: '厳格モード（読み一致）', value: 'strict', desc: '読みが完全一致する漢字のみ表示' },
-        { label: '柔軟モード（ぶった切り）', value: 'flexible', desc: '読みの一部が一致すれば表示' }
-    ], rule, (value) => {
-        rule = value;
-        saveSettings();
-        renderSettingsScreen();
-    });
-}
 
-/**
- * イメージタグ編集
- */
-function editImageTags() {
-    const tagsHTML = IMAGE_TAGS.map(tag => {
-        const isSelected = selectedImageTags.includes(tag.id);
-        return `
-            <button onclick="toggleImageTag('${tag.id}')" 
-                    class="tag-button-unified ${isSelected ? 'selected' : ''}">
-                <span class="tag-icon">${tag.icon}</span>
-                <span class="tag-label">${tag.label}</span>
-                ${isSelected ? '<span class="tag-check">✓</span>' : ''}
-            </button>
-        `;
-    }).join('');
-
-    const tagSelector = `
-        <div class="overlay active modal-overlay-dark" id="tag-selector" onclick="if(event.target.id==='tag-selector')cancelTagSelection()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
-                <button class="modal-close-x" onclick="cancelTagSelection()">✕</button>
-                <h3 class="modal-title">名前のイメージ</h3>
-                <p class="modal-desc">複数選択できます<br>選んだイメージの漢字が優先表示されます</p>
-                <div class="tag-grid">${tagsHTML}</div>
-                <div class="modal-footer">
-                    <button onclick="saveImageTags()" class="btn-modal-primary">完了</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', tagSelector);
-}
-
-function toggleImageTag(tagId) {
-    if (tagId === 'none') {
-        selectedImageTags = ['none'];
-    } else {
-        const index = selectedImageTags.indexOf(tagId);
-        if (index > -1) {
-            selectedImageTags.splice(index, 1);
-        } else {
-            selectedImageTags.push(tagId);
-        }
-        const noneIndex = selectedImageTags.indexOf('none');
-        if (noneIndex > -1) selectedImageTags.splice(noneIndex, 1);
-        if (selectedImageTags.length === 0) selectedImageTags = ['none'];
-    }
-    editImageTags();
-}
-
-function saveImageTags() {
-    document.getElementById('tag-selector')?.remove();
-    saveSettings();
-    renderSettingsScreen();
-}
-
-function cancelTagSelection() {
-    document.getElementById('tag-selector')?.remove();
-}
-
-/**
- * 姓名判断優先度
- */
-function editFortunePriority() {
-    showChoiceModal('姓名判断', '', [
-        { label: '重視する', value: true, desc: '良い運勢の組み合わせを優先表示' },
-        { label: '参考程度', value: false, desc: '運勢も表示するが、並び順に影響しない' }
-    ], prioritizeFortune, (value) => {
-        prioritizeFortune = value;
-        saveSettings();
-        renderSettingsScreen();
-    });
-}
 
 /**
  * パートナー共有設定
@@ -379,16 +153,7 @@ function editShareMode() {
     });
 }
 
-/**
- * モードを変える（TOP画面に戻る）
- */
-function resetToTop() {
-    if (confirm('最初の画面に戻りますか？\n現在のストックは保持されます。')) {
-        // NOPEリストをリセット（最初から選び直す）
-        if (typeof noped !== 'undefined') noped.clear();
-        changeScreen('scr-mode');
-    }
-}
+
 
 /**
  * 使い方ガイド
@@ -541,4 +306,4 @@ function loadSettings() {
 loadSettings();
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");
- 
+
