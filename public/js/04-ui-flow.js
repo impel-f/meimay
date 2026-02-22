@@ -1858,10 +1858,11 @@ function renderReadingStockSection() {
                         <div class="text-lg font-black text-[#5d5444]">${display}</div>
                         <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
                     </div>
-                    <div class="flex gap-1.5">
-                        <div class="text-xs font-bold text-[#bca37f] bg-[#bca37f]/10 px-3 py-1.5 rounded-full whitespace-nowrap">
-                            編集 →
-                        </div>
+                    <div class="flex gap-2">
+                        <button onclick="event.stopPropagation(); closeModal('modal-reading-detail'); openBuildFromReading('${reading}')"
+                            class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
+                            ビルドへ →
+                        </button>
                     </div>
                 </div>`;
         });
