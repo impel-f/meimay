@@ -25,6 +25,7 @@ const IMAGE_TAGS = [
 
 // グローバル変数
 let selectedImageTags = ['none'];
+let shareMode = 'auto'; // 'auto' or 'manual'
 
 /**
  * 設定画面を開く（別画面として）
@@ -129,14 +130,28 @@ function renderSettingsScreen() {
             
             <div class="settings-divider-unified"></div>
 
-            <!-- 夫婦シェア -->
+            <!-- 夫婦シェア設定 -->
+            <div class="settings-item-unified" onclick="editShareMode()">
+                <div class="item-icon-circle" style="background: #f0fdf4;">
+                    <span style="color: #4ade80;">⚙️</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">パートナー共有設定</div>
+                    <div class="item-value-unified">${shareMode === 'manual' ? '都度連携（手動）' : '自動連携'}</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <div class="settings-divider-unified"></div>
+
+            <!-- 夫婦シェア枠 -->
             <div class="settings-item-unified" onclick="shareData()">
                 <div class="item-icon-circle" style="background: #ecfdf5;">
                     <span style="color: #34d399;">💑</span>
                 </div>
                 <div class="item-content-unified">
-                    <div class="item-title-unified">パートナーに共有</div>
-                    <div class="item-value-unified">ストック・保存済みを送る</div>
+                    <div class="item-title-unified">パートナーに手動構成のテキスト共有</div>
+                    <div class="item-value-unified">ストック・保存済みのテキストを送る</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
@@ -359,6 +374,20 @@ function editFortunePriority() {
 }
 
 /**
+ * パートナー共有設定
+ */
+function editShareMode() {
+    showChoiceModal('パートナー共有設定', '', [
+        { label: '自動連携', value: 'auto', desc: 'ストックや保存済みを自動的にパートナーと同期します' },
+        { label: '都度連携（手動）', value: 'manual', desc: 'ストック画面等の「共有」ボタンを押した時だけ同期します' }
+    ], shareMode, (value) => {
+        shareMode = value;
+        saveSettings();
+        renderSettingsScreen();
+    });
+}
+
+/**
  * モードを変える（TOP画面に戻る）
  */
 function resetToTop() {
@@ -488,7 +517,8 @@ function saveSettings() {
         imageTags: selectedImageTags,
         rule: rule,
         prioritizeFortune: prioritizeFortune,
-        segments: segments
+        segments: segments,
+        shareMode: shareMode
     };
     localStorage.setItem('meimay_settings', JSON.stringify(settings));
     console.log('SETTINGS: Saved', settings);
@@ -508,6 +538,7 @@ function loadSettings() {
             rule = settings.rule || 'flexible';
             prioritizeFortune = settings.prioritizeFortune !== undefined ? settings.prioritizeFortune : false;
             segments = settings.segments || [];
+            shareMode = settings.shareMode || 'auto';
             console.log('SETTINGS: Loaded', settings);
         } catch (e) {
             console.error('SETTINGS: Failed to load', e);

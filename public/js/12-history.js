@@ -190,6 +190,18 @@ function renderSavedScreen() {
 
     const saved = getSavedNames();
 
+    const scrSaved = document.getElementById('scr-saved');
+    if (scrSaved) {
+        const shareBtn = scrSaved.querySelector('.partner-share-btn');
+        if (shareBtn) {
+            if (typeof shareMode !== 'undefined' && shareMode === 'manual') {
+                shareBtn.classList.remove('hidden');
+            } else {
+                shareBtn.classList.add('hidden');
+            }
+        }
+    }
+
     container.innerHTML = saved.length > 0 ? saved.map((item, index) => `
         <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm relative">
             ${item.fromPartner ? `<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">👩 パートナーから</div>` : ''}

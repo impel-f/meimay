@@ -18,11 +18,20 @@ function openStock(tab) {
 }
 
 function switchStockTab(tab) {
-    currentStockTab = tab;
     const readingTab = document.getElementById('stock-tab-reading');
     const kanjiTab = document.getElementById('stock-tab-kanji');
-    const readingPanel = document.getElementById('stock-reading-panel');
+    const readingPanel = document.getElementById('reading-stock-panel');
     const kanjiPanel = document.getElementById('stock-kanji-panel');
+    const shareBtn = document.querySelector('.partner-share-btn');
+
+    // シェアボタンの表示制御（都度連携の場合のみ表示、ストックがある場合のみ表示）
+    if (shareBtn) {
+        if (typeof shareMode !== 'undefined' && shareMode === 'manual') {
+            shareBtn.classList.remove('hidden');
+        } else {
+            shareBtn.classList.add('hidden');
+        }
+    }
 
     if (tab === 'reading') {
         if (readingTab) { readingTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]'; }
@@ -30,9 +39,6 @@ function switchStockTab(tab) {
         if (readingPanel) readingPanel.classList.remove('hidden');
         if (kanjiPanel) kanjiPanel.classList.add('hidden');
         if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-        const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-        const emptyMsg = document.getElementById('reading-stock-empty');
-        if (emptyMsg) emptyMsg.classList.toggle('hidden', stock.length > 0);
     } else {
         if (kanjiTab) { kanjiTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]'; }
         if (readingTab) { readingTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]'; }
@@ -1053,7 +1059,7 @@ window.showFortuneTerm = showFortuneTerm;
         const stockScreen = document.getElementById('scr-stock');
         if (!stockScreen || !stockScreen.classList.contains('active')) return;
 
-        const readingPanel = document.getElementById('stock-reading-panel');
+        const readingPanel = document.getElementById('reading-stock-panel');
         const kanjiPanel = document.getElementById('stock-kanji-panel');
         if (!readingPanel || !kanjiPanel) return;
 

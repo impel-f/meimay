@@ -405,6 +405,11 @@ if (firebaseAuth) {
                 const result = originalSaveAll();
                 if (MeimayAuth.getCurrentUser()) {
                     MeimaySync.autoUploadDebounced();
+                    // Auto-share with partner if enabled
+                    if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
+                        MeimayShare.shareLiked();
+                        MeimayShare.shareSavedNames();
+                    }
                 }
                 return result;
             };
@@ -414,6 +419,10 @@ if (firebaseAuth) {
                 const result = originalSaveLiked();
                 if (MeimayAuth.getCurrentUser()) {
                     MeimaySync.autoUploadDebounced();
+                    // Auto-share with partner if enabled
+                    if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
+                        MeimayShare.shareLiked();
+                    }
                 }
                 return result;
             };
