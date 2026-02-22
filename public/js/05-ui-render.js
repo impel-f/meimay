@@ -533,10 +533,16 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
     if (isCurrentlyLiked) {
         if (!confirm(`「${data['漢字']}」をストックから外しますか？`)) return;
 
-        // ストックから削除
-        const index = liked.findIndex(l => l['漢字'] === data['漢字']);
-        if (index > -1) {
-            liked.splice(index, 1);
+        // ストックから削除 (重複登録されている可能性を考慮し、同じ漢字をすべて削除)
+        let removedCount = 0;
+        for (let i = liked.length - 1; i >= 0; i--) {
+            if (liked[i]['漢字'] === data['漢字']) {
+                liked.splice(i, 1);
+                removedCount++;
+            }
+        }
+
+        if (removedCount > 0) {
             if (typeof saveLiked === 'function') saveLiked();
 
             const scrStock = document.getElementById('scr-stock');

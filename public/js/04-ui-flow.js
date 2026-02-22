@@ -1787,15 +1787,23 @@ function removeCompletedReadingFromStock(reading) {
     // 1. pending stock から削除
     removeReadingFromStock(reading);
 
-    // 2. 保存
+    // 2. 完了済みリストからも非表示にするために記録
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    if (!removedList.includes(reading)) {
+        removedList.push(reading);
+        localStorage.setItem('meimay_hidden_readings', JSON.stringify(removedList));
+    }
+
+    // 3. 保存
     if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
 
-    // 3. クラウド同期
+    // 4. クラウド同期
     if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
 
     showToast(`「${reading}」を外しました`, '🗑️');
 
-    // 4. 表示更新
+    // 5. 表示更新
     renderReadingStockSection();
 }
 
@@ -1846,14 +1854,18 @@ function renderReadingStockSection() {
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });
 
-    // liked[] から完了済み読みを導出（FREE/SEARCH/slot<0 を除外）
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+
+    // liked[] から完了済み読みを導出（FREE/SEARCH/slot<0/削除済み を除外）
     const completedReadings = [...new Set(
         liked
             .filter(item =>
                 item.sessionReading &&
                 item.sessionReading !== 'FREE' &&
                 item.sessionReading !== 'SEARCH' &&
-                item.slot >= 0
+                item.slot >= 0 &&
+                !removedList.includes(item.sessionReading)
             )
             .map(item => item.sessionReading)
     )];
