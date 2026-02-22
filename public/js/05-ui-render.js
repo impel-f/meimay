@@ -551,12 +551,19 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
         // ストックに追加
         let sessionReading = 'MANUAL';
         let slot = -1;
+        let sessionSegments = null;
 
         // もしスワイプ画面からの追加なら文脈を引き継ぐ
         const mainSwipeScreen = document.getElementById('scr-main');
         if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') && segments && segments[currentPos]) {
             sessionReading = segments.join('');
             slot = currentPos;
+            sessionSegments = [...segments];
+        } else if (data._birthdayPersonReading) {
+            // 今日の一字など、特定の読みが指定されている場合（v23.12）
+            sessionReading = data._birthdayPersonReading;
+            slot = 0;
+            sessionSegments = [data._birthdayPersonReading];
         }
 
         const readingToSave = [data['音'], data['訓'], data['伝統名のり']].filter(x => x).join(',');
@@ -568,6 +575,9 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
             slot: slot,
             kanji_reading: readingToSave
         };
+        if (sessionSegments) {
+            likeData.sessionSegments = sessionSegments;
+        }
 
         liked.push(likeData);
         if (typeof saveLiked === 'function') saveLiked();

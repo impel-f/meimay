@@ -55,7 +55,11 @@ function initTodaysKanji() {
         const plannedKanji = TodaysKanjiData[mmdd].kanji;
         let matchedKanji = master.find(k => k['漢字'] === plannedKanji);
         if (matchedKanji) {
-            selectedKanjiData = { ...matchedKanji, _birthdayPerson: TodaysKanjiData[mmdd].person };
+            selectedKanjiData = {
+                ...matchedKanji,
+                _birthdayPerson: TodaysKanjiData[mmdd].person,
+                _birthdayPersonReading: TodaysKanjiData[mmdd].reading
+            };
         } else {
             // マスターにない漢字でも表示できるように仮データを作成
             selectedKanjiData = {
@@ -64,7 +68,8 @@ function initTodaysKanji() {
                 '訓': 'ー',
                 '伝統名のり': 'ー',
                 '意味': 'この漢字の詳細は準備中です',
-                _birthdayPerson: TodaysKanjiData[mmdd].person
+                _birthdayPerson: TodaysKanjiData[mmdd].person,
+                _birthdayPersonReading: TodaysKanjiData[mmdd].reading
             };
         }
     }
@@ -140,27 +145,29 @@ function renderTodaysKanji(data) {
 
     let personHtml = '';
     if (data._birthdayPerson) {
-        personHtml = `<p class="text-[9px] text-[#a6967a] mt-1.5 bg-white/50 px-2 py-0.5 rounded-full inline-block border border-[#ede5d8]">🎂 ${data._birthdayPerson} のお誕生日</p>`;
+        // カード全体の最上部に配置し、横幅を広く使って2行折り返しを防ぐ
+        personHtml = `<div class="mb-3"><span class="text-[10px] text-[#8b7e66] font-bold bg-white/90 px-3 py-1 rounded-full border border-[#ede5d8] shadow-sm inline-flex items-center gap-1.5"><span class="text-sm">🎂</span> ${data._birthdayPerson} のお誕生日</span></div>`;
     }
 
     const html = `
         <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1 flex items-center gap-1">
             <span class="text-[14px]">📅</span> 今日の一字
         </div>
-        <button onclick="openTodaysKanjiDetail()" class="w-full text-left group bg-white/80 hover:bg-white p-4 rounded-3xl border border-[#ede5d8] transition-all shadow-sm hover:shadow-md active:scale-[0.98] relative overflow-hidden">
+        <button onclick="openTodaysKanjiDetail()" class="w-full text-left group bg-white/80 hover:bg-white p-4 rounded-3xl border border-[#ede5d8] transition-all shadow-sm hover:shadow-md active:scale-[0.98] relative overflow-hidden flex flex-col">
             <!-- Decorative background element -->
             <div class="absolute -right-6 -bottom-6 text-[100px] text-[#fdfaf5] font-black z-0 opacity-50 select-none pointer-events-none transform rotate-12 group-hover:scale-110 transition-transform duration-500">
                 ${data['漢字']}
             </div>
             
-            <div class="flex items-center gap-4 relative z-10">
+            ${personHtml}
+            
+            <div class="flex items-center gap-4 relative z-10 w-full">
                 <div class="w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br from-[#fdfaf5] to-[#f5f0e6] border border-[#ede5d8] flex items-center justify-center text-4xl font-black text-[#5d5444] shadow-sm">
                     ${data['漢字']}
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="text-[10px] font-bold text-[#bca37f] mb-0.5 truncate">${readings}</p>
                     <p class="text-xs text-[#5d5444] leading-relaxed line-clamp-2">${meaning}</p>
-                    ${personHtml}
                 </div>
                 <div class="shrink-0 text-[#bca37f] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all">
                     <span class="text-xl">→</span>
