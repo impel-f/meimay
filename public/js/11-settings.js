@@ -130,18 +130,6 @@ function renderSettingsScreen() {
             
             <div class="settings-divider-unified"></div>
 
-            <!-- 夫婦シェア設定 -->
-            <div class="settings-item-unified" onclick="editShareMode()">
-                <div class="item-icon-circle" style="background: #f0fdf4;">
-                    <span style="color: #4ade80;">⚙️</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">パートナー共有設定</div>
-                    <div class="item-value-unified">${shareMode === 'manual' ? '都度連携（手動）' : '自動連携'}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
             <div class="settings-divider-unified"></div>
 
             <!-- 夫婦シェア枠 -->
@@ -384,6 +372,10 @@ function editShareMode() {
         shareMode = value;
         saveSettings();
         renderSettingsScreen();
+        const display = document.getElementById('account-share-mode-display');
+        if (display) {
+            display.innerText = value === 'manual' ? '都度連携（手動）' : '自動連携';
+        }
     });
 }
 

@@ -407,8 +407,8 @@ if (firebaseAuth) {
                     MeimaySync.autoUploadDebounced();
                     // Auto-share with partner if enabled
                     if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
-                        MeimayShare.shareLiked();
-                        MeimayShare.shareSavedNames();
+                        MeimayShare.shareLiked(true);
+                        MeimayShare.shareSavedNames(true);
                     }
                 }
                 return result;
@@ -421,7 +421,7 @@ if (firebaseAuth) {
                     MeimaySync.autoUploadDebounced();
                     // Auto-share with partner if enabled
                     if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
-                        MeimayShare.shareLiked();
+                        MeimayShare.shareLiked(true);
                     }
                 }
                 return result;
@@ -624,7 +624,7 @@ const MeimayShare = {
     _savedUnsub: null,
 
     // ストック漢字をパートナーに共有
-    shareLiked: async function () {
+    shareLiked: async function (silent = false) {
         const user = MeimayAuth.getCurrentUser();
         const partnerId = MeimayPairing.partnerId;
         if (!user || !partnerId) {
@@ -645,8 +645,9 @@ const MeimayShare = {
                     fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
                     sentAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            showToast(`ストック ${liked.length}件 を共有しました！`, '📤');
-            console.log(`SHARE: Sent ${liked.length} liked items`);
+            if (!silent) {
+                showToast(`ストック ${liked.length}件 を共有しました！`, '📤');
+            } console.log(`SHARE: Sent ${liked.length} liked items`);
         } catch (e) {
             console.error('SHARE: Send liked failed', e);
             showToast('共有に失敗しました', '❌');
@@ -654,7 +655,7 @@ const MeimayShare = {
     },
 
     // 保存した名前をパートナーに共有
-    shareSavedNames: async function () {
+    shareSavedNames: async function (silent = false) {
         const user = MeimayAuth.getCurrentUser();
         const partnerId = MeimayPairing.partnerId;
         if (!user || !partnerId) {
@@ -676,8 +677,9 @@ const MeimayShare = {
                     fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
                     sentAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            showToast(`保存名前 ${saved.length}件 を共有しました！`, '📤');
-            console.log(`SHARE: Sent ${saved.length} saved names`);
+            if (!silent) {
+                showToast(`保存名前 ${saved.length}件 を共有しました！`, '📤');
+            } console.log(`SHARE: Sent ${saved.length} saved names`);
         } catch (e) {
             console.error('SHARE: Send saved names failed', e);
             showToast('共有に失敗しました', '❌');
