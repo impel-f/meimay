@@ -1751,27 +1751,54 @@ function removeReadingFromStock(reading) {
 }
 
 function removeCompletedReadingFromStock(reading) {
-    if (!confirm(`「${reading}」のストックと、この読みで選んだ全ての漢字を削除しますか？`)) return;
+    if (!confirm(`「${reading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
 
-    // 1. liked[] から関連する漢字を削除
-    const beforeCount = liked.length;
-    liked = liked.filter(item => item.sessionReading !== reading);
-    const afterCount = liked.length;
-
-    // 2. pending stock からも削除 (あれば)
+    // 1. pending stock から削除
     removeReadingFromStock(reading);
 
-    // 3. 保存
+    // 2. 保存
     if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
 
-    // 4. クラウド同期
+    // 3. クラウド同期
     if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
 
-    console.log(`STOCK: Removed completed reading "${reading}". Liked items: ${beforeCount} -> ${afterCount}`);
-    showToast(`「${reading}」を削除しました`, '🗑️');
+    showToast(`「${reading}」を外しました`, '🗑️');
 
-    // 5. 表示更新
+    // 4. 表示更新
     renderReadingStockSection();
+}
+
+function openReadingStockModal(reading) {
+    const modal = document.getElementById('modal-reading-detail');
+    if (!modal) return;
+
+    const titleEl = document.getElementById('reading-detail-title');
+    const infoEl = document.getElementById('reading-detail-info');
+    const btnBuild = document.getElementById('reading-detail-btn-build');
+    const btnAdd = document.getElementById('reading-detail-btn-add');
+    const btnRemove = document.getElementById('reading-detail-btn-remove');
+
+    titleEl.textContent = reading;
+
+    // 漢字数カウント
+    const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
+    infoEl.textContent = `${kanjiCount}個の漢字を選びました`;
+
+    // イベント設定
+    btnBuild.onclick = () => {
+        closeModal('modal-reading-detail');
+        openBuildFromReading(reading);
+    };
+    btnAdd.onclick = () => {
+        closeModal('modal-reading-detail');
+        addMoreForReading(reading);
+    };
+    btnRemove.onclick = () => {
+        closeModal('modal-reading-detail');
+        removeCompletedReadingFromStock(reading);
+    };
+
+    modal.classList.add('active');
 }
 
 /**
@@ -1825,23 +1852,17 @@ function renderReadingStockSection() {
             const segs = readingToSegments[reading];
             const display = segs ? segs.join('/') : reading;
             html += `
-                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all relative">
+                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
+                     onclick="openReadingStockModal('${reading}')">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black text-[#5d5444]">${display}</div>
                         <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="openBuildFromReading('${reading}')"
-                            class="text-xs font-bold text-white bg-[#bca37f] px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95">
-                            ビルドへ →
-                        </button>
-                        <button onclick="addMoreForReading('${reading}')"
-                            class="text-xs font-bold text-[#8b7e66] border border-[#d4c5af] px-3 py-1.5 rounded-full whitespace-nowrap hover:border-[#bca37f] transition-all active:scale-95">
-                            + 追加
-                        </button>
+                    <div class="flex gap-1.5">
+                        <div class="text-xs font-bold text-[#bca37f] bg-[#bca37f]/10 px-3 py-1.5 rounded-full whitespace-nowrap">
+                            編集 →
+                        </div>
                     </div>
-                    <button onclick="removeCompletedReadingFromStock('${reading}')" 
-                        class="absolute -top-2 -right-2 w-6 h-6 bg-white border border-[#eee5d8] text-[#d4c5af] rounded-full flex items-center justify-center text-xs shadow-sm hover:text-[#f28b82] hover:border-[#f28b82] transition-all active:scale-90">✕</button>
                 </div>`;
         });
 

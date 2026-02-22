@@ -111,7 +111,7 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v23.6
+            メイメー v23.7
         </div>
     </aside>
 
@@ -1572,28 +1572,60 @@
         </div>
     </div>
 
-    <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=23.6"></script>
+    <!-- 読みストック操作モーダル -->
+    <div id="modal-reading-detail" class="overlay">
+        <div class="detail-sheet text-center" onclick="event.stopPropagation()">
+            <div class="text-4xl mb-3">📋</div>
+            <h3 class="text-xl font-black text-[#5d5444] mb-1" id="reading-detail-title"></h3>
+            <p class="text-[10px] text-[#a6967a] mb-6 font-bold tracking-widest uppercase" id="reading-detail-info"></p>
 
-    <script src="/js/01-core.js?v=23.6"></script>
-    <script src="/js/02-engine.js?v=23.6"></script>
-    <script src="/js/03-fortune.js?v=23.6"></script>
-    <script src="/js/04-ui-flow.js?v=23.6"></script>
-    <script src="/js/05-ui-render.js?v=23.6"></script>
-    <script src="/js/06-ui-physics.js?v=23.6"></script>
-    <script src="/js/07-build.js?v=23.6"></script>
-    <script src="/js/08-origin.js?v=23.6"></script>
-    <script src="/js/09-storage.js?v=23.6"></script>
-    <script src="/js/10-choice.js?v=23.6"></script>
-    <script src="/js/11-settings.js?v=23.6"></script>
-    <script src="/js/12-history.js?v=23.6"></script>
-    <script src="/js/13-drawer-wizard.js?v=23.6"></script>
-    <script src="/js/14-admob.js?v=23.6"></script>
-    <script src="/js/15-firebase.js?v=23.6"></script>
-    <script src="/js/data/legal-docs.js?v=23.6"></script>
-    <script src="/js/16-legal.js?v=23.6"></script>
-    <script src="/js/data/todays-kanji-data.js?v=23.6"></script>
-    <script src="/js/17-todays-kanji.js?v=23.6"></script>
+            <div class="space-y-3">
+                <button id="reading-detail-btn-build"
+                    class="w-full py-4 rounded-2xl bg-[#bca37f] text-white font-black text-sm shadow-md active:scale-95 transition-all">
+                    ビルド画面へ →
+                </button>
+                <button id="reading-detail-btn-add"
+                    class="w-full py-4 rounded-2xl border-2 border-[#bca37f] text-[#bca37f] font-black text-sm active:scale-95 transition-all">
+                    漢字を追加する
+                </button>
+
+                <div class="h-px bg-[#eee5d8] mx-4 my-2"></div>
+
+                <button id="reading-detail-btn-remove"
+                    class="w-full py-3 text-red-400 font-bold text-xs hover:text-red-500 active:scale-95 transition-all">
+                    この読みをストックから外す
+                </button>
+
+                <button onclick="closeModal('modal-reading-detail')"
+                    class="w-full py-3 text-[#a6967a] font-bold text-xs active:scale-95 transition-all">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module 02.5: Generator -->
+    <script src="/js/engine_v2_generator.js?v=23.7"></script>
+
+    <script src="/js/01-core.js?v=23.7"></script>
+    <script src="/js/02-engine.js?v=23.7"></script>
+    <script src="/js/03-fortune.js?v=23.7"></script>
+    <script src="/js/04-ui-flow.js?v=23.7"></script>
+    <script src="/js/05-ui-render.js?v=23.7"></script>
+    <script src="/js/06-ui-physics.js?v=23.7"></script>
+    <script src="/js/07-build.js?v=23.7"></script>
+    <script src="/js/08-origin.js?v=23.7"></script>
+    <script src="/js/09-storage.js?v=23.7"></script>
+    <script src="/js/10-choice.js?v=23.7"></script>
+    <script src="/js/11-settings.js?v=23.7"></script>
+    <script src="/js/12-history.js?v=23.7"></script>
+    <script src="/js/13-drawer-wizard.js?v=23.7"></script>
+    <script src="/js/14-admob.js?v=23.7"></script>
+    <script src="/js/15-firebase.js?v=23.7"></script>
+    <script src="/js/data/legal-docs.js?v=23.7"></script>
+    <script src="/js/16-legal.js?v=23.7"></script>
+    <script src="/js/data/todays-kanji-data.js?v=23.7"></script>
+    <script src="/js/17-todays-kanji.js?v=23.7"></script>
 
 </body>
 
