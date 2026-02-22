@@ -892,3 +892,4 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+ 

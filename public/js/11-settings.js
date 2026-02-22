@@ -541,3 +541,4 @@ function loadSettings() {
 loadSettings();
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");
+ 
