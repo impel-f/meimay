@@ -8,49 +8,49 @@
  */
 function setupPhysics(card, data) {
     let sx, sy, dx = 0, dy = 0, active = false;
-    
+
     const bL = document.getElementById('badge-like');
     const bN = document.getElementById('badge-nope');
     const bS = document.getElementById('badge-super');
 
     // ポインターダウン
-    card.onpointerdown = e => { 
+    card.onpointerdown = e => {
         // 既にスワイプ中の場合は無視
-        if (card.classList.contains('swipe-right') || 
-            card.classList.contains('swipe-left') || 
+        if (card.classList.contains('swipe-right') ||
+            card.classList.contains('swipe-left') ||
             card.classList.contains('swipe-up')) {
             return;
         }
 
-        sx = e.clientX; 
-        sy = e.clientY; 
-        dx = 0; 
+        sx = e.clientX;
+        sy = e.clientY;
+        dx = 0;
         dy = 0;
-        
-        card.setPointerCapture(e.pointerId); 
-        active = true; 
+
+        card.setPointerCapture(e.pointerId);
+        active = true;
 
         // GPU加速を有効化
-        card.style.willChange = 'transform, opacity'; 
-        card.style.transition = 'none'; 
+        card.style.willChange = 'transform, opacity';
+        card.style.transition = 'none';
         card.style.zIndex = '1000';
     };
 
     // ポインター移動
     card.onpointermove = e => {
         if (!active) return;
-        
-        dx = e.clientX - sx; 
+
+        dx = e.clientX - sx;
         dy = e.clientY - sy;
-        
+
         // フレーム最適化
         requestAnimationFrame(() => {
             if (!active) return;
-            
+
             // translate3dでハードウェアアクセラレーション
             const rotate = dx / 15;
             card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
-            
+
             // バッジ表示（閾値調整済み）
             if (bS) {
                 bS.style.opacity = dy < -40 ? Math.min(0.9, (Math.abs(dy) - 40) / 80) : 0;
@@ -67,18 +67,18 @@ function setupPhysics(card, data) {
     // ポインターアップ
     card.onpointerup = e => {
         if (!active) return;
-        
+
         active = false;
         card.releasePointerCapture(e.pointerId);
         card.style.willChange = 'auto'; // GPU解放
 
         // バッジを非表示
-        [bL, bN, bS].forEach(b => { 
-            if (b) b.style.opacity = 0; 
+        [bL, bN, bS].forEach(b => {
+            if (b) b.style.opacity = 0;
         });
 
         const threshold = 100; // スワイプ判定閾値
-        
+
         // タップ判定（ほぼ動いていない）
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
             if (typeof showDetailByData === 'function') {
@@ -129,15 +129,15 @@ function manual(dir) {
  * スワイプの実行
  */
 function executeSwipe(dir, data) {
-    const el = document.querySelectorAll('.card')[0]; 
+    const el = document.querySelectorAll('.card')[0];
     if (!el) {
         console.error("PHYSICS: Card element not found");
         return;
     }
-    
+
     // 既にスワイプ中なら無視（重複防止）
-    if (el.classList.contains('swipe-right') || 
-        el.classList.contains('swipe-left') || 
+    if (el.classList.contains('swipe-right') ||
+        el.classList.contains('swipe-left') ||
         el.classList.contains('swipe-up')) {
         return;
     }
@@ -145,7 +145,7 @@ function executeSwipe(dir, data) {
     // アニメーション開始
     el.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
     el.classList.add('swipe-' + dir);
-    
+
     // NOPEの場合はnopedセットに追加
     if (data && dir === 'left') {
         noped.add(data['漢字']);
@@ -154,17 +154,18 @@ function executeSwipe(dir, data) {
     // データ処理（左以外はストック）
     if (data && dir !== 'left') {
         // 重複チェック：既に同じ漢字が同じスロットに存在しないか確認
-        const isDuplicate = liked.some(item => 
+        const isDuplicate = liked.some(item =>
             item.slot === currentPos && item['漢字'] === data['漢字']
         );
-        
+
         if (!isDuplicate) {
             seen.add(data['漢字']);
-            liked.push({ 
-                ...data, 
-                slot: currentPos, 
+            liked.push({
+                ...data,
+                slot: currentPos,
                 isSuper: (dir === 'up'),
-                sessionReading: segments.join('') // どの読み方で選ばれたかを記録
+                sessionReading: segments.join(''), // どの読み方で選ばれたかを記録
+                sessionSegments: [...segments] // セグメント配列も記録してグループ化バグを防ぐ
             });
         } else {
             console.log(`PHYSICS: Duplicate detected - ${data['漢字']} already in slot ${currentPos}`);
@@ -175,18 +176,18 @@ function executeSwipe(dir, data) {
     setTimeout(() => {
         el.remove();
         currentIdx++;
-        
+
         if (typeof render === 'function') {
             render();
         }
-        
+
         if (typeof handleSwipeProgress === 'function') {
             handleSwipeProgress();
         }
-        
+
         swipes++;
         console.log(`PHYSICS: Swipe ${dir} executed (total: ${swipes})`);
-        
+
         // 10枚スワイプ（nopeも含む）でポップアップ
         if (swipes > 0 && swipes % 10 === 0) {
             console.log(`CHOICE: ${swipes} swipes reached for slot ${currentPos}`);

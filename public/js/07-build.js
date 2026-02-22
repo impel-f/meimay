@@ -85,8 +85,21 @@ function renderStock() {
     // セグメント読みでグループ化（重複排除）
     const segGroups = {}; // { "はる": [item, ...], "と": [...] }
     validItems.forEach(item => {
-        const itemSegs = readingToSegments[item.sessionReading] || segments;
-        const seg = (itemSegs && itemSegs[item.slot]) || '不明';
+        // 1. 自身のデータに保存されたセグメント配列を優先 (v23.9以降)
+        // 2. 履歴からのセグメント参照
+        // 3. 古いデータで履歴にもない場合は、完全な読み方(sessionReading)をフォールバックとして使用。
+        // （現在のグローバル segments へのフォールバックは他人の読みに混入するバグの元なので廃止）
+
+        let segRaw = '不明';
+        if (item.sessionSegments && item.sessionSegments[item.slot]) {
+            segRaw = item.sessionSegments[item.slot];
+        } else if (readingToSegments[item.sessionReading] && readingToSegments[item.sessionReading][item.slot]) {
+            segRaw = readingToSegments[item.sessionReading][item.slot];
+        } else if (item.sessionReading) {
+            segRaw = item.sessionReading; // 読み全体をそのままグループ名にする
+        }
+
+        const seg = segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
         const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
