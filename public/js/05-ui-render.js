@@ -585,21 +585,21 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
         }
     } else {
         // ストックに追加
-        let sessionReading = 'MANUAL';
+        let sessionReading = 'FREE'; // 全てフリーストックとして扱う
         let slot = -1;
         let sessionSegments = null;
 
-        // もしスワイプ画面からの追加なら文脈を引き継ぐ
+        // もしスワイプ画面からの追加なら文脈を引き継ぐ（表示中スロットに結びつける）
         const mainSwipeScreen = document.getElementById('scr-main');
         if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') && segments && segments[currentPos]) {
-            sessionReading = segments.join('');
-            slot = currentPos;
-            sessionSegments = [...segments];
-        } else if (data._birthdayPersonReading) {
-            // 今日の一字など、特定の読みが指定されている場合（v23.12）
-            sessionReading = data._birthdayPersonReading;
-            slot = 0;
-            sessionSegments = [data._birthdayPersonReading];
+            if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+                sessionReading = 'FREE';
+                slot = -1;
+            } else {
+                sessionReading = segments.join('');
+                slot = currentPos;
+                sessionSegments = [...segments];
+            }
         }
 
         const readingToSave = [data['音'], data['訓'], data['伝統名のり']].filter(x => x).join(',');
