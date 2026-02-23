@@ -528,6 +528,7 @@ function prevChar() {
     if (currentPos > 0) {
         currentPos--;
         currentIdx = 0; // スタックの先頭に戻す
+        swipes = 0;
         loadStack();
     } else {
         // 1文字目の場合は前の画面（イメージ選択）に戻る
@@ -549,12 +550,14 @@ function nextChar() {
             checkInheritForSlot(currentPos + 1, () => {
                 currentPos++;
                 currentIdx = 0;
+                swipes = 0;
                 loadStack();
             });
         } else {
             // 定義されていなければそのまま進む
             currentPos++;
             currentIdx = 0;
+            swipes = 0;
             loadStack();
         }
     } else {
