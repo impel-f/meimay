@@ -65,7 +65,8 @@ function calcSegments() {
             // 辞書に存在する読みかチェック（柔軟モードなら全ての分割を許容、ただし辞書にあるものを優先するロジックは別途必要だが、ここでは簡易的にチェックパス）
             // 修正：柔軟モードでもデタラメな分割は避けたいが、辞書にない読み（人名特有の読みなど）がある場合は許可する必要がある。
             // ここでは簡易的に「厳格モードなら辞書チェック必須」「柔軟モードならチェックなし」とする
-            if (rule === 'lax' || (validReadingsSet && validReadingsSet.has(part))) {
+            const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
+            if (rule === 'lax' || (validReadingsSet && (validReadingsSet.has(part) || validReadingsSet.has(partSeion)))) {
                 currentPath.push(part);
                 findPath(remaining.slice(i), currentPath);
                 currentPath.pop();
@@ -332,8 +333,8 @@ function loadStack() {
             k.readingTier = 99;
         }
 
-        // ルールに応じてフィルタ
-        return rule === 'strict' ? k.priority === 1 : k.priority > 0;
+        // ルールに応じてフィルタ (priority=1:完全一致, priority=2:連濁一致)
+        return rule === 'strict' ? (k.priority === 1 || k.priority === 2) : k.priority > 0;
     });
 
     // 々（同じ字点）の対応

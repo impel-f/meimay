@@ -2362,8 +2362,9 @@ function executeKanjiSearch() {
                 .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
                 .filter(x => x);
 
-            // 読みは完全一致のみ
-            const matchReading = allReadings.some(r => r === query);
+            // 読みは完全一致または連濁一致
+            const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
+            const matchReading = allReadings.some(r => r === query || r === querySeion);
             const matchKanji = k['漢字'] === rawQuery;
             const matchMeaning = rawQuery.length >= 2 && (k['意味'] || '').includes(rawQuery);
 
