@@ -221,7 +221,8 @@ function initSoundMode() {
         }
     });
 
-    // AI分析ボタンをスワイプ画面に追加
+    // AI分析ボタンをスワイプ画面に追加 (一旦非表示)
+    /*
     setTimeout(() => {
         const swipeScreen = document.getElementById('scr-swipe-universal');
         if (swipeScreen && !document.getElementById('btn-ai-sound-analyze')) {
@@ -233,6 +234,7 @@ function initSoundMode() {
             swipeScreen.appendChild(aiBtn);
         }
     }, 500);
+    */
 }
 
 /**
