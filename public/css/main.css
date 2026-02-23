@@ -315,24 +315,19 @@ body {
 /* カード自体の調整（サイズを小さく） */
 .stock-card {
     background: white;
-    border-radius: 16px;
-    /* 枠が小さいので丸みも少し抑える */
-    padding: 10px 4px;
-    /* 上下を少し空けて左右を詰める */
+    border-radius: 12px;
+    padding: 8px 2px;
     margin-bottom: 0;
-    /* gridのgapを使うので不要 */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 1 / 1.1;
-    /* 綺麗な長方形を維持 */
+    aspect-ratio: 1 / 1.15;
 }
 
 /* 漢字を4列に収まるサイズへ */
 .stock-kanji {
     font-size: 24px !important;
-    /* clampを外してサイズを固定 */
 }
 
 .stock-card:hover {
@@ -341,7 +336,7 @@ body {
 }
 
 .stock-kanji {
-    font-size: clamp(48px, 12vw, 56px);
+    font-size: clamp(32px, 8vw, 44px);
     font-weight: 900;
     color: var(--main);
     line-height: 1;

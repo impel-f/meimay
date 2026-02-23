@@ -18,6 +18,8 @@ function openStock(tab) {
 }
 
 function switchStockTab(tab) {
+    currentStockTab = tab;
+
     const readingTab = document.getElementById('stock-tab-reading');
     const kanjiTab = document.getElementById('stock-tab-kanji');
     const readingPanel = document.getElementById('reading-stock-panel');
@@ -137,9 +139,9 @@ function renderStock() {
         `;
         container.appendChild(segHeader);
 
-        // 4列グリッド
+        // 5列グリッド
         const cardsGrid = document.createElement('div');
-        cardsGrid.className = 'col-span-4 grid grid-cols-4 gap-3 mb-4';
+        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4';
 
         items.forEach(item => {
             const card = document.createElement('div');
