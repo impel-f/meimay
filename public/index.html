@@ -1515,8 +1515,8 @@
     </div>
 
     <!-- 規約・プライバシーポリシー画面（独立スクリーン） -->
-    <div id="scr-legal" class="screen">
-        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col pb-6">
+    <div id="scr-legal" class="screen !overflow-hidden">
+        <div class="w-full max-w-md pt-4 px-4 mx-auto h-full flex flex-col">
             <h2 class="text-lg font-bold text-center mb-4 text-[#8b7e66]">利用規約・プライバシーポリシー</h2>
 
             <!-- Toggle Tabs -->
@@ -1534,17 +1534,11 @@
 
             <!-- Content Area -->
             <div id="legal-scroll-area"
-                class="flex-1 overflow-y-auto glass-card rounded-[30px] p-6 shadow-sm border border-[#ede5d8]/50 text-xs text-[#5d5444] leading-loose mb-4">
+                class="flex-1 overflow-y-auto glass-card rounded-[30px] p-6 shadow-sm border border-[#ede5d8]/50 text-xs text-[#5d5444] leading-loose mb-2">
                 <div id="legal-content"></div>
             </div>
 
-            <!-- Back -->
-            <div class="shrink-0 flex justify-center">
-                <button onclick="changeScreen('scr-mode')"
-                    class="text-sm text-[#bca37f] font-bold border border-[#bca37f] px-10 py-3 rounded-full hover:bg-[#fdfaf5] transition-colors">
-                    閉じる
-                </button>
-            </div>
+            <div class="h-4 shrink-0"></div>
         </div>
     </div>
 
