@@ -114,8 +114,15 @@ function renderStock() {
         }
     });
 
+    // グループキーをソート（FREEは必ず最後に配置する）
+    const sortedKeys = Object.keys(segGroups).sort((a, b) => {
+        if (a === 'FREE') return 1;
+        if (b === 'FREE') return -1;
+        return a.localeCompare(b, 'ja');
+    });
+
     // セグメントごとに表示
-    Object.keys(segGroups).forEach(seg => {
+    sortedKeys.forEach(seg => {
         const items = segGroups[seg];
         if (items.length === 0) return;
 
@@ -126,14 +133,19 @@ function renderStock() {
             return 0;
         });
 
+        // 識別用の安全なID生成
+        const safeId = seg === 'FREE' ? 'FREE' : encodeURIComponent(seg).replace(/%/g, '');
+
         // セグメントヘッダー
         const segHeader = document.createElement('div');
-        segHeader.className = 'col-span-5 mt-6 mb-3';
+        segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
+        segHeader.onclick = () => toggleReadingGroup(safeId);
         segHeader.innerHTML = `
             <div class="flex items-center gap-3">
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af]">
-                    ${seg}（${items.length}個）
+                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
+                    <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
+                    ${seg === 'FREE' ? 'フリストック（読みなし）' : seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}個)</span>
                 </span>
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
             </div>
@@ -142,7 +154,8 @@ function renderStock() {
 
         // 5列グリッド
         const cardsGrid = document.createElement('div');
-        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4';
+        cardsGrid.id = `group-${safeId}`;
+        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
 
         items.forEach(item => {
             const card = document.createElement('div');
