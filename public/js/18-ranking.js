@@ -106,17 +106,23 @@ function showRankingKanjiDetail(kanjiStr) {
 function toggleRankingStock(kanjiStr, btn) {
     if (typeof liked === 'undefined') return;
 
-    const idx = liked.findIndex(l => l['漢字'] === kanjiStr);
+    let isStocked = liked.some(l => l['漢字'] === kanjiStr);
     const card = btn.closest('.bg-white');
 
-    if (idx > -1) {
+    if (isStocked) {
         // 解除
-        liked.splice(idx, 1);
+        let removedCount = 0;
+        for (let i = liked.length - 1; i >= 0; i--) {
+            if (liked[i]['漢字'] === kanjiStr) {
+                liked.splice(i, 1);
+                removedCount++;
+            }
+        }
         btn.innerText = 'ストック';
         btn.className = 'w-[72px] py-2.5 bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm rounded-xl text-xs font-bold transition-all active:scale-95';
         card.classList.remove('border-[#bca37f]', 'ring-1', 'bg-[#fffbeb]/30', 'ring-[#bca37f]/20');
         card.classList.add('border-[#ede5d8]');
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
             MeimayStats.recordKanjiUnlike(kanjiStr);
         }
     } else {

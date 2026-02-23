@@ -161,10 +161,18 @@ function renderStock() {
             const card = document.createElement('div');
             card.className = 'stock-card relative';
             card.onclick = () => showDetailByData(item);
+
+            // Hydrate values from master if missing (due to data minification)
+            let displayStrokes = item['画数'];
+            if (displayStrokes === undefined && typeof master !== 'undefined') {
+                const m = master.find(k => k['漢字'] === item['漢字']);
+                if (m) displayStrokes = m['画数'];
+            }
+
             card.innerHTML = `
                 ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
-                <div class="stock-strokes">${item['画数'] !== undefined ? item['画数'] : '？'}画</div>
+                <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '？'}画</div>
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
             `;
             cardsGrid.appendChild(card);

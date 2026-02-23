@@ -2452,14 +2452,22 @@ function executeKanjiSearch() {
 }
 
 function toggleSearchStock(k, btn) {
-    const idx = liked.findIndex(l => l['漢字'] === k['漢字']);
-    if (idx > -1) {
-        liked.splice(idx, 1);
+    let isStocked = liked.some(l => l['漢字'] === k['漢字']);
+    if (isStocked) {
+        let removedCount = 0;
+        for (let i = liked.length - 1; i >= 0; i--) {
+            if (liked[i]['漢字'] === k['漢字']) {
+                liked.splice(i, 1);
+                removedCount++;
+            }
+        }
         btn.classList.remove('bg-[#fffbeb]', 'border-[#bca37f]');
         btn.classList.add('border-[#eee5d8]');
         const heart = btn.querySelector('.absolute');
         if (heart) heart.remove();
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) MeimayStats.recordKanjiUnlike(k['漢字']);
+        if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+            MeimayStats.recordKanjiUnlike(k['漢字']);
+        }
     } else {
         const item = { ...k, slot: -1, sessionReading: 'SEARCH' };
         liked.push(item);
@@ -2741,14 +2749,22 @@ ${likedKanji}
 }
 
 function stockAISuggestion(kanji, btn) {
-    const idx = liked.findIndex(l => l['漢字'] === kanji);
-    if (idx > -1) {
-        liked.splice(idx, 1);
+    let isStocked = liked.some(l => l['漢字'] === kanji);
+    if (isStocked) {
+        let removedCount = 0;
+        for (let i = liked.length - 1; i >= 0; i--) {
+            if (liked[i]['漢字'] === kanji) {
+                liked.splice(i, 1);
+                removedCount++;
+            }
+        }
         btn.innerText = 'ストック';
         btn.className = 'px-3 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold transition-all active:scale-95';
         btn.closest('.flex').classList.remove('border-[#bca37f]', 'bg-[#fffbeb]');
         btn.closest('.flex').classList.add('border-[#eee5d8]');
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) MeimayStats.recordKanjiUnlike(kanji);
+        if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+            MeimayStats.recordKanjiUnlike(kanji);
+        }
     } else {
         const found = master.find(m => m['漢字'] === kanji);
         if (found) {
