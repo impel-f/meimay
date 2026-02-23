@@ -466,7 +466,11 @@ async function showKanjiDetail(data) {
     let currentReadingForAI = null;
     const mainSwipeScreen = document.getElementById('scr-main');
     const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
-    if (inActiveSwipe && segments && segments[currentPos]) {
+
+    if (inActiveSwipe && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+        // フリーモード時の名乗り漏れを防ぐ
+        currentReadingForAI = null;
+    } else if (inActiveSwipe && segments && segments[currentPos]) {
         currentReadingForAI = segments[currentPos];
     } else if (typeof liked !== 'undefined') {
         const likedItem = liked.find(l =>

@@ -92,8 +92,41 @@ function renderSettingsScreen() {
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
+
+            <div class="settings-divider-unified" style="margin-top:40px;"></div>
+            <div class="text-[10px] text-center font-black text-[#f28b82] tracking-widest opacity-60 uppercase mb-4">Danger Zone</div>
+            
+            <button onclick="deleteAllStocks()" class="w-full py-4 bg-white border border-[#f28b82] text-[#f28b82] rounded-2xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm shadow-sm">
+                <span>🗑️</span> ストックをすべて消去する
+            </button>
+            <p class="text-[10px] text-[#a6967a] mt-2 text-center px-4 leading-relaxed">
+                ※これまでに「いいね」した全ての漢字ストックが削除されます。（保存済みの名前一覧は消去されません）
+            </p>
         </div>
     `;
+}
+
+/**
+ * 全ストック削除
+ */
+function deleteAllStocks() {
+    if (!confirm('本当にすべてのストック（いいねした漢字）を削除しますか？\nこの操作は元に戻せません。')) {
+        return;
+    }
+    if (!confirm('【最終確認】\nストック一覧が完全に空になります。よろしいですか？')) {
+        return;
+    }
+
+    // ストックを空にする
+    liked.splice(0, liked.length);
+
+    // 全体ランキング等の統計からもマイナスする処理は、数が多いと通信負荷がかかるため一旦省略
+    // ローカルストレージに保存＆Firebase同期
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+
+    alert('すべてのストックを消去しました。');
 }
 
 

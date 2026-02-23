@@ -198,13 +198,26 @@ async function generateKanjiDetail(kanji, currentReading) {
     const readings = [kanjiData['音'], kanjiData['訓'], kanjiData['伝統名のり']]
         .filter(x => clean(x)).join('、');
 
-    // 名乗り理由プロンプト
-    let nanoriPrompt = '';
-    if (currentReading) {
-        nanoriPrompt = `\n\n【名乗り読み「${currentReading}」の理由】\nこの漢字「${kanji}」が名前で「${currentReading}」と読まれる理由や由来を、歴史的背景や音韻の変化を含めて説明してください。なぜ日本人はこの漢字をそう読むのか、わかりやすく教えてください。`;
-    }
+    let baseText = '';
+    let readingText = '';
 
-    const prompt = `
+    try {
+        // 1. 基本解説のキャッシュ確認 (Firestore)
+        let hasCache = false;
+        if (typeof firebaseDb !== 'undefined') {
+            const docRef = firebaseDb.collection('kanji_ai_explanations').doc(kanji);
+            const doc = await docRef.get();
+            if (doc.exists) {
+                baseText = doc.data().text;
+                hasCache = true;
+                console.log(`ORIGIN: Loaded base explanation for ${kanji} from cache`);
+            }
+        }
+
+        // 2. キャッシュがない場合は生成
+        if (!hasCache) {
+            console.log(`ORIGIN: Generating new base explanation for ${kanji}`);
+            const prompt = `
 漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
 
 【基本情報】
@@ -221,7 +234,7 @@ async function generateKanjiDetail(kanji, currentReading) {
 
 【代表的な熟語】
 この漢字を使った有名な熟語を3〜5個、読みと意味付きで。
-必ず実在する熟語のみを挙げてください。${nanoriPrompt}
+必ず実在する熟語のみを挙げてください。
 
 【絶対に守るルール】
 ・架空の人物や存在しない著名人を絶対に書かないでください。
@@ -229,32 +242,65 @@ async function generateKanjiDetail(kanji, currentReading) {
 ・熟語も実在するものだけを挙げてください。不確かなら書かないでください。
 `.trim();
 
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const response = await fetch('/api/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
-        const response = await fetch('/api/gemini', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt }),
-            signal: controller.signal
-        });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            const data = await response.json();
+            baseText = data.text || '';
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-            throw new Error(`API Error: ${response.status}`);
+            // Firestoreにキャッシュ保存
+            if (typeof firebaseDb !== 'undefined' && baseText) {
+                await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
+                    text: baseText,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                console.log(`ORIGIN: Saved base explanation for ${kanji} to cache`);
+            }
         }
 
-        const data = await response.json();
-        const aiText = data.text || '';
+        // 3. 名乗りの理由が必要な場合のみ追加で生成
+        if (currentReading && currentReading !== 'FREE' && currentReading !== 'SEARCH' && currentReading !== 'RANKING' && currentReading !== 'SHARED') {
+            resultEl.innerHTML = `
+                <div class="flex items-center justify-center py-6">
+                    <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
+                    <span class="text-sm text-[#7a6f5a]">「${currentReading}」という読みの由来を分析中...</span>
+                </div>
+            `;
 
-        // キャッシュに保存
-        if (typeof StorageBox !== 'undefined' && StorageBox.saveKanjiAiCache) {
-            StorageBox.saveKanjiAiCache(kanji, aiText);
+            console.log(`ORIGIN: Generating specific reading reason for ${kanji} (${currentReading})`);
+            const nanoriPrompt = `
+漢字「${kanji}」が名前で「${currentReading}」と読まれる理由や由来を、歴史的背景や音韻の変化を含めて説明してください。なぜ日本人はこの漢字をそう読むのか、100文字以内でわかりやすく教えてください。
+
+【回答形式】
+絶対に【名乗りの理由】（または【名乗り〇〇の理由】）という見出しをつけずに、本文だけを出力してください。
+架空の理由は絶対に作成しないでください。
+`.trim();
+            const controller2 = new AbortController();
+            const timeoutId2 = setTimeout(() => controller2.abort(), 30000);
+            const response2 = await fetch('/api/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: nanoriPrompt }),
+                signal: controller2.signal
+            });
+            clearTimeout(timeoutId2);
+
+            if (response2.ok) {
+                const data2 = await response2.json();
+                readingText = `\n【名乗り「${currentReading}」の理由】\n` + (data2.text || '').trim();
+            }
         }
 
-        renderKanjiDetailText(resultEl, aiText, kanji, currentReading);
+        const combinedText = baseText + (readingText ? `\n\n${readingText}` : '');
+        renderKanjiDetailText(resultEl, combinedText);
 
     } catch (err) {
         console.error("AI_KANJI_DETAIL:", err);
@@ -263,18 +309,13 @@ async function generateKanjiDetail(kanji, currentReading) {
                 AI生成に失敗しました: ${err.message}
             </div>
         `;
-        const regenBtnErr = document.createElement('button');
-        regenBtnErr.className = 'w-full mt-2 py-3 border border-[#eee5d8] bg-[#fdfaf5] text-[#a6967a] font-bold rounded-2xl text-xs active:scale-95 transition-transform flex items-center justify-center gap-2';
-        regenBtnErr.innerHTML = '🔄 再出力する';
-        regenBtnErr.onclick = () => generateKanjiDetail(kanji, currentReading);
-        resultEl.appendChild(regenBtnErr);
     }
 }
 
 /**
  * AI漢字詳細テキストをパースしてDOMに描画し、再出力ボタンを追加する
  */
-function renderKanjiDetailText(resultEl, aiText, kanji, currentReading) {
+function renderKanjiDetailText(resultEl, aiText) {
     const sections = aiText.split(/【(.+?)】/).filter(s => s.trim());
     let html = '';
 
@@ -284,8 +325,8 @@ function renderKanjiDetailText(resultEl, aiText, kanji, currentReading) {
         if (title && content) {
             const icon = title.includes('成り立ち') ? '📜'
                 : title.includes('意味') ? '💡'
-                : title.includes('熟語') ? '📖'
-                : title.includes('名乗り') ? '🎓' : '✨';
+                    : title.includes('熟語') ? '📖'
+                        : title.includes('名乗り') ? '🎓' : '✨';
             html += `
                 <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
                     <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
@@ -307,13 +348,6 @@ function renderKanjiDetailText(resultEl, aiText, kanji, currentReading) {
     }
 
     resultEl.innerHTML = html;
-
-    // 再出力ボタン
-    const regenBtn = document.createElement('button');
-    regenBtn.className = 'w-full mt-2 py-3 border border-[#eee5d8] bg-[#fdfaf5] text-[#a6967a] font-bold rounded-2xl text-xs active:scale-95 transition-transform flex items-center justify-center gap-2';
-    regenBtn.innerHTML = '🔄 再出力する';
-    regenBtn.onclick = () => generateKanjiDetail(kanji, currentReading);
-    resultEl.appendChild(regenBtn);
 }
 
 // Global Exports

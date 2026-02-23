@@ -33,6 +33,7 @@ module.exports = async (req, res) => {
 
         // Prefer 1.5-flash, then 1.5-pro, then pro
         const preferred = [
+          'gemini-1.5-flash-8b',
           'gemini-1.5-flash',
           'gemini-1.5-pro',
           'gemini-pro',
