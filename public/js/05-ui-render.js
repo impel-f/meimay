@@ -573,7 +573,7 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
         }
 
         if (removedCount > 0) {
-            if (typeof saveLiked === 'function') saveLiked();
+            if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 
             const scrStock = document.getElementById('scr-stock');
             if (scrStock && scrStock.classList.contains('active') && typeof renderStock === 'function') {
@@ -616,7 +616,7 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
         }
 
         liked.push(likeData);
-        if (typeof saveLiked === 'function') saveLiked();
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 
         alert('ストックに追加しました！');
         closeKanjiDetail();

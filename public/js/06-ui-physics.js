@@ -189,6 +189,11 @@ function executeSwipe(dir, data) {
         }
     }
 
+    // 即座に保存＆クラウド同期トリガー
+    if ((dir === 'right' || dir === 'up') && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+
     // DOM削除と次のカード表示
     setTimeout(() => {
         el.remove();

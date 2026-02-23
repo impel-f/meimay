@@ -336,8 +336,8 @@ function deleteStockGroup(reading) {
     liked = liked.filter(item => item.sessionReading !== reading);
 
     if (liked.length < initialCount) {
-        if (typeof saveLiked === 'function') {
-            saveLiked();
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+            StorageBox.saveLiked();
         }
 
         // 履歴からも同期削除（ユーザー要望）

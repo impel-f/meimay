@@ -299,26 +299,21 @@ const MeimaySync = {
             const likedDoc = await dataCol.doc('liked').get();
             if (likedDoc.exists && likedDoc.data().items) {
                 const cloudLiked = likedDoc.data().items;
-                if (cloudLiked.length > 0) {
-                    // マージ: クラウドデータをベースに、ローカルにしかないものを追加
-                    const localOnly = liked.filter(local =>
-                        !cloudLiked.some(cloud => cloud['漢字'] === local['漢字'] && cloud.slot === local.slot && cloud.sessionReading === local.sessionReading)
-                    );
-                    liked = [...cloudLiked, ...localOnly];
-                    if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-                    console.log(`SYNC: Merged liked (cloud:${cloudLiked.length} + localOnly:${localOnly.length})`);
-                }
+                // Deletions would be reverted if we append localOnly, so we must strictly sync to Cloud state
+                liked = [...cloudLiked];
+                if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
+                console.log(`SYNC: Downloaded liked (${cloudLiked.length} items)`);
             }
 
             // 保存済み名前
             const savedDoc = await dataCol.doc('savedNames').get();
             if (savedDoc.exists && savedDoc.data().items) {
                 const cloudSaved = savedDoc.data().items;
-                const localSaved = (() => { try { return JSON.parse(localStorage.getItem('meimay_saved') || '[]'); } catch { return []; } })();
-                const localOnly = localSaved.filter(l => !cloudSaved.some(c => c.fullName === l.fullName));
-                const merged = [...cloudSaved, ...localOnly];
-                localStorage.setItem('meimay_saved', JSON.stringify(merged));
-                console.log(`SYNC: Merged savedNames (cloud:${cloudSaved.length} + localOnly:${localOnly.length})`);
+                localStorage.setItem('meimay_saved', JSON.stringify(cloudSaved));
+                if (typeof getSavedNames !== 'undefined') {
+                    savedNames = cloudSaved;
+                }
+                console.log(`SYNC: Downloaded savedNames (${cloudSaved.length} items)`);
             }
 
             // 読み方履歴
@@ -1014,4 +1009,4 @@ console.log("FIREBASE: Module loaded (v21.0 + pairing)");
 
 
 
- 
+
