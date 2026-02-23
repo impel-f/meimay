@@ -226,8 +226,17 @@ const MeimaySync = {
 
             // ストック漢字
             if (typeof liked !== 'undefined') {
+                // クラウド容量節約のため、マスター辞書にある静的データ（画数、意味等）は省いて必要最小限のみ送信
+                const minifiedLiked = liked.map(l => ({
+                    '漢字': l['漢字'],
+                    slot: l.slot,
+                    sessionReading: l.sessionReading,
+                    sessionSegments: l.sessionSegments || null,
+                    isSuper: l.isSuper || false
+                }));
+
                 await userRef.collection('data').doc('liked').set({
-                    items: liked,
+                    items: minifiedLiked,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
             }
@@ -236,8 +245,21 @@ const MeimaySync = {
             try {
                 const savedData = localStorage.getItem('meimay_saved');
                 if (savedData) {
+                    const rawSaved = JSON.parse(savedData);
+                    // クラウド容量節約のため、詳細なfortuneや完全な漢字マスターデータは省く
+                    const minifiedSaved = rawSaved.map(s => ({
+                        fullName: s.fullName,
+                        reading: s.reading || '',
+                        givenName: s.givenName || '',
+                        // 復元のために漢字の文字の配列だけ送る
+                        combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
+                        message: s.message || '',
+                        savedAt: s.savedAt || s.timestamp,
+                        fromPartner: s.fromPartner || false
+                    }));
+
                     await userRef.collection('data').doc('savedNames').set({
-                        items: JSON.parse(savedData),
+                        items: minifiedSaved,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
@@ -300,7 +322,22 @@ const MeimaySync = {
             if (likedDoc.exists && likedDoc.data().items) {
                 const cloudLiked = likedDoc.data().items;
                 // Deletions would be reverted if we append localOnly, so we must strictly sync to Cloud state
-                liked = [...cloudLiked];
+                // ダウンロード時に最小限のデータからマスター辞書を参照して完全なオブジェクトに復元
+                const restoredLiked = cloudLiked.map(cloudItem => {
+                    const fullKanji = typeof master !== 'undefined' ? master.find(m => m['漢字'] === cloudItem['漢字']) : null;
+                    if (fullKanji) {
+                        return {
+                            ...fullKanji,
+                            slot: cloudItem.slot !== undefined ? cloudItem.slot : -1,
+                            sessionReading: cloudItem.sessionReading || 'UNKNOWN',
+                            sessionSegments: cloudItem.sessionSegments || null,
+                            isSuper: cloudItem.isSuper || false
+                        };
+                    }
+                    return cloudItem;
+                });
+
+                liked = restoredLiked;
                 if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
                 console.log(`SYNC: Downloaded liked (${cloudLiked.length} items)`);
             }
@@ -309,9 +346,44 @@ const MeimaySync = {
             const savedDoc = await dataCol.doc('savedNames').get();
             if (savedDoc.exists && savedDoc.data().items) {
                 const cloudSaved = savedDoc.data().items;
-                localStorage.setItem('meimay_saved', JSON.stringify(cloudSaved));
+                // ダウンロード時に最小限のデータからマスター辞書を参照して完全なオブジェクトに復元
+                const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+
+                const restoredSaved = cloudSaved.map(s => {
+                    let combination = [];
+                    if (s.combinationKeys && typeof master !== 'undefined') {
+                        combination = s.combinationKeys.map(k => {
+                            const found = master.find(m => m['漢字'] === k);
+                            return found ? found : { '漢字': k, '画数': 1 };
+                        });
+                    }
+
+                    // Fortuneの再計算
+                    let fortune = null;
+                    if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
+                        const givArr = combination.map(p => ({
+                            kanji: p['漢字'],
+                            strokes: parseInt(p['画数']) || 0
+                        }));
+                        fortune = FortuneLogic.calculate(surArr, givArr);
+                    }
+
+                    return {
+                        fullName: s.fullName,
+                        reading: s.reading,
+                        givenName: s.givenName,
+                        combination: combination,
+                        fortune: fortune,
+                        message: s.message,
+                        savedAt: s.savedAt,
+                        fromPartner: s.fromPartner
+                    };
+                });
+
+                localStorage.setItem('meimay_saved', JSON.stringify(restoredSaved));
                 if (typeof getSavedNames !== 'undefined') {
-                    savedNames = cloudSaved;
+                    // Update the global or UI state if needed
+                    // In JS it usually relies on reloading from localStorage.
                 }
                 console.log(`SYNC: Downloaded savedNames (${cloudSaved.length} items)`);
             }
@@ -749,9 +821,17 @@ const MeimayShare = {
         }
 
         try {
+            const minifiedLiked = liked.map(l => ({
+                '漢字': l['漢字'],
+                slot: l.slot,
+                sessionReading: l.sessionReading,
+                sessionSegments: l.sessionSegments || null,
+                isSuper: l.isSuper || false
+            }));
+
             await firebaseDb.collection('users').doc(partnerId)
                 .collection('shared').doc('liked').set({
-                    items: liked,
+                    items: minifiedLiked,
                     fromUid: user.uid,
                     fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
                     sentAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -781,9 +861,19 @@ const MeimayShare = {
                 return;
             }
 
+            const minifiedSaved = saved.map(s => ({
+                fullName: s.fullName,
+                reading: s.reading || '',
+                givenName: s.givenName || '',
+                combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
+                message: s.message || '',
+                savedAt: s.savedAt || s.timestamp,
+                fromPartner: s.fromPartner || false
+            }));
+
             await firebaseDb.collection('users').doc(partnerId)
                 .collection('shared').doc('savedNames').set({
-                    items: saved,
+                    items: minifiedSaved,
                     fromUid: user.uid,
                     fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
                     sentAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -847,10 +937,20 @@ const MeimayShare = {
         items.forEach(item => {
             const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot && l.sessionReading === item.sessionReading);
             if (!exists) {
+                // マスター辞書から完全データを復元
+                let fullKanji = typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字']) : null;
+                let hydratedItem = fullKanji ? {
+                    ...fullKanji,
+                    slot: item.slot !== undefined ? item.slot : -1,
+                    sessionReading: item.sessionReading || 'UNKNOWN',
+                    sessionSegments: item.sessionSegments || null,
+                    isSuper: item.isSuper || false
+                } : item;
+
                 // パートナー由来フラグを付与
-                item.fromPartner = true;
-                item.partnerName = partnerName || 'パートナー';
-                liked.push(item);
+                hydratedItem.fromPartner = true;
+                hydratedItem.partnerName = partnerName || 'パートナー';
+                liked.push(hydratedItem);
                 added++;
             }
         });
@@ -868,14 +968,45 @@ const MeimayShare = {
     mergeSharedSaved: function (items, partnerName) {
         try {
             const local = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
             let added = 0;
             items.forEach(item => {
                 const exists = local.some(l => l.fullName === item.fullName);
                 if (!exists) {
-                    // パートナー由来フラグを付与
-                    item.fromPartner = true;
-                    item.partnerName = partnerName || 'パートナー';
-                    local.push(item);
+                    // マスター辞書から完全データを復元
+                    let combination = [];
+                    if (item.combinationKeys && typeof master !== 'undefined') {
+                        combination = item.combinationKeys.map(k => {
+                            const found = master.find(m => m['漢字'] === k);
+                            return found ? found : { '漢字': k, '画数': 1 };
+                        });
+                    } else if (item.combination) {
+                        combination = item.combination;
+                    }
+
+                    // Fortuneの再計算
+                    let fortune = null;
+                    if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
+                        const givArr = combination.map(p => ({
+                            kanji: p['漢字'],
+                            strokes: parseInt(p['画数']) || 0
+                        }));
+                        fortune = FortuneLogic.calculate(surArr, givArr);
+                    }
+
+                    let hydratedItem = {
+                        fullName: item.fullName,
+                        reading: item.reading,
+                        givenName: item.givenName,
+                        combination: combination,
+                        fortune: fortune,
+                        message: item.message,
+                        savedAt: item.savedAt,
+                        fromPartner: true,
+                        partnerName: partnerName || 'パートナー'
+                    };
+
+                    local.push(hydratedItem);
                     added++;
                 }
             });

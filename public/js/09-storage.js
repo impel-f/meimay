@@ -233,7 +233,15 @@ window.addEventListener('beforeunload', () => {
 function shareData() {
     const data = {
         liked: liked.map(l => ({ '漢字': l['漢字'], '画数': l['画数'], slot: l.slot, sessionReading: l.sessionReading })),
-        savedNames: getSavedNames ? getSavedNames() : savedNames,
+        savedNames: (getSavedNames ? getSavedNames() : savedNames).map(s => ({
+            fullName: s.fullName,
+            reading: s.reading || '',
+            givenName: s.givenName || '',
+            combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
+            message: s.message || '',
+            savedAt: s.savedAt || s.timestamp,
+            fromPartner: s.fromPartner || false
+        })),
         exportDate: new Date().toISOString(),
         version: 'meimay-share-v1'
     };
@@ -316,10 +324,41 @@ function receiveSharedData() {
 
         if (data.savedNames) {
             const existing = typeof getSavedNames === 'function' ? getSavedNames() : [];
+            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+
             data.savedNames.forEach(name => {
                 const exists = existing.some(n => n.fullName === name.fullName);
                 if (!exists) {
-                    existing.push(name);
+                    let combination = [];
+                    if (name.combinationKeys && typeof master !== 'undefined') {
+                        combination = name.combinationKeys.map(k => {
+                            const found = master.find(m => m['漢字'] === k);
+                            return found ? found : { '漢字': k, '画数': 1 };
+                        });
+                    } else if (name.combination) {
+                        combination = name.combination;
+                    }
+
+                    let fortune = null;
+                    if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
+                        const givArr = combination.map(p => ({
+                            kanji: p['漢字'],
+                            strokes: parseInt(p['画数']) || 0
+                        }));
+                        fortune = FortuneLogic.calculate(surArr, givArr);
+                    }
+
+                    existing.push({
+                        fullName: name.fullName,
+                        reading: name.reading,
+                        givenName: name.givenName,
+                        combination: combination,
+                        fortune: fortune,
+                        message: name.message,
+                        savedAt: name.savedAt,
+                        fromPartner: true,
+                        partnerName: 'パートナー'
+                    });
                 }
             });
             localStorage.setItem('meimay_saved', JSON.stringify(existing));
