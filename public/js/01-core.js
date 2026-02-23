@@ -170,7 +170,6 @@ function changeScreen(id) {
         'scr-wizard',
         'scr-gender',
         'scr-vibe',
-        'scr-input-reading',
         'scr-diagnosis-input',
         'scr-akinator'
     ];
