@@ -62,16 +62,15 @@ function renderStock() {
 
     container.innerHTML = '';
 
-    // FREE/SEARCH/slot<0 を除いた有効アイテムのみ対象
-    const validItems = liked.filter(item =>
-        item.slot >= 0 &&
-        item.sessionReading !== 'FREE' &&
-        item.sessionReading !== 'SEARCH'
-    );
+    // SEARCH/slot<0 を除いた有効アイテムのみ対象 (FREEは含める)
+    const validItems = liked.filter(item => {
+        if (item.sessionReading === 'FREE') return true;
+        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
+    });
 
     if (validItems.length === 0) {
         container.innerHTML = `
-            <div class="col-span-4 text-center py-20">
+            <div class="col-span-5 text-center py-20">
                 <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
                 <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
             </div>
@@ -93,7 +92,9 @@ function renderStock() {
         // （現在のグローバル segments へのフォールバックは他人の読みに混入するバグの元なので廃止）
 
         let segRaw = '不明';
-        if (item.sessionSegments && item.sessionSegments[item.slot]) {
+        if (item.sessionReading === 'FREE') {
+            segRaw = 'FREE';
+        } else if (item.sessionSegments && item.sessionSegments[item.slot]) {
             segRaw = item.sessionSegments[item.slot];
         } else if (readingToSegments[item.sessionReading] && readingToSegments[item.sessionReading][item.slot]) {
             segRaw = readingToSegments[item.sessionReading][item.slot];
@@ -127,7 +128,7 @@ function renderStock() {
 
         // セグメントヘッダー
         const segHeader = document.createElement('div');
-        segHeader.className = 'col-span-4 mt-6 mb-3';
+        segHeader.className = 'col-span-5 mt-6 mb-3';
         segHeader.innerHTML = `
             <div class="flex items-center gap-3">
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
