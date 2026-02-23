@@ -99,6 +99,32 @@ function openChoiceModal(slotIdx) {
         return;
     }
 
+    if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+        const itemCount = liked.filter(item => item.sessionReading === 'FREE').length;
+        if (label) label.innerText = itemCount;
+        if (msg) {
+            msg.innerHTML = `
+                <div class="mb-4">
+                    <span class="text-2xl font-black text-[#bca37f]">${itemCount}個</span>
+                    <span class="text-sm">フリーストックに保存しました</span>
+                </div>
+                <p class="text-sm text-[#7a6f5a] leading-relaxed">
+                    引き続き気に入った漢字を探しますか？<br>
+                </p>
+                <div class="flex flex-col gap-3 mt-8">
+                    <button onclick="closeChoiceAndRefetch()" class="btn-premium-select !mb-0 w-full shadow-md">探し続ける</button>
+                    <button onclick="finishFreeModeToHome()" class="btn-gold w-full shadow-md !py-4">ホームへ戻る</button>
+                </div>
+            `;
+        }
+        if (btn) btn.style.display = 'none'; // Custom buttons used instead
+        modal.classList.add('active');
+        console.log(`CHOICE: Modal opened in Free Mode (${itemCount} items)`);
+        return;
+    }
+
+    if (btn) btn.style.display = 'block';
+
     const currentReading = segments.join('');
     const itemCount = liked.filter(item =>
         item.slot === slotIdx &&

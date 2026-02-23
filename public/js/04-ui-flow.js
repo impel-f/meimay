@@ -4,6 +4,7 @@
    ============================================================ */
 
 let appMode = 'reading'; // reading, nickname, free, diagnosis
+let isFreeSwipeMode = false;
 let selectedVibes = new Set();
 // gender is defined in 01-core.js
 
@@ -168,8 +169,9 @@ function submitVibe() {
     console.log("UI_FLOW: Vibes set", window.selectedImageTags);
 
     if (appMode === 'free') {
-        initFreeMode(); // startUniversalSwipe内でscr-swipe-universalに遷移する
+        startFreeSwiping();
     } else {
+        isFreeSwipeMode = false;
         // 苗字はウィザードで設定済みなので直接スワイプ開始
         startSwiping();
     }
@@ -1123,11 +1125,14 @@ window.goBack = function () {
 };
 
 /**
- * 自由選択モード初期化（読みモードと同じスワイプロジック使用）
+ * 自由選択モード初期化（メインのスワイプUIを使用）
  */
-let freeAIRound = 0;
+function startFreeSwiping() {
+    isFreeSwipeMode = true;
+    currentPos = 0;
+    swipes = 0;
+    seen.clear();
 
-function initFreeMode() {
     if (!master || master.length === 0) return;
 
     // フィルタリング
@@ -1142,90 +1147,35 @@ function initFreeMode() {
         list = applyImageTagFilter(list);
     }
 
-    // スコア計算＆ソート
+    // スコア計算＆ソート（少しランダム性を混ぜる）
     if (typeof calculateKanjiScore === 'function') {
         list.forEach(k => k.score = calculateKanjiScore(k));
-        list.sort((a, b) => (b.score || 0) - (a.score || 0));
+        list.sort((a, b) => {
+            const scoreDiff = (b.score || 0) - (a.score || 0);
+            return scoreDiff === 0 ? Math.random() - 0.5 : scoreDiff;
+        });
     }
 
     // 既にストック済みは除外
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
-    // ユニバーサルスワイプ形式に変換
-    const swipeItems = list.slice(0, 100).map(k => ({
-        ...k,
-        reading: k['漢字'],
-        id: k['漢字'],
-        _kanjiData: k
-    }));
+    // メインUIのスタックとしてセット (02-engine.js global)
+    stack = list.slice(0, 100);
+    currentIdx = 0;
 
-    freeAIRound = 0;
+    changeScreen('scr-main');
 
-    startUniversalSwipe('free', swipeItems, {
-        title: '自由に選ぶ',
-        subtitle: '気に入った漢字をスワイプ',
-        renderCard: (item) => {
-            const data = item._kanjiData || item;
-            const meaning = clean(data['意味']);
-            const shortMeaning = meaning.length > 50 ? meaning.substring(0, 50) + '...' : meaning;
-            const unifiedTags = getUnifiedTags((data['名前のイメージ'] || '') + ',' + (data['分類'] || ''));
-            const readings = [data['音'], data['訓'], data['伝統名のり']]
-                .filter(x => clean(x))
-                .join(',')
-                .split(/[、,，\s/]+/)
-                .filter(x => clean(x))
-                .slice(0, 4);
-
-            return `
-                <div class="flex gap-2 mb-2 flex-wrap justify-center">
-                    ${unifiedTags.map(t => `<span class="px-3 py-1 bg-white/80 text-[#8b7e66] rounded-full text-xs font-bold">#${t}</span>`).join(' ')}
-                </div>
-                <div class="text-[80px] font-black text-[#5d5444] leading-none mb-2">${data['漢字']}</div>
-                <div class="text-[#bca37f] font-black text-lg mb-2">${data['画数']}画</div>
-                <div class="flex gap-2 mb-3 flex-wrap justify-center">
-                    ${readings.map(r => `<span class="px-2 py-1 bg-white/60 rounded-lg text-xs font-bold text-[#7a6f5a]">${r}</span>`).join(' ')}
-                </div>
-                <div class="w-full max-w-xs bg-white/70 rounded-2xl px-3 py-2 shadow-sm">
-                    <p class="text-xs leading-relaxed text-[#7a6f5a] text-center line-clamp-2">${shortMeaning || '意味情報なし'}</p>
-                </div>
-            `;
-        },
-        onLike: (item) => {
-            const data = item._kanjiData || item;
-            const existing = liked.find(l => l['漢字'] === data['漢字']);
-            if (!existing) {
-                liked.push({ ...data, slot: -1, sessionReading: 'FREE' });
-                if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
-            }
-        },
-        onNext: (selectedItems) => {
-            // 自由組み立て画面へ
-            changeScreen('scr-build');
-            renderFreeBuild();
-        }
-    });
-
-    // AI学習ボタンを追加
-    setTimeout(() => {
-        const swipeScreen = document.getElementById('scr-swipe-universal');
-        if (swipeScreen && !document.getElementById('btn-ai-free-learn')) {
-            const aiBtn = document.createElement('button');
-            aiBtn.id = 'btn-ai-free-learn';
-            aiBtn.className = 'fixed bottom-20 right-4 z-[200] bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white px-4 py-2.5 rounded-full text-xs font-bold shadow-lg flex items-center gap-1.5 hover:shadow-xl transition-all active:scale-95';
-            aiBtn.innerHTML = '🤖 AI提案';
-            aiBtn.onclick = aiSuggestFreeKanji;
-            swipeScreen.appendChild(aiBtn);
-        }
-    }, 500);
+    // 表示更新
+    if (typeof render === 'function') {
+        render();
+    }
 }
 
-function finishFreeMode() {
-    const freeItems = liked.filter(l => l.sessionReading === 'FREE');
-    if (freeItems.length === 0) {
-        if (!confirm('漢字が選択されていませんが、進みますか？')) return;
-    }
-    changeScreen('scr-build');
-    renderFreeBuild();
+
+
+function finishFreeModeToHome() {
+    isFreeSwipeMode = false;
+    changeScreen('scr-mode');
 }
 
 /**
@@ -1617,6 +1567,7 @@ function autoInheritSameReadings() { }
  */
 function startSwiping() {
     console.log("UI_FLOW: Starting swipe mode");
+    isFreeSwipeMode = false;
 
     if (typeof updateSurnameData === 'function') {
         updateSurnameData();
@@ -2254,8 +2205,8 @@ window.selectGender = selectGender;
 window.submitVibe = submitVibe;
 window.toggleVibe = toggleVibe;
 window.processNickname = processNickname;
-window.initFreeMode = initFreeMode;
-window.finishFreeMode = finishFreeMode;
+window.startFreeSwiping = startFreeSwiping;
+window.finishFreeModeToHome = finishFreeModeToHome;
 window.runDiagnosis = runDiagnosis;
 window.startSwiping = startSwiping;
 window.setGender = setGender;

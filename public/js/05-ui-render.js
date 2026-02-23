@@ -73,12 +73,22 @@ function updateSwipeMainState() {
     const sessionContent = document.getElementById('main-session-content');
     const emptyState = document.getElementById('main-empty-state');
 
-    const hasSession = segments && segments.length > 0;
+    const hasSession = isFreeSwipeMode || (segments && segments.length > 0);
     const hasCards = hasSession && stack && stack.length > 0 && currentIdx < stack.length;
 
     if (emptyState) emptyState.classList.toggle('hidden', hasSession);
     if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
     if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
+
+    // Free Stroke override for headers
+    if (isFreeSwipeMode) {
+        const indicator = document.getElementById('pos-indicator');
+        const btnPrev = document.getElementById('btn-prev-char');
+        const btnNext = document.getElementById('btn-next-char');
+        if (indicator) indicator.innerText = '自由に選ぶ';
+        if (btnPrev) btnPrev.classList.add('opacity-0', 'pointer-events-none');
+        if (btnNext) btnNext.classList.add('opacity-0', 'pointer-events-none');
+    }
 }
 
 /**
@@ -96,6 +106,19 @@ function render() {
 
     // スタック終了チェック
     if (!stack || stack.length === 0 || currentIdx >= stack.length) {
+        if (isFreeSwipeMode) {
+            container.innerHTML = `
+                <div class="flex items-center justify-center h-full text-center px-6">
+                    <div>
+                        <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
+                        <p class="text-sm text-[#a6967a] mb-6">これ以上候補が見つかりませんでした</p>
+                        <button onclick="finishFreeMode()" class="btn-gold py-4 px-8">終了する →</button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div>
@@ -195,6 +218,13 @@ function updateSwipeCounter() {
     if (!el || !stack) return;
 
     const remaining = Math.max(0, stack.length - currentIdx);
+
+    if (isFreeSwipeMode) {
+        const selected = liked.filter(item => item.sessionReading === 'FREE').length;
+        el.innerText = `選:${selected} / 残:${remaining}`;
+        return;
+    }
+
     const currentReading = segments.join('');
     const selected = liked.filter(item =>
         item.slot === currentPos &&

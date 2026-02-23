@@ -153,22 +153,39 @@ function executeSwipe(dir, data) {
 
     // データ処理（左以外はストック）
     if (data && dir !== 'left') {
-        // 重複チェック：既に同じ漢字が同じスロットに存在しないか確認
-        const isDuplicate = liked.some(item =>
-            item.slot === currentPos && item['漢字'] === data['漢字']
-        );
+        if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+            const isDuplicate = liked.some(item =>
+                item.sessionReading === 'FREE' && item['漢字'] === data['漢字']
+            );
 
-        if (!isDuplicate) {
-            seen.add(data['漢字']);
-            liked.push({
-                ...data,
-                slot: currentPos,
-                isSuper: (dir === 'up'),
-                sessionReading: segments.join(''), // どの読み方で選ばれたかを記録
-                sessionSegments: [...segments] // セグメント配列も記録してグループ化バグを防ぐ
-            });
+            if (!isDuplicate) {
+                seen.add(data['漢字']);
+                liked.push({
+                    ...data,
+                    slot: -1,
+                    isSuper: (dir === 'up'),
+                    sessionReading: 'FREE',
+                    sessionSegments: null
+                });
+            }
         } else {
-            console.log(`PHYSICS: Duplicate detected - ${data['漢字']} already in slot ${currentPos}`);
+            // 重複チェック：既に同じ漢字が同じスロットに存在しないか確認
+            const isDuplicate = liked.some(item =>
+                item.slot === currentPos && item['漢字'] === data['漢字']
+            );
+
+            if (!isDuplicate) {
+                seen.add(data['漢字']);
+                liked.push({
+                    ...data,
+                    slot: currentPos,
+                    isSuper: (dir === 'up'),
+                    sessionReading: segments.join(''), // どの読み方で選ばれたかを記録
+                    sessionSegments: [...segments] // セグメント配列も記録してグループ化バグを防ぐ
+                });
+            } else {
+                console.log(`PHYSICS: Duplicate detected - ${data['漢字']} already in slot ${currentPos}`);
+            }
         }
     }
 
@@ -190,9 +207,16 @@ function executeSwipe(dir, data) {
 
         // 10枚スワイプ（nopeも含む）でポップアップ
         if (swipes > 0 && swipes % 10 === 0) {
-            console.log(`CHOICE: ${swipes} swipes reached for slot ${currentPos}`);
-            if (typeof openChoiceModal === 'function') {
-                openChoiceModal(currentPos);
+            if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+                console.log(`CHOICE: ${swipes} swipes reached in Free Mode`);
+                if (typeof openChoiceModal === 'function') {
+                    openChoiceModal(-1);
+                }
+            } else {
+                console.log(`CHOICE: ${swipes} swipes reached for slot ${currentPos}`);
+                if (typeof openChoiceModal === 'function') {
+                    openChoiceModal(currentPos);
+                }
             }
         }
     }, 400);

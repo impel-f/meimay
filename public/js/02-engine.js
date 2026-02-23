@@ -197,6 +197,46 @@ function loadStack() {
     const target = toHira(segments[currentPos]);
     console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"`);
 
+    // --- Free Stock Auto-Matching ---
+    const freeItems = liked.filter(l => l.sessionReading === 'FREE');
+    freeItems.forEach(freeItem => {
+        // すでにこのスロットに登録済みならスキップ
+        const isDuplicateLocal = liked.some(item =>
+            item.slot === currentPos && item['漢字'] === freeItem['漢字']
+        );
+        if (isDuplicateLocal) return;
+
+        const majorReadings = ((freeItem['音'] || '') + ',' + (freeItem['訓'] || ''))
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x)).filter(x => x);
+        const minorReadings = (freeItem['伝統名のり'] || '')
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x)).filter(x => x);
+        const readings = [...majorReadings, ...minorReadings];
+
+        const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+        const isExact = majorReadings.includes(target) || minorReadings.includes(target);
+        const isSeionMatch = target !== targetSeion && readings.includes(targetSeion);
+        const isPartial = readings.some(r => r.startsWith(target)) || readings.some(r => r.startsWith(targetSeion));
+
+        let match = false;
+        if (typeof rule !== 'undefined' && rule === 'strict') {
+            match = isExact || isSeionMatch;
+        } else {
+            match = isExact || isSeionMatch || isPartial;
+        }
+
+        if (match) {
+            liked.push({
+                ...freeItem,
+                slot: currentPos,
+                sessionReading: segments.join(''),
+                sessionSegments: [...segments]
+            });
+            console.log(`ENGINE: Auto-injected Free Stock => ${freeItem['漢字']} for slot ${currentPos}`);
+        }
+    });
+
     // インジケーター更新
     const indicator = document.getElementById('pos-indicator');
     if (indicator) {
