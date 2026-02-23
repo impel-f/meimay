@@ -22,7 +22,7 @@ function saveName() {
 function showSaveMessageModal() {
     const modal = `
         <div class="overlay active modal-overlay-dark" id="save-message-modal" onclick="if(event.target.id==='save-message-modal')closeSaveMessageModal()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSaveMessageModal()">✕</button>
                 <h3 class="modal-title">名前を保存</h3>
                 <div class="modal-body">
@@ -32,11 +32,11 @@ function showSaveMessageModal() {
                     </div>
                     <div class="mb-4">
                         <label class="text-xs font-bold text-[#a6967a] mb-2 block">メモ（任意）</label>
-                        <input type="text" 
-                               id="save-message-input" 
-                               class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
-                               placeholder="例：第一候補、祖父の名前から"
-                               maxlength="50">
+                        <textarea id="save-message-input" 
+                                  class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all resize-none"
+                                  placeholder="例：第一候補、祖父の名前から"
+                                  rows="3"
+                                  maxlength="100"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
