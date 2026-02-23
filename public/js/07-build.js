@@ -520,14 +520,12 @@ function showFortuneDetail() {
     const name = currentBuildResult.fullName;
     const givens = currentBuildResult.combination.map(p => ({ kanji: p['漢字'], strokes: parseInt(p['画数']) || 0 }));
 
-    const nLabel = document.getElementById('for-name');
     const container = document.getElementById('for-grid');
 
-    if (!nLabel || !container) return;
+    if (!container) return;
 
     const getNum = (obj) => (obj ? (obj.num || obj.val || 0) : 0);
 
-    nLabel.innerText = name;
     container.innerHTML = '';
     container.className = "flex flex-col w-full relative";
 
@@ -618,7 +616,7 @@ function showFortuneDetail() {
         <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
             <!-- 左：外格ボックス ＋ 横線 ＋ [ 括弧（右から左へ：bracket|line|box） -->
-            <div style="display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px">
+            <div style="display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px;width:${BARM + LINE + 80}px;justify-content:flex-start">
                 <div style="position:relative;width:${BARM}px;height:${totalH}px;flex-shrink:0">
                     <div style="${bStyle(gaiSpan, 'left')}"></div>
                 </div>
