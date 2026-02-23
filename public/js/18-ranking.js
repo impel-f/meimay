@@ -59,11 +59,11 @@ async function loadRanking(tab) {
         const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}<span class="text-[10px] ml-0.5 text-[#a6967a]">位</span>`;
         const rankColor = index === 0 ? 'text-[#bca37f] text-3xl font-black' : index === 1 ? 'text-[#9ca3af] text-2xl font-black' : index === 2 ? 'text-[#b45309] text-2xl font-black' : 'text-[#8b7e66] text-xl font-bold';
 
-        const readings = ((kanjiData['音'] || '') + ',' + (kanjiData['訓'] || '') + ',' + (kanjiData['伝統名のり'] || ''))
+        const readingsArr = ((kanjiData['音'] || '') + ',' + (kanjiData['訓'] || '') + ',' + (kanjiData['伝統名のり'] || ''))
             .split(/[、,，\s/]+/)
-            .filter(x => x && x.trim() !== '')
-            .slice(0, 4)
-            .join(', ');
+            .filter(x => x && x.trim() !== '' && !x.includes('なし'))
+            .slice(0, 4);
+        const readings = readingsArr.length > 0 ? '読み：' + readingsArr.join(', ') : '読み：(不明)';
 
         html += `
             <div class="bg-white rounded-2xl p-4 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20 bg-[#fffbeb]/30' : 'border-[#ede5d8]'} flex items-center gap-4 relative overflow-hidden transition-all">

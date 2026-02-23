@@ -129,9 +129,11 @@ function renderTodaysKanji(data) {
     if (!container) return;
 
     // 読みをきれいに取得（複数ある場合は主なものを抜粋）
-    let readings = [data['音'], data['訓'], data['伝統名のり']]
-        .filter(r => r && r.trim() !== '' && r !== 'ー')
+    let rawReadings = [data['音'], data['訓'], data['伝統名のり']]
+        .filter(r => r && r.trim() !== '' && r !== 'ー' && !r.includes('なし'))
         .join(' / ');
+
+    let readings = rawReadings ? '読み：' + rawReadings : '読み：(不明)';
 
     // 文字数制限
     if (readings.length > 25) {
