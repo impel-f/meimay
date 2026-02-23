@@ -145,7 +145,7 @@ function renderStock() {
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
                 <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
                     <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
-                    ${seg === 'FREE' ? 'フリストック（読みなし）' : seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}個)</span>
+                    ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}個)</span>
                 </span>
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
             </div>
@@ -164,7 +164,7 @@ function renderStock() {
             card.innerHTML = `
                 ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
-                <div class="stock-strokes">${item['画数']}画</div>
+                <div class="stock-strokes">${item['画数'] !== undefined ? item['画数'] : '？'}画</div>
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
             `;
             cardsGrid.appendChild(card);
