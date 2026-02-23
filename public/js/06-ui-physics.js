@@ -192,6 +192,9 @@ function executeSwipe(dir, data) {
     // 即座に保存＆クラウド同期トリガー
     if ((dir === 'right' || dir === 'up') && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
+        if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+            MeimayStats.recordKanjiLike(data['漢字']);
+        }
     }
 
     // DOM削除と次のカード表示

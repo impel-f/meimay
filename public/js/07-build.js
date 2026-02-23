@@ -333,7 +333,12 @@ function deleteStockGroup(reading) {
 
     // 該当する読み方のストックを除外
     const initialCount = liked.length;
+    const removedItems = liked.filter(item => item.sessionReading === reading);
     liked = liked.filter(item => item.sessionReading !== reading);
+
+    if (removedItems.length > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字']));
+    }
 
     if (liked.length < initialCount) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
@@ -962,10 +967,23 @@ function applyRankedCombination(combination) {
  */
 function reselectSlot(slotIdx) {
     if (confirm(`${slotIdx + 1}文字目「${segments[slotIdx]}」を選び直しますか？\n現在の選択がリセットされます。`)) {
-        liked = liked.filter(item => item.slot !== slotIdx);
         const toRemove = [];
-        liked.forEach(item => { if (item.slot === slotIdx) toRemove.push(item['漢字']); });
-        toRemove.forEach(kanji => seen.delete(kanji));
+        const keptLiked = [];
+        liked.forEach(item => {
+            if (item.slot === slotIdx) {
+                toRemove.push(item['漢字']);
+            } else {
+                keptLiked.push(item);
+            }
+        });
+        liked = keptLiked;
+
+        toRemove.forEach(kanji => {
+            seen.delete(kanji);
+            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+                MeimayStats.recordKanjiUnlike(kanji);
+            }
+        });
         // NOPEリストもリセット（選び直し時）
         if (typeof noped !== 'undefined') noped.clear();
 

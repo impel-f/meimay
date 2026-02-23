@@ -266,7 +266,7 @@
             <!-- Tools -->
             <div class="w-full max-w-sm px-6 mb-4">
                 <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">ツール</div>
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 gap-3">
                     <button onclick="openReadingHistory()"
                         class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-lg mb-0.5">🕐</div>
@@ -281,6 +281,14 @@
                         class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-lg mb-0.5">🔮</div>
                         <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
+                    </button>
+                    <button onclick="openRanking()"
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95 relative">
+                        <div class="text-lg mb-0.5">👑</div>
+                        <div class="text-xs text-[#5d5444] font-bold">ランキング</div>
+                        <span class="absolute -top-1 -right-1 flex h-3 w-3"><span
+                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span
+                                class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>
                     </button>
                 </div>
             </div>
@@ -802,6 +810,38 @@
                     class="w-full py-3 border-2 border-[#d4c5af] text-[#8b7e66] rounded-2xl font-bold text-sm hover:bg-[#f8f5ef] transition-all">
                     ログアウト
                 </button>
+            </div>
+        </div>
+    </div>
+    <!-- ============================================================
+         RANKING SCREEN
+         ============================================================ -->
+    <div id="scr-ranking" class="screen bg-[#f8f5ef]">
+        <div class="flex flex-col h-full w-full max-w-md mx-auto relative">
+            <!-- Header -->
+            <div
+                class="px-6 pt-12 pb-6 flex items-center justify-between border-b border-[#ede5d8] bg-white sticky top-0 z-10 w-full">
+                <h2 class="text-xl font-black text-[#5d5444] tracking-wider relative">
+                    <span class="text-xl mr-1">👑</span>人気ランキング
+                </h2>
+                <button onclick="changeScreen('scr-mode')"
+                    class="p-2 text-[#a6967a] hover:bg-[#f8f5ef] rounded-full transition-all">✕</button>
+            </div>
+
+            <!-- Tabs -->
+            <div
+                class="flex justify-between items-end border-b border-[#eee5d8] bg-white px-4 sticky top-[80px] z-10 w-full">
+                <div class="flex flex-1" id="ranking-tabs">
+                    <button onclick="switchRankingTab('allTime')" id="ranking-tab-allTime"
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">総合ランキング</button>
+                    <button onclick="switchRankingTab('weekly')" id="ranking-tab-weekly"
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">今週の急上昇</button>
+                </div>
+            </div>
+
+            <!-- Content List -->
+            <div class="flex-1 overflow-y-auto w-full px-4 pt-4 pb-32" id="ranking-list-container">
+                <div class="text-center py-20 text-[#a6967a]">読み込み中...</div>
             </div>
         </div>
     </div>
@@ -1605,6 +1645,7 @@
     <script src="/js/16-legal.js?v=23.15"></script>
     <script src="/js/data/todays-kanji-data.js?v=23.15"></script>
     <script src="/js/17-todays-kanji.js?v=23.15"></script>
+    <script src="/js/18-ranking.js?v=23.15"></script>
 
 </body>
 

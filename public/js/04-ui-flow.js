@@ -2458,6 +2458,7 @@ function toggleSearchStock(k, btn) {
         btn.classList.add('border-[#eee5d8]');
         const heart = btn.querySelector('.absolute');
         if (heart) heart.remove();
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) MeimayStats.recordKanjiUnlike(k['漢字']);
     } else {
         const item = { ...k, slot: -1, sessionReading: 'SEARCH' };
         liked.push(item);
@@ -2466,6 +2467,7 @@ function toggleSearchStock(k, btn) {
         if (!btn.querySelector('.absolute')) {
             btn.insertAdjacentHTML('beforeend', '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>');
         }
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(k['漢字']);
     }
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 }
@@ -2745,10 +2747,12 @@ function stockAISuggestion(kanji, btn) {
         btn.className = 'px-3 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold transition-all active:scale-95';
         btn.closest('.flex').classList.remove('border-[#bca37f]', 'bg-[#fffbeb]');
         btn.closest('.flex').classList.add('border-[#eee5d8]');
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) MeimayStats.recordKanjiUnlike(kanji);
     } else {
         const found = master.find(m => m['漢字'] === kanji);
         if (found) {
             liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
+            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji);
         }
         btn.innerText = '解除';
         btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-full text-xs font-bold transition-all active:scale-95';

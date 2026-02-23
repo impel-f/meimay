@@ -572,6 +572,10 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
             }
         }
 
+        if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+            MeimayStats.recordKanjiUnlike(data['漢字']);
+        }
+
         if (removedCount > 0) {
             if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 
@@ -617,6 +621,9 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
 
         liked.push(likeData);
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
+        if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+            MeimayStats.recordKanjiLike(data['漢字']);
+        }
 
         alert('ストックに追加しました！');
         closeKanjiDetail();

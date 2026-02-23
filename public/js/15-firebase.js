@@ -1133,7 +1133,99 @@ window.handleGenerateCode = handleGenerateCode;
 window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
-console.log("FIREBASE: Module loaded (v21.0 + pairing)");
+// ============================================================
+// STATS - 人気ランキング用集計モジュール
+// ============================================================
+const MeimayStats = {
+    // 現在のISO週を取得 (YYYY_WW)
+    getCurrentWeekKey: function () {
+        const d = new Date();
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return `${d.getUTCFullYear()}_${weekNo.toString().padStart(2, '0')}`;
+    },
+
+    // 漢字ストック時のカウントアップ
+    recordKanjiLike: async function (kanjiString) {
+        if (!kanjiString || typeof firebaseDb === 'undefined') return;
+        try {
+            const increment = firebase.firestore.FieldValue.increment(1);
+            const batch = firebaseDb.batch();
+
+            // 総合ランキング
+            const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
+            batch.set(allTimeRef, { [kanjiString]: increment }, { merge: true });
+
+            // 今週の急上昇
+            const weeklyKey = this.getCurrentWeekKey();
+            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${weeklyKey}`);
+            batch.set(weeklyRef, { [kanjiString]: increment }, { merge: true });
+
+            await batch.commit();
+            console.log(`STATS: Incremented +1 for [${kanjiString}]`);
+        } catch (e) {
+            console.error('STATS: recordKanjiLike error', e);
+        }
+    },
+
+    // 漢字ストック解除時のカウントダウン
+    recordKanjiUnlike: async function (kanjiString) {
+        if (!kanjiString || typeof firebaseDb === 'undefined') return;
+        try {
+            const decrement = firebase.firestore.FieldValue.increment(-1);
+            const batch = firebaseDb.batch();
+
+            // 総合ランキング
+            const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
+            batch.set(allTimeRef, { [kanjiString]: decrement }, { merge: true });
+
+            // 今週の急上昇
+            const weeklyKey = this.getCurrentWeekKey();
+            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${weeklyKey}`);
+            batch.set(weeklyRef, { [kanjiString]: decrement }, { merge: true });
+
+            await batch.commit();
+            console.log(`STATS: Decremented -1 for [${kanjiString}]`);
+        } catch (e) {
+            console.error('STATS: recordKanjiUnlike error', e);
+        }
+    },
+
+    // ランキングデータの取得
+    fetchRankings: async function (type = 'allTime') {
+        try {
+            let docRef;
+            if (type === 'weekly') {
+                docRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
+            } else {
+                docRef = firebaseDb.collection('statistics').doc('allTime');
+            }
+
+            const doc = await docRef.get();
+            if (!doc.exists) return [];
+
+            const data = doc.data();
+
+            // { "結": 50, "愛": 40 } の形式を配列にして降順ソート
+            const sorted = Object.keys(data)
+                .filter(k => k !== 'updatedAt') // 除外キーがあれば弾く
+                .map(key => ({ kanji: key, count: data[key] }))
+                .filter(item => item.count > 0)
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 100); // 上位100件
+
+            return sorted;
+        } catch (e) {
+            console.error(`STATS: fetchRankings(${type}) error`, e);
+            return [];
+        }
+    }
+};
+
+window.MeimayStats = MeimayStats;
+
+console.log("FIREBASE: Module loaded (v21.0 + pairing + stats)");
 
 
 
