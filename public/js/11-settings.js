@@ -93,6 +93,18 @@ function renderSettingsScreen() {
                 <div class="item-arrow-unified">›</div>
             </div>
 
+            <!-- 漢字データCSVダウンロード -->
+            <div class="settings-item-unified" onclick="downloadKanjiCSV()">
+                <div class="item-icon-circle" style="background: #f0fdf4;">
+                    <span style="color: #22c55e;">📥</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">漢字データをダウンロード</div>
+                    <div class="item-value-unified">CSV形式 (2999字)</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
             <div class="settings-divider-unified" style="margin-top:40px;"></div>
             <div class="text-[10px] text-center font-black text-[#f28b82] tracking-widest opacity-60 uppercase mb-4">Danger Zone</div>
             
@@ -104,6 +116,56 @@ function renderSettingsScreen() {
             </p>
         </div>
     `;
+}
+
+/**
+ * 漢字データをCSVとしてダウンロード
+ */
+async function downloadKanjiCSV() {
+    const btn = event.currentTarget;
+    const arrow = btn.querySelector('.item-arrow-unified');
+    if (arrow) arrow.textContent = '…';
+
+    try {
+        const res = await fetch('/data/kanji_data.json');
+        const data = await res.json();
+
+        const COLUMNS = [
+            '漢字', '画数', '常用漢字', '音', '訓',
+            '伝統名のり', '名乗り_メジャー', '名乗り_マイナー',
+            '意味', '名前のイメージ', '分類',
+            'おすすめ度', '男のおすすめ度', '女のおすすめ度',
+            '不適切フラグ'
+        ];
+
+        function escapeCSV(val) {
+            if (val === null || val === undefined) return '';
+            const s = String(val);
+            if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        const rows = [COLUMNS.map(escapeCSV).join(',')];
+        data.forEach(entry => {
+            rows.push(COLUMNS.map(col => escapeCSV(entry[col])).join(','));
+        });
+
+        // BOM付きUTF-8（Excelで文字化けしないように）
+        const bom = '\uFEFF';
+        const blob = new Blob([bom + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `meimay-kanji-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('ダウンロードに失敗しました: ' + e.message);
+    } finally {
+        if (arrow) arrow.textContent = '›';
+    }
 }
 
 /**
