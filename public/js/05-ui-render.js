@@ -53,6 +53,17 @@ function getUnifiedTags(rawString) {
 }
 
 /**
+ * かな正規化（カタカナをひらがなに変換）
+ */
+function normalizeKana(str) {
+    if (!str) return '';
+    return str.replace(/[\u30a1-\u30f6]/g, function (match) {
+        const chr = match.charCodeAt(0) - 0x60;
+        return String.fromCharCode(chr);
+    });
+}
+
+/**
  * scr-main の表示状態を3状態で制御する
  *  - セッションなし : empty-state 表示、HUD/stack/actionBtns 非表示
  *  - カードあり     : HUD/stack/actionBtns 表示、empty-state 非表示
@@ -146,7 +157,7 @@ function render() {
 
     const readingsHTML = allReadings.length > 0 ?
         allReadings.map(r => {
-            const isMatch = r === currentSearchReading;
+            const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
             // 枠と背景色で目立たせる
             return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
         }).join(' ') :
