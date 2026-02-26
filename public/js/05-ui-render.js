@@ -386,10 +386,10 @@ async function showKanjiDetail(data) {
     // ヘッダーの意味表示
     if (headerMeaningEl) {
         headerMeaningEl.innerHTML = `
-            <span class="inline-block bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm mt-1">
-                <span class="opacity-70 mr-1 text-xs">💡意味:</span>
-                <span class="text-[#5d5444]">${clean(data['意味']) || ''}</span>
-            </span>
+            <div class="text-[10px] font-bold text-[#bca37f] mb-1 tracking-widest">💡 意味</div>
+            <div class="text-sm text-[#5d5444] font-medium leading-normal text-left line-clamp-4 overflow-y-auto max-h-[100px] scrollbar-hide">
+                ${clean(data['意味']) || 'データなし'}
+            </div>
         `;
     }
 
@@ -402,32 +402,22 @@ async function showKanjiDetail(data) {
 
     if (headerReadingEl) {
         headerReadingEl.innerHTML = `
-            <span class="inline-block bg-white/60 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
-                <span class="opacity-70 mr-1 text-xs">📖読み・名乗り:</span>
-                <span class="text-[#5d5444]">${readings.join('、')}</span>
-            </span>
+            <div class="text-[10px] font-bold text-[#bca37f] mb-1 tracking-widest">📖 読み・名乗り</div>
+            <div class="text-base text-[#5d5444] font-bold leading-relaxed break-keep">
+                ${readings.join('<span class="text-[#ede5d8] mx-0.5">|</span>')}
+            </div>
         `;
     }
-    let tagsContainer = document.getElementById('det-tags');
-
-    // タグ用コンテナがなければ作成（Kanjiの直後、読みの前）
-    // タグ用コンテナがなければ作成（Kanjiの直後、読みの前）
-    if (!tagsContainer) {
-        // Fallback for safety (though index.html has it now)
-        tagsContainer = document.createElement('div');
-        tagsContainer.id = 'det-tags';
-        tagsContainer.className = 'flex gap-2 mb-6 justify-center flex-wrap';
-        if (kanjiEl.nextSibling) kanjiEl.parentNode.insertBefore(tagsContainer, kanjiEl.nextSibling);
-    }
+    let tagsContainer = document.getElementById('det-tags-container');
 
     // タグHTML生成
     const tagsHTML = unifiedTags.length > 0 ?
         unifiedTags.map(t => `<span class="px-3 py-1 bg-white/60 text-[#8b7e66] rounded-full text-xs font-bold shadow-sm border border-transparent backdrop-blur-sm">#${t}</span>`).join(' ') :
         '';
 
-    tagsContainer.innerHTML = tagsHTML;
-
-    // Remove old reading/meaning population since they are handled in Header now
+    if (tagsContainer) {
+        tagsContainer.innerHTML = tagsHTML;
+    }
 
 
     // ストック状態チェック

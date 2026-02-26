@@ -12,17 +12,19 @@ let selectedVibes = new Set();
 // Vibe Data
 const VIBES = [
     { id: 'none', label: 'こだわらない', icon: '⚪' },
-    { id: 'nature', label: '自然・植物', icon: '🌿' },
-    { id: 'flower', label: '花・華やか', icon: '🌸' },
-    { id: 'sky', label: '空・天体', icon: '☀️' },
-    { id: 'water', label: '海・水', icon: '💧' },
-    { id: 'kindness', label: '優しさ・愛', icon: '💝' },
-    { id: 'strength', label: '強さ・健康', icon: '💪' },
-    { id: 'intelligence', label: '知性・才能', icon: '🎓' },
-    { id: 'success', label: '成功・未来', icon: '✨' },
-    { id: 'beauty', label: '美しさ', icon: '👗' },
-    { id: 'tradition', label: '伝統・和', icon: '⛩️' },
-    { id: 'stability', label: '安定・平和', icon: '🕊️' }
+    { id: 'nature', label: '#自然', icon: '🌿' },
+    { id: 'flower', label: '#花・彩', icon: '🌸' },
+    { id: 'sky', label: '#天空', icon: '☀️' },
+    { id: 'water', label: '#海・水', icon: '💧' },
+    { id: 'kindness', label: '#慈愛', icon: '💝' },
+    { id: 'strength', label: '#勇気', icon: '💪' },
+    { id: 'intelligence', label: '#知性', icon: '🎓' },
+    { id: 'success', label: '#繁栄', icon: '✨' },
+    { id: 'happiness', label: '#幸福', icon: '🍀' },
+    { id: 'beauty', label: '#品格', icon: '👗' },
+    { id: 'health', label: '#健康', icon: '🍎' },
+    { id: 'spirit', label: '#心・志', icon: '💫' },
+    { id: 'stability', label: '#調和', icon: '🕊️' }
 ];
 
 /**

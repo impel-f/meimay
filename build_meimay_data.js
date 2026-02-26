@@ -8,6 +8,19 @@ const jinmeiWorkbook = xlsx.readFile('人名漢字.xlsx');
 const jinmeiSheet = jinmeiWorkbook.Sheets[jinmeiWorkbook.SheetNames[0]];
 const jinmeiData = xlsx.utils.sheet_to_json(jinmeiSheet);
 
+// Load old kanji data to preserve original meanings (`意味`)
+const oldKanjiPath = path.join(__dirname, 'build_temp_old_kanji.json');
+let oldKanjiMap = new Map();
+if (fs.existsSync(oldKanjiPath)) {
+    const oldKanjiData = require(oldKanjiPath);
+    oldKanjiData.forEach(k => {
+        if (k['漢字']) {
+            oldKanjiMap.set(k['漢字'], k['意味'] || '');
+        }
+    });
+    console.log(`Loaded ${oldKanjiMap.size} old kanji meanings.`);
+}
+
 // Define default values or clean up the data where needed
 const cleanJinmei = jinmeiData.map(kanji => {
     return {
@@ -17,7 +30,7 @@ const cleanJinmei = jinmeiData.map(kanji => {
         '女のおすすめ度': kanji['女のおすすめ度'] !== undefined ? kanji['女のおすすめ度'] : 50,
         '不適切フラグ': kanji['不適切フラグ'] || 0,
         '分類': kanji['分類'] || '',
-        '意味': kanji['意味'] || '',
+        '意味': oldKanjiMap.has(kanji['漢字']) && oldKanjiMap.get(kanji['漢字']) ? oldKanjiMap.get(kanji['漢字']) : (kanji['意味'] || ''),
         // Clean empty properties created by xlsx like __EMPTY
         __EMPTY: undefined
     };
