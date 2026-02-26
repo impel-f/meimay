@@ -231,26 +231,10 @@ function updateSwipeCounter() {
 }
 
 /**
- * タグからグラデーションを生成 (v14.4: キーワード照合)
+ * タグからグラデーションを生成 (v14.5: 2つのタグをブレンド)
  */
 function getGradientFromTags(tags) {
     if (!tags || tags.length === 0) return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
-
-    // タグの中にキーワードが含まれているかチェック
-    let matchedKey = 'other';
-    for (let tag of tags) {
-        // Tag cleaning (remove # etc)
-        const cleanTag = tag.replace(/[#【】]/g, '').trim();
-        if (!cleanTag) continue;
-
-        for (const [key, keywords] of Object.entries(TAG_KEYWORDS)) {
-            if (keywords.some(kw => cleanTag.includes(kw))) {
-                matchedKey = key;
-                break;
-            }
-        }
-        if (matchedKey !== 'other') break;
-    }
 
     const colorMap = {
         'strength': ['#fff1f2', '#ffe4e6', '#fecdd3'], // Rose
@@ -271,8 +255,36 @@ function getGradientFromTags(tags) {
         'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
     };
 
-    const colors = colorMap[matchedKey];
-    return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 50%, ${colors[2]} 100%)`;
+    // マッチしたキーを最大2つ収集
+    let matchedKeys = [];
+    for (let tag of tags) {
+        const cleanTag = tag.replace(/[#【】]/g, '').trim();
+        if (!cleanTag) continue;
+
+        for (const [key, keywords] of Object.entries(TAG_KEYWORDS)) {
+            if (keywords.some(kw => cleanTag.includes(kw))) {
+                if (!matchedKeys.includes(key)) {
+                    matchedKeys.push(key);
+                }
+                break;
+            }
+        }
+        if (matchedKeys.length >= 2) break;
+    }
+
+    if (matchedKeys.length === 0) {
+        matchedKeys = ['other'];
+    }
+
+    if (matchedKeys.length >= 2) {
+        const c1 = colorMap[matchedKeys[0]];
+        const c2 = colorMap[matchedKeys[1]];
+        // 2つの色の要素を混ぜて生成
+        return `linear-gradient(135deg, ${c1[0]} 0%, ${c1[1]} 30%, ${c2[1]} 70%, ${c2[2]} 100%)`;
+    } else {
+        const colors = colorMap[matchedKeys[0]];
+        return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 50%, ${colors[2]} 100%)`;
+    }
 }
 
 /**
