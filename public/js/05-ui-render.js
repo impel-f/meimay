@@ -12,7 +12,8 @@ const TAG_KEYWORDS = {
     'passion': ['情熱', '熱意', '活発', '元気', '燃える', '炎', '熱', '烈', '昂', '騰'],
     'hope': ['希望', '未来', '夢', '願い', '期待', '幸福', '望', '希', '願', '福', '幸'],
     'success': ['成功', '向上', '昇進', '発展', '繁栄', '栄える', '成', '功', '栄', '進', '昌'],
-    'nature': ['自然', '植物', '樹木', '草', '森', '木', '花', '華やか', '桜', '林', '山', '岳', '嶺'],
+    'nature': ['自然', '植物', '樹木', '草', '森', '木', '林', '山', '岳', '嶺'],
+    'flower': ['花', '華やか', '桜', '彩', 'バラ', '菊', '蘭', '牡丹', '咲', '麗', '絢', '錦'],
     'water': ['海', '水', '川', '波', '流れ', '清らか', '湖', '池', '湊', '渚', '汐', '清'],
     'sky': ['空', '宙', '天', '宇宙', '星', '月', '雲', '風', '雷', '雨', '霄', '碧'],
     'elegance': ['品格', '高貴', '気品', '上品', '優雅', '格調', '雅', '麗', '優', '彩', '絢'],
@@ -24,6 +25,7 @@ const TAG_KEYWORDS = {
 
 const TAG_LABELS = {
     'nature': '自然',
+    'flower': '花・彩',
     'brightness': '明るさ',
     'water': '水',
     'strength': '力強さ',
@@ -42,14 +44,24 @@ const TAG_LABELS = {
 };
 
 function getUnifiedTags(rawString) {
-    if (!rawString) return [];
+    if (!rawString || rawString === '---') return [];
+
     // Convert comma/space/bracket-separated string to array of tags
-    return rawString
+    const tags = rawString
         .replace(/【|】|#/g, '')
         .split(/[、,，\s/]+/)
         .map(t => t.trim())
-        .filter(t => t.length > 0 && t !== '---')
-        .slice(0, 3);
+        .filter(t => t.length > 0 && t !== '---');
+
+    // 最大3つまで一応正規化を試みる
+    const result = tags.slice(0, 3);
+
+    // 1つも抽出されなかった場合、元の文字列に何かしら記載があれば「その他」
+    if (result.length === 0 && rawString.trim().length > 0) {
+        return ['その他'];
+    }
+
+    return result;
 }
 
 /**
@@ -256,13 +268,14 @@ function getGradientFromTags(tags) {
         'hope': ['#fffbeb', '#fef3c7', '#fde68a'], // Amber
         'success': ['#ecfdf5', '#d1fae5', '#a7f3d0'], // Emerald
         'nature': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Green
+        'flower': ['#fef2f2', '#fce7f3', '#fbcfe8'], // Floral Pink (distinct from nature)
         'water': ['#f0f9ff', '#e0f2fe', '#bae6fd'], // Sky
         'sky': ['#f0fdfa', '#ccfbf1', '#99f6e4'], // Teal
         'elegance': ['#faf5ff', '#f3e8ff', '#e9d5ff'], // Purple
         'tradition': ['#fff7ed', '#ffedd5', '#fed7aa'], // Tradition/Earth
         'peace': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Peace/Mint
         'justice': ['#f8fafc', '#f1f5f9', '#e2e8f0'], // Slate
-        'spirituality': ['#ffffff', '#fdfbf7', '#f5f0e5'], // White/Eggshell
+        'spirituality': ['#ede9fe', '#ddd6fe', '#c4b5fd'], // Stronger Indigo/Violet (distinct from white)
         'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
     };
 
