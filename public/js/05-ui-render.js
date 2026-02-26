@@ -403,7 +403,7 @@ async function showKanjiDetail(data) {
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>💡</span> 意味
                 </div>
-                <div class="text-sm text-[#5d5444] font-medium leading-relaxed">
+                <div class="text-xs text-[#5d5444] leading-relaxed">
                     ${clean(data['意味']) || '意味データなし'}
                 </div>
             </div>
@@ -424,7 +424,7 @@ async function showKanjiDetail(data) {
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>📖</span> 読み・名乗り
                 </div>
-                <div class="text-sm text-[#5d5444] font-bold leading-normal tracking-wider break-keep mt-[1px]">
+                <div class="text-xs text-[#5d5444] leading-normal tracking-wider break-keep mt-[1px]">
                     ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
                 </div>
             </div>
