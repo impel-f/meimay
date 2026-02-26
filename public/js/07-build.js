@@ -8,13 +8,13 @@ let selectedPieces = [];
 /**
  * ストック画面を開く
  */
-let currentStockTab = 'reading';
+let currentStockTab = 'kanji';
 
 function openStock(tab) {
     console.log("BUILD: Opening stock screen");
     renderStock();
     changeScreen('scr-stock');
-    switchStockTab(tab || currentStockTab || 'reading');
+    switchStockTab(tab || currentStockTab || 'kanji');
 }
 
 function switchStockTab(tab) {
@@ -247,7 +247,7 @@ function renderBuildSelection() {
                         + 追加する
                     </button>
                     <button onclick="reselectSlot(${idx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">
-                        ← 選び直す
+                        ← 読みを戻す
                     </button>
                 </div>
             </div>
@@ -278,14 +278,14 @@ function renderBuildSelection() {
 
         // フィルタリング結果が0件だが、同じslotに他の読み方の候補がある場合
         const allSlotItems = liked.filter(item => item.slot === idx);
-        console.log(`Slot ${idx} all items (any reading):`, allSlotItems.length);
+        const uniqueKanji = Array.from(new Set(allSlotItems.map(i => i['漢字'])));
 
         if (items.length === 0) {
-            if (allSlotItems.length > 0) {
+            if (uniqueKanji.length > 0) {
                 // 他の読み方の候補がある
                 scrollBox.innerHTML = `
                     <div class="text-[#bca37f] text-sm italic px-4 py-6">
-                        他の読み方で選んだ候補：${allSlotItems.length}個<br>
+                        他の読み方で選んだ候補：${uniqueKanji.length}個<br>
                         <span class="text-xs text-[#a6967a] mt-2 block">「+ 追加する」で現在の読み方の候補を追加できます</span>
                     </div>
                 `;
@@ -1116,23 +1116,23 @@ window.showFortuneTerm = showFortuneTerm;
         const kanjiPanel = document.getElementById('stock-kanji-panel');
         if (!readingPanel || !kanjiPanel) return;
 
-        if (dx < 0 && currentStockTab === 'reading') {
-            // 左スワイプ → 漢字ストックへ
-            readingPanel.style.animation = 'slideOutLeft 0.25s ease-out';
-            setTimeout(() => {
-                switchStockTab('kanji');
-                readingPanel.style.animation = '';
-                kanjiPanel.style.animation = 'slideInRight 0.25s ease-out';
-                setTimeout(() => { kanjiPanel.style.animation = ''; }, 250);
-            }, 200);
-        } else if (dx > 0 && currentStockTab === 'kanji') {
-            // 右スワイプ → 読みストックへ
-            kanjiPanel.style.animation = 'slideOutRight 0.25s ease-out';
+        if (dx < 0 && currentStockTab === 'kanji') {
+            // 左スワイプ（左から右へ動く UI イメージ）→ 読みストック（右）へ
+            kanjiPanel.style.animation = 'slideOutLeft 0.25s ease-out';
             setTimeout(() => {
                 switchStockTab('reading');
                 kanjiPanel.style.animation = '';
-                readingPanel.style.animation = 'slideInLeft 0.25s ease-out';
+                readingPanel.style.animation = 'slideInRight 0.25s ease-out';
                 setTimeout(() => { readingPanel.style.animation = ''; }, 250);
+            }, 200);
+        } else if (dx > 0 && currentStockTab === 'reading') {
+            // 右スワイプ → 漢字ストック（左）へ
+            readingPanel.style.animation = 'slideOutRight 0.25s ease-out';
+            setTimeout(() => {
+                switchStockTab('kanji');
+                readingPanel.style.animation = '';
+                kanjiPanel.style.animation = 'slideInLeft 0.25s ease-out';
+                setTimeout(() => { kanjiPanel.style.animation = ''; }, 250);
             }, 200);
         }
     }
