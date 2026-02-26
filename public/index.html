@@ -588,7 +588,17 @@
             <div id="badge-like" class="stamp-premium">LIKE</div>
             <div id="badge-nope" class="stamp-premium">NOPE</div>
             <div id="badge-super" class="stamp-premium">SUPER</div>
-            <div id="stack" class="w-full h-full"></div>
+        </div>
+
+        <!-- Swipe Action Buttons (× ★ ♡) -->
+        <div id="swipe-action-btns"
+            class="fixed bottom-6 left-0 right-0 flex justify-center items-center gap-6 px-4 z-40 transition-all duration-300">
+            <button onclick="manual('left')"
+                class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
+            <button onclick="manual('up')"
+                class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all">★</button>
+            <button onclick="manual('right')"
+                class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all">♥</button>
         </div>
 
     </div>

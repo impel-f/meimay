@@ -286,7 +286,7 @@ function getGradientFromTags(tags) {
         'tradition': ['#fff7ed', '#ffedd5', '#fed7aa'], // Tradition/Earth
         'peace': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Peace/Mint
         'justice': ['#f8fafc', '#f1f5f9', '#e2e8f0'], // Slate
-        'spirituality': ['#ddd6fe', '#c4b5fd', '#a78bfa'], // Stronger Violet/Indigo (distinct from background)
+        'spirituality': ['#f5f3ff', '#ede9fe', '#ddd6fe'], // Lightened Violet/Indigo (less "strong")
         'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
     };
 
