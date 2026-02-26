@@ -43,23 +43,13 @@ const TAG_LABELS = {
 
 function getUnifiedTags(rawString) {
     if (!rawString) return [];
-    const normalized = rawString.replace(/【|】/g, '');
-    const foundLabels = new Set();
-
-    Object.keys(TAG_KEYWORDS).forEach(key => {
-        const keywords = TAG_KEYWORDS[key];
-        if (keywords.some(kw => normalized.includes(kw))) {
-            foundLabels.add(TAG_LABELS[key]);
-        }
-    });
-
-    // マッチしなかった場合で、かつ入力がある場合はその他
-    if (foundLabels.size === 0 && normalized.trim().length > 0 && normalized !== '---') {
-        return ['その他'];
-    }
-
-    // 最大2つまで
-    return Array.from(foundLabels).slice(0, 2);
+    // Convert comma/space/bracket-separated string to array of tags
+    return rawString
+        .replace(/【|】|#/g, '')
+        .split(/[、,，\s/]+/)
+        .map(t => t.trim())
+        .filter(t => t.length > 0 && t !== '---')
+        .slice(0, 3);
 }
 
 /**
@@ -143,32 +133,48 @@ function render() {
     const meaning = clean(data['意味']);
     const shortMeaning = meaning.length > 50 ? meaning.substring(0, 50) + '...' : meaning;
 
-    // 読みを取得
-    const readings = [data['音'], data['訓'], data['伝統名のり']]
+    // 読みHTML (検索中の読みを優先・強調)
+    const currentSearchReading = (typeof segments !== 'undefined' && segments[currentPos]) || '';
+
+    // 全読みリストを作成
+    const allReadings = [data['音'], data['訓'], data['伝統名のり']]
         .filter(x => clean(x))
         .join(',')
         .split(/[、,，\s/]+/)
-        .filter(x => clean(x))
-        .slice(0, 3);
+        .map(x => clean(x))
+        .filter(x => x);
 
-    // 分類タグを取得（表示用：統一カテゴリ）
-    const unifiedTags = getUnifiedTags((data['名前のイメージ'] || '') + ',' + (data['分類'] || ''));
+    // 検索語句に一致するものを抽出、なければ先頭3つ
+    let displayReadings = [];
+    const matchIdx = allReadings.indexOf(currentSearchReading);
 
-    // 背景色をイメージに連動 (v14.3: 統一タグを使用)
+    if (matchIdx !== -1) {
+        // ヒットしたものを含めて3つ抽出（ヒットしたものを先頭または強調）
+        displayReadings = [currentSearchReading, ...allReadings.filter(r => r !== currentSearchReading)].slice(0, 3);
+    } else {
+        displayReadings = allReadings.slice(0, 3);
+    }
+
+    const readingsHTML = displayReadings.length > 0 ?
+        displayReadings.map(r => {
+            const isMatch = r === currentSearchReading;
+            return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold shadow-sm animate-pulse-once">${r}</span>`;
+        }).join(' ') :
+        '';
+
+    // 分類タグを取得 (raw dataからのタグを取得)
+    const unifiedTags = getUnifiedTags((data['分類'] || ''));
+
+    // 背景色をイメージに連動 (v14.4: タグキーワードから色を決定)
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
 
-    // タグHTML（統一カテゴリを表示）
+    // タグHTML
     const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-80 text-[#8b7e66] rounded-full text-xs font-bold shadow-sm">#${t}</span>`).join(' ') :
+        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-80 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm">#${t}</span>`).join(' ') :
         '';
 
-    // 読みHTML
-    const readingsHTML = readings.length > 0 ?
-        readings.map(r => `<span class="px-2 py-1 bg-white bg-opacity-60 rounded-lg text-xs font-bold text-[#7a6f5a]">${r}</span>`).join(' ') :
-        '';
-
-    // カード全体をクリック可能に（タップ範囲拡大）
+    // カード全体をクリック可能に
     card.innerHTML = `
         <div class="flex-1 flex flex-col justify-center items-center px-4 w-full">
             ${tagsHTML ? `<div class="flex gap-2 mb-2 flex-wrap justify-center">${tagsHTML}</div>` : ''}
@@ -183,7 +189,7 @@ function render() {
                 <p class="text-xs leading-relaxed text-[#7a6f5a] text-center line-clamp-3">${shortMeaning || '意味情報なし'}</p>
             </div>
         </div>
-        <div class="text-center text-[9px] text-[#d4c5af] font-bold tracking-widest pb-2">
+        <div class="text-center text-[9px] text-[#d4c5af] font-bold tracking-widest pb-4">
             タップで詳細 / スワイプで選択
         </div>
     `;
@@ -235,20 +241,26 @@ function updateSwipeCounter() {
 }
 
 /**
- * タグからグラデーションを生成
+ * タグからグラデーションを生成 (v14.4: キーワード照合)
  */
 function getGradientFromTags(tags) {
+    if (!tags || tags.length === 0) return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
+
+    // タグの中にキーワードが含まれているかチェック
+    let matchedKey = 'other';
+    for (const tag of tags) {
+        for (const [key, keywords] of Object.entries(TAG_KEYWORDS)) {
+            if (keywords.some(kw => tag.includes(kw))) {
+                matchedKey = key;
+                break;
+            }
+        }
+        if (matchedKey !== 'other') break;
+    }
+
     const colorMap = {
         // 自然系
-        '自然': ['#f0fdf4', '#dcfce7', '#bbf7d0'],
-        '植物': ['#f0fdf4', '#dcfce7', '#bbf7d0'],
-        '樹木': ['#ecfdf5', '#d1fae5', '#a7f3d0'],
-        '草': ['#f0fdf4', '#dcfce7', '#bbf7d0'],
-        '木': ['#ecfdf5', '#d1fae5', '#a7f3d0'],
-        '森': ['#ecfdf5', '#d1fae5', '#a7f3d0'],
-
-        // 花系
-        '花': ['#fef2f2', '#fce7f3', '#fbcfe8'],
+        'nature': ['#f0fdf4', '#dcfce7', '#bbf7d0'], '花': ['#fef2f2', '#fce7f3', '#fbcfe8'],
         '華やか': ['#fef2f2', '#fce7f3', '#fbcfe8'],
         '桜': ['#fff1f2', '#ffe4e6', '#fecdd3'],
         '美しさ': ['#fdf2f8', '#fce7f3', '#fbcfe8'],
@@ -397,12 +409,13 @@ async function showKanjiDetail(data) {
         `;
     }
 
-    // ヘッダーの読み表示 (v14.3)
+    // ヘッダーの読み表示 (v14.4: カードと同じく全読みを表示)
     const readings = [data['音'], data['訓'], data['伝統名のり']]
         .filter(x => clean(x))
         .join(',')
         .split(/[、,，\s/]+/)
-        .filter(x => clean(x));
+        .map(x => clean(x))
+        .filter(x => x);
 
     if (headerReadingEl) {
         headerReadingEl.innerHTML = `
@@ -410,7 +423,7 @@ async function showKanjiDetail(data) {
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>📖</span> 読み・名乗り
                 </div>
-                <div class="text-base text-[#5d5444] font-bold leading-normal tracking-wider break-keep mt-[-2px]">
+                <div class="text-sm text-[#5d5444] font-bold leading-normal tracking-wider break-keep mt-[1px]">
                     ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
                 </div>
             </div>
@@ -418,9 +431,9 @@ async function showKanjiDetail(data) {
     }
     let tagsContainer = document.getElementById('det-tags-container');
 
-    // タグHTML生成
+    // タグHTML生成 (v14.4: 生データを表示)
     const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white/60 text-[#8b7e66] rounded-full text-xs font-bold shadow-sm border border-transparent backdrop-blur-sm">#${t}</span>`).join(' ') :
+        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-60 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm border border-transparent backdrop-blur-sm">#${t}</span>`).join(' ') :
         '';
 
     if (tagsContainer) {
