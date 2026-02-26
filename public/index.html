@@ -555,52 +555,61 @@
     </div>
 
     <div id="scr-main" class="screen">
-        <div
-            class="hud-top-mini flex items-center justify-between w-full max-w-[330px] mx-auto px-4 z-20 min-h-[44px] mb-4">
-            <!-- Left: Fixed Width -->
-            <div class="w-20 flex justify-start">
-                <button onclick="prevChar()" id="btn-prev-char"
-                    class="h-10 px-2 rounded-full bg-white border-2 border-[#bca37f] text-[#bca37f] font-black shadow-sm flex items-center justify-center transition-all opacity-0 pointer-events-none active:scale-95 text-xs whitespace-nowrap">
-                    &lt; 戻る
-                </button>
-            </div>
-
-            <!-- Center: Flexible -->
-            <div class="flex-1 flex flex-col items-center justify-center gap-0 min-w-0 leading-tight">
-                <span id="pos-indicator"
-                    class="slot-name-mini whitespace-nowrap text-sm font-bold text-[#5d5444]">---</span>
-                <span id="swipe-counter" class="text-[9px] font-bold text-[#a6967a] tracking-wide whitespace-nowrap">
-                    -- / --
-                </span>
-            </div>
-
-            <!-- Right: Fixed Width -->
-            <div class="w-20 flex justify-end">
-                <button onclick="nextChar()" id="btn-next-char"
-                    class="h-10 px-3 rounded-full bg-white border-2 border-[#bca37f] text-[#bca37f] font-black shadow-sm flex items-center justify-center transition-all text-xs active:scale-95 whitespace-nowrap">
-                    次へ &gt;
-                </button>
-            </div>
+        <div id="main-empty-state"
+            class="hidden flex-1 flex flex-col items-center justify-center text-[#a6967a] text-center p-8">
+            <div class="text-4xl mb-4">🌫️</div>
+            <p class="text-sm font-bold">セッションが見つかりません</p>
+            <p class="text-[10px] mt-2">ホームから検索を開始してください</p>
         </div>
 
-        <div id="stack-container"
-            class="relative w-full max-w-sm h-[calc(100vh-260px)] min-h-[420px] max-h-[600px] mt-16 mx-auto">
-            <div id="badge-like" class="stamp-premium">LIKE</div>
-            <div id="badge-nope" class="stamp-premium">NOPE</div>
-            <div id="badge-super" class="stamp-premium">SUPER</div>
-        </div>
+        <div id="main-session-content" class="hidden w-full flex-1 flex flex-col">
+            <div
+                class="hud-top-mini flex items-center justify-between w-full max-w-[330px] mx-auto px-4 z-20 min-h-[44px] mb-4">
+                <!-- Left: Fixed Width -->
+                <div class="w-20 flex justify-start">
+                    <button onclick="prevChar()" id="btn-prev-char"
+                        class="h-10 px-2 rounded-full bg-white border-2 border-[#bca37f] text-[#bca37f] font-black shadow-sm flex items-center justify-center transition-all opacity-0 pointer-events-none active:scale-95 text-xs whitespace-nowrap">
+                        &lt; 戻る
+                    </button>
+                </div>
 
-        <!-- Swipe Action Buttons (× ★ ♡) -->
-        <div id="swipe-action-btns"
-            class="fixed bottom-6 left-0 right-0 flex justify-center items-center gap-6 px-4 z-40 transition-all duration-300">
-            <button onclick="manual('left')"
-                class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
-            <button onclick="manual('up')"
-                class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all">★</button>
-            <button onclick="manual('right')"
-                class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all">♥</button>
-        </div>
+                <!-- Center: Flexible -->
+                <div class="flex-1 flex flex-col items-center justify-center gap-0 min-w-0 leading-tight">
+                    <span id="pos-indicator"
+                        class="slot-name-mini whitespace-nowrap text-sm font-bold text-[#5d5444]">---</span>
+                    <span id="swipe-counter"
+                        class="text-[9px] font-bold text-[#a6967a] tracking-wide whitespace-nowrap">
+                        -- / --
+                    </span>
+                </div>
 
+                <!-- Right: Fixed Width -->
+                <div class="w-20 flex justify-end">
+                    <button onclick="nextChar()" id="btn-next-char"
+                        class="h-10 px-3 rounded-full bg-white border-2 border-[#bca37f] text-[#bca37f] font-black shadow-sm flex items-center justify-center transition-all text-xs active:scale-95 whitespace-nowrap">
+                        次へ &gt;
+                    </button>
+                </div>
+            </div>
+
+            <div id="stack-container"
+                class="relative w-full max-w-sm h-[calc(100vh-260px)] min-h-[420px] max-h-[600px] mt-16 mx-auto">
+                <div id="badge-like" class="stamp-premium">LIKE</div>
+                <div id="badge-nope" class="stamp-premium">NOPE</div>
+                <div id="badge-super" class="stamp-premium">SUPER</div>
+            </div>
+
+            <!-- Swipe Action Buttons (× ★ ♡) -->
+            <div id="swipe-action-btns"
+                class="fixed bottom-6 left-0 right-0 flex justify-center items-center gap-6 px-4 z-40 transition-all duration-300">
+                <button onclick="manual('left')"
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
+                <button onclick="manual('up')"
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all">★</button>
+                <button onclick="manual('right')"
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all">♥</button>
+            </div>
+        </div>
     </div>
 
     <div class="h-40"></div>
