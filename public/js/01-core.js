@@ -13,6 +13,7 @@ let noped = new Set(); // NOPEした漢字を記録（スタック再生成時�
 let validReadingsSet = new Set();
 let rule = 'strict';
 let stack = [];
+let strokeData = {};
 let currentIdx = 0;
 let swipes = 0;
 let gender = 'neutral';
@@ -83,6 +84,18 @@ window.onload = () => {
                     console.log(`CORE: Loaded ${idioms.length} idioms/proverbs`);
                 })
                 .catch(err => console.warn("CORE: Failed to load idioms", err));
+
+            // 画数データの読み込み（非同期）
+            fetch('/data/stroke_data.json')
+                .then(res => {
+                    if (res.ok) return res.json();
+                    return {};
+                })
+                .then(strokes => {
+                    strokeData = strokes;
+                    console.log(`CORE: Loaded ${Object.keys(strokes).length} stroke entries`);
+                })
+                .catch(err => console.warn("CORE: Failed to load stroke data", err));
         })
         .catch(err => {
             console.error("CORE: データ読み込みエラー:", err);
@@ -121,9 +134,15 @@ function updateSurnameData() {
 
     surnameData = chars.map(c => {
         const found = master.find(k => k['漢字'] === c);
+        let strokes = 0;
+        if (strokeData[c]) {
+            strokes = strokeData[c];
+        } else if (found) {
+            strokes = parseInt(found['画数']) || 0;
+        }
         return {
             kanji: c,
-            strokes: found ? (parseInt(found['画数']) || 0) : 0
+            strokes: strokes
         };
     });
 

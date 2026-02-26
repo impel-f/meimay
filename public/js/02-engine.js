@@ -403,21 +403,20 @@ function loadStack() {
     }
 }
 function calculateKanjiScore(k) {
-    let score = (parseInt(k['おすすめ度']) || 0) * 50;
+    let score = 0;
+
+    // 性別適性スコア（基本の「おすすめ度」に加え、男女別のおすすめ度を反映）
+    if (gender === 'male') {
+        score = (parseInt(k['男のおすすめ度']) || parseInt(k['おすすめ度']) || 0) * 10;
+    } else if (gender === 'female') {
+        score = (parseInt(k['女のおすすめ度']) || parseInt(k['おすすめ度']) || 0) * 10;
+    } else {
+        score = (parseInt(k['おすすめ度']) || 0) * 10;
+    }
 
     // 不適切フラグ（名前にふさわしくない）
     if (k['不適切フラグ']) {
         score -= 10000; // 大きく減点
-    }
-
-    const tags = ((k['名前のイメージ'] || "") + (k['分類'] || "")).trim();
-
-    // 性別適性ボーナス
-    if (gender === 'male' && /男|剛|健|武|大|朗|太|一|介|助|郎/.test(tags)) {
-        score += 500;
-    }
-    if (gender === 'female' && /女|花|美|優|愛|莉|奈|乃|菜|実/.test(tags)) {
-        score += 500;
     }
 
     // 画数適性（6〜15画が書きやすい）
@@ -482,36 +481,34 @@ function applyImageTagFilter(kanjis) {
         return kanjis;
     }
 
-    // タグとキーワードのマッピング
+    // 新しい#分類とUIのタグのマッピング
+    // #調和, #品格, #花・彩, #幸福, #繁栄, #慈愛, #自然, #勇気, #知性, #健康, #心・志, #天空, #海・水
     const tagKeywords = {
-        'nature': ['自然', '植物', '樹木', '草', '森', '木', '緑'],
-        'flower': ['花', '華やか', '桜', '桃', '莉', '菜', '咲'],
-        'sky': ['空', '天', '星', '月', '陽', '太陽', '宇宙', '光', '晴'],
-        'water': ['海', '水', '川', '波', '流れ', '清らか', '洋', '源'],
-        'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '活力', '壮大', '武'],
-        'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '心', '愛', '恵'],
-        'intelligence': ['知性', '賢さ', '才能', '優秀', '学問', '智恵', '理', '聡'],
-        'success': ['成功', '向上', '昇進', '発展', '繁栄', '栄える', '叶', '夢'],
-        'beauty': ['美', '麗しい', '艶やか', '華麗', '美しい', '彩', '綾'],
-        'tradition': ['伝統', '古風', '和', '雅', '古典', '歴史', '古'],
-        'stability': ['安定', '平和', '平穏', '安らか', '穏やか', '調和', '定', '永'],
-        // Additional mappings
-        'brightness': ['明るさ', '輝き', '晴れ', '朗らか'],
-        'honesty': ['誠実', '真面目', '実直', '正直', '真摯'],
-        'elegance': ['品格', '高貴', '気品', '上品', '優雅', '格調'],
-        'leadership': ['リーダー', '統率', '王者', '主導', '指導'],
-        'spirituality': ['精神', '魂', '意志', '信念', '純粋']
+        'nature': ['#自然'],
+        'flower': ['#花・彩'],
+        'sky': ['#天空'],
+        'water': ['#海・水'],
+        'strength': ['#勇気'],
+        'kindness': ['#慈愛'],
+        'intelligence': ['#知性'],
+        'success': ['#繁栄', '#幸福'],
+        'beauty': ['#品格'],
+        'tradition': ['#品格', '#調和'],
+        'stability': ['#調和', '#健康'],
+        'brightness': ['#幸福', '#繁栄'],
+        'honesty': ['#心・志', '#調和'],
+        'elegance': ['#品格'],
+        'leadership': ['#勇気', '#心・志'],
+        'spirituality': ['#心・志']
     };
 
     return kanjis.map(k => {
-        const img = k['名前のイメージ'] || '';
-        const meaning = k['意味'] || '';
-        const combined = img + meaning;
+        const category = k['分類'] || '';
 
         // 選択されたタグのいずれかにマッチするかチェック
         const matches = selectedImageTags.some(tagId => {
             const keywords = tagKeywords[tagId] || [];
-            return keywords.some(kw => combined.includes(kw));
+            return keywords.some(kw => category.includes(kw));
         });
 
         k.imagePriority = matches ? 1 : 2;
