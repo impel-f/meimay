@@ -281,19 +281,19 @@ body {
     border-radius: 70px;
     box-shadow: var(--shadow-lg);
     position: absolute;
-    top: 0;
+    top: 40px;
     left: 0;
     right: 0;
-    bottom: 50px;
+    bottom: 120px;
     margin: auto;
     display: flex;
     flex-direction: column;
-    padding: 40px;
+    padding: 24px;
     will-change: transform, opacity;
     backface-visibility: hidden;
     touch-action: none;
     user-select: none;
-    z-index: 10;
+    z-index: 1000;
 }
 
 .glass-card {
@@ -606,7 +606,7 @@ body {
     top: 52px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 100;
+    z-index: 2000;
     background: rgba(255, 255, 255, 0.9);
     padding: 8px 24px;
     border-radius: 20px;

@@ -207,11 +207,13 @@ function render() {
             
             <div class="text-[#bca37f] font-black text-lg mb-2">${data['画数']}画</div>
             
-            ${readingsHTML ? `<div class="w-full overflow-y-auto max-h-[80px] scrollbar-hide flex gap-2 mb-2 flex-wrap justify-center content-start">${readingsHTML}</div>` : ''}
+            ${readingsHTML ? `<div class="w-full flex gap-1.5 mb-2 flex-wrap justify-center content-start">${readingsHTML}</div>` : ''}
             
-            <div class="w-full max-w-xs bg-white bg-opacity-70 rounded-2xl px-3 py-2 shadow-sm overflow-hidden min-h-0 flex items-center justify-center mt-auto mb-2 shrink-0">
+            <div class="w-full max-w-xs bg-white bg-opacity-70 rounded-2xl px-3 py-2 shadow-sm overflow-hidden min-h-0 flex items-center justify-center mt-auto mb-3 shrink-0">
                 <p class="text-xs leading-relaxed text-[#7a6f5a] text-center line-clamp-3">${shortMeaning || '意味情報なし'}</p>
             </div>
+
+            <div class="text-[9px] text-[#d4c5af] font-bold tracking-widest pb-1 opacity-80">タップで詳細 / スワイプで選択</div>
         </div>
     `;
 
