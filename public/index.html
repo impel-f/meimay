@@ -363,7 +363,7 @@
     <div id="scr-vibe" class="screen">
         <!-- Compact height, 3 cols -->
         <div
-            class="glass-card p-5 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto flex flex-col flex-1 min-h-0 overflow-hidden">
+            class="glass-card p-5 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto flex flex-col h-[calc(100vh-180px)] min-h-0 overflow-hidden">
             <h2 class="text-lg font-bold mb-1 text-[#8b7e66]">名前のイメージ</h2>
             <p class="text-[10px] text-[#a6967a] mb-2">当てはまるものを直感で選択</p>
 
@@ -855,27 +855,27 @@
             <!-- タブと共有ボタン -->
             <div class="flex justify-between items-end border-b border-[#eee5d8] mb-4">
                 <div class="flex flex-1" id="stock-tabs">
-                    <button onclick="switchStockTab('reading')" id="stock-tab-reading"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">読みストック</button>
                     <button onclick="switchStockTab('kanji')" id="stock-tab-kanji"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">漢字ストック</button>
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">漢字ストック</button>
+                    <button onclick="switchStockTab('reading')" id="stock-tab-reading"
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">読みストック</button>
                 </div>
                 <button onclick="MeimayShare.shareLiked()"
                     class="partner-share-btn hidden ml-3 mb-2 px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
                     <span>📤</span> 共有
                 </button>
             </div>
+            <!-- 漢字ストック -->
+            <div id="stock-kanji-panel">
+                <div id="stock-list" class="grid grid-cols-5 gap-2 pb-40"></div>
+            </div>
             <!-- 読みストック -->
-            <div id="reading-stock-panel">
+            <div id="reading-stock-panel" class="hidden">
                 <div id="reading-stock-section"></div>
                 <div id="reading-stock-empty" class="text-center py-16 hidden">
                     <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
                     <p class="text-sm text-[#a6967a]">響きをひろげるで読みを選びましょう</p>
                 </div>
-            </div>
-            <!-- 漢字ストック -->
-            <div id="stock-kanji-panel" class="hidden">
-                <div id="stock-list" class="grid grid-cols-5 gap-2 pb-40"></div>
             </div>
         </div>
     </div>
@@ -1009,26 +1009,27 @@
 
             <!-- Fixed Header -->
             <div id="modal-header-bg"
-                class="w-full bg-[#fdfaf5] z-10 px-6 pt-5 pb-4 border-b border-[#eee5d8] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] shrink-0 flex flex-col items-center justify-center relative transition-colors duration-300">
-                <h2 id="detail-kanji" class="text-5xl font-black text-[#5d5444] leading-none mb-3 tracking-tighter"
-                    style="font-size: 4.5rem !important; margin-bottom: 0.75rem !important; line-height: 1 !important;">
+                class="w-full bg-[#fdfaf5] z-10 px-5 pt-5 pb-5 border-b border-[#eee5d8] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] shrink-0 flex flex-col items-center justify-center relative transition-colors duration-300">
+                <h2 id="detail-kanji" class="text-5xl font-black text-[#5d5444] leading-none tracking-tighter"
+                    style="font-size: 4.5rem !important; margin-bottom: 0.5rem !important; line-height: 1 !important;">
                 </h2>
 
                 <!-- Container for Tags -->
-                <div id="det-tags-container" class="flex gap-2 justify-center flex-wrap w-full mt-2"></div>
+                <div id="det-tags-container" class="flex gap-2 justify-center flex-wrap w-full mb-4"></div>
+
+                <!-- Info Cards (Reading & Meaning) Stacked -->
+                <div class="flex flex-col gap-2 w-full max-w-[90%]">
+                    <div id="header-reading"
+                        class="w-full bg-white/70 backdrop-blur-md rounded-xl py-2 px-4 shadow-sm text-left flex flex-col justify-center">
+                    </div>
+                    <div id="header-meaning"
+                        class="w-full bg-white/70 backdrop-blur-md rounded-xl py-2 px-4 shadow-sm text-left flex flex-col justify-center">
+                    </div>
+                </div>
             </div>
 
             <!-- Scrollable Body -->
             <div class="w-full flex-1 overflow-y-auto px-5 py-5 space-y-5 overscroll-contain pb-20">
-                <!-- Data Flex Row -->
-                <div class="flex flex-row gap-3 w-full">
-                    <div id="header-reading"
-                        class="flex-1 bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl p-3 shadow-sm text-center flex flex-col justify-center">
-                    </div>
-                    <div id="header-meaning"
-                        class="flex-1 bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl p-3 shadow-sm text-center flex flex-col justify-center">
-                    </div>
-                </div>
 
                 <div>
                     <h3 class="text-xs font-bold text-[#a6967a] mb-2 pl-1 flex items-center gap-1">

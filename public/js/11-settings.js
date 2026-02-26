@@ -26,6 +26,7 @@ const IMAGE_TAGS = [
 // グローバル変数
 let selectedImageTags = ['none'];
 let shareMode = 'auto'; // 'auto' or 'manual'
+let showInappropriateKanji = false; // 不適切フラグがある漢字を表示するかどうか
 
 /**
  * 設定画面を開く（別画面として）
@@ -91,6 +92,22 @@ function renderSettingsScreen() {
                     <div class="item-title-unified">使い方ガイド</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
+            </div>
+
+            <!-- 不適切漢字の表示設定 -->
+            <div class="settings-item-unified" onclick="toggleInappropriateSetting()">
+                <div class="item-icon-circle" style="background: #fff7ed;">
+                    <span style="color: #f97316;">⚠️</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">不適切な意味を持つ漢字も表示</div>
+                    <div class="item-value-unified">${showInappropriateKanji ? 'ON' : 'OFF'}</div>
+                </div>
+                <div class="item-arrow-unified">
+                    <div class="w-10 h-6 rounded-full relative transition-colors ${showInappropriateKanji ? 'bg-[#bca37f]' : 'bg-gray-200'}">
+                        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${showInappropriateKanji ? 'translate-x-4' : ''}"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="settings-divider-unified" style="margin-top:40px;"></div>
@@ -193,6 +210,16 @@ function editShareMode() {
  */
 function showGuide() {
     alert('使い方ガイドは今後実装予定です');
+}
+
+/**
+ * 不適切設定の切り替え
+ */
+function toggleInappropriateSetting() {
+    showInappropriateKanji = !showInappropriateKanji;
+    saveSettings();
+    renderSettingsScreen();
+    showToast(`不適切漢字の表示を${showInappropriateKanji ? 'ON' : 'OFF'}にしました`);
 }
 
 /**
@@ -308,7 +335,8 @@ function saveSettings() {
         rule: rule,
         prioritizeFortune: prioritizeFortune,
         segments: segments,
-        shareMode: shareMode
+        shareMode: shareMode,
+        showInappropriateKanji: showInappropriateKanji
     };
     localStorage.setItem('meimay_settings', JSON.stringify(settings));
     console.log('SETTINGS: Saved', settings);
@@ -329,6 +357,7 @@ function loadSettings() {
             prioritizeFortune = settings.prioritizeFortune !== undefined ? settings.prioritizeFortune : false;
             segments = settings.segments || [];
             shareMode = settings.shareMode || 'auto';
+            showInappropriateKanji = settings.showInappropriateKanji || false;
             console.log('SETTINGS: Loaded', settings);
         } catch (e) {
             console.error('SETTINGS: Failed to load', e);

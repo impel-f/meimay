@@ -386,9 +386,13 @@ async function showKanjiDetail(data) {
     // ヘッダーの意味表示
     if (headerMeaningEl) {
         headerMeaningEl.innerHTML = `
-            <div class="text-[10px] font-bold text-[#bca37f] mb-1 tracking-widest">💡 意味</div>
-            <div class="text-sm text-[#5d5444] font-medium leading-normal text-left line-clamp-4 overflow-y-auto max-h-[100px] scrollbar-hide">
-                ${clean(data['意味']) || 'データなし'}
+            <div class="flex flex-col">
+                <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
+                    <span>💡</span> 意味
+                </div>
+                <div class="text-sm text-[#5d5444] font-medium leading-relaxed">
+                    ${clean(data['意味']) || '意味データなし'}
+                </div>
             </div>
         `;
     }
@@ -402,9 +406,13 @@ async function showKanjiDetail(data) {
 
     if (headerReadingEl) {
         headerReadingEl.innerHTML = `
-            <div class="text-[10px] font-bold text-[#bca37f] mb-1 tracking-widest">📖 読み・名乗り</div>
-            <div class="text-base text-[#5d5444] font-bold leading-relaxed break-keep">
-                ${readings.join('<span class="text-[#ede5d8] mx-0.5">|</span>')}
+            <div class="flex flex-col">
+                <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
+                    <span>📖</span> 読み・名乗り
+                </div>
+                <div class="text-base text-[#5d5444] font-bold leading-normal tracking-wider break-keep mt-[-2px]">
+                    ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
+                </div>
             </div>
         `;
     }

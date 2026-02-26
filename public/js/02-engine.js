@@ -415,8 +415,8 @@ function calculateKanjiScore(k) {
     }
 
     // 不適切フラグ（名前にふさわしくない）
-    if (k['不適切フラグ']) {
-        score -= 10000; // 大きく減点
+    if (k['不適切フラグ'] && !showInappropriateKanji) {
+        score -= 10000; // 大きく減点して除外
     }
 
     // 画数適性（6〜15画が書きやすい）
