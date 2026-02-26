@@ -44,7 +44,7 @@ const TAG_LABELS = {
 };
 
 function getUnifiedTags(rawString) {
-    if (!rawString || rawString === '---') return [];
+    if (!rawString || rawString === '---') return ['その他'];
 
     // Convert comma/space/bracket-separated string to array of tags
     const tags = rawString
@@ -53,15 +53,26 @@ function getUnifiedTags(rawString) {
         .map(t => t.trim())
         .filter(t => t.length > 0 && t !== '---');
 
-    // 最大3つまで一応正規化を試みる
-    const result = tags.slice(0, 3);
+    // 解析されたタグがあるか確認
+    if (tags.length === 0) return ['その他'];
 
-    // 1つも抽出されなかった場合、元の文字列に何かしら記載があれば「その他」
-    if (result.length === 0 && rawString.trim().length > 0) {
-        return ['その他'];
+    // キーワードに1つでも合致するかチェック
+    let hasMatch = false;
+    for (const tag of tags) {
+        for (const keywords of Object.values(TAG_KEYWORDS)) {
+            if (keywords.some(kw => tag.includes(kw))) {
+                hasMatch = true;
+                break;
+            }
+        }
+        if (hasMatch) break;
     }
 
-    return result;
+    // どのカテゴリにも当てはまらない、または「こだわらない」等の場合は「その他」
+    if (!hasMatch) return ['その他'];
+
+    // 最大3つまで
+    return tags.slice(0, 3);
 }
 
 /**
@@ -268,14 +279,14 @@ function getGradientFromTags(tags) {
         'hope': ['#fffbeb', '#fef3c7', '#fde68a'], // Amber
         'success': ['#ecfdf5', '#d1fae5', '#a7f3d0'], // Emerald
         'nature': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Green
-        'flower': ['#fef2f2', '#fce7f3', '#fbcfe8'], // Floral Pink (distinct from nature)
+        'flower': ['#fdf2f8', '#fce7f3', '#fbcfe8'], // Floral Pink (more vibrant)
         'water': ['#f0f9ff', '#e0f2fe', '#bae6fd'], // Sky
         'sky': ['#f0fdfa', '#ccfbf1', '#99f6e4'], // Teal
         'elegance': ['#faf5ff', '#f3e8ff', '#e9d5ff'], // Purple
         'tradition': ['#fff7ed', '#ffedd5', '#fed7aa'], // Tradition/Earth
         'peace': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Peace/Mint
         'justice': ['#f8fafc', '#f1f5f9', '#e2e8f0'], // Slate
-        'spirituality': ['#ede9fe', '#ddd6fe', '#c4b5fd'], // Stronger Indigo/Violet (distinct from white)
+        'spirituality': ['#ddd6fe', '#c4b5fd', '#a78bfa'], // Stronger Violet/Indigo (distinct from background)
         'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
     };
 
