@@ -22,12 +22,17 @@ function setupPhysics(card, data) {
             return;
         }
 
+        // ボタン要素（×★♡）へのタップは無視する（貫通防止）
+        if (e.target.closest('button') || e.target.closest('#swipe-action-btns')) {
+            return;
+        }
+
         sx = e.clientX;
         sy = e.clientY;
         dx = 0;
         dy = 0;
 
-        card.setPointerCapture(e.pointerId);
+        // setPointerCaptureは削除（これがボタンへのタップを横取りしていた）
         active = true;
 
         // GPU加速を有効化

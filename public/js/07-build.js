@@ -6,16 +6,229 @@
 let selectedPieces = [];
 
 /**
- * ストック画面を開く
+/**
+ * 自由ビルド：読み方に縛られずストックの漢字を自由に組み立てる
+ * スロット式：文字数を選んでから、枠ごとにタップして漢字を選ぶ
  */
-let currentStockTab = 'kanji';
+function openFreeBuild() {
+    console.log('BUILD: openFreeBuild');
 
-function openStock(tab) {
-    console.log("BUILD: Opening stock screen");
-    renderStock();
-    changeScreen('scr-stock');
-    switchStockTab(tab || currentStockTab || 'kanji');
+    // ストックがない場合
+    if (!liked || liked.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('まずスワイプで漢字をストックしてください', '📦');
+        }
+        return;
+    }
+
+    // 自由ビルド用オーバーレイを生成（既存があれば削除）
+    let existing = document.getElementById('free-build-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'free-build-overlay';
+    overlay.className = 'overlay active';
+    overlay.style.alignItems = 'flex-start';
+    overlay.style.paddingTop = '20px';
+    overlay.style.overflowY = 'auto';
+    overlay.innerHTML = `
+        <div class="detail-sheet w-[95%] max-w-md flex flex-col" style="max-height:90vh;overflow-y:auto;padding:24px 20px;" onclick="event.stopPropagation()">
+            <button class="modal-close-btn absolute top-4 right-4 z-50"
+                onclick="document.getElementById('free-build-overlay').remove()">✕</button>
+            <h2 class="text-lg font-black text-[#5d5444] mb-1 text-center">ストックから組み立てる</h2>
+            <p class="text-xs text-[#a6967a] text-center mb-4">読み方・順番は自由！好きな漢字を配置してください</p>
+
+            <!-- 文字数選択 -->
+            <div id="free-build-char-count-section" class="mb-4">
+                <p class="text-xs font-bold text-[#8b7e66] mb-2">名前の文字数</p>
+                <div class="flex gap-2 justify-center">
+                    ${[1, 2, 3, 4].map(n => `
+                        <button onclick="initFreeBuildSlots(${n})"
+                            class="free-build-count-btn w-12 h-12 rounded-xl border-2 border-[#ede5d8] bg-white text-[#5d5444] font-black text-lg hover:border-[#bca37f] transition-all active:scale-90">
+                            ${n}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- スロット -->
+            <div id="free-build-slots" class="flex gap-2 justify-center mb-4 hidden"></div>
+
+            <!-- 読みグループ選択パレット -->
+            <div id="free-build-palette" class="hidden">
+                <p class="text-[10px] text-[#a6967a] mb-2 text-center" id="free-build-palette-hint">枠をタップして漢字を選んでください</p>
+                <!-- 読みグループタブ -->
+                <div id="free-build-group-tabs" class="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide"></div>
+                <!-- 漢字グリッド -->
+                <div id="free-build-kanji-grid" class="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pb-2"></div>
+            </div>
+
+            <!-- 確認ボタン -->
+            <button id="free-build-confirm-btn" class="btn-gold py-4 shadow-xl hidden mt-4" onclick="confirmFreeBuild()">
+                この並びで姓名判断 →
+            </button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 }
+
+// 自由ビルドのスロットを初期化
+let freeBuildSlots = [];
+let freeBuildActiveSlot = -1;
+
+function initFreeBuildSlots(count) {
+    freeBuildSlots = Array(count).fill(null);
+    freeBuildActiveSlot = 0;
+
+    const slotsEl = document.getElementById('free-build-slots');
+    const palette = document.getElementById('free-build-palette');
+    const confirmBtn = document.getElementById('free-build-confirm-btn');
+
+    if (!slotsEl) return;
+
+    // 文字数ボタンのアクティブ表示
+    document.querySelectorAll('.free-build-count-btn').forEach((btn, i) => {
+        const n = i + 1;
+        btn.className = `free-build-count-btn w-12 h-12 rounded-xl border-2 font-black text-lg transition-all active:scale-90 ${n === count ? 'border-[#bca37f] bg-[#fdfaf5] text-[#bca37f]' : 'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}`;
+    });
+
+    // スロット描画
+    slotsEl.innerHTML = freeBuildSlots.map((_, i) => `
+        <button id="free-slot-${i}" onclick="selectFreeBuildSlot(${i})"
+            class="w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all ${i === 0 ? 'border-[#bca37f] ring-2 ring-[#bca37f]/30 bg-[#fffbeb]' : 'border-[#ede5d8] bg-white text-[#c8b99a]'}">
+            <span id="free-slot-kanji-${i}">？</span>
+        </button>
+    `).join('');
+    slotsEl.classList.remove('hidden');
+    palette.classList.remove('hidden');
+    confirmBtn.classList.add('hidden');
+
+    // 最初の読みグループを表示
+    renderFreeBuildGroups(freeBuildActiveSlot);
+}
+
+// スロットを選択
+function selectFreeBuildSlot(idx) {
+    freeBuildActiveSlot = idx;
+    document.querySelectorAll('[id^="free-slot-"]').forEach((el, i) => {
+        const kanji = freeBuildSlots[i];
+        const isActive = i === idx;
+        el.className = `w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all ${isActive ? 'border-[#bca37f] ring-2 ring-[#bca37f]/30 bg-[#fffbeb]' : 'border-[#ede5d8] bg-white'}`;
+    });
+    renderFreeBuildGroups(idx);
+}
+
+// 読みグループのタブとグリッドをレンダリング
+let freeBuildCurrentGroup = null;
+
+function renderFreeBuildGroups(slotIdx) {
+    // ストックを読みグループ（sessionReading）別にまとめる
+    const groups = {};
+    liked.forEach(item => {
+        const key = item.sessionReading || 'FREE';
+        if (!groups[key]) groups[key] = [];
+        // 重複排除
+        if (!groups[key].find(k => k['漢字'] === item['漢字'])) {
+            groups[key].push(item);
+        }
+    });
+
+    const groupKeys = Object.keys(groups);
+    if (groupKeys.length === 0) return;
+
+    // 最初のグループを選択
+    if (!freeBuildCurrentGroup || !groups[freeBuildCurrentGroup]) {
+        freeBuildCurrentGroup = groupKeys[0];
+    }
+
+    // タブ描画
+    const tabsEl = document.getElementById('free-build-group-tabs');
+    if (tabsEl) {
+        tabsEl.innerHTML = groupKeys.map(key => `
+            <button onclick="switchFreeBuildGroup('${key}')"
+                class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all ${key === freeBuildCurrentGroup ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#ede5d8] text-[#8b7e66]'}">
+                ${key}
+            </button>
+        `).join('');
+    }
+
+    // グリッド描画
+    renderFreeBuildKanjiGrid(groups[freeBuildCurrentGroup] || []);
+}
+
+function switchFreeBuildGroup(key) {
+    freeBuildCurrentGroup = key;
+    renderFreeBuildGroups(freeBuildActiveSlot);
+}
+
+function renderFreeBuildKanjiGrid(items) {
+    const grid = document.getElementById('free-build-kanji-grid');
+    if (!grid) return;
+
+    grid.innerHTML = items.map(item => `
+        <button onclick="placeFreeBuildKanji('${item['漢字']}')"
+            class="w-full aspect-square rounded-xl border-2 flex items-center justify-center text-2xl font-black transition-all active:scale-90 ${freeBuildSlots.includes(item['漢字']) ? 'border-[#bca37f] bg-[#fffbeb] text-[#bca37f]' : 'border-[#ede5d8] bg-white text-[#5d5444]'}">
+            ${item['漢字']}
+        </button>
+    `).join('');
+}
+
+// 漢字をスロットに配置
+function placeFreeBuildKanji(kanji) {
+    if (freeBuildActiveSlot < 0) return;
+
+    freeBuildSlots[freeBuildActiveSlot] = kanji;
+    const slotKanjiEl = document.getElementById(`free-slot-kanji-${freeBuildActiveSlot}`);
+    const slotEl = document.getElementById(`free-slot-${freeBuildActiveSlot}`);
+    if (slotKanjiEl) slotKanjiEl.textContent = kanji;
+    if (slotEl) {
+        slotEl.className = 'w-14 h-14 rounded-2xl border-2 flex items-center justify-center text-2xl font-black transition-all border-[#81c995] bg-[#f0fdf4] text-[#5d5444] ring-2 ring-[#81c995]/30';
+    }
+
+    // 次の空きスロットへ自動移動
+    const nextEmpty = freeBuildSlots.findIndex((v, i) => v === null && i > freeBuildActiveSlot);
+    const anyEmpty = freeBuildSlots.findIndex(v => v === null);
+    if (nextEmpty !== -1) {
+        selectFreeBuildSlot(nextEmpty);
+    } else if (anyEmpty !== -1) {
+        selectFreeBuildSlot(anyEmpty);
+    } else {
+        // 全スロット埋まった
+        freeBuildActiveSlot = -1;
+        document.getElementById('free-build-confirm-btn')?.classList.remove('hidden');
+    }
+
+    // グリッド更新
+    renderFreeBuildGroups(freeBuildActiveSlot >= 0 ? freeBuildActiveSlot : 0);
+}
+
+// 自由ビルドの確定
+function confirmFreeBuild() {
+    const givenName = freeBuildSlots.join('');
+    const givenReading = freeBuildSlots.map(k => {
+        const item = liked.find(l => l['漢字'] === k);
+        return item?.sessionSegments?.[0] || k;
+    }).join('');
+
+    if (!givenName) return;
+
+    // オーバーレイを閉じてビルド画面に遷移
+    const overlay = document.getElementById('free-build-overlay');
+    if (overlay) overlay.remove();
+
+    // 自由ビルドの選択をlikedに追加（slot=-2でフリービルドとして識別）
+    const combination = freeBuildSlots.map(k => {
+        return liked.find(l => l['漢字'] === k) || master?.find(m => m['漢字'] === k) || { '漢字': k, '画数': 1 };
+    });
+
+    // ビルド画面を開いて姓名判断を表示
+    if (typeof openSaveScreen === 'function') {
+        openSaveScreen(combination, givenName, givenReading);
+    } else {
+        showToast(`${givenName}（${givenReading}）でビルドします`, '✨');
+    }
+}
+
 
 function switchStockTab(tab) {
     currentStockTab = tab;

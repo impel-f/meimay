@@ -185,29 +185,38 @@ const MeimayAuth = {
         showToast('ニックネームを更新しました', '✨');
     },
 
-    // 名字変更
-    editSurname: function () {
-        const wizData = WizardData.get() || {};
-        const oldSurname = wizData.surname || '';
-        const newSurname = prompt('新しい名字を入力してください', oldSurname);
-        if (newSurname === null) return;
-        const trimmed = newSurname.trim();
+    // アカウント削除
+    deleteAccount: async function () {
+        const user = firebaseAuth.currentUser;
+        if (!user) return;
 
-        wizData.surname = trimmed;
-        WizardData.save(wizData);
+        const confirmed = confirm('本当にアカウントを削除しますか？\nストック・保存名前などのデータは全て削除され、元に戻せません。');
+        if (!confirmed) return;
 
-        // グローバル変数も更新
-        if (typeof surnameStr !== 'undefined') {
-            surnameStr = trimmed;
-            const surnameInput = document.getElementById('in-surname');
-            if (surnameInput) surnameInput.value = surnameStr;
-            if (typeof updateSurnameData === 'function') updateSurnameData();
+        try {
+            showLoginLoading(true);
+            // Firestoreデータを削除
+            const userRef = firebaseDb.collection('users').doc(user.uid);
+            const subDocs = ['liked', 'savedNames', 'readingHistory', 'settings'];
+            for (const sub of subDocs) {
+                try { await userRef.collection('data').doc(sub).delete(); } catch (e) { }
+            }
+            try { await userRef.delete(); } catch (e) { }
+            // Firebaseアカウントの削除
+            await user.delete();
+            showToast('アカウントを削除しました', '👋');
+            console.log('FIREBASE: Account deleted');
+        } catch (e) {
+            console.error('FIREBASE: Account deletion failed', e);
+            // 再認証が必要な場合
+            if (e.code === 'auth/requires-recent-login') {
+                showLoginError('セキュリティのため、再ログインしてからもう一度お試しください。');
+            } else {
+                showLoginError('アカウント削除に失敗しました。');
+            }
+        } finally {
+            showLoginLoading(false);
         }
-
-        updateAuthUI(this.currentUser);
-        // クラウド同期
-        if (this.currentUser) MeimaySync.uploadData();
-        showToast('名字を更新しました', '✨');
     }
 };
 
@@ -672,23 +681,35 @@ const MeimayPairing = {
     partnerId: null,
     partnerName: null,
 
-    // 6桁招待コード生成
+    // 招待コード生成（既存コードがあれば同じものを返す。押すたびに変わらない）
     generateCode: async function () {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { showLoginError('先にログインしてください'); return null; }
 
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         try {
+            // 既存コードを確認
+            const userDoc = await firebaseDb.collection('users').doc(user.uid).get();
+            if (userDoc.exists && userDoc.data().pairingCode) {
+                const existingCode = userDoc.data().pairingCode;
+                // コードが有完期でないか確認
+                const codeDoc = await firebaseDb.collection('pairingCodes').doc(existingCode).get();
+                if (codeDoc.exists) {
+                    console.log(`PAIRING: Reusing existing code: ${existingCode}`);
+                    return existingCode;
+                }
+            }
+
+            // 新規コード生成
+            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
             await firebaseDb.collection('pairingCodes').doc(code).set({
                 uid: user.uid,
                 displayName: user.displayName || user.email?.split('@')[0] || 'ユーザー',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-
-            // 10分後に自動削除
-            setTimeout(async () => {
-                try { await firebaseDb.collection('pairingCodes').doc(code).delete(); } catch (e) { }
-            }, 10 * 60 * 1000);
+            // ユーザードキュメントにコードを保存
+            await firebaseDb.collection('users').doc(user.uid).set(
+                { pairingCode: code }, { merge: true }
+            );
 
             console.log(`PAIRING: Code generated: ${code}`);
             return code;

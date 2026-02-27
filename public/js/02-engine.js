@@ -20,7 +20,7 @@ function calcSegments() {
 
     // 入力チェック
     if (!nameReading) {
-        alert("名前の読みをひらがなで入力してください。\n例：なだい、ゆうた");
+        alert("名前の読みをひらがなで入力してください。\n例：はな、かな、ゆうと");
         return;
     }
 
