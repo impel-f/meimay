@@ -864,9 +864,11 @@
             <div class="flex justify-between items-end border-b border-[#eee5d8] mb-4">
                 <div class="flex flex-1" id="stock-tabs">
                     <button onclick="switchStockTab('kanji')" id="stock-tab-kanji"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">漢字ストック</button>
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">漢字</button>
                     <button onclick="switchStockTab('reading')" id="stock-tab-reading"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">読みストック</button>
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">読み</button>
+                    <button onclick="switchStockTab('freebuild')" id="stock-tab-freebuild"
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">組み立て</button>
                 </div>
                 <button onclick="MeimayShare.shareLiked()"
                     class="partner-share-btn hidden ml-3 mb-2 px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
@@ -884,6 +886,10 @@
                     <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
                     <p class="text-sm text-[#a6967a]">響きをひろげるで読みを選びましょう</p>
                 </div>
+            </div>
+            <!-- ストックから組み立てる（自由ビルド） -->
+            <div id="free-build-panel" class="hidden pb-40">
+                <div id="free-build-section"></div>
             </div>
         </div>
     </div>

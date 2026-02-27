@@ -49,32 +49,29 @@ async function loadRanking(tab) {
         return;
     }
 
-    let html = '<div class="grid grid-cols-3 gap-3 pb-8 pt-2">';
+    let html = '<div class="space-y-2 pb-8 pt-2">';
     rankings.forEach((item, index) => {
         // ローカルマスターから詳細を取得
         const kanjiData = typeof master !== 'undefined' ? master.find(m => m['漢字'] === item.kanji) : null;
         if (!kanjiData) return;
 
         const isStocked = typeof liked !== 'undefined' && liked.some(l => l['漢字'] === item.kanji);
-        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
+        const rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
         const rankColor = index < 3 ? 'text-[#bca37f]' : 'text-[#8b7e66]';
 
         html += `
-            <div class="relative bg-white rounded-2xl p-3 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} flex flex-col items-center gap-1 transition-all active:scale-95"
+            <div class="flex items-center gap-4 bg-white rounded-2xl px-4 py-3 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-95 cursor-pointer"
                 onclick="showRankingKanjiDetail('${item.kanji}')">
-                <!-- ランク表示 -->
-                <div class="absolute top-2 left-2 text-xs font-black ${rankColor}">${rankIcon}</div>
-                <!-- 漢字大文字 -->
-                <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-[#fdfaf5] to-[#f5f0e6] border border-[#ede5d8] flex items-center justify-center text-3xl font-black text-[#5d5444] mt-2 shadow-sm">
+                <div class="text-base font-black ${rankColor} w-8 text-center shrink-0">${rankIcon}</div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#fdfaf5] to-[#f5f0e6] border border-[#ede5d8] flex items-center justify-center text-2xl font-black text-[#5d5444] shadow-sm shrink-0">
                     ${kanjiData['漢字']}
                 </div>
-                <!-- ストック数 -->
-                <div class="text-[10px] font-bold text-[#bca37f] flex items-center gap-0.5">
-                    <span>❤️</span> ${item.count}
+                <div class="flex-1">
+                    <div class="text-xs text-[#8b7e66] font-bold">${kanjiData['音読み'] || kanjiData['訓読み'] || ''}</div>
+                    <div class="text-[10px] text-[#bca37f]">❤️ ${item.count}人</div>
                 </div>
-                <!-- ストックボタン -->
                 <button onclick="event.stopPropagation(); toggleRankingStock('${item.kanji}', this)"
-                    class="w-full py-1.5 ${isStocked ? 'bg-[#fef2f2] text-[#f28b82]' : 'bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm'} rounded-lg text-[10px] font-bold transition-all active:scale-95">
+                    class="px-3 py-1.5 ${isStocked ? 'bg-[#fef2f2] text-[#f28b82]' : 'bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm'} rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0">
                     ${isStocked ? '解除' : 'ストック'}
                 </button>
             </div>
