@@ -55,23 +55,9 @@
 
         <!-- Menu Items -->
         <nav class="flex-1 overflow-y-auto py-4">
-            <button onclick="drawerNavigate('history')" class="drawer-menu-item">
-                <span class="drawer-icon">🕐</span>
-                <span>検索履歴</span>
-            </button>
-            <button onclick="drawerNavigate('search')" class="drawer-menu-item">
-                <span class="drawer-icon">🔎</span>
-                <span>漢字を検索</span>
-            </button>
-            <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
-                <span class="drawer-icon">🔮</span>
-                <span>姓名判断・診断</span>
-            </button>
-
-            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
-
+            <!-- モード -->
             <div class="px-6 py-2">
-                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">モード</p>
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">名前を探す</p>
             </div>
             <button onclick="drawerNavigate('mode-reading')" class="drawer-menu-item" id="drawer-mode-reading">
                 <span class="drawer-icon">🔤</span>
@@ -89,19 +75,40 @@
                 <span class="drawer-icon">📦</span>
                 <span>ストックから組み立てる</span>
             </button>
-            <button onclick="drawerNavigate('akinator')" class="drawer-menu-item hidden" id="drawer-akinator">
-                <span class="drawer-icon">🎯</span>
-                <span>AIおすすめ漢字</span>
+
+            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
+
+            <!-- ツール -->
+            <div class="px-6 py-2">
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">ツール</p>
+            </div>
+            <button onclick="drawerNavigate('search')" class="drawer-menu-item">
+                <span class="drawer-icon">🔎</span>
+                <span>漢字を検索</span>
+            </button>
+            <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
+                <span class="drawer-icon">🔮</span>
+                <span>姓名判断・診断</span>
+            </button>
+            <button onclick="openRanking()" class="drawer-menu-item">
+                <span class="drawer-icon">👑</span>
+                <span>漢字ランキング</span>
             </button>
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
 
-
+            <!-- 履歴・設定 -->
+            <button onclick="drawerNavigate('history')" class="drawer-menu-item">
+                <span class="drawer-icon">🕐</span>
+                <span>検索履歴</span>
+            </button>
             <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
                 <span class="drawer-icon">⚙️</span>
                 <span>設定</span>
             </button>
+
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
+
             <button onclick="drawerNavigate('legal-terms')" class="drawer-menu-item">
                 <span class="drawer-icon">📄</span>
                 <span>利用規約</span>
@@ -273,32 +280,34 @@
                 </div>
             </div>
 
-            <!-- Tools -->
+            <!-- Tools: 漢字検索・姓名判断・ランキング 3つ横並び -->
             <div class="w-full max-w-sm px-6 mb-4">
-                <div class="text-xs font-bold text-[#8b7e66] mb-3 ml-1">ツール</div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="openReadingHistory()"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-lg mb-0.5">🕐</div>
-                        <div class="text-xs text-[#5d5444] font-bold">検索履歴</div>
-                    </button>
+                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">ツール</div>
+                <div class="grid grid-cols-3 gap-3">
                     <button onclick="openKanjiSearch()"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-lg mb-0.5">🔎</div>
+                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">🔎</div>
                         <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
                     </button>
                     <button onclick="startMode('diagnosis')"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-lg mb-0.5">🔮</div>
+                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">🔮</div>
                         <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
                     </button>
                     <button onclick="openRanking()"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95 relative">
-                        <div class="text-lg mb-0.5">👑</div>
-                        <div class="text-xs text-[#5d5444] font-bold">漢字ランキング</div>
+                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        <div class="text-2xl mb-1">👑</div>
+                        <div class="text-xs text-[#5d5444] font-bold">ランキング</div>
                     </button>
                 </div>
             </div>
+
+            <script>
+                function openKanjiSearch() {
+                    if (typeof changeScreen === 'function') changeScreen('scr-kanji-search');
+                }
+                window.openKanjiSearch = openKanjiSearch;
+            </script>
 
         </div>
     </div>
