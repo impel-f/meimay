@@ -281,19 +281,29 @@ function renderBuildSelection() {
         const uniqueKanji = Array.from(new Set(allSlotItems.map(i => i['漢字'])));
 
         if (items.length === 0) {
-            if (uniqueKanji.length > 0) {
-                // 他の読み方の候補がある
-                scrollBox.innerHTML = `
-                    <div class="text-[#bca37f] text-sm italic px-4 py-6">
-                        他の読み方で選んだ候補：${uniqueKanji.length}個<br>
-                        <span class="text-xs text-[#a6967a] mt-2 block">「+ 追加する」で現在の読み方の候補を追加できます</span>
-                    </div>
-                `;
+            // 他の読み方で選んだ漢字を自動で表示（ストックに追加）
+            const allSlotItems = liked.filter(item => item.slot === idx);
+            if (allSlotItems.length > 0) {
+                // 重複を排除してビルド候補として使う
+                const seen = new Set();
+                const mergedItems = allSlotItems.filter(item => {
+                    if (seen.has(item['漢字'])) return false;
+                    seen.add(item['漢字']);
+                    return true;
+                });
+                items = mergedItems;
+                // デバッグメッセージ（他の読み方のものを使う旨を表示）
+                const noteEl = document.createElement('div');
+                noteEl.className = 'col-span-full text-[10px] text-[#a6967a] italic pt-1 pb-2 pl-1';
+                noteEl.textContent = '（他の読み方で選んだ漢字を含む）';
+                scrollBox.appendChild(noteEl);
             } else {
                 // 本当に候補がない
                 scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
             }
-        } else {
+        }
+
+        if (items.length > 0) {
             items.sort((a, b) => {
                 if (a.isSuper && !b.isSuper) return -1;
                 if (!a.isSuper && b.isSuper) return 1;

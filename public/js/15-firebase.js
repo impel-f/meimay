@@ -110,6 +110,30 @@ const MeimayAuth = {
         }
     },
 
+    // Apple ログイン
+    signInWithApple: async function () {
+        try {
+            showLoginLoading(true);
+            showLoginError('');
+            const provider = new firebase.auth.OAuthProvider('apple.com');
+            provider.addScope('email');
+            provider.addScope('name');
+            await firebaseAuth.signInWithPopup(provider);
+            console.log("FIREBASE: Apple sign-in success");
+        } catch (e) {
+            console.error("FIREBASE: Apple sign-in failed", e);
+            let msg = getAuthErrorMessage(e.code);
+            if (e.code === 'auth/popup-blocked') {
+                msg = 'ポップアップがブロックされました。ブラウザの設定を確認してください。';
+            } else if (e.code === 'auth/operation-not-supported-in-this-environment') {
+                msg = 'この環境ではAppleログインは使用できません。';
+            }
+            showLoginError(msg);
+        } finally {
+            showLoginLoading(false);
+        }
+    },
+
     // 匿名ログイン
     signInAnonymous: async function () {
         try {

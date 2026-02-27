@@ -52,12 +52,72 @@ function startMode(mode) {
     } else if (mode === 'nickname') {
         changeScreen('scr-input-nickname');
     } else if (mode === 'sound') {
-        initSoundMode();
+        // 「響きから探す」→ 入れたい音があるかどうか確認してから分岐
+        initSoundModeEntry();
     } else {
         // reading mode
         changeScreen('scr-input-reading');
     }
 }
+
+/**
+ * 「響きから探す」エントリー：入れたい音があるかどうかを確認
+ */
+function initSoundModeEntry() {
+    console.log('UI_FLOW: initSoundModeEntry');
+
+    // 既存オーバーレイがあれば再利用
+    let overlay = document.getElementById('sound-entry-overlay');
+    if (overlay) {
+        overlay.classList.add('active');
+        return;
+    }
+
+    // 動的にオーバーレイを生成
+    overlay = document.createElement('div');
+    overlay.id = 'sound-entry-overlay';
+    overlay.className = 'overlay active';
+    overlay.innerHTML = `
+        <div class="detail-sheet text-center" onclick="event.stopPropagation()">
+            <div class="text-4xl mb-4">🎵</div>
+            <h2 class="text-xl font-black text-[#5d5444] mb-3">響きから探す</h2>
+            <p class="text-sm text-[#7a6f5a] mb-8 leading-relaxed">
+                入れたい音（呼び名・あだ名）は<br>すでに決まっていますか？
+            </p>
+            <div class="space-y-3">
+                <button onclick="closeSoundEntryAndGo('nickname')"
+                    class="btn-gold py-4 shadow-xl w-full">
+                    ✨ はい、入れたい音がある<br>
+                    <span class="text-xs font-normal opacity-80">例：「はる」から始まる名前を探す</span>
+                </button>
+                <button onclick="closeSoundEntryAndGo('sound')"
+                    class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl font-bold text-sm text-[#5d5444] hover:border-[#bca37f] transition-all">
+                    🔊 いいえ、響きをスワイプして選ぶ<br>
+                    <span class="text-xs font-normal text-[#a6967a]">人気の名前の読みをスワイプして選ぶ</span>
+                </button>
+            </div>
+            <button onclick="document.getElementById('sound-entry-overlay').classList.remove('active')"
+                class="text-sm text-[#bca37f] mt-6 hover:underline">戻る</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+/**
+ * 響きモード分岐オーバーレイを閉じて指定モードへ遷移
+ */
+function closeSoundEntryAndGo(mode) {
+    const overlay = document.getElementById('sound-entry-overlay');
+    if (overlay) overlay.classList.remove('active');
+
+    if (mode === 'nickname') {
+        appMode = 'nickname';
+        changeScreen('scr-input-nickname');
+    } else {
+        initSoundMode();
+    }
+}
+
 
 /**
  * 性別選択（ウィザードから設定済みだが互換性のため残す）
