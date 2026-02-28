@@ -232,9 +232,9 @@
          MAIN HOME SCREEN (restructured)
          ============================================================ -->
     <div id="scr-mode" class="screen">
-        <div class="flex flex-col items-center h-full overflow-y-auto pt-14 pb-10 w-full">
+        <div class="flex flex-col items-center h-full overflow-y-auto pt-2 pb-10 w-full">
             <!-- 今日の一字 -->
-            <div class="w-full max-w-sm px-6 mb-4 mt-2" id="todays-kanji-container">
+            <div class="w-full max-w-sm px-6 mb-3 mt-0" id="todays-kanji-container">
                 <div
                     class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[100px]">
                     <p class="text-[10px] font-bold text-[#bca37f] tracking-widest uppercase mb-2">準備中...</p>
@@ -242,14 +242,14 @@
             </div>
 
             <!-- Quick Actions: 名前を探す — Bento Grid -->
-            <div class="w-full max-w-sm px-6 mb-4">
+            <div class="w-full max-w-sm px-6 mb-3">
                 <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="grid gap-2" style="grid-template-columns: 3fr 2fr; grid-template-rows: 3fr 2fr 2fr; height: 270px;">
+                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 270px;">
 
                     <!-- Left tall: 読みから漢字をさがす (most important) -->
                     <button onclick="startMode('reading')"
                         class="rounded-2xl flex flex-col items-center justify-center gap-2 p-4 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#f8f2e4 0%,#e8d5b0 60%,#d4be8a 100%);">
+                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#fdfaf4 0%,#f2e8d5 60%,#e8d8b8 100%);">
                         <div class="text-4xl">🔤</div>
                         <div>
                             <div class="text-[13px] font-black leading-snug" style="color:#5d5444;">読みから<br>漢字をさがす</div>
@@ -260,33 +260,33 @@
                     <!-- Right top: 響き・読みをさがす -->
                     <button onclick="startMode('sound')"
                         class="rounded-2xl flex flex-col items-center justify-center gap-1 p-3 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#eef3ff 0%,#c8d8ff 100%);">
+                        style="background:linear-gradient(155deg,#f5f8ff 0%,#dde8ff 100%);">
                         <div class="text-2xl">🎵</div>
                         <div>
-                            <div class="text-[11px] font-black leading-tight" style="color:#3d4f9a;">響き・読みをさがす</div>
-                            <div class="text-[9px] mt-0.5 leading-tight" style="color:#6070b8;">人気の響きや、入れたい音から</div>
+                            <div class="text-[11px] font-black leading-tight" style="color:#4a5fa0;">響き・読みを<br>さがす</div>
+                            <div class="text-[9px] mt-0.5 leading-tight" style="color:#7080b8;">人気の響きや<br>入れたい音から</div>
                         </div>
                     </button>
 
                     <!-- Right mid: 自由に漢字をさがす -->
                     <button onclick="startMode('free')"
                         class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#edfaf3 0%,#b8f0d4 100%);">
+                        style="background:linear-gradient(155deg,#f4fdf8 0%,#d4f0e2 100%);">
                         <div class="text-xl">✨</div>
                         <div>
-                            <div class="text-[10px] font-black leading-tight" style="color:#1a6b45;">自由に漢字をさがす</div>
-                            <div class="text-[8px] mt-0.5" style="color:#2d8a5a;">直感で漢字をストック</div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#2a7a55;">自由に漢字を<br>さがす</div>
+                            <div class="text-[8px] mt-0.5" style="color:#3d9068;">直感でストック</div>
                         </div>
                     </button>
 
                     <!-- Right bottom: ストックから組み立てる -->
                     <button onclick="openFreeBuild()"
                         class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#fef4e4 0%,#fdd898 100%);">
+                        style="background:linear-gradient(155deg,#fffdf5 0%,#fcecc8 100%);">
                         <div class="text-xl">⚒️</div>
                         <div>
-                            <div class="text-[10px] font-black leading-tight" style="color:#7a4800;">ストックから<br>組み立てる</div>
-                            <div class="text-[8px] mt-0.5" style="color:#9a6200;">貯めた漢字を組み合わせてビルド</div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる</div>
+                            <div class="text-[8px] mt-0.5" style="color:#9a7200;">貯めた漢字を<br>組み合わせる</div>
                         </div>
                     </button>
                 </div>
@@ -506,7 +506,7 @@
 
     <!-- Kanji Search/Filter Screen (V2 - reading/stroke/classification) -->
     <div id="scr-kanji-search" class="screen">
-        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+        <div class="w-full max-w-md pt-2 px-4 mx-auto flex flex-col min-h-0">
             <div class="flex items-center gap-3 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
@@ -514,9 +514,17 @@
 
             <!-- Search Input -->
             <div class="mb-2">
-                <input type="text" id="kanji-search-input" placeholder="読み・漢字・意味で検索"
+                <input type="text" id="kanji-search-input" placeholder="読み・漢字で検索"
                     class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
                     oninput="executeKanjiSearch()">
+            </div>
+
+            <!-- Reading Type Filter -->
+            <div class="mb-2">
+                <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">読みの種別</p>
+                <div id="search-reading-type-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                    <!-- JS populated -->
+                </div>
             </div>
 
             <!-- Stroke Count Filter -->
@@ -528,7 +536,7 @@
             </div>
 
             <!-- Classification Filter -->
-            <div class="mb-3">
+            <div class="mb-2">
                 <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
                 <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                     <!-- JS populated -->
@@ -536,8 +544,8 @@
             </div>
 
             <!-- Results -->
-            <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-32 overflow-y-auto flex-1 content-start">
-                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>
+            <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-40 overflow-y-auto flex-1 content-start">
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字で検索するか、<br>フィルターを選択してください</div>
             </div>
         </div>
     </div>
@@ -617,26 +625,22 @@
             </div>
 
             <div id="stack-container"
-                class="relative w-full max-w-sm h-[calc(100vh-260px)] min-h-[420px] max-h-[600px] mt-16 mx-auto">
+                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto">
                 <div id="badge-like" class="stamp-premium">LIKE</div>
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
                 <div id="stack" class="w-full h-full"></div>
+            </div>
 
-                <!-- Swipe Action Buttons (× ★ ♡) — absolute in the 120px gap below the card -->
-                <div id="swipe-action-btns"
-                    class="hidden absolute left-0 right-0 flex justify-center items-center gap-6 px-4 z-[50] transition-all duration-300"
-                    style="bottom: calc(30px + env(safe-area-inset-bottom));">
-                    <button onclick="manual('left')"
-                        class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-                        style="pointer-events:all">✕</button>
-                    <button onclick="manual('up')"
-                        class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-                        style="pointer-events:all">★</button>
-                    <button onclick="manual('right')"
-                        class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                        style="pointer-events:all">♥</button>
-                </div>
+            <!-- Swipe Action Buttons (× ★ ♡) — DOMフロー上でstack-containerの下に配置、物理的重なり不可 -->
+            <div id="swipe-action-btns"
+                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0">
+                <button onclick="manual('left')"
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
+                <button onclick="manual('up')"
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all">★</button>
+                <button onclick="manual('right')"
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all">♥</button>
             </div>
 
         </div>

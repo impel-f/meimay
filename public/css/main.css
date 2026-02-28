@@ -284,7 +284,7 @@ body {
     top: 40px;
     left: 0;
     right: 0;
-    bottom: calc(120px + env(safe-area-inset-bottom));
+    bottom: 20px;
     margin: auto;
     display: flex;
     flex-direction: column;

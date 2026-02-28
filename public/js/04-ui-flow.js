@@ -2320,6 +2320,7 @@ window.learnSoundPreference = learnSoundPreference;
 var searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
 var searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
 var searchReadingFilter = ''; // text input for reading filter
+var searchReadingTypeFilter = 'all'; // 'all', 'on', 'kun', 'nori'
 
 function openKanjiSearch() {
     changeScreen('scr-kanji-search');
@@ -2327,17 +2328,36 @@ function openKanjiSearch() {
     searchStrokeFilter = '';
     searchClassFilter = '';
     searchReadingFilter = '';
+    searchReadingTypeFilter = 'all';
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = '';
     renderSearchFilters();
     // Show initial message instead of loading all kanji
     const container = document.getElementById('kanji-search-results');
     if (container) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字で検索するか、<br>フィルターを選択してください</div>';
     }
 }
 
 function renderSearchFilters() {
+    // Reading type filters
+    const readingTypeContainer = document.getElementById('search-reading-type-filters');
+    if (readingTypeContainer) {
+        const types = [
+            { val: 'all', label: '全て' },
+            { val: 'on', label: '音読み' },
+            { val: 'kun', label: '訓読み' },
+            { val: 'nori', label: '名乗り' }
+        ];
+        readingTypeContainer.innerHTML = types.map(t => `
+            <button onclick="setReadingTypeFilter('${t.val}')"
+                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
+                    ${searchReadingTypeFilter === t.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
+                ${t.label}
+            </button>
+        `).join('');
+    }
+
     // Stroke count filters
     const strokeContainer = document.getElementById('search-stroke-filters');
     if (strokeContainer) {
@@ -2387,6 +2407,12 @@ function renderSearchFilters() {
     }
 }
 
+function setReadingTypeFilter(val) {
+    searchReadingTypeFilter = val;
+    renderSearchFilters();
+    executeKanjiSearch();
+}
+
 function setStrokeFilter(val) {
     searchStrokeFilter = val;
     renderSearchFilters();
@@ -2415,7 +2441,7 @@ function executeKanjiSearch() {
 
     // フィルターが何も設定されていない場合はメッセージ表示
     if (!query && !rawQuery && !searchStrokeFilter && !searchClassFilter) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字で検索するか、<br>フィルターを選択してください</div>';
         return;
     }
 
@@ -2424,9 +2450,20 @@ function executeKanjiSearch() {
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
 
-        // テキスト検索（読み完全一致・漢字・意味）
+        // テキスト検索（読み・漢字のみ、意味は除外）
         if (query || rawQuery) {
-            const allReadings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
+            // 読み種別フィルタに従い検索対象フィールドを絞る
+            let readingStr = '';
+            if (!searchReadingTypeFilter || searchReadingTypeFilter === 'all') {
+                readingStr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
+            } else if (searchReadingTypeFilter === 'on') {
+                readingStr = k['音'] || '';
+            } else if (searchReadingTypeFilter === 'kun') {
+                readingStr = k['訓'] || '';
+            } else if (searchReadingTypeFilter === 'nori') {
+                readingStr = k['伝統名のり'] || '';
+            }
+            const allReadings = readingStr
                 .split(/[、,，\s/]+/)
                 .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
                 .filter(x => x);
@@ -2435,9 +2472,8 @@ function executeKanjiSearch() {
             const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
             const matchReading = allReadings.some(r => r === query || r === querySeion || r.startsWith(query) || r.startsWith(querySeion));
             const matchKanji = k['漢字'] === rawQuery;
-            const matchMeaning = rawQuery.length >= 2 && (k['意味'] || '').includes(rawQuery);
 
-            if (!matchReading && !matchKanji && !matchMeaning) return false;
+            if (!matchReading && !matchKanji) return false;
         }
 
         // 画数フィルター
@@ -3003,6 +3039,7 @@ window.initSoundMode = initSoundMode;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setStrokeFilter = setStrokeFilter;
 window.setClassFilter = setClassFilter;
+window.setReadingTypeFilter = setReadingTypeFilter;
 window.executeKanjiSearch = executeKanjiSearch;
 window.toggleSearchStock = toggleSearchStock;
 window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
