@@ -505,11 +505,6 @@ function renderBuildSelection() {
                     return true;
                 });
                 items = mergedItems;
-                // デバッグメッセージ（他の読み方のものを使う旨を表示）
-                const noteEl = document.createElement('div');
-                noteEl.className = 'col-span-full text-[10px] text-[#a6967a] italic pt-1 pb-2 pl-1';
-                noteEl.textContent = '（他の読み方で選んだ漢字を含む）';
-                scrollBox.appendChild(noteEl);
             } else {
                 // 本当に候補がない
                 scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
