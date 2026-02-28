@@ -2344,10 +2344,10 @@ function updateSearchModeToggle() {
     const btn = document.getElementById('search-mode-toggle');
     if (!btn) return;
     if (searchFlexibleMode) {
-        btn.textContent = '柔軟';
+        btn.textContent = '読み柔軟';
         btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#bca37f] text-white transition-all active:scale-95 flex-shrink-0';
     } else {
-        btn.textContent = '厳格';
+        btn.textContent = '読み厳格';
         btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0';
     }
 }
