@@ -612,21 +612,6 @@
                 <div id="stack" class="w-full h-full"></div>
             </div>
 
-            <!-- Swipe Action Buttons (× ★ ♡) -->
-            <div id="swipe-action-btns"
-                class="fixed bottom-6 left-0 right-0 flex justify-center items-center gap-6 px-4 z-[9000] transition-all duration-300"
-                style="pointer-events:all">
-                <button onclick="manual('left')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all">✕</button>
-                <button onclick="manual('up')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all">★</button>
-                <button onclick="manual('right')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all">♥</button>
-            </div>
-
         </div>
     </div>
 
@@ -923,6 +908,21 @@
         </div>
     </div>
 
+    <!-- Swipe Action Buttons (× ★ ♡) — Fixed outside screens to avoid iOS fixed-in-scroll issues -->
+    <div id="swipe-action-btns"
+        class="hidden fixed left-0 right-0 flex justify-center items-center gap-6 px-4 z-[11000] transition-all duration-300"
+        style="bottom: calc(5.5rem + env(safe-area-inset-bottom)); pointer-events:all">
+        <button onclick="manual('left')"
+            class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+            style="pointer-events:all">✕</button>
+        <button onclick="manual('up')"
+            class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+            style="pointer-events:all">★</button>
+        <button onclick="manual('right')"
+            class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+            style="pointer-events:all">♥</button>
+    </div>
+
     <!-- 統一フッター: ホーム / さがす / ストック / ビルド / 保存済み -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
@@ -1043,6 +1043,9 @@
                         class="w-full bg-white/70 backdrop-blur-md rounded-xl py-2 px-4 shadow-sm text-left flex flex-col justify-center">
                     </div>
                 </div>
+
+                <!-- Stock Action Buttons (populated by showKanjiDetail) -->
+                <div id="modal-stock-btns" class="flex gap-2 w-full max-w-[90%] mt-3"></div>
             </div>
 
             <!-- Scrollable Body -->
@@ -1644,28 +1647,28 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=25.4"></script>
+    <script src="/js/engine_v2_generator.js?v=25.7"></script>
 
-    <script src="/js/01-core.js?v=25.4"></script>
-    <script src="/js/02-engine.js?v=25.4"></script>
-    <script src="/js/03-fortune.js?v=25.4"></script>
-    <script src="/js/04-ui-flow.js?v=25.4"></script>
-    <script src="/js/05-ui-render.js?v=25.4"></script>
-    <script src="/js/06-ui-physics.js?v=25.4"></script>
-    <script src="/js/07-build.js?v=25.4"></script>
-    <script src="/js/08-origin.js?v=25.4"></script>
-    <script src="/js/09-storage.js?v=25.4"></script>
-    <script src="/js/10-choice.js?v=25.4"></script>
-    <script src="/js/11-settings.js?v=25.4"></script>
-    <script src="/js/12-history.js?v=25.4"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.4"></script>
-    <script src="/js/14-admob.js?v=25.4"></script>
-    <script src="/js/15-firebase.js?v=25.4"></script>
-    <script src="/js/data/legal-docs.js?v=25.4"></script>
-    <script src="/js/16-legal.js?v=25.4"></script>
-    <script src="/js/data/todays-kanji-data.js?v=25.4"></script>
-    <script src="/js/17-todays-kanji.js?v=25.4"></script>
-    <script src="/js/18-ranking.js?v=25.4"></script>
+    <script src="/js/01-core.js?v=25.7"></script>
+    <script src="/js/02-engine.js?v=25.7"></script>
+    <script src="/js/03-fortune.js?v=25.7"></script>
+    <script src="/js/04-ui-flow.js?v=25.7"></script>
+    <script src="/js/05-ui-render.js?v=25.7"></script>
+    <script src="/js/06-ui-physics.js?v=25.7"></script>
+    <script src="/js/07-build.js?v=25.7"></script>
+    <script src="/js/08-origin.js?v=25.7"></script>
+    <script src="/js/09-storage.js?v=25.7"></script>
+    <script src="/js/10-choice.js?v=25.7"></script>
+    <script src="/js/11-settings.js?v=25.7"></script>
+    <script src="/js/12-history.js?v=25.7"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.7"></script>
+    <script src="/js/14-admob.js?v=25.7"></script>
+    <script src="/js/15-firebase.js?v=25.7"></script>
+    <script src="/js/data/legal-docs.js?v=25.7"></script>
+    <script src="/js/16-legal.js?v=25.7"></script>
+    <script src="/js/data/todays-kanji-data.js?v=25.7"></script>
+    <script src="/js/17-todays-kanji.js?v=25.7"></script>
+    <script src="/js/18-ranking.js?v=25.7"></script>
 
 </body>
 

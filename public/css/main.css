@@ -335,6 +335,17 @@ body {
     box-shadow: var(--shadow-md);
 }
 
+.stock-stars {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--super);
+    font-weight: 900;
+    pointer-events: none;
+}
+
 .stock-kanji {
     font-size: clamp(32px, 8vw, 44px);
     font-weight: 900;
