@@ -460,13 +460,13 @@ async function showKanjiDetail(data) {
             stockBtnsEl.appendChild(removeBtn);
         } else {
             const likeBtn = document.createElement('button');
-            likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#ff9a9e] to-[#fecfef] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            likeBtn.innerHTML = '<span>♥</span> ライク';
+            likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
+            likeBtn.innerHTML = '<span>♥</span> LIKE';
             likeBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, false);
 
             const superBtn = document.createElement('button');
             superBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            superBtn.innerHTML = '<span>★</span> スーパー';
+            superBtn.innerHTML = '<span>★</span> SUPER';
             superBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, true);
 
             stockBtnsEl.appendChild(likeBtn);
@@ -570,6 +570,10 @@ async function showKanjiDetail(data) {
     // モーダル表示
     modal.classList.add('active');
 
+    // モーダル表示中はスワイプボタンを隠す
+    const swipeActionBtns = document.getElementById('swipe-action-btns');
+    if (swipeActionBtns) swipeActionBtns.classList.add('hidden');
+
     // 空白クリックで閉じる
     modal.onclick = (e) => {
         if (e.target === modal) {
@@ -662,6 +666,8 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
 function closeKanjiDetail() {
     const modal = document.getElementById('modal-kanji-detail');
     if (modal) modal.classList.remove('active');
+    // スワイプ画面なら×★♡ボタンを復元
+    if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
 }
 
 window.updateSwipeMainState = updateSwipeMainState;

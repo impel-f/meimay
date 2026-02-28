@@ -244,38 +244,30 @@
             <!-- Quick Actions: 名前を探す -->
             <div class="w-full max-w-sm px-6 mb-4">
                 <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="flex flex-col gap-2">
+                <div class="grid grid-cols-2 gap-2">
                     <button onclick="startMode('reading')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">🔤</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">読みから漢字を探す</div>
-                            <div class="text-[10px] text-[#a6967a]">名前の読みを入力してスワイプ</div>
-                        </div>
+                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
+                        <div class="text-2xl mb-1">🔤</div>
+                        <div class="text-sm text-[#5d5444] font-black leading-tight">読みから<br>漢字を探す</div>
+                        <div class="text-[10px] text-[#a6967a] mt-0.5">読みを入力してスワイプ</div>
                     </button>
                     <button onclick="startMode('sound')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">🎵</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">響きから探す</div>
-                            <div class="text-[10px] text-[#a6967a]">入れたい音・人気の響きから</div>
-                        </div>
+                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
+                        <div class="text-2xl mb-1">🎵</div>
+                        <div class="text-sm text-[#5d5444] font-black leading-tight">響きから探す</div>
+                        <div class="text-[10px] text-[#a6967a] mt-0.5">入れたい音・人気の響きから</div>
                     </button>
                     <button onclick="startMode('free')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">✨</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">自由に漢字を探す</div>
-                            <div class="text-[10px] text-[#a6967a]">直感スワイプ</div>
-                        </div>
+                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
+                        <div class="text-2xl mb-1">✨</div>
+                        <div class="text-sm text-[#5d5444] font-black leading-tight">自由に漢字<br>を探す</div>
+                        <div class="text-[10px] text-[#a6967a] mt-0.5">直感スワイプ</div>
                     </button>
                     <button onclick="openFreeBuild()"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">📦</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">ストックから組み立てる</div>
-                            <div class="text-[10px] text-[#a6967a]">ストックした漢字を自由に配置</div>
-                        </div>
+                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
+                        <div class="text-2xl mb-1">⚒️</div>
+                        <div class="text-sm text-[#5d5444] font-black leading-tight">ストックから<br>組み立てる</div>
+                        <div class="text-[10px] text-[#a6967a] mt-0.5">ストックした漢字を配置</div>
                     </button>
                 </div>
             </div>
@@ -610,6 +602,21 @@
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
                 <div id="stack" class="w-full h-full"></div>
+
+                <!-- Swipe Action Buttons (× ★ ♡) — absolute in the 120px gap below the card -->
+                <div id="swipe-action-btns"
+                    class="hidden absolute left-0 right-0 flex justify-center items-center gap-6 px-4 z-[50] transition-all duration-300"
+                    style="bottom: 30px;">
+                    <button onclick="manual('left')"
+                        class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all">✕</button>
+                    <button onclick="manual('up')"
+                        class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all">★</button>
+                    <button onclick="manual('right')"
+                        class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all">♥</button>
+                </div>
             </div>
 
         </div>
@@ -906,21 +913,6 @@
                 <!-- JS populated -->
             </div>
         </div>
-    </div>
-
-    <!-- Swipe Action Buttons (× ★ ♡) — Fixed outside screens to avoid iOS fixed-in-scroll issues -->
-    <div id="swipe-action-btns"
-        class="hidden fixed left-0 right-0 flex justify-center items-center gap-6 px-4 z-[11000] transition-all duration-300"
-        style="bottom: calc(5.5rem + env(safe-area-inset-bottom)); pointer-events:all">
-        <button onclick="manual('left')"
-            class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">✕</button>
-        <button onclick="manual('up')"
-            class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">★</button>
-        <button onclick="manual('right')"
-            class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">♥</button>
     </div>
 
     <!-- 統一フッター: ホーム / さがす / ストック / ビルド / 保存済み -->
@@ -1647,28 +1639,28 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=25.7"></script>
+    <script src="/js/engine_v2_generator.js?v=25.8"></script>
 
-    <script src="/js/01-core.js?v=25.7"></script>
-    <script src="/js/02-engine.js?v=25.7"></script>
-    <script src="/js/03-fortune.js?v=25.7"></script>
-    <script src="/js/04-ui-flow.js?v=25.7"></script>
-    <script src="/js/05-ui-render.js?v=25.7"></script>
-    <script src="/js/06-ui-physics.js?v=25.7"></script>
-    <script src="/js/07-build.js?v=25.7"></script>
-    <script src="/js/08-origin.js?v=25.7"></script>
-    <script src="/js/09-storage.js?v=25.7"></script>
-    <script src="/js/10-choice.js?v=25.7"></script>
-    <script src="/js/11-settings.js?v=25.7"></script>
-    <script src="/js/12-history.js?v=25.7"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.7"></script>
-    <script src="/js/14-admob.js?v=25.7"></script>
-    <script src="/js/15-firebase.js?v=25.7"></script>
-    <script src="/js/data/legal-docs.js?v=25.7"></script>
-    <script src="/js/16-legal.js?v=25.7"></script>
-    <script src="/js/data/todays-kanji-data.js?v=25.7"></script>
-    <script src="/js/17-todays-kanji.js?v=25.7"></script>
-    <script src="/js/18-ranking.js?v=25.7"></script>
+    <script src="/js/01-core.js?v=25.8"></script>
+    <script src="/js/02-engine.js?v=25.8"></script>
+    <script src="/js/03-fortune.js?v=25.8"></script>
+    <script src="/js/04-ui-flow.js?v=25.8"></script>
+    <script src="/js/05-ui-render.js?v=25.8"></script>
+    <script src="/js/06-ui-physics.js?v=25.8"></script>
+    <script src="/js/07-build.js?v=25.8"></script>
+    <script src="/js/08-origin.js?v=25.8"></script>
+    <script src="/js/09-storage.js?v=25.8"></script>
+    <script src="/js/10-choice.js?v=25.8"></script>
+    <script src="/js/11-settings.js?v=25.8"></script>
+    <script src="/js/12-history.js?v=25.8"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.8"></script>
+    <script src="/js/14-admob.js?v=25.8"></script>
+    <script src="/js/15-firebase.js?v=25.8"></script>
+    <script src="/js/data/legal-docs.js?v=25.8"></script>
+    <script src="/js/16-legal.js?v=25.8"></script>
+    <script src="/js/data/todays-kanji-data.js?v=25.8"></script>
+    <script src="/js/17-todays-kanji.js?v=25.8"></script>
+    <script src="/js/18-ranking.js?v=25.8"></script>
 
 </body>
 

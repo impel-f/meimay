@@ -337,9 +337,9 @@ body {
 
 .stock-stars {
     position: absolute;
-    top: 4px;
-    left: 4px;
-    font-size: 9px;
+    top: 3px;
+    right: 3px;
+    font-size: 10px;
     line-height: 1;
     color: var(--super);
     font-weight: 900;
