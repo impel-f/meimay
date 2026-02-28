@@ -2317,67 +2317,42 @@ window.learnSoundPreference = learnSoundPreference;
  * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
  * ============================================================
  */
-var searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
-var searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
-var searchReadingFilter = ''; // text input for reading filter
-var searchReadingTypeFilter = 'all'; // 'all', 'on', 'kun', 'nori'
+var searchClassFilter = '';  // '', '#自然', etc.
+var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 
 function openKanjiSearch() {
     changeScreen('scr-kanji-search');
-    // Reset filters
-    searchStrokeFilter = '';
     searchClassFilter = '';
-    searchReadingFilter = '';
-    searchReadingTypeFilter = 'all';
+    searchFlexibleMode = false;
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = '';
     renderSearchFilters();
-    // Show initial message instead of loading all kanji
+    updateSearchModeToggle();
     const container = document.getElementById('kanji-search-results');
     if (container) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字で検索するか、<br>フィルターを選択してください</div>';
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+    }
+}
+
+function toggleSearchFlexibleMode() {
+    searchFlexibleMode = !searchFlexibleMode;
+    updateSearchModeToggle();
+    executeKanjiSearch();
+}
+
+function updateSearchModeToggle() {
+    const btn = document.getElementById('search-mode-toggle');
+    if (!btn) return;
+    if (searchFlexibleMode) {
+        btn.textContent = '柔軟';
+        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#bca37f] text-white transition-all active:scale-95 flex-shrink-0';
+    } else {
+        btn.textContent = '厳格';
+        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0';
     }
 }
 
 function renderSearchFilters() {
-    // Reading type filters
-    const readingTypeContainer = document.getElementById('search-reading-type-filters');
-    if (readingTypeContainer) {
-        const types = [
-            { val: 'all', label: '全て' },
-            { val: 'on', label: '音読み' },
-            { val: 'kun', label: '訓読み' },
-            { val: 'nori', label: '名乗り' }
-        ];
-        readingTypeContainer.innerHTML = types.map(t => `
-            <button onclick="setReadingTypeFilter('${t.val}')"
-                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
-                    ${searchReadingTypeFilter === t.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
-                ${t.label}
-            </button>
-        `).join('');
-    }
-
-    // Stroke count filters
-    const strokeContainer = document.getElementById('search-stroke-filters');
-    if (strokeContainer) {
-        const strokes = [
-            { val: '', label: '全て' },
-            { val: '1-5', label: '1-5画' },
-            { val: '6-10', label: '6-10画' },
-            { val: '11-15', label: '11-15画' },
-            { val: '16-20', label: '16-20画' },
-            { val: '21+', label: '21画+' }
-        ];
-        strokeContainer.innerHTML = strokes.map(s => `
-            <button onclick="setStrokeFilter('${s.val}')"
-                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
-                    ${searchStrokeFilter === s.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
-                ${s.label}
-            </button>
-        `).join('');
-    }
-
     // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
@@ -2407,18 +2382,6 @@ function renderSearchFilters() {
     }
 }
 
-function setReadingTypeFilter(val) {
-    searchReadingTypeFilter = val;
-    renderSearchFilters();
-    executeKanjiSearch();
-}
-
-function setStrokeFilter(val) {
-    searchStrokeFilter = val;
-    renderSearchFilters();
-    executeKanjiSearch();
-}
-
 function setClassFilter(val) {
     searchClassFilter = val;
     renderSearchFilters();
@@ -2440,50 +2403,43 @@ function executeKanjiSearch() {
     const rawQuery = input ? input.value.trim() : '';
 
     // フィルターが何も設定されていない場合はメッセージ表示
-    if (!query && !rawQuery && !searchStrokeFilter && !searchClassFilter) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字で検索するか、<br>フィルターを選択してください</div>';
+    if (!query && !rawQuery && !searchClassFilter) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
         return;
     }
+
+    const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
 
     let results = master.filter(k => {
         // 不適切フラグチェック
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
 
-        // テキスト検索（読み・漢字のみ、意味は除外）
+        // テキスト検索（読み・漢字のみ）
         if (query || rawQuery) {
-            // 読み種別フィルタに従い検索対象フィールドを絞る
-            let readingStr = '';
-            if (!searchReadingTypeFilter || searchReadingTypeFilter === 'all') {
-                readingStr = (k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || '');
-            } else if (searchReadingTypeFilter === 'on') {
-                readingStr = k['音'] || '';
-            } else if (searchReadingTypeFilter === 'kun') {
-                readingStr = k['訓'] || '';
-            } else if (searchReadingTypeFilter === 'nori') {
-                readingStr = k['伝統名のり'] || '';
-            }
-            const allReadings = readingStr
-                .split(/[、,，\s/]+/)
-                .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
-                .filter(x => x);
-
-            // 読みは完全一致・連濁一致・前方部分一致
-            const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
-            const matchReading = allReadings.some(r => r === query || r === querySeion || r.startsWith(query) || r.startsWith(querySeion));
             const matchKanji = k['漢字'] === rawQuery;
 
-            if (!matchReading && !matchKanji) return false;
-        }
+            let matchReading = false;
+            if (searchFlexibleMode) {
+                // 柔軟モード：音読み・訓読みで前方一致（名乗りは対象外）
+                const onKunReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
+                    .split(/[、,，\s/]+/)
+                    .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
+                    .filter(x => x);
+                matchReading = onKunReadings.some(r =>
+                    r === query || r === querySeion ||
+                    r.startsWith(query) || r.startsWith(querySeion)
+                );
+            } else {
+                // 厳格モード：音読み・訓読み・名乗り全て対象、完全一致のみ
+                const allReadings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
+                    .split(/[、,，\s/]+/)
+                    .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
+                    .filter(x => x);
+                matchReading = allReadings.some(r => r === query || r === querySeion);
+            }
 
-        // 画数フィルター
-        if (searchStrokeFilter) {
-            const strokes = parseInt(k['画数']) || 0;
-            if (searchStrokeFilter === '1-5' && (strokes < 1 || strokes > 5)) return false;
-            if (searchStrokeFilter === '6-10' && (strokes < 6 || strokes > 10)) return false;
-            if (searchStrokeFilter === '11-15' && (strokes < 11 || strokes > 15)) return false;
-            if (searchStrokeFilter === '16-20' && (strokes < 16 || strokes > 20)) return false;
-            if (searchStrokeFilter === '21+' && strokes < 21) return false;
+            if (!matchReading && !matchKanji) return false;
         }
 
         // 分類フィルター（漢字データの分類フィールドのハッシュタグと直接照合）
@@ -3037,9 +2993,8 @@ ${answersText}
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
 window.proceedWithSoundReading = proceedWithSoundReading;
-window.setStrokeFilter = setStrokeFilter;
 window.setClassFilter = setClassFilter;
-window.setReadingTypeFilter = setReadingTypeFilter;
+window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;
 window.executeKanjiSearch = executeKanjiSearch;
 window.toggleSearchStock = toggleSearchStock;
 window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
