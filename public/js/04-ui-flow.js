@@ -2388,6 +2388,29 @@ function setClassFilter(val) {
     executeKanjiSearch();
 }
 
+/**
+ * 送り仮名対応の読みバリアント抽出
+ * 例: "か.わる" → ["かわる", "か"]
+ */
+function getReadingVariants(rawStr) {
+    if (!rawStr) return [];
+    return rawStr.split(/[、,，\s/]+/).flatMap(raw => {
+        if (!raw.trim()) return [];
+        const hira = toHira(raw.trim());
+        const variants = new Set();
+        // 全体（送り仮名マーカーと非ひらがなを除去）
+        const full = hira.replace(/[^ぁ-んー]/g, '');
+        if (full) variants.add(full);
+        // 語幹（"."より前の部分）
+        const dotIdx = hira.indexOf('.');
+        if (dotIdx > 0) {
+            const stem = hira.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem) variants.add(stem);
+        }
+        return [...variants];
+    });
+}
+
 function executeKanjiSearch() {
     const input = document.getElementById('kanji-search-input');
     const container = document.getElementById('kanji-search-results');
@@ -2419,24 +2442,23 @@ function executeKanjiSearch() {
         if (query || rawQuery) {
             const matchKanji = k['漢字'] === rawQuery;
 
-            let matchReading = false;
+            // 送り仮名対応読みバリアント（語幹含む）
+            const onReadings   = getReadingVariants(k['音'] || '');
+            const kunReadings  = getReadingVariants(k['訓'] || '');
+            const noriReadings = getReadingVariants(k['伝統名のり'] || '');
+
+            // 厳格: 音・訓・名乗り で完全一致（送り仮名の語幹も含む）
+            const strictMatch = [...onReadings, ...kunReadings, ...noriReadings]
+                .some(r => r === query || r === querySeion);
+
+            let matchReading;
             if (searchFlexibleMode) {
-                // 柔軟モード：音読み・訓読みで前方一致（名乗りは対象外）
-                const onKunReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
-                    .split(/[、,，\s/]+/)
-                    .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
-                    .filter(x => x);
-                matchReading = onKunReadings.some(r =>
-                    r === query || r === querySeion ||
-                    r.startsWith(query) || r.startsWith(querySeion)
-                );
+                // 柔軟: 厳格の条件 + 音・訓で前方一致（名乗りは完全一致のみ）
+                const flexMatch = [...onReadings, ...kunReadings]
+                    .some(r => r.startsWith(query) || r.startsWith(querySeion));
+                matchReading = strictMatch || flexMatch;
             } else {
-                // 厳格モード：音読み・訓読み・名乗り全て対象、完全一致のみ
-                const allReadings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
-                    .split(/[、,，\s/]+/)
-                    .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
-                    .filter(x => x);
-                matchReading = allReadings.some(r => r === query || r === querySeion);
+                matchReading = strictMatch;
             }
 
             if (!matchReading && !matchKanji) return false;

@@ -120,7 +120,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.4
+            メイメー v25.12
         </div>
     </aside>
 
@@ -272,7 +272,6 @@
                         <div class="text-xl">✨</div>
                         <div>
                             <div class="text-[10px] font-black leading-tight" style="color:#2a7a55;">自由に漢字を<br>さがす</div>
-                            <div class="text-[8px] mt-0.5" style="color:#3d9068;">直感でストック</div>
                         </div>
                     </button>
 
@@ -283,7 +282,6 @@
                         <div class="text-xl">⚒️</div>
                         <div>
                             <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる</div>
-                            <div class="text-[8px] mt-0.5" style="color:#9a7200;">貯めた漢字を<br>組み合わせる</div>
                         </div>
                     </button>
                 </div>
@@ -610,22 +608,22 @@
             </div>
 
             <div id="stack-container"
-                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto">
+                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
                 <div id="badge-like" class="stamp-premium">LIKE</div>
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
                 <div id="stack" class="w-full h-full"></div>
             </div>
 
-            <!-- Swipe Action Buttons (× ★ ♡) — DOMフロー上でstack-containerの下に配置、物理的重なり不可 -->
+            <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="swipe-action-btns"
-                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0">
+                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0" style="pointer-events:none;">
                 <button onclick="manual('left')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">✕</button>
                 <button onclick="manual('up')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all">★</button>
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">★</button>
                 <button onclick="manual('right')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all">♥</button>
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">♥</button>
             </div>
 
         </div>
