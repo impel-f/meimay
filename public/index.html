@@ -241,33 +241,53 @@
                 </div>
             </div>
 
-            <!-- Quick Actions: 名前を探す -->
+            <!-- Quick Actions: 名前を探す — Bento Grid -->
             <div class="w-full max-w-sm px-6 mb-4">
                 <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid gap-2" style="grid-template-columns: 3fr 2fr; grid-template-rows: 3fr 2fr 2fr; height: 270px;">
+
+                    <!-- Left tall: 読みから漢字をさがす (most important) -->
                     <button onclick="startMode('reading')"
-                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
-                        <div class="text-2xl mb-1">🔤</div>
-                        <div class="text-sm text-[#5d5444] font-black leading-tight">読みから<br>漢字を探す</div>
-                        <div class="text-[10px] text-[#a6967a] mt-0.5">読みを入力してスワイプ</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-2 p-4 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#f8f2e4 0%,#e8d5b0 60%,#d4be8a 100%);">
+                        <div class="text-4xl">🔤</div>
+                        <div>
+                            <div class="text-[13px] font-black leading-snug" style="color:#5d5444;">読みから<br>漢字をさがす</div>
+                            <div class="text-[10px] mt-1 leading-snug" style="color:#8b7e66;">読みが決まっている<br>方はこちら</div>
+                        </div>
                     </button>
+
+                    <!-- Right top: 響き・読みをさがす -->
                     <button onclick="startMode('sound')"
-                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
-                        <div class="text-2xl mb-1">🎵</div>
-                        <div class="text-sm text-[#5d5444] font-black leading-tight">響きから探す</div>
-                        <div class="text-[10px] text-[#a6967a] mt-0.5">入れたい音・人気の響きから</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-1 p-3 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#eef3ff 0%,#c8d8ff 100%);">
+                        <div class="text-2xl">🎵</div>
+                        <div>
+                            <div class="text-[11px] font-black leading-tight" style="color:#3d4f9a;">響き・読みをさがす</div>
+                            <div class="text-[9px] mt-0.5 leading-tight" style="color:#6070b8;">人気の響きや、入れたい音から</div>
+                        </div>
                     </button>
+
+                    <!-- Right mid: 自由に漢字をさがす -->
                     <button onclick="startMode('free')"
-                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
-                        <div class="text-2xl mb-1">✨</div>
-                        <div class="text-sm text-[#5d5444] font-black leading-tight">自由に漢字<br>を探す</div>
-                        <div class="text-[10px] text-[#a6967a] mt-0.5">直感スワイプ</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#edfaf3 0%,#b8f0d4 100%);">
+                        <div class="text-xl">✨</div>
+                        <div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#1a6b45;">自由に漢字をさがす</div>
+                            <div class="text-[8px] mt-0.5" style="color:#2d8a5a;">直感で漢字をストック</div>
+                        </div>
                     </button>
+
+                    <!-- Right bottom: ストックから組み立てる -->
                     <button onclick="openFreeBuild()"
-                        class="group bg-white/60 hover:bg-white px-3 py-4 rounded-2xl border border-[#ede5d8] flex flex-col items-start gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 relative overflow-hidden">
-                        <div class="text-2xl mb-1">⚒️</div>
-                        <div class="text-sm text-[#5d5444] font-black leading-tight">ストックから<br>組み立てる</div>
-                        <div class="text-[10px] text-[#a6967a] mt-0.5">ストックした漢字を配置</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#fef4e4 0%,#fdd898 100%);">
+                        <div class="text-xl">⚒️</div>
+                        <div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#7a4800;">ストックから<br>組み立てる</div>
+                            <div class="text-[8px] mt-0.5" style="color:#9a6200;">貯めた漢字を組み合わせてビルド</div>
+                        </div>
                     </button>
                 </div>
             </div>
@@ -606,7 +626,7 @@
                 <!-- Swipe Action Buttons (× ★ ♡) — absolute in the 120px gap below the card -->
                 <div id="swipe-action-btns"
                     class="hidden absolute left-0 right-0 flex justify-center items-center gap-6 px-4 z-[50] transition-all duration-300"
-                    style="bottom: 30px;">
+                    style="bottom: calc(30px + env(safe-area-inset-bottom));">
                     <button onclick="manual('left')"
                         class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
                         style="pointer-events:all">✕</button>
@@ -1639,28 +1659,28 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=25.8"></script>
+    <script src="/js/engine_v2_generator.js?v=25.9"></script>
 
-    <script src="/js/01-core.js?v=25.8"></script>
-    <script src="/js/02-engine.js?v=25.8"></script>
-    <script src="/js/03-fortune.js?v=25.8"></script>
-    <script src="/js/04-ui-flow.js?v=25.8"></script>
-    <script src="/js/05-ui-render.js?v=25.8"></script>
-    <script src="/js/06-ui-physics.js?v=25.8"></script>
-    <script src="/js/07-build.js?v=25.8"></script>
-    <script src="/js/08-origin.js?v=25.8"></script>
-    <script src="/js/09-storage.js?v=25.8"></script>
-    <script src="/js/10-choice.js?v=25.8"></script>
-    <script src="/js/11-settings.js?v=25.8"></script>
-    <script src="/js/12-history.js?v=25.8"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.8"></script>
-    <script src="/js/14-admob.js?v=25.8"></script>
-    <script src="/js/15-firebase.js?v=25.8"></script>
-    <script src="/js/data/legal-docs.js?v=25.8"></script>
-    <script src="/js/16-legal.js?v=25.8"></script>
-    <script src="/js/data/todays-kanji-data.js?v=25.8"></script>
-    <script src="/js/17-todays-kanji.js?v=25.8"></script>
-    <script src="/js/18-ranking.js?v=25.8"></script>
+    <script src="/js/01-core.js?v=25.9"></script>
+    <script src="/js/02-engine.js?v=25.9"></script>
+    <script src="/js/03-fortune.js?v=25.9"></script>
+    <script src="/js/04-ui-flow.js?v=25.9"></script>
+    <script src="/js/05-ui-render.js?v=25.9"></script>
+    <script src="/js/06-ui-physics.js?v=25.9"></script>
+    <script src="/js/07-build.js?v=25.9"></script>
+    <script src="/js/08-origin.js?v=25.9"></script>
+    <script src="/js/09-storage.js?v=25.9"></script>
+    <script src="/js/10-choice.js?v=25.9"></script>
+    <script src="/js/11-settings.js?v=25.9"></script>
+    <script src="/js/12-history.js?v=25.9"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.9"></script>
+    <script src="/js/14-admob.js?v=25.9"></script>
+    <script src="/js/15-firebase.js?v=25.9"></script>
+    <script src="/js/data/legal-docs.js?v=25.9"></script>
+    <script src="/js/16-legal.js?v=25.9"></script>
+    <script src="/js/data/todays-kanji-data.js?v=25.9"></script>
+    <script src="/js/17-todays-kanji.js?v=25.9"></script>
+    <script src="/js/18-ranking.js?v=25.9"></script>
 
 </body>
 
