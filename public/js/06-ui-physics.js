@@ -34,6 +34,9 @@ function setupPhysics(card, data) {
 
         // setPointerCaptureは削除（これがボタンへのタップを横取りしていた）
         active = true;
+        // スワイプ中はナビゲーションボタンへの貫通を防止
+        const _nav = document.getElementById('bottom-nav');
+        if (_nav) _nav.style.pointerEvents = 'none';
 
         // GPU加速を有効化
         card.style.willChange = 'transform, opacity';
@@ -76,6 +79,9 @@ function setupPhysics(card, data) {
         active = false;
         card.releasePointerCapture(e.pointerId);
         card.style.willChange = 'auto'; // GPU解放
+        // ナビゲーションのpointer-eventsを復元
+        const _nav = document.getElementById('bottom-nav');
+        if (_nav) _nav.style.pointerEvents = '';
 
         // バッジを非表示
         [bL, bN, bS].forEach(b => {
@@ -107,6 +113,13 @@ function setupPhysics(card, data) {
         else {
             resetCard();
         }
+    };
+
+    // ポインターキャンセル時もナビ復元
+    card.onpointercancel = () => {
+        active = false;
+        const _nav = document.getElementById('bottom-nav');
+        if (_nav) _nav.style.pointerEvents = '';
     };
 
     /**

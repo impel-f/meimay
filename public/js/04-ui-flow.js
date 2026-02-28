@@ -2358,19 +2358,24 @@ function renderSearchFilters() {
         `).join('');
     }
 
-    // Classification filters
+    // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
         const classes = [
             { val: '', label: '全て', icon: '✨' },
-            { val: 'nature', label: '自然', icon: '🌿' },
-            { val: 'light', label: '光・明', icon: '☀️' },
-            { val: 'water', label: '水・海', icon: '🌊' },
-            { val: 'strength', label: '力・健', icon: '💪' },
-            { val: 'kindness', label: '愛・優', icon: '💗' },
-            { val: 'wisdom', label: '知・才', icon: '📚' },
-            { val: 'beauty', label: '美・華', icon: '🌸' },
-            { val: 'tradition', label: '伝統・和', icon: '⛩️' }
+            { val: '#自然', label: '自然', icon: '🌿' },
+            { val: '#天空', label: '天空', icon: '☀️' },
+            { val: '#海・水', label: '海・水', icon: '🌊' },
+            { val: '#勇気', label: '勇気', icon: '💪' },
+            { val: '#慈愛', label: '慈愛', icon: '💗' },
+            { val: '#知性', label: '知性', icon: '📚' },
+            { val: '#花・彩', label: '花・彩', icon: '🌸' },
+            { val: '#繁栄', label: '繁栄', icon: '✨' },
+            { val: '#幸福', label: '幸福', icon: '🌟' },
+            { val: '#調和', label: '調和', icon: '⚖️' },
+            { val: '#品格', label: '品格', icon: '⛩️' },
+            { val: '#健康', label: '健康', icon: '🌱' },
+            { val: '#心・志', label: '心・志', icon: '❤️' }
         ];
         classContainer.innerHTML = classes.map(c => `
             <button onclick="setClassFilter('${c.val}')"
@@ -2445,25 +2450,19 @@ function executeKanjiSearch() {
             if (searchStrokeFilter === '21+' && strokes < 21) return false;
         }
 
-        // 分類フィルター
+        // 分類フィルター（漢字データの分類フィールドのハッシュタグと直接照合）
         if (searchClassFilter) {
-            const classKeywords = {
-                'nature': ['自然', '植物', '樹木', '草', '森', '木', '緑', '山', '花', '葉'],
-                'light': ['明るさ', '輝き', '晴れ', '光', '陽', '太陽', '明', '輝', '照', '煌'],
-                'water': ['海', '水', '川', '波', '流れ', '清', '洋', '源', '泉', '湖', '河'],
-                'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '壮大', '武', '豪', '剛', '健'],
-                'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '心', '愛', '恵', '慈', '仁'],
-                'wisdom': ['知性', '賢さ', '才能', '優秀', '学問', '智', '理', '聡', '哲', '賢'],
-                'beauty': ['美', '麗', '艶', '華', '彩', '綾', '雅', '麗しい'],
-                'tradition': ['伝統', '古風', '和', '雅', '古典', '歴史', '典', '礼']
-            };
-
-            const combined = (k['名前のイメージ'] || '') + (k['意味'] || '') + (k['分類'] || '') + (k['漢字'] || '');
-            const keywords = classKeywords[searchClassFilter] || [];
-            const matches = keywords.some(kw => combined.includes(kw));
-            if (!matches) return false;
+            if (!(k['分類'] || '').includes(searchClassFilter)) return false;
         }
 
+        return true;
+    });
+
+    // 漢字の重複排除
+    const seenKanji = new Set();
+    results = results.filter(k => {
+        if (seenKanji.has(k['漢字'])) return false;
+        seenKanji.add(k['漢字']);
         return true;
     });
 
