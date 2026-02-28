@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#bca37f">
-    <meta name="description" content="襍､縺｡繧・ｓ縺ｮ蜻ｽ蜷阪ｒ讌ｽ縺励￥繧ｵ繝昴・繝医ら峩諢溽噪縺ｪ繧ｹ繝ｯ繧､繝玲桃菴懊〒逅・Φ縺ｮ蜷榊燕繧定ｦ九▽縺代ｈ縺・・>
+    <meta name="description" content="襍､縺｡繧・ｓ縺ｮ蜻ｽ蜷阪ｒ讌ｽ縺励￥繧ｵ繝昴・繝医ら峩諢溽噪縺ｪ繧ｹ繝ｯ繧､繝玲桃菴懊〒逅・Φの名前を見つけよぁE・>
     <title>メイメー - 襍､縺｡繧・ｓ縺ｮ蜻ｽ蜷阪い繝励Μ</title>
 
     <link rel="manifest" href="/manifest.json">
@@ -44,10 +44,10 @@
                 id="drawer-avatar">P</div>
             <div class="text-lg font-black text-[#5d5444]" id="drawer-username">繧ｲ繧ｹ繝</div>
             <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@闍怜ｭ玲悴險ｭ螳</div>
-            <!-- 繝ｭ繧ｰ繧､繝ｳ繝懊ち繝ｳ・域悴繝ｭ繧ｰ繧､繝ｳ譎ゑｼ・-->
+            <!-- 繝ｭ繧ｰ繧､繝ｳ繝懊ちン・域悴繝ｭ繧ｰ繧､繝ｳ譎ゑｼ・-->
             <button id="drawer-login-btn" onclick="drawerNavigate('login')"
                 class="mt-3 w-full py-2 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all">ログイン
-                / 譁ｰ隕冗匳骭ｲ</button>
+                / 譁ｰ隕冗匳録</button>
             <!-- 繧｢繧ｫ繧ｦ繝ｳ繝医・タン・医Ο繧ｰ繧､繝ｳ譎ゅ∝・譛滄撼表示・・-->
             <button id="drawer-account-btn" onclick="drawerNavigate('login')"
                 class="mt-3 w-full py-2 border border-[#d4c5af] text-[#8b7e66] rounded-full text-xs font-bold hover:bg-[#f8f5ef] transition-all hidden">繧｢繧ｫ繧ｦ繝ｳ繝</button>
@@ -55,7 +55,7 @@
 
         <!-- Menu Items -->
         <nav class="flex-1 overflow-y-auto py-4">
-            <!-- 繝｢繝ｼ繝・-->
+            <!-- モーチE-->
             <div class="px-6 py-2">
                 <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">蜷榊燕繧呈爾縺</p>
             </div>
@@ -68,23 +68,23 @@
                 <span>髻ｿ縺阪°繧画爾縺</span>
             </button>
             <button onclick="drawerNavigate('mode-free')" class="drawer-menu-item" id="drawer-mode-free">
-                <span class="drawer-icon">笨ｨ</span>
+                <span class="drawer-icon">✨</span>
                 <span>閾ｪ逕ｱ縺ｫ貍｢蟄励ｒ謗｢縺</span>
             </button>
             <button onclick="openFreeBuild()" class="drawer-menu-item" id="drawer-mode-build">
                 <span class="drawer-icon">逃</span>
-                <span>繧ｹ繝医ャ繧ｯ縺九ｉ邨・∩遶九※繧</span>
+                <span>ストックから絁E∩遶九※繧</span>
             </button>
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
 
-            <!-- 繝・・繝ｫ -->
+            <!-- 繝・・ル -->
             <div class="px-6 py-2">
-                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">繝・・繝ｫ</p>
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">繝・・ル</p>
             </div>
             <button onclick="drawerNavigate('search')" class="drawer-menu-item">
                 <span class="drawer-icon">博</span>
-                <span>貍｢蟄励ｒ讀懃ｴ｢</span>
+                <span>漢字を検索</span>
             </button>
             <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
                 <span class="drawer-icon">醗</span>
@@ -97,10 +97,10 @@
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
 
-            <!-- 螻･豁ｴ繝ｻ險ｭ螳・-->
+            <!-- 履歴・設宁E-->
             <button onclick="drawerNavigate('history')" class="drawer-menu-item">
                 <span class="drawer-icon">武</span>
-                <span>讀懃ｴ｢螻･豁ｴ</span>
+                <span>検索履歴</span>
             </button>
             <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
                 <span class="drawer-icon">笞呻ｸ</span>
@@ -162,11 +162,11 @@
             <!-- Step 1: Welcome -->
             <div id="wiz-step-1" class="wizard-step active w-full px-6">
                 <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">繧医≧縺薙◎</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">縺ｾ縺壹・縺ゅ↑縺溘↓縺､縺・※謨吶∴縺ｦ縺上□縺輔＞</p>
+                <p class="text-xs text-[#a6967a] text-center mb-8">縺ｾ縺壹・縺ゅ↑縺溘↓つぁE※謨吶∴縺ｦ縺上□縺輔＞</p>
 
                 <div class="mb-6">
                     <label class="text-xs font-bold text-[#8b7e66] mb-2 block">縺ゅ↑縺溘・蜻ｼ縺ｳ蜷</label>
-                    <input type="text" id="wiz-username" placeholder="萓具ｼ壹◆縺九＠"
+                    <input type="text" id="wiz-username" placeholder="例：たかし"
                         class="w-full px-4 py-3.5 bg-white border-2 border-[#eee5d8] rounded-2xl text-base font-bold text-[#5d5444] focus:border-[#bca37f] outline-none transition-all">
                 </div>
 
@@ -194,10 +194,10 @@
             <!-- Step 2: Surname -->
             <div id="wiz-step-2" class="wizard-step w-full px-6">
                 <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">闍怜ｭ励ｒ蜈･蜉</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">蟋灘錐蛻､譁ｭ繝ｻ蟄鈴擇繝舌Λ繝ｳ繧ｹ縺ｮ險育ｮ励↓菴ｿ縺・∪縺</p>
+                <p class="text-xs text-[#a6967a] text-center mb-8">蟋灘錐蛻､譁ｭ繝ｻ蟄鈴擇繝舌Λ繝ｳ繧ｹ縺ｮ險育ｮ励↓使ぁE∪縺</p>
 
                 <div class="mb-8">
-                    <input type="text" id="wiz-surname" placeholder="萓具ｼ壼ｱｱ逕ｰ"
+                    <input type="text" id="wiz-surname" placeholder="例：山田"
                         class="w-full px-4 py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-2xl font-black text-[#5d5444] text-center focus:border-[#bca37f] outline-none transition-all">
                 </div>
 
@@ -207,7 +207,7 @@
 
             <!-- Step 3: Gender -->
             <div id="wiz-step-3" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">襍､縺｡繧・ｓ縺ｮ諤ｧ蛻･</h1>
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">襍､縺｡繧・ｓの性別</h1>
                 <p class="text-xs text-[#a6967a] text-center mb-8">讀懃ｴ｢邨先棡縺ｮ邊ｾ蠎ｦ縺御ｸ翫′繧翫∪縺呻ｼ井ｻｻ諢擾ｼ</p>
 
                 <div class="flex flex-col gap-3 mb-8">
@@ -263,7 +263,7 @@
                     </button>
                     <button onclick="startMode('free')"
                         class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">笨ｨ</div>
+                        <div class="text-xl w-8 text-center">✨</div>
                         <div class="text-left">
                             <div class="text-sm text-[#5d5444] font-black">閾ｪ逕ｱ縺ｫ貍｢蟄励ｒ謗｢縺</div>
                             <div class="text-[10px] text-[#a6967a]">逶ｴ諢溘せ繝ｯ繧､繝</div>
@@ -273,21 +273,21 @@
                         class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-xl w-8 text-center">逃</div>
                         <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">繧ｹ繝医ャ繧ｯ縺九ｉ邨・∩遶九※繧</div>
-                            <div class="text-[10px] text-[#a6967a]">繧ｹ繝医ャ繧ｯ縺励◆貍｢蟄励ｒ閾ｪ逕ｱ縺ｫ驟咲ｽｮ</div>
+                            <div class="text-sm text-[#5d5444] font-black">ストックから絁E∩遶九※繧</div>
+                            <div class="text-[10px] text-[#a6967a]">繧ｹ繝医ャ繧ｯ縺励◆漢字を自由に配置</div>
                         </div>
                     </button>
                 </div>
             </div>
 
-            <!-- Tools: 貍｢蟄玲､懃ｴ｢繝ｻ蟋灘錐蛻､譁ｭ繝ｻ繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ 3つ横並び -->
+            <!-- Tools: 漢字検索・姓名判断・ランキング 3つ横並び -->
             <div class="w-full max-w-sm px-6 mb-4">
-                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">繝・・繝ｫ</div>
+                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">繝・・ル</div>
                 <div class="grid grid-cols-3 gap-3">
                     <button onclick="openKanjiSearch()"
                         class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">博</div>
-                        <div class="text-xs text-[#5d5444] font-bold">貍｢蟄玲､懃ｴ｢</div>
+                        <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
                     </button>
                     <button onclick="startMode('diagnosis')"
                         class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
@@ -316,14 +316,14 @@
         <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
             <!-- Gender Removed -->
 
-            <p class="label-mini mb-4">蜷榊燕縺ｮ隱ｭ縺ｿ・医・繧峨′縺ｪ・</p>
+            <p class="label-mini mb-4">蜷榊燕の読み・医・繧峨′な・</p>
             <input type="text" id="in-name" placeholder="繧√＞" class="premium-input mb-8">
 
             <div class="rule-box text-left space-y-4 mb-10 px-4">
                 <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('strict')">
                     <div id="btn-strict" class="dot-selector active"></div>
                     <div>
-                        <span class="text-sm font-bold text-[#5d5444]">蜴ｳ譬ｼ繝｢繝ｼ繝会ｼ郁ｪｭ縺ｿ荳閾ｴ・</span>
+                        <span class="text-sm font-bold text-[#5d5444]">蜴ｳ譬ｼ繝｢繝ｼ繝会ｼ郁ｪｭ縺ｿ荳致・</span>
                         <p class="text-[10px] text-[#a6967a] mt-1">隱ｭ縺ｿ縺悟ｮ悟・荳閾ｴ縺吶ｋ貍｢蟄励・み表示</p>
                     </div>
                 </div>
@@ -331,7 +331,7 @@
                     <div id="btn-lax" class="dot-selector"></div>
                     <div>
                         <span class="text-sm font-bold text-[#5d5444]">譟碑ｻ溘Δ繝ｼ繝会ｼ医・縺｣縺溷・繧奇ｼ</span>
-                        <p class="text-[10px] text-[#a6967a] mt-1">隱ｭ縺ｿ縺ｮ荳驛ｨ縺御ｸ閾ｴ縺吶ｌ縺ｰ陦ｨ遉ｺ</p>
+                        <p class="text-[10px] text-[#a6967a] mt-1">隱ｭ縺ｿ縺ｮ荳驛ｨ縺御ｸ閾ｴ縺吶ｌば表示</p>
                     </div>
                 </div>
             </div>
@@ -376,7 +376,7 @@
         <!-- Compact height, 3 cols -->
         <div
             class="glass-card p-5 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto flex flex-col h-[calc(100vh-180px)] min-h-0 overflow-hidden">
-            <h2 class="text-lg font-bold mb-1 text-[#8b7e66]">蜷榊燕縺ｮ繧､繝｡繝ｼ繧ｸ</h2>
+            <h2 class="text-lg font-bold mb-1 text-[#8b7e66]">蜷榊燕のイメージ</h2>
             <p class="text-[10px] text-[#a6967a] mb-2">蠖薙※縺ｯ縺ｾ繧九ｂ縺ｮ繧堤峩諢溘〒驕ｸ謚</p>
 
             <div id="vibe-grid" class="grid grid-cols-3 gap-2 mb-2 overflow-y-auto px-1 scrollbar-hide flex-1">
@@ -443,7 +443,7 @@
                         <p class="mb-4">繝√ぉ繝・け螳御ｺ・ｼ</p>
                         <button onclick="showUniversalList()" class="btn-gold px-6 py-3 shadow-md">繝ｪ繧ｹ繝医ｒ遒ｺ隱</button>
                         <button onclick="continueUniversalSwipe()" id="uni-swipe-continue-btn"
-                            class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-4 block mx-auto">繧ゅ▲縺ｨ隕九ｋ</button>
+                            class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-4 block mx-auto">繧ゅ▲と見る</button>
                     </div>
                 </div>
             </div>
@@ -454,16 +454,16 @@
                 <button onclick="universalSwipeAction('super')"
                     class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-md bg-white">笘</button>
                 <button onclick="universalSwipeAction('like')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">笙･</button>
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-md bg-white">♥</button>
             </div>
 
             <!-- Navigation Buttons -->
             <div class="flex justify-between px-4 pb-2">
                 <button onclick="goBack()" class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    <span class="text-lg">竊</span> 謌ｻ繧・                </button>
+                    <span class="text-lg">竊</span> 戻めE                </button>
                 <button onclick="showUniversalList()"
                     class="text-[#bca37f] text-sm flex items-center gap-1 hover:text-[#8b7e66]">
-                    螳御ｺ・<span class="text-lg">竊</span>
+                    完亁E<span class="text-lg">竊</span>
                 </button>
             </div>
 
@@ -495,7 +495,7 @@
         <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
             <div class="flex items-center gap-3 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">竊</button>
-                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">貍｢蟄励ｒ讀懃ｴ｢</h2>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
             </div>
 
             <!-- Search Input -->
@@ -523,7 +523,7 @@
 
             <!-- Results -->
             <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-32 overflow-y-auto flex-1 content-start">
-                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">隱ｭ縺ｿ繝ｻ貍｢蟄励・諢丞袖縺ｧ讀懃ｴ｢縺吶ｋ縺九・br>繝輔ぅ繝ｫ繧ｿ繝ｼ繧帝∈謚槭＠縺ｦ縺上□縺輔＞</div>
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">隱ｭ縺ｿ繝ｻ貍｢蟄励・諢丞袖縺ｧ讀懃ｴ｢縺吶ｋ縺九・br>フィルターを選択してください</div>
             </div>
         </div>
     </div>
@@ -533,12 +533,12 @@
             <h2 class="text-xl font-bold mb-8 text-[#8b7e66]">姓名判断・診断</h2>
 
             <p class="label-mini mb-2">蜷榊ｭ暦ｼ井ｻｻ諢擾ｼ</p>
-            <input type="text" id="diag-surname" placeholder="萓具ｼ壼ｱｱ逕ｰ" class="premium-input mb-6 text-center">
+            <input type="text" id="diag-surname" placeholder="例：山田" class="premium-input mb-6 text-center">
 
             <p class="label-mini mb-2">蜷榊燕・域ｼ｢蟄暦ｼ</p>
-            <input type="text" id="diag-name" placeholder="萓具ｼ壼､ｪ驛・ class="premium-input mb-10 text-center">
+            <input type="text" id="diag-name" placeholder="例：太郁E class="premium-input mb-10 text-center">
 
-            <button onclick="runDiagnosis()" class="btn-gold py-5 shadow-lg">險ｺ譁ｭ邨先棡繧定ｦ九ｋ</button>
+            <button onclick="runDiagnosis()" class="btn-gold py-5 shadow-lg">診断結果を見る</button>
         </div>
     </div>
 
@@ -555,7 +555,7 @@
     <div id="scr-surname-settings" class="screen">
         <div class="glass-card p-10 rounded-[60px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
             <p class="label-mini mb-4">蜷榊ｭ励ｒ蜈･蜉幢ｼ井ｻｻ諢擾ｼ</p>
-            <input type="text" id="in-surname" placeholder="萓具ｼ壼ｱｱ逕ｰ" class="premium-input mb-10"
+            <input type="text" id="in-surname" placeholder="例：山田" class="premium-input mb-10"
                 onchange="updateSurnameData()">
 
             <div class="mb-4"></div>
@@ -567,7 +567,7 @@
         <div id="main-empty-state"
             class="hidden flex-1 flex flex-col items-center justify-center text-[#a6967a] text-center p-8">
             <div class="text-4xl mb-4">賢・</div>
-            <p class="text-sm font-bold">繧ｻ繝・す繝ｧ繝ｳ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ</p>
+            <p class="text-sm font-bold">繧ｻ繝・す繝ｧ繝ｳ縺瑚ｦ九▽かりません</p>
             <p class="text-[10px] mt-2">繝帙・繝縺九ｉ讀懃ｴ｢繧帝幕蟋九＠縺ｦ縺上□縺輔＞</p>
         </div>
 
@@ -578,7 +578,7 @@
                 <div class="w-20 flex justify-start">
                     <button onclick="prevChar()" id="btn-prev-char"
                         class="h-10 px-2 rounded-full bg-white border-2 border-[#bca37f] text-[#bca37f] font-black shadow-sm flex items-center justify-center transition-all opacity-0 pointer-events-none active:scale-95 text-xs whitespace-nowrap">
-                        &lt; 謌ｻ繧・                    </button>
+                        &lt; 戻めE                    </button>
                 </div>
 
                 <!-- Center: Flexible -->
@@ -608,7 +608,7 @@
                 <div id="stack" class="w-full h-full"></div>
             </div>
 
-            <!-- Swipe Action Buttons (ﾃ・笘・笙｡) -->
+            <!-- Swipe Action Buttons (ÁE☁E♡) -->
             <div id="swipe-action-btns"
                 class="fixed bottom-6 left-0 right-0 flex justify-center items-center gap-6 px-4 z-[9000] transition-all duration-300"
                 style="pointer-events:all">
@@ -620,7 +620,7 @@
                     style="pointer-events:all">笘</button>
                 <button onclick="manual('right')"
                     class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all">笙･</button>
+                    style="pointer-events:all">♥</button>
             </div>
 
         </div>
@@ -634,12 +634,12 @@
          ============================================================ -->
     <div id="scr-login" class="screen">
         <div class="w-full max-w-sm mx-auto px-6 pt-6">
-            <!-- 譛ｪ繝ｭ繧ｰ繧､繝ｳ譎・-->
+            <!-- 未ログイン晁E-->
             <div id="login-form-area">
                 <div class="text-center mb-8">
                     <div class="text-5xl mb-4">存</div>
                     <h2 class="text-2xl font-black text-[#5d5444] mb-2">メイメーにログイン</h2>
-                    <p class="text-xs text-[#a6967a]">繝ｭ繧ｰ繧､繝ｳ縺吶ｋ縺ｨ繝・・繧ｿ縺後け繝ｩ繧ｦ繝峨↓菫晏ｭ倥＆繧・br>縺ｩ縺ｮ遶ｯ譛ｫ縺九ｉ縺ｧ繧ゅい繧ｯ繧ｻ繧ｹ縺ｧ縺阪∪縺</p>
+                    <p class="text-xs text-[#a6967a]">繝ｭ繧ｰ繧､繝ｳ縺吶ｋ縺ｨ繝・・繧ｿ縺後け繝ｩ繧ｦ繝峨↓保存さめEbr>縺ｩ縺ｮ遶ｯ譛ｫ縺九ｉ縺ｧ繧ゅい繧ｯ繧ｻ繧ｹ縺ｧ縺阪∪縺</p>
                 </div>
 
                 <!-- Google Sign-In -->
@@ -690,14 +690,14 @@
                 </div>
             </div>
 
-            <!-- 繝ｭ繧ｰ繧､繝ｳ貂医∩譎・-->
+            <!-- ログイン済み晁E-->
             <div id="account-info-area" class="hidden">
                 <div class="text-center mb-8">
-                    <!-- 繧｢繝舌ち繝ｼ -->
+                    <!-- 繧｢繝舌ちー -->
                     <div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-3xl font-black mx-auto mb-4"
                         id="account-avatar-big">P</div>
 
-                    <!-- 蜷榊燕縺ｨID鬆伜沺・育判蜒上ョ繧ｶ繧､繝ｳ貅匁侠・・-->
+                    <!-- 蜷榊燕とID鬆伜沺・育判蜒上ョ繧ｶ繧､繝ｳ貅匁侠・・-->
                     <div class="flex flex-col items-center justify-center mb-2">
                         <div class="flex items-center gap-2 cursor-pointer hover:opacity-70 transition-opacity"
                             onclick="MeimayAuth.editNickname()">
@@ -719,7 +719,7 @@
                     </div>
                 </div>
 
-                <!-- 繝｡繝ｼ繝ｫ譛ｪ隱崎ｨｼ隴ｦ蜻・(繝代せ繝ｯ繝ｼ繝芽ｪ崎ｨｼ縺ｮ縺ｿ陦ｨ遉ｺ) -->
+                <!-- メール未認証警呁E(パスワード認証のみ表示) -->
                 <div id="email-verification-area"
                     class="hidden border-2 border-red-200 bg-red-50 rounded-2xl p-4 mb-4 text-center">
                     <p class="text-xs text-red-600 font-bold mb-2">繝｡繝ｼ繝ｫ繧｢繝峨Ξ繧ｹ縺梧悴隱崎ｨｼ縺ｧ縺</p>
@@ -728,7 +728,7 @@
                     <button onclick="MeimayAuth.resendVerificationEmail()"
                         class="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-full text-[10px] font-bold shadow-sm active:scale-95 transition-all">
                         隱崎ｨｼ繝｡繝ｼ繝ｫ繧貞・騾√☆繧・                    </button>
-                    <p class="text-[9px] text-red-400 mt-2 font-medium italic">窶ｻ隱崎ｨｼ蠕後・荳蠎ｦ繝ｪ繝ｭ繝ｼ繝峨＠縺ｦ縺上□縺輔＞</p>
+                    <p class="text-[9px] text-red-400 mt-2 font-medium italic">窶ｻ隱崎ｨｼ蠕後・荳度リロードしてください</p>
                 </div>
 
                 <div class="bg-white border-2 border-[#eee5d8] rounded-2xl p-4 mb-4">
@@ -744,7 +744,7 @@
 
                 <button onclick="MeimaySync.uploadData()"
                     class="w-full py-3 mb-4 bg-[#bca37f] text-white rounded-2xl font-bold text-sm hover:bg-[#8b7e66] transition-all hidden">
-                    豆 莉翫☆縺舌け繝ｩ繧ｦ繝峨↓蜷梧悄
+                    豆 今すぐクラウドに同期
                 </button>
 
                 <!-- 繝代・繝医リ繝ｼ蜈ｱ譛芽ｨｭ螳・-->
@@ -754,7 +754,7 @@
                         <span class="text-sm font-bold text-[#8b7e66]">繝代・繝医リ繝ｼ蜈ｱ譛芽ｨｭ螳</span>
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-[#5d5444]" id="account-share-mode-display">閾ｪ蜍暮｣謳ｺ</span>
-                            <span class="text-[#bca37f] text-lg">窶ｺ</span>
+                            <span class="text-[#bca37f] text-lg">›</span>
                         </div>
                     </div>
                 </div>
@@ -770,7 +770,7 @@
                     <!-- 繧｢繧ｳ繝ｼ繝・ぅ繧ｪ繝ｳ譛ｬ菴難ｼ亥・譛滄撼表示・・-->
                     <div id="pairing-section-area"
                         class="hidden mt-4 p-4 bg-[#fdfaf5] border border-[#eee5d8] rounded-2xl">
-                        <!-- 譛ｪ繝壹い繝ｪ繝ｳ繧ｰ譎・-->
+                        <!-- 未ペアリング晁E-->
                         <div id="pairing-not-linked">
                             <button id="btn-generate-code" onclick="window.handleGenerateCode?.()"
                                 class="w-full py-3 mb-3 bg-white border border-[#bca37f] text-[#bca37f] rounded-xl font-bold text-sm hover:bg-[#fdfaf5] transition-all shadow-sm">
@@ -780,23 +780,23 @@
                             </div>
 
                             <div class="flex gap-2">
-                                <input type="text" id="pairing-code-input" placeholder="繧ｳ繝ｼ繝峨ｒ蜈･蜉・
+                                <input type="text" id="pairing-code-input" placeholder="コードを入劁E
                                     class="flex-1 px-3 py-2.5 bg-white rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
                                 <button onclick="window.handleEnterCode?.()"
                                     class="px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all shadow-sm">連携</button>
                             </div>
                         </div>
 
-                        <!-- 繝壹い繝ｪ繝ｳ繧ｰ貂医∩譎・-->
+                        <!-- ペアリング済み晁E-->
                         <div id="pairing-linked"
                             class="hidden text-center bg-white p-4 rounded-xl border border-[#eee5d8]">
                             <div class="text-3xl mb-2">酎</div>
                             <div class="text-sm font-bold text-[#5d5444] mb-1">
-                                <span id="pairing-partner-name">繝代・繝医リ繝ｼ</span> と連携中
+                                <span id="pairing-partner-name">繝代・繝医リー</span> と連携中
                             </div>
                             <button onclick="window.confirmUnpair?.()"
                                 class="text-xs text-[#a6967a] underline mt-3 hover:text-[#f28b82] transition-colors">
-                                騾｣謳ｺ繧定ｧ｣髯､縺吶ｋ
+                                連携を解除する
                             </button>
                         </div>
                     </div>
@@ -814,14 +814,14 @@
                     }
                 </script>
 
-                <!-- 繝ｭ繧ｰ繧｢繧ｦ繝医・タン・井ｸ逡ｪ荳具ｼ・-->
+                <!-- 繝ｭ繧ｰ繧｢繧ｦ繝医・タン・井ｸ番下！E-->
                 <button onclick="MeimayAuth.signOut()"
                     class="w-full py-3 mb-3 border-2 border-[#d4c5af] text-[#8b7e66] rounded-2xl font-bold text-sm hover:bg-[#f8f5ef] transition-all">
-                    繝ｭ繧ｰ繧｢繧ｦ繝・                </button>
-                <!-- 繧｢繧ｫ繧ｦ繝ｳ繝亥炎髯､ -->
+                    ログアウチE                </button>
+                <!-- 繧｢繧ｫ繧ｦ繝ｳ繝亥炎除 -->
                 <button onclick="MeimayAuth.deleteAccount()"
                     class="w-full py-2.5 text-[#f28b82] text-xs font-bold hover:underline transition-all opacity-70">
-                    繧｢繧ｫ繧ｦ繝ｳ繝医ｒ蜑企勁縺吶ｋ
+                    アカウントを削除する
                 </button>
             </div>
         </div>
@@ -844,7 +844,7 @@
                 class="flex justify-between items-end border-b border-[#eee5d8] bg-white px-4 sticky top-[80px] z-10 w-full">
                 <div class="flex flex-1" id="ranking-tabs">
                     <button onclick="switchRankingTab('allTime')" id="ranking-tab-allTime"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">邱丞粋繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ</button>
+                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">邱丞粋ランキング</button>
                     <button onclick="switchRankingTab('weekly')" id="ranking-tab-weekly"
                         class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">莉企ｱ縺ｮ諤･荳頑・</button>
                 </div>
@@ -871,13 +871,13 @@
                 </div>
                 <button onclick="MeimayShare.shareLiked()"
                     class="partner-share-btn hidden ml-3 mb-2 px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
-                    <span>豆</span> 蜈ｱ譛・                </button>
+                    <span>豆</span> 共朁E                </button>
             </div>
-            <!-- 貍｢蟄励せ繝医ャ繧ｯ -->
+            <!-- 貍｢蟄励せ繝医ャク -->
             <div id="stock-kanji-panel">
                 <div id="stock-list" class="grid grid-cols-5 gap-2 pb-40"></div>
             </div>
-            <!-- 隱ｭ縺ｿ繧ｹ繝医ャ繧ｯ -->
+            <!-- 隱ｭ縺ｿ繧ｹ繝医ャク -->
             <div id="reading-stock-panel" class="hidden">
                 <div id="reading-stock-section"></div>
                 <div id="reading-stock-empty" class="text-center py-16 hidden">
@@ -885,7 +885,7 @@
                     <p class="text-sm text-[#a6967a]">髻ｿ縺阪ｒ縺ｲ繧阪￡繧九〒隱ｭ縺ｿ繧帝∈縺ｳ縺ｾ縺励ｇ縺</p>
                 </div>
             </div>
-            <!-- 繧ｹ繝医ャ繧ｯ縺九ｉ邨・∩遶九※繧具ｼ郁・逕ｱ繝薙Ν繝会ｼ・-->
+            <!-- 繧ｹ繝医ャ繧ｯ縺九ｉ邨・∩遶九※繧具ｼ郁・逕ｱ繝薙Νド！E-->
             <div id="free-build-panel" class="hidden pb-40">
                 <div id="free-build-section"></div>
             </div>
@@ -918,7 +918,7 @@
         </div>
     </div>
 
-    <!-- 邨ｱ荳繝輔ャター: 繝帙・繝 / 縺輔′縺・/ 繧ｹ繝医ャ繧ｯ / 繝薙Ν繝・/ 菫晏ｭ俶ｸ医∩ -->
+    <!-- 邨ｱ荳繝輔ャター: 繝帙・繝 / 縺輔′縺・/ 繧ｹ繝医ャク / 繝薙Ν繝・/ 保存済み -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
             <button onclick="changeScreen('scr-mode')"
@@ -934,7 +934,7 @@
             <button onclick="openStock()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-stock">
                 <span class="text-xl transition-transform duration-200">搭</span>
-                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">繧ｹ繝医ャ繧ｯ</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">繧ｹ繝医ャク</span>
             </button>
             <button onclick="openBuild()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-build">
@@ -944,7 +944,7 @@
             <button onclick="openSavedNames()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-saved">
                 <span class="text-xl transition-transform duration-200">沈</span>
-                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">菫晏ｭ俶ｸ医∩</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">保存済み</span>
             </button>
         </div>
     </nav>
@@ -966,7 +966,7 @@
                     <div id="det-readings" class="flex flex-wrap gap-2 mt-1"></div>
                 </div>
                 <div class="border-l-2 border-[#bca37f] pl-4">
-                    <span class="label-mini">諢丞袖繝ｻ謌舌ｊ遶九■</span>
+                    <span class="label-mini">意味・成り立ち</span>
                     <p id="det-meaning" class="mt-1 text-sm leading-relaxed"></p>
                 </div>
             </div>
@@ -1044,7 +1044,7 @@
 
                 <div>
                     <h3 class="text-xs font-bold text-[#a6967a] mb-2 pl-1 flex items-center gap-1">
-                        <span>笨ｨ</span> 縺薙・貍｢蟄励′菴ｿ繧上ｌ縺溷屁蟄礼・隱槭・縺薙→繧上＊
+                        <span>✨</span> 縺薙・貍｢蟄励′菴ｿ繧上ｌ縺溷屁蟄礼・隱槭・縺薙→繧上＊
                     </h3>
                     <div id="detail-yojijukugo" class="space-y-3"></div>
                 </div>
@@ -1069,8 +1069,8 @@
                     <div id="tut-card-1"
                         class="w-full h-full bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center relative border-4 border-white/50">
                         <div class="absolute inset-0 bg-gradient-to-br from-[#fdfaf5] to-white opacity-50"></div>
-                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">驕ｸ</div>
-                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">15逕ｻ</div>
+                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">選</div>
+                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">15画</div>
 
                         <div id="tut-badge-like"
                             class="absolute top-4 left-4 border-4 border-[#81c995] text-[#81c995] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20">
@@ -1087,7 +1087,7 @@
 
                 <div class="w-full text-center text-white">
                     <p class="text-xl font-bold mb-2">逶ｴ諢溘〒繧ｹ繝ｯ繧､繝暦ｼ</p>
-                    <p class="text-sm opacity-90">右でLIKE縲∝ｷｦ縺ｧNOPE</p>
+                    <p class="text-sm opacity-90">右でLIKE、左でNOPE</p>
                     <p class="text-sm opacity-90 text-[#8ab4f8] font-bold mt-1">荳翫せ繝ｯ繧､繝励〒雜・＞縺・・・</p>
                     <p class="text-xs mt-6 opacity-60 animate-pulse">逕ｻ髱｢繧偵ち繝・・縺励※次へ</p>
                 </div>
@@ -1099,8 +1099,8 @@
                     <div id="tut-card-2"
                         class="w-full h-full bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center relative border-4 border-white/50">
                         <div class="absolute inset-0 bg-gradient-to-br from-[#fdfaf5] to-white opacity-50"></div>
-                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">隧ｳ</div>
-                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">13逕ｻ</div>
+                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">詳</div>
+                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">13画</div>
 
                         <!-- Detail Popover -->
                         <div id="tut-detail-pop"
@@ -1125,7 +1125,7 @@
                 <div class="relative w-full flex-1 flex items-center justify-center min-h-[300px]">
                     <div id="tut-card-fly"
                         class="absolute w-32 h-40 bg-white rounded-xl shadow-lg flex flex-col items-center justify-center z-20 border-2 border-[#81c995]">
-                        <span class="text-4xl text-[#5d5444]">螂ｽ</span>
+                        <span class="text-4xl text-[#5d5444]">好</span>
                         <div class="absolute -top-2 -right-2 bg-[#81c995] text-white rounded-full p-1 text-[10px]">笶､・・                        </div>
                     </div>
                 </div>
@@ -1145,7 +1145,7 @@
                                 class="absolute -top-1 -right-1 bg-[#f28b82] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center opacity-0 scale-0 shadow-sm">
                                 1</div>
                         </div>
-                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">繧ｹ繝医ャ繧ｯ</span>
+                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">繧ｹ繝医ャク</span>
                     </div>
 
                     <div id="tut-icon-build" class="flex flex-col items-center gap-1 opacity-50">
@@ -1160,7 +1160,7 @@
                 </div>
 
                 <div class="w-full text-center text-white mt-8 mb-4">
-                    <p class="text-xl font-bold mb-2">縺溘ａ縺ｦ縲√▽縺上ｋ</p>
+                    <p class="text-xl font-bold mb-2">ためて、つくる</p>
                     <p class="text-sm opacity-90">繧ｭ繝ｼ繝励＠縺滓ｼ｢蟄励〒蜷榊燕繧剃ｽ懈・</p>
                     <p class="text-xs mt-4 opacity-60 animate-pulse">逕ｻ髱｢繧偵ち繝・・縺励※繧ｹ繧ｿ繝ｼ繝茨ｼ</p>
                 </div>
@@ -1539,7 +1539,7 @@
                 class="flex bg-white/60 border border-[#ede5d8] rounded-2xl overflow-hidden mb-4 shadow-sm p-1 shrink-0">
                 <button id="legal-tab-terms" onclick="switchLegalTab('terms')"
                     class="flex-1 py-1.5 rounded-[10px] text-[11px] font-bold bg-[#bca37f] text-white shadow-sm transition-all">
-                    蛻ｩ逕ｨ隕冗ｴ・                </button>
+                    利用規紁E                </button>
                 <button id="legal-tab-privacy" onclick="switchLegalTab('privacy')"
                     class="flex-1 py-1.5 rounded-[10px] text-[11px] font-bold bg-transparent text-[#bca37f] hover:bg-[#bca37f]/10 transition-all">
                     繝励Λ繧､繝舌す繝ｼ繝昴Μシー
@@ -1563,7 +1563,7 @@
                 <h3 class="font-bold text-[#8b7e66] text-sm pl-1">菫晏ｭ倥Μ繧ｹ繝</h3>
                 <button onclick="MeimayShare.shareSavedNames()"
                     class="partner-share-btn hidden px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
-                    <span>豆</span> 蜈ｱ譛・                </button>
+                    <span>豆</span> 共朁E                </button>
             </div>
             <div id="saved-list-content" class="space-y-3 overflow-y-auto flex-1 pb-32">
                 <!-- JS populated -->
@@ -1580,13 +1580,13 @@
         </div>
     </div>
 
-    <!-- AI髻ｿ縺榊・譫舌Δ繝ｼ繝繝ｫ -->
+    <!-- AI髻ｿ縺榊・譫舌Δ繝ｼ繝ル -->
     <div id="modal-ai-sound" class="overlay"></div>
 
-    <!-- 蠑輔″邯吶℃遒ｺ隱阪Δ繝ｼ繝繝ｫ -->
+    <!-- 蠑輔″邯吶℃遒ｺ隱阪Δ繝ｼ繝ル -->
     <div id="modal-inherit" class="overlay">
         <div class="detail-sheet text-center" onclick="event.stopPropagation()">
-            <div class="text-4xl mb-3">笨ｨ</div>
+            <div class="text-4xl mb-3">✨</div>
             <h3 class="text-xl font-black text-[#5d5444] mb-3" id="inherit-modal-title"></h3>
             <p class="text-sm text-[#8b7e66] mb-6 leading-relaxed" id="inherit-modal-body"></p>
             <div class="flex gap-3">
@@ -1596,13 +1596,13 @@
                 </button>
                 <button onclick="inheritModalAction('add')"
                     class="flex-1 py-3 rounded-full bg-[#bca37f] text-white font-bold text-sm">
-                    霑ｽ蜉縺ｧ驕ｸ縺ｶ
+                    霑ｽ蜉で選ぶ
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 隱ｭ縺ｿ繧ｹ繝医ャ繧ｯ謫堺ｽ懊Δ繝ｼ繝繝ｫ -->
+    <!-- 隱ｭ縺ｿ繧ｹ繝医ャ繧ｯ謫堺ｽ懊Δ繝ｼ繝ル -->
     <div id="modal-reading-detail" class="overlay">
         <div class="detail-sheet text-center" onclick="event.stopPropagation()">
             <div class="text-4xl mb-3">搭</div>
