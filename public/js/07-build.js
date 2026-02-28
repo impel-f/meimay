@@ -60,7 +60,7 @@ function renderFreeBuildSection() {
     // 各文字スロットのHTML
     let html = '';
     const maxSlots = 3;
-    const shownSlots = Math.max(1, fbChoices.length + (fbChoices.length < maxSlots ? 1 : 0));
+    const shownSlots = Math.max(1, fbChoices.length + (fbChoices.length <maxSlots ? 1 : 0));
 
     for (let slotIdx = 0; slotIdx < shownSlots; slotIdx++) {
         const label = `${slotIdx + 1}文字目`;
@@ -72,7 +72,7 @@ function renderFreeBuildSection() {
                     <span class="text-xs font-bold text-[#8b7e66]">${label}</span>
                     ${selected ? `<span class="text-xs text-[#a6967a] cursor-pointer hover:text-[#f28b82]" onclick="removeFbChoice(${slotIdx})">✕ 解除</span>` : ''}
                 </div>
-                <!-- 横スクロール漢字列 -->
+                
                 <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     ${allKanji.map(item => {
             const k = item['漢字'];
@@ -185,59 +185,6 @@ function confirmFbBuild() {
     }
 }
 
-
-console.log('BUILD: openFreeBuild');
-
-// ストックがない場合
-if (!liked || liked.length === 0) {
-    if (typeof showToast === 'function') {
-        showToast('まずスワイプで漢字をストックしてください', '📦');
-    }
-    return;
-}
-
-// 自由ビルド用オーバーレイを生成（既存があれば削除）
-let existing = document.getElementById('free-build-overlay');
-if (existing) existing.remove();
-
-const overlay = document.createElement('div');
-overlay.id = 'free-build-overlay';
-overlay.className = 'overlay active';
-overlay.style.alignItems = 'flex-start';
-overlay.style.paddingTop = '20px';
-overlay.style.overflowY = 'auto';
-overlay.innerHTML = `
-        <div class="detail-sheet w-[95%] max-w-md flex flex-col" style="max-height:90vh;overflow-y:auto;padding:24px 20px;" onclick="event.stopPropagation()">
-            <button class="modal-close-btn absolute top-4 right-4 z-50"
-                onclick="document.getElementById('free-build-overlay').remove()">✕</button>
-            <h2 class="text-lg font-black text-[#5d5444] mb-1 text-center">ストックから組み立てる</h2>
-            <p class="text-xs text-[#a6967a] text-center mb-4">読み方・順番は自由！好きな漢字を配置してください</p>
-
-            <!-- 文字数選択 -->
-            <div id="free-build-char-count-section" class="mb-4">
-                <p class="text-xs font-bold text-[#8b7e66] mb-2">名前の文字数</p>
-                <div class="flex gap-2 justify-center">
-                    ${[1, 2, 3, 4].map(n => `
-                        <button onclick="initFreeBuildSlots(${n})"
-                            class="free-build-count-btn w-12 h-12 rounded-xl border-2 border-[#ede5d8] bg-white text-[#5d5444] font-black text-lg hover:border-[#bca37f] transition-all active:scale-90">
-                            ${n}
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-
-            <!-- スロット -->
-            <div id="free-build-slots" class="flex gap-2 justify-center mb-4 hidden"></div>
-
-            <!-- 読みグループ選択パレット -->
-            <div id="free-build-palette" class="hidden">
-                <p class="text-[10px] text-[#a6967a] mb-2 text-center" id="free-build-palette-hint">枠をタップして漢字を選んでください</p>
-                <!-- 読みグループタブ -->
-                <div id="free-build-group-tabs" class="flex gap-1.5 overflow-x-auto pb-1 mb-2 scrollbar-hide"></div>
-                <!-- 漢字グリッド -->
-                <div id="free-build-kanji-grid" class="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto pb-2"></div>
-            </div>
-
 function switchStockTab(tab) {
     currentStockTab = tab;
 
@@ -297,10 +244,10 @@ function renderStock() {
 
     if (validItems.length === 0) {
         container.innerHTML = `
-    < div class="col-span-5 text-center py-20" >
+    <div class="col-span-5 text-center py-20" >
                 <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
                 <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
-            </div >
+            </div>
     `;
         return;
     }
@@ -368,20 +315,20 @@ function renderStock() {
         segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
         segHeader.onclick = () => toggleReadingGroup(safeId);
         segHeader.innerHTML = `
-    < div class="flex items-center gap-3" >
+    <div class="flex items-center gap-3" >
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
                 <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
                     <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
                     ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}個)</span>
                 </span>
                 <div class="h-px flex-1 bg-[#d4c5af]"></div>
-            </div >
+            </div>
     `;
         container.appendChild(segHeader);
 
         // 5列グリッド
         const cardsGrid = document.createElement('div');
-        cardsGrid.id = `group - ${ safeId } `;
+        cardsGrid.id = `group-${safeId}`;
         cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
 
         items.forEach(item => {
@@ -413,8 +360,8 @@ function renderStock() {
  * 読み方グループの折りたたみトグル
  */
 function toggleReadingGroup(reading) {
-    const group = document.getElementById(`group - ${ reading } `);
-    const icon = document.getElementById(`icon - ${ reading } `);
+    const group = document.getElementById(`group-${reading}`);
+    const icon = document.getElementById(`icon-${reading}`);
 
     if (group && icon) {
         const isHidden = group.classList.contains('hidden');
@@ -464,7 +411,7 @@ function renderBuildSelection() {
         row.className = 'mb-6';
 
         row.innerHTML = `
-    < div class="flex items-center justify-between mb-3" >
+    <div class="flex items-center justify-between mb-3" >
                 <p class="text-[11px] font-black text-[#bca37f] uppercase tracking-widest flex items-center gap-2">
                     <span class="bg-[#bca37f] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">${idx + 1}</span>
                     ${idx + 1}文字目: ${seg}
@@ -477,7 +424,7 @@ function renderBuildSelection() {
                         ← 読みを戻す
                     </button>
                 </div>
-            </div >
+            </div>
     `;
 
         const scrollBox = document.createElement('div');
@@ -551,10 +498,10 @@ function renderBuildSelection() {
                 let fortuneIndicator = '';
                 if (prioritizeFortune && itemIdx < 3) {
                     const badges = ['🥇', '🥈', '🥉'];
-                    fortuneIndicator = `< div class="text-lg mt-1" > ${ badges[itemIdx] }</div > `;
+                    fortuneIndicator = `<div class="text-lg mt-1" > ${ badges[itemIdx] }</div> `;
                 }
 
-                let partnerBadge = item.fromPartner ? `< div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center" >👩</div > ` : '';
+                let partnerBadge = item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center" >👩</div> ` : '';
 
                 btn.innerHTML = `
                     ${ partnerBadge }
@@ -598,7 +545,7 @@ function deleteStockGroup(reading) {
         removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字']));
     }
 
-    if (liked.length < initialCount) {
+    if (liked.length <initialCount) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
             StorageBox.saveLiked();
         }
@@ -612,7 +559,7 @@ function deleteStockGroup(reading) {
                 // 読みが一致するものを削除
                 history = history.filter(h => h.reading !== reading);
 
-                if (history.length < initialHistCount) {
+                if (history.length <initialHistCount) {
                     localStorage.setItem('meimay_reading_history', JSON.stringify(history));
                     console.log('BUILD: Synced history deletion for', reading);
                 }
@@ -750,7 +697,7 @@ function renderBuildResult() {
     const r = currentBuildResult;
 
     container.innerHTML = `
-    < div class="glass-card rounded-[50px] p-8 mb-6 shadow-xl animate-fade-in" >
+    <div class="glass-card rounded-[50px] p-8 mb-6 shadow-xl animate-fade-in" >
         <h3 class="text-4xl font-black text-center mb-8 text-[#5d5444] tracking-tight leading-tight">${surnameStr ? surnameStr + ' ' : ''}${r.givenName}</h3>
             
             ${
@@ -773,7 +720,7 @@ function renderBuildResult() {
     <button onclick="generateOrigin()" class="btn-gold py-3 text-sm">由来を生成</button>
     <button onclick="saveName()" class="btn-premium-select !mb-0 py-3 text-sm">保存する</button>
 </div>
-        </div >
+        </div>
     `;
 }
 
@@ -834,7 +781,7 @@ function showFortuneDetail() {
     const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
     const jinSpan = (() => {
         const t = _jinRaw.top + OFFSET, b = _jinRaw.bot - OFFSET;
-        return (t < b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
+        return (t <b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
     })();
     const chiSpan = { top: _chiRaw.bot > _chiRaw.top ? _chiRaw.top + OFFSET : _chiRaw.top, bot: _chiRaw.bot };
     const gaiSpan = { top: nSur > 0 ? surMid(0) : 0, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
@@ -845,19 +792,19 @@ function showFortuneDetail() {
     const bStyle = (span, side) => {
         const h = span.bot - span.top;
         if (h <= 1) {
-            return `position: absolute; top:${ span.top } px; height: 0; left: 0; right: 0; border - top:${ BW }px solid ${ BC }; `;
+            return `position:absolute;top:${span.top}px;height:0;left:0;right:0;border-top:${BW}px solid ${BC};`;
         }
         const corners = side === 'left'
-            ? `border - left:${ BW }px solid ${ BC }; border - top:${ BW }px solid ${ BC }; border - bottom:${ BW }px solid ${ BC }; border - radius: 3px 0 0 3px; `
-            : `border - right:${ BW }px solid ${ BC }; border - top:${ BW }px solid ${ BC }; border - bottom:${ BW }px solid ${ BC }; border - radius: 0 3px 3px 0; `;
-        return `position: absolute; top:${ span.top } px; height:${ h } px; left: 0; right: 0;${ corners } `;
+            ? `border-left:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:3px 0 0 3px;`
+            : `border-right:${BW}px solid ${BC};border-top:${BW}px solid ${BC};border-bottom:${BW}px solid ${BC};border-radius:0 3px 3px 0;`;
+        return `position:absolute;top:${span.top}px;height:${h}px;left:0;right:0;${corners}`;
     };
 
     // 格ボックスの Y 位置（重なり防止：最小間隔を保証）
     const FBOX_H = 36; // fBoxを横並びにしてコンパクト化
     const rawY = [spanMid(tenSpan), spanMid(jinSpan), spanMid(chiSpan)];
     const yPos = [...rawY];
-    for (let i = 1; i < yPos.length; i++) {
+    for (let i = 1; i <yPos.length; i++) {
         yPos[i] = Math.max(yPos[i], yPos[i - 1] + FBOX_H);
     }
     const [yTen, yJin, yChi] = yPos;
@@ -865,25 +812,25 @@ function showFortuneDetail() {
 
     // 格ボックス HTML（コンパクト横並びレイアウト）
     const fBox = (obj, label) => `
-    < div style = "text-align:center;cursor:pointer;white-space:nowrap" onclick = "showFortuneTerm('${label}')" >
+    <div style = "text-align:center;cursor:pointer;white-space:nowrap" onclick = "showFortuneTerm('${label}')" >
             <div style="padding:2px 6px;background:#fdfaf5;border:1.5px solid #eee5d8;border-radius:6px;display:inline-block">
                 <span style="font-size:12px;font-weight:900;color:#5d5444">${getNum(obj)}</span><span style="font-size:7px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${obj.res.color}">${obj.res.label}</span>
             </div>
             <div style="font-size:7px;font-weight:700;color:#a6967a;margin-top:1px">${label}</div>
-        </div > `;
+        </div> `;
 
     // 漢字ボックス HTML
     const kBox = (char, isSur) => `
-    < div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${ char }</div > `;
+    <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${ char }</div> `;
 
     const mapArea = document.createElement('div');
     mapArea.className = "mb-4 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
     mapArea.innerHTML = `
-        < div style = "text-align:center;font-size:9px;font-weight:900;letter-spacing:0.2em;color:#5d5444;opacity:0.5;margin-bottom:14px" > 姓名判断 鑑定図解</div >
+        <div style = "text-align:center;font-size:9px;font-weight:900;letter-spacing:0.2em;color:#5d5444;opacity:0.5;margin-bottom:14px" > 姓名判断 鑑定図解</div>
 
         <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
-            <!-- 左：外格ボックス ＋ 横線 ＋ [ 括弧（右から左へ：bracket|line|box） -->
+            
             <div style="display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px;width:${BARM + LINE + 80}px;justify-content:flex-start">
                 <div style="position:relative;width:${BARM}px;height:${totalH}px;flex-shrink:0">
                     <div style="${bStyle(gaiSpan, 'left')}"></div>
@@ -896,26 +843,26 @@ function showFortuneDetail() {
                 </div>
             </div>
 
-            <!-- 中央：漢字列 -->
+            
             <div style="display:flex;flex-direction:column;gap:${GAP}px;flex-shrink:0;align-items:center">
                 ${surChars.map(s => kBox(s.kanji, true)).join('')}
                 <div style="height:${DIV_H}px;display:flex;align-items:center;justify-content:center;color:#d4c5af;font-size:16px;font-weight:900;line-height:1">/</div>
                 ${givChars.map(g => kBox(g.kanji, false)).join('')}
             </div>
 
-            <!-- 右：] 括弧×3 ＋ 横線コネクタ ＋ 格ボックス（全て絶対配置） -->
+            
             <div style="position:relative;height:${rightColH}px;width:${BARM + LINE + 80}px;flex-shrink:0">
-                <!-- ] 括弧列 -->
+                
                 <div style="position:absolute;top:0;left:0;width:${BARM}px;height:${totalH}px">
                     <div style="${bStyle(tenSpan, 'right')}"></div>
                     <div style="${bStyle(jinSpan, 'right')}"></div>
                     <div style="${bStyle(chiSpan, 'right')}"></div>
                 </div>
-                <!-- 横線コネクタ（クランプ済み Y 位置から伸ばす） -->
+                
                 <div style="position:absolute;top:${yTen}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
                 <div style="position:absolute;top:${yJin}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
                 <div style="position:absolute;top:${yChi}px;left:${BARM}px;width:${LINE}px;height:0;border-top:${BW}px solid ${BC}"></div>
-                <!-- 格ボックス -->
+                
                 <div style="position:absolute;top:${yTen}px;left:${BARM + LINE}px;transform:translateY(-50%)">
                     ${fBox(res.ten, '天格')}
                 </div>
@@ -945,7 +892,7 @@ function showFortuneDetail() {
         const sansai = document.createElement('div');
         sansai.className = "mb-4 bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8] shadow-inner animate-fade-in";
         sansai.innerHTML = `
-    < div class="flex justify-between items-center mb-3" >
+    <div class="flex justify-between items-center mb-3" >
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black text-[#bca37f] tracking-widest uppercase">五行・三才</span>
                     <span onclick="showFortuneTerm('五行・三才')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
@@ -953,7 +900,7 @@ function showFortuneDetail() {
                 <span class="px-3 py-0.5 bg-white rounded-full text-[10px] font-black ${res.sansai.label === '大吉' ? 'text-amber-600' : 'text-[#5d5444]'} shadow-sm">
                     ${res.sansai.label}
                 </span>
-            </div >
+            </div>
             <div class="flex gap-1.5 items-center mb-3">
                 ${['t', 'j', 'c'].map(k => `<div class="flex-grow bg-white py-2 rounded-xl border border-[#eee5d8] text-center"><div class="text-[8px] font-bold text-[#a6967a]">${k === 't' ? '天' : k === 'j' ? '人' : '地'}</div><div class="text-sm font-black text-[#5d5444]">${res.sansai[k] || '-'}</div></div>`).join('<div class="text-[#eee5d8] text-[8px]">▶</div>')}
             </div>
@@ -1007,7 +954,7 @@ function renderFortuneDetails(container, res, getNum) {
         const row = document.createElement('div');
         row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
         row.innerHTML = `
-    < div class="flex items-center gap-3 mb-1" >
+    <div class="flex items-center gap-3 mb-1" >
                 <div class="flex items-center gap-1.5">
                     <span class="text-sm">${p.icon}</span>
                     <span class="text-xs font-black text-[#a6967a]">${p.k}（${p.sub}）</span>
@@ -1017,7 +964,7 @@ function renderFortuneDetails(container, res, getNum) {
                     <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>
                     <span class="${p.d.res.color} text-sm font-black">${p.d.res.label}</span>
                 </div>
-            </div >
+            </div>
     <p class="text-[11px] leading-relaxed text-[#7a6f5a] line-clamp-3">${descText}</p>
 `;
         container.appendChild(row);
@@ -1170,11 +1117,11 @@ function displayFortuneRankingModal(rankedList) {
         card.onclick = () => applyRankedCombination(item.combination);
 
         const rankBadge = medals[rank]
-            ? `< span style = "font-size:22px;line-height:1;flex-shrink:0" > ${ medals[rank] }</span > `
-            : `< div style = "width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0" > <span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div > `;
+            ? `<span style = "font-size:22px;line-height:1;flex-shrink:0" > ${ medals[rank] }</span> `
+            : `<div style = "width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0" > <span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div> `;
 
         card.innerHTML = `
-    < div style = "display:flex;align-items:center;gap:8px" >
+    <div style = "display:flex;align-items:center;gap:8px" >
         ${ rankBadge }
                 <div style="flex:1;min-width:0;overflow:hidden">
                     <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">
@@ -1192,7 +1139,7 @@ function displayFortuneRankingModal(rankedList) {
                     <div style="font-size:20px;font-weight:900;line-height:1" class="${f.so.res.color}">${f.so.val}</div>
                     <div style="font-size:10px;font-weight:700" class="${f.so.res.color}">${f.so.res.label}</div>
                 </div>
-            </div >
+            </div>
     `;
         descEl.appendChild(card);
     });
@@ -1214,7 +1161,7 @@ function applyRankedCombination(combination) {
 
     combination.pieces.forEach((piece, idx) => {
         selectedPieces[idx] = piece;
-        const targetBtn = document.querySelector(`.build - piece - btn[data - slot="${idx}"][data - kanji="${piece['漢字']}"]`);
+        const targetBtn = document.querySelector(`.build-piece-btn[data-slot="${idx}"][data-kanji="${piece['漢字']}"]`);
         if (targetBtn) targetBtn.classList.add('selected');
     });
 
