@@ -358,10 +358,14 @@ function showDetailByData(data) {
     showKanjiDetail(data);
 }
 
+// 詳細モーダルで現在表示中の漢字データを保持
+let _currentDetailData = null;
+
 /**
  * 漢字詳細モーダルを表示
  */
 async function showKanjiDetail(data) {
+    _currentDetailData = data;
     const modal = document.getElementById('modal-kanji-detail');
     if (!modal) {
         console.error("RENDER: Kanji detail modal not found");
@@ -444,27 +448,30 @@ async function showKanjiDetail(data) {
     // ストック状態チェック
     const isLiked = liked.some(l => l['漢字'] === data['漢字']);
 
-    // 既存のボタンがあれば削除
-    const existingStockBtn = modal.querySelector('#btn-stock-toggle-modal');
-    if (existingStockBtn) existingStockBtn.remove();
+    // ヘッダー内のストックボタンエリアを更新
+    const stockBtnsEl = document.getElementById('modal-stock-btns');
+    if (stockBtnsEl) {
+        stockBtnsEl.innerHTML = '';
+        if (isLiked) {
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95';
+            removeBtn.innerHTML = '<span>🗑️</span> ストックから外す';
+            removeBtn.onclick = () => toggleStockFromModal(_currentDetailData, true);
+            stockBtnsEl.appendChild(removeBtn);
+        } else {
+            const likeBtn = document.createElement('button');
+            likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#ff9a9e] to-[#fecfef] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
+            likeBtn.innerHTML = '<span>♥</span> ライク';
+            likeBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, false);
 
-    const stockBtn = document.createElement('button');
-    stockBtn.id = 'btn-stock-toggle-modal';
+            const superBtn = document.createElement('button');
+            superBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
+            superBtn.innerHTML = '<span>★</span> スーパー';
+            superBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, true);
 
-    if (isLiked) {
-        stockBtn.className = 'w-full mt-6 mb-4 py-4 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2';
-        stockBtn.innerHTML = '<span>🗑️</span> この漢字をストックから外す';
-        stockBtn.onclick = () => toggleStockFromModal(data, true);
-    } else {
-        stockBtn.className = 'w-full mt-6 mb-4 py-4 bg-gradient-to-r from-[#ff9a9e] to-[#fecfef] rounded-2xl text-base font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2';
-        stockBtn.innerHTML = '<span class="text-xl">♥</span> ストックに追加';
-        stockBtn.onclick = () => toggleStockFromModal(data, false);
-    }
-
-    // 四字熟語(yojijukugoElの親div)の上に配置
-    const yojiWrapper = yojijukugoEl.parentNode;
-    if (yojiWrapper && yojiWrapper.parentNode) {
-        yojiWrapper.parentNode.insertBefore(stockBtn, yojiWrapper);
+            stockBtnsEl.appendChild(likeBtn);
+            stockBtnsEl.appendChild(superBtn);
+        }
     }
 
     // AI生成ボタン
@@ -573,8 +580,11 @@ async function showKanjiDetail(data) {
 
 /**
  * モーダルからストックを切り替え
+ * @param {Object} data - 漢字データ
+ * @param {boolean} isCurrentlyLiked - 現在ストック中かどうか
+ * @param {boolean} [isSuper=false] - スーパーライクとして追加するか
  */
-function toggleStockFromModal(data, isCurrentlyLiked) {
+function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
     if (isCurrentlyLiked) {
         if (!confirm(`「${data['漢字']}」をストックから外しますか？`)) return;
 
@@ -628,7 +638,8 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
             timestamp: new Date().toISOString(),
             sessionReading: sessionReading,
             slot: slot,
-            kanji_reading: readingToSave
+            kanji_reading: readingToSave,
+            isSuper: !!isSuper
         };
         if (sessionSegments) {
             likeData.sessionSegments = sessionSegments;
@@ -640,7 +651,7 @@ function toggleStockFromModal(data, isCurrentlyLiked) {
             MeimayStats.recordKanjiLike(data['漢字']);
         }
 
-        alert('ストックに追加しました！');
+        alert(isSuper ? '★スーパーライクでストックに追加しました！' : '♥ライクでストックに追加しました！');
         closeKanjiDetail();
     }
 }

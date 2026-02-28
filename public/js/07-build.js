@@ -342,9 +342,9 @@ function renderStock() {
 
             card.innerHTML = `
                 ${ item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : '' }
+                ${ item.isSuper ? '<div class="stock-stars">★</div>' : '' }
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '？'}画</div>
-                ${ item.isSuper ? '<div class="stock-stars">★</div>' : '' }
 `;
             cardsGrid.appendChild(card);
         });
@@ -543,9 +543,9 @@ function renderBuildSelection() {
 
                 btn.innerHTML = `
                     ${ partnerBadge }
+                    ${ item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[8px] leading-none font-bold">★</div>' : '' }
                     <div class="build-kanji-text">${item['漢字']}</div>
-                    <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
-                    ${ item.isSuper ? '<div class="text-[#8ab4f8] text-sm mt-1">★</div>' : '' }
+                    <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
                     ${ fortuneIndicator }
 `;
                 scrollBox.appendChild(btn);
