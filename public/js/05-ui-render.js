@@ -654,5 +654,6 @@ function closeKanjiDetail() {
 }
 
 window.updateSwipeMainState = updateSwipeMainState;
+window.showKanjiDetail = showKanjiDetail;
 
-console.log("UI RENDER: Module loaded (v14.1 - Full tap area)");
+console.log("UI RENDER: Module loaded (v14.2 - showKanjiDetail global)");

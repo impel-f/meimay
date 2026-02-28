@@ -1,9 +1,10 @@
 /* ============================================================
-   MODULE 07: BUILD (V14.0 - 読み方別折りたたみ対応)
+   MODULE 07: BUILD (V15.0 - ビルド画面に読み方/自由モード統合)
    ビルド画面・名前構築・姓名判断表示
    ============================================================ */
 
 let selectedPieces = [];
+let buildMode = 'reading'; // 'reading' | 'free'
 
 /**
  * ストック画面を開く
@@ -18,18 +19,19 @@ function openStock(tab) {
 }
 
 /**
- * 自由ビルド：ストックから組み立てる画面を開く
- * ビルド画面内の「ストックから選ぶ」タブに遷移する
+ * 自由ビルド：ビルド画面を自由モードで開く
  */
 function openFreeBuild() {
-    console.log('BUILD: openFreeBuild → scr-stock/free-build-section');
+    console.log('BUILD: openFreeBuild → scr-build/free-mode');
     if (!liked || liked.length === 0) {
         if (typeof showToast === 'function') showToast('まずスワイプで漢字をストックしてください', '📦');
         return;
     }
-    changeScreen('scr-stock');
-    // タブは「ストックから組み立てる」へ
-    switchStockTab('freebuild');
+    buildMode = 'free';
+    fbChoices = [];
+    selectedPieces = [];
+    renderBuildSelection();
+    changeScreen('scr-build');
 }
 
 /**
@@ -190,10 +192,8 @@ function switchStockTab(tab) {
 
     const readingTab = document.getElementById('stock-tab-reading');
     const kanjiTab = document.getElementById('stock-tab-kanji');
-    const freebuildTab = document.getElementById('stock-tab-freebuild');
     const readingPanel = document.getElementById('reading-stock-panel');
     const kanjiPanel = document.getElementById('stock-kanji-panel');
-    const freebuildPanel = document.getElementById('free-build-panel');
     const shareBtn = document.querySelector('.partner-share-btn');
 
     // シェアボタンの表示制御
@@ -202,8 +202,8 @@ function switchStockTab(tab) {
     }
 
     // 全タブ/パネルを非アクティブに
-    const allTabs = [readingTab, kanjiTab, freebuildTab];
-    const allPanels = [readingPanel, kanjiPanel, freebuildPanel];
+    const allTabs = [readingTab, kanjiTab];
+    const allPanels = [readingPanel, kanjiPanel];
     allTabs.forEach(t => t && (t.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]'));
     allPanels.forEach(p => p && p.classList.add('hidden'));
 
@@ -211,11 +211,6 @@ function switchStockTab(tab) {
         if (readingTab) readingTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]';
         if (readingPanel) readingPanel.classList.remove('hidden');
         if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-    } else if (tab === 'freebuild') {
-        if (freebuildTab) freebuildTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]';
-        if (freebuildPanel) freebuildPanel.classList.remove('hidden');
-        fbChoices = [];
-        renderFreeBuildSection();
     } else {
         // kanji (default)
         if (kanjiTab) kanjiTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]';
@@ -379,9 +374,22 @@ window.toggleReadingGroup = toggleReadingGroup;
 function openBuild() {
     console.log("BUILD: Opening build screen");
     selectedPieces = [];
+    buildMode = 'reading';
+    fbChoices = [];
     renderBuildSelection();
     changeScreen('scr-build');
 }
+
+/**
+ * ビルドモードを切り替える
+ */
+function setBuildMode(mode) {
+    buildMode = mode;
+    fbChoices = [];
+    selectedPieces = [];
+    renderBuildSelection();
+}
+window.setBuildMode = setBuildMode;
 
 /**
  * ビルド選択画面のレンダリング
@@ -394,6 +402,31 @@ function renderBuildSelection() {
 
     // 現在の読み方を取得
     const currentReading = segments.join('');
+
+    // モード切り替えタブ
+    const modeBar = document.createElement('div');
+    modeBar.className = 'flex gap-2 mb-5';
+    modeBar.innerHTML = `
+        <button onclick="setBuildMode('reading')"
+            class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'reading'
+                ? 'bg-[#bca37f] text-white shadow-md'
+                : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
+            ${currentReading ? `📖 ${currentReading}` : '📖 読み方'}
+        </button>
+        <button onclick="setBuildMode('free')"
+            class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'free'
+                ? 'bg-[#bca37f] text-white shadow-md'
+                : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
+            ✨ 自由組み立て
+        </button>
+    `;
+    container.appendChild(modeBar);
+
+    // 自由モードはフリービルドUIを表示
+    if (buildMode === 'free') {
+        renderBuildFreeMode(container);
+        return;
+    }
 
     // デバッグ情報
     console.log('=== BUILD DEBUG START ===');
@@ -503,10 +536,14 @@ function renderBuildSelection() {
 
                 let partnerBadge = item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center" >👩</div> ` : '';
 
+                // 画数が未設定の場合はmasterから補完
+                const strokes = item['画数'] !== undefined ? item['画数']
+                    : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '?';
+
                 btn.innerHTML = `
                     ${ partnerBadge }
                     <div class="build-kanji-text">${item['漢字']}</div>
-                    <div class="text-[10px] text-[#a6967a] font-bold mt-1">${item['画数']}画</div>
+                    <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
                     ${ item.isSuper ? '<div class="text-[#8ab4f8] text-sm mt-1">★</div>' : '' }
                     ${ fortuneIndicator }
 `;
@@ -576,6 +613,126 @@ function deleteStockGroup(reading) {
 
 // グローバルに公開
 window.deleteStockGroup = deleteStockGroup;
+
+/**
+ * ビルド画面：自由組み立てモードのレンダリング
+ * ストックされた漢字を読み方・FREE問わず全表示し、
+ * 1〜3文字を自由に組み合わせる
+ */
+function renderBuildFreeMode(container) {
+    // ストックから重複なし全漢字を取得（読み方・FREE問わず）
+    const allKanji = [];
+    const seen = new Set();
+    (liked || []).forEach(item => {
+        if (!seen.has(item['漢字'])) {
+            seen.add(item['漢字']);
+            allKanji.push(item);
+        }
+    });
+
+    if (allKanji.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'text-center py-16 text-[#a6967a] text-sm';
+        empty.textContent = 'ストックがありません。スワイプで漢字をストックしてください。';
+        container.appendChild(empty);
+        return;
+    }
+
+    const maxSlots = 3;
+    const shownSlots = Math.max(1, fbChoices.length + (fbChoices.length < maxSlots ? 1 : 0));
+
+    for (let slotIdx = 0; slotIdx < shownSlots; slotIdx++) {
+        const label = `${slotIdx + 1}文字目`;
+        const selected = fbChoices[slotIdx] || null;
+
+        const slotDiv = document.createElement('div');
+        slotDiv.className = 'mb-5';
+        slotDiv.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-black text-[#8b7e66] flex items-center gap-1.5">
+                    <span class="bg-[#bca37f] text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">${slotIdx + 1}</span>
+                    ${label}
+                </span>
+                ${selected ? `<button onclick="removeFbChoice(${slotIdx})" class="text-[10px] text-[#a6967a] hover:text-[#f28b82] font-bold transition-colors">✕ 解除</button>` : ''}
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                ${allKanji.map(item => {
+                    const k = item['漢字'];
+                    const strokes = item['画数'] !== undefined ? item['画数']
+                        : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '?';
+                    const isSelected = selected === k;
+                    const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
+                    return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
+                        class="shrink-0 w-14 h-16 rounded-2xl border-2 flex flex-col items-center justify-center transition-all active:scale-90
+                        ${isSelected ? 'border-[#bca37f] bg-[#fffbeb] text-[#bca37f] ring-2 ring-[#bca37f]/30 shadow-md' :
+                            isUsed ? 'border-[#ede5d8] bg-[#f8f5ef] text-[#c8b99a] opacity-50' :
+                            'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}">
+                        <span class="text-xl font-black leading-none">${k}</span>
+                        <span class="text-[8px] text-[#a6967a] mt-0.5">${strokes}画</span>
+                    </button>`;
+                }).join('')}
+            </div>
+        `;
+        container.appendChild(slotDiv);
+    }
+
+    // 2文字目・3文字目追加ボタン
+    if (fbChoices.length > 0 && fbChoices.length < maxSlots) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'w-full py-2.5 mb-4 border-2 border-dashed border-[#d4c5af] rounded-2xl text-sm font-bold text-[#a6967a] hover:border-[#bca37f] hover:text-[#bca37f] transition-all';
+        addBtn.innerHTML = `＋ ${fbChoices.length + 1}文字目を追加`;
+        addBtn.onclick = () => {
+            // 次のスロットを表示するだけ（fbChoicesにダミーを追加して再描画）
+            if (fbChoices.length < maxSlots && !fbChoices[fbChoices.length]) {
+                renderBuildFreeMode(container.parentElement || container);
+            }
+        };
+        container.appendChild(addBtn);
+    }
+
+    // 運勢プレビュー
+    if (fbChoices.length >= 1) {
+        const givenName = fbChoices.join('');
+        const fortuneDiv = document.createElement('div');
+        fortuneDiv.className = 'mt-2 border-t border-[#ede5d8] pt-4 space-y-2';
+        fortuneDiv.innerHTML = `
+            <p class="text-xs font-black text-[#8b7e66] mb-2">🔮 姓名判断プレビュー（${givenName}）</p>
+            <div class="space-y-1">${renderFbFortune(fbChoices)}</div>
+            <button onclick="confirmFbBuild()" class="btn-gold py-4 shadow-xl w-full mt-3">
+                ${givenName} で詳細を見る →
+            </button>
+        `;
+        container.appendChild(fortuneDiv);
+    }
+}
+
+window.renderBuildFreeMode = renderBuildFreeMode;
+
+// selectFbKanji / removeFbChoice は既存のものを流用
+// fbChoicesが変わった後、ビルド画面の場合はrenderBuildSelectionを再呼び出し
+const _origSelectFbKanji = window.selectFbKanji;
+window.selectFbKanji = function(slotIdx, kanji) {
+    fbChoices[slotIdx] = kanji;
+    fbChoices = fbChoices.slice(0, slotIdx + 1);
+    // ビルド画面の自由モード中ならビルド選択を再描画
+    const buildScreen = document.getElementById('scr-build');
+    if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
+        renderBuildSelection();
+    } else {
+        renderFreeBuildSection();
+    }
+};
+
+const _origRemoveFbChoice = window.removeFbChoice;
+window.removeFbChoice = function(slotIdx) {
+    fbChoices = fbChoices.slice(0, slotIdx);
+    const buildScreen = document.getElementById('scr-build');
+    if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
+        renderBuildSelection();
+    } else {
+        renderFreeBuildSection();
+    }
+};
 
 /**
  * 姓名判断による並び替え
