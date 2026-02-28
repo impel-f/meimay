@@ -839,6 +839,13 @@ window.selectFbKanji = function(slotIdx, kanji) {
     if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
         renderBuildSelection();
         executeFbBuild();
+        // 選択した漢字ボタンが見える位置にスクロール
+        requestAnimationFrame(() => {
+            const btn = document.querySelector(
+                `.build-piece-btn[data-slot="${slotIdx}"][data-kanji="${kanji}"]`
+            );
+            if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
     } else {
         renderFreeBuildSection();
     }

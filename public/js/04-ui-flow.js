@@ -2317,9 +2317,9 @@ window.learnSoundPreference = learnSoundPreference;
  * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
  * ============================================================
  */
-let searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
-let searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
-let searchReadingFilter = ''; // text input for reading filter
+var searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
+var searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
+var searchReadingFilter = ''; // text input for reading filter
 
 function openKanjiSearch() {
     changeScreen('scr-kanji-search');
