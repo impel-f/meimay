@@ -302,14 +302,30 @@ function loadStack() {
         }
 
         // 読みデータの取得（メジャー/マイナー区分）
-        // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
+        // 全読みをひらがな正規化し、送り仮名ステムも抽出（例: あか（るい）→ あかるい + あか）
+        const extractReadingVariants = (raw) => {
+            const hira = toHira(raw.trim());
+            const full = hira.replace(/[^ぁ-んー]/g, '');
+            const results = full ? [full] : [];
+            const parenIdx = hira.indexOf('（');
+            if (parenIdx > 0) {
+                const stem = hira.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '');
+                if (stem && !results.includes(stem)) results.push(stem);
+            }
+            const dotIdx = hira.indexOf('.');
+            if (dotIdx > 0) {
+                const stem = hira.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
+                if (stem && !results.includes(stem)) results.push(stem);
+            }
+            return results;
+        };
         const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
+            .flatMap(x => extractReadingVariants(x))
             .filter(x => x);
         const minorReadings = (k['伝統名のり'] || '')
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
+            .flatMap(x => extractReadingVariants(x))
             .filter(x => x);
         const readings = [...majorReadings, ...minorReadings];
 
