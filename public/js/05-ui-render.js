@@ -23,15 +23,11 @@ const KANJI_CATEGORIES = {
 
 function getUnifiedTags(rawString) {
     if (!rawString || rawString === '---') return [];
-
-    // ハッシュタグで分割
-    const tags = rawString
+    // データのタグをそのまま返す（変換・フィルタなし）
+    return rawString
         .split(/\s+/)
         .map(t => t.trim())
-        .filter(t => t.startsWith('#') && KANJI_CATEGORIES[t]);
-
-    // 最大2つまで
-    return tags.slice(0, 2);
+        .filter(t => t.startsWith('#'));
 }
 
 /**
@@ -152,11 +148,12 @@ function render() {
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
 
-    // タグHTML
+    // タグHTML: データのタグ名をそのまま#付きで表示
     const tagsHTML = unifiedTags.length > 0 ?
         unifiedTags.map(t => {
             const cat = KANJI_CATEGORIES[t];
-            return `<span class="kanji-tag ${cat.class}">${cat.icon} ${cat.label}</span>`;
+            const cls = cat ? cat.class : '';
+            return `<span class="kanji-tag ${cls}">${t}</span>`;
         }).join(' ') :
         '';
 

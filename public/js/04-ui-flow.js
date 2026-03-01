@@ -8,25 +8,24 @@ let isFreeSwipeMode = false;
 let selectedVibes = new Set();
 // gender is defined in 01-core.js
 
-// Vibe Data — 実データの分類タグ16種と完全一致
+// Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
-    { id: 'none',         label: 'こだわらない', icon: '⚪' },
-    { id: 'nature',       label: '#自然',   icon: '🌿' },
-    { id: 'sky',          label: '#天空',   icon: '☀️' },
-    { id: 'water',        label: '#水景',   icon: '🌊' },
-    { id: 'color',        label: '#色彩',   icon: '🎨' },
-    { id: 'life',         label: '#生命',   icon: '🌱' },
-    { id: 'kindness',     label: '#慈愛',   icon: '💝' },
-    { id: 'strength',     label: '#勇壮',   icon: '🦁' },
-    { id: 'intelligence', label: '#知性',   icon: '🎓' },
-    { id: 'soar',         label: '#飛躍',   icon: '🦅' },
-    { id: 'happiness',    label: '#幸福',   icon: '🍀' },
-    { id: 'beauty',       label: '#品格',   icon: '🕊️' },
-    { id: 'hope',         label: '#希望',   icon: '🌟' },
-    { id: 'belief',       label: '#信念',   icon: '⛰️' },
-    { id: 'harmony',      label: '#調和',   icon: '🤝' },
-    { id: 'tradition',    label: '#伝統',   icon: '⛩️' },
-    { id: 'music',        label: '#奏楽',   icon: '🎵' },
+    { id: 'none',         label: 'こだわらない' },
+    { id: 'nature',       label: '#自然'   },
+    { id: 'sky',          label: '#天空'   },
+    { id: 'water',        label: '#水景'   },
+    { id: 'color',        label: '#色彩'   },
+    { id: 'kindness',     label: '#慈愛'   },
+    { id: 'strength',     label: '#勇壮'   },
+    { id: 'intelligence', label: '#知性'   },
+    { id: 'soar',         label: '#飛躍'   },
+    { id: 'happiness',    label: '#幸福'   },
+    { id: 'beauty',       label: '#品格'   },
+    { id: 'hope',         label: '#希望'   },
+    { id: 'belief',       label: '#信念'   },
+    { id: 'harmony',      label: '#調和'   },
+    { id: 'tradition',    label: '#伝統'   },
+    { id: 'music',        label: '#奏楽'   },
 ];
 
 /**
@@ -160,16 +159,20 @@ function initVibeScreen() {
     selectedVibes.clear();
     selectedVibes.add('none'); // デフォルト選択
 
-    VIBES.forEach(v => {
+    // こだわらない: 3マス幅のワイドボタン（デフォルト選択状態）
+    const noneBtn = document.createElement('button');
+    noneBtn.id = 'vibe-btn-none';
+    noneBtn.className = 'col-span-3 flex items-center justify-center py-2.5 px-4 rounded-xl border border-transparent shadow-sm transition-all active:scale-95 ring-2 ring-[#bca37f] bg-[#fffbeb]';
+    noneBtn.innerHTML = `<span class="text-[12px] font-bold text-[#5d5444]">こだわらない</span>`;
+    noneBtn.onclick = () => toggleVibe('none', noneBtn);
+    grid.appendChild(noneBtn);
+
+    // 15タグ: 3×5 グリッド、#タグ名のみ表示
+    VIBES.filter(v => v.id !== 'none').forEach(v => {
         const btn = document.createElement('button');
         btn.id = `vibe-btn-${v.id}`;
-        btn.className = 'flex flex-col items-center justify-center p-3 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
-        btn.innerHTML = `<div class="text-2xl mb-1">${v.icon}</div><div class="text-[10px] font-bold text-[#5d5444]">${v.label}</div>`;
-
-        if (v.id === 'none') {
-            btn.classList.add('ring-2', 'ring-[#bca37f]', 'bg-[#fffbeb]');
-        }
-
+        btn.className = 'flex items-center justify-center py-2 px-1 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
+        btn.innerHTML = `<span class="text-[10px] font-bold text-[#5d5444] leading-tight">${v.label}</span>`;
         btn.onclick = () => toggleVibe(v.id, btn);
         grid.appendChild(btn);
     });
@@ -2358,14 +2361,13 @@ function renderSearchFilters() {
     // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
-        // 実データの分類タグ16種と完全一致
+        // 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
         const classes = [
             { val: '',      label: '全て', icon: '✨' },
             { val: '#自然', label: '自然', icon: '🌿' },
             { val: '#天空', label: '天空', icon: '☀️' },
             { val: '#水景', label: '水景', icon: '🌊' },
             { val: '#色彩', label: '色彩', icon: '🎨' },
-            { val: '#生命', label: '生命', icon: '🌱' },
             { val: '#慈愛', label: '慈愛', icon: '💝' },
             { val: '#勇壮', label: '勇壮', icon: '🦁' },
             { val: '#知性', label: '知性', icon: '🎓' },
