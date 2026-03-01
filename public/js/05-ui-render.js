@@ -3,76 +3,35 @@
    カード描画・詳細表示
    ============================================================ */
 
-// タグ定義（統一用）
-const TAG_KEYWORDS = {
-    'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '活力', '壮大', '勇', '武', '猛', '雄', '毅'],
-    'brightness': ['明るさ', '太陽', '陽', '光', '輝き', '晴れ', '朗らか', '明', '照', '旭', '旺', '晃'],
-    'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '柔らか', '仁', '恵', '慈', '愛', '温', '柔'],
-    'intelligence': ['知性', '賢さ', '才能', '優秀', '学問', '智恵', '智', '賢', '才', '慧', '修'],
-    'passion': ['情熱', '熱意', '活発', '元気', '燃える', '炎', '熱', '烈', '昂', '騰'],
-    'hope': ['希望', '未来', '夢', '願い', '期待', '幸福', '望', '希', '願', '福', '幸'],
-    'success': ['成功', '向上', '昇進', '発展', '繁栄', '栄える', '成', '功', '栄', '進', '昌'],
-    'nature': ['自然', '植物', '樹木', '草', '森', '木', '林', '山', '岳', '嶺'],
-    'flower': ['花', '華やか', '桜', '彩', 'バラ', '菊', '蘭', '牡丹', '咲', '麗', '絢', '錦'],
-    'water': ['海', '水', '川', '波', '流れ', '清らか', '湖', '池', '湊', '渚', '汐', '清'],
-    'sky': ['空', '宙', '天', '宇宙', '星', '月', '雲', '風', '雷', '雨', '霄', '碧'],
-    'elegance': ['品格', '高貴', '気品', '上品', '優雅', '格調', '雅', '麗', '優', '彩', '絢'],
-    'tradition': ['伝統', '古風', '和', '和風', '伝統的', '日本', '和', '古', '典', '文'],
-    'peace': ['安定', '平和', '平穏', '安らか', '穏やか', '調和', '安', '平', '和', '静', '穏'],
-    'justice': ['正義', '公平', '正しい', '義理', '真実', '義', '正', '真', '直', '廉'],
-    'spirituality': ['精神', '心', '魂', '意志', '信念', '純粋', '心', '誠', '志', '念', '精']
-};
-
-const TAG_LABELS = {
-    'nature': '自然',
-    'flower': '花・彩',
-    'brightness': '明るさ',
-    'water': '水',
-    'strength': '力強さ',
-    'kindness': '優しさ',
-    'intelligence': '知性',
-    'honesty': '誠実',
-    'elegance': '品格',
-    'tradition': '伝統',
-    'beauty': '美しさ',
-    'success': '成功',
-    'peace': '安定',
-    'leadership': 'リーダー',
-    'hope': '希望',
-    'spirituality': '精神',
-    'other': 'その他'
+const KANJI_CATEGORIES = {
+    '#希望': { label: '希望', icon: '🌟', class: 'tag-hope' },
+    '#慈愛': { label: '慈愛', icon: '💖', class: 'tag-affection' },
+    '#調和': { label: '調和', icon: '🤝', class: 'tag-harmony' },
+    '#勇壮': { label: '勇壮', icon: '🦁', class: 'tag-bravery' },
+    '#知性': { label: '知性', icon: '🎓', class: 'tag-intelligence' },
+    '#飛躍': { label: '飛躍', icon: '🦅', class: 'tag-leap' },
+    '#信念': { label: '信念', icon: '⛰️', class: 'tag-conviction' },
+    '#品格': { label: '品格', icon: '🕊️', class: 'tag-dignity' },
+    '#伝統': { label: '伝統', icon: '⛩️', class: 'tag-tradition' },
+    '#幸福': { label: '幸福', icon: '🍀', class: 'tag-fortune' },
+    '#色彩': { label: '色彩', icon: '🎨', class: 'tag-colors' },
+    '#天空': { label: '天空', icon: '🌌', class: 'tag-sky' },
+    '#自然': { label: '自然', icon: '🌿', class: 'tag-nature' },
+    '#水景': { label: '水景', icon: '🌊', class: 'tag-aquatic' },
+    '#奏楽': { label: '奏楽', icon: '🎵', class: 'tag-music' }
 };
 
 function getUnifiedTags(rawString) {
-    if (!rawString || rawString === '---') return ['その他'];
+    if (!rawString || rawString === '---') return [];
 
-    // Convert comma/space/bracket-separated string to array of tags
+    // ハッシュタグで分割
     const tags = rawString
-        .replace(/【|】|#/g, '')
-        .split(/[、,，\s/]+/)
+        .split(/\s+/)
         .map(t => t.trim())
-        .filter(t => t.length > 0 && t !== '---');
+        .filter(t => t.startsWith('#') && KANJI_CATEGORIES[t]);
 
-    // 解析されたタグがあるか確認
-    if (tags.length === 0) return ['その他'];
-
-    // キーワードに1つでも合致するかチェック
-    let hasMatch = false;
-    for (const tag of tags) {
-        for (const keywords of Object.values(TAG_KEYWORDS)) {
-            if (keywords.some(kw => tag.includes(kw))) {
-                hasMatch = true;
-                break;
-            }
-        }
-        if (hasMatch) break;
-    }
-
-    // どのカテゴリにも当てはまらない、または「こだわらない」等の場合は「その他」
-    if (!hasMatch) return ['その他'];
-
-    // 最大3つまで
-    return tags.slice(0, 3);
+    // 最大2つまで
+    return tags.slice(0, 2);
 }
 
 /**
@@ -189,13 +148,16 @@ function render() {
     // 分類タグを取得 (raw dataからのタグを取得)
     const unifiedTags = getUnifiedTags((data['分類'] || ''));
 
-    // 背景色をイメージに連動 (v14.4: タグキーワードから色を決定)
+    // 背景色をイメージに連動 (v15.0: 新分類タグに連動)
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
 
     // タグHTML
     const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-80 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm">#${t}</span>`).join(' ') :
+        unifiedTags.map(t => {
+            const cat = KANJI_CATEGORIES[t];
+            return `<span class="kanji-tag ${cat.class}">${cat.icon} ${cat.label}</span>`;
+        }).join(' ') :
         '';
 
     // カード全体をクリック可能に
@@ -270,55 +232,31 @@ function getGradientFromTags(tags) {
     if (!tags || tags.length === 0) return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
 
     const colorMap = {
-        'strength': ['#fff1f2', '#ffe4e6', '#fecdd3'], // Rose
-        'brightness': ['#fff7ed', '#ffedd5', '#fed7aa'], // Orange
-        'kindness': ['#fdf2f8', '#fce7f3', '#fbcfe8'], // Pink
-        'intelligence': ['#f5f3ff', '#ede9fe', '#ddd6fe'], // Violet
-        'passion': ['#fef2f2', '#fee2e2', '#fecaca'], // Red
-        'hope': ['#fffbeb', '#fef3c7', '#fde68a'], // Amber
-        'success': ['#ecfdf5', '#d1fae5', '#a7f3d0'], // Emerald
-        'nature': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Green
-        'flower': ['#fdf2f8', '#fce7f3', '#fbcfe8'], // Floral Pink (more vibrant)
-        'water': ['#f0f9ff', '#e0f2fe', '#bae6fd'], // Sky
-        'sky': ['#f0fdfa', '#ccfbf1', '#99f6e4'], // Teal
-        'elegance': ['#faf5ff', '#f3e8ff', '#e9d5ff'], // Purple
-        'tradition': ['#fff7ed', '#ffedd5', '#fed7aa'], // Tradition/Earth
-        'peace': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Peace/Mint
-        'justice': ['#f8fafc', '#f1f5f9', '#e2e8f0'], // Slate
-        'spirituality': ['#f5f3ff', '#ede9fe', '#ddd6fe'], // Lightened Violet/Indigo (less "strong")
-        'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
+        'tag-hope': ['#FFF4E0', '#FFFDF7'],
+        'tag-affection': ['#FFF0F0', '#FFF9F9'],
+        'tag-harmony': ['#E8F5E9', '#F1F8F1'],
+        'tag-bravery': ['#FFEBEE', '#FFF5F5'],
+        'tag-intelligence': ['#E3F2FD', '#F0F7FF'],
+        'tag-leap': ['#F3E5F5', '#F9F4F9'],
+        'tag-conviction': ['#E8EAF6', '#F0F1FA'],
+        'tag-dignity': ['#EFEBE9', '#F5F2F1'],
+        'tag-tradition': ['#F1F8E1', '#F7FAF0'],
+        'tag-fortune': ['#FFFDE7', '#FFFFF2'],
+        'tag-colors': ['#FCE4EC', '#FDF2F5'],
+        'tag-sky': ['#E8EAF6', '#F0F1FA'],
+        'tag-nature': ['#E8F5E9', '#F1F8F1'],
+        'tag-aquatic': ['#E1F5FE', '#F0FAFF'],
+        'tag-music': ['#F3E5F5', '#F9F4F9']
     };
 
-    // マッチしたキーを最大2つ収集
-    let matchedKeys = [];
-    for (let tag of tags) {
-        const cleanTag = tag.replace(/[#【】]/g, '').trim();
-        if (!cleanTag) continue;
-
-        for (const [key, keywords] of Object.entries(TAG_KEYWORDS)) {
-            if (keywords.some(kw => cleanTag.includes(kw))) {
-                if (!matchedKeys.includes(key)) {
-                    matchedKeys.push(key);
-                }
-                break;
-            }
-        }
-        if (matchedKeys.length >= 2) break;
+    const firstTag = tags[0];
+    const cat = KANJI_CATEGORIES[firstTag];
+    if (cat && colorMap[cat.class]) {
+        const colors = colorMap[cat.class];
+        return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
     }
 
-    if (matchedKeys.length === 0) {
-        matchedKeys = ['other'];
-    }
-
-    if (matchedKeys.length >= 2) {
-        const c1 = colorMap[matchedKeys[0]];
-        const c2 = colorMap[matchedKeys[1]];
-        // 2つの色の要素を混ぜて生成
-        return `linear-gradient(135deg, ${c1[0]} 0%, ${c1[1]} 30%, ${c2[1]} 70%, ${c2[2]} 100%)`;
-    } else {
-        const colors = colorMap[matchedKeys[0]];
-        return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 50%, ${colors[2]} 100%)`;
-    }
+    return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
 }
 
 /**
@@ -435,9 +373,12 @@ async function showKanjiDetail(data) {
     }
     let tagsContainer = document.getElementById('det-tags-container');
 
-    // タグHTML生成 (v14.4: 生データを表示)
+    // タグHTML生成 (v15.0: 新デザインを適用)
     const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-60 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm border border-transparent backdrop-blur-sm">#${t}</span>`).join(' ') :
+        unifiedTags.map(t => {
+            const cat = KANJI_CATEGORIES[t];
+            return `<span class="kanji-tag ${cat.class}">${cat.icon} ${cat.label}</span>`;
+        }).join(' ') :
         '';
 
     if (tagsContainer) {

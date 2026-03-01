@@ -8,23 +8,25 @@ let isFreeSwipeMode = false;
 let selectedVibes = new Set();
 // gender is defined in 01-core.js
 
-// Vibe Data
-// Vibe Data
+// Vibe Data — 実データの分類タグ16種と完全一致
 const VIBES = [
-    { id: 'none', label: 'こだわらない', icon: '⚪' },
-    { id: 'nature', label: '#自然', icon: '🌿' },
-    { id: 'flower', label: '#花・彩', icon: '🌸' },
-    { id: 'sky', label: '#天空', icon: '☀️' },
-    { id: 'water', label: '#海・水', icon: '💧' },
-    { id: 'kindness', label: '#慈愛', icon: '💝' },
-    { id: 'strength', label: '#勇気', icon: '💪' },
-    { id: 'intelligence', label: '#知性', icon: '🎓' },
-    { id: 'success', label: '#繁栄', icon: '✨' },
-    { id: 'happiness', label: '#幸福', icon: '🍀' },
-    { id: 'beauty', label: '#品格', icon: '👗' },
-    { id: 'health', label: '#健康', icon: '🍎' },
-    { id: 'spirit', label: '#心・志', icon: '💫' },
-    { id: 'stability', label: '#調和', icon: '🕊️' }
+    { id: 'none',         label: 'こだわらない', icon: '⚪' },
+    { id: 'nature',       label: '#自然',   icon: '🌿' },
+    { id: 'sky',          label: '#天空',   icon: '☀️' },
+    { id: 'water',        label: '#水景',   icon: '🌊' },
+    { id: 'color',        label: '#色彩',   icon: '🎨' },
+    { id: 'life',         label: '#生命',   icon: '🌱' },
+    { id: 'kindness',     label: '#慈愛',   icon: '💝' },
+    { id: 'strength',     label: '#勇壮',   icon: '🦁' },
+    { id: 'intelligence', label: '#知性',   icon: '🎓' },
+    { id: 'soar',         label: '#飛躍',   icon: '🦅' },
+    { id: 'happiness',    label: '#幸福',   icon: '🍀' },
+    { id: 'beauty',       label: '#品格',   icon: '🕊️' },
+    { id: 'hope',         label: '#希望',   icon: '🌟' },
+    { id: 'belief',       label: '#信念',   icon: '⛰️' },
+    { id: 'harmony',      label: '#調和',   icon: '🤝' },
+    { id: 'tradition',    label: '#伝統',   icon: '⛩️' },
+    { id: 'music',        label: '#奏楽',   icon: '🎵' },
 ];
 
 /**
@@ -2356,21 +2358,25 @@ function renderSearchFilters() {
     // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
+        // 実データの分類タグ16種と完全一致
         const classes = [
-            { val: '', label: '全て', icon: '✨' },
+            { val: '',      label: '全て', icon: '✨' },
             { val: '#自然', label: '自然', icon: '🌿' },
             { val: '#天空', label: '天空', icon: '☀️' },
-            { val: '#海・水', label: '海・水', icon: '🌊' },
-            { val: '#勇気', label: '勇気', icon: '💪' },
-            { val: '#慈愛', label: '慈愛', icon: '💗' },
-            { val: '#知性', label: '知性', icon: '📚' },
-            { val: '#花・彩', label: '花・彩', icon: '🌸' },
-            { val: '#繁栄', label: '繁栄', icon: '✨' },
-            { val: '#幸福', label: '幸福', icon: '🌟' },
-            { val: '#調和', label: '調和', icon: '⚖️' },
-            { val: '#品格', label: '品格', icon: '⛩️' },
-            { val: '#健康', label: '健康', icon: '🌱' },
-            { val: '#心・志', label: '心・志', icon: '❤️' }
+            { val: '#水景', label: '水景', icon: '🌊' },
+            { val: '#色彩', label: '色彩', icon: '🎨' },
+            { val: '#生命', label: '生命', icon: '🌱' },
+            { val: '#慈愛', label: '慈愛', icon: '💝' },
+            { val: '#勇壮', label: '勇壮', icon: '🦁' },
+            { val: '#知性', label: '知性', icon: '🎓' },
+            { val: '#飛躍', label: '飛躍', icon: '🦅' },
+            { val: '#幸福', label: '幸福', icon: '🍀' },
+            { val: '#品格', label: '品格', icon: '🕊️' },
+            { val: '#希望', label: '希望', icon: '🌟' },
+            { val: '#信念', label: '信念', icon: '⛰️' },
+            { val: '#調和', label: '調和', icon: '🤝' },
+            { val: '#伝統', label: '伝統', icon: '⛩️' },
+            { val: '#奏楽', label: '奏楽', icon: '🎵' },
         ];
         classContainer.innerHTML = classes.map(c => `
             <button onclick="setClassFilter('${c.val}')"

@@ -26,6 +26,111 @@
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9172754377890289"
         crossorigin="anonymous"></script>
+    <!-- KANJI CLASSIFICATION TAGS (DYNAMIC STYLES) -->
+    <style>
+        .tag-hope {
+            background-color: #FEF3C7 !important;
+            color: #92400E !important;
+            border-color: #FDE68A !important;
+        }
+
+        .tag-tradition {
+            background-color: #FCE7F3 !important;
+            color: #9D174D !important;
+            border-color: #FBCFE8 !important;
+        }
+
+        .tag-music {
+            background-color: #EDE9FE !important;
+            color: #5B21B6 !important;
+            border-color: #DDD6FE !important;
+        }
+
+        .tag-nature {
+            background-color: #DCFCE7 !important;
+            color: #166534 !important;
+            border-color: #BBF7D0 !important;
+        }
+
+        .tag-dignity {
+            background-color: #F3F4F6 !important;
+            color: #374151 !important;
+            border-color: #E5E7EB !important;
+        }
+
+        .tag-leap {
+            background-color: #E0F2FE !important;
+            color: #0369A1 !important;
+            border-color: #BAE6FD !important;
+        }
+
+        .tag-affection {
+            background-color: #FDF2F8 !important;
+            color: #BE185D !important;
+            border-color: #FCE7F3 !important;
+        }
+
+        .tag-colors {
+            background-color: #FFEDD5 !important;
+            color: #C2410C !important;
+            border-color: #FED7AA !important;
+        }
+
+        .tag-aquatic {
+            background-color: #CFFAFE !important;
+            color: #0F766E !important;
+            border-color: #A5F3FC !important;
+        }
+
+        .tag-harmony {
+            background-color: #CCFBF1 !important;
+            color: #0F766E !important;
+            border-color: #99F6E4 !important;
+        }
+
+        .tag-conviction {
+            background-color: #E2E8F0 !important;
+            color: #334155 !important;
+            border-color: #CBD5E1 !important;
+        }
+
+        .tag-bravery {
+            background-color: #FEE2E2 !important;
+            color: #B91C1C !important;
+            border-color: #FECACA !important;
+        }
+
+        .tag-sky {
+            background-color: #DBEAFE !important;
+            color: #1E40AF !important;
+            border-color: #BFDBFE !important;
+        }
+
+        .tag-intelligence {
+            background-color: #E0E7FF !important;
+            color: #4338CA !important;
+            border-color: #C7D2FE !important;
+        }
+
+        .tag-fortune {
+            background-color: #D1FAE5 !important;
+            color: #047857 !important;
+            border-color: #A7F3D0 !important;
+        }
+
+        .kanji-tag {
+            border-width: 1px !important;
+            border-style: solid !important;
+            padding: 2px 8px !important;
+            border-radius: 9999px !important;
+            font-weight: bold !important;
+            font-size: 0.75rem !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -241,7 +346,8 @@
             <!-- Quick Actions: 名前を探す — Bento Grid -->
             <div class="w-full max-w-sm px-6 mb-3">
                 <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 270px;">
+                <div class="grid gap-2"
+                    style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 270px;">
 
                     <!-- Left tall: 読みから漢字をさがす (most important) -->
                     <button onclick="startMode('reading')"
@@ -281,7 +387,8 @@
                         style="background:linear-gradient(155deg,#fffdf5 0%,#fcecc8 100%);">
                         <div class="text-xl">⚒️</div>
                         <div>
-                            <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる</div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる
+                            </div>
                         </div>
                     </button>
                 </div>
@@ -607,8 +714,7 @@
                 </div>
             </div>
 
-            <div id="stack-container"
-                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
+            <div id="stack-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
                 <div id="badge-like" class="stamp-premium">LIKE</div>
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
@@ -617,13 +723,17 @@
 
             <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="swipe-action-btns"
-                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0" style="pointer-events:none;">
+                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0"
+                style="pointer-events:none;">
                 <button onclick="manual('left')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">✕</button>
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">✕</button>
                 <button onclick="manual('up')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">★</button>
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">★</button>
                 <button onclick="manual('right')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">♥</button>
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">♥</button>
             </div>
 
         </div>
