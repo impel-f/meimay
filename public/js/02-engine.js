@@ -276,6 +276,12 @@ function loadStack() {
 
     // フィルタリング
     stack = master.filter(k => {
+        // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+        }
+
         // 同じ読みが続く場合は、seenチェックをスキップ
         const isSameReading = currentPos > 0 && segments[currentPos] === segments[currentPos - 1];
 

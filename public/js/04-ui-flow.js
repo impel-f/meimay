@@ -10,22 +10,22 @@ let selectedVibes = new Set();
 
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
-    { id: 'none',         label: 'こだわらない' },
-    { id: 'nature',       label: '#自然'   },
-    { id: 'sky',          label: '#天空'   },
-    { id: 'water',        label: '#水景'   },
-    { id: 'color',        label: '#色彩'   },
-    { id: 'kindness',     label: '#慈愛'   },
-    { id: 'strength',     label: '#勇壮'   },
-    { id: 'intelligence', label: '#知性'   },
-    { id: 'soar',         label: '#飛躍'   },
-    { id: 'happiness',    label: '#幸福'   },
-    { id: 'beauty',       label: '#品格'   },
-    { id: 'hope',         label: '#希望'   },
-    { id: 'belief',       label: '#信念'   },
-    { id: 'harmony',      label: '#調和'   },
-    { id: 'tradition',    label: '#伝統'   },
-    { id: 'music',        label: '#奏楽'   },
+    { id: 'none',         label: 'こだわらない', icon: '⚪' },
+    { id: 'nature',       label: '#自然',   icon: '🌿' },
+    { id: 'sky',          label: '#天空',   icon: '🌌' },
+    { id: 'water',        label: '#水景',   icon: '🌊' },
+    { id: 'color',        label: '#色彩',   icon: '🎨' },
+    { id: 'kindness',     label: '#慈愛',   icon: '💖' },
+    { id: 'strength',     label: '#勇壮',   icon: '🦁' },
+    { id: 'intelligence', label: '#知性',   icon: '🎓' },
+    { id: 'soar',         label: '#飛躍',   icon: '🦅' },
+    { id: 'happiness',    label: '#幸福',   icon: '🍀' },
+    { id: 'beauty',       label: '#品格',   icon: '🕊️' },
+    { id: 'hope',         label: '#希望',   icon: '🌟' },
+    { id: 'belief',       label: '#信念',   icon: '⛰️' },
+    { id: 'harmony',      label: '#調和',   icon: '🤝' },
+    { id: 'tradition',    label: '#伝統',   icon: '⛩️' },
+    { id: 'music',        label: '#奏楽',   icon: '🎵' },
 ];
 
 /**
@@ -167,12 +167,12 @@ function initVibeScreen() {
     noneBtn.onclick = () => toggleVibe('none', noneBtn);
     grid.appendChild(noneBtn);
 
-    // 15タグ: 3×5 グリッド、#タグ名のみ表示
+    // 15タグ: 3×5 グリッド、絵文字 + #タグ名
     VIBES.filter(v => v.id !== 'none').forEach(v => {
         const btn = document.createElement('button');
         btn.id = `vibe-btn-${v.id}`;
-        btn.className = 'flex items-center justify-center py-2 px-1 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
-        btn.innerHTML = `<span class="text-[10px] font-bold text-[#5d5444] leading-tight">${v.label}</span>`;
+        btn.className = 'flex flex-col items-center justify-center py-2 px-1 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
+        btn.innerHTML = `<span class="text-lg leading-none mb-0.5">${v.icon}</span><span class="text-[11px] font-bold text-[#5d5444] leading-tight">${v.label}</span>`;
         btn.onclick = () => toggleVibe(v.id, btn);
         grid.appendChild(btn);
     });

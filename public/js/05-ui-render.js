@@ -18,16 +18,18 @@ const KANJI_CATEGORIES = {
     '#天空': { label: '天空', icon: '🌌', class: 'tag-sky' },
     '#自然': { label: '自然', icon: '🌿', class: 'tag-nature' },
     '#水景': { label: '水景', icon: '🌊', class: 'tag-aquatic' },
-    '#奏楽': { label: '奏楽', icon: '🎵', class: 'tag-music' }
+    '#奏楽': { label: '奏楽', icon: '🎵', class: 'tag-music' },
+    '#その他': { label: 'その他', icon: '📝', class: 'tag-other' }
 };
 
 function getUnifiedTags(rawString) {
-    if (!rawString || rawString === '---') return [];
-    // データのタグをそのまま返す（変換・フィルタなし）
-    return rawString
-        .split(/\s+/)
+    if (!rawString || rawString === '---') return ['#その他'];
+    // スペース・カンマ両対応でタグを抽出（変換なし）
+    const tags = rawString
+        .split(/[\s,，、]+/)
         .map(t => t.trim())
         .filter(t => t.startsWith('#'));
+    return tags.length > 0 ? tags : ['#その他'];
 }
 
 /**
@@ -133,12 +135,14 @@ function render() {
         .map(x => clean(x))
         .filter(x => x);
 
-    const readingsHTML = allReadings.length > 0 ?
-        allReadings.map(r => {
+    // カードは最大6個（読みが多い漢字でレイアウト崩れを防ぐ）
+    const cardReadings = allReadings.slice(0, 6);
+    const moreCount = allReadings.length - cardReadings.length;
+    const readingsHTML = cardReadings.length > 0 ?
+        cardReadings.map(r => {
             const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
-            // 枠と背景色で目立たせる
             return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
-        }).join(' ') :
+        }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個→詳細</span>` : '') :
         '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
@@ -148,13 +152,9 @@ function render() {
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
 
-    // タグHTML: データのタグ名をそのまま#付きで表示
-    const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => {
-            const cat = KANJI_CATEGORIES[t];
-            const cls = cat ? cat.class : '';
-            return `<span class="kanji-tag ${cls}">${t}</span>`;
-        }).join(' ') :
+    // タグHTML: 背景色なし・#タグ名テキストのみ
+    const tagsHTML = unifiedTags.filter(t => t !== '#その他').length > 0 ?
+        unifiedTags.filter(t => t !== '#その他').map(t => `<span class="kanji-tag">${t}</span>`).join(' ') :
         '';
 
     // カード全体をクリック可能に
@@ -246,14 +246,17 @@ function getGradientFromTags(tags) {
         'tag-music': ['#F3E5F5', '#F9F4F9']
     };
 
-    const firstTag = tags[0];
-    const cat = KANJI_CATEGORIES[firstTag];
-    if (cat && colorMap[cat.class]) {
-        const colors = colorMap[cat.class];
-        return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+    const cat1 = KANJI_CATEGORIES[tags[0]];
+    const colors1 = (cat1 && colorMap[cat1.class]) ? colorMap[cat1.class] : ['#fdfaf5', '#f7f3ec'];
+
+    if (tags.length === 1) {
+        return `linear-gradient(135deg, ${colors1[0]} 0%, ${colors1[1]} 100%)`;
     }
 
-    return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
+    // 複数タグ: 2タグの色をブレンドしたグラデーション
+    const cat2 = KANJI_CATEGORIES[tags[1]];
+    const colors2 = (cat2 && colorMap[cat2.class]) ? colorMap[cat2.class] : colors1;
+    return `linear-gradient(135deg, ${colors1[0]} 0%, ${colors2[0]} 60%, ${colors2[1]} 100%)`;
 }
 
 /**
@@ -324,8 +327,8 @@ async function showKanjiDetail(data) {
     kanjiEl.style.color = '#5d5444';
     kanjiEl.style.display = 'block';
 
-    // イメージタグ表示（色付き）
-    const unifiedTags = getUnifiedTags((data['名前のイメージ'] || '') + ',' + (data['分類'] || ''));
+    // 分類タグ（data['分類']のみ使用）
+    const unifiedTags = getUnifiedTags(data['分類'] || '');
 
     // ヘッダー背景色をグラデーションに
     if (headerBg) {
@@ -370,13 +373,8 @@ async function showKanjiDetail(data) {
     }
     let tagsContainer = document.getElementById('det-tags-container');
 
-    // タグHTML生成 (v15.0: 新デザインを適用)
-    const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => {
-            const cat = KANJI_CATEGORIES[t];
-            return `<span class="kanji-tag ${cat.class}">${cat.icon} ${cat.label}</span>`;
-        }).join(' ') :
-        '';
+    // タグHTML: 背景色なし・#タグ名テキストのみ（カードと統一）
+    const tagsHTML = unifiedTags.map(t => `<span class="kanji-tag">${t}</span>`).join(' ');
 
     if (tagsContainer) {
         tagsContainer.innerHTML = tagsHTML;

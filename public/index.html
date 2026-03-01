@@ -121,14 +121,19 @@
         .kanji-tag {
             border-width: 1px !important;
             border-style: solid !important;
+            border-color: rgba(139, 126, 102, 0.35) !important;
+            background: transparent !important;
+            color: #5d5444 !important;
             padding: 2px 8px !important;
             border-radius: 9999px !important;
             font-weight: bold !important;
             font-size: 0.75rem !important;
             display: inline-flex !important;
             align-items: center !important;
-            gap: 4px !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+        }
+        .tag-other {
+            border-color: rgba(139, 126, 102, 0.2) !important;
+            color: #a6967a !important;
         }
     </style>
 </head>
@@ -727,13 +732,13 @@
                 style="pointer-events:none;">
                 <button onclick="manual('left')"
                     class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">✕</button>
+                    style="pointer-events:auto;">✕</button>
                 <button onclick="manual('up')"
                     class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">★</button>
+                    style="pointer-events:auto;">★</button>
                 <button onclick="manual('right')"
                     class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">♥</button>
+                    style="pointer-events:auto;">♥</button>
             </div>
 
         </div>
