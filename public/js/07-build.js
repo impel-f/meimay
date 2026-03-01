@@ -64,7 +64,7 @@ function renderFreeBuildSection() {
     // 各文字スロットのHTML
     let html = '';
     const maxSlots = 3;
-    const shownSlots = Math.max(1, fbChoices.length + (fbChoices.length <maxSlots ? 1 : 0));
+    const shownSlots = Math.max(1, fbChoices.length + (fbChoices.length < maxSlots ? 1 : 0));
 
     for (let slotIdx = 0; slotIdx < shownSlots; slotIdx++) {
         const label = `${slotIdx + 1}文字目`;
@@ -123,13 +123,27 @@ function renderFreeBuildSection() {
 function selectFbKanji(slotIdx, kanji) {
     fbChoices[slotIdx] = kanji;
     // 後ろのスロットは保持する（明示的に「解除」ボタンで削除するまで残す）
+    const scrollPositions = [];
+    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
     renderFreeBuildSection();
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
+            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
+        });
+    });
 }
 
 // 選択を解除
 function removeFbChoice(slotIdx) {
-    fbChoices = fbChoices.slice(0, slotIdx);
+    fbChoices.splice(slotIdx, 1);
+    const scrollPositions = [];
+    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
     renderFreeBuildSection();
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
+            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
+        });
+    });
 }
 
 // 運勢ランキングHTML（姓名判断を適用）
@@ -340,8 +354,8 @@ function renderStock() {
             }
 
             card.innerHTML = `
-                ${ item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : '' }
-                ${ item.isSuper ? '<div class="stock-stars">★</div>' : '' }
+                ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
+                ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '？'}画</div>
 `;
@@ -434,14 +448,14 @@ function renderBuildSelection() {
     modeBar.innerHTML = `
         <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
             class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'reading'
-                ? 'bg-[#bca37f] text-white shadow-md'
-                : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
+            ? 'bg-[#bca37f] text-white shadow-md'
+            : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ${currentReading ? `📖 ${currentReading} ▾` : '📖 読み方 ▾'}
         </button>
         <button onclick="setBuildMode('free')"
             class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'free'
-                ? 'bg-[#bca37f] text-white shadow-md'
-                : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
+            ? 'bg-[#bca37f] text-white shadow-md'
+            : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ✨ 自由組み立て
         </button>
         <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-50 hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
@@ -496,7 +510,7 @@ function renderBuildSelection() {
 
             // デバッグ
             if (slotMatch) {
-                console.log(`Slot ${ idx } item: `, {
+                console.log(`Slot ${idx} item: `, {
                     kanji: item['漢字'],
                     sessionReading: item.sessionReading,
                     currentReading: currentReading,
@@ -507,7 +521,7 @@ function renderBuildSelection() {
             return slotMatch && readingMatch;
         });
 
-        console.log(`Slot ${ idx } filtered items: `, items.length);
+        console.log(`Slot ${idx} filtered items: `, items.length);
 
         // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
@@ -535,7 +549,7 @@ function renderBuildSelection() {
                 let fortuneIndicator = '';
                 if (prioritizeFortune && itemIdx < 3) {
                     const badges = ['🥇', '🥈', '🥉'];
-                    fortuneIndicator = `<div class="text-lg mt-1" > ${ badges[itemIdx] }</div> `;
+                    fortuneIndicator = `<div class="text-lg mt-1" > ${badges[itemIdx]}</div> `;
                 }
 
                 let partnerBadge = item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center" >👩</div> ` : '';
@@ -545,11 +559,11 @@ function renderBuildSelection() {
                     : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '?';
 
                 btn.innerHTML = `
-                    ${ partnerBadge }
-                    ${ item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : '' }
+                    ${partnerBadge}
+                    ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text">${item['漢字']}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
-                    ${ fortuneIndicator }
+                    ${fortuneIndicator}
 `;
                 scrollBox.appendChild(btn);
             });
@@ -573,7 +587,7 @@ function renderBuildSelection() {
  * 指定した読み方のストックをすべて削除
  */
 function deleteStockGroup(reading) {
-    if (!confirm(`「${ reading }」のストックをすべて削除しますか？\n（${ liked.filter(i => i.sessionReading === reading).length } 件）`)) {
+    if (!confirm(`「${reading}」のストックをすべて削除しますか？\n（${liked.filter(i => i.sessionReading === reading).length} 件）`)) {
         return;
     }
 
@@ -586,7 +600,7 @@ function deleteStockGroup(reading) {
         removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字']));
     }
 
-    if (liked.length <initialCount) {
+    if (liked.length < initialCount) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
             StorageBox.saveLiked();
         }
@@ -600,7 +614,7 @@ function deleteStockGroup(reading) {
                 // 読みが一致するものを削除
                 history = history.filter(h => h.reading !== reading);
 
-                if (history.length <initialHistCount) {
+                if (history.length < initialHistCount) {
                     localStorage.setItem('meimay_reading_history', JSON.stringify(history));
                     console.log('BUILD: Synced history deletion for', reading);
                 }
@@ -645,7 +659,7 @@ function toggleReadingDropdown() {
 
     // 読みストック一覧を構築
     let removedList = [];
-    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) {}
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
 
     const completedReadings = [...new Set(
         (liked || []).filter(item =>
@@ -748,19 +762,19 @@ function renderBuildFreeMode(container) {
 
         const scrollHtml = `<div class="flex overflow-x-auto pb-2 no-scrollbar gap-1">
             ${allKanji.map(item => {
-                const k = item['漢字'];
-                const strokes = item['画数'] !== undefined ? item['画数']
-                    : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '?';
-                const isSelected = selected === k;
-                const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
-                return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
+            const k = item['漢字'];
+            const strokes = item['画数'] !== undefined ? item['画数']
+                : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '?';
+            const isSelected = selected === k;
+            const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
+            return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
                 </button>`;
-            }).join('')}
+        }).join('')}
         </div>`;
 
         slotDiv.innerHTML = headerHtml + scrollHtml;
@@ -835,27 +849,36 @@ window.renderBuildFreeMode = renderBuildFreeMode;
 window.executeFbBuild = executeFbBuild;
 
 // selectFbKanji / removeFbChoice: ビルド画面自由モード対応版
-window.selectFbKanji = function(slotIdx, kanji) {
+window.selectFbKanji = function (slotIdx, kanji) {
     fbChoices[slotIdx] = kanji;
-    fbChoices = fbChoices.slice(0, slotIdx + 1);
+
+    const scrollPositions = [];
+    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
+
     const buildScreen = document.getElementById('scr-build');
     if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
         renderBuildSelection();
         executeFbBuild();
-        // 選択した漢字ボタンが見える位置にスクロール
-        requestAnimationFrame(() => {
-            const btn = document.querySelector(
-                `.build-piece-btn[data-slot="${slotIdx}"][data-kanji="${kanji}"]`
-            );
-            if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        });
     } else {
         renderFreeBuildSection();
     }
+
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
+            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
+        });
+    });
 };
 
-window.removeFbChoice = function(slotIdx) {
-    fbChoices = fbChoices.slice(0, slotIdx);
+window.removeFbChoice = function (slotIdx) {
+    fbChoices.splice(slotIdx, 1);
+    if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
+        shownFbSlots--;
+    }
+
+    const scrollPositions = [];
+    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
+
     const buildScreen = document.getElementById('scr-build');
     if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
         renderBuildSelection();
@@ -863,6 +886,12 @@ window.removeFbChoice = function(slotIdx) {
     } else {
         renderFreeBuildSection();
     }
+
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
+            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
+        });
+    });
 };
 
 /**
@@ -910,7 +939,7 @@ function sortByFortune(items, slotIndex) {
  * ビルドピース選択
  */
 function selectBuildPiece(slot, data, btnElement) {
-    console.log(`BUILD: Selected piece for slot ${ slot }: `, data['漢字']);
+    console.log(`BUILD: Selected piece for slot ${slot}: `, data['漢字']);
     selectedPieces[slot] = data;
 
     const parent = btnElement.parentElement;
@@ -988,8 +1017,7 @@ function renderBuildResult() {
     <div class="glass-card rounded-[50px] p-8 mb-6 shadow-xl animate-fade-in" >
         <h3 class="text-4xl font-black text-center mb-8 text-[#5d5444] tracking-tight leading-tight">${surnameStr ? surnameStr + ' ' : ''}${r.givenName}</h3>
             
-            ${
-    r.fortune ? `
+            ${r.fortune ? `
                 <div class="text-center mb-6 p-5 bg-gradient-to-br from-[#fdfaf5] to-white rounded-[30px]">
                     <div class="text-2xl font-black ${r.fortune.so.res.color} mb-1">
                         総格 ${r.fortune.so.val}画
@@ -1002,7 +1030,7 @@ function renderBuildResult() {
                     </button>
                 </div>
             ` : ''
-}
+        }
 
 <div class="grid grid-cols-2 gap-3 mt-6">
     <button onclick="generateOrigin()" class="btn-gold py-3 text-sm">由来を生成</button>
@@ -1069,7 +1097,7 @@ function showFortuneDetail() {
     const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
     const jinSpan = (() => {
         const t = _jinRaw.top + OFFSET, b = _jinRaw.bot - OFFSET;
-        return (t <b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
+        return (t < b) ? { top: t, bot: b } : { top: (_jinRaw.top + _jinRaw.bot) / 2, bot: (_jinRaw.top + _jinRaw.bot) / 2 };
     })();
     const chiSpan = { top: _chiRaw.bot > _chiRaw.top ? _chiRaw.top + OFFSET : _chiRaw.top, bot: _chiRaw.bot };
     const gaiSpan = { top: nSur > 0 ? surMid(0) : 0, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
@@ -1092,7 +1120,7 @@ function showFortuneDetail() {
     const FBOX_H = 36; // fBoxを横並びにしてコンパクト化
     const rawY = [spanMid(tenSpan), spanMid(jinSpan), spanMid(chiSpan)];
     const yPos = [...rawY];
-    for (let i = 1; i <yPos.length; i++) {
+    for (let i = 1; i < yPos.length; i++) {
         yPos[i] = Math.max(yPos[i], yPos[i - 1] + FBOX_H);
     }
     const [yTen, yJin, yChi] = yPos;
@@ -1109,7 +1137,7 @@ function showFortuneDetail() {
 
     // 漢字ボックス HTML
     const kBox = (char, isSur) => `
-    <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${ char }</div> `;
+    <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${char}</div> `;
 
     const mapArea = document.createElement('div');
     mapArea.className = "mb-4 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
@@ -1237,7 +1265,7 @@ function renderFortuneDetails(container, res, getNum) {
 
         let descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
         // 副題（例：祖先運）が先頭に来る場合は除去
-        descText = descText.replace(new RegExp(`^ ${ p.sub } [。、|｜\\s] * `), '');
+        descText = descText.replace(new RegExp(`^ ${p.sub} [。、|｜\\s] * `), '');
 
         const row = document.createElement('div');
         row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
@@ -1406,7 +1434,7 @@ function displayFortuneRankingModal(rankedList) {
 
     rankedList.forEach((item, index) => {
         const rank = ranks[index];
-        const fullName = surnameStr ? `${ surnameStr } ${ item.combination.name } ` : item.combination.name;
+        const fullName = surnameStr ? `${surnameStr} ${item.combination.name} ` : item.combination.name;
         const f = item.fortune;
         const card = document.createElement('div');
         card.className = 'mb-2 p-3 bg-white rounded-2xl border-2 cursor-pointer transition-all active:scale-98';
@@ -1419,12 +1447,12 @@ function displayFortuneRankingModal(rankedList) {
         card.onclick = () => applyRankedCombination(item.combination);
 
         const rankBadge = medals[rank]
-            ? `<span style = "font-size:22px;line-height:1;flex-shrink:0" > ${ medals[rank] }</span> `
+            ? `<span style = "font-size:22px;line-height:1;flex-shrink:0" > ${medals[rank]}</span> `
             : `<div style = "width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0" > <span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div> `;
 
         card.innerHTML = `
     <div style = "display:flex;align-items:center;gap:8px" >
-        ${ rankBadge }
+        ${rankBadge}
                 <div style="flex:1;min-width:0;overflow:hidden">
                     <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">
                         <span style="font-size:17px;font-weight:900;color:#5d5444;white-space:nowrap">${fullName}</span>
@@ -1475,7 +1503,7 @@ function applyRankedCombination(combination) {
  * スロットを選び直す
  */
 function reselectSlot(slotIdx) {
-    if (confirm(`${ slotIdx + 1 } 文字目「${ segments[slotIdx] }」を選び直しますか？\n現在の選択がリセットされます。`)) {
+    if (confirm(`${slotIdx + 1} 文字目「${segments[slotIdx]}」を選び直しますか？\n現在の選択がリセットされます。`)) {
         const toRemove = [];
         const keptLiked = [];
         liked.forEach(item => {
@@ -1519,7 +1547,7 @@ function reselectSlot(slotIdx) {
         const nav = document.querySelector('.nav-bar');
         if (nav) nav.style.display = 'flex';
 
-        console.log(`BUILD: Reselecting slot ${ slotIdx }, cleared build result`);
+        console.log(`BUILD: Reselecting slot ${slotIdx}, cleared build result`);
     }
 }
 
@@ -1540,7 +1568,7 @@ function addMoreToSlot(slotIdx) {
     const nav = document.querySelector('.nav-bar');
     if (nav) nav.style.display = 'flex';
 
-    console.log(`BUILD: Adding more to slot ${ slotIdx } (keeping current selections)`);
+    console.log(`BUILD: Adding more to slot ${slotIdx} (keeping current selections)`);
 }
 
 /**
