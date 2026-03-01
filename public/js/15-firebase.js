@@ -1,6 +1,6 @@
 /* ============================================================
-   MODULE 15: FIREBASE AUTH & CLOUD SYNC (V21.0)
-   ユーザー認証 & Firestoreクラウド同期
+   MODULE 15: FIREBASE (V22.0 - ANONYMOUS AUTH + ROOM PAIRING)
+   アカウント不要・匿名認証・ルームコード方式パートナー連携
    ============================================================ */
 
 // Firebase初期化
@@ -26,135 +26,20 @@ try {
 }
 
 // ============================================================
-// AUTH - ユーザー認証
+// AUTH - 匿名認証（ユーザーには見えない自動処理）
 // ============================================================
 const MeimayAuth = {
     currentUser: null,
 
-    // Google ログイン
-    signInWithGoogle: async function () {
-        try {
-            showLoginLoading(true);
-            showLoginError(''); // エラー表示をクリア
-            const provider = new firebase.auth.GoogleAuthProvider();
-            // 一部環境でポップアップがブロックされるため、エラー時はRedirectを誘導するなどの考慮が必要だが
-            // まずはポップアップで試行し、エラー内容をログに出力
-            await firebaseAuth.signInWithPopup(provider);
-            console.log("FIREBASE: Google sign-in success");
-        } catch (e) {
-            console.error("FIREBASE: Google sign-in failed", e);
-            let msg = getAuthErrorMessage(e.code);
-            if (e.code === 'auth/popup-blocked') {
-                msg = 'ポップアップがブロックされました。ブラウザの設定を確認してください。';
+    // 起動時に自動呼び出し（ユーザー操作不要）
+    init: async function () {
+        if (firebaseAuth && !firebaseAuth.currentUser) {
+            try {
+                await firebaseAuth.signInAnonymously();
+                console.log("FIREBASE: Anonymous sign-in success");
+            } catch (e) {
+                console.error("FIREBASE: Anonymous sign-in failed", e);
             }
-            showLoginError(msg);
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // メール ログイン
-    signInWithEmail: async function () {
-        const email = document.getElementById('login-email')?.value?.trim();
-        const pass = document.getElementById('login-password')?.value;
-        if (!email || !pass) { showLoginError('メールアドレスとパスワードを入力してください'); return; }
-        try {
-            showLoginLoading(true);
-            await firebaseAuth.signInWithEmailAndPassword(email, pass);
-            console.log("FIREBASE: Email sign-in success");
-        } catch (e) {
-            console.error("FIREBASE: Email sign-in failed", e);
-            showLoginError(getAuthErrorMessage(e.code));
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // メール 新規登録
-    signUpWithEmail: async function () {
-        const email = document.getElementById('login-email')?.value?.trim();
-        const pass = document.getElementById('login-password')?.value;
-        if (!email || !pass) { showLoginError('メールアドレスとパスワードを入力してください'); return; }
-        if (pass.length < 6) { showLoginError('パスワードは6文字以上にしてください'); return; }
-        try {
-            showLoginLoading(true);
-            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, pass);
-            const user = userCredential.user;
-
-            // メール認証を送信
-            await user.sendEmailVerification();
-            showToast('確認メールを送信しました。メール内のリンクをクリックして認証を完了してください。', '📧');
-
-            console.log("FIREBASE: Email sign-up success and verification sent");
-        } catch (e) {
-            console.error("FIREBASE: Email sign-up failed", e);
-            showLoginError(getAuthErrorMessage(e.code));
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // 認証メール再送
-    resendVerificationEmail: async function () {
-        const user = firebaseAuth.currentUser;
-        if (!user) return;
-        try {
-            showLoginLoading(true);
-            await user.sendEmailVerification();
-            showToast('確認メールを再送しました。', '📧');
-        } catch (e) {
-            console.error("FIREBASE: Resend verification failed", e);
-            showToast('再送に失敗しました。しばらく時間を置いてから再度お試しください。', '❌');
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // Apple ログイン
-    signInWithApple: async function () {
-        try {
-            showLoginLoading(true);
-            showLoginError('');
-            const provider = new firebase.auth.OAuthProvider('apple.com');
-            provider.addScope('email');
-            provider.addScope('name');
-            await firebaseAuth.signInWithPopup(provider);
-            console.log("FIREBASE: Apple sign-in success");
-        } catch (e) {
-            console.error("FIREBASE: Apple sign-in failed", e);
-            let msg = getAuthErrorMessage(e.code);
-            if (e.code === 'auth/popup-blocked') {
-                msg = 'ポップアップがブロックされました。ブラウザの設定を確認してください。';
-            } else if (e.code === 'auth/operation-not-supported-in-this-environment') {
-                msg = 'この環境ではAppleログインは使用できません。';
-            }
-            showLoginError(msg);
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // 匿名ログイン
-    signInAnonymous: async function () {
-        try {
-            showLoginLoading(true);
-            await firebaseAuth.signInAnonymously();
-            console.log("FIREBASE: Anonymous sign-in success");
-        } catch (e) {
-            console.error("FIREBASE: Anonymous sign-in failed", e);
-            showLoginError(getAuthErrorMessage(e.code));
-        } finally {
-            showLoginLoading(false);
-        }
-    },
-
-    // ログアウト
-    signOut: async function () {
-        try {
-            await firebaseAuth.signOut();
-            console.log("FIREBASE: Signed out");
-        } catch (e) {
-            console.error("FIREBASE: Sign-out failed", e);
         }
     },
 
@@ -162,412 +47,21 @@ const MeimayAuth = {
         return this.currentUser;
     },
 
-    // ニックネーム変更
+    // ウィザード経由のニックネーム変更（設定画面で使用）
     editNickname: function () {
         const wizData = WizardData.get() || {};
         const oldName = wizData.username || '';
-        const newName = prompt('新しいニックネーム（呼び名）を入力してください', oldName);
+        const newName = prompt('新しいニックネームを入力してください', oldName);
         if (newName === null) return;
         const trimmed = newName.trim();
-        if (!trimmed) {
-            alert('ニックネームを入力してください');
-            return;
-        }
+        if (!trimmed) { alert('ニックネームを入力してください'); return; }
         wizData.username = trimmed;
         WizardData.save(wizData);
-        updateAuthUI(this.currentUser);
-        // ドロワーの名前も更新
         if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
-        // ホーム画面の挨拶も更新
         if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
-        // クラウド同期
-        if (this.currentUser) MeimaySync.uploadData();
         showToast('ニックネームを更新しました', '✨');
-    },
-
-    // アカウント削除
-    deleteAccount: async function () {
-        const user = firebaseAuth.currentUser;
-        if (!user) return;
-
-        const confirmed = confirm('本当にアカウントを削除しますか？\nストック・保存名前などのデータは全て削除され、元に戻せません。');
-        if (!confirmed) return;
-
-        try {
-            showLoginLoading(true);
-            // Firestoreデータを削除
-            const userRef = firebaseDb.collection('users').doc(user.uid);
-            const subDocs = ['liked', 'savedNames', 'readingHistory', 'settings'];
-            for (const sub of subDocs) {
-                try { await userRef.collection('data').doc(sub).delete(); } catch (e) { }
-            }
-            try { await userRef.delete(); } catch (e) { }
-            // Firebaseアカウントの削除
-            await user.delete();
-            showToast('アカウントを削除しました', '👋');
-            console.log('FIREBASE: Account deleted');
-        } catch (e) {
-            console.error('FIREBASE: Account deletion failed', e);
-            // 再認証が必要な場合
-            if (e.code === 'auth/requires-recent-login') {
-                showLoginError('セキュリティのため、再ログインしてからもう一度お試しください。');
-            } else {
-                showLoginError('アカウント削除に失敗しました。');
-            }
-        } finally {
-            showLoginLoading(false);
-        }
     }
 };
-
-// ============================================================
-// SYNC - Firestoreクラウド同期
-// ============================================================
-const MeimaySync = {
-    _uploading: false,
-    _unsubscribe: null,
-
-    // ローカル → Firestore にアップロード
-    uploadData: async function () {
-        const user = MeimayAuth.getCurrentUser();
-        if (!user) { console.warn("SYNC: No user, skip upload"); return; }
-
-        // メール認証チェック (パスワード認証のみ)
-        const providerId = user.providerData?.[0]?.providerId;
-        if (providerId === 'password' && !user.emailVerified) {
-            console.warn("SYNC: Email not verified, skip upload");
-            return;
-        }
-
-        if (this._uploading) return;
-        this._uploading = true;
-
-        const statusEl = document.getElementById('sync-status');
-        if (statusEl) statusEl.textContent = '🔄 同期中...';
-
-        try {
-            const userRef = firebaseDb.collection('users').doc(user.uid);
-
-            // プロフィール
-            await userRef.set({
-                displayName: user.displayName || 'ゲスト',
-                email: user.email || null,
-                provider: user.providerData?.[0]?.providerId || 'anonymous',
-                lastSync: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            // ストック漢字
-            if (typeof liked !== 'undefined') {
-                // クラウド容量節約のため、マスター辞書にある静的データ（画数、意味等）は省いて必要最小限のみ送信
-                const minifiedLiked = liked.map(l => ({
-                    '漢字': l['漢字'],
-                    slot: l.slot,
-                    sessionReading: l.sessionReading,
-                    sessionSegments: l.sessionSegments || null,
-                    isSuper: l.isSuper || false
-                }));
-
-                await userRef.collection('data').doc('liked').set({
-                    items: minifiedLiked,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-
-            // 保存済み名前
-            try {
-                const savedData = localStorage.getItem('meimay_saved');
-                if (savedData) {
-                    const rawSaved = JSON.parse(savedData);
-                    // クラウド容量節約のため、詳細なfortuneや完全な漢字マスターデータは省く
-                    const minifiedSaved = rawSaved.map(s => ({
-                        fullName: s.fullName,
-                        reading: s.reading || '',
-                        givenName: s.givenName || '',
-                        // 復元のために漢字の文字の配列だけ送る
-                        combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
-                        message: s.message || '',
-                        savedAt: s.savedAt || s.timestamp,
-                        fromPartner: s.fromPartner || false
-                    }));
-
-                    await userRef.collection('data').doc('savedNames').set({
-                        items: minifiedSaved,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-            } catch (e) { console.warn("SYNC: savedNames parse error", e); }
-
-            // 読み方履歴
-            try {
-                const histData = localStorage.getItem('meimay_reading_history');
-                if (histData) {
-                    await userRef.collection('data').doc('readingHistory').set({
-                        items: JSON.parse(histData),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-            } catch (e) { console.warn("SYNC: history parse error", e); }
-
-            // 設定
-            try {
-                const settings = {};
-                ['naming_app_surname', 'naming_app_segments', 'naming_app_settings'].forEach(key => {
-                    const val = localStorage.getItem(key);
-                    if (val) settings[key] = val;
-                });
-                if (Object.keys(settings).length > 0) {
-                    await userRef.collection('data').doc('settings').set({
-                        ...settings,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                }
-            } catch (e) { console.warn("SYNC: settings parse error", e); }
-
-            if (statusEl) statusEl.textContent = '✅ 同期済み';
-            console.log("SYNC: Upload complete");
-        } catch (e) {
-            console.error("SYNC: Upload failed", e);
-            if (statusEl) statusEl.textContent = '❌ 同期失敗';
-        } finally {
-            this._uploading = false;
-        }
-    },
-
-    // Firestore → ローカルにダウンロード
-    downloadData: async function () {
-        const user = MeimayAuth.getCurrentUser();
-        if (!user) return;
-
-        // メール認証チェック
-        const providerId = user.providerData?.[0]?.providerId;
-        if (providerId === 'password' && !user.emailVerified) {
-            console.warn("SYNC: Email not verified, skip download");
-            return;
-        }
-
-        try {
-            const userRef = firebaseDb.collection('users').doc(user.uid);
-            const dataCol = userRef.collection('data');
-
-            // ストック漢字
-            const likedDoc = await dataCol.doc('liked').get();
-            if (likedDoc.exists && likedDoc.data().items) {
-                const cloudLiked = likedDoc.data().items;
-                // Deletions would be reverted if we append localOnly, so we must strictly sync to Cloud state
-                // ダウンロード時に最小限のデータからマスター辞書を参照して完全なオブジェクトに復元
-                const restoredLiked = cloudLiked.map(cloudItem => {
-                    const fullKanji = typeof master !== 'undefined' ? master.find(m => m['漢字'] === cloudItem['漢字']) : null;
-                    if (fullKanji) {
-                        return {
-                            ...fullKanji,
-                            slot: cloudItem.slot !== undefined ? cloudItem.slot : -1,
-                            sessionReading: cloudItem.sessionReading || 'UNKNOWN',
-                            sessionSegments: cloudItem.sessionSegments || null,
-                            isSuper: cloudItem.isSuper || false
-                        };
-                    }
-                    return cloudItem;
-                });
-
-                liked = restoredLiked;
-                if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-                console.log(`SYNC: Downloaded liked (${cloudLiked.length} items)`);
-            }
-
-            // 保存済み名前
-            const savedDoc = await dataCol.doc('savedNames').get();
-            if (savedDoc.exists && savedDoc.data().items) {
-                const cloudSaved = savedDoc.data().items;
-                // ダウンロード時に最小限のデータからマスター辞書を参照して完全なオブジェクトに復元
-                const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
-
-                const restoredSaved = cloudSaved.map(s => {
-                    let combination = [];
-                    if (s.combinationKeys && typeof master !== 'undefined') {
-                        combination = s.combinationKeys.map(k => {
-                            const found = master.find(m => m['漢字'] === k);
-                            return found ? found : { '漢字': k, '画数': 1 };
-                        });
-                    }
-
-                    // Fortuneの再計算
-                    let fortune = null;
-                    if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
-                        const givArr = combination.map(p => ({
-                            kanji: p['漢字'],
-                            strokes: parseInt(p['画数']) || 0
-                        }));
-                        fortune = FortuneLogic.calculate(surArr, givArr);
-                    }
-
-                    return {
-                        fullName: s.fullName,
-                        reading: s.reading,
-                        givenName: s.givenName,
-                        combination: combination,
-                        fortune: fortune,
-                        message: s.message,
-                        savedAt: s.savedAt,
-                        fromPartner: s.fromPartner
-                    };
-                });
-
-                localStorage.setItem('meimay_saved', JSON.stringify(restoredSaved));
-                if (typeof getSavedNames !== 'undefined') {
-                    // Update the global or UI state if needed
-                    // In JS it usually relies on reloading from localStorage.
-                }
-                console.log(`SYNC: Downloaded savedNames (${cloudSaved.length} items)`);
-            }
-
-            // 読み方履歴
-            const histDoc = await dataCol.doc('readingHistory').get();
-            if (histDoc.exists && histDoc.data().items) {
-                const cloudHist = histDoc.data().items;
-                localStorage.setItem('meimay_reading_history', JSON.stringify(cloudHist));
-                console.log(`SYNC: Downloaded readingHistory (${cloudHist.length} items)`);
-            }
-
-            // 設定
-            const settingsDoc = await dataCol.doc('settings').get();
-            if (settingsDoc.exists) {
-                const data = settingsDoc.data();
-                ['naming_app_surname', 'naming_app_segments', 'naming_app_settings'].forEach(key => {
-                    if (data[key]) localStorage.setItem(key, data[key]);
-                });
-                console.log("SYNC: Downloaded settings");
-            }
-
-            console.log("SYNC: Download complete");
-        } catch (e) {
-            console.error("SYNC: Download failed", e);
-        }
-    },
-
-    // 自動同期（保存時にフック）
-    autoUploadDebounced: (function () {
-        let timer = null;
-        return function () {
-            if (timer) clearTimeout(timer);
-            timer = setTimeout(() => {
-                MeimaySync.uploadData();
-            }, 5000); // 5秒デバウンス
-        };
-    })()
-};
-
-// ============================================================
-// UI HELPERS
-// ============================================================
-function showLoginError(msg) {
-    const el = document.getElementById('login-error');
-    if (el) {
-        el.textContent = msg;
-        el.classList.remove('hidden');
-        setTimeout(() => el.classList.add('hidden'), 5000);
-    }
-}
-
-function showLoginLoading(show) {
-    // ボタンの無効化等（簡易版）
-    const buttons = document.querySelectorAll('#login-form-area button');
-    buttons.forEach(btn => {
-        btn.disabled = show;
-        if (show) btn.style.opacity = '0.5';
-        else btn.style.opacity = '';
-    });
-}
-
-function getAuthErrorMessage(code) {
-    const messages = {
-        'auth/invalid-email': 'メールアドレスの形式が正しくありません',
-        'auth/user-disabled': 'このアカウントは無効です',
-        'auth/user-not-found': 'このメールアドレスは登録されていません',
-        'auth/wrong-password': 'パスワードが間違っています',
-        'auth/email-already-in-use': 'このメールアドレスは既に使用されています',
-        'auth/weak-password': 'パスワードが弱すぎます（6文字以上にしてください）',
-        'auth/popup-closed-by-user': 'ログインがキャンセルされました',
-        'auth/cancelled-popup-request': 'ログインがキャンセルされました',
-        'auth/network-request-failed': 'ネットワークエラー。接続を確認してください',
-        'auth/invalid-credential': 'メールアドレスまたはパスワードが間違っています'
-    };
-    return messages[code] || 'ログインに失敗しました';
-}
-
-function updateAuthUI(user) {
-    const loginBtn = document.getElementById('drawer-login-btn');
-    const accountBtn = document.getElementById('drawer-account-btn');
-    const avatar = document.getElementById('drawer-avatar');
-    const username = document.getElementById('drawer-username');
-    const loginForm = document.getElementById('login-form-area');
-    const accountInfo = document.getElementById('account-info-area');
-    const menuAccount = document.getElementById('drawer-menu-account');
-
-    if (user) {
-        // ログイン済み
-        const wizData = WizardData.get() || {};
-        const name = wizData.username || user.displayName || user.email?.split('@')[0] || 'ユーザー';
-        const initial = name.charAt(0).toUpperCase();
-        const provider = user.providerData?.[0]?.providerId || 'anonymous';
-        const providerLabel = {
-            'google.com': 'Google',
-            'apple.com': 'Apple',
-            'password': 'メール',
-        }[provider] || '匿名';
-
-        if (loginBtn) loginBtn.classList.add('hidden');
-        if (accountBtn) accountBtn.classList.remove('hidden');
-        if (avatar) avatar.textContent = initial;
-        if (username) username.textContent = name;
-        if (menuAccount) {
-            menuAccount.querySelector('span:last-child').textContent = 'アカウント';
-        }
-
-        // ログイン画面の切り替え
-        if (loginForm) loginForm.classList.add('hidden');
-        if (accountInfo) accountInfo.classList.remove('hidden');
-
-        const bigAvatar = document.getElementById('account-avatar-big');
-        const dispName = document.getElementById('account-display-name');
-        const emailEl = document.getElementById('account-email');
-        const provEl = document.getElementById('account-provider');
-
-        if (bigAvatar) bigAvatar.textContent = initial;
-        if (dispName) dispName.textContent = name;
-        if (emailEl) emailEl.textContent = user.email || '(メールなし)';
-        if (provEl) provEl.textContent = providerLabel;
-
-        const surnameEl = document.getElementById('account-surname');
-        if (surnameEl) {
-            const sn = wizData.surname || '';
-            surnameEl.textContent = sn ? `@${sn}` : '@苗字未設定';
-        }
-
-        // メール認証状態の表示
-        const verifyArea = document.getElementById('email-verification-area');
-        if (verifyArea) {
-            const isPasswordUser = provider === 'password';
-            if (isPasswordUser && !user.emailVerified) {
-                verifyArea.classList.remove('hidden');
-            } else {
-                verifyArea.classList.add('hidden');
-            }
-        }
-    } else {
-        // 未ログイン
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (accountBtn) accountBtn.classList.add('hidden');
-        if (avatar) avatar.textContent = 'P';
-        if (username) username.textContent = 'ゲスト';
-        if (menuAccount) {
-            menuAccount.querySelector('span:last-child').textContent = 'ログイン';
-        }
-
-        if (loginForm) loginForm.classList.remove('hidden');
-        if (accountInfo) accountInfo.classList.add('hidden');
-    }
-}
 
 // ============================================================
 // AUTH STATE LISTENER
@@ -575,298 +69,226 @@ function updateAuthUI(user) {
 if (firebaseAuth) {
     firebaseAuth.onAuthStateChanged(async (user) => {
         MeimayAuth.currentUser = user;
-        updateAuthUI(user);
-
         if (user) {
-            console.log(`FIREBASE: Auth state -> logged in (${user.uid})`);
-
-            // 認証済みかGoogleユーザーのみ同期・監視を開始
-            const isVerified = (user.providerData?.[0]?.providerId !== 'password' || user.emailVerified);
-
-            if (isVerified) {
-                // ログイン直後: クラウドからダウンロード → ローカルとマージ → アップロード
-                await MeimaySync.downloadData();
-                await MeimaySync.uploadData();
-
-                // パートナー情報の監視を開始
-                if (typeof MeimayPairing !== 'undefined') MeimayPairing.listenForPartner();
-            }
-
-            // もしウィザードからのログインフローならホームへ遷移
-            if (window.isWizardLoginFlow) {
-                window.isWizardLoginFlow = false;
-                if (typeof changeScreen === 'function') changeScreen('scr-mode');
-                if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
-            }
-
-            // ドロワーを閉じる
-            if (typeof closeDrawer === 'function') closeDrawer();
+            console.log(`FIREBASE: Anonymous user ready (${user.uid})`);
+            // 保存済みルームがあれば再接続
+            await MeimayPairing.resumeRoom();
         } else {
-            console.log("FIREBASE: Auth state -> logged out");
-            MeimayShare.stopListening();
-            if (typeof MeimayPairing !== 'undefined') MeimayPairing.stopListeningPartner();
+            console.log("FIREBASE: No user");
         }
     });
 }
 
-// ============================================================
-// STORAGE HOOK — 保存時に自動同期
-// ============================================================
-(function hookStorageSync() {
-    // StorageBoxのsaveAll完了後にクラウド同期を走らせる
-    const waitForStorageBox = setInterval(() => {
-        if (typeof StorageBox !== 'undefined' && StorageBox.saveAll) {
-            const originalSaveAll = StorageBox.saveAll.bind(StorageBox);
-            StorageBox.saveAll = function () {
-                const result = originalSaveAll();
-                if (MeimayAuth.getCurrentUser()) {
-                    MeimaySync.autoUploadDebounced();
-                    // Auto-share with partner if enabled
-                    if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
-                        MeimayShare.shareLiked(true);
-                        MeimayShare.shareSavedNames(true);
-                    }
-                }
-                return result;
-            };
-
-            const originalSaveLiked = StorageBox.saveLiked.bind(StorageBox);
-            StorageBox.saveLiked = function () {
-                const result = originalSaveLiked();
-                if (MeimayAuth.getCurrentUser()) {
-                    MeimaySync.autoUploadDebounced();
-                    // Auto-share with partner if enabled
-                    if (typeof shareMode !== 'undefined' && shareMode === 'auto' && typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerId) {
-                        MeimayShare.shareLiked(true);
-                    }
-                }
-                return result;
-            };
-
-            clearInterval(waitForStorageBox);
-            console.log("FIREBASE: Storage sync hooks attached");
-        }
-    }, 500);
-
-    // 10秒でタイムアウト
-    setTimeout(() => clearInterval(waitForStorageBox), 10000);
-})();
+// 起動時に匿名認証を自動実行
+MeimayAuth.init();
 
 // ============================================================
-// DRAWER NAVIGATION HOOK
-// ============================================================
-(function hookDrawerLogin() {
-    const waitForDrawerNav = setInterval(() => {
-        if (typeof drawerNavigate !== 'undefined') {
-            const originalDrawerNav = window.drawerNavigate;
-            window.drawerNavigate = function (target) {
-                if (target === 'login') {
-                    if (typeof closeDrawer === 'function') closeDrawer();
-                    if (typeof changeScreen === 'function') changeScreen('scr-login');
-                    return;
-                }
-                originalDrawerNav.apply(this, arguments);
-            };
-            clearInterval(waitForDrawerNav);
-            console.log("FIREBASE: Drawer login hook attached");
-        }
-    }, 500);
-    setTimeout(() => clearInterval(waitForDrawerNav), 10000);
-})();
-
-// ============================================================
-// PAIRING - パートナーペアリング
+// PAIRING - ルームコード方式パートナー連携
 // ============================================================
 const MeimayPairing = {
-    partnerId: null,
-    partnerName: null,
+    roomCode: null,    // 現在のルームコード
+    mySlot: null,      // 'memberA' or 'memberB'
+    myRole: null,      // 'mama' or 'papa'
+    partnerSlot: null, // 'memberB' or 'memberA'
+    partnerUid: null,
+    partnerRole: null,
+    _selectedCreateRole: null,  // ルーム作成時に選んだロール
+    _selectedJoinRole: null,    // 参加時に選んだロール
+    _roomUnsub: null,
 
-    // 招待コード生成（既存コードがあれば同じものを返す。押すたびに変わらない）
-    generateCode: async function () {
+    // localStorageからルーム情報を復元
+    resumeRoom: async function () {
+        const code = localStorage.getItem('meimay_room_code');
+        const slot = localStorage.getItem('meimay_room_slot');
+        const role = localStorage.getItem('meimay_my_role');
+        if (!code || !slot || !role) return;
+
+        this.roomCode = code;
+        this.mySlot = slot;
+        this.myRole = role;
+        this.partnerSlot = slot === 'memberA' ? 'memberB' : 'memberA';
+
+        // Firestoreでルームが存在するか確認
+        try {
+            const doc = await firebaseDb.collection('rooms').doc(code).get();
+            if (!doc.exists) {
+                console.warn('PAIRING: Saved room no longer exists, clearing');
+                this._clearLocal();
+                return;
+            }
+            const data = doc.data();
+            const partnerUid = data[`${this.partnerSlot}Uid`];
+            const partnerRole = data[`${this.partnerSlot}Role`];
+            if (partnerUid) {
+                this.partnerUid = partnerUid;
+                this.partnerRole = partnerRole;
+                MeimayShare.listenPartnerData(partnerUid);
+            }
+            this._listenRoom();
+            updatePairingUI();
+            console.log(`PAIRING: Resumed room ${code} as ${slot} (${role})`);
+        } catch (e) {
+            console.error('PAIRING: Resume failed', e);
+        }
+    },
+
+    // ロール選択（ルーム作成用）
+    selectCreateRole: function (role) {
+        this._selectedCreateRole = role;
+        const mamaBtn = document.getElementById('create-role-mama');
+        const papaBtn = document.getElementById('create-role-papa');
+        const createBtn = document.getElementById('btn-generate-code');
+        if (mamaBtn) mamaBtn.classList.toggle('border-[#f4a3b9]', role === 'mama');
+        if (mamaBtn) mamaBtn.classList.toggle('bg-[#fdf0f4]', role === 'mama');
+        if (mamaBtn) mamaBtn.classList.toggle('border-[#eee5d8]', role !== 'mama');
+        if (papaBtn) papaBtn.classList.toggle('border-[#a3b9f4]', role === 'papa');
+        if (papaBtn) papaBtn.classList.toggle('bg-[#f0f4fd]', role === 'papa');
+        if (papaBtn) papaBtn.classList.toggle('border-[#eee5d8]', role !== 'papa');
+        if (createBtn) createBtn.disabled = false;
+    },
+
+    // ロール選択（参加用）
+    selectJoinRole: function (role) {
+        this._selectedJoinRole = role;
+        const mamaBtn = document.getElementById('join-role-mama');
+        const papaBtn = document.getElementById('join-role-papa');
+        if (mamaBtn) mamaBtn.classList.toggle('border-[#f4a3b9]', role === 'mama');
+        if (mamaBtn) mamaBtn.classList.toggle('bg-[#fdf0f4]', role === 'mama');
+        if (mamaBtn) mamaBtn.classList.toggle('border-[#eee5d8]', role !== 'mama');
+        if (papaBtn) papaBtn.classList.toggle('border-[#a3b9f4]', role === 'papa');
+        if (papaBtn) papaBtn.classList.toggle('bg-[#f0f4fd]', role === 'papa');
+        if (papaBtn) papaBtn.classList.toggle('border-[#eee5d8]', role !== 'papa');
+    },
+
+    // ルームを新規作成
+    createRoom: async function () {
         const user = MeimayAuth.getCurrentUser();
-        if (!user) { showLoginError('先にログインしてください'); return null; }
+        if (!user) { showToast('しばらくお待ちください…', '⏳'); return null; }
+        const role = this._selectedCreateRole;
+        if (!role) { showToast('ママ / パパを選んでください', '⚠️'); return null; }
+
+        // 6文字ランダムコード
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         try {
-            // 既存コードを確認
-            const userDoc = await firebaseDb.collection('users').doc(user.uid).get();
-            if (userDoc.exists && userDoc.data().pairingCode) {
-                const existingCode = userDoc.data().pairingCode;
-                // コードが有完期でないか確認
-                const codeDoc = await firebaseDb.collection('pairingCodes').doc(existingCode).get();
-                if (codeDoc.exists) {
-                    console.log(`PAIRING: Reusing existing code: ${existingCode}`);
-                    return existingCode;
-                }
-            }
-
-            // 新規コード生成
-            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            await firebaseDb.collection('pairingCodes').doc(code).set({
-                uid: user.uid,
-                displayName: user.displayName || user.email?.split('@')[0] || 'ユーザー',
+            await firebaseDb.collection('rooms').doc(code).set({
+                memberAUid: user.uid,
+                memberARole: role,
+                memberBUid: null,
+                memberBRole: null,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            // ユーザードキュメントにコードを保存
-            await firebaseDb.collection('users').doc(user.uid).set(
-                { pairingCode: code }, { merge: true }
-            );
 
-            console.log(`PAIRING: Code generated: ${code}`);
+            this.roomCode = code;
+            this.mySlot = 'memberA';
+            this.myRole = role;
+            this.partnerSlot = 'memberB';
+
+            localStorage.setItem('meimay_room_code', code);
+            localStorage.setItem('meimay_room_slot', 'memberA');
+            localStorage.setItem('meimay_my_role', role);
+
+            this._listenRoom();
+            updatePairingUI();
+            await this.syncMyData();
+
+            console.log(`PAIRING: Room created: ${code}`);
             return code;
         } catch (e) {
-            console.error('PAIRING: Code generation failed', e);
+            console.error('PAIRING: Create room failed', e);
+            showToast('ルーム作成に失敗しました', '❌');
             return null;
         }
     },
 
-    // コードを入力してペアリング
-    enterCode: async function (code) {
+    // コードを入力してルームに参加
+    joinRoom: async function (code) {
         const user = MeimayAuth.getCurrentUser();
-        if (!user) { return { success: false, error: '先にログインしてください' }; }
-        if (!code || code.length < 4) { return { success: false, error: 'コードを入力してください' }; }
+        if (!user) { showToast('しばらくお待ちください…', '⏳'); return { success: false }; }
+        const role = this._selectedJoinRole;
+        if (!role) { showToast('ママ / パパを選んでください', '⚠️'); return { success: false }; }
+        if (!code || code.trim().length < 4) { showToast('コードを入力してください', '⚠️'); return { success: false }; }
+
+        const upperCode = code.trim().toUpperCase();
 
         try {
-            const codeDoc = await firebaseDb.collection('pairingCodes').doc(code.toUpperCase()).get();
-            if (!codeDoc.exists) {
-                return { success: false, error: 'コードが見つかりません（期限切れの可能性があります）' };
+            const roomDoc = await firebaseDb.collection('rooms').doc(upperCode).get();
+            if (!roomDoc.exists) {
+                return { success: false, error: 'コードが見つかりません' };
             }
 
-            const data = codeDoc.data();
-            if (data.uid === user.uid) {
-                return { success: false, error: '自分自身のコードです' };
+            const data = roomDoc.data();
+
+            if (data.memberAUid === user.uid) {
+                return { success: false, error: '自分のルームコードです' };
+            }
+            if (data.memberBUid && data.memberBUid !== user.uid) {
+                return { success: false, error: 'このルームは満員です' };
             }
 
-            const partnerUid = data.uid;
-            const partnerName = data.displayName || 'パートナー';
-
-            // 相互にpartnerIdをセット
-            const batch = firebaseDb.batch();
-            batch.set(firebaseDb.collection('users').doc(user.uid), { partnerId: partnerUid, partnerName: partnerName }, { merge: true });
-            batch.set(firebaseDb.collection('users').doc(partnerUid), {
-                partnerId: user.uid,
-                partnerName: user.displayName || user.email?.split('@')[0] || 'ユーザー'
-            }, { merge: true });
-            await batch.commit();
-
-            // コードを削除
-            await firebaseDb.collection('pairingCodes').doc(code.toUpperCase()).delete();
-
-            this.partnerId = partnerUid;
-            this.partnerName = partnerName;
-            updatePairingUI();
-
-            // 共有リスニング開始
-            MeimayShare.listenForShared();
-
-            console.log(`PAIRING: Paired with ${partnerUid}`);
-            return { success: true, partnerName: partnerName };
-        } catch (e) {
-            console.error('PAIRING: Enter code failed', e);
-            return { success: false, error: 'ペアリングに失敗しました' };
-        }
-    },
-
-    // ペアリング解除
-    unpair: async function () {
-        const user = MeimayAuth.getCurrentUser();
-        if (!user || !this.partnerId) return;
-
-        try {
-            const batch = firebaseDb.batch();
-            batch.update(firebaseDb.collection('users').doc(user.uid), {
-                partnerId: firebase.firestore.FieldValue.delete(),
-                partnerName: firebase.firestore.FieldValue.delete()
+            // memberBとして参加
+            await firebaseDb.collection('rooms').doc(upperCode).update({
+                memberBUid: user.uid,
+                memberBRole: role
             });
-            batch.update(firebaseDb.collection('users').doc(this.partnerId), {
-                partnerId: firebase.firestore.FieldValue.delete(),
-                partnerName: firebase.firestore.FieldValue.delete()
-            });
-            await batch.commit();
 
-            MeimayShare.stopListening();
-            this.partnerId = null;
-            this.partnerName = null;
+            this.roomCode = upperCode;
+            this.mySlot = 'memberB';
+            this.myRole = role;
+            this.partnerSlot = 'memberA';
+            this.partnerUid = data.memberAUid;
+            this.partnerRole = data.memberARole;
+
+            localStorage.setItem('meimay_room_code', upperCode);
+            localStorage.setItem('meimay_room_slot', 'memberB');
+            localStorage.setItem('meimay_my_role', role);
+
+            this._listenRoom();
+            MeimayShare.listenPartnerData(this.partnerUid);
             updatePairingUI();
-            console.log('PAIRING: Unpaired');
+            await this.syncMyData();
+
+            console.log(`PAIRING: Joined room ${upperCode}`);
+            return { success: true };
         } catch (e) {
-            console.error('PAIRING: Unpair failed', e);
+            console.error('PAIRING: Join room failed', e);
+            return { success: false, error: '参加に失敗しました' };
         }
     },
 
-    _partnerUnsub: null,
-
-    // パートナー情報のリスニング（リアルタイム検知）
-    listenForPartner: function () {
+    // ルームを退出（連携解除）
+    leaveRoom: async function () {
+        if (!this.roomCode) return;
         const user = MeimayAuth.getCurrentUser();
-        if (!user) return;
-
-        if (this._partnerUnsub) this._partnerUnsub();
-
-        this._partnerUnsub = firebaseDb.collection('users').doc(user.uid).onSnapshot((doc) => {
-            if (doc.exists) {
-                const data = doc.data();
-
-                // パートナーIDに変化があった場合
-                if (data.partnerId !== this.partnerId) {
-                    this.partnerId = data.partnerId;
-                    this.partnerName = data.partnerName || 'パートナー';
-
-                    if (this.partnerId) {
-                        console.log(`PAIRING: Partner linked: ${this.partnerName}`);
-                        updatePairingUI();
-                        // 連携されたら共有リスニングを開始
-                        MeimayShare.listenForShared();
-                    } else {
-                        console.log('PAIRING: Partner unlinked');
-                        updatePairingUI();
-                        // 解除されたら共有リスニングを停止
-                        MeimayShare.stopListening();
-                    }
-                } else if (data.partnerId && data.partnerName !== this.partnerName) {
-                    // 名前だけ変わった場合
-                    this.partnerName = data.partnerName;
-                    updatePairingUI();
-                }
-            }
-        }, (error) => {
-            console.warn('PAIRING: Listen partner info failed', error);
-        });
-    },
-
-    // リスニング停止
-    stopListeningPartner: function () {
-        if (this._partnerUnsub) {
-            this._partnerUnsub();
-            this._partnerUnsub = null;
-        }
-        this.partnerId = null;
-        this.partnerName = null;
-    }
-};
-
-// ============================================================
-// SHARE - パートナーとのデータ共有
-// ============================================================
-const MeimayShare = {
-    _likedUnsub: null,
-    _savedUnsub: null,
-
-    // ストック漢字をパートナーに共有
-    shareLiked: async function (silent = false) {
-        const user = MeimayAuth.getCurrentUser();
-        const partnerId = MeimayPairing.partnerId;
-        if (!user || !partnerId) {
-            showToast('パートナーとペアリングしてください', '⚠️');
-            return;
-        }
-
-        if (typeof liked === 'undefined' || liked.length === 0) {
-            if (!silent) showToast('共有するストックがありません', '⚠️');
-            return;
-        }
 
         try {
-            const minifiedLiked = liked.map(l => ({
+            // 自分のデータドキュメントを削除
+            if (user) {
+                await firebaseDb.collection('rooms').doc(this.roomCode)
+                    .collection('data').doc(user.uid).delete();
+            }
+            // ルームドキュメントから自分の情報を削除
+            const update = {};
+            update[`${this.mySlot}Uid`] = null;
+            update[`${this.mySlot}Role`] = null;
+            await firebaseDb.collection('rooms').doc(this.roomCode).update(update);
+        } catch (e) {
+            console.error('PAIRING: Leave room failed', e);
+        }
+
+        this._stopListening();
+        this._clearLocal();
+        updatePairingUI();
+        console.log('PAIRING: Left room');
+    },
+
+    // 自分のデータをルームにアップロード（同期）
+    syncMyData: async function () {
+        const user = MeimayAuth.getCurrentUser();
+        if (!user || !this.roomCode) return;
+
+        try {
+            const minifiedLiked = (typeof liked !== 'undefined' ? liked : []).map(l => ({
                 '漢字': l['漢字'],
                 slot: l.slot,
                 sessionReading: l.sessionReading,
@@ -874,116 +296,188 @@ const MeimayShare = {
                 isSuper: l.isSuper || false
             }));
 
-            await firebaseDb.collection('users').doc(partnerId)
-                .collection('shared').doc('liked').set({
-                    items: minifiedLiked,
-                    fromUid: user.uid,
-                    fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
-                    sentAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            if (!silent) {
-                showToast(`ストック ${liked.length}件 を共有しました！`, '📤');
-            } console.log(`SHARE: Sent ${liked.length} liked items`);
-        } catch (e) {
-            console.error('SHARE: Send liked failed', e);
-            showToast('共有に失敗しました', '❌');
-        }
-    },
-
-    // 保存した名前をパートナーに共有
-    shareSavedNames: async function (silent = false) {
-        const user = MeimayAuth.getCurrentUser();
-        const partnerId = MeimayPairing.partnerId;
-        if (!user || !partnerId) {
-            showToast('パートナーとペアリングしてください', '⚠️');
-            return;
-        }
-
-        try {
-            const saved = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-            if (saved.length === 0) {
-                if (!silent) showToast('共有する保存名前がありません', '⚠️');
-                return;
-            }
-
-            const minifiedSaved = saved.map(s => ({
+            const savedData = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+            const minifiedSaved = savedData.map(s => ({
                 fullName: s.fullName,
                 reading: s.reading || '',
                 givenName: s.givenName || '',
                 combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
                 message: s.message || '',
-                savedAt: s.savedAt || s.timestamp,
-                fromPartner: s.fromPartner || false
+                savedAt: s.savedAt || s.timestamp
             }));
 
-            await firebaseDb.collection('users').doc(partnerId)
-                .collection('shared').doc('savedNames').set({
-                    items: minifiedSaved,
-                    fromUid: user.uid,
-                    fromName: user.displayName || user.email?.split('@')[0] || 'パートナー',
-                    sentAt: firebase.firestore.FieldValue.serverTimestamp()
+            await firebaseDb.collection('rooms').doc(this.roomCode)
+                .collection('data').doc(user.uid).set({
+                    role: this.myRole,
+                    liked: minifiedLiked,
+                    savedNames: minifiedSaved,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-            if (!silent) {
-                showToast(`保存名前 ${saved.length}件 を共有しました！`, '📤');
-            } console.log(`SHARE: Sent ${saved.length} saved names`);
+
+            console.log('PAIRING: Synced my data to room');
         } catch (e) {
-            console.error('SHARE: Send saved names failed', e);
-            showToast('共有に失敗しました', '❌');
+            console.error('PAIRING: Sync data failed', e);
         }
     },
 
-    // リアルタイム受信リスナー
-    listenForShared: function () {
-        const user = MeimayAuth.getCurrentUser();
-        if (!user) return;
+    // Web Share API でルームコードを共有
+    shareCode: function () {
+        if (!this.roomCode) return;
+        const partnerRoleLabel = this.myRole === 'mama' ? 'パパ' : 'ママ';
+        const text = `メイメーで赤ちゃんの名前を一緒に選ぼう！\n${partnerRoleLabel}はこのコードを入力してね👶\n\nルームコード: ${this.roomCode}`;
 
+        if (navigator.share) {
+            navigator.share({
+                title: 'メイメー - いっしょに名前を選ぼう',
+                text: text
+            }).catch(() => {});
+        } else {
+            navigator.clipboard?.writeText(this.roomCode).then(() => {
+                showToast('コードをコピーしました', '📋');
+            }).catch(() => {
+                showToast(`コード: ${this.roomCode}`, '📋');
+            });
+        }
+    },
+
+    // ルームドキュメントをリアルタイム監視
+    _listenRoom: function () {
+        if (!this.roomCode) return;
+        this._stopListeningRoom();
+
+        this._roomUnsub = firebaseDb.collection('rooms').doc(this.roomCode)
+            .onSnapshot((doc) => {
+                if (!doc.exists) return;
+                const data = doc.data();
+                const partnerUid = data[`${this.partnerSlot}Uid`];
+                const partnerRole = data[`${this.partnerSlot}Role`];
+
+                if (partnerUid && partnerUid !== this.partnerUid) {
+                    // パートナーが参加した
+                    this.partnerUid = partnerUid;
+                    this.partnerRole = partnerRole;
+                    MeimayShare.listenPartnerData(partnerUid);
+                    updatePairingUI();
+                    showToast('パートナーが参加しました！', '💑');
+                    console.log(`PAIRING: Partner joined (${partnerRole})`);
+                } else if (!partnerUid && this.partnerUid) {
+                    // パートナーが退室した
+                    this.partnerUid = null;
+                    this.partnerRole = null;
+                    MeimayShare.stopListening();
+                    updatePairingUI();
+                    showToast('パートナーが退室しました', '👋');
+                    console.log('PAIRING: Partner left');
+                }
+            }, (e) => {
+                console.warn('PAIRING: Room listen error', e);
+            });
+    },
+
+    _stopListeningRoom: function () {
+        if (this._roomUnsub) {
+            this._roomUnsub();
+            this._roomUnsub = null;
+        }
+    },
+
+    _stopListening: function () {
+        this._stopListeningRoom();
+        MeimayShare.stopListening();
+        this.partnerUid = null;
+        this.partnerRole = null;
+    },
+
+    _clearLocal: function () {
+        this.roomCode = null;
+        this.mySlot = null;
+        this.myRole = null;
+        this.partnerSlot = null;
+        localStorage.removeItem('meimay_room_code');
+        localStorage.removeItem('meimay_room_slot');
+        localStorage.removeItem('meimay_my_role');
+    }
+};
+
+// ============================================================
+// SHARE - ルーム経由のデータ共有
+// ============================================================
+const MeimayShare = {
+    _partnerUnsub: null,
+
+    // パートナーのデータをリアルタイム受信
+    listenPartnerData: function (partnerUid) {
+        if (!partnerUid || !MeimayPairing.roomCode) return;
         this.stopListening();
 
-        const sharedRef = firebaseDb.collection('users').doc(user.uid).collection('shared');
-
-        // ストック共有の受信
-        this._likedUnsub = sharedRef.doc('liked').onSnapshot((doc) => {
-            if (doc.exists && doc.data().items) {
+        this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
+            .collection('data').doc(partnerUid)
+            .onSnapshot((doc) => {
+                if (!doc.exists) return;
                 const data = doc.data();
-                // 自動取り込み＆フラグ付与
-                const added = this.mergeSharedLiked(data.items, data.fromName);
-                if (added > 0) {
-                    showToast(`${data.fromName}からストック ${added}件 が届き、追加されました！`, '📥');
-                    console.log(`SHARE: Auto-merged ${added} liked from ${data.fromName}`);
-                }
-            }
-        });
+                const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
 
-        // 保存名前の受信
-        this._savedUnsub = sharedRef.doc('savedNames').onSnapshot((doc) => {
-            if (doc.exists && doc.data().items) {
-                const data = doc.data();
-                // 自動取り込み＆フラグ付与
-                const added = this.mergeSharedSaved(data.items, data.fromName);
-                if (added > 0) {
-                    showToast(`${data.fromName}から保存名前 ${added}件 が届き、追加されました！`, '📥');
-                    console.log(`SHARE: Auto-merged ${added} saved names from ${data.fromName}`);
+                if (data.liked && data.liked.length > 0) {
+                    const added = this.mergeSharedLiked(data.liked, partnerLabel);
+                    if (added > 0) {
+                        showToast(`${partnerLabel}のストック ${added}件 が届きました！`, '📥');
+                    }
                 }
-            }
-        });
 
-        console.log('SHARE: Listening for shared data');
+                if (data.savedNames && data.savedNames.length > 0) {
+                    const added = this.mergeSharedSaved(data.savedNames, partnerLabel);
+                    if (added > 0) {
+                        showToast(`${partnerLabel}の保存名前 ${added}件 が届きました！`, '📥');
+                    }
+                }
+            }, (e) => {
+                console.warn('SHARE: Listen partner data error', e);
+            });
+
+        console.log('SHARE: Listening for partner data');
     },
 
     stopListening: function () {
-        if (this._likedUnsub) { this._likedUnsub(); this._likedUnsub = null; }
-        if (this._savedUnsub) { this._savedUnsub(); this._savedUnsub = null; }
+        if (this._partnerUnsub) {
+            this._partnerUnsub();
+            this._partnerUnsub = null;
+        }
     },
 
-    // 受信ストックを自動マージして追加件数を返す
+    // ストック漢字をルームに共有（= 自分のデータをルームに同期）
+    shareLiked: async function (silent = false) {
+        if (!MeimayPairing.roomCode) {
+            if (!silent) showToast('パートナーと連携してください', '⚠️');
+            return;
+        }
+        await MeimayPairing.syncMyData();
+        if (!silent) showToast('ストックを共有しました！', '📤');
+    },
+
+    // 保存名前をルームに共有
+    shareSavedNames: async function (silent = false) {
+        if (!MeimayPairing.roomCode) {
+            if (!silent) showToast('パートナーと連携してください', '⚠️');
+            return;
+        }
+        await MeimayPairing.syncMyData();
+        if (!silent) showToast('保存名前を共有しました！', '📤');
+    },
+
+    // 受信ストックをローカルにマージ
     mergeSharedLiked: function (items, partnerName) {
         if (typeof liked === 'undefined') return 0;
         let added = 0;
         items.forEach(item => {
-            const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot && l.sessionReading === item.sessionReading);
+            const exists = liked.some(l =>
+                l['漢字'] === item['漢字'] &&
+                l.slot === item.slot &&
+                l.sessionReading === item.sessionReading
+            );
             if (!exists) {
-                // マスター辞書から完全データを復元
-                let fullKanji = typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字']) : null;
+                let fullKanji = typeof master !== 'undefined'
+                    ? master.find(m => m['漢字'] === item['漢字'])
+                    : null;
                 let hydratedItem = fullKanji ? {
                     ...fullKanji,
                     slot: item.slot !== undefined ? item.slot : -1,
@@ -991,8 +485,6 @@ const MeimayShare = {
                     sessionSegments: item.sessionSegments || null,
                     isSuper: item.isSuper || false
                 } : item;
-
-                // パートナー由来フラグを付与
                 hydratedItem.fromPartner = true;
                 hydratedItem.partnerName = partnerName || 'パートナー';
                 liked.push(hydratedItem);
@@ -1001,35 +493,32 @@ const MeimayShare = {
         });
         if (added > 0) {
             if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-            // 画面更新 (ストック画面が開かれている場合)
-            if (typeof renderStock === 'function' && document.getElementById('scr-stock') && document.getElementById('scr-stock').classList.contains('active')) {
+            if (typeof renderStock === 'function' &&
+                document.getElementById('scr-stock')?.classList.contains('active')) {
                 renderStock();
             }
         }
         return added;
     },
 
-    // 受信保存名前を自動マージして追加件数を返す
+    // 受信保存名前をローカルにマージ
     mergeSharedSaved: function (items, partnerName) {
         try {
             const local = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0
+                ? surnameData
+                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
             let added = 0;
             items.forEach(item => {
                 const exists = local.some(l => l.fullName === item.fullName);
                 if (!exists) {
-                    // マスター辞書から完全データを復元
                     let combination = [];
                     if (item.combinationKeys && typeof master !== 'undefined') {
                         combination = item.combinationKeys.map(k => {
                             const found = master.find(m => m['漢字'] === k);
-                            return found ? found : { '漢字': k, '画数': 1 };
+                            return found || { '漢字': k, '画数': 1 };
                         });
-                    } else if (item.combination) {
-                        combination = item.combination;
                     }
-
-                    // Fortuneの再計算
                     let fortune = null;
                     if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
                         const givArr = combination.map(p => ({
@@ -1038,8 +527,7 @@ const MeimayShare = {
                         }));
                         fortune = FortuneLogic.calculate(surArr, givArr);
                     }
-
-                    let hydratedItem = {
+                    local.push({
                         fullName: item.fullName,
                         reading: item.reading,
                         givenName: item.givenName,
@@ -1049,16 +537,14 @@ const MeimayShare = {
                         savedAt: item.savedAt,
                         fromPartner: true,
                         partnerName: partnerName || 'パートナー'
-                    };
-
-                    local.push(hydratedItem);
+                    });
                     added++;
                 }
             });
             if (added > 0) {
                 localStorage.setItem('meimay_saved', JSON.stringify(local));
-                // 画面更新 (保存済み画面が開かれている場合)
-                if (typeof renderSavedList === 'function' && document.getElementById('scr-saved') && document.getElementById('scr-saved').classList.contains('active')) {
+                if (typeof renderSavedList === 'function' &&
+                    document.getElementById('scr-saved')?.classList.contains('active')) {
                     renderSavedList();
                 }
             }
@@ -1074,55 +560,123 @@ const MeimayShare = {
 // PAIRING UI HELPERS
 // ============================================================
 function updatePairingUI() {
+    const inRoom = !!MeimayPairing.roomCode;
+    const hasPartner = !!MeimayPairing.partnerUid;
+
     const pairingNotLinked = document.getElementById('pairing-not-linked');
     const pairingLinked = document.getElementById('pairing-linked');
-    const partnerNameEl = document.getElementById('pairing-partner-name');
-    const shareButtons = document.querySelectorAll('.partner-share-btn');
 
-    if (MeimayPairing.partnerId) {
+    if (inRoom) {
         if (pairingNotLinked) pairingNotLinked.classList.add('hidden');
         if (pairingLinked) pairingLinked.classList.remove('hidden');
-        if (partnerNameEl) partnerNameEl.textContent = MeimayPairing.partnerName || 'パートナー';
-        shareButtons.forEach(btn => btn.classList.remove('hidden'));
+
+        // コード表示
+        const codeEl = document.getElementById('pairing-code-display-linked');
+        if (codeEl) codeEl.textContent = MeimayPairing.roomCode;
+
+        // 自分のロール表示
+        const myRoleEl = document.getElementById('pairing-my-role');
+        if (myRoleEl) myRoleEl.textContent = MeimayPairing.myRole === 'mama' ? 'ママ' : 'パパ';
+
+        // パートナー状態表示
+        const partnerStatusEl = document.getElementById('pairing-partner-status');
+        if (partnerStatusEl) {
+            if (hasPartner) {
+                const partnerLabel = MeimayPairing.partnerRole === 'mama' ? 'ママ' : 'パパ';
+                partnerStatusEl.textContent = `${partnerLabel}と連携中 💑`;
+                partnerStatusEl.className = 'text-sm font-bold text-[#5d5444]';
+            } else {
+                partnerStatusEl.textContent = 'パートナー待機中…';
+                partnerStatusEl.className = 'text-sm font-bold text-[#a6967a]';
+            }
+        }
     } else {
         if (pairingNotLinked) pairingNotLinked.classList.remove('hidden');
         if (pairingLinked) pairingLinked.classList.add('hidden');
-        shareButtons.forEach(btn => btn.classList.add('hidden'));
+    }
+
+    // 共有ボタン（ストック/保存画面）
+    const shareButtons = document.querySelectorAll('.partner-share-btn');
+    shareButtons.forEach(btn => {
+        btn.classList.toggle('hidden', !hasPartner);
+    });
+
+    // ドロワーのパートナー連携バッジ
+    const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
+    if (drawerPairingBadge) {
+        drawerPairingBadge.classList.toggle('hidden', !inRoom);
     }
 }
 
-// 招待コード発行UI
+// ルーム作成ボタン
 async function handleGenerateCode() {
-    const codeDisplay = document.getElementById('pairing-code-display');
     const btn = document.getElementById('btn-generate-code');
     if (btn) btn.disabled = true;
-
-    const code = await MeimayPairing.generateCode();
-    if (code && codeDisplay) {
-        codeDisplay.textContent = code;
-        codeDisplay.classList.remove('hidden');
-    }
+    const code = await MeimayPairing.createRoom();
     if (btn) btn.disabled = false;
+    if (code) {
+        showToast('ルームを作成しました！', '🎉');
+    }
 }
 
-// コード入力してペアリング
+// コード入力して参加ボタン
 async function handleEnterCode() {
     const input = document.getElementById('pairing-code-input');
     const code = input?.value?.trim();
-    const result = await MeimayPairing.enterCode(code);
+    const result = await MeimayPairing.joinRoom(code);
     if (result.success) {
-        showToast(`${result.partnerName}とペアリングしました！`, '💑');
+        showToast('パートナーと連携しました！', '💑');
         if (input) input.value = '';
-    } else {
+    } else if (result.error) {
         showToast(result.error, '⚠️');
     }
 }
 
 // ============================================================
+// STORAGE HOOK — 保存時にルームへ自動同期
+// ============================================================
+(function hookStorageSync() {
+    const waitForStorageBox = setInterval(() => {
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveAll) {
+            const originalSaveAll = StorageBox.saveAll.bind(StorageBox);
+            StorageBox.saveAll = function () {
+                const result = originalSaveAll();
+                if (MeimayPairing.roomCode) {
+                    // デバウンスして自動同期
+                    MeimayPairing._autoSyncDebounced?.();
+                }
+                return result;
+            };
+
+            const originalSaveLiked = StorageBox.saveLiked.bind(StorageBox);
+            StorageBox.saveLiked = function () {
+                const result = originalSaveLiked();
+                if (MeimayPairing.roomCode) {
+                    MeimayPairing._autoSyncDebounced?.();
+                }
+                return result;
+            };
+
+            clearInterval(waitForStorageBox);
+            console.log("FIREBASE: Storage sync hooks attached");
+        }
+    }, 500);
+    setTimeout(() => clearInterval(waitForStorageBox), 10000);
+})();
+
+// デバウンス付き自動同期（5秒後）
+MeimayPairing._autoSyncDebounced = (function () {
+    let timer = null;
+    return function () {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => MeimayPairing.syncMyData(), 5000);
+    };
+})();
+
+// ============================================================
 // TOAST NOTIFICATION
 // ============================================================
 function showToast(message, icon = '📢', onAction = null) {
-    // 既存トーストを削除
     const existing = document.getElementById('meimay-toast');
     if (existing) existing.remove();
 
@@ -1150,7 +704,6 @@ function showToast(message, icon = '📢', onAction = null) {
 
     document.body.appendChild(toast);
 
-    // 自動消去
     setTimeout(() => {
         if (toast.parentElement) {
             toast.style.animation = 'toastOut 0.3s ease-in forwards';
@@ -1159,7 +712,7 @@ function showToast(message, icon = '📢', onAction = null) {
     }, onAction ? 10000 : 4000);
 }
 
-// Toast CSS animations
+// Toast CSS
 (function addToastCSS() {
     const style = document.createElement('style');
     style.textContent = `
@@ -1171,7 +724,6 @@ function showToast(message, icon = '📢', onAction = null) {
 
 // Global exports
 window.MeimayAuth = MeimayAuth;
-window.MeimaySync = MeimaySync;
 window.MeimayPairing = MeimayPairing;
 window.MeimayShare = MeimayShare;
 window.handleGenerateCode = handleGenerateCode;
@@ -1179,10 +731,9 @@ window.handleEnterCode = handleEnterCode;
 window.showToast = showToast;
 
 // ============================================================
-// STATS - 人気ランキング用集計モジュール
+// STATS - 人気ランキング用集計モジュール（変更なし）
 // ============================================================
 const MeimayStats = {
-    // 現在のISO週を取得 (YYYY_WW)
     getCurrentWeekKey: function () {
         const d = new Date();
         d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -1191,53 +742,36 @@ const MeimayStats = {
         return `${d.getUTCFullYear()}_${weekNo.toString().padStart(2, '0')}`;
     },
 
-    // 漢字ストック時のカウントアップ
     recordKanjiLike: async function (kanjiString) {
         if (!kanjiString || typeof firebaseDb === 'undefined') return;
         try {
             const increment = firebase.firestore.FieldValue.increment(1);
             const batch = firebaseDb.batch();
-
-            // 総合ランキング
             const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
             batch.set(allTimeRef, { [kanjiString]: increment }, { merge: true });
-
-            // 今週の急上昇
-            const weeklyKey = this.getCurrentWeekKey();
-            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${weeklyKey}`);
+            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
             batch.set(weeklyRef, { [kanjiString]: increment }, { merge: true });
-
             await batch.commit();
-            console.log(`STATS: Incremented +1 for [${kanjiString}]`);
         } catch (e) {
             console.error('STATS: recordKanjiLike error', e);
         }
     },
 
-    // 漢字ストック解除時のカウントダウン
     recordKanjiUnlike: async function (kanjiString) {
         if (!kanjiString || typeof firebaseDb === 'undefined') return;
         try {
             const decrement = firebase.firestore.FieldValue.increment(-1);
             const batch = firebaseDb.batch();
-
-            // 総合ランキング
             const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
             batch.set(allTimeRef, { [kanjiString]: decrement }, { merge: true });
-
-            // 今週の急上昇
-            const weeklyKey = this.getCurrentWeekKey();
-            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${weeklyKey}`);
+            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
             batch.set(weeklyRef, { [kanjiString]: decrement }, { merge: true });
-
             await batch.commit();
-            console.log(`STATS: Decremented -1 for [${kanjiString}]`);
         } catch (e) {
             console.error('STATS: recordKanjiUnlike error', e);
         }
     },
 
-    // ランキングデータの取得
     fetchRankings: async function (type = 'allTime') {
         try {
             let docRef;
@@ -1246,21 +780,15 @@ const MeimayStats = {
             } else {
                 docRef = firebaseDb.collection('statistics').doc('allTime');
             }
-
             const doc = await docRef.get();
             if (!doc.exists) return [];
-
             const data = doc.data();
-
-            // { "結": 50, "愛": 40 } の形式を配列にして降順ソート
-            const sorted = Object.keys(data)
-                .filter(k => k !== 'updatedAt') // 除外キーがあれば弾く
+            return Object.keys(data)
+                .filter(k => k !== 'updatedAt')
                 .map(key => ({ kanji: key, count: data[key] }))
                 .filter(item => item.count > 0)
                 .sort((a, b) => b.count - a.count)
-                .slice(0, 100); // 上位100件
-
-            return sorted;
+                .slice(0, 100);
         } catch (e) {
             console.error(`STATS: fetchRankings(${type}) error`, e);
             return [];
@@ -1270,11 +798,4 @@ const MeimayStats = {
 
 window.MeimayStats = MeimayStats;
 
-console.log("FIREBASE: Module loaded (v21.0 + pairing + stats)");
-
-
-
-
-
-
-
+console.log("FIREBASE: Module loaded (v22.0 - anonymous + room pairing)");
