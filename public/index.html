@@ -120,7 +120,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.4
+            メイメー v25.20
         </div>
     </aside>
 
@@ -140,10 +140,7 @@
         <div class="flex-1 text-center">
             <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
         </div>
-        <button id="btn-history-float" onclick="openSavedNames()"
-            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95">
-            💾
-        </button>
+        <div class="w-9 h-9"></div>
     </div>
 
     <!-- ============================================================
@@ -232,70 +229,80 @@
          MAIN HOME SCREEN (restructured)
          ============================================================ -->
     <div id="scr-mode" class="screen">
-        <div class="flex flex-col items-center h-full overflow-y-auto pt-14 pb-10 w-full">
+        <div class="flex flex-col items-center w-full pt-1 pb-0">
             <!-- 今日の一字 -->
-            <div class="w-full max-w-sm px-6 mb-4 mt-2" id="todays-kanji-container">
+            <div class="w-full max-w-sm px-3 mb-2 mt-0" id="todays-kanji-container">
                 <div
-                    class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[100px]">
+                    class="bg-white/70 rounded-2xl p-3 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[76px]">
                     <p class="text-[10px] font-bold text-[#bca37f] tracking-widest uppercase mb-2">準備中...</p>
                 </div>
             </div>
 
-            <!-- Quick Actions: 名前を探す -->
-            <div class="w-full max-w-sm px-6 mb-4">
-                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="flex flex-col gap-2">
+            <!-- Quick Actions: 名前を探す — Bento Grid -->
+            <div class="w-full max-w-sm px-3 mb-2">
+                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">名前を探す</div>
+                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 240px;">
+
+                    <!-- Left tall: 読みから漢字をさがす (most important) -->
                     <button onclick="startMode('reading')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">🔤</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">読みから漢字を探す</div>
-                            <div class="text-[10px] text-[#a6967a]">名前の読みを入力してスワイプ</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-2 p-4 text-center transition-all shadow-md hover:shadow-lg active:scale-[0.97] overflow-hidden"
+                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#fdfaf5 0%,#f0e4c8 50%,#c8a060 100%);">
+                        <div class="text-4xl">🔤</div>
+                        <div>
+                            <div class="text-[13px] font-black leading-snug" style="color:#5d3a0a;">読みから<br>漢字をさがす</div>
+                            <div class="text-[10px] mt-1 leading-snug" style="color:#9a6a2a;">読みが決まっている<br>方はこちら</div>
                         </div>
                     </button>
+
+                    <!-- Right top: 響き・読みをさがす -->
                     <button onclick="startMode('sound')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">🎵</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">響きから探す</div>
-                            <div class="text-[10px] text-[#a6967a]">入れたい音・人気の響きから</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-1 p-3 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#f5f8ff 0%,#dde8ff 100%);">
+                        <div class="text-2xl">🎵</div>
+                        <div>
+                            <div class="text-[11px] font-black leading-tight" style="color:#4a5fa0;">響き・読みを<br>さがす</div>
+                            <div class="text-[9px] mt-0.5 leading-tight" style="color:#7080b8;">人気の響きや<br>入れたい音から</div>
                         </div>
                     </button>
+
+                    <!-- Right mid: 自由に漢字をさがす -->
                     <button onclick="startMode('free')"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">✨</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">自由に漢字を探す</div>
-                            <div class="text-[10px] text-[#a6967a]">直感スワイプ</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#f4fdf8 0%,#d4f0e2 100%);">
+                        <div class="text-xl">✨</div>
+                        <div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#2a7a55;">自由に漢字を<br>さがす</div>
                         </div>
                     </button>
+
+                    <!-- Right bottom: ストックから組み立てる -->
                     <button onclick="openFreeBuild()"
-                        class="group bg-white/60 hover:bg-white px-4 py-3.5 rounded-2xl border border-[#ede5d8] flex items-center gap-4 transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-xl w-8 text-center">📦</div>
-                        <div class="text-left">
-                            <div class="text-sm text-[#5d5444] font-black">ストックから組み立てる</div>
-                            <div class="text-[10px] text-[#a6967a]">ストックした漢字を自由に配置</div>
+                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
+                        style="background:linear-gradient(155deg,#fffdf5 0%,#fcecc8 100%);">
+                        <div class="text-xl">⚒️</div>
+                        <div>
+                            <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる</div>
                         </div>
                     </button>
                 </div>
             </div>
 
             <!-- Tools: 漢字検索・姓名判断・ランキング 3つ横並び -->
-            <div class="w-full max-w-sm px-6 mb-4">
-                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">ツール</div>
+            <div class="w-full max-w-sm px-3 mb-1">
+                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">ツール</div>
                 <div class="grid grid-cols-3 gap-3">
                     <button onclick="openKanjiSearch()"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">🔎</div>
                         <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
                     </button>
                     <button onclick="startMode('diagnosis')"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">🔮</div>
                         <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
                     </button>
                     <button onclick="openRanking()"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">👑</div>
                         <div class="text-xs text-[#5d5444] font-bold">ランキング</div>
                     </button>
@@ -492,31 +499,27 @@
 
 
 
-    <!-- Kanji Search/Filter Screen (V2 - reading/stroke/classification) -->
+    <!-- Kanji Search/Filter Screen -->
     <div id="scr-kanji-search" class="screen">
-        <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
+        <div class="w-full max-w-md pt-2 px-4 mx-auto flex flex-col min-h-0">
             <div class="flex items-center gap-3 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
+                <button id="search-mode-toggle" onclick="toggleSearchFlexibleMode()"
+                    class="px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0">
+                    読み厳格
+                </button>
             </div>
 
             <!-- Search Input -->
             <div class="mb-2">
-                <input type="text" id="kanji-search-input" placeholder="読み・漢字・意味で検索"
+                <input type="text" id="kanji-search-input" placeholder="読みまたは漢字で検索"
                     class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
                     oninput="executeKanjiSearch()">
             </div>
 
-            <!-- Stroke Count Filter -->
-            <div class="mb-2">
-                <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">画数</p>
-                <div id="search-stroke-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                    <!-- JS populated -->
-                </div>
-            </div>
-
             <!-- Classification Filter -->
-            <div class="mb-3">
+            <div class="mb-2">
                 <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
                 <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                     <!-- JS populated -->
@@ -524,8 +527,8 @@
             </div>
 
             <!-- Results -->
-            <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-32 overflow-y-auto flex-1 content-start">
-                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>
+            <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-40 overflow-y-auto flex-1 content-start">
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>
             </div>
         </div>
     </div>
@@ -605,11 +608,22 @@
             </div>
 
             <div id="stack-container"
-                class="relative w-full max-w-sm h-[calc(100vh-260px)] min-h-[420px] max-h-[600px] mt-16 mx-auto">
+                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
                 <div id="badge-like" class="stamp-premium">LIKE</div>
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
                 <div id="stack" class="w-full h-full"></div>
+            </div>
+
+            <!-- Swipe Action Buttons (× ★ ♡) -->
+            <div id="swipe-action-btns"
+                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0" style="pointer-events:none;">
+                <button onclick="manual('left')"
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">✕</button>
+                <button onclick="manual('up')"
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">★</button>
+                <button onclick="manual('right')"
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">♥</button>
             </div>
 
         </div>
@@ -908,21 +922,6 @@
         </div>
     </div>
 
-    <!-- Swipe Action Buttons (× ★ ♡) — Fixed outside screens to avoid iOS fixed-in-scroll issues -->
-    <div id="swipe-action-btns"
-        class="hidden fixed left-0 right-0 flex justify-center items-center gap-6 px-4 z-[11000] transition-all duration-300"
-        style="bottom: calc(5.5rem + env(safe-area-inset-bottom)); pointer-events:all">
-        <button onclick="manual('left')"
-            class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">✕</button>
-        <button onclick="manual('up')"
-            class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">★</button>
-        <button onclick="manual('right')"
-            class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-            style="pointer-events:all">♥</button>
-    </div>
-
     <!-- 統一フッター: ホーム / さがす / ストック / ビルド / 保存済み -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
@@ -996,11 +995,18 @@
     <div id="modal-fortune-detail" class="overlay"
         style="padding-bottom:90px;align-items:flex-start;padding-top:24px;overflow-y:auto"
         onclick="closeFortuneDetail()">
-        <div class="detail-sheet overflow-y-auto w-[95%] max-w-md"
-            style="padding:28px 24px;max-height:calc(100dvh - 120px);flex-shrink:0" onclick="event.stopPropagation()">
-            <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>
-            <div id="for-grid" class="flex flex-col w-full relative mt-4"></div>
-            <div id="for-desc" class="space-y-6 text-xs pt-8 pb-8"></div>
+        <!-- ×ボタンをスクロール外に配置するためにラッパーを使用 -->
+        <div class="detail-sheet w-[95%] max-w-md flex flex-col"
+            style="padding:0;max-height:calc(100dvh - 120px);flex-shrink:0;overflow:hidden" onclick="event.stopPropagation()">
+            <!-- 固定ヘッダー（×ボタン領域、スクロールしない） -->
+            <div style="position:relative;flex-shrink:0;height:60px;">
+                <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>
+            </div>
+            <!-- スクロール可能コンテンツ -->
+            <div style="overflow-y:auto;padding:0 24px 28px;flex:1;">
+                <div id="for-grid" class="flex flex-col w-full relative"></div>
+                <div id="for-desc" class="space-y-6 text-xs pt-8 pb-8"></div>
+            </div>
         </div>
     </div>
 
@@ -1647,28 +1653,28 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=25.7"></script>
+    <script src="/js/engine_v2_generator.js?v=25.9"></script>
 
-    <script src="/js/01-core.js?v=25.7"></script>
-    <script src="/js/02-engine.js?v=25.7"></script>
-    <script src="/js/03-fortune.js?v=25.7"></script>
-    <script src="/js/04-ui-flow.js?v=25.7"></script>
-    <script src="/js/05-ui-render.js?v=25.7"></script>
-    <script src="/js/06-ui-physics.js?v=25.7"></script>
-    <script src="/js/07-build.js?v=25.7"></script>
-    <script src="/js/08-origin.js?v=25.7"></script>
-    <script src="/js/09-storage.js?v=25.7"></script>
-    <script src="/js/10-choice.js?v=25.7"></script>
-    <script src="/js/11-settings.js?v=25.7"></script>
-    <script src="/js/12-history.js?v=25.7"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.7"></script>
-    <script src="/js/14-admob.js?v=25.7"></script>
-    <script src="/js/15-firebase.js?v=25.7"></script>
-    <script src="/js/data/legal-docs.js?v=25.7"></script>
-    <script src="/js/16-legal.js?v=25.7"></script>
-    <script src="/js/data/todays-kanji-data.js?v=25.7"></script>
-    <script src="/js/17-todays-kanji.js?v=25.7"></script>
-    <script src="/js/18-ranking.js?v=25.7"></script>
+    <script src="/js/01-core.js?v=25.9"></script>
+    <script src="/js/02-engine.js?v=25.9"></script>
+    <script src="/js/03-fortune.js?v=25.9"></script>
+    <script src="/js/04-ui-flow.js?v=25.9"></script>
+    <script src="/js/05-ui-render.js?v=25.9"></script>
+    <script src="/js/06-ui-physics.js?v=25.9"></script>
+    <script src="/js/07-build.js?v=25.9"></script>
+    <script src="/js/08-origin.js?v=25.9"></script>
+    <script src="/js/09-storage.js?v=25.9"></script>
+    <script src="/js/10-choice.js?v=25.9"></script>
+    <script src="/js/11-settings.js?v=25.9"></script>
+    <script src="/js/12-history.js?v=25.9"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.9"></script>
+    <script src="/js/14-admob.js?v=25.9"></script>
+    <script src="/js/15-firebase.js?v=25.9"></script>
+    <script src="/js/data/legal-docs.js?v=25.9"></script>
+    <script src="/js/16-legal.js?v=25.9"></script>
+    <script src="/js/data/todays-kanji-data.js?v=25.9"></script>
+    <script src="/js/17-todays-kanji.js?v=25.9"></script>
+    <script src="/js/18-ranking.js?v=25.9"></script>
 
 </body>
 

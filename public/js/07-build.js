@@ -386,10 +386,15 @@ function openBuild() {
  * ビルドモードを切り替える
  */
 function setBuildMode(mode) {
+    const prevMode = buildMode;
     buildMode = mode;
-    fbChoices = [];
-    if (mode === 'free') shownFbSlots = 1;
-    selectedPieces = [];
+    // モードが実際に切り替わる場合のみ選択状態をリセット
+    // （すでにfreeモードの場合はfbChoices/shownFbSlotsを保持）
+    if (prevMode !== mode || mode === 'reading') {
+        fbChoices = [];
+        if (mode === 'free') shownFbSlots = 1;
+        selectedPieces = [];
+    }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
     renderBuildSelection();
@@ -489,26 +494,9 @@ function renderBuildSelection() {
 
         console.log(`Slot ${ idx } filtered items: `, items.length);
 
-        // フィルタリング結果が0件だが、同じslotに他の読み方の候補がある場合
-        const allSlotItems = liked.filter(item => item.slot === idx);
-        const uniqueKanji = Array.from(new Set(allSlotItems.map(i => i['漢字'])));
-
+        // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
-            // 他の読み方で選んだ漢字を自動で表示（ストックに追加）
-            const allSlotItems = liked.filter(item => item.slot === idx);
-            if (allSlotItems.length > 0) {
-                // 重複を排除してビルド候補として使う
-                const seen = new Set();
-                const mergedItems = allSlotItems.filter(item => {
-                    if (seen.has(item['漢字'])) return false;
-                    seen.add(item['漢字']);
-                    return true;
-                });
-                items = mergedItems;
-            } else {
-                // 本当に候補がない
-                scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
-            }
+            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
         }
 
         if (items.length > 0) {
@@ -543,7 +531,7 @@ function renderBuildSelection() {
 
                 btn.innerHTML = `
                     ${ partnerBadge }
-                    ${ item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[8px] leading-none font-bold">★</div>' : '' }
+                    ${ item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : '' }
                     <div class="build-kanji-text">${item['漢字']}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
                     ${ fortuneIndicator }
@@ -753,7 +741,7 @@ function renderBuildFreeMode(container) {
                 return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}">
-                    ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[8px] leading-none">★</div>' : ''}
+                    ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
                 </button>`;
@@ -1385,8 +1373,11 @@ function displayFortuneRankingModal(rankedList) {
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
 
-    nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML = '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
+    // for-nameが存在しない場合もクラッシュしないようにnullチェック
+    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
+    gridEl.innerHTML =
+        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : '') +
+        '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
     // 同スコア同順位（dense ranking）
