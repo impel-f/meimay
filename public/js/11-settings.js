@@ -55,8 +55,47 @@ function renderSettingsScreen() {
 
     const currentReading = segments.join('') || '未設定';
 
+    const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
+    const nicknameText = wizData?.username || '未設定';
+    const roleText = wizData?.role === 'papa' ? 'パパ👨' : wizData?.role === 'mama' ? 'ママ👩' : '未設定';
+
+    // Partner linking status
+    let pairingStatusText = '未連携';
+    let pairingStatusColor = '#a6967a';
+    if (typeof MeimayPairing !== 'undefined') {
+        const state = MeimayPairing.getState();
+        if (state.roomCode) {
+            pairingStatusText = `連携中（${state.roomCode}）`;
+            pairingStatusColor = '#4ade80';
+        }
+    }
+
     container.innerHTML = `
         <div class="settings-screen-content">
+            <!-- ニックネーム -->
+            <div class="settings-item-unified" onclick="openNicknameInput()">
+                <div class="item-icon-circle" style="background: #fef9f0;">
+                    <span style="color: #bca37f;">😊</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">ニックネーム</div>
+                    <div class="item-value-unified">${nicknameText}</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <!-- 役割 -->
+            <div class="settings-item-unified" onclick="openRoleInput()">
+                <div class="item-icon-circle" style="background: #fef9f0;">
+                    <span style="color: #bca37f;">👪</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">役割</div>
+                    <div class="item-value-unified">${roleText}</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
             <!-- 苗字 -->
             <div class="settings-item-unified" onclick="openSurnameInput()">
                 <div class="item-icon-circle" style="background: #fef2f2;">
@@ -68,31 +107,34 @@ function renderSettingsScreen() {
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
-            
+
             <!-- 性別 -->
             <div class="settings-item-unified" onclick="openGenderInput()">
                 <div class="item-icon-circle" style="background: #f0fdf4;">
                     <span style="color: #4ade80;">👶</span>
                 </div>
                 <div class="item-content-unified">
-                    <div class="item-title-unified">性別</div>
+                    <div class="item-title-unified">赤ちゃんの性別</div>
                     <div class="item-value-unified">${genderText}</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
-            
+
             <div class="settings-divider-unified"></div>
-            
-            <!-- 使い方ガイド -->
-            <div class="settings-item-unified" onclick="showGuide()">
-                <div class="item-icon-circle" style="background: #f0f9ff;">
-                    <span style="color: #0ea5e9;">📖</span>
+
+            <!-- パートナーと連携 -->
+            <div class="settings-item-unified" onclick="changeScreen('scr-login')">
+                <div class="item-icon-circle" style="background: #f0fdf4;">
+                    <span style="color: #4ade80;">💑</span>
                 </div>
                 <div class="item-content-unified">
-                    <div class="item-title-unified">使い方ガイド</div>
+                    <div class="item-title-unified">パートナーと連携</div>
+                    <div class="item-value-unified" style="color: ${pairingStatusColor};">${pairingStatusText}</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
+
+            <div class="settings-divider-unified"></div>
 
             <!-- 不適切漢字の表示設定 -->
             <div class="settings-item-unified" onclick="toggleInappropriateSetting()">
@@ -100,8 +142,8 @@ function renderSettingsScreen() {
                     <span style="color: #f97316;">⚠️</span>
                 </div>
                 <div class="item-content-unified">
-                    <div class="item-title-unified">不適切な意味を持つ漢字も表示</div>
-                    <div class="item-value-unified">${showInappropriateKanji ? 'ON' : 'OFF'}</div>
+                    <div class="item-title-unified">人名に使える漢字すべてを表示</div>
+                    <div class="item-value-unified text-[10px] leading-tight">不適切な意味を持つ漢字も表示されます</div>
                 </div>
                 <div class="item-arrow-unified">
                     <div class="w-10 h-6 rounded-full relative transition-colors ${showInappropriateKanji ? 'bg-[#bca37f]' : 'bg-gray-200'}">
@@ -112,7 +154,7 @@ function renderSettingsScreen() {
 
             <div class="settings-divider-unified" style="margin-top:40px;"></div>
             <div class="text-[10px] text-center font-black text-[#f28b82] tracking-widest opacity-60 uppercase mb-4">Danger Zone</div>
-            
+
             <button onclick="deleteAllStocks()" class="w-full py-4 bg-white border border-[#f28b82] text-[#f28b82] rounded-2xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm shadow-sm">
                 <span>🗑️</span> ストックをすべて消去する
             </button>
@@ -147,6 +189,44 @@ function deleteAllStocks() {
 }
 
 
+
+/**
+ * ニックネーム入力
+ */
+function openNicknameInput() {
+    const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
+    const current = wizData?.username || '';
+    showInputModal('ニックネームを入力', 'text', current, '例：さくらママ', (value) => {
+        if (typeof WizardData !== 'undefined') {
+            const data = WizardData.get() || {};
+            data.username = value;
+            WizardData.save(data);
+            if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+        }
+        renderSettingsScreen();
+    });
+}
+
+/**
+ * 役割選択
+ */
+function openRoleInput() {
+    const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
+    const current = wizData?.role || 'other';
+    showChoiceModal('役割を選択', '', [
+        { label: 'ママ👩', value: 'mama' },
+        { label: 'パパ👨', value: 'papa' },
+        { label: 'その他', value: 'other' }
+    ], current, (value) => {
+        if (typeof WizardData !== 'undefined') {
+            const data = WizardData.get() || {};
+            data.role = value;
+            WizardData.save(data);
+            if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+        }
+        renderSettingsScreen();
+    });
+}
 
 /**
  * 苗字入力
