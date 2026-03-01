@@ -837,7 +837,6 @@ window.executeFbBuild = executeFbBuild;
 // selectFbKanji / removeFbChoice: ビルド画面自由モード対応版
 window.selectFbKanji = function(slotIdx, kanji) {
     fbChoices[slotIdx] = kanji;
-    fbChoices = fbChoices.slice(0, slotIdx + 1);
     const buildScreen = document.getElementById('scr-build');
     if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
         renderBuildSelection();
