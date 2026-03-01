@@ -177,9 +177,11 @@ function selectSegment(path) {
     swipes = 0;
     currentPos = 0; // Reset position
 
-    // ウィザード形式：分割選択の次はイメージ選択へ
-    if (typeof initVibeScreen === 'function') initVibeScreen();
-    changeScreen('scr-vibe');
+    // 読みモードはイメージ選択をスキップ → 直接スワイプへ
+    // （イメージ選択は「自由に漢字を探す」モードのみ使用）
+    window.selectedImageTags = ['none'];
+    isFreeSwipeMode = false;
+    if (typeof startSwiping === 'function') startSwiping();
 }
 
 /**
@@ -302,71 +304,42 @@ function loadStack() {
         }
 
         // 読みデータの取得（メジャー/マイナー区分）
-        // 全読みをひらがな正規化し、送り仮名ステムも抽出（例: あか（るい）→ あかるい + あか）
-        const extractReadingVariants = (raw) => {
-            const hira = toHira(raw.trim());
-            const full = hira.replace(/[^ぁ-んー]/g, '');
-            const results = full ? [full] : [];
-            const parenIdx = hira.indexOf('（');
-            if (parenIdx > 0) {
-                const stem = hira.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '');
-                if (stem && !results.includes(stem)) results.push(stem);
-            }
-            const dotIdx = hira.indexOf('.');
-            if (dotIdx > 0) {
-                const stem = hira.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
-                if (stem && !results.includes(stem)) results.push(stem);
-            }
-            return results;
-        };
-        // majorReadings: 音/訓の全バリアント（フル読み + 送り仮名ステム両方含む）
+        // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
         const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
             .split(/[、,，\s/]+/)
-            .flatMap(x => extractReadingVariants(x))
-            .filter(x => x);
-        // majorPureReadings: 音/訓のフル読みのみ（ステムなし・括弧を除去した完全読み）
-        // 例: と（る）→ とる のみ。「と」は含まない
-        const majorPureReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
-            .split(/[、,，\s/]+/)
-            .map(x => toHira(x.trim()).replace(/[^ぁ-んー]/g, ''))
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
             .filter(x => x);
         const minorReadings = (k['伝統名のり'] || '')
             .split(/[、,，\s/]+/)
-            .flatMap(x => extractReadingVariants(x))
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
             .filter(x => x);
         const readings = [...majorReadings, ...minorReadings];
 
         // 読みマッチング判定
-        // 優先順位：純粋メジャー完全一致 > ステムのみメジャー > マイナー > 清音化 > 部分一致
-        // 純粋一致：「と」→ 斗（と）など送り仮名なしの読み
-        // ステム一致：「と」→ 取（と（る）のステム）
+        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
+        // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
 
-        const isMajorPureExact = majorPureReadings.includes(target);
-        const isMajorExact = majorReadings.includes(target); // ステム含む
-        const isMajorStemExact = isMajorExact && !isMajorPureExact; // ステムのみ一致
+        const isMajorExact = majorReadings.includes(target);
         const isMinorExact = minorReadings.includes(target);
         const isExact = isMajorExact || isMinorExact;
-        // 清音化一致：フル読みのみ対象（名乗り除外）
-        const isSeionMatch = target !== targetSeion && majorPureReadings.includes(targetSeion);
-        // 部分一致（ぶった切り）：フル読みのみ対象（名乗り除外）
-        const isPartial = majorPureReadings.some(r => r.startsWith(target)) || majorPureReadings.some(r => r.startsWith(targetSeion));
+        // 清音化一致：メジャー読みのみを対象（名乗りは除外）
+        const isSeionMatch = target !== targetSeion && majorReadings.includes(targetSeion);
+        // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
+        const isPartial = majorReadings.some(r => r.startsWith(target)) || majorReadings.some(r => r.startsWith(targetSeion));
 
-        if (isMajorPureExact) {
-            k.priority = 1;
-            k.readingTier = 1;   // 純粋メジャー読み完全一致（送り仮名なし）
-        } else if (isMajorStemExact) {
-            k.priority = 1;
-            k.readingTier = 2;   // 送り仮名ステムのみ一致（と（る）→と等）
+        if (isMajorExact) {
+            k.priority = 1;      // メジャー読み完全一致（最優先）
+            k.readingTier = 1;
         } else if (isMinorExact) {
-            k.priority = 1;
-            k.readingTier = 3;   // 名乗り完全一致
+            k.priority = 1;      // マイナー（名乗り）完全一致
+            k.readingTier = 2;   // メジャーの後に表示
         } else if (isSeionMatch) {
             k.priority = 2;
-            k.readingTier = 4;
+            k.readingTier = 3;
         } else if (isPartial) {
             k.priority = 3;
-            k.readingTier = 5;
+            k.readingTier = 4;
         } else {
             k.priority = 0;
             k.readingTier = 99;
@@ -520,25 +493,24 @@ function applyImageTagFilter(kanjis) {
         return kanjis;
     }
 
-    // 新しい#分類とUIのタグのマッピング
-    // #調和, #品格, #花・彩, #幸福, #繁栄, #慈愛, #自然, #勇気, #知性, #健康, #心・志, #天空, #海・水
+    // 04-ui-flow.js の VIBES 配列の id → #分類 値のマッピング
+    // VIBES label が #分類 値と一致するものはそのまま、ずれているものはデータ側の値も併記
     const tagKeywords = {
-        'nature': ['#自然'],
-        'flower': ['#花・彩'],
-        'sky': ['#天空'],
-        'water': ['#海・水'],
-        'strength': ['#勇気'],
-        'kindness': ['#慈愛'],
+        'nature':       ['#自然'],
+        'sky':          ['#天空'],
+        'water':        ['#水景', '#海・水'],       // データ側は #海・水 の場合あり
+        'color':        ['#色彩', '#花・彩'],        // データ側は #花・彩 の場合あり
+        'kindness':     ['#慈愛'],
+        'strength':     ['#勇壮', '#勇気'],          // データ側は #勇気 の場合あり
         'intelligence': ['#知性'],
-        'success': ['#繁栄', '#幸福'],
-        'beauty': ['#品格'],
-        'tradition': ['#品格', '#調和'],
-        'stability': ['#調和', '#健康'],
-        'brightness': ['#幸福', '#繁栄'],
-        'honesty': ['#心・志', '#調和'],
-        'elegance': ['#品格'],
-        'leadership': ['#勇気', '#心・志'],
-        'spirituality': ['#心・志']
+        'soar':         ['#飛躍', '#繁栄'],          // 近いカテゴリを代替
+        'happiness':    ['#幸福'],
+        'beauty':       ['#品格'],
+        'hope':         ['#希望', '#幸福'],          // 近いカテゴリを代替
+        'belief':       ['#信念', '#心・志'],        // データ側は #心・志 の場合あり
+        'harmony':      ['#調和'],
+        'tradition':    ['#伝統', '#品格'],          // 近いカテゴリを代替
+        'music':        ['#奏楽'],
     };
 
     return kanjis.map(k => {
@@ -567,11 +539,9 @@ function prevChar() {
         swipes = 0;
         loadStack();
     } else {
-        // 1文字目の場合は前の画面（イメージ選択）に戻る
-        // ※要望により「苗字の画面」に戻りたいとのことだが、フロー上はvibeまたはsegmentに戻るのが自然
-        // ここでは直前の scr-vibe に戻す
-        if (confirm('イメージ選択画面に戻りますか？\n（現在の進行状況はリセットされます）')) {
-            changeScreen('scr-vibe');
+        // 1文字目の場合は分割選択画面に戻る（読みモードはvibe画面なし）
+        if (confirm('分割選択画面に戻りますか？\n（現在の進行状況はリセットされます）')) {
+            changeScreen('scr-segment');
         }
     }
 }
