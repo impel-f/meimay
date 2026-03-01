@@ -319,9 +319,16 @@ function loadStack() {
             }
             return results;
         };
+        // majorReadings: 音/訓の全バリアント（フル読み + 送り仮名ステム両方含む）
         const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
             .split(/[、,，\s/]+/)
             .flatMap(x => extractReadingVariants(x))
+            .filter(x => x);
+        // majorPureReadings: 音/訓のフル読みのみ（ステムなし・括弧を除去した完全読み）
+        // 例: と（る）→ とる のみ。「と」は含まない
+        const majorPureReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x.trim()).replace(/[^ぁ-んー]/g, ''))
             .filter(x => x);
         const minorReadings = (k['伝統名のり'] || '')
             .split(/[、,，\s/]+/)
@@ -330,30 +337,36 @@ function loadStack() {
         const readings = [...majorReadings, ...minorReadings];
 
         // 読みマッチング判定
-        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
-        // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
+        // 優先順位：純粋メジャー完全一致 > ステムのみメジャー > マイナー > 清音化 > 部分一致
+        // 純粋一致：「と」→ 斗（と）など送り仮名なしの読み
+        // ステム一致：「と」→ 取（と（る）のステム）
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
 
-        const isMajorExact = majorReadings.includes(target);
+        const isMajorPureExact = majorPureReadings.includes(target);
+        const isMajorExact = majorReadings.includes(target); // ステム含む
+        const isMajorStemExact = isMajorExact && !isMajorPureExact; // ステムのみ一致
         const isMinorExact = minorReadings.includes(target);
         const isExact = isMajorExact || isMinorExact;
-        // 清音化一致：メジャー読みのみを対象（名乗りは除外）
-        const isSeionMatch = target !== targetSeion && majorReadings.includes(targetSeion);
-        // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
-        const isPartial = majorReadings.some(r => r.startsWith(target)) || majorReadings.some(r => r.startsWith(targetSeion));
+        // 清音化一致：フル読みのみ対象（名乗り除外）
+        const isSeionMatch = target !== targetSeion && majorPureReadings.includes(targetSeion);
+        // 部分一致（ぶった切り）：フル読みのみ対象（名乗り除外）
+        const isPartial = majorPureReadings.some(r => r.startsWith(target)) || majorPureReadings.some(r => r.startsWith(targetSeion));
 
-        if (isMajorExact) {
-            k.priority = 1;      // メジャー読み完全一致（最優先）
-            k.readingTier = 1;
+        if (isMajorPureExact) {
+            k.priority = 1;
+            k.readingTier = 1;   // 純粋メジャー読み完全一致（送り仮名なし）
+        } else if (isMajorStemExact) {
+            k.priority = 1;
+            k.readingTier = 2;   // 送り仮名ステムのみ一致（と（る）→と等）
         } else if (isMinorExact) {
-            k.priority = 1;      // マイナー（名乗り）完全一致
-            k.readingTier = 2;   // メジャーの後に表示
+            k.priority = 1;
+            k.readingTier = 3;   // 名乗り完全一致
         } else if (isSeionMatch) {
             k.priority = 2;
-            k.readingTier = 3;
+            k.readingTier = 4;
         } else if (isPartial) {
             k.priority = 3;
-            k.readingTier = 4;
+            k.readingTier = 5;
         } else {
             k.priority = 0;
             k.readingTier = 99;

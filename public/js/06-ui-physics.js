@@ -31,9 +31,11 @@ function setupPhysics(card, data) {
         sy = e.clientY;
         dx = 0;
         dy = 0;
-
-        // setPointerCaptureは削除（これがボタンへのタップを横取りしていた）
         active = true;
+
+        // ポインターキャプチャを設定：カードがタッチを独占し、指が♥ボタン領域に
+        // ずれても♥ボタンに貫通しないようにする
+        card.setPointerCapture(e.pointerId);
         // スワイプ中はナビゲーションボタンへの貫通を防止
         const _nav = document.getElementById('bottom-nav');
         if (_nav) _nav.style.pointerEvents = 'none';
@@ -92,6 +94,8 @@ function setupPhysics(card, data) {
 
         // タップ判定（ほぼ動いていない）
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+            // ghost click → モーダルのLIKEボタン貫通を防ぐ
+            e.preventDefault();
             if (typeof showDetailByData === 'function') {
                 showDetailByData(data);
             }

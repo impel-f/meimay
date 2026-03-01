@@ -137,19 +137,37 @@ function render() {
 
     // カードは最大6個（読みが多い漢字でレイアウト崩れを防ぐ）
     const MAX_CARD_READINGS = 6;
+    // 読みとターゲットのマッチング（フル一致 or 送り仮名ステム一致）
+    const readingMatchesTarget = (r, target) => {
+        if (!target) return false;
+        if (normalizeKana(r) === normalizeKana(target)) return true;
+        // ステムマッチ: 「と（ぶ）」 → ステム「と」 が target と一致
+        const h = toHira(r.trim());
+        const parenIdx = h.indexOf('（');
+        if (parenIdx > 0) {
+            const stem = h.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem === normalizeKana(target)) return true;
+        }
+        const dotIdx = h.indexOf('.');
+        if (dotIdx > 0) {
+            const stem = h.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem === normalizeKana(target)) return true;
+        }
+        return false;
+    };
     const cardReadings = allReadings.slice(0, MAX_CARD_READINGS);
     // マッチした読みが6個以内にない場合は6個目と入れ替え
     if (currentSearchReading) {
-        const inCard = cardReadings.some(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+        const inCard = cardReadings.some(r => readingMatchesTarget(r, currentSearchReading));
         if (!inCard) {
-            const matchIdx = allReadings.findIndex(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+            const matchIdx = allReadings.findIndex(r => readingMatchesTarget(r, currentSearchReading));
             if (matchIdx >= MAX_CARD_READINGS) cardReadings[MAX_CARD_READINGS - 1] = allReadings[matchIdx];
         }
     }
     const moreCount = Math.max(0, allReadings.length - MAX_CARD_READINGS);
     const readingsHTML = cardReadings.length > 0 ?
         cardReadings.map(r => {
-            const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
+            const isMatch = readingMatchesTarget(r, currentSearchReading);
             return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
         }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個</span>` : '') :
         '';
@@ -185,14 +203,8 @@ function render() {
         </div>
     `;
 
-    // カード全体にクリックイベント（タップ範囲拡大）
-    card.addEventListener('click', (e) => {
-        // スワイプ中はクリック無効
-        if (card.style.transform && card.style.transform !== 'none') {
-            return;
-        }
-        showKanjiDetailByIndex(currentIdx);
-    });
+    // タップは06-ui-physics.jsのonpointerupで処理するため、ここのclickリスナーは不要
+    // （二重発火＋ghost click によるLIKE貫通の原因になるため削除）
 
     // 物理演算セットアップ
     if (typeof setupPhysics === 'function') {
@@ -434,7 +446,30 @@ async function showKanjiDetail(data) {
         // フリーモード時の名乗り漏れを防ぐ
         currentReadingForAI = null;
     } else if (inActiveSwipe && segments && segments[currentPos]) {
-        currentReadingForAI = segments[currentPos];
+        const _target = segments[currentPos];
+        // 送り仮名ステムマッチの場合は元の読み（例: と（ぶ））をAI文脈として渡す
+        const _allRaw = [data['音'], data['訓'], data['伝統名のり']]
+            .filter(x => x)
+            .join(',')
+            .split(/[、,，\s/]+/)
+            .map(x => x.trim())
+            .filter(x => x);
+        const _origMatch = _allRaw.find(raw => {
+            const h = toHira(raw);
+            const full = h.replace(/[^ぁ-んー]/g, '');
+            if (full === _target) return true;
+            const parenIdx = h.indexOf('（');
+            if (parenIdx > 0) {
+                return h.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '') === _target;
+            }
+            const dotIdx = h.indexOf('.');
+            if (dotIdx > 0) {
+                return h.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '') === _target;
+            }
+            return false;
+        });
+        // ステム一致の場合は元の読み（と（ぶ））を使用、なければ target をそのまま
+        currentReadingForAI = _origMatch ? clean(_origMatch) : _target;
     } else if (typeof liked !== 'undefined') {
         const likedItem = liked.find(l =>
             l['漢字'] === data['漢字'] && l.slot >= 0 &&
@@ -467,12 +502,15 @@ async function showKanjiDetail(data) {
     }
 
     // キャッシュ済みAI結果があれば自動表示
+    // ※名乗りセクションは読み依存のため除外（古い読みが表示されるのを防ぐ）
     if (typeof StorageBox !== 'undefined' && StorageBox.getKanjiAiCache) {
         const cached = StorageBox.getKanjiAiCache(data['漢字']);
         if (cached && cached.text && typeof renderKanjiDetailText === 'function') {
             const resultEl = document.getElementById('ai-kanji-result');
             if (resultEl) {
-                renderKanjiDetailText(resultEl, cached.text, data['漢字'], currentReadingForAI);
+                // 名乗り読みの理由セクション（読み固有部分）を除いたテキストのみ自動表示
+                const baseOnly = cached.text.replace(/\n*【名乗り[^】]*の理由】[\s\S]*?(?=\n【|\s*$)/g, '').trim();
+                if (baseOnly) renderKanjiDetailText(resultEl, baseOnly);
             }
         }
     }
