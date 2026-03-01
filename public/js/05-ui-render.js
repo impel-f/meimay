@@ -3,76 +3,33 @@
    カード描画・詳細表示
    ============================================================ */
 
-// タグ定義（統一用）
-const TAG_KEYWORDS = {
-    'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '活力', '壮大', '勇', '武', '猛', '雄', '毅'],
-    'brightness': ['明るさ', '太陽', '陽', '光', '輝き', '晴れ', '朗らか', '明', '照', '旭', '旺', '晃'],
-    'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '柔らか', '仁', '恵', '慈', '愛', '温', '柔'],
-    'intelligence': ['知性', '賢さ', '才能', '優秀', '学問', '智恵', '智', '賢', '才', '慧', '修'],
-    'passion': ['情熱', '熱意', '活発', '元気', '燃える', '炎', '熱', '烈', '昂', '騰'],
-    'hope': ['希望', '未来', '夢', '願い', '期待', '幸福', '望', '希', '願', '福', '幸'],
-    'success': ['成功', '向上', '昇進', '発展', '繁栄', '栄える', '成', '功', '栄', '進', '昌'],
-    'nature': ['自然', '植物', '樹木', '草', '森', '木', '林', '山', '岳', '嶺'],
-    'flower': ['花', '華やか', '桜', '彩', 'バラ', '菊', '蘭', '牡丹', '咲', '麗', '絢', '錦'],
-    'water': ['海', '水', '川', '波', '流れ', '清らか', '湖', '池', '湊', '渚', '汐', '清'],
-    'sky': ['空', '宙', '天', '宇宙', '星', '月', '雲', '風', '雷', '雨', '霄', '碧'],
-    'elegance': ['品格', '高貴', '気品', '上品', '優雅', '格調', '雅', '麗', '優', '彩', '絢'],
-    'tradition': ['伝統', '古風', '和', '和風', '伝統的', '日本', '和', '古', '典', '文'],
-    'peace': ['安定', '平和', '平穏', '安らか', '穏やか', '調和', '安', '平', '和', '静', '穏'],
-    'justice': ['正義', '公平', '正しい', '義理', '真実', '義', '正', '真', '直', '廉'],
-    'spirituality': ['精神', '心', '魂', '意志', '信念', '純粋', '心', '誠', '志', '念', '精']
-};
-
-const TAG_LABELS = {
-    'nature': '自然',
-    'flower': '花・彩',
-    'brightness': '明るさ',
-    'water': '水',
-    'strength': '力強さ',
-    'kindness': '優しさ',
-    'intelligence': '知性',
-    'honesty': '誠実',
-    'elegance': '品格',
-    'tradition': '伝統',
-    'beauty': '美しさ',
-    'success': '成功',
-    'peace': '安定',
-    'leadership': 'リーダー',
-    'hope': '希望',
-    'spirituality': '精神',
-    'other': 'その他'
+const KANJI_CATEGORIES = {
+    '#希望': { label: '希望', icon: '🌟', class: 'tag-hope' },
+    '#慈愛': { label: '慈愛', icon: '💖', class: 'tag-affection' },
+    '#調和': { label: '調和', icon: '🤝', class: 'tag-harmony' },
+    '#勇壮': { label: '勇壮', icon: '🦁', class: 'tag-bravery' },
+    '#知性': { label: '知性', icon: '🎓', class: 'tag-intelligence' },
+    '#飛躍': { label: '飛躍', icon: '🦅', class: 'tag-leap' },
+    '#信念': { label: '信念', icon: '⛰️', class: 'tag-conviction' },
+    '#品格': { label: '品格', icon: '🕊️', class: 'tag-dignity' },
+    '#伝統': { label: '伝統', icon: '⛩️', class: 'tag-tradition' },
+    '#幸福': { label: '幸福', icon: '🍀', class: 'tag-fortune' },
+    '#色彩': { label: '色彩', icon: '🎨', class: 'tag-colors' },
+    '#天空': { label: '天空', icon: '🌌', class: 'tag-sky' },
+    '#自然': { label: '自然', icon: '🌿', class: 'tag-nature' },
+    '#水景': { label: '水景', icon: '🌊', class: 'tag-aquatic' },
+    '#奏楽': { label: '奏楽', icon: '🎵', class: 'tag-music' },
+    '#その他': { label: 'その他', icon: '📝', class: 'tag-other' }
 };
 
 function getUnifiedTags(rawString) {
-    if (!rawString || rawString === '---') return ['その他'];
-
-    // Convert comma/space/bracket-separated string to array of tags
+    if (!rawString || rawString === '---') return ['#その他'];
+    // スペース・カンマ両対応でタグを抽出（変換なし）
     const tags = rawString
-        .replace(/【|】|#/g, '')
-        .split(/[、,，\s/]+/)
+        .split(/[\s,，、]+/)
         .map(t => t.trim())
-        .filter(t => t.length > 0 && t !== '---');
-
-    // 解析されたタグがあるか確認
-    if (tags.length === 0) return ['その他'];
-
-    // キーワードに1つでも合致するかチェック
-    let hasMatch = false;
-    for (const tag of tags) {
-        for (const keywords of Object.values(TAG_KEYWORDS)) {
-            if (keywords.some(kw => tag.includes(kw))) {
-                hasMatch = true;
-                break;
-            }
-        }
-        if (hasMatch) break;
-    }
-
-    // どのカテゴリにも当てはまらない、または「こだわらない」等の場合は「その他」
-    if (!hasMatch) return ['その他'];
-
-    // 最大3つまで
-    return tags.slice(0, 3);
+        .filter(t => t.startsWith('#'));
+    return tags.length > 0 ? tags : ['#その他'];
 }
 
 /**
@@ -104,14 +61,42 @@ function updateSwipeMainState() {
     if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
     if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
 
-    // Free Stroke override for headers
+    // モード別HUDボタン制御
+    const indicator = document.getElementById('pos-indicator');
+    const btnPrev = document.getElementById('btn-prev-char');
+    const btnNext = document.getElementById('btn-next-char');
+
     if (isFreeSwipeMode) {
-        const indicator = document.getElementById('pos-indicator');
-        const btnPrev = document.getElementById('btn-prev-char');
-        const btnNext = document.getElementById('btn-next-char');
+        // 自由に選ぶ: 戻る(→イメージ選択) + 完了(→ビルド/自由組み立て)
         if (indicator) indicator.innerText = '自由に選ぶ';
+        if (btnPrev) {
+            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.innerHTML = '&lt; 戻る';
+            btnPrev.onclick = () => {
+                isFreeSwipeMode = false;
+                changeScreen('scr-vibe');
+            };
+        }
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = '完了 &gt;';
+            btnNext.onclick = () => {
+                isFreeSwipeMode = false;
+                if (typeof openBuildFreeMode === 'function') openBuildFreeMode();
+                else openBuild();
+            };
+        }
+    } else if (window._addMoreFromBuild) {
+        // ビルドからの追加: 「ビルドへ」ボタンを右側に表示
         if (btnPrev) btnPrev.classList.add('opacity-0', 'pointer-events-none');
-        if (btnNext) btnNext.classList.add('opacity-0', 'pointer-events-none');
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = 'ビルドへ &gt;';
+            btnNext.onclick = () => {
+                window._addMoreFromBuild = false;
+                openBuild();
+            };
+        }
     }
 }
 
@@ -134,23 +119,25 @@ function render() {
             container.innerHTML = `
                 <div class="flex items-center justify-center h-full text-center px-6">
                     <div>
-                        <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
-                        <p class="text-sm text-[#a6967a] mb-6">これ以上候補が見つかりませんでした</p>
-                        <button onclick="finishFreeMode()" class="btn-gold py-4 px-8">終了する →</button>
+                        <p class="text-[#bca37f] font-bold text-lg mb-4">すべて確認しました</p>
+                        <p class="text-sm text-[#a6967a] mb-6">ビルドへ進んで名前を組み立てよう</p>
+                        <button onclick="isFreeSwipeMode=false; openBuildFreeMode()" class="btn-gold py-4 px-8">ビルドへ →</button>
                     </div>
                 </div>
             `;
             return;
         }
 
+        // addMoreToSlot から来た場合 / 最後の文字スロットの場合 → ビルドへ
+        const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div>
                     <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
                     <p class="text-sm text-[#a6967a] mb-6">設定を変更するか、<br>次の文字に進んでください</p>
-                    ${currentPos < segments.length - 1 ?
-                '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>' :
-                '<button onclick="openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>'
+                    ${goToBuild ?
+                '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>' :
+                '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>'
             }
                 </div>
             </div>
@@ -178,24 +165,35 @@ function render() {
         .map(x => clean(x))
         .filter(x => x);
 
-    const readingsHTML = allReadings.length > 0 ?
-        allReadings.map(r => {
+    // カードは最大6個（読みが多い漢字でレイアウト崩れを防ぐ）
+    const MAX_CARD_READINGS = 6;
+    const cardReadings = allReadings.slice(0, MAX_CARD_READINGS);
+    // マッチした読みが6個以内にない場合は6個目と入れ替え
+    if (currentSearchReading) {
+        const inCard = cardReadings.some(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+        if (!inCard) {
+            const matchIdx = allReadings.findIndex(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+            if (matchIdx >= MAX_CARD_READINGS) cardReadings[MAX_CARD_READINGS - 1] = allReadings[matchIdx];
+        }
+    }
+    const moreCount = Math.max(0, allReadings.length - MAX_CARD_READINGS);
+    const readingsHTML = cardReadings.length > 0 ?
+        cardReadings.map(r => {
             const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
-            // 枠と背景色で目立たせる
             return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
-        }).join(' ') :
+        }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個</span>` : '') :
         '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
     const unifiedTags = getUnifiedTags((data['分類'] || ''));
 
-    // 背景色をイメージに連動 (v14.4: タグキーワードから色を決定)
+    // 背景色をイメージに連動 (v15.0: 新分類タグに連動)
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
 
-    // タグHTML
-    const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-80 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm">#${t}</span>`).join(' ') :
+    // タグHTML: 背景色なし・#タグ名テキストのみ
+    const tagsHTML = unifiedTags.filter(t => t !== '#その他').length > 0 ?
+        unifiedTags.filter(t => t !== '#その他').map(t => `<span class="kanji-tag">${t}</span>`).join(' ') :
         '';
 
     // カード全体をクリック可能に
@@ -217,14 +215,8 @@ function render() {
         </div>
     `;
 
-    // カード全体にクリックイベント（タップ範囲拡大）
-    card.addEventListener('click', (e) => {
-        // スワイプ中はクリック無効
-        if (card.style.transform && card.style.transform !== 'none') {
-            return;
-        }
-        showKanjiDetailByIndex(currentIdx);
-    });
+    // 注意: clickリスナー削除済み。タップはphysics(onpointerup)で処理するため
+    // card.addEventListener('click', ...) を残すとゴーストclickでLIKE貫通が発生する
 
     // 物理演算セットアップ
     if (typeof setupPhysics === 'function') {
@@ -270,55 +262,34 @@ function getGradientFromTags(tags) {
     if (!tags || tags.length === 0) return 'linear-gradient(135deg, #fdfaf5 0%, #f7f3ec 100%)';
 
     const colorMap = {
-        'strength': ['#fff1f2', '#ffe4e6', '#fecdd3'], // Rose
-        'brightness': ['#fff7ed', '#ffedd5', '#fed7aa'], // Orange
-        'kindness': ['#fdf2f8', '#fce7f3', '#fbcfe8'], // Pink
-        'intelligence': ['#f5f3ff', '#ede9fe', '#ddd6fe'], // Violet
-        'passion': ['#fef2f2', '#fee2e2', '#fecaca'], // Red
-        'hope': ['#fffbeb', '#fef3c7', '#fde68a'], // Amber
-        'success': ['#ecfdf5', '#d1fae5', '#a7f3d0'], // Emerald
-        'nature': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Green
-        'flower': ['#fdf2f8', '#fce7f3', '#fbcfe8'], // Floral Pink (more vibrant)
-        'water': ['#f0f9ff', '#e0f2fe', '#bae6fd'], // Sky
-        'sky': ['#f0fdfa', '#ccfbf1', '#99f6e4'], // Teal
-        'elegance': ['#faf5ff', '#f3e8ff', '#e9d5ff'], // Purple
-        'tradition': ['#fff7ed', '#ffedd5', '#fed7aa'], // Tradition/Earth
-        'peace': ['#f0fdf4', '#dcfce7', '#bbf7d0'], // Peace/Mint
-        'justice': ['#f8fafc', '#f1f5f9', '#e2e8f0'], // Slate
-        'spirituality': ['#f5f3ff', '#ede9fe', '#ddd6fe'], // Lightened Violet/Indigo (less "strong")
-        'other': ['#fdfaf5', '#f8f5ef', '#ede5d8']
+        'tag-hope': ['#FFF4E0', '#FFFDF7'],
+        'tag-affection': ['#FFF0F0', '#FFF9F9'],
+        'tag-harmony': ['#E8F5E9', '#F1F8F1'],
+        'tag-bravery': ['#FFEBEE', '#FFF5F5'],
+        'tag-intelligence': ['#E3F2FD', '#F0F7FF'],
+        'tag-leap': ['#F3E5F5', '#F9F4F9'],
+        'tag-conviction': ['#E8EAF6', '#F0F1FA'],
+        'tag-dignity': ['#EFEBE9', '#F5F2F1'],
+        'tag-tradition': ['#F1F8E1', '#F7FAF0'],
+        'tag-fortune': ['#FFFDE7', '#FFFFF2'],
+        'tag-colors': ['#FCE4EC', '#FDF2F5'],
+        'tag-sky': ['#E8EAF6', '#F0F1FA'],
+        'tag-nature': ['#E8F5E9', '#F1F8F1'],
+        'tag-aquatic': ['#E1F5FE', '#F0FAFF'],
+        'tag-music': ['#F3E5F5', '#F9F4F9']
     };
 
-    // マッチしたキーを最大2つ収集
-    let matchedKeys = [];
-    for (let tag of tags) {
-        const cleanTag = tag.replace(/[#【】]/g, '').trim();
-        if (!cleanTag) continue;
+    const cat1 = KANJI_CATEGORIES[tags[0]];
+    const colors1 = (cat1 && colorMap[cat1.class]) ? colorMap[cat1.class] : ['#fdfaf5', '#f7f3ec'];
 
-        for (const [key, keywords] of Object.entries(TAG_KEYWORDS)) {
-            if (keywords.some(kw => cleanTag.includes(kw))) {
-                if (!matchedKeys.includes(key)) {
-                    matchedKeys.push(key);
-                }
-                break;
-            }
-        }
-        if (matchedKeys.length >= 2) break;
+    if (tags.length === 1) {
+        return `linear-gradient(135deg, ${colors1[0]} 0%, ${colors1[1]} 100%)`;
     }
 
-    if (matchedKeys.length === 0) {
-        matchedKeys = ['other'];
-    }
-
-    if (matchedKeys.length >= 2) {
-        const c1 = colorMap[matchedKeys[0]];
-        const c2 = colorMap[matchedKeys[1]];
-        // 2つの色の要素を混ぜて生成
-        return `linear-gradient(135deg, ${c1[0]} 0%, ${c1[1]} 30%, ${c2[1]} 70%, ${c2[2]} 100%)`;
-    } else {
-        const colors = colorMap[matchedKeys[0]];
-        return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 50%, ${colors[2]} 100%)`;
-    }
+    // 複数タグ: 2タグの色をブレンドしたグラデーション
+    const cat2 = KANJI_CATEGORIES[tags[1]];
+    const colors2 = (cat2 && colorMap[cat2.class]) ? colorMap[cat2.class] : colors1;
+    return `linear-gradient(135deg, ${colors1[0]} 0%, ${colors2[0]} 60%, ${colors2[1]} 100%)`;
 }
 
 /**
@@ -389,8 +360,8 @@ async function showKanjiDetail(data) {
     kanjiEl.style.color = '#5d5444';
     kanjiEl.style.display = 'block';
 
-    // イメージタグ表示（色付き）
-    const unifiedTags = getUnifiedTags((data['名前のイメージ'] || '') + ',' + (data['分類'] || ''));
+    // 分類タグ（data['分類']のみ使用）
+    const unifiedTags = getUnifiedTags(data['分類'] || '');
 
     // ヘッダー背景色をグラデーションに
     if (headerBg) {
@@ -435,10 +406,8 @@ async function showKanjiDetail(data) {
     }
     let tagsContainer = document.getElementById('det-tags-container');
 
-    // タグHTML生成 (v14.4: 生データを表示)
-    const tagsHTML = unifiedTags.length > 0 ?
-        unifiedTags.map(t => `<span class="px-3 py-1 bg-white bg-opacity-60 text-[#8b7e66] rounded-full text-[10px] font-bold shadow-sm border border-transparent backdrop-blur-sm">#${t}</span>`).join(' ') :
-        '';
+    // タグHTML: 背景色なし・#タグ名テキストのみ（カードと統一）
+    const tagsHTML = unifiedTags.map(t => `<span class="kanji-tag">${t}</span>`).join(' ');
 
     if (tagsContainer) {
         tagsContainer.innerHTML = tagsHTML;
@@ -460,13 +429,13 @@ async function showKanjiDetail(data) {
             stockBtnsEl.appendChild(removeBtn);
         } else {
             const likeBtn = document.createElement('button');
-            likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#ff9a9e] to-[#fecfef] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            likeBtn.innerHTML = '<span>♥</span> ライク';
+            likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
+            likeBtn.innerHTML = '<span>♥</span> LIKE';
             likeBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, false);
 
             const superBtn = document.createElement('button');
             superBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            superBtn.innerHTML = '<span>★</span> スーパー';
+            superBtn.innerHTML = '<span>★</span> SUPER';
             superBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, true);
 
             stockBtnsEl.appendChild(likeBtn);
@@ -570,6 +539,10 @@ async function showKanjiDetail(data) {
     // モーダル表示
     modal.classList.add('active');
 
+    // モーダル表示中はスワイプボタンを隠す
+    const swipeActionBtns = document.getElementById('swipe-action-btns');
+    if (swipeActionBtns) swipeActionBtns.classList.add('hidden');
+
     // 空白クリックで閉じる
     modal.onclick = (e) => {
         if (e.target === modal) {
@@ -585,6 +558,12 @@ async function showKanjiDetail(data) {
  * @param {boolean} [isSuper=false] - スーパーライクとして追加するか
  */
 function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
+    // ゴーストclick防止：カードタップから300ms以内の呼び出しは無視
+    // （タップでモーダルが開いた直後にモーダル内LIKEボタンが自動発火するのを防ぐ）
+    if (Date.now() - (window._lastCardTap || 0) < 300) {
+        console.log('RENDER: toggleStockFromModal blocked – ghost click guard');
+        return;
+    }
     if (isCurrentlyLiked) {
         if (!confirm(`「${data['漢字']}」をストックから外しますか？`)) return;
 
@@ -651,6 +630,12 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             MeimayStats.recordKanjiLike(data['漢字']);
         }
 
+        // 漢字検索画面が表示中なら結果を即座に更新（❤アイコン反映）
+        const scrSearch = document.getElementById('scr-kanji-search');
+        if (scrSearch && scrSearch.classList.contains('active') && typeof executeKanjiSearch === 'function') {
+            executeKanjiSearch();
+        }
+
         alert(isSuper ? '★スーパーライクでストックに追加しました！' : '♥ライクでストックに追加しました！');
         closeKanjiDetail();
     }
@@ -662,6 +647,8 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
 function closeKanjiDetail() {
     const modal = document.getElementById('modal-kanji-detail');
     if (modal) modal.classList.remove('active');
+    // スワイプ画面なら×★♡ボタンを復元
+    if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
 }
 
 window.updateSwipeMainState = updateSwipeMainState;

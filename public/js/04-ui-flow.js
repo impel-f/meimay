@@ -8,23 +8,24 @@ let isFreeSwipeMode = false;
 let selectedVibes = new Set();
 // gender is defined in 01-core.js
 
-// Vibe Data
-// Vibe Data
+// Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
-    { id: 'none', label: 'こだわらない', icon: '⚪' },
-    { id: 'nature', label: '#自然', icon: '🌿' },
-    { id: 'flower', label: '#花・彩', icon: '🌸' },
-    { id: 'sky', label: '#天空', icon: '☀️' },
-    { id: 'water', label: '#海・水', icon: '💧' },
-    { id: 'kindness', label: '#慈愛', icon: '💝' },
-    { id: 'strength', label: '#勇気', icon: '💪' },
-    { id: 'intelligence', label: '#知性', icon: '🎓' },
-    { id: 'success', label: '#繁栄', icon: '✨' },
-    { id: 'happiness', label: '#幸福', icon: '🍀' },
-    { id: 'beauty', label: '#品格', icon: '👗' },
-    { id: 'health', label: '#健康', icon: '🍎' },
-    { id: 'spirit', label: '#心・志', icon: '💫' },
-    { id: 'stability', label: '#調和', icon: '🕊️' }
+    { id: 'none',         label: 'こだわらない', icon: '⚪' },
+    { id: 'nature',       label: '#自然',   icon: '🌿' },
+    { id: 'sky',          label: '#天空',   icon: '🌌' },
+    { id: 'water',        label: '#水景',   icon: '🌊' },
+    { id: 'color',        label: '#色彩',   icon: '🎨' },
+    { id: 'kindness',     label: '#慈愛',   icon: '💖' },
+    { id: 'strength',     label: '#勇壮',   icon: '🦁' },
+    { id: 'intelligence', label: '#知性',   icon: '🎓' },
+    { id: 'soar',         label: '#飛躍',   icon: '🦅' },
+    { id: 'happiness',    label: '#幸福',   icon: '🍀' },
+    { id: 'beauty',       label: '#品格',   icon: '🕊️' },
+    { id: 'hope',         label: '#希望',   icon: '🌟' },
+    { id: 'belief',       label: '#信念',   icon: '⛰️' },
+    { id: 'harmony',      label: '#調和',   icon: '🤝' },
+    { id: 'tradition',    label: '#伝統',   icon: '⛩️' },
+    { id: 'music',        label: '#奏楽',   icon: '🎵' },
 ];
 
 /**
@@ -158,16 +159,20 @@ function initVibeScreen() {
     selectedVibes.clear();
     selectedVibes.add('none'); // デフォルト選択
 
-    VIBES.forEach(v => {
+    // こだわらない: 3マス幅のワイドボタン（デフォルト選択状態）
+    const noneBtn = document.createElement('button');
+    noneBtn.id = 'vibe-btn-none';
+    noneBtn.className = 'col-span-3 flex items-center justify-center py-2.5 px-4 rounded-xl border border-transparent shadow-sm transition-all active:scale-95 ring-2 ring-[#bca37f] bg-[#fffbeb]';
+    noneBtn.innerHTML = `<span class="text-[12px] font-bold text-[#5d5444]">こだわらない</span>`;
+    noneBtn.onclick = () => toggleVibe('none', noneBtn);
+    grid.appendChild(noneBtn);
+
+    // 15タグ: 3×5 グリッド、絵文字 + #タグ名
+    VIBES.filter(v => v.id !== 'none').forEach(v => {
         const btn = document.createElement('button');
         btn.id = `vibe-btn-${v.id}`;
-        btn.className = 'flex flex-col items-center justify-center p-3 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
-        btn.innerHTML = `<div class="text-2xl mb-1">${v.icon}</div><div class="text-[10px] font-bold text-[#5d5444]">${v.label}</div>`;
-
-        if (v.id === 'none') {
-            btn.classList.add('ring-2', 'ring-[#bca37f]', 'bg-[#fffbeb]');
-        }
-
+        btn.className = 'flex flex-col items-center justify-center py-2 px-1 bg-white/60 rounded-xl border border-transparent shadow-sm transition-all hover:bg-white active:scale-95';
+        btn.innerHTML = `<span class="text-lg leading-none mb-0.5">${v.icon}</span><span class="text-[11px] font-bold text-[#5d5444] leading-tight">${v.label}</span>`;
         btn.onclick = () => toggleVibe(v.id, btn);
         grid.appendChild(btn);
     });
@@ -1211,10 +1216,17 @@ function startFreeSwiping() {
         list = applyImageTagFilter(list);
     }
 
-    // スコア計算＆ソート（少しランダム性を混ぜる）
+    // スコア計算＆ソート（imagePriorityを最優先、次にスコア降順、同スコアはランダム）
     if (typeof calculateKanjiScore === 'function') {
-        list.forEach(k => k.score = calculateKanjiScore(k));
+        list.forEach(k => {
+            k.score = calculateKanjiScore(k);
+            if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
+        });
         list.sort((a, b) => {
+            // imagePriority 1(一致) を優先（2=不一致）
+            const pa = a.imagePriority || 2;
+            const pb = b.imagePriority || 2;
+            if (pa !== pb) return pa - pb;
             const scoreDiff = (b.score || 0) - (a.score || 0);
             return scoreDiff === 0 ? Math.random() - 0.5 : scoreDiff;
         });
@@ -1224,7 +1236,7 @@ function startFreeSwiping() {
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
     // メインUIのスタックとしてセット (02-engine.js global)
-    stack = list.slice(0, 100);
+    stack = list.slice(0, 200); // イメージ一致分を十分確保するため200枚
     currentIdx = 0;
 
     changeScreen('scr-main');
@@ -2317,60 +2329,63 @@ window.learnSoundPreference = learnSoundPreference;
  * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
  * ============================================================
  */
-let searchStrokeFilter = ''; // '', '1-5', '6-10', '11-15', '16-20', '21+'
-let searchClassFilter = '';  // '', '自然', '強さ', '優しさ', etc.
-let searchReadingFilter = ''; // text input for reading filter
+var searchClassFilter = '';  // '', '#自然', etc.
+var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 
 function openKanjiSearch() {
     changeScreen('scr-kanji-search');
-    // Reset filters
-    searchStrokeFilter = '';
     searchClassFilter = '';
-    searchReadingFilter = '';
+    searchFlexibleMode = false;
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = '';
     renderSearchFilters();
-    // Show initial message instead of loading all kanji
+    updateSearchModeToggle();
     const container = document.getElementById('kanji-search-results');
     if (container) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+    }
+}
+
+function toggleSearchFlexibleMode() {
+    searchFlexibleMode = !searchFlexibleMode;
+    updateSearchModeToggle();
+    executeKanjiSearch();
+}
+
+function updateSearchModeToggle() {
+    const btn = document.getElementById('search-mode-toggle');
+    if (!btn) return;
+    if (searchFlexibleMode) {
+        btn.textContent = '読み柔軟';
+        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#bca37f] text-white transition-all active:scale-95 flex-shrink-0';
+    } else {
+        btn.textContent = '読み厳格';
+        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0';
     }
 }
 
 function renderSearchFilters() {
-    // Stroke count filters
-    const strokeContainer = document.getElementById('search-stroke-filters');
-    if (strokeContainer) {
-        const strokes = [
-            { val: '', label: '全て' },
-            { val: '1-5', label: '1-5画' },
-            { val: '6-10', label: '6-10画' },
-            { val: '11-15', label: '11-15画' },
-            { val: '16-20', label: '16-20画' },
-            { val: '21+', label: '21画+' }
-        ];
-        strokeContainer.innerHTML = strokes.map(s => `
-            <button onclick="setStrokeFilter('${s.val}')"
-                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
-                    ${searchStrokeFilter === s.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
-                ${s.label}
-            </button>
-        `).join('');
-    }
-
-    // Classification filters
+    // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
+        // 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
         const classes = [
-            { val: '', label: '全て', icon: '✨' },
-            { val: 'nature', label: '自然', icon: '🌿' },
-            { val: 'light', label: '光・明', icon: '☀️' },
-            { val: 'water', label: '水・海', icon: '🌊' },
-            { val: 'strength', label: '力・健', icon: '💪' },
-            { val: 'kindness', label: '愛・優', icon: '💗' },
-            { val: 'wisdom', label: '知・才', icon: '📚' },
-            { val: 'beauty', label: '美・華', icon: '🌸' },
-            { val: 'tradition', label: '伝統・和', icon: '⛩️' }
+            { val: '',      label: '全て', icon: '✨' },
+            { val: '#自然', label: '自然', icon: '🌿' },
+            { val: '#天空', label: '天空', icon: '☀️' },
+            { val: '#水景', label: '水景', icon: '🌊' },
+            { val: '#色彩', label: '色彩', icon: '🎨' },
+            { val: '#慈愛', label: '慈愛', icon: '💝' },
+            { val: '#勇壮', label: '勇壮', icon: '🦁' },
+            { val: '#知性', label: '知性', icon: '🎓' },
+            { val: '#飛躍', label: '飛躍', icon: '🦅' },
+            { val: '#幸福', label: '幸福', icon: '🍀' },
+            { val: '#品格', label: '品格', icon: '🕊️' },
+            { val: '#希望', label: '希望', icon: '🌟' },
+            { val: '#信念', label: '信念', icon: '⛰️' },
+            { val: '#調和', label: '調和', icon: '🤝' },
+            { val: '#伝統', label: '伝統', icon: '⛩️' },
+            { val: '#奏楽', label: '奏楽', icon: '🎵' },
         ];
         classContainer.innerHTML = classes.map(c => `
             <button onclick="setClassFilter('${c.val}')"
@@ -2382,16 +2397,40 @@ function renderSearchFilters() {
     }
 }
 
-function setStrokeFilter(val) {
-    searchStrokeFilter = val;
-    renderSearchFilters();
-    executeKanjiSearch();
-}
-
 function setClassFilter(val) {
     searchClassFilter = val;
     renderSearchFilters();
     executeKanjiSearch();
+}
+
+/**
+ * 送り仮名対応の読みバリアント抽出
+ * 例: "か.わる" → ["かわる", "か"]
+ */
+function getReadingVariants(rawStr) {
+    if (!rawStr) return [];
+    return rawStr.split(/[、,，\s/]+/).flatMap(raw => {
+        if (!raw.trim()) return [];
+        const hira = toHira(raw.trim());
+        const variants = new Set();
+        // 全体（送り仮名マーカーと非ひらがなを除去）
+        // 例: あか（るい） → あかるい、あ（かり） → あかり
+        const full = hira.replace(/[^ぁ-んー]/g, '');
+        if (full) variants.add(full);
+        // 語幹: "." より前（例: "か.わる" → "か"）
+        const dotIdx = hira.indexOf('.');
+        if (dotIdx > 0) {
+            const stem = hira.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem) variants.add(stem);
+        }
+        // 語幹: "（" より前（例: "あか（るい）" → "あか"、"あ（かり）" → "あ"）
+        const parenIdx = hira.indexOf('（');
+        if (parenIdx > 0) {
+            const stem = hira.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem) variants.add(stem);
+        }
+        return [...variants];
+    });
 }
 
 function executeKanjiSearch() {
@@ -2409,61 +2448,57 @@ function executeKanjiSearch() {
     const rawQuery = input ? input.value.trim() : '';
 
     // フィルターが何も設定されていない場合はメッセージ表示
-    if (!query && !rawQuery && !searchStrokeFilter && !searchClassFilter) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読み・漢字・意味で検索するか、<br>フィルターを選択してください</div>';
+    if (!query && !rawQuery && !searchClassFilter) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
         return;
     }
+
+    const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
 
     let results = master.filter(k => {
         // 不適切フラグチェック
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
 
-        // テキスト検索（読み完全一致・漢字・意味）
+        // テキスト検索（読み・漢字のみ）
         if (query || rawQuery) {
-            const allReadings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
-                .split(/[、,，\s/]+/)
-                .map(x => toHira(x).replace(/[^ぁ-ん]/g, ''))
-                .filter(x => x);
-
-            // 読みは完全一致・連濁一致・前方部分一致
-            const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
-            const matchReading = allReadings.some(r => r === query || r === querySeion || r.startsWith(query) || r.startsWith(querySeion));
             const matchKanji = k['漢字'] === rawQuery;
-            const matchMeaning = rawQuery.length >= 2 && (k['意味'] || '').includes(rawQuery);
 
-            if (!matchReading && !matchKanji && !matchMeaning) return false;
+            // 送り仮名対応読みバリアント（語幹含む）
+            const onReadings   = getReadingVariants(k['音'] || '');
+            const kunReadings  = getReadingVariants(k['訓'] || '');
+            const noriReadings = getReadingVariants(k['伝統名のり'] || '');
+
+            // 厳格: 音・訓・名乗り で完全一致（送り仮名の語幹も含む）
+            const strictMatch = [...onReadings, ...kunReadings, ...noriReadings]
+                .some(r => r === query || r === querySeion);
+
+            let matchReading;
+            if (searchFlexibleMode) {
+                // 柔軟: 厳格の条件 + 音・訓で前方一致（名乗りは完全一致のみ）
+                const flexMatch = [...onReadings, ...kunReadings]
+                    .some(r => r.startsWith(query) || r.startsWith(querySeion));
+                matchReading = strictMatch || flexMatch;
+            } else {
+                matchReading = strictMatch;
+            }
+
+            if (!matchReading && !matchKanji) return false;
         }
 
-        // 画数フィルター
-        if (searchStrokeFilter) {
-            const strokes = parseInt(k['画数']) || 0;
-            if (searchStrokeFilter === '1-5' && (strokes < 1 || strokes > 5)) return false;
-            if (searchStrokeFilter === '6-10' && (strokes < 6 || strokes > 10)) return false;
-            if (searchStrokeFilter === '11-15' && (strokes < 11 || strokes > 15)) return false;
-            if (searchStrokeFilter === '16-20' && (strokes < 16 || strokes > 20)) return false;
-            if (searchStrokeFilter === '21+' && strokes < 21) return false;
-        }
-
-        // 分類フィルター
+        // 分類フィルター（漢字データの分類フィールドのハッシュタグと直接照合）
         if (searchClassFilter) {
-            const classKeywords = {
-                'nature': ['自然', '植物', '樹木', '草', '森', '木', '緑', '山', '花', '葉'],
-                'light': ['明るさ', '輝き', '晴れ', '光', '陽', '太陽', '明', '輝', '照', '煌'],
-                'water': ['海', '水', '川', '波', '流れ', '清', '洋', '源', '泉', '湖', '河'],
-                'strength': ['強さ', '力', '剛健', '勇敢', '勇気', '壮大', '武', '豪', '剛', '健'],
-                'kindness': ['優しさ', '慈愛', '愛情', '思いやり', '温かさ', '心', '愛', '恵', '慈', '仁'],
-                'wisdom': ['知性', '賢さ', '才能', '優秀', '学問', '智', '理', '聡', '哲', '賢'],
-                'beauty': ['美', '麗', '艶', '華', '彩', '綾', '雅', '麗しい'],
-                'tradition': ['伝統', '古風', '和', '雅', '古典', '歴史', '典', '礼']
-            };
-
-            const combined = (k['名前のイメージ'] || '') + (k['意味'] || '') + (k['分類'] || '') + (k['漢字'] || '');
-            const keywords = classKeywords[searchClassFilter] || [];
-            const matches = keywords.some(kw => combined.includes(kw));
-            if (!matches) return false;
+            if (!(k['分類'] || '').includes(searchClassFilter)) return false;
         }
 
+        return true;
+    });
+
+    // 漢字の重複排除
+    const seenKanji = new Set();
+    results = results.filter(k => {
+        if (seenKanji.has(k['漢字'])) return false;
+        seenKanji.add(k['漢字']);
         return true;
     });
 
@@ -3002,8 +3037,8 @@ ${answersText}
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
 window.proceedWithSoundReading = proceedWithSoundReading;
-window.setStrokeFilter = setStrokeFilter;
 window.setClassFilter = setClassFilter;
+window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;
 window.executeKanjiSearch = executeKanjiSearch;
 window.toggleSearchStock = toggleSearchStock;
 window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
