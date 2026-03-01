@@ -1514,6 +1514,9 @@ function reselectSlot(slotIdx) {
 function addMoreToSlot(slotIdx) {
     currentPos = slotIdx;
     currentIdx = 0;
+    // ビルドからの「追加する」は常に読みモードで動作させる
+    // （FREEモードのままだとsessionReading:'FREE'でストックされてしまうバグ防止）
+    isFreeSwipeMode = false;
     if (typeof loadStack === 'function') loadStack();
     changeScreen('scr-main');
 
