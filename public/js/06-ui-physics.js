@@ -31,11 +31,9 @@ function setupPhysics(card, data) {
         sy = e.clientY;
         dx = 0;
         dy = 0;
-        active = true;
 
-        // ポインターキャプチャを設定：カードがタッチを独占し、指が♥ボタン領域に
-        // ずれても♥ボタンに貫通しないようにする
-        card.setPointerCapture(e.pointerId);
+        // setPointerCaptureは削除（これがボタンへのタップを横取りしていた）
+        active = true;
         // スワイプ中はナビゲーションボタンへの貫通を防止
         const _nav = document.getElementById('bottom-nav');
         if (_nav) _nav.style.pointerEvents = 'none';
@@ -94,8 +92,8 @@ function setupPhysics(card, data) {
 
         // タップ判定（ほぼ動いていない）
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-            // ghost click → モーダルのLIKEボタン貫通を防ぐ
-            e.preventDefault();
+            // ghost click防止フラグをセット（manual()でチェック）
+            window._lastCardTap = Date.now();
             if (typeof showDetailByData === 'function') {
                 showDetailByData(data);
             }
@@ -139,6 +137,11 @@ function setupPhysics(card, data) {
  * ボタンからの手動スワイプ
  */
 function manual(dir) {
+    // カードタップ直後のghost clickによる誤発動を防ぐ（300ms以内は無視）
+    if (Date.now() - (window._lastCardTap || 0) < 300) {
+        console.log('PHYSICS: manual() blocked – ghost click guard');
+        return;
+    }
     const data = stack[currentIdx];
     if (data) {
         executeSwipe(dir, data);

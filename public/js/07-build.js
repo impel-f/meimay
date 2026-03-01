@@ -386,10 +386,15 @@ function openBuild() {
  * ビルドモードを切り替える
  */
 function setBuildMode(mode) {
+    const prevMode = buildMode;
     buildMode = mode;
-    fbChoices = [];
-    if (mode === 'free') shownFbSlots = 1;
-    selectedPieces = [];
+    // モードが実際に切り替わる場合のみ選択状態をリセット
+    // （すでにfreeモードの場合はfbChoices/shownFbSlotsを保持）
+    if (prevMode !== mode || mode === 'reading') {
+        fbChoices = [];
+        if (mode === 'free') shownFbSlots = 1;
+        selectedPieces = [];
+    }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
     renderBuildSelection();
@@ -489,26 +494,9 @@ function renderBuildSelection() {
 
         console.log(`Slot ${ idx } filtered items: `, items.length);
 
-        // フィルタリング結果が0件だが、同じslotに他の読み方の候補がある場合
-        const allSlotItems = liked.filter(item => item.slot === idx);
-        const uniqueKanji = Array.from(new Set(allSlotItems.map(i => i['漢字'])));
-
+        // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
-            // 他の読み方で選んだ漢字を自動で表示（ストックに追加）
-            const allSlotItems = liked.filter(item => item.slot === idx);
-            if (allSlotItems.length > 0) {
-                // 重複を排除してビルド候補として使う
-                const seen = new Set();
-                const mergedItems = allSlotItems.filter(item => {
-                    if (seen.has(item['漢字'])) return false;
-                    seen.add(item['漢字']);
-                    return true;
-                });
-                items = mergedItems;
-            } else {
-                // 本当に候補がない
-                scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
-            }
+            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
         }
 
         if (items.length > 0) {
@@ -1385,10 +1373,8 @@ function displayFortuneRankingModal(rankedList) {
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
 
-    // for-name が HTML に存在しない場合でもクラッシュしないよう null チェック
-    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML = (nameEl ? '' : '<p class="text-base font-bold text-center text-[#5d5444] mb-3">🏆 運勢ランキング TOP10</p>') +
-        '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
+    nameEl.innerText = '🏆 運勢ランキング TOP10';
+    gridEl.innerHTML = '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
     // 同スコア同順位（dense ranking）
