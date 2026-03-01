@@ -62,12 +62,9 @@ function renderSettingsScreen() {
     // Partner linking status
     let pairingStatusText = '未連携';
     let pairingStatusColor = '#a6967a';
-    if (typeof MeimayPairing !== 'undefined') {
-        const state = MeimayPairing.getState();
-        if (state.roomCode) {
-            pairingStatusText = `連携中（${state.roomCode}）`;
-            pairingStatusColor = '#4ade80';
-        }
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        pairingStatusText = `連携中（${MeimayPairing.roomCode}）`;
+        pairingStatusColor = '#4ade80';
     }
 
     container.innerHTML = `
