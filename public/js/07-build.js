@@ -119,11 +119,10 @@ function renderFreeBuildSection() {
     container.innerHTML = html + fortuneHtml;
 }
 
-// 漢字を選択
+// 漢字を選択（選び直しても他のスロットは保持）
 function selectFbKanji(slotIdx, kanji) {
     fbChoices[slotIdx] = kanji;
-    // 選んだスロットより後ろの選択は消す
-    fbChoices = fbChoices.slice(0, slotIdx + 1);
+    // 後ろのスロットは保持する（明示的に「解除」ボタンで削除するまで残す）
     renderFreeBuildSection();
 }
 
@@ -375,12 +374,28 @@ window.toggleReadingGroup = toggleReadingGroup;
  */
 function openBuild() {
     console.log("BUILD: Opening build screen");
+    window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
     selectedPieces = [];
     buildMode = 'reading';
     fbChoices = [];
     renderBuildSelection();
     changeScreen('scr-build');
 }
+
+/**
+ * 自由に選ぶモード完了後にビルド画面を自由組み立てモードで開く
+ */
+function openBuildFreeMode() {
+    console.log("BUILD: Opening build screen in free mode");
+    window._addMoreFromBuild = false;
+    selectedPieces = [];
+    buildMode = 'free';
+    fbChoices = [];
+    shownFbSlots = 1;
+    renderBuildSelection();
+    changeScreen('scr-build');
+}
+window.openBuildFreeMode = openBuildFreeMode;
 
 /**
  * ビルドモードを切り替える
@@ -1517,6 +1532,7 @@ function addMoreToSlot(slotIdx) {
     // ビルドからの「追加する」は常に読みモードで動作させる
     // （FREEモードのままだとsessionReading:'FREE'でストックされてしまうバグ防止）
     isFreeSwipeMode = false;
+    window._addMoreFromBuild = true; // HUDに「ビルドへ」ボタンを表示するフラグ
     if (typeof loadStack === 'function') loadStack();
     changeScreen('scr-main');
 

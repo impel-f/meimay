@@ -1216,10 +1216,17 @@ function startFreeSwiping() {
         list = applyImageTagFilter(list);
     }
 
-    // スコア計算＆ソート（少しランダム性を混ぜる）
+    // スコア計算＆ソート（imagePriorityを最優先、次にスコア降順、同スコアはランダム）
     if (typeof calculateKanjiScore === 'function') {
-        list.forEach(k => k.score = calculateKanjiScore(k));
+        list.forEach(k => {
+            k.score = calculateKanjiScore(k);
+            if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
+        });
         list.sort((a, b) => {
+            // imagePriority 1(一致) を優先（2=不一致）
+            const pa = a.imagePriority || 2;
+            const pb = b.imagePriority || 2;
+            if (pa !== pb) return pa - pb;
             const scoreDiff = (b.score || 0) - (a.score || 0);
             return scoreDiff === 0 ? Math.random() - 0.5 : scoreDiff;
         });
@@ -1229,7 +1236,7 @@ function startFreeSwiping() {
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
     // メインUIのスタックとしてセット (02-engine.js global)
-    stack = list.slice(0, 100);
+    stack = list.slice(0, 200); // イメージ一致分を十分確保するため200枚
     currentIdx = 0;
 
     changeScreen('scr-main');

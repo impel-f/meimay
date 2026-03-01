@@ -493,23 +493,23 @@ function applyImageTagFilter(kanjis) {
         return kanjis;
     }
 
-    // 04-ui-flow.js の VIBES 配列の id → #分類 値のマッピング
-    // VIBES label が #分類 値と一致するものはそのまま、ずれているものはデータ側の値も併記
+    // 04-ui-flow.js の VIBES 配列 id → #分類 値のマッピング
+    // データに実際に存在するタグのみ（古い #海・水 / #勇気 等は使わない）
     const tagKeywords = {
         'nature':       ['#自然'],
         'sky':          ['#天空'],
-        'water':        ['#水景', '#海・水'],       // データ側は #海・水 の場合あり
-        'color':        ['#色彩', '#花・彩'],        // データ側は #花・彩 の場合あり
+        'water':        ['#水景'],
+        'color':        ['#色彩'],
         'kindness':     ['#慈愛'],
-        'strength':     ['#勇壮', '#勇気'],          // データ側は #勇気 の場合あり
+        'strength':     ['#勇壮'],
         'intelligence': ['#知性'],
-        'soar':         ['#飛躍', '#繁栄'],          // 近いカテゴリを代替
+        'soar':         ['#飛躍'],
         'happiness':    ['#幸福'],
         'beauty':       ['#品格'],
-        'hope':         ['#希望', '#幸福'],          // 近いカテゴリを代替
-        'belief':       ['#信念', '#心・志'],        // データ側は #心・志 の場合あり
+        'hope':         ['#希望'],
+        'belief':       ['#信念'],
         'harmony':      ['#調和'],
-        'tradition':    ['#伝統', '#品格'],          // 近いカテゴリを代替
+        'tradition':    ['#伝統'],
         'music':        ['#奏楽'],
     };
 

@@ -61,14 +61,42 @@ function updateSwipeMainState() {
     if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
     if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
 
-    // Free Stroke override for headers
+    // モード別HUDボタン制御
+    const indicator = document.getElementById('pos-indicator');
+    const btnPrev = document.getElementById('btn-prev-char');
+    const btnNext = document.getElementById('btn-next-char');
+
     if (isFreeSwipeMode) {
-        const indicator = document.getElementById('pos-indicator');
-        const btnPrev = document.getElementById('btn-prev-char');
-        const btnNext = document.getElementById('btn-next-char');
+        // 自由に選ぶ: 戻る(→イメージ選択) + 完了(→ビルド/自由組み立て)
         if (indicator) indicator.innerText = '自由に選ぶ';
+        if (btnPrev) {
+            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.innerHTML = '&lt; 戻る';
+            btnPrev.onclick = () => {
+                isFreeSwipeMode = false;
+                changeScreen('scr-vibe');
+            };
+        }
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = '完了 &gt;';
+            btnNext.onclick = () => {
+                isFreeSwipeMode = false;
+                if (typeof openBuildFreeMode === 'function') openBuildFreeMode();
+                else openBuild();
+            };
+        }
+    } else if (window._addMoreFromBuild) {
+        // ビルドからの追加: 「ビルドへ」ボタンを右側に表示
         if (btnPrev) btnPrev.classList.add('opacity-0', 'pointer-events-none');
-        if (btnNext) btnNext.classList.add('opacity-0', 'pointer-events-none');
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = 'ビルドへ &gt;';
+            btnNext.onclick = () => {
+                window._addMoreFromBuild = false;
+                openBuild();
+            };
+        }
     }
 }
 
@@ -91,23 +119,25 @@ function render() {
             container.innerHTML = `
                 <div class="flex items-center justify-center h-full text-center px-6">
                     <div>
-                        <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
-                        <p class="text-sm text-[#a6967a] mb-6">これ以上候補が見つかりませんでした</p>
-                        <button onclick="finishFreeMode()" class="btn-gold py-4 px-8">終了する →</button>
+                        <p class="text-[#bca37f] font-bold text-lg mb-4">すべて確認しました</p>
+                        <p class="text-sm text-[#a6967a] mb-6">ビルドへ進んで名前を組み立てよう</p>
+                        <button onclick="isFreeSwipeMode=false; openBuildFreeMode()" class="btn-gold py-4 px-8">ビルドへ →</button>
                     </div>
                 </div>
             `;
             return;
         }
 
+        // addMoreToSlot から来た場合 / 最後の文字スロットの場合 → ビルドへ
+        const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div>
                     <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
                     <p class="text-sm text-[#a6967a] mb-6">設定を変更するか、<br>次の文字に進んでください</p>
-                    ${currentPos < segments.length - 1 ?
-                '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>' :
-                '<button onclick="openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>'
+                    ${goToBuild ?
+                '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>' :
+                '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>'
             }
                 </div>
             </div>
