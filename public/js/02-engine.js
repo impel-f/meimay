@@ -302,13 +302,14 @@ function loadStack() {
         }
 
         // 読みデータの取得（メジャー/マイナー区分）
+        // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
         const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x))
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
             .filter(x => x);
         const minorReadings = (k['伝統名のり'] || '')
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x))
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
             .filter(x => x);
         const readings = [...majorReadings, ...minorReadings];
 

@@ -2407,12 +2407,19 @@ function getReadingVariants(rawStr) {
         const hira = toHira(raw.trim());
         const variants = new Set();
         // 全体（送り仮名マーカーと非ひらがなを除去）
+        // 例: あか（るい） → あかるい、あ（かり） → あかり
         const full = hira.replace(/[^ぁ-んー]/g, '');
         if (full) variants.add(full);
-        // 語幹（"."より前の部分）
+        // 語幹: "." より前（例: "か.わる" → "か"）
         const dotIdx = hira.indexOf('.');
         if (dotIdx > 0) {
             const stem = hira.slice(0, dotIdx).replace(/[^ぁ-んー]/g, '');
+            if (stem) variants.add(stem);
+        }
+        // 語幹: "（" より前（例: "あか（るい）" → "あか"、"あ（かり）" → "あ"）
+        const parenIdx = hira.indexOf('（');
+        if (parenIdx > 0) {
+            const stem = hira.slice(0, parenIdx).replace(/[^ぁ-んー]/g, '');
             if (stem) variants.add(stem);
         }
         return [...variants];

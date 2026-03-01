@@ -136,13 +136,22 @@ function render() {
         .filter(x => x);
 
     // カードは最大6個（読みが多い漢字でレイアウト崩れを防ぐ）
-    const cardReadings = allReadings.slice(0, 6);
-    const moreCount = allReadings.length - cardReadings.length;
+    const MAX_CARD_READINGS = 6;
+    const cardReadings = allReadings.slice(0, MAX_CARD_READINGS);
+    // マッチした読みが6個以内にない場合は6個目と入れ替え
+    if (currentSearchReading) {
+        const inCard = cardReadings.some(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+        if (!inCard) {
+            const matchIdx = allReadings.findIndex(r => normalizeKana(r) === normalizeKana(currentSearchReading));
+            if (matchIdx >= MAX_CARD_READINGS) cardReadings[MAX_CARD_READINGS - 1] = allReadings[matchIdx];
+        }
+    }
+    const moreCount = Math.max(0, allReadings.length - MAX_CARD_READINGS);
     const readingsHTML = cardReadings.length > 0 ?
         cardReadings.map(r => {
             const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
             return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
-        }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個→詳細</span>` : '') :
+        }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個</span>` : '') :
         '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
@@ -589,6 +598,12 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
         if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字']);
+        }
+
+        // 漢字検索画面が表示中なら結果を即座に更新（❤アイコン反映）
+        const scrSearch = document.getElementById('scr-kanji-search');
+        if (scrSearch && scrSearch.classList.contains('active') && typeof executeKanjiSearch === 'function') {
+            executeKanjiSearch();
         }
 
         alert(isSuper ? '★スーパーライクでストックに追加しました！' : '♥ライクでストックに追加しました！');
