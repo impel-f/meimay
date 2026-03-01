@@ -1029,3 +1029,40 @@ body.has-ad-banner #universal-footer {
         opacity: 1;
     }
 }
+
+/* ============================================================
+   KANJI TAGS（スワイプカード・漢字詳細タグ）
+   ============================================================ */
+
+.kanji-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: rgba(93, 84, 68, 0.85);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+}
+
+/* タグカテゴリ別カラー */
+.tag-hope        { background: rgba(255, 244, 224, 0.7); color: #d48800; border-color: rgba(255, 158,   0, 0.25); }
+.tag-affection   { background: rgba(255, 240, 240, 0.7); color: #e05252; border-color: rgba(255, 107, 107, 0.25); }
+.tag-harmony     { background: rgba(232, 245, 233, 0.7); color: #4caf50; border-color: rgba(102, 187, 106, 0.25); }
+.tag-bravery     { background: rgba(255, 235, 238, 0.7); color: #c62828; border-color: rgba(211,  47,  47, 0.25); }
+.tag-intelligence{ background: rgba(227, 242, 253, 0.7); color: #1565c0; border-color: rgba( 30, 136, 229, 0.25); }
+.tag-leap        { background: rgba(243, 229, 245, 0.7); color: #8e24aa; border-color: rgba(171,  71, 188, 0.25); }
+.tag-conviction  { background: rgba(232, 234, 246, 0.7); color: #3949ab; border-color: rgba( 57,  68, 188, 0.25); }
+.tag-dignity     { background: rgba(239, 235, 233, 0.7); color: #4e342e; border-color: rgba( 78,  52,  46, 0.25); }
+.tag-tradition   { background: rgba(241, 248, 225, 0.7); color: #2e7d32; border-color: rgba( 46, 125,  50, 0.25); }
+.tag-fortune     { background: rgba(255, 253, 231, 0.7); color: #c6a000; border-color: rgba(253, 216,  53, 0.25); }
+.tag-colors      { background: rgba(252, 228, 236, 0.7); color: #c2185b; border-color: rgba(236,  64, 122, 0.25); }
+.tag-sky         { background: rgba(232, 234, 246, 0.7); color: #303f9f; border-color: rgba( 63,  81, 181, 0.25); }
+.tag-nature      { background: rgba(232, 245, 233, 0.7); color: #388e3c; border-color: rgba( 67, 160,  71, 0.25); }
+.tag-aquatic     { background: rgba(225, 245, 254, 0.7); color: #0277bd; border-color: rgba(  2, 136, 209, 0.25); }
+.tag-music       { background: rgba(243, 229, 245, 0.7); color: #6a1b9a; border-color: rgba(142,  36, 170, 0.25); }

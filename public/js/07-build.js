@@ -1373,8 +1373,11 @@ function displayFortuneRankingModal(rankedList) {
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
 
-    nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML = '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
+    // for-nameが存在しない場合もクラッシュしないようにnullチェック
+    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
+    gridEl.innerHTML =
+        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : '') +
+        '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
     // 同スコア同順位（dense ranking）

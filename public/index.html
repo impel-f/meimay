@@ -120,7 +120,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.19
+            メイメー v25.20
         </div>
     </aside>
 
@@ -229,28 +229,28 @@
          MAIN HOME SCREEN (restructured)
          ============================================================ -->
     <div id="scr-mode" class="screen">
-        <div class="flex flex-col items-center h-full overflow-y-auto pt-2 pb-10 w-full">
+        <div class="flex flex-col items-center w-full pt-1 pb-0">
             <!-- 今日の一字 -->
-            <div class="w-full max-w-sm px-6 mb-3 mt-0" id="todays-kanji-container">
+            <div class="w-full max-w-sm px-3 mb-2 mt-0" id="todays-kanji-container">
                 <div
-                    class="bg-white/70 rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[100px]">
+                    class="bg-white/70 rounded-2xl p-3 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[76px]">
                     <p class="text-[10px] font-bold text-[#bca37f] tracking-widest uppercase mb-2">準備中...</p>
                 </div>
             </div>
 
             <!-- Quick Actions: 名前を探す — Bento Grid -->
-            <div class="w-full max-w-sm px-3 mb-3">
-                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">名前を探す</div>
-                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 280px;">
+            <div class="w-full max-w-sm px-3 mb-2">
+                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">名前を探す</div>
+                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 240px;">
 
                     <!-- Left tall: 読みから漢字をさがす (most important) -->
                     <button onclick="startMode('reading')"
                         class="rounded-2xl flex flex-col items-center justify-center gap-2 p-4 text-center transition-all shadow-md hover:shadow-lg active:scale-[0.97] overflow-hidden"
-                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#fff5ee 0%,#ffd5b8 55%,#ff9a6c 100%);">
+                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#fdfaf5 0%,#f0e4c8 50%,#c8a060 100%);">
                         <div class="text-4xl">🔤</div>
                         <div>
-                            <div class="text-[13px] font-black leading-snug" style="color:#8b2500;">読みから<br>漢字をさがす</div>
-                            <div class="text-[10px] mt-1 leading-snug" style="color:#c04820;">読みが決まっている<br>方はこちら</div>
+                            <div class="text-[13px] font-black leading-snug" style="color:#5d3a0a;">読みから<br>漢字をさがす</div>
+                            <div class="text-[10px] mt-1 leading-snug" style="color:#9a6a2a;">読みが決まっている<br>方はこちら</div>
                         </div>
                     </button>
 
@@ -288,21 +288,21 @@
             </div>
 
             <!-- Tools: 漢字検索・姓名判断・ランキング 3つ横並び -->
-            <div class="w-full max-w-sm px-6 mb-4">
-                <div class="text-xs font-bold text-[#8b7e66] mb-2 ml-1">ツール</div>
+            <div class="w-full max-w-sm px-3 mb-1">
+                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">ツール</div>
                 <div class="grid grid-cols-3 gap-3">
                     <button onclick="openKanjiSearch()"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">🔎</div>
                         <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
                     </button>
                     <button onclick="startMode('diagnosis')"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">🔮</div>
                         <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
                     </button>
                     <button onclick="openRanking()"
-                        class="bg-white/60 hover:bg-white p-4 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
+                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
                         <div class="text-2xl mb-1">👑</div>
                         <div class="text-xs text-[#5d5444] font-bold">ランキング</div>
                     </button>
