@@ -256,7 +256,6 @@ function initSoundMode() {
     startUniversalSwipe('sound', popularNames, {
         title: '響きで選ぶ',
         subtitle: '気に入った名前の響きをスワイプ',
-        disableSuper: true,
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
                 addReadingToStock(item.reading);
@@ -516,7 +515,6 @@ function processNickname() {
     startUniversalSwipe('nickname', candidates, {
         title: '響きをひろげる',
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
-        disableSuper: true,
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
                 addReadingToStock(item.reading, nicknameBaseReading);

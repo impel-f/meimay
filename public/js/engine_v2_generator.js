@@ -16,14 +16,27 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
 
     if (!nickname) return [];
 
-    // Ensure data is loaded
-    if (typeof yomiSearchData === 'undefined' || !yomiSearchData || yomiSearchData.length === 0) {
-        console.warn("GEN: yomiSearchData not available yet.");
+    // Prefer readingsData which has correct tags and gender, fallback to yomiSearchData
+    let sourceData = [];
+    if (typeof readingsData !== 'undefined' && readingsData && readingsData.length > 0) {
+        // map readingsData to the format expected by the generator (yomi, count, popular)
+        sourceData = readingsData.map(r => ({
+            yomi: r.reading,
+            count: r.count,
+            popular: r.isPopular,
+            gender: r.gender || (r.isNeutral ? 'neutral' : ''),
+            examples: r.examples ? r.examples.split(/[,、]/).map(x => x.trim()).filter(x => x) : [],
+            tags: r.tags || []
+        }));
+    } else if (typeof yomiSearchData !== 'undefined' && yomiSearchData && yomiSearchData.length > 0) {
+        sourceData = yomiSearchData;
+    } else {
+        console.warn("GEN: No data available for generation.");
         return [];
     }
 
     // Filter by gender
-    let filteredData = yomiSearchData.filter(item => {
+    let filteredData = sourceData.filter(item => {
         if (gender === 'male' && item.gender === 'female') return false;
         if (gender === 'female' && item.gender === 'male') return false;
         return true;
@@ -108,22 +121,22 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
         }
     });
 
-    // Append tags and examples from readingsData if available
-    if (typeof readingsData !== 'undefined' && readingsData) {
+    // Tags and examples are already attached if using readingsData, but we ensure it for fallback
+    if (sourceData === yomiSearchData && typeof readingsData !== 'undefined' && readingsData) {
         uniqueCandidates.forEach(cand => {
             const rd = readingsData.find(r => r.reading === cand.reading);
             if (rd) {
                 cand.tags = rd.tags || [];
-                cand.examples = rd.examples ? rd.examples.split(/[,、]/).map(x => x.trim()).filter(x => x) : (cand.examples || []);
+                // cand.examples already handled above or can be supplemented
             } else {
                 cand.tags = [];
-                if (typeof cand.examples === 'string') {
-                    cand.examples = cand.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
-                }
             }
         });
     } else {
-        uniqueCandidates.forEach(cand => cand.tags = []);
+        uniqueCandidates.forEach(cand => {
+            const src = sourceData.find(r => r.yomi === cand.reading);
+            cand.tags = src ? src.tags || [] : [];
+        });
     }
 
     // AI候補リオーダー (if exists)
