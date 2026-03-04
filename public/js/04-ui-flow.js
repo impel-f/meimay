@@ -639,8 +639,11 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     SwipeState.config = configOverride;
 
     // UI Setup
-    document.getElementById('uni-swipe-title').innerText = configOverride.title || 'スワイプ';
-    document.getElementById('uni-swipe-subtitle').innerText = configOverride.subtitle || '';
+    const elTitle = document.getElementById('uni-swipe-title');
+    if (elTitle) elTitle.innerText = configOverride.title || 'スワイプ';
+
+    const elSubtitle = document.getElementById('uni-swipe-subtitle');
+    if (elSubtitle) elSubtitle.innerText = configOverride.subtitle || '';
 
     changeScreen('scr-swipe-universal');
 
