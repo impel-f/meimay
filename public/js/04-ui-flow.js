@@ -668,28 +668,42 @@ let selectedBaseKanjis = [];
 // UI ACTIONS
 
 function renderUniversalCard() {
-    const container = document.getElementById('uni-swipe-container');
-    container.innerHTML = `
-        <div id="uni-swipe-msg" class="absolute inset-0 flex items-center justify-center text-[#bca37f] hidden z-50 bg-white/90">
-             <div class="text-center">
-                <p class="mb-4">チェック完了！</p>
-                <button onclick="showUniversalList()" class="btn-gold px-6 py-3 shadow-md">リストを確認</button>
-                 <button onclick="continueUniversalSwipe()" class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-4 block mx-auto">もっと見る</button>
-            </div>
-        </div>
-    `;
+    const container = document.getElementById('uni-stack');
+
+    // Counter
+    const elCounter = document.getElementById('uni-swipe-counter');
+    if (elCounter) {
+        elCounter.innerText = `選:${SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length} / 残:${Math.max(0, SwipeState.candidates.length - SwipeState.currentIndex)}`;
+    }
 
     if (SwipeState.currentIndex >= SwipeState.candidates.length) {
-        document.getElementById('uni-swipe-msg').classList.remove('hidden');
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-center px-6">
+                <div class="text-[60px] mb-4">✨</div>
+                <p class="text-[#bca37f] font-bold text-lg mb-4">チェック完了！</p>
+                <p class="text-sm text-[#a6967a] mb-6">気になった名前を確認しましょう</p>
+                <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">リストを確認 →</button>
+                ${!SwipeState.config.disableMore ? `<button onclick="continueUniversalSwipe()" class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-2 mx-auto block">もっと見る</button>` : ''}
+            </div>
+        `;
+        const actionBtns = document.getElementById('uni-swipe-action-btns');
+        if (actionBtns) actionBtns.classList.add('hidden');
         return;
     }
 
-    const item = SwipeState.candidates[SwipeState.currentIndex];
-    const card = document.createElement('div');
-    card.className = 'uni-card absolute inset-4 bg-white rounded-3xl shadow-lg border border-[#ede5d8] flex flex-col items-center justify-center transition-transform duration-300 select-none cursor-grab active:cursor-grabbing';
-    card.style.zIndex = 10;
+    const actionBtns = document.getElementById('uni-swipe-action-btns');
+    if (actionBtns) actionBtns.classList.remove('hidden');
 
-    // Render content
+    const item = SwipeState.candidates[SwipeState.currentIndex];
+
+    // the card element
+    container.innerHTML = '';
+    const card = document.createElement('div');
+    card.className = 'card absolute inset-0 bg-[#fdfaf5] shadow-xl rounded-3xl flex flex-col justify-center items-center px-4 w-full h-full';
+    card.style.touchAction = 'none';
+    card.style.willChange = 'transform';
+    card.style.border = '1px solid #ede5d8';
+
     card.innerHTML = SwipeState.config.renderCard(item);
 
     container.appendChild(card);
@@ -699,55 +713,68 @@ function renderUniversalCard() {
 }
 
 function initUniversalSwipePhysics(card) {
-    let startX = 0;
-    let currentX = 0;
-    let isDragging = false;
-    const threshold = 100;
+    let sx, sy, dx = 0, dy = 0, active = false;
 
-    const onStart = (clientX, clientY) => {
-        startX = clientX;
-        isDragging = true;
+    const bL = document.getElementById('badge-like-uni');
+    const bN = document.getElementById('badge-nope-uni');
+    const bS = document.getElementById('badge-super-uni');
+
+    card.onpointerdown = e => {
+        if (e.target.closest('button') || e.target.closest('#uni-swipe-action-btns')) return;
+        sx = e.clientX;
+        sy = e.clientY;
+        dx = dy = 0;
+        active = true;
+        card.style.willChange = 'transform, opacity';
         card.style.transition = 'none';
-        card.style.cursor = 'grabbing';
+        card.style.zIndex = '1000';
     };
 
-    const onMove = (clientX, clientY) => {
-        if (!isDragging) return;
-        currentX = clientX - startX;
-        const rotate = currentX * 0.08;
-        card.style.transform = `translate(${currentX}px, ${Math.abs(currentX) * 0.05}px) rotate(${rotate}deg)`;
+    card.onpointermove = e => {
+        if (!active) return;
+        dx = e.clientX - sx;
+        dy = e.clientY - sy;
 
-        if (currentX > 50) card.style.borderColor = '#81c995';
-        else if (currentX < -50) card.style.borderColor = '#f28b82';
-        else card.style.borderColor = '#ede5d8';
+        requestAnimationFrame(() => {
+            if (!active) return;
+            const rotate = dx / 15;
+            card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
+
+            if (bS) bS.style.opacity = dy < -40 ? Math.min(0.9, (Math.abs(dy) - 40) / 80) : 0;
+            if (bL) bL.style.opacity = dx > 30 ? Math.min(0.9, (dx - 30) / 80) : 0;
+            if (bN) bN.style.opacity = dx < -30 ? Math.min(0.9, (Math.abs(dx) - 30) / 80) : 0;
+        });
     };
 
-    const onEnd = () => {
-        if (!isDragging) return;
-        isDragging = false;
-        card.style.cursor = 'grab';
-        card.style.borderColor = '#ede5d8';
+    card.onpointerup = e => {
+        if (!active) return;
+        active = false;
+        try { card.releasePointerCapture(e.pointerId); } catch (err) { }
+        card.style.willChange = 'auto';
 
-        if (currentX > threshold) {
+        [bL, bN, bS].forEach(b => { if (b) b.style.opacity = 0; });
+
+        const threshold = 100;
+
+        if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+            resetCard();
+        } else if (dy < -threshold && !SwipeState.config.disableSuper) {
+            universalSwipeAction('super');
+        } else if (dx > threshold) {
             universalSwipeAction('like');
-        } else if (currentX < -threshold) {
+        } else if (dx < -threshold) {
             universalSwipeAction('nope');
         } else {
-            card.style.transition = 'all 0.4s cubic-bezier(0.25, 1, 0.5, 1)';
-            card.style.transform = 'translate(0, 0) rotate(0)';
+            resetCard();
         }
-        currentX = 0;
     };
 
-    card.addEventListener('touchstart', (e) => onStart(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    card.addEventListener('touchmove', (e) => onMove(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    card.addEventListener('touchend', onEnd);
-    card.addEventListener('mousedown', (e) => { onStart(e.clientX, e.clientY); e.preventDefault(); });
-    const mM = (e) => { if (isDragging) onMove(e.clientX, e.clientY); };
-    const mU = () => { if (isDragging) onEnd(); };
-    window.addEventListener('mousemove', mM);
-    window.addEventListener('mouseup', mU);
-    card._cleanup = () => { window.removeEventListener('mousemove', mM); window.removeEventListener('mouseup', mU); };
+    card.onpointercancel = () => { active = false; };
+
+    function resetCard() {
+        card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        card.style.transform = 'translate3d(0,0,0) rotate(0) scale(1)';
+    }
 }
 
 function universalSwipeAction(action) {
@@ -789,19 +816,19 @@ function universalSwipeAction(action) {
     }
 
     // Animation
-    const container = document.getElementById('uni-swipe-container');
-    const card = container.querySelector('.uni-card');
+    const container = document.getElementById('uni-stack');
+    const card = container.querySelector('.card');
     if (card) {
         let x = (action === 'like' || action === 'super') ? 500 : -500;
         let r = (action === 'like' || action === 'super') ? 20 : -20;
         if (action === 'super') { x = 0; r = 0; }
 
-        card.style.transition = 'all 0.4s ease';
+        card.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
         if (action === 'super') {
-            card.style.transform = 'translateY(-500px) scale(1.2)';
+            card.style.transform = `translateY(-500px) scale(1.2)`;
             card.style.opacity = '0';
         } else {
-            card.style.transform = `translate(${x}px, 50px) rotate(${r}deg)`;
+            card.style.transform = `translate3d(${x}px, 50px, 0) rotate(${r}deg)`;
             card.style.opacity = '0';
         }
 
@@ -809,6 +836,9 @@ function universalSwipeAction(action) {
             SwipeState.currentIndex++;
             renderUniversalCard();
         }, 300);
+    } else {
+        SwipeState.currentIndex++;
+        renderUniversalCard();
     }
 }
 

@@ -1,0 +1,29 @@
+[
+  {
+    "description": "",
+    "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@caff226ed96db00961b7046a5dc9f8db004e7fbb/inspector.html?ws=127.0.0.1:9222/devtools/page/E91D496DE6F124DCE9FC82B7538AD4D0",
+    "id": "E91D496DE6F124DCE9FC82B7538AD4D0",
+    "title": "meimay - Antigravity - Task",
+    "type": "page",
+    "url": "vscode-file://vscode-app/c:/Users/8mits.DESKTOP-4N9QJ6A/AppData/Local/Programs/Antigravity/resources/app/out/vs/code/electron-browser/workbench/workbench.html",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/E91D496DE6F124DCE9FC82B7538AD4D0"
+  },
+  {
+    "description": "",
+    "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@caff226ed96db00961b7046a5dc9f8db004e7fbb/inspector.html?ws=127.0.0.1:9222/devtools/page/9884386C3EDA9191FD718E170D35BF1E",
+    "id": "9884386C3EDA9191FD718E170D35BF1E",
+    "title": "Launchpad",
+    "type": "page",
+    "url": "vscode-file://vscode-app/c:/Users/8mits.DESKTOP-4N9QJ6A/AppData/Local/Programs/Antigravity/resources/app/out/vs/code/electron-browser/workbench/workbench-jetski-agent.html",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/9884386C3EDA9191FD718E170D35BF1E"
+  },
+  {
+    "description": "",
+    "devtoolsFrontendUrl": "https://chrome-devtools-frontend.appspot.com/serve_rev/@caff226ed96db00961b7046a5dc9f8db004e7fbb/inspector.html?ws=127.0.0.1:9222/devtools/page/15557FBAB25B9F7266E20DAE818553BC",
+    "id": "15557FBAB25B9F7266E20DAE818553BC",
+    "title": "TextMateWorker",
+    "type": "worker",
+    "url": "blob:vscode-file://vscode-app/bd5e3ba9-d16f-48d6-a3c1-c6e958552c1c",
+    "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/15557FBAB25B9F7266E20DAE818553BC"
+  }
+]

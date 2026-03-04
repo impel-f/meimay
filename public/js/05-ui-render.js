@@ -654,4 +654,83 @@ function closeKanjiDetail() {
 window.updateSwipeMainState = updateSwipeMainState;
 window.showKanjiDetail = showKanjiDetail;
 
-console.log("UI RENDER: Module loaded (v14.2 - showKanjiDetail global)");
+/**
+ * ホーム画面のプロファイルカードを更新
+ */
+function renderHomeProfile() {
+    // 1. スワイプした総数の計算（簡易推計）
+    // 厳密なスワイプ履歴がないため、履歴数(reading_history) × 平均スワイプ数 ＋ LIKE数 で推計
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8; // 1度あたり8スワイプと仮定
+        }
+    } catch (e) { }
+    // ストック数などを適当に足し合わせる
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+
+    // もしゼロなら、新規ぽいので仮でいくつか設定したり0にしたりする
+    const elSwiped = document.getElementById('home-swiped-count');
+    if (elSwiped) elSwiped.innerText = swipedCount + '個';
+
+    // 2. 気に入った名前（保存済み名前）
+    const savedCount = (typeof getSavedNames === 'function') ? getSavedNames().length : (window.savedNames ? window.savedNames.length : 0);
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount + '個';
+
+    // 3. 漢字の数
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount + '個';
+
+    // バッジ連動
+    const elBadge = document.getElementById('home-stock-badge');
+    if (elBadge) {
+        elBadge.innerText = savedCount > 0 ? savedCount : '';
+        elBadge.classList.toggle('hidden', savedCount === 0);
+    }
+
+    // 4. あなたの好みの計算 (LIKEタグ集計)
+    const elPref = document.getElementById('home-preference-tags');
+    if (elPref) {
+        if (!liked || liked.length === 0) {
+            elPref.innerText = 'まだデータがありません';
+        } else {
+            const tagCounts = {};
+            liked.forEach(k => {
+                const tags = getUnifiedTags(k['分類'] || '');
+                tags.forEach(t => {
+                    if (t !== '#その他') {
+                        tagCounts[t] = (tagCounts[t] || 0) + 1;
+                    }
+                });
+            });
+
+            const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+
+            if (sortedTags.length === 0) {
+                elPref.innerText = '標準的';
+            } else if (sortedTags.length === 1) {
+                const t1 = KANJI_CATEGORIES[sortedTags[0][0]]?.label || sortedTags[0][0].replace('#', '');
+                elPref.innerText = t1;
+            } else {
+                const t1 = KANJI_CATEGORIES[sortedTags[0][0]]?.label || sortedTags[0][0].replace('#', '');
+                const t2 = KANJI_CATEGORIES[sortedTags[1][0]]?.label || sortedTags[1][0].replace('#', '');
+                elPref.innerText = `${t1} × ${t2}`;
+            }
+        }
+    }
+}
+window.renderHomeProfile = renderHomeProfile;
+
+// 初期化時にも呼ばれるようにする
+setTimeout(() => {
+    const curScreen = document.querySelector('.screen.active');
+    if (curScreen && curScreen.id === 'scr-mode') {
+        renderHomeProfile();
+    }
+}, 500);
+
+console.log("UI RENDER: Module loaded (v14.3 - Added renderHomeProfile)");

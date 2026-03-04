@@ -1,0 +1,104 @@
+/* 漢字分類タグのスタイル定義 */
+.tag-hope {
+    background-color: #FFF4E0;
+    color: #FF9E00;
+    border: 1px solid rgba(255, 158, 0, 0.2);
+}
+
+.tag-affection {
+    background-color: #FFF0F0;
+    color: #FF6B6B;
+    border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+.tag-harmony {
+    background-color: #E8F5E9;
+    color: #66BB6A;
+    border: 1px solid rgba(102, 187, 106, 0.2);
+}
+
+.tag-bravery {
+    background-color: #FFEBEE;
+    color: #D32F2F;
+    border: 1px solid rgba(211, 47, 47, 0.2);
+}
+
+.tag-intelligence {
+    background-color: #E3F2FD;
+    color: #1E88E5;
+    border: 1px solid rgba(30, 136, 229, 0.2);
+}
+
+.tag-leap {
+    background-color: #F3E5F5;
+    color: #AB47BC;
+    border: 1px solid rgba(171, 71, 188, 0.2);
+}
+
+.tag-conviction {
+    background-color: #E8EAF6;
+    color: #3944BC;
+    border: 1px solid rgba(57, 68, 188, 0.2);
+}
+
+.tag-dignity {
+    background-color: #EFEBE9;
+    color: #4E342E;
+    border: 1px solid rgba(78, 52, 46, 0.2);
+}
+
+.tag-tradition {
+    background-color: #F1F8E1;
+    color: #2E7D32;
+    border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.tag-fortune {
+    background-color: #FFFDE7;
+    color: #FDD835;
+    border: 1px solid rgba(253, 216, 53, 0.2);
+}
+
+.tag-colors {
+    background-color: #FCE4EC;
+    color: #EC407A;
+    border: 1px solid rgba(236, 64, 122, 0.2);
+}
+
+.tag-sky {
+    background-color: #E8EAF6;
+    color: #3F51B5;
+    border: 1px solid rgba(63, 81, 181, 0.2);
+}
+
+.tag-nature {
+    background-color: #E8F5E9;
+    color: #43A047;
+    border: 1px solid rgba(67, 160, 71, 0.2);
+}
+
+.tag-aquatic {
+    background-color: #E1F5FE;
+    color: #0288D1;
+    border: 1px solid rgba(2, 136, 209, 0.2);
+}
+
+.tag-music {
+    background-color: #F3E5F5;
+    color: #8E24AA;
+    border: 1px solid rgba(142, 36, 170, 0.2);
+}
+
+.kanji-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 800;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+}
