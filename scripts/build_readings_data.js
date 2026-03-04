@@ -40,7 +40,8 @@ try {
             examples: String(row['名前例'] || '').trim(),
             gender: genderStr,
             isNeutral: String(row['中性フラグ'] || '').trim() !== '' || rawGender === '中性',
-            tags: tagsArray
+            tags: tagsArray,
+            adana: String(row['あだな'] || '').trim()
         };
     }).filter(item => item.reading.length > 0);
 

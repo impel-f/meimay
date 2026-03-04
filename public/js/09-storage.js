@@ -11,6 +11,7 @@ const StorageBox = {
     KEY_SETTINGS: 'naming_app_settings',
     KEY_KANJI_AI_CACHE: 'naming_app_kanji_ai_cache',
     KEY_USER_TAGS: 'meimay_user_tags',
+    KEY_NOPED: 'meimay_noped',
 
     /**
      * 全状態を保存
@@ -30,6 +31,7 @@ const StorageBox = {
                 prioritizeFortune: prioritizeFortune
             }));
             localStorage.setItem(this.KEY_USER_TAGS, JSON.stringify(userTags));
+            localStorage.setItem(this.KEY_NOPED, JSON.stringify(Array.from(noped)));
 
             console.log("STORAGE: State saved successfully");
             return true;
@@ -94,10 +96,18 @@ const StorageBox = {
                 userTags = JSON.parse(tagsData);
             }
 
+            // NOPED (除外リスト)
+            const nopedData = localStorage.getItem(this.KEY_NOPED);
+            if (nopedData) {
+                const arr = JSON.parse(nopedData);
+                noped = new Set(arr);
+            }
+
             console.log("STORAGE: State restored successfully");
             console.log(`  - Liked: ${liked.length} items`);
             console.log(`  - Saved: ${savedNames.length} names`);
             console.log(`  - Surname: ${surnameStr || '(none)'}`);
+            console.log(`  - Noped: ${noped.size} items`);
 
             return true;
         } catch (e) {
@@ -115,6 +125,16 @@ const StorageBox = {
             return true;
         } catch (e) {
             console.error("STORAGE: Save liked failed", e);
+            return false;
+        }
+    },
+
+    saveNoped: function () {
+        try {
+            localStorage.setItem(this.KEY_NOPED, JSON.stringify(Array.from(noped)));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: Save noped failed", e);
             return false;
         }
     },

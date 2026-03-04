@@ -310,27 +310,123 @@ function initSoundMode() {
 }
 
 /**
- * 人気名前リスト生成 (タグスコアリングで動的ソート)
+ * あだな（ニックネーム）モード
+ * ニックネームの響きから好きなものをスワイプで選ぶ
  */
-function generatePopularNames(gender) {
-    if (!readingsData || readingsData.length === 0) {
-        console.warn("UI_FLOW: readingsData is empty. Trying fallback to yomiSearchData?");
-        // フォールバック
-        if (!yomiSearchData || yomiSearchData.length === 0) return [];
-        return yomiSearchData.slice(0, 500).map(item => ({
-            reading: item.yomi,
-            charCount: item.yomi.length,
-            type: item.popular ? '人気' : '候補',
-            examples: item.examples || [],
-            desc: `${item.count}人の先輩ママが選びました`,
-            rawCount: item.count,
-            popular: item.popular,
-            tags: []
-        }));
+function initAdanaMode() {
+    console.log("UI_FLOW: initAdanaMode");
+
+    const adanaNames = generateAdanaNames(gender);
+
+    if (adanaNames.length === 0) {
+        alert('あだなデータが準備できていません。\nしばらく待ってから再度お試しください。');
+        return;
     }
 
-    // まずスコアを計算して、Mapで保持させる
-    let scoredList = readingsData.map(item => {
+    startUniversalSwipe('adana', adanaNames, {
+        title: 'あだなで選ぶ',
+        subtitle: '呼ばれたい「あだな」をスワイプ',
+        onLike: (item) => {
+            // 選んだあだなの最初の読みをin-nicknameに入れて次へ進む処理へ
+            // ここでは一旦ストックせずに、直接1つのあだなを選んで進む形にするか、
+            // likesに溜めて最後に選ばせる形にする。
+            // 既存の動きに合わせるなら "複数選んで最後に1つ選択" にするため、標準の動きに任せる。
+        },
+        onNext: (selectedItems) => {
+            // リスト画面で「完了」または1つ選択した後に呼ばれる
+            if (selectedItems && selectedItems.length > 0) {
+                // 最初の1つをin-nicknameに入れてprocessNickname相当の処理を呼ぶ
+                const chosen = selectedItems[0];
+                const inputEl = document.getElementById('in-nickname');
+                if (inputEl) inputEl.value = chosen.reading;
+
+                // 接頭辞（〇〇から始まる）固定で次へ進める
+                nicknamePosition = 'prefix';
+                nicknameBaseReading = toHira(chosen.reading);
+
+                // generateNameCandidatesを呼ぶ代わりに既存のフロー(processNicknameの後半)を実行
+                const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition);
+                if (candidates.length === 0) {
+                    alert('候補が見つかりませんでした。');
+                    return;
+                }
+
+                // 次の画面へ（響きを広げる）
+                startUniversalSwipe('nickname', candidates, {
+                    title: '響きをひろげる',
+                    subtitle: `「${nicknameBaseReading}」をベースにした候補`,
+                    onLike: (item) => {
+                        if (typeof addReadingToStock === 'function') {
+                            addReadingToStock(item.reading, nicknameBaseReading);
+                        }
+                    },
+                    renderCard: (item) => {
+                        let tagsHtml = '';
+                        if (item.tags && item.tags.length > 0) {
+                            tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">';
+                            item.tags.forEach(t => {
+                                let style = typeof getTagStyle === 'function' ? getTagStyle(t) : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+                                tagsHtml += `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color: ${style.bgColor}; color: ${style.textColor}; border-color: ${style.borderColor};">${t}</span>`;
+                            });
+                            tagsHtml += '</div>';
+                        }
+                        return `
+                            ${tagsHtml}
+                            <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                            <div class="w-full px-4 mt-2">
+                                <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
+                                    <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                                    <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
+                                        ${item.examples && item.examples.length > 0 ? item.examples.slice(0, 5).map(e => `<span class="px-1">${e}</span>`).join('') : '?'}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+            }
+        },
+        renderCard: (item) => {
+            let tagsHtml = '';
+            if (item.tags && item.tags.length > 0) {
+                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">';
+                item.tags.forEach(t => {
+                    let style = typeof getTagStyle === 'function' ? getTagStyle(t) : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+                    tagsHtml += `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color: ${style.bgColor}; color: ${style.textColor}; border-color: ${style.borderColor};">${t}</span>`;
+                });
+                tagsHtml += '</div>';
+            }
+
+            return `
+                ${tagsHtml}
+                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                <div class="w-full px-4 mt-2">
+                    <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
+                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">代表的な名前</p>
+                        <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
+                            ${item.examples.slice(0, 3).map(e => `<span class="px-1">${e}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+/**
+ * あだなリスト生成
+ */
+function generateAdanaNames(genderMode) {
+    if (!readingsData || readingsData.length === 0) return [];
+
+    let adanaMap = new Map();
+
+    readingsData.forEach(item => {
+        if (!item.adana) return; // あだなが無いものはスキップ
+        if (typeof noped !== 'undefined' && noped.has(item.adana)) return; // NOPEスキップ
+        if (genderMode === 'male' && item.gender === 'female') return;
+        if (genderMode === 'female' && item.gender === 'male') return;
+
         let score = 0;
         if (item.tags && item.tags.length > 0) {
             item.tags.forEach(t => {
@@ -338,26 +434,92 @@ function generatePopularNames(gender) {
             });
         }
 
-        let typeText = item.isPopular ? '人気' : (item.count > 10 ? '定番' : '候補');
-
-        // プレーンな例を配列化（"大翔, 悠翔" -> ["大翔", "悠翔"]）
-        let exampleArr = [];
-        if (item.examples) {
-            exampleArr = item.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
+        if (!adanaMap.has(item.adana)) {
+            adanaMap.set(item.adana, {
+                reading: item.adana,
+                score: score,
+                count: item.count,
+                tags: item.tags || [],
+                examples: [item.reading], // 実際の名前の読みを例として入れる
+            });
+        } else {
+            let existing = adanaMap.get(item.adana);
+            existing.count += item.count;
+            existing.score = Math.max(existing.score, score);
+            // タグマージ
+            if (item.tags) {
+                item.tags.forEach(t => {
+                    if (!existing.tags.includes(t)) existing.tags.push(t);
+                });
+            }
+            if (existing.examples.length < 5 && !existing.examples.includes(item.reading)) {
+                existing.examples.push(item.reading);
+            }
         }
-
-        return {
-            reading: item.reading,
-            charCount: item.reading.length,
-            type: typeText,
-            examples: exampleArr,
-            desc: `${item.count}人が名付けに選びました`,
-            rawCount: item.count,
-            popular: item.isPopular,
-            tags: item.tags || [],
-            score: score
-        };
     });
+
+    let adanaList = Array.from(adanaMap.values());
+    adanaList.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        return b.count - a.count;
+    });
+
+    return adanaList.slice(0, 500);
+}
+
+/**
+ * 人気名前リスト生成 (タグスコアリングで動的ソート)
+ */
+function generatePopularNames(gender) {
+    if (!readingsData || readingsData.length === 0) {
+        console.warn("UI_FLOW: readingsData is empty. Trying fallback to yomiSearchData?");
+        // フォールバック
+        if (!yomiSearchData || yomiSearchData.length === 0) return [];
+        return yomiSearchData
+            .filter(item => !(typeof noped !== 'undefined' && noped.has(item.yomi)))
+            .slice(0, 500).map(item => ({
+                reading: item.yomi,
+                charCount: item.yomi.length,
+                type: item.popular ? '人気' : '候補',
+                examples: item.examples || [],
+                desc: `${item.count}人の先輩ママが選びました`,
+                rawCount: item.count,
+                popular: item.popular,
+                tags: []
+            }));
+    }
+
+    // まずスコアを計算して、Mapで保持させる
+    let scoredList = readingsData
+        .filter(item => !(typeof noped !== 'undefined' && noped.has(item.reading)))
+        .map(item => {
+            let score = 0;
+            if (item.tags && item.tags.length > 0) {
+                item.tags.forEach(t => {
+                    if (userTags[t]) score += userTags[t];
+                });
+            }
+
+            let typeText = item.isPopular ? '人気' : (item.count > 10 ? '定番' : '候補');
+
+            // プレーンな例を配列化（"大翔, 悠翔" -> ["大翔", "悠翔"]）
+            let exampleArr = [];
+            if (item.examples) {
+                exampleArr = item.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
+            }
+
+            return {
+                reading: item.reading,
+                charCount: item.reading.length,
+                type: typeText,
+                examples: exampleArr,
+                desc: `${item.count}人が名付けに選びました`,
+                rawCount: item.count,
+                popular: item.isPopular,
+                tags: item.tags || [],
+                score: score
+            };
+        });
 
     // 動的ソート: スコア降順 > 人気フラグ > 件数降順
     scoredList.sort((a, b) => {
@@ -710,7 +872,7 @@ function renderUniversalCard() {
         }
     }
 
-    card.className = 'card absolute inset-0 shadow-xl rounded-3xl flex flex-col justify-center items-center px-4 w-full h-full';
+    card.className = 'card shadow-xl rounded-3xl flex flex-col justify-center items-center px-4';
     card.style.background = bgStyle;
     card.style.touchAction = 'none';
     card.style.willChange = 'transform';
@@ -812,6 +974,15 @@ function universalSwipeAction(action) {
     // AI: 好みの音パターン学習（nickname / sound モード共通）
     if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
         learnSoundPreference(item, action);
+    }
+
+    if (action === 'nope') {
+        if (item['漢字']) {
+            noped.add(item['漢字']);
+        } else if (item.reading) {
+            noped.add(item.reading);
+        }
+        if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
     // タグスコア更新（soundモード等、タグを持っている候補の場合）
@@ -3052,6 +3223,7 @@ ${answersText}
 
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
+window.initAdanaMode = initAdanaMode;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
 window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;

@@ -460,14 +460,26 @@
                 </label>
             </div>
 
-            <button onclick="processNickname()" class="btn-gold py-4 shadow-xl w-full">次へ →</button>
-            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-3 hover:underline">戻る</button>
+            <button onclick="processNickname()" class="btn-gold py-4 shadow-xl w-full mb-3">次へ →</button>
+
+            <div class="relative flex items-center mb-4">
+                <div class="flex-grow border-t border-[#ede5d8]"></div>
+                <span class="flex-shrink-0 mx-4 text-[#a6967a] text-xs font-bold">または</span>
+                <div class="flex-grow border-t border-[#ede5d8]"></div>
+            </div>
+
+            <button onclick="initAdanaMode()"
+                class="w-full py-3 bg-white text-[#bca37f] border-2 border-[#bca37f] rounded-2xl font-bold shadow-sm hover:bg-[#fffbeb] transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span>あだなをスワイプして探す</span>
+                <span>👉</span>
+            </button>
+            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-4 hover:underline">戻る</button>
         </div>
     </div>
 
     <!-- UNIVERSAL SWIPE SCREEN -->
     <div id="scr-swipe-universal" class="screen">
-        <div id="uni-session-content" class="w-full flex-1 flex flex-col pt-2">
+        <div id="uni-session-content" class="w-full flex-1 flex flex-col">
             <div
                 class="hud-top-mini flex items-center justify-between w-full max-w-[330px] mx-auto px-4 z-20 min-h-[44px] mb-4">
                 <!-- Left: Fixed Width -->
@@ -495,17 +507,18 @@
                 </div>
             </div>
 
-            <div id="uni-swipe-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-5 mx-auto"
-                style="z-index:1; padding-bottom: 2rem;">
+            <div id="uni-swipe-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto"
+                style="z-index:1;">
                 <div id="badge-like-uni" class="stamp-premium hidden">LIKE</div>
                 <div id="badge-nope-uni" class="stamp-premium hidden">NOPE</div>
                 <div id="badge-super-uni" class="stamp-premium hidden">SUPER</div>
-                <div id="uni-stack" class="w-full h-full relative" style="transform: scale(1.05);"></div>
+                <div id="uni-stack" class="w-full h-full"></div>
             </div>
 
             <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="uni-swipe-action-btns"
-                class="w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0 mb-6">
+                class="w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0"
+                style="pointer-events:none;">
                 <button onclick="universalSwipeAction('nope')"
                     class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all">✕</button>
                 <button onclick="universalSwipeAction('super')"

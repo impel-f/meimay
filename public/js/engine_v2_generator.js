@@ -69,6 +69,7 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
     // Find matches
     filteredData.forEach(item => {
         if (item.yomi === nickname) return; // handled above
+        if (typeof noped !== 'undefined' && noped.has(item.yomi)) return; // NOPEスキップ
 
         let match = false;
         let pType = '';

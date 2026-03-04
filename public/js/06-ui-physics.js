@@ -174,6 +174,7 @@ function executeSwipe(dir, data) {
     // NOPEの場合はnopedセットに追加
     if (data && dir === 'left') {
         noped.add(data['漢字']);
+        if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
     // データ処理（左以外はストック）
