@@ -108,6 +108,24 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
         }
     });
 
+    // Append tags and examples from readingsData if available
+    if (typeof readingsData !== 'undefined' && readingsData) {
+        uniqueCandidates.forEach(cand => {
+            const rd = readingsData.find(r => r.reading === cand.reading);
+            if (rd) {
+                cand.tags = rd.tags || [];
+                cand.examples = rd.examples ? rd.examples.split(/[,、]/).map(x => x.trim()).filter(x => x) : (cand.examples || []);
+            } else {
+                cand.tags = [];
+                if (typeof cand.examples === 'string') {
+                    cand.examples = cand.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
+                }
+            }
+        });
+    } else {
+        uniqueCandidates.forEach(cand => cand.tags = []);
+    }
+
     // AI候補リオーダー (if exists)
     const final = (typeof aiReorderCandidates === 'function')
         ? aiReorderCandidates(uniqueCandidates)

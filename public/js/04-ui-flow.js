@@ -257,11 +257,16 @@ function initSoundMode() {
         title: '響きで選ぶ',
         subtitle: '気に入った名前の響きをスワイプ',
         disableSuper: true,
+        onLike: (item) => {
+            if (typeof addReadingToStock === 'function') {
+                addReadingToStock(item.reading);
+            }
+        },
         renderCard: (item) => {
             // タグバッジの生成
             let tagsHtml = '';
             if (item.tags && item.tags.length > 0) {
-                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-4 px-2">';
+                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">';
                 item.tags.forEach(t => {
                     let style = {};
                     if (typeof getTagStyle === 'function') {
@@ -275,33 +280,17 @@ function initSoundMode() {
             }
 
             return `
-                <div class="text-xs font-bold text-[#bca37f] mb-3 tracking-widest uppercase opacity-70">
-                    ${item.type}
-                </div>
                 ${tagsHtml}
-                <div class="text-5xl font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
-                <div class="text-xs text-[#a6967a] mb-4 px-4 text-center leading-relaxed font-bold">${item.desc || ''}</div>
-                <div class="w-full px-4">
-                    <div class="bg-[#fdfaf5] rounded-2xl p-3 border border-[#f5efe4]">
+                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+                <div class="w-full px-4 mt-2">
+                    <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
                         <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
                         <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
-                            ${item.examples ? item.examples.map(e => `<span class="px-1">${e}</span>`).join('') : '?'}
+                            ${item.examples && item.examples.length > 0 ? item.examples.slice(0, 5).map(e => `<span class="px-1">${e}</span>`).join('') : '?'}
                         </div>
                     </div>
                 </div>
             `;
-        },
-        onNext: (selectedItems) => {
-            if (selectedItems.length === 0) return;
-
-            if (selectedItems.length === 1) {
-                proceedWithSoundReading(selectedItems[0].reading);
-            } else {
-                showNicknameReadingSelection(selectedItems.map(item => ({
-                    reading: item.reading,
-                    type: 'sound'
-                })));
-            }
         }
     });
 
@@ -528,30 +517,40 @@ function processNickname() {
         title: '響きをひろげる',
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
         disableSuper: true,
+        onLike: (item) => {
+            if (typeof addReadingToStock === 'function') {
+                addReadingToStock(item.reading, nicknameBaseReading);
+            }
+        },
         renderCard: (item) => {
+            // タグバッジの生成
+            let tagsHtml = '';
+            if (item.tags && item.tags.length > 0) {
+                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">';
+                item.tags.forEach(t => {
+                    let style = {};
+                    if (typeof getTagStyle === 'function') {
+                        style = getTagStyle(t);
+                    } else {
+                        style = { label: t.replace('#', ''), bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+                    }
+                    tagsHtml += `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color: ${style.bgColor}; color: ${style.textColor}; border-color: ${style.borderColor};">${t}</span>`;
+                });
+                tagsHtml += '</div>';
+            }
+
             return `
-                <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
-                    ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
-                </div>
-                <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
-                <div class="text-xs text-[#a6967a] px-4 text-center leading-relaxed">
-                    ${item.type === 'original' ? 'そのままの読み' : (item.type === 'prefix' ? '後ろに続く候補' : '読みを広げた候補')}
+                ${tagsHtml}
+                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                <div class="w-full px-4 mt-2">
+                    <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
+                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                        <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
+                            ${item.examples && item.examples.length > 0 ? item.examples.slice(0, 5).map(e => `<span class="px-1">${e}</span>`).join('') : '?'}
+                        </div>
+                    </div>
                 </div>
             `;
-        },
-        onNext: (selectedItems) => {
-            selectedNicknames = selectedItems;
-            console.log("Nickname: Selected readings", selectedItems.map(i => i.reading));
-
-            if (selectedItems.length === 0) return;
-
-            // 全て読みストックに追加 → 読みストック画面へ
-            selectedItems.forEach(item => {
-                addReadingToStock(item.reading, nicknameBaseReading);
-            });
-
-            showToast(`${selectedItems.length}件の読みを読みストックに保存しました`);
-            if (typeof openStock === 'function') openStock('reading');
         }
     });
 }
@@ -684,9 +683,8 @@ function renderUniversalCard() {
             <div class="flex flex-col items-center justify-center h-full text-center px-6">
                 <div class="text-[60px] mb-4">✨</div>
                 <p class="text-[#bca37f] font-bold text-lg mb-4">チェック完了！</p>
-                <p class="text-sm text-[#a6967a] mb-6">気になった名前を確認しましょう</p>
-                <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">リストを確認 →</button>
-                ${!SwipeState.config.disableMore ? `<button onclick="continueUniversalSwipe()" class="text-xs text-[#bca37f] border-b border-[#bca37f] pb-0.5 mt-2 mx-auto block">もっと見る</button>` : ''}
+                <p class="text-sm text-[#a6967a] mb-6">いいねした読みはストックに保存されました</p>
+                <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">終了する →</button>
             </div>
         `;
         const actionBtns = document.getElementById('uni-swipe-action-btns');
@@ -702,10 +700,23 @@ function renderUniversalCard() {
     // the card element
     container.innerHTML = '';
     const card = document.createElement('div');
-    card.className = 'card absolute inset-0 bg-[#fdfaf5] shadow-xl rounded-3xl flex flex-col justify-center items-center px-4 w-full h-full';
+
+    // 背景色の決定 (タグの1つ目を利用)
+    let bgStyle = '#fdfaf5'; // default
+    if (item.tags && item.tags.length > 0) {
+        if (typeof getTagStyle === 'function') {
+            const tagInfo = getTagStyle(item.tags[0]);
+            if (tagInfo && tagInfo.bgColor) {
+                bgStyle = tagInfo.bgColor;
+            }
+        }
+    }
+
+    card.className = 'card absolute inset-0 shadow-xl rounded-3xl flex flex-col justify-center items-center px-4 w-full h-full';
+    card.style.background = bgStyle;
     card.style.touchAction = 'none';
     card.style.willChange = 'transform';
-    card.style.border = '1px solid #ede5d8';
+    // card.style.border = '1px solid #ede5d8';
 
     card.innerHTML = SwipeState.config.renderCard(item);
 
@@ -858,59 +869,14 @@ function undoUniversalSwipe() {
 }
 
 function showUniversalList() {
-    const list = document.getElementById('uni-liked-list');
-    const grid = document.getElementById('uni-candidates-grid');
-    grid.innerHTML = '';
-
-    if (SwipeState.liked.length === 0) {
-        grid.innerHTML = '<div class="text-center text-sm text-[#a6967a] py-6">候補がまだありません</div>';
-        list.classList.remove('hidden');
-        return;
+    // リスト画面を出さずに直接終了＆ホームへ
+    if (SwipeState.liked.length > 0) {
+        showToast(`${SwipeState.liked.length}件の読みをストックに保存しました！`);
+    } else {
+        showToast('スワイプを終了しました');
     }
-
-    // 読み/漢字キーで重複排除（最初に出現したものを残す）
-    const seenKeys = new Set();
-    const unique = [];
-    SwipeState.liked.forEach(item => {
-        const key = item['漢字'] || item.reading;
-        if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            unique.push(item);
-        }
-    });
-
-    // タイトル更新
-    const title = document.getElementById('uni-list-title');
-    const desc = document.getElementById('uni-list-desc');
-    if (title) title.innerText = `候補リスト（${unique.length}件）`;
-    if (desc) desc.innerText = 'チェックを外すと候補から除外されます';
-
-    unique.forEach((item, idx) => {
-        const label = item['漢字'] || item.reading;
-
-        const btn = document.createElement('div');
-        btn.className = 'bg-[#fdfaf5] border border-[#ede5d8] rounded-xl p-3 flex items-center justify-between';
-
-        const text = document.createElement('span');
-        text.className = 'text-xl font-bold text-[#5d5444]';
-        text.innerText = label;
-
-        const chk = document.createElement('input');
-        chk.type = 'checkbox';
-        chk.className = 'w-6 h-6 accent-[#8b7e66] flex-shrink-0';
-        chk.checked = true;
-        chk.onchange = (e) => {
-            item._selected = e.target.checked;
-            btn.style.opacity = e.target.checked ? '1' : '0.4';
-        };
-        item._selected = true;
-
-        btn.appendChild(text);
-        btn.appendChild(chk);
-        grid.appendChild(btn);
-    });
-
-    list.classList.remove('hidden');
+    document.getElementById('uni-liked-list').classList.add('hidden');
+    goBack(); // モードに応じたホームへの遷移を実行
 }
 
 function submitUniversalSelection() {
