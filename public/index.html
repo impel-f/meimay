@@ -228,93 +228,126 @@
     <!-- ============================================================
          MAIN HOME SCREEN (restructured)
          ============================================================ -->
-    <div id="scr-mode" class="screen">
-        <div class="flex flex-col items-center w-full pt-1 pb-0">
-            <!-- 今日の一字 -->
-            <div class="w-full max-w-sm px-3 mb-2 mt-0" id="todays-kanji-container">
+    <div id="scr-mode" class="screen bg-[#fdfaf5]">
+        <div class="flex flex-col items-center w-full pt-1 pb-20">
+
+            <!-- PROFILE CARD -->
+            <div class="w-full max-w-sm px-4 mb-4 mt-2">
                 <div
-                    class="bg-white/70 rounded-2xl p-3 border border-[#ede5d8] shadow-sm flex flex-col items-center justify-center min-h-[76px]">
-                    <p class="text-[10px] font-bold text-[#bca37f] tracking-widest uppercase mb-2">準備中...</p>
+                    class="bg-white rounded-[24px] p-5 border border-[#ede5d8] shadow-[0_8px_24px_rgba(139,126,102,0.08)] relative overflow-hidden">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-2xl">🎠</span>
+                        <h3 class="text-sm font-black text-[#5d5444]">きょうまでに出会った名前</h3>
+                    </div>
+
+                    <div class="flex flex-wrap gap-x-4 gap-y-2 mb-5">
+                        <div class="text-[11px] text-[#8b7e66] font-bold">出会った名前 <span id="home-swiped-count"
+                                class="text-sm text-[#5d5444] font-black ml-1">-個</span></div>
+                        <div class="text-[11px] text-[#8b7e66] font-bold">気に入った名前 <span id="home-liked-name-count"
+                                class="text-sm text-[#5d5444] font-black ml-1">-個</span></div>
+                        <div class="text-[11px] text-[#8b7e66] font-bold">漢字の数 <span id="home-liked-kanji-count"
+                                class="text-sm text-[#5d5444] font-black ml-1">-個</span></div>
+                    </div>
+
+                    <div
+                        class="bg-[#fcf9f2] rounded-xl py-2 px-3 inline-flex items-center gap-2 border border-[#f0e4c8]">
+                        <span class="text-[#bca37f] text-[10px]">♥</span>
+                        <span class="text-[10px] font-bold text-[#8b7e66]">あなたの好み:</span>
+                        <span id="home-preference-tags" class="text-[11px] font-black text-[#6b8b9e]">解析中...</span>
+                    </div>
+
+                    <!-- Decorative Book Image Placeholder (using emoji for now) -->
+                    <div class="absolute right-0 top-6 text-5xl opacity-80"
+                        style="transform: rotate(15deg) translate(10px, -10px);">📖✨</div>
                 </div>
             </div>
 
-            <!-- Quick Actions: 名前を探す — Bento Grid -->
-            <div class="w-full max-w-sm px-3 mb-2">
-                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">名前を探す</div>
-                <div class="grid gap-2" style="grid-template-columns: 1fr 1fr; grid-template-rows: 3fr 2fr 2fr; height: 240px;">
+            <!-- MAIN ACTION CARD ("今日の名前と出会う") -->
+            <div class="w-full max-w-sm px-4 mb-5">
+                <div class="rounded-[28px] p-6 text-center shadow-[0_12px_32px_rgba(200,160,96,0.2)] relative overflow-hidden"
+                    style="background: linear-gradient(145deg, #fdfaf5 0%, #faeccf 50%, #f0cd8a 100%);">
+                    <!-- Sparkle decorations -->
+                    <div class="absolute top-4 right-4 text-white text-xl opacity-80">✨</div>
+                    <div class="absolute top-10 left-6 text-white text-2xl opacity-60 flex gap-1"><span>✨</span><span
+                            class="text-sm mt-3">✨</span></div>
 
-                    <!-- Left tall: 読みから漢字をさがす (most important) -->
-                    <button onclick="startMode('reading')"
-                        class="rounded-2xl flex flex-col items-center justify-center gap-2 p-4 text-center transition-all shadow-md hover:shadow-lg active:scale-[0.97] overflow-hidden"
-                        style="grid-column:1; grid-row:1/span 3; background:linear-gradient(155deg,#fdfaf5 0%,#f0e4c8 50%,#c8a060 100%);">
-                        <div class="text-4xl">🔤</div>
-                        <div>
-                            <div class="text-[13px] font-black leading-snug" style="color:#5d3a0a;">読みから<br>漢字をさがす</div>
-                            <div class="text-[10px] mt-1 leading-snug" style="color:#9a6a2a;">読みが決まっている<br>方はこちら</div>
-                        </div>
-                    </button>
+                    <h2 class="text-[22px] font-black text-[#6b3c10] mb-2 relative z-10"
+                        style="text-shadow: 0 2px 10px rgba(255,255,255,0.8);">今日の名前と出会う</h2>
+                    <p class="text-[11px] font-bold text-[#91622b] mb-6 relative z-10">かわいい名前をおすすめ中...</p>
 
-                    <!-- Right top: 響き・読みをさがす -->
                     <button onclick="startMode('sound')"
-                        class="rounded-2xl flex flex-col items-center justify-center gap-1 p-3 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#f5f8ff 0%,#dde8ff 100%);">
-                        <div class="text-2xl">🎵</div>
-                        <div>
-                            <div class="text-[11px] font-black leading-tight" style="color:#4a5fa0;">響き・読みを<br>さがす</div>
-                            <div class="text-[9px] mt-0.5 leading-tight" style="color:#7080b8;">人気の響きや<br>入れたい音から</div>
-                        </div>
+                        class="relative z-10 w-full rounded-full py-4 px-6 text-white font-black text-[15px] shadow-[0_8px_20px_rgba(180,130,50,0.4)] transition-transform active:scale-95"
+                        style="background: linear-gradient(to bottom, #d4a350 0%, #be8426 100%); border: 1px solid #e0b460;">
+                        名前探しをはじめる
                     </button>
 
-                    <!-- Right mid: 自由に漢字をさがす -->
-                    <button onclick="startMode('free')"
-                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#f4fdf8 0%,#d4f0e2 100%);">
-                        <div class="text-xl">✨</div>
-                        <div>
-                            <div class="text-[10px] font-black leading-tight" style="color:#2a7a55;">自由に漢字を<br>さがす</div>
-                        </div>
-                    </button>
-
-                    <!-- Right bottom: ストックから組み立てる -->
-                    <button onclick="openFreeBuild()"
-                        class="rounded-2xl flex flex-col items-center justify-center gap-0.5 p-2 text-center transition-all shadow-sm hover:shadow-md active:scale-[0.97] overflow-hidden"
-                        style="background:linear-gradient(155deg,#fffdf5 0%,#fcecc8 100%);">
-                        <div class="text-xl">⚒️</div>
-                        <div>
-                            <div class="text-[10px] font-black leading-tight" style="color:#7a5800;">ストックから<br>組み立てる</div>
-                        </div>
-                    </button>
+                    <!-- Star/Animal Decoration -->
+                    <div class="absolute right-2 bottom-12 text-5xl z-0" style="transform: rotate(15deg);">⭐</div>
                 </div>
             </div>
 
-            <!-- Tools: 漢字検索・姓名判断・ランキング 3つ横並び -->
-            <div class="w-full max-w-sm px-3 mb-1">
-                <div class="text-xs font-bold text-[#8b7e66] mb-1 ml-1">ツール</div>
-                <div class="grid grid-cols-3 gap-3">
-                    <button onclick="openKanjiSearch()"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-2xl mb-1">🔎</div>
-                        <div class="text-xs text-[#5d5444] font-bold">漢字検索</div>
-                    </button>
-                    <button onclick="startMode('diagnosis')"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-2xl mb-1">🔮</div>
-                        <div class="text-xs text-[#5d5444] font-bold">姓名判断</div>
-                    </button>
-                    <button onclick="openRanking()"
-                        class="bg-white/60 hover:bg-white p-3 rounded-2xl border border-[#ede5d8] text-center transition-all shadow-sm hover:shadow-md active:scale-95">
-                        <div class="text-2xl mb-1">👑</div>
-                        <div class="text-xs text-[#5d5444] font-bold">ランキング</div>
-                    </button>
-                </div>
-            </div>
+            <!-- LIST BUTTONS (読み, 漢字, 保存) -->
+            <div class="w-full max-w-sm px-4 flex flex-col gap-3">
 
-            <script>
-                function openKanjiSearch() {
-                    if (typeof changeScreen === 'function') changeScreen('scr-kanji-search');
-                }
-                window.openKanjiSearch = openKanjiSearch;
-            </script>
+                <!-- DASHBOARD BUTTON (Placeholder) -->
+                <button onclick="alert('ダッシュボード機能は現在準備中です\nあなたの好みの系統（タグ分析）をここに見える化する予定です！');"
+                    class="w-full bg-[#fdfaf5] rounded-2xl p-4 border-2 border-[#bca37f] shadow-sm flex items-center justify-between transition-transform active:scale-98">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl border border-[#bca37f]/30">
+                            📊</div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-[#5d5444] mb-0.5">好みの分析を見る</div>
+                            <div class="text-[10px] text-[#bca37f] font-bold">あなたの好きな系統が見える化されます</div>
+                        </div>
+                    </div>
+                    <div class="text-[#bca37f] font-bold text-lg">›</div>
+                </button>
+
+                <button onclick="startMode('reading')"
+                    class="w-full bg-white rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex items-center justify-between transition-transform active:scale-98">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-[#fdfaf5] flex items-center justify-center text-xl border border-[#eee5d8]">
+                            🔍</div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-[#3a587a] mb-0.5">読みが決まっている</div>
+                            <div class="text-[10px] text-[#8b7e66] font-bold">使いたい響きがある方に</div>
+                        </div>
+                    </div>
+                    <div class="text-[#d4c5af] font-bold text-lg">›</div>
+                </button>
+
+                <button onclick="changeScreen('scr-kanji-search')"
+                    class="w-full bg-white rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex items-center justify-between transition-transform active:scale-98">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-[#fdfaf5] flex items-center justify-center text-xl border border-[#eee5d8]">
+                            👓</div>
+                        <div class="text-left">
+                            <div class="text-sm font-black text-[#2e684a] mb-0.5">漢字から探す</div>
+                            <div class="text-[10px] text-[#8b7e66] font-bold">入れたい漢字がある方に</div>
+                        </div>
+                    </div>
+                    <div class="text-[#d4c5af] font-bold text-lg">›</div>
+                </button>
+
+                <button onclick="changeScreen('scr-stock')"
+                    class="w-full bg-white rounded-2xl p-4 border border-[#ede5d8] shadow-sm flex items-center justify-between transition-transform active:scale-98">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-[#fdfaf5] flex items-center justify-center text-xl border border-[#eee5d8]">
+                            🔖</div>
+                        <div class="text-left flex items-center gap-2">
+                            <span class="text-sm font-black text-[#7a5c3a]">保存した名前</span>
+                            <span id="home-stock-badge"
+                                class="bg-[#eee5d8] text-[#8b7e66] text-[10px] px-2 py-0.5 rounded-lg font-bold">0</span>
+                        </div>
+                    </div>
+                    <div class="text-[#d4c5af] font-bold text-lg">›</div>
+                </button>
+
+            </div>
 
         </div>
     </div>
@@ -607,8 +640,7 @@
                 </div>
             </div>
 
-            <div id="stack-container"
-                class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
+            <div id="stack-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
                 <div id="badge-like" class="stamp-premium">LIKE</div>
                 <div id="badge-nope" class="stamp-premium">NOPE</div>
                 <div id="badge-super" class="stamp-premium">SUPER</div>
@@ -617,13 +649,17 @@
 
             <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="swipe-action-btns"
-                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0" style="pointer-events:none;">
+                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0"
+                style="pointer-events:none;">
                 <button onclick="manual('left')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">✕</button>
+                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">✕</button>
                 <button onclick="manual('up')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">★</button>
+                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">★</button>
                 <button onclick="manual('right')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all" style="pointer-events:all;">♥</button>
+                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+                    style="pointer-events:all;">♥</button>
             </div>
 
         </div>
@@ -651,13 +687,11 @@
                     <p class="text-xs font-black text-[#8b7e66] mb-3">ルームを作る</p>
                     <p class="text-[10px] text-[#a6967a] mb-3">あなたは？</p>
                     <div class="flex gap-3 mb-4">
-                        <button id="create-role-mama"
-                            onclick="MeimayPairing.selectCreateRole('mama')"
+                        <button id="create-role-mama" onclick="MeimayPairing.selectCreateRole('mama')"
                             class="flex-1 py-3 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
                             🌸 ママ
                         </button>
-                        <button id="create-role-papa"
-                            onclick="MeimayPairing.selectCreateRole('papa')"
+                        <button id="create-role-papa" onclick="MeimayPairing.selectCreateRole('papa')"
                             class="flex-1 py-3 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
                             🌊 パパ
                         </button>
@@ -680,13 +714,11 @@
                     <p class="text-xs font-black text-[#8b7e66] mb-3">コードで参加する</p>
                     <p class="text-[10px] text-[#a6967a] mb-3">あなたは？</p>
                     <div class="flex gap-3 mb-3">
-                        <button id="join-role-mama"
-                            onclick="MeimayPairing.selectJoinRole('mama')"
+                        <button id="join-role-mama" onclick="MeimayPairing.selectJoinRole('mama')"
                             class="flex-1 py-2.5 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
                             🌸 ママ
                         </button>
-                        <button id="join-role-papa"
-                            onclick="MeimayPairing.selectJoinRole('papa')"
+                        <button id="join-role-papa" onclick="MeimayPairing.selectJoinRole('papa')"
                             class="flex-1 py-2.5 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
                             🌊 パパ
                         </button>
@@ -897,7 +929,8 @@
         onclick="closeFortuneDetail()">
         <!-- ×ボタンをスクロール外に配置するためにラッパーを使用 -->
         <div class="detail-sheet w-[95%] max-w-md flex flex-col"
-            style="padding:0;max-height:calc(100dvh - 120px);flex-shrink:0;overflow:hidden" onclick="event.stopPropagation()">
+            style="padding:0;max-height:calc(100dvh - 120px);flex-shrink:0;overflow:hidden"
+            onclick="event.stopPropagation()">
             <!-- 固定ヘッダー（×ボタン領域、スクロールしない） -->
             <div style="position:relative;flex-shrink:0;height:60px;">
                 <button class="modal-close-btn" onclick="closeFortuneDetail()">✕</button>

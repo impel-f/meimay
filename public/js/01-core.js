@@ -14,6 +14,7 @@ let validReadingsSet = new Set();
 let rule = 'strict';
 let stack = [];
 let strokeData = {};
+let userTags = {}; // タグスコア管理
 let currentIdx = 0;
 let swipes = 0;
 let gender = 'neutral';
@@ -21,6 +22,8 @@ let surnameStr = "";
 let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];
+let yomiSearchData = [];
+let readingsData = []; // 追加: 読み(タグ付き)詳細データ
 let currentBuildResult = {
     fullName: "",
     reading: "",
@@ -96,6 +99,30 @@ window.onload = () => {
                     console.log(`CORE: Loaded ${Object.keys(strokes).length} stroke entries`);
                 })
                 .catch(err => console.warn("CORE: Failed to load stroke data", err));
+
+            // 響きから探す用データの読み込み（非同期）
+            fetch('/data/yomi_search_data.json')
+                .then(res => {
+                    if (res.ok) return res.json();
+                    return [];
+                })
+                .then(yomiData => {
+                    yomiSearchData = yomiData;
+                    console.log(`CORE: Loaded ${yomiData.length} yomi search entries`);
+                })
+                .catch(err => console.warn("CORE: Failed to load yomi search data", err));
+
+            // タグ付き読みデータの読み込み（非同期）
+            fetch('/data/readings_data.json')
+                .then(res => {
+                    if (res.ok) return res.json();
+                    return [];
+                })
+                .then(rData => {
+                    readingsData = rData;
+                    console.log(`CORE: Loaded ${rData.length} reading entries with tags`);
+                })
+                .catch(err => console.warn("CORE: Failed to load readings data", err));
         })
         .catch(err => {
             console.error("CORE: データ読み込みエラー:", err);
@@ -200,6 +227,11 @@ function changeScreen(id) {
         }
     }
 
+    // トップ画面の場合、実績・プロファイルを更新
+    if (id === 'scr-mode' && typeof renderHomeProfile === 'function') {
+        renderHomeProfile();
+    }
+
     // ナビゲーションハイライト更新
     updateNavHighlight(id);
 }
@@ -257,4 +289,48 @@ function toHira(str) {
     );
 }
 
-console.log("CORE: Module loaded (v15.1 - Fixed Layout & Swipe Logic)");
+/**
+ * タグスコアの更新
+ * @param {Array<string>} tags タグの配列
+ * @param {number} delta 加算・減算値
+ */
+function updateTagScore(tags, delta) {
+    if (!tags || !Array.isArray(tags)) return;
+    tags.forEach(t => {
+        if (!userTags[t]) userTags[t] = 0;
+        userTags[t] += delta;
+        // スコアの下限を0とする（マイナスにはならない方針）
+        if (userTags[t] < 0) userTags[t] = 0;
+    });
+    console.log("CORE: Tag scores updated:", userTags);
+}
+
+/**
+ * タグカラースタイル定義（src/constants/kanjiTags.jsから移植）
+ */
+const KANJI_TAG_STYLES = {
+    "#希望": { bgColor: "#FEF3C7", textColor: "#92400E", borderColor: "#FDE68A" },
+    "#伝統": { bgColor: "#FCE7F3", textColor: "#9D174D", borderColor: "#FBCFE8" },
+    "#奏楽": { bgColor: "#EDE9FE", textColor: "#5B21B6", borderColor: "#DDD6FE" },
+    "#自然": { bgColor: "#DCFCE7", textColor: "#166534", borderColor: "#BBF7D0" },
+    "#品格": { bgColor: "#F3F4F6", textColor: "#374151", borderColor: "#E5E7EB" },
+    "#飛躍": { bgColor: "#E0F2FE", textColor: "#0369A1", borderColor: "#BAE6FD" },
+    "#慈愛": { bgColor: "#FDF2F8", textColor: "#BE185D", borderColor: "#FCE7F3" },
+    "#色彩": { bgColor: "#FFEDD5", textColor: "#C2410C", borderColor: "#FED7AA" },
+    "#水景": { bgColor: "#CFFAFE", textColor: "#0F766E", borderColor: "#A5F3FC" },
+    "#調和": { bgColor: "#CCFBF1", textColor: "#0F766E", borderColor: "#99F6E4" },
+    "#信念": { bgColor: "#E2E8F0", textColor: "#334155", borderColor: "#CBD5E1" },
+    "#勇壮": { bgColor: "#FEE2E2", textColor: "#B91C1C", borderColor: "#FECACA" },
+    "#天空": { bgColor: "#DBEAFE", textColor: "#1E40AF", borderColor: "#BFDBFE" },
+    "#知性": { bgColor: "#E0E7FF", textColor: "#4338CA", borderColor: "#C7D2FE" },
+    "#幸福": { bgColor: "#D1FAE5", textColor: "#047857", borderColor: "#A7F3D0" }
+};
+
+function getTagStyle(tag) {
+    const key = tag.startsWith("#") ? tag : "#" + tag;
+    const match = Object.keys(KANJI_TAG_STYLES).find(k => key.includes(k));
+    if (match) return KANJI_TAG_STYLES[match];
+    return { bgColor: "#F3F4F6", textColor: "#4B5563", borderColor: "#E5E7EB" };
+}
+
+console.log("CORE: Module loaded (v15.3 - Added Tag Scores and Styles)");

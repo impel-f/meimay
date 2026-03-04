@@ -10,6 +10,7 @@ const StorageBox = {
     KEY_SEGMENTS: 'naming_app_segments',
     KEY_SETTINGS: 'naming_app_settings',
     KEY_KANJI_AI_CACHE: 'naming_app_kanji_ai_cache',
+    KEY_USER_TAGS: 'meimay_user_tags',
 
     /**
      * 全状態を保存
@@ -28,6 +29,7 @@ const StorageBox = {
                 rule: rule,
                 prioritizeFortune: prioritizeFortune
             }));
+            localStorage.setItem(this.KEY_USER_TAGS, JSON.stringify(userTags));
 
             console.log("STORAGE: State saved successfully");
             return true;
@@ -84,6 +86,12 @@ const StorageBox = {
                 if (fortuneBtn && prioritizeFortune) {
                     fortuneBtn.classList.add('active');
                 }
+            }
+
+            // タグスコア
+            const tagsData = localStorage.getItem(this.KEY_USER_TAGS);
+            if (tagsData) {
+                userTags = JSON.parse(tagsData);
             }
 
             console.log("STORAGE: State restored successfully");

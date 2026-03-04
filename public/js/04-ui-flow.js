@@ -10,22 +10,22 @@ let selectedVibes = new Set();
 
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
-    { id: 'none',         label: 'こだわらない', icon: '⚪' },
-    { id: 'nature',       label: '#自然',   icon: '🌿' },
-    { id: 'sky',          label: '#天空',   icon: '🌌' },
-    { id: 'water',        label: '#水景',   icon: '🌊' },
-    { id: 'color',        label: '#色彩',   icon: '🎨' },
-    { id: 'kindness',     label: '#慈愛',   icon: '💖' },
-    { id: 'strength',     label: '#勇壮',   icon: '🦁' },
-    { id: 'intelligence', label: '#知性',   icon: '🎓' },
-    { id: 'soar',         label: '#飛躍',   icon: '🦅' },
-    { id: 'happiness',    label: '#幸福',   icon: '🍀' },
-    { id: 'beauty',       label: '#品格',   icon: '🕊️' },
-    { id: 'hope',         label: '#希望',   icon: '🌟' },
-    { id: 'belief',       label: '#信念',   icon: '⛰️' },
-    { id: 'harmony',      label: '#調和',   icon: '🤝' },
-    { id: 'tradition',    label: '#伝統',   icon: '⛩️' },
-    { id: 'music',        label: '#奏楽',   icon: '🎵' },
+    { id: 'none', label: 'こだわらない', icon: '⚪' },
+    { id: 'nature', label: '#自然', icon: '🌿' },
+    { id: 'sky', label: '#天空', icon: '🌌' },
+    { id: 'water', label: '#水景', icon: '🌊' },
+    { id: 'color', label: '#色彩', icon: '🎨' },
+    { id: 'kindness', label: '#慈愛', icon: '💖' },
+    { id: 'strength', label: '#勇壮', icon: '🦁' },
+    { id: 'intelligence', label: '#知性', icon: '🎓' },
+    { id: 'soar', label: '#飛躍', icon: '🦅' },
+    { id: 'happiness', label: '#幸福', icon: '🍀' },
+    { id: 'beauty', label: '#品格', icon: '🕊️' },
+    { id: 'hope', label: '#希望', icon: '🌟' },
+    { id: 'belief', label: '#信念', icon: '⛰️' },
+    { id: 'harmony', label: '#調和', icon: '🤝' },
+    { id: 'tradition', label: '#伝統', icon: '⛩️' },
+    { id: 'music', label: '#奏楽', icon: '🎵' },
 ];
 
 /**
@@ -258,12 +258,29 @@ function initSoundMode() {
         subtitle: '気に入った名前の響きをスワイプ',
         disableSuper: true,
         renderCard: (item) => {
+            // タグバッジの生成
+            let tagsHtml = '';
+            if (item.tags && item.tags.length > 0) {
+                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-4 px-2">';
+                item.tags.forEach(t => {
+                    let style = {};
+                    if (typeof getTagStyle === 'function') {
+                        style = getTagStyle(t);
+                    } else {
+                        style = { label: t.replace('#', ''), bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+                    }
+                    tagsHtml += `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color: ${style.bgColor}; color: ${style.textColor}; border-color: ${style.borderColor};">${t}</span>`;
+                });
+                tagsHtml += '</div>';
+            }
+
             return `
                 <div class="text-xs font-bold text-[#bca37f] mb-3 tracking-widest uppercase opacity-70">
-                    ${item.charCount}文字 / ${item.type}
+                    ${item.type}
                 </div>
-                <div class="text-4xl font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
-                <div class="text-xs text-[#a6967a] mb-4 px-4 text-center leading-relaxed">${item.desc || ''}</div>
+                ${tagsHtml}
+                <div class="text-5xl font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+                <div class="text-xs text-[#a6967a] mb-4 px-4 text-center leading-relaxed font-bold">${item.desc || ''}</div>
                 <div class="w-full px-4">
                     <div class="bg-[#fdfaf5] rounded-2xl p-3 border border-[#f5efe4]">
                         <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
@@ -305,69 +322,65 @@ function initSoundMode() {
 }
 
 /**
- * 人気名前リスト生成
+ * 人気名前リスト生成 (タグスコアリングで動的ソート)
  */
 function generatePopularNames(gender) {
-    const maleNames = [
-        { reading: 'はると', charCount: 3, type: '定番', examples: ['陽翔', '大翔', '遥斗'], desc: '爽やかで力強い響き' },
-        { reading: 'みなと', charCount: 3, type: '定番', examples: ['湊', '港翔', '南斗'], desc: '海を感じる涼やかな響き' },
-        { reading: 'そうた', charCount: 3, type: '定番', examples: ['蒼太', '颯太', '壮太'], desc: '元気で活発な響き' },
-        { reading: 'ゆうと', charCount: 3, type: '定番', examples: ['悠斗', '優翔', '悠人'], desc: '穏やかで優しい響き' },
-        { reading: 'りく', charCount: 2, type: '人気', examples: ['陸', '理久', '凛空'], desc: '大地のような力強さ' },
-        { reading: 'あおい', charCount: 3, type: '人気', examples: ['蒼', '葵', '碧'], desc: '澄んだ空のような清らかさ' },
-        { reading: 'れん', charCount: 2, type: '人気', examples: ['蓮', '廉', '煉'], desc: 'すっきりした響き' },
-        { reading: 'ひなた', charCount: 3, type: '人気', examples: ['陽向', '陽太', '日向'], desc: '温かみのある響き' },
-        { reading: 'かいと', charCount: 3, type: '人気', examples: ['海翔', '快斗', '凱斗'], desc: '海のように広い心' },
-        { reading: 'いつき', charCount: 3, type: '人気', examples: ['樹', '一輝', '逸樹'], desc: '大きく育つ樹のよう' },
-        { reading: 'そうすけ', charCount: 4, type: '古風', examples: ['蒼介', '壮介', '颯介'], desc: '頼もしい古風な響き' },
-        { reading: 'こうき', charCount: 3, type: '人気', examples: ['煌稀', '光希', '晃輝'], desc: '輝く未来を感じる響き' },
-        { reading: 'はるき', charCount: 3, type: '人気', examples: ['春樹', '陽樹', '遥希'], desc: '春のような爽やかさ' },
-        { reading: 'ゆうま', charCount: 3, type: '人気', examples: ['悠真', '優馬', '悠麻'], desc: 'おおらかで真っ直ぐ' },
-        { reading: 'あきと', charCount: 3, type: '人気', examples: ['暁斗', '明人', '秋翔'], desc: '明るく知的な響き' },
-        { reading: 'たくみ', charCount: 3, type: '定番', examples: ['匠', '拓海', '巧'], desc: '職人のような器用さ' },
-        { reading: 'けんと', charCount: 3, type: '定番', examples: ['健人', '賢斗', '謙翔'], desc: '健やかで強い' },
-        { reading: 'りょうた', charCount: 4, type: '古風', examples: ['涼太', '遼太', '亮太'], desc: '明快で男らしい響き' },
-        { reading: 'しょうた', charCount: 4, type: '定番', examples: ['翔太', '翔大', '将太'], desc: '大きく翔ける' },
-        { reading: 'だいち', charCount: 3, type: '人気', examples: ['大地', '大智', '大馳'], desc: '大地のようにどっしり' },
-    ];
-
-    const femaleNames = [
-        { reading: 'ひまり', charCount: 3, type: '定番', examples: ['陽葵', '日葵', '向日葵'], desc: 'ひまわりのような明るさ' },
-        { reading: 'えま', charCount: 2, type: '人気', examples: ['愛麻', '恵茉', '笑愛'], desc: '愛らしい響き' },
-        { reading: 'みお', charCount: 2, type: '人気', examples: ['澪', '美緒', '未央'], desc: '清らかで品のある響き' },
-        { reading: 'さくら', charCount: 3, type: '定番', examples: ['桜', '咲良', '咲桜'], desc: '日本を代表する美しい響き' },
-        { reading: 'あかり', charCount: 3, type: '人気', examples: ['朱莉', '明里', '灯'], desc: '光のような温かさ' },
-        { reading: 'いちか', charCount: 3, type: '人気', examples: ['一花', '一華', '苺花'], desc: '唯一無二の美しさ' },
-        { reading: 'ゆい', charCount: 2, type: '定番', examples: ['結', '結衣', '唯'], desc: '人と人を結ぶ響き' },
-        { reading: 'めい', charCount: 2, type: '人気', examples: ['芽依', '明衣', '命'], desc: '明るく可憐な響き' },
-        { reading: 'はな', charCount: 2, type: '定番', examples: ['花', '華', '葉菜'], desc: '花のように美しく' },
-        { reading: 'こはる', charCount: 3, type: '人気', examples: ['小春', '心晴', '琥春'], desc: '小さな春のような温もり' },
-        { reading: 'りん', charCount: 2, type: '人気', examples: ['凛', '琳', '倫'], desc: '凛とした美しさ' },
-        { reading: 'つむぎ', charCount: 3, type: '人気', examples: ['紬', '紡'], desc: '丁寧に紡ぐ人生' },
-        { reading: 'ほのか', charCount: 3, type: '人気', examples: ['ほのか', '穂花', '帆乃花'], desc: 'ほのかに香る上品さ' },
-        { reading: 'あおい', charCount: 3, type: '人気', examples: ['葵', '碧', '蒼'], desc: '澄み渡る空のように' },
-        { reading: 'かんな', charCount: 3, type: '人気', examples: ['栞奈', '柑那', '寛菜'], desc: '和の美しさ' },
-        { reading: 'しおり', charCount: 3, type: '定番', examples: ['栞', '詩織', '志織'], desc: '知的で上品な響き' },
-        { reading: 'ゆな', charCount: 2, type: '人気', examples: ['結菜', '由奈', '優菜'], desc: '優しく柔らかな響き' },
-        { reading: 'みゆ', charCount: 2, type: '人気', examples: ['美結', '未優', '心結'], desc: '美しく結ばれる' },
-        { reading: 'かほ', charCount: 2, type: '人気', examples: ['花歩', '夏穂', '佳帆'], desc: '花のような穏やかさ' },
-        { reading: 'ことは', charCount: 3, type: '人気', examples: ['琴葉', '言葉', '琴羽'], desc: '琴の音のような美しさ' },
-    ];
-
-    const neutralNames = [...maleNames.slice(0, 10), ...femaleNames.slice(0, 10)];
-
-    let nameList;
-    if (gender === 'male') nameList = maleNames;
-    else if (gender === 'female') nameList = femaleNames;
-    else nameList = neutralNames;
-
-    // シャッフル（ただしスコアベースでやや偏りを持たせる）
-    for (let i = nameList.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [nameList[i], nameList[j]] = [nameList[j], nameList[i]];
+    if (!readingsData || readingsData.length === 0) {
+        console.warn("UI_FLOW: readingsData is empty. Trying fallback to yomiSearchData?");
+        // フォールバック
+        if (!yomiSearchData || yomiSearchData.length === 0) return [];
+        return yomiSearchData.slice(0, 500).map(item => ({
+            reading: item.yomi,
+            charCount: item.yomi.length,
+            type: item.popular ? '人気' : '候補',
+            examples: item.examples || [],
+            desc: `${item.count}人の先輩ママが選びました`,
+            rawCount: item.count,
+            popular: item.popular,
+            tags: []
+        }));
     }
 
-    return nameList;
+    // まずスコアを計算して、Mapで保持させる
+    let scoredList = readingsData.map(item => {
+        let score = 0;
+        if (item.tags && item.tags.length > 0) {
+            item.tags.forEach(t => {
+                if (userTags[t]) score += userTags[t];
+            });
+        }
+
+        let typeText = item.isPopular ? '人気' : (item.count > 10 ? '定番' : '候補');
+
+        // プレーンな例を配列化（"大翔, 悠翔" -> ["大翔", "悠翔"]）
+        let exampleArr = [];
+        if (item.examples) {
+            exampleArr = item.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
+        }
+
+        return {
+            reading: item.reading,
+            charCount: item.reading.length,
+            type: typeText,
+            examples: exampleArr,
+            desc: `${item.count}人が名付けに選びました`,
+            rawCount: item.count,
+            popular: item.isPopular,
+            tags: item.tags || [],
+            score: score
+        };
+    });
+
+    // 動的ソート: スコア降順 > 人気フラグ > 件数降順
+    scoredList.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        if (a.popular && !b.popular) return -1;
+        if (!a.popular && b.popular) return 1;
+        return b.rawCount - a.rawCount;
+    });
+
+    // 上位500件を返す
+    return scoredList.slice(0, 500);
 }
 
 function proceedWithSoundReading(reading) {
@@ -760,6 +773,12 @@ function universalSwipeAction(action) {
     // AI: 好みの音パターン学習（nickname / sound モード共通）
     if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
         learnSoundPreference(item, action);
+    }
+
+    // タグスコア更新（soundモード等、タグを持っている候補の場合）
+    if (item.tags && item.tags.length > 0 && typeof updateTagScore === 'function') {
+        const delta = (action === 'like' || action === 'super') ? 1 : -1;
+        updateTagScore(item.tags, delta);
     }
 
     SwipeState.history.push({ action: action, item: item });
@@ -2370,7 +2389,7 @@ function renderSearchFilters() {
     if (classContainer) {
         // 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
         const classes = [
-            { val: '',      label: '全て', icon: '✨' },
+            { val: '', label: '全て', icon: '✨' },
             { val: '#自然', label: '自然', icon: '🌿' },
             { val: '#天空', label: '天空', icon: '☀️' },
             { val: '#水景', label: '水景', icon: '🌊' },
@@ -2465,8 +2484,8 @@ function executeKanjiSearch() {
             const matchKanji = k['漢字'] === rawQuery;
 
             // 送り仮名対応読みバリアント（語幹含む）
-            const onReadings   = getReadingVariants(k['音'] || '');
-            const kunReadings  = getReadingVariants(k['訓'] || '');
+            const onReadings = getReadingVariants(k['音'] || '');
+            const kunReadings = getReadingVariants(k['訓'] || '');
             const noriReadings = getReadingVariants(k['伝統名のり'] || '');
 
             // 厳格: 音・訓・名乗り で完全一致（送り仮名の語幹も含む）
