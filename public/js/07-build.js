@@ -31,6 +31,7 @@ function openFreeBuild() {
     fbChoices = [];
     shownFbSlots = 1;
     selectedPieces = [];
+    fbSelectedReading = null;
     renderBuildSelection();
     changeScreen('scr-build');
 }
@@ -41,6 +42,7 @@ function openFreeBuild() {
  */
 let fbChoices = []; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
+let fbSelectedReading = null; // 修正部: 選択した読みを保存時に固定する
 
 function renderFreeBuildSection() {
     const container = document.getElementById('free-build-section');
@@ -851,57 +853,40 @@ function suggestReadingsForKanji(choices, container) {
         return (b.count || 0) - (a.count || 0);
     });
 
-    // UI 描画
+    // UI 描画（コンパクトなチップスタイル）
     const section = document.createElement('div');
-    section.className = 'mt-5 pt-4 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[11px] font-black text-[#bca37f] mb-3 flex items-center gap-2">
-        <span>🎵</span> おすすめの読み方 <span class="text-[#a6967a] font-normal">(${scored.length}件)</span>
-    </p>`;
+    section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 おすすめの読み方</p>`;
 
-    const grid = document.createElement('div');
-    grid.className = 'flex flex-col gap-2';
+    const chipRow = document.createElement('div');
+    chipRow.className = 'flex flex-wrap gap-2';
 
     scored.slice(0, 12).forEach(r => {
-        let tagsHtml = '';
-        if (r.tags && r.tags.length > 0) {
-            tagsHtml = r.tags.slice(0, 2).map(t => {
-                const s = typeof getTagStyle === 'function' ? getTagStyle(t) : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
-                return `<span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full border"
-                    style="background-color:${s.bgColor};color:${s.textColor};border-color:${s.borderColor};">${t}</span>`;
-            }).join('');
-        }
-
-        let exHtml = '';
-        if (r.examples) {
-            const exArr = typeof r.examples === 'string'
-                ? r.examples.split(/[,、]/).map(x => x.trim()).filter(x => x)
-                : (Array.isArray(r.examples) ? r.examples : []);
-            if (exArr.length > 0) {
-                exHtml = `<span class="text-[10px] text-[#a6967a] ml-1">${exArr.slice(0, 3).join(' / ')}</span>`;
-            }
-        }
-
-        const btn = document.createElement('button');
-        btn.className = 'w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border border-[#ede5d8] hover:border-[#bca37f] transition-all active:scale-95 shadow-sm text-left';
-        btn.innerHTML = `
-            <div>
-                <span class="text-lg font-black text-[#5d5444]">${r.reading}</span>
-                ${exHtml}
-                <div class="flex flex-wrap gap-1 mt-1">${tagsHtml}</div>
-            </div>
-            <span class="text-[#bca37f] font-bold text-lg ml-2 shrink-0">›</span>
-        `;
-        btn.onclick = () => {
-            // 選んだ読みをbeースに読み指定モードで候補を探す
-            if (typeof proceedWithSoundReading === 'function') {
-                proceedWithSoundReading(r.reading);
-            }
-            if (typeof showToast === 'function') showToast(`「${r.reading}」で候補を生成します`, '🎵');
+        const chip = document.createElement('button');
+        const isActive = fbSelectedReading === r.reading;
+        chip.className = `px-3 py-1.5 text-sm font-bold rounded-full border transition-all active:scale-95
+            ${isActive
+                ? 'bg-[#bca37f] text-white border-[#bca37f] shadow-md'
+                : 'bg-white text-[#5d5444] border-[#d4c5af] hover:border-[#bca37f]'}`;
+        chip.textContent = r.reading;
+        chip.onclick = () => {
+            // 選択読みを固定（保存時に使用）
+            fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
+            renderBuildSelection();
+            executeFbBuild();
         };
-        grid.appendChild(btn);
+        chipRow.appendChild(chip);
     });
 
-    section.appendChild(grid);
+    section.appendChild(chipRow);
+
+    if (fbSelectedReading) {
+        const note = document.createElement('p');
+        note.className = 'text-[10px] text-[#bca37f] mt-2 font-bold';
+        note.textContent = `読み「${fbSelectedReading}」を固定中 — 保存時に使用されます`;
+        section.appendChild(note);
+    }
+
     container.appendChild(section);
 }
 
@@ -925,7 +910,8 @@ function executeFbBuild() {
         return fromMaster || { '漢字': k, '画数': 1 };
     });
 
-    const givenReading = fbChoices.map(k => {
+    // fbSelectedReadingが設定されている場合はそれを使用、なければ甫結フォールバック
+    const givenReading = fbSelectedReading || fbChoices.map(k => {
         const item = (liked || []).find(l => l['漢字'] === k);
         return item?.sessionSegments?.[item.slot] || item?.sessionReading || k;
     }).join('');
@@ -983,6 +969,7 @@ window.selectFbKanji = function (slotIdx, kanji) {
 
 window.removeFbChoice = function (slotIdx) {
     fbChoices.splice(slotIdx, 1);
+    fbSelectedReading = null; // 漢字変更時は読み選択をリセット
     if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
         shownFbSlots--;
     }
