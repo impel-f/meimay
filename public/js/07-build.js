@@ -472,8 +472,8 @@ function renderBuildSelection() {
     // ── 固定ヘッダー: 名前プレビュー（苗字 + 選択中の漢字 + ふりがな） ──
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    // -mt-10 pt-10 と -mx-4 px-4 で親の padding を相殺して画面上部に完全密着させる
-    namePreview.className = 'sticky top-0 z-40 bg-[#fdfaf5]/95 backdrop-blur-sm mb-3 py-2 -mt-10 pt-10 -mx-4 px-4 border-b border-[#ede5d8]';
+    // -mt-12 と top-12 を用いて、app-header(h-12=48px)の真下にピタッと隙間なく固定させる。背景は100%不透明にする。
+    namePreview.className = 'sticky top-12 z-[60] bg-[#fdfaf5] -mt-12 mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
 
     function buildNamePreviewHTML() {
         // 読みモード: selectedPieces の漢字を使う（選択済みのものだけ）
