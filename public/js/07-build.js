@@ -482,6 +482,18 @@ function updateNamePreview() {
         return;
     }
 
+    // 自由組み立てで名前が未選択でも苗字だけは表示する
+    if (renderSurname && !renderGiven) {
+        preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
+            ${renderSurname}
+            <div class="flex flex-col items-center opacity-50">
+                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5"></p>
+                <p class="text-3xl font-black text-[#d4c5af] tracking-widest">？</p>
+            </div>
+        </div>`;
+        return;
+    }
+
     preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
             ${renderSurname}
             ${renderGiven}
@@ -831,7 +843,7 @@ function renderBuildFreeMode(container) {
         const selected = fbChoices[slotIdx] || null;
 
         const slotDiv = document.createElement('div');
-        slotDiv.className = 'mb-5';
+        slotDiv.className = 'mb-3';
 
         const headerHtml = `
             <div class="flex items-center justify-between mb-3">
@@ -843,7 +855,7 @@ function renderBuildFreeMode(container) {
             </div>
         `;
 
-        const scrollHtml = `<div class="flex overflow-x-auto pb-2 no-scrollbar gap-1">
+        const scrollHtml = `<div class="flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1">
             ${allKanji.map(item => {
             const k = item['漢字'];
             const strokes = item['画数'] !== undefined ? item['画数']
