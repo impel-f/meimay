@@ -528,9 +528,8 @@ function renderBuildSelection() {
 
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    // Sticky設定で上部に固定。top-12(48px) = top-barの高さに合わせる。
-    // screen.padding-top(60px) + inner-div.pt-10(40px) = 100px → top-bar底辺(48px)にびた付けするため -mt-[52px] で調整。
-    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] -mt-[52px] mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
+    // sticky top-12(48px) = top-bar高さ。#scr-build.padding-top=48px + inner-div.pt-0 のためネガティブマージン不要。
+    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
 
     // ヘッダーを先に、そのあとにモードタブを配置
     container.appendChild(namePreview);

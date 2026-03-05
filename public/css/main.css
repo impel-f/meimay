@@ -858,6 +858,11 @@ body.hide-top-bar #top-bar {
     padding-top: 60px !important;
 }
 
+/* Build screen: namePreview starts flush under top-bar (48px) */
+#scr-build {
+    padding-top: 48px !important;
+}
+
 /* ============================================================
    INITIAL WIZARD
    ============================================================ */
