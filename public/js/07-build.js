@@ -530,15 +530,15 @@ function renderBuildSelection() {
 
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    namePreview.className = 'py-1 mb-2';
+    namePreview.className = 'mt-3 mb-1 -mx-2';
 
-    // ヘッダーを先に、そのあとにモードタブを配置
-    headerContainer.appendChild(namePreview);
+    // モードタブを先にして、そのあとに名前プレビューを配置
+    headerContainer.appendChild(modeBar);
 
     // updateNamePreview()を実行して中身を入れる
     updateNamePreview();
 
-    headerContainer.appendChild(modeBar);
+    headerContainer.appendChild(namePreview);
 
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
@@ -579,7 +579,7 @@ function renderBuildSelection() {
     `;
 
         const scrollBox = document.createElement('div');
-        scrollBox.className = 'flex overflow-x-auto pb-2 no-scrollbar gap-1';
+        scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
         // このスロットの候補を取得（現在の読み方のものだけ）
         let items = liked.filter(item => {
