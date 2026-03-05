@@ -444,18 +444,24 @@ function renderBuildSelection() {
     // 現在の読み方を取得
     const currentReading = segments.join('');
 
-    // モード切り替えタブ（読み方ボタンはドロップダウンで読みストック選択）
+    // モード切り替えタブ（間隔を詰める mb-5→mb-2）
     const modeBar = document.createElement('div');
-    modeBar.className = 'relative flex gap-2 mb-5';
+    modeBar.className = 'relative flex gap-2 mb-2';
+
+    // 読みボタンのラベル: 読みが固定されている場合は「読みを固定中」と表示
+    const readingBtnLabel = buildMode === 'reading' && currentReading
+        ? `📖 読みを固定中 ▾`
+        : `📖 読みを選ぶ ▾`;
+
     modeBar.innerHTML = `
         <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
-            class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'reading'
+            class="flex-1 py-2 rounded-full text-xs font-bold transition-all ${buildMode === 'reading'
             ? 'bg-[#bca37f] text-white shadow-md'
             : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
-            ${currentReading ? `📖 ${currentReading} ▾` : '📖 読み方 ▾'}
+            ${readingBtnLabel}
         </button>
         <button onclick="setBuildMode('free')"
-            class="flex-1 py-2.5 rounded-full text-sm font-bold transition-all ${buildMode === 'free'
+            class="flex-1 py-2 rounded-full text-xs font-bold transition-all ${buildMode === 'free'
             ? 'bg-[#bca37f] text-white shadow-md'
             : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ✨ 自由組み立て
@@ -463,6 +469,54 @@ function renderBuildSelection() {
         <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-50 hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
     `;
     container.appendChild(modeBar);
+
+    // ── 固定ヘッダー: 名前プレビュー（苗字 + 選択中の漢字 + ふりがな） ──
+    const namePreview = document.createElement('div');
+    namePreview.id = 'build-name-preview';
+    namePreview.className = 'sticky top-0 z-40 bg-[#fdfaf5]/95 backdrop-blur-sm mb-3 py-2 border-b border-[#ede5d8]';
+
+    function buildNamePreviewHTML() {
+        // 読みモード: selectedPieces の漢字を使う（選択済みのものだけ）
+        let givenKanji = '？？';
+        let givenReading = '';
+
+        if (buildMode === 'free') {
+            // 自由モード
+            givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '？';
+            givenReading = fbSelectedReading || '';
+        } else {
+            // 読みモード: selectedPieces の漢字を順に並べる
+            const chosen = [];
+            const chosenReads = [];
+            if (selectedPieces && selectedPieces.length > 0) {
+                selectedPieces.forEach((item, i) => {
+                    if (item) {
+                        chosen.push(item['漢字']);
+                        const seg = (item.sessionSegments && item.sessionSegments[i]) || segments[i] || '';
+                        chosenReads.push(seg);
+                    }
+                });
+            }
+            givenKanji = chosen.length > 0 ? chosen.join('') : segments.map(() => '？').join('');
+            givenReading = chosenReads.join('') || currentReading;
+        }
+
+        const surname = surnameStr || '';
+        const surnameRuby = surnameData && surnameData.length > 0
+            ? surnameData.map(s => s['読み'] || '').join('')
+            : '';
+
+        const fullKanji = surname + givenKanji;
+        const fullReading = surnameRuby ? `${surnameRuby}　${givenReading}` : givenReading;
+
+        return `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] mb-0.5">${fullReading}</p>
+            <p class="text-2xl font-black text-[#5d5444] tracking-wider">${fullKanji}</p>
+        </div>`;
+    }
+
+    namePreview.innerHTML = buildNamePreviewHTML();
+    container.appendChild(namePreview);
 
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
@@ -546,7 +600,12 @@ function renderBuildSelection() {
                 btn.className = 'build-piece-btn relative'; // modified: added relative
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
-                btn.onclick = () => selectBuildPiece(idx, item, btn);
+                btn.onclick = () => {
+                    selectBuildPiece(idx, item, btn);
+                    // ヘッダープレビューを即時更新
+                    const preview = document.getElementById('build-name-preview');
+                    if (preview) preview.innerHTML = buildNamePreviewHTML();
+                };
 
                 let fortuneIndicator = '';
                 if (prioritizeFortune && itemIdx < 3) {
