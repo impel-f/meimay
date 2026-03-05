@@ -528,9 +528,9 @@ function renderBuildSelection() {
 
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    // Sticky設定で上部に固定。ハンバーガーバー(z-100)の下にスムーズにくっつくよう top-12 (48px) を指定
-    // container の pt-10 (-40px) と top bar (48px) の距離を埋めるため -mt-10 を使用。
-    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] -mt-10 mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
+    // Sticky設定で上部に固定。top-12(48px) = top-barの高さに合わせる。
+    // screen.padding-top(60px) + inner-div.pt-10(40px) = 100px → top-bar底辺(48px)にびた付けするため -mt-[52px] で調整。
+    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] -mt-[52px] mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
 
     // ヘッダーを先に、そのあとにモードタブを配置
     container.appendChild(namePreview);
