@@ -22,7 +22,8 @@ const StorageBox = {
             localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
             localStorage.setItem(this.KEY_SURNAME, JSON.stringify({
                 str: surnameStr,
-                data: surnameData
+                data: surnameData,
+                reading: typeof surnameReading !== 'undefined' ? surnameReading : ''
             }));
             localStorage.setItem(this.KEY_SEGMENTS, JSON.stringify(segments));
             localStorage.setItem(this.KEY_SETTINGS, JSON.stringify({
@@ -60,6 +61,9 @@ const StorageBox = {
                 const parsedN = JSON.parse(n);
                 surnameStr = parsedN.str || "";
                 surnameData = parsedN.data || [];
+                if (typeof surnameReading !== 'undefined') {
+                    surnameReading = parsedN.reading || "";
+                }
 
                 // UIに反映
                 const input = document.getElementById('in-surname');
@@ -189,7 +193,7 @@ const StorageBox = {
         const data = {
             liked: liked,
             savedNames: savedNames,
-            surname: { str: surnameStr, data: surnameData },
+            surname: { str: surnameStr, data: surnameData, reading: typeof surnameReading !== 'undefined' ? surnameReading : '' },
             segments: segments,
             settings: { gender, rule, prioritizeFortune },
             exportDate: new Date().toISOString()
@@ -220,6 +224,9 @@ const StorageBox = {
                 savedNames = data.savedNames || [];
                 surnameStr = data.surname?.str || "";
                 surnameData = data.surname?.data || [];
+                if (typeof surnameReading !== 'undefined') {
+                    surnameReading = data.surname?.reading || "";
+                }
                 segments = data.segments || [];
 
                 if (data.settings) {

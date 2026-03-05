@@ -229,19 +229,18 @@ function openRoleInput() {
  * 苗字入力
  */
 function openSurnameInput() {
-    showInputModal('苗字を入力', 'text', surnameStr, '', (value) => {
-        if (value) {
-            surnameStr = value;
-            if (typeof updateSurnameData === 'function') {
-                const input = document.getElementById('in-surname');
-                if (input) {
-                    input.value = surnameStr;
-                    updateSurnameData();
-                }
+    showSurnameModal(surnameStr, surnameReading, (kanji, reading) => {
+        surnameStr = kanji || '';
+        surnameReading = reading || '';
+        if (typeof updateSurnameData === 'function') {
+            const input = document.getElementById('in-surname');
+            if (input) {
+                input.value = surnameStr;
+                updateSurnameData();
             }
-            saveSettings();
-            renderSettingsScreen();
         }
+        saveSettings();
+        renderSettingsScreen();
     });
 }
 
@@ -343,6 +342,53 @@ function closeInputModal() {
 }
 
 /**
+ * 苗字入力用モーダル（漢字＋ふりがな）
+ */
+function showSurnameModal(currentKanji, currentReading, onSave) {
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="surname-modal" onclick="if(event.target.id==='surname-modal')closeSurnameModal()">
+            <div class="modal-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeSurnameModal()">✕</button>
+                <h3 class="modal-title">苗字を入力</h3>
+                <div class="modal-body space-y-4">
+                    <div>
+                        <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">漢字</label>
+                        <input type="text" id="modal-surname-kanji" class="modal-input-large text-center w-full" value="${currentKanji || ''}" placeholder="例：山田">
+                        <div class="modal-input-underline"></div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">ふりがな（任意）</label>
+                        <input type="text" id="modal-surname-reading" class="modal-input-large text-center w-full" value="${currentReading || ''}" placeholder="例：やまだ">
+                        <div class="modal-input-underline"></div>
+                    </div>
+                </div>
+                <div class="modal-footer mt-6">
+                    <button onclick="saveSurnameModal()" class="btn-modal-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+    setTimeout(() => document.getElementById('modal-surname-kanji')?.focus(), 100);
+
+    window.surnameModalCallback = onSave;
+}
+
+function saveSurnameModal() {
+    const kanjiInput = document.getElementById('modal-surname-kanji');
+    const readingInput = document.getElementById('modal-surname-reading');
+    if (kanjiInput && window.surnameModalCallback) {
+        window.surnameModalCallback(kanjiInput.value.trim(), readingInput ? readingInput.value.trim() : '');
+    }
+    closeSurnameModal();
+}
+
+function closeSurnameModal() {
+    document.getElementById('surname-modal')?.remove();
+}
+
+/**
  * 汎用選択モーダル
  */
 function showChoiceModal(title, description, options, currentValue, onSave) {
@@ -407,6 +453,7 @@ function closeChoiceModal() {
 function saveSettings() {
     const settings = {
         surname: surnameStr,
+        surnameReading: surnameReading,
         gender: gender,
         imageTags: selectedImageTags,
         rule: rule,
@@ -428,6 +475,7 @@ function loadSettings() {
         try {
             const settings = JSON.parse(saved);
             surnameStr = settings.surname || '';
+            surnameReading = settings.surnameReading || '';
             gender = settings.gender || 'neutral';
             selectedImageTags = settings.imageTags || ['none'];
             rule = settings.rule || 'flexible';

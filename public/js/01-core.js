@@ -19,6 +19,7 @@ let currentIdx = 0;
 let swipes = 0;
 let gender = 'neutral';
 let surnameStr = "";
+let surnameReading = ""; // 苗字のふりがな（任意）
 let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];

@@ -472,7 +472,8 @@ function renderBuildSelection() {
     // ── 固定ヘッダー: 名前プレビュー（苗字 + 選択中の漢字 + ふりがな） ──
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    namePreview.className = 'sticky top-0 z-40 bg-[#fdfaf5]/95 backdrop-blur-sm mb-3 py-2 border-b border-[#ede5d8]';
+    // -mt-10 pt-10 と -mx-4 px-4 で親の padding を相殺して画面上部に完全密着させる
+    namePreview.className = 'sticky top-0 z-40 bg-[#fdfaf5]/95 backdrop-blur-sm mb-3 py-2 -mt-10 pt-10 -mx-4 px-4 border-b border-[#ede5d8]';
 
     function buildNamePreviewHTML() {
         // 読みモード: selectedPieces の漢字を使う（選択済みのものだけ）
@@ -496,6 +497,7 @@ function renderBuildSelection() {
                     }
                 });
             }
+            // 漢字が一つも選ばれていなければ空文字にする
             givenKanji = chosen.length > 0 ? chosen.join('') : '';
             givenReading = chosenReads.join('') || currentReading;
         }
@@ -505,12 +507,25 @@ function renderBuildSelection() {
             ? surnameData.map(s => s['読み'] || '').join('')
             : '';
 
-        const fullKanji = surname + (givenKanji ? (surname ? '　' : '') + givenKanji : '');
-        const fullReading = surnameRuby ? (givenReading ? `${surnameRuby}　${givenReading}` : surnameRuby) : givenReading;
+        const renderSurname = surname ? `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${surname}</p>
+        </div>` : '';
 
-        return `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] mb-0.5">${fullReading || ' '}</p>
-            <p class="text-2xl font-black text-[#5d5444] tracking-wider">${fullKanji || '名前を作成'}</p>
+        const renderGiven = givenKanji ? `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${givenReading || ''}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
+        </div>` : '';
+
+        if (!renderSurname && !renderGiven) {
+            return `<div class="flex flex-col items-center justify-end h-[52px]">
+                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
+            </div>`;
+        }
+
+        return `<div class="flex items-end justify-center gap-4 min-h-[52px]">
+            ${renderSurname}
+            ${renderGiven}
         </div>`;
     }
 
