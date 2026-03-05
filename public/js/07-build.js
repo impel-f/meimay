@@ -494,15 +494,17 @@ window.updateNamePreview = updateNamePreview;
  */
 function renderBuildSelection() {
     const container = document.getElementById('build-selection');
-    if (!container) return;
+    const headerContainer = document.getElementById('build-header-sticky');
+    if (!container || !headerContainer) return;
 
     container.innerHTML = '';
+    headerContainer.innerHTML = '';
 
     const currentReading = segments.join('');
 
-    // モード切り替えタブ（間隔を詰める mb-5→mb-2）
+    // モード切り替えタブ
     const modeBar = document.createElement('div');
-    modeBar.className = 'relative flex gap-2 mb-2';
+    modeBar.className = 'relative flex gap-2 w-full';
 
     // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
@@ -523,21 +525,20 @@ function renderBuildSelection() {
             : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ✨ 自由組み立て
         </button>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-[40] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
+        <div id="reading-dropdown" class="absolute top-full left-0 w-[calc(100%+16px)] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
     `;
 
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    // sticky top-12(48px) = top-bar高さ。#scr-build.padding-top=48px + inner-div.pt-0 のためネガティブマージン不要。
-    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
+    namePreview.className = 'py-1 mb-2';
 
     // ヘッダーを先に、そのあとにモードタブを配置
-    container.appendChild(namePreview);
+    headerContainer.appendChild(namePreview);
 
     // updateNamePreview()を実行して中身を入れる
     updateNamePreview();
 
-    container.appendChild(modeBar);
+    headerContainer.appendChild(modeBar);
 
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
