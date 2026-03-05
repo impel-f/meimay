@@ -448,9 +448,9 @@ function renderBuildSelection() {
     const modeBar = document.createElement('div');
     modeBar.className = 'relative flex gap-2 mb-2';
 
-    // 読みボタンのラベル: 読みが固定されている場合は「読みを固定中」と表示
+    // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
-        ? `📖 読みを固定中 ▾`
+        ? `📖 ${currentReading} ▾`
         : `📖 読みを選ぶ ▾`;
 
     modeBar.innerHTML = `
@@ -468,7 +468,6 @@ function renderBuildSelection() {
         </button>
         <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-50 hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
     `;
-    container.appendChild(modeBar);
 
     // ── 固定ヘッダー: 名前プレビュー（苗字 + 選択中の漢字 + ふりがな） ──
     const namePreview = document.createElement('div');
@@ -477,12 +476,12 @@ function renderBuildSelection() {
 
     function buildNamePreviewHTML() {
         // 読みモード: selectedPieces の漢字を使う（選択済みのものだけ）
-        let givenKanji = '？？';
+        let givenKanji = '';
         let givenReading = '';
 
         if (buildMode === 'free') {
             // 自由モード
-            givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '？';
+            givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '';
             givenReading = fbSelectedReading || '';
         } else {
             // 読みモード: selectedPieces の漢字を順に並べる
@@ -497,7 +496,7 @@ function renderBuildSelection() {
                     }
                 });
             }
-            givenKanji = chosen.length > 0 ? chosen.join('') : segments.map(() => '？').join('');
+            givenKanji = chosen.length > 0 ? chosen.join('') : '';
             givenReading = chosenReads.join('') || currentReading;
         }
 
@@ -506,17 +505,20 @@ function renderBuildSelection() {
             ? surnameData.map(s => s['読み'] || '').join('')
             : '';
 
-        const fullKanji = surname + givenKanji;
-        const fullReading = surnameRuby ? `${surnameRuby}　${givenReading}` : givenReading;
+        const fullKanji = surname + (givenKanji ? (surname ? '　' : '') + givenKanji : '');
+        const fullReading = surnameRuby ? (givenReading ? `${surnameRuby}　${givenReading}` : surnameRuby) : givenReading;
 
         return `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] mb-0.5">${fullReading}</p>
-            <p class="text-2xl font-black text-[#5d5444] tracking-wider">${fullKanji}</p>
+            <p class="text-[10px] text-[#a6967a] mb-0.5">${fullReading || ' '}</p>
+            <p class="text-2xl font-black text-[#5d5444] tracking-wider">${fullKanji || '名前を作成'}</p>
         </div>`;
     }
 
     namePreview.innerHTML = buildNamePreviewHTML();
+
+    // ヘッダーを先に、そのあとにモードタブを配置
     container.appendChild(namePreview);
+    container.appendChild(modeBar);
 
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
@@ -1007,6 +1009,7 @@ window.executeFbBuild = executeFbBuild;
 // selectFbKanji / removeFbChoice: ビルド画面自由モード対応版
 window.selectFbKanji = function (slotIdx, kanji) {
     fbChoices[slotIdx] = kanji;
+    fbSelectedReading = null; // 漢字変更時は読み選択をリセット
 
     const scrollPositions = [];
     document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
