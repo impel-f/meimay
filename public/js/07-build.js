@@ -433,6 +433,63 @@ function setBuildMode(mode) {
 window.setBuildMode = setBuildMode;
 
 /**
+ * 固定ヘッダー（名前プレビュー）を更新
+ */
+function updateNamePreview() {
+    const preview = document.getElementById('build-name-preview');
+    if (!preview) return;
+
+    let givenKanji = '';
+    let givenReading = '';
+
+    if (buildMode === 'free') {
+        givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '';
+        givenReading = fbSelectedReading || '';
+    } else {
+        const chosen = [];
+        const chosenReads = [];
+        if (selectedPieces && selectedPieces.length > 0) {
+            selectedPieces.forEach((item, i) => {
+                if (item) {
+                    chosen.push(item['漢字']);
+                    const seg = (item.sessionSegments && item.sessionSegments[i]) || segments[i] || '';
+                    chosenReads.push(seg);
+                }
+            });
+        }
+        givenKanji = chosen.length > 0 ? chosen.join('') : '';
+        givenReading = chosenReads.join('') || segments.join('');
+    }
+
+    const surname = surnameStr || '';
+    const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
+        (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
+
+    const renderSurname = surname ? `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${surname}</p>
+        </div>` : '';
+
+    const renderGiven = givenKanji ? `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${givenReading || ''}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
+        </div>` : '';
+
+    if (!renderSurname && !renderGiven) {
+        preview.innerHTML = `<div class="flex flex-col items-center justify-end h-[52px]">
+                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
+            </div>`;
+        return;
+    }
+
+    preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
+            ${renderSurname}
+            ${renderGiven}
+        </div>`;
+}
+window.updateNamePreview = updateNamePreview;
+
+/**
  * ビルド選択画面のレンダリング
  */
 function renderBuildSelection() {
@@ -441,7 +498,6 @@ function renderBuildSelection() {
 
     container.innerHTML = '';
 
-    // 現在の読み方を取得
     const currentReading = segments.join('');
 
     // モード切り替えタブ（間隔を詰める mb-5→mb-2）
@@ -453,6 +509,7 @@ function renderBuildSelection() {
         ? `📖 ${currentReading} ▾`
         : `📖 読みを選ぶ ▾`;
 
+    // 読みドロップダウンがヘッダーの下に潜り込むように配置
     modeBar.innerHTML = `
         <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
             class="flex-1 py-2 rounded-full text-xs font-bold transition-all ${buildMode === 'reading'
@@ -466,73 +523,21 @@ function renderBuildSelection() {
             : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ✨ 自由組み立て
         </button>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-50 hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
+        <div id="reading-dropdown" class="absolute top-full left-0 w-1/2 z-[40] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-1 max-h-60 overflow-y-auto"></div>
     `;
 
-    // ── 固定ヘッダー: 名前プレビュー（苗字 + 選択中の漢字 + ふりがな） ──
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    // -mt-12 と top-12 を用いて、app-header(h-12=48px)の真下にピタッと隙間なく固定させる。背景は100%不透明にする。
-    namePreview.className = 'sticky top-12 z-[60] bg-[#fdfaf5] -mt-12 mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
-
-    function buildNamePreviewHTML() {
-        // 読みモード: selectedPieces の漢字を使う（選択済みのものだけ）
-        let givenKanji = '';
-        let givenReading = '';
-
-        if (buildMode === 'free') {
-            // 自由モード
-            givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '';
-            givenReading = fbSelectedReading || '';
-        } else {
-            // 読みモード: selectedPieces の漢字を順に並べる
-            const chosen = [];
-            const chosenReads = [];
-            if (selectedPieces && selectedPieces.length > 0) {
-                selectedPieces.forEach((item, i) => {
-                    if (item) {
-                        chosen.push(item['漢字']);
-                        const seg = (item.sessionSegments && item.sessionSegments[i]) || segments[i] || '';
-                        chosenReads.push(seg);
-                    }
-                });
-            }
-            // 漢字が一つも選ばれていなければ空文字にする
-            givenKanji = chosen.length > 0 ? chosen.join('') : '';
-            givenReading = chosenReads.join('') || currentReading;
-        }
-
-        const surname = surnameStr || '';
-        const surnameRuby = surnameData && surnameData.length > 0
-            ? surnameData.map(s => s['読み'] || '').join('')
-            : '';
-
-        const renderSurname = surname ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
-            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${surname}</p>
-        </div>` : '';
-
-        const renderGiven = givenKanji ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${givenReading || ''}</p>
-            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
-        </div>` : '';
-
-        if (!renderSurname && !renderGiven) {
-            return `<div class="flex flex-col items-center justify-end h-[52px]">
-                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
-            </div>`;
-        }
-
-        return `<div class="flex items-end justify-center gap-4 min-h-[52px]">
-            ${renderSurname}
-            ${renderGiven}
-        </div>`;
-    }
-
-    namePreview.innerHTML = buildNamePreviewHTML();
+    // Sticky設定で上部に固定。ハンバーガーバー(z-100)の下にスムーズにくっつくよう top-12 (48px) を指定
+    // container の pt-10 (-40px) と top bar (48px) の距離を埋めるため -mt-10 を使用。
+    namePreview.className = 'sticky top-12 z-[50] bg-[#fdfaf5] -mt-10 mb-4 py-3 -mx-4 px-4 border-b border-[#ede5d8] shadow-sm';
 
     // ヘッダーを先に、そのあとにモードタブを配置
     container.appendChild(namePreview);
+
+    // updateNamePreview()を実行して中身を入れる
+    updateNamePreview();
+
     container.appendChild(modeBar);
 
     // 自由モードはフリービルドUIを表示
@@ -619,9 +624,7 @@ function renderBuildSelection() {
                 btn.setAttribute('data-kanji', item['漢字']);
                 btn.onclick = () => {
                     selectBuildPiece(idx, item, btn);
-                    // ヘッダープレビューを即時更新
-                    const preview = document.getElementById('build-name-preview');
-                    if (preview) preview.innerHTML = buildNamePreviewHTML();
+                    updateNamePreview();
                 };
 
                 let fortuneIndicator = '';
@@ -767,6 +770,8 @@ function toggleReadingDropdown() {
         }).join('');
     }
     dropdown.classList.remove('hidden');
+
+    // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
     // 外側クリックで閉じる
     setTimeout(() => {
@@ -1671,6 +1676,7 @@ function applyRankedCombination(combination) {
     });
 
     closeFortuneDetail();
+    updateNamePreview(); // ヘッダーのプレビューも即時更新
     setTimeout(() => executeBuild(), 100);
 }
 
