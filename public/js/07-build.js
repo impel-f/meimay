@@ -792,6 +792,117 @@ function renderBuildFreeMode(container) {
         };
         container.appendChild(addBtn);
     }
+
+    // 選択した漢字の読み合わせ候補を表示
+    if (fbChoices.length >= 1) {
+        suggestReadingsForKanji(fbChoices, container);
+    }
+}
+
+/**
+ * 自由組み立てモード：選択した漢字の読みの組み合わせから
+ * readings_data.json 内にマッチする読みを候補として提案する
+ */
+function suggestReadingsForKanji(choices, container) {
+    if (!choices || choices.length === 0) return;
+    if (!readingsData || readingsData.length === 0) return;
+    if (typeof master === 'undefined' || !master || master.length === 0) return;
+
+    // 各漢字の可能な読み一覧を取得（音・訓・伝統名のり をすべて split）
+    function getKanjiReadings(kanji) {
+        const rec = master.find(m => m['漢字'] === kanji);
+        if (!rec) return [];
+        const raw = [rec['音'] || '', rec['訓'] || '', rec['伝統名のり'] || ''].join(',');
+        return [...new Set(
+            raw.split(/[、,，\s/]+/)
+                .map(r => typeof toHira === 'function' ? toHira(r.trim()) : r.trim().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)))
+                .filter(r => r && r.length >= 1 && /^[ぁ-ん]+$/.test(r))
+        )];
+    }
+
+    // 全漢字の読みの組み合わせ（直積）を生成
+    function cartesian(arrays) {
+        return arrays.reduce((acc, curr) => {
+            const result = [];
+            acc.forEach(a => curr.forEach(c => result.push(a + c)));
+            return result;
+        }, ['']);
+    }
+
+    const readingArrays = choices.map(getKanjiReadings);
+    if (readingArrays.some(a => a.length === 0)) return; // 読みが不明な漢字があったらスキップ
+    const combinedSet = new Set(cartesian(readingArrays));
+
+    // readings_data.json の中でその読みに一致するものを抽出
+    const matched = readingsData.filter(r => combinedSet.has(r.reading));
+    if (matched.length === 0) return;
+
+    // 既存のNopeを除外
+    const filtered = matched.filter(r => !(typeof noped !== 'undefined' && noped.has(r.reading)));
+    if (filtered.length === 0) return;
+
+    // スコアで優先ソート（ユーザーのタグ傾向）
+    const scored = filtered.map(r => {
+        let score = 0;
+        if (r.tags && userTags) r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
+        return { ...r, _score: score };
+    }).sort((a, b) => {
+        if (a._score !== b._score) return b._score - a._score;
+        return (b.count || 0) - (a.count || 0);
+    });
+
+    // UI 描画
+    const section = document.createElement('div');
+    section.className = 'mt-5 pt-4 border-t border-[#ede5d8]';
+    section.innerHTML = `<p class="text-[11px] font-black text-[#bca37f] mb-3 flex items-center gap-2">
+        <span>🎵</span> おすすめの読み方 <span class="text-[#a6967a] font-normal">(${scored.length}件)</span>
+    </p>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'flex flex-col gap-2';
+
+    scored.slice(0, 12).forEach(r => {
+        let tagsHtml = '';
+        if (r.tags && r.tags.length > 0) {
+            tagsHtml = r.tags.slice(0, 2).map(t => {
+                const s = typeof getTagStyle === 'function' ? getTagStyle(t) : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+                return `<span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded-full border"
+                    style="background-color:${s.bgColor};color:${s.textColor};border-color:${s.borderColor};">${t}</span>`;
+            }).join('');
+        }
+
+        let exHtml = '';
+        if (r.examples) {
+            const exArr = typeof r.examples === 'string'
+                ? r.examples.split(/[,、]/).map(x => x.trim()).filter(x => x)
+                : (Array.isArray(r.examples) ? r.examples : []);
+            if (exArr.length > 0) {
+                exHtml = `<span class="text-[10px] text-[#a6967a] ml-1">${exArr.slice(0, 3).join(' / ')}</span>`;
+            }
+        }
+
+        const btn = document.createElement('button');
+        btn.className = 'w-full flex items-center justify-between px-4 py-3 bg-white rounded-2xl border border-[#ede5d8] hover:border-[#bca37f] transition-all active:scale-95 shadow-sm text-left';
+        btn.innerHTML = `
+            <div>
+                <span class="text-lg font-black text-[#5d5444]">${r.reading}</span>
+                ${exHtml}
+                <div class="flex flex-wrap gap-1 mt-1">${tagsHtml}</div>
+            </div>
+            <span class="text-[#bca37f] font-bold text-lg ml-2 shrink-0">›</span>
+        `;
+        btn.onclick = () => {
+            // 選んだ読みをbeースに読み指定モードで候補を探す
+            if (typeof proceedWithSoundReading === 'function') {
+                proceedWithSoundReading(r.reading);
+            }
+            if (typeof showToast === 'function') showToast(`「${r.reading}」で候補を生成します`, '🎵');
+        };
+        grid.appendChild(btn);
+    });
+
+    section.appendChild(grid);
+    container.appendChild(section);
 }
 
 /**
