@@ -503,20 +503,22 @@ function updateNamePreview() {
         }
 
         const fortuneBadgeHtml = `
-            <div class="text-[9px] font-bold text-[#a6967a] leading-none mb-1">総格 ${fortune.so.val}画</div>
-            <div class="text-[11px] font-black ${fortune.so.res.color} leading-none mb-1">${fortune.so.res.label}</div>
-            <div class="text-sm leading-none mb-0.5">🔮</div>
-            <div class="text-[8px] font-bold text-[#bca37f] leading-none">運勢詳細</div>
+            <div class="flex items-center justify-center gap-0.5 mb-0.5">
+                <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
+                <span class="text-[10px] font-black ${fortune.so.res.color} leading-none">${fortune.so.res.label}</span>
+            </div>
+            <div class="text-xs leading-none mb-0.5">🔮</div>
+            <div class="text-[7px] font-bold text-[#bca37f] leading-none">運勢詳細</div>
         `;
 
-        fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-0.5 flex flex-col items-center justify-center p-2 transition-all active:scale-95 hover:scale-105 bg-white/80 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[60px] z-10">
+        fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center py-1.5 px-2 transition-all active:scale-95 hover:scale-105 bg-white/80 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[56px] z-10">
             ${fortuneBadgeHtml}
         </button>`;
     }
 
     // なにも選択されていないが苗字はある場合
     if (renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[52px]">
+        preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[64px]">
             ${renderSurname}
             ${fortuneBtn}
         </div>`;
@@ -524,14 +526,14 @@ function updateNamePreview() {
     }
 
     if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="relative flex flex-col items-center justify-end h-[52px]">
+        preview.innerHTML = `<div class="relative flex flex-col items-center justify-end h-[64px]">
                 <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
                 ${fortuneBtn}
             </div>`;
         return;
     }
 
-    preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[52px]">
+    preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[64px]">
             ${renderSurname}
             ${renderGiven}
             ${fortuneBtn}
@@ -1245,21 +1247,6 @@ function renderBuildResult() {
     container.innerHTML = `
     <div class="glass-card rounded-[50px] p-8 mb-6 shadow-xl animate-fade-in" >
         <h3 class="text-4xl font-black text-center mb-8 text-[#5d5444] tracking-tight leading-tight">${surnameStr ? surnameStr + ' ' : ''}${r.givenName}</h3>
-            
-            ${r.fortune ? `
-                <div class="text-center mb-6 p-5 bg-gradient-to-br from-[#fdfaf5] to-white rounded-[30px]">
-                    <div class="text-2xl font-black ${r.fortune.so.res.color} mb-1">
-                        総格 ${r.fortune.so.val}画
-                    </div>
-                    <div class="text-lg font-bold ${r.fortune.so.res.color} mb-3">
-                        ${r.fortune.so.res.label}
-                    </div>
-                    <button onclick="showFortuneDetail()" class="text-xs text-[#bca37f] font-bold border-b-2 border-[#bca37f] pb-1 hover:text-[#8b7e66] hover:border-[#8b7e66] transition-colors">
-                        詳細な姓名判断を見る →
-                    </button>
-                </div>
-            ` : ''
-        }
 
 <div class="flex flex-col gap-3 mt-6">
     <button onclick="generateOrigin()" class="btn-gold py-3 text-sm flex items-center justify-center gap-2"><span class="text-lg leading-none mt-[-2px]">✨</span> AIで由来を生成</button>
