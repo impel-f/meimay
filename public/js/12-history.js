@@ -38,6 +38,20 @@ function showSaveMessageModal() {
                                   rows="3"
                                   maxlength="100"></textarea>
                     </div>
+
+                    ${(typeof buildMode !== 'undefined' && buildMode === 'free' && typeof currentFbRecommendedReadings !== 'undefined' && currentFbRecommendedReadings.length > 0) ? `
+                    <div class="mb-4">
+                        <label class="text-xs font-bold text-[#a6967a] mb-2 block">読み方の選択・変更</label>
+                        <div class="flex flex-wrap gap-2">
+                            ${currentFbRecommendedReadings.slice(0, 10).map(r => `
+                                <button onclick="selectReadingInModal('${r.reading}')" 
+                                        class="modal-reading-chip px-3 py-1.5 text-xs font-bold rounded-full border border-[#d4c5af] bg-white text-[#5d5444] hover:border-[#bca37f] transition-all">
+                                    ${r.reading}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="modal-footer">
                     <button onclick="executeSaveWithMessage()" class="btn-modal-primary">保存する</button>
@@ -52,6 +66,40 @@ function showSaveMessageModal() {
 
 function closeSaveMessageModal() {
     document.getElementById('save-message-modal')?.remove();
+}
+
+/**
+ * モーダル内で読みを選択した際の処理
+ */
+function selectReadingInModal(reading) {
+    if (!currentBuildResult) return;
+
+    // 名字のふりがな部分を維持しつつ、名前部分だけ差し替える
+    // currentBuildResult.reading は "姓 読み" の形になっている
+    const parts = currentBuildResult.reading.split(' ');
+    let newReading = reading;
+    if (parts.length > 1) {
+        newReading = parts[0] + ' ' + reading;
+    }
+
+    currentBuildResult.reading = newReading;
+
+    // モーダル内の表示を更新
+    const readingDiv = document.querySelector('#save-message-modal .text-sm.text-\\[\\#a6967a\\]');
+    if (readingDiv) readingDiv.textContent = newReading;
+
+    // チップのスタイル更新
+    document.querySelectorAll('.modal-reading-chip').forEach(chip => {
+        if (chip.textContent.trim() === reading) {
+            chip.classList.add('bg-[#bca37f]', 'text-white', 'border-[#bca37f]');
+            chip.classList.remove('bg-white', 'text-[#5d5444]', 'border-[#d4c5af]');
+        } else {
+            chip.classList.remove('bg-[#bca37f]', 'text-white', 'border-[#bca37f]');
+            chip.classList.add('bg-white', 'text-[#5d5444]', 'border-[#d4c5af]');
+        }
+    });
+
+    console.log("SAVE_MODAL: Reading updated to", newReading);
 }
 
 /**

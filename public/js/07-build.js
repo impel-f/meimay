@@ -43,6 +43,29 @@ function openFreeBuild() {
 let fbChoices = []; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
 let fbSelectedReading = null; // 修正部: 選択した読みを保存時に固定する
+let currentFbRecommendedReadings = []; // 保存モーダル等で共有するための変数
+
+/**
+ * スクロール位置を保持しながら処理を実行するヘルパー
+ */
+function withScrollPreservation(callback) {
+    const containers = document.querySelectorAll('.overflow-x-auto');
+    const scrollPositions = Array.from(containers).map(el => ({ el, left: el.scrollLeft }));
+
+    callback();
+
+    requestAnimationFrame(() => {
+        scrollPositions.forEach(item => {
+            if (item.el) item.el.scrollLeft = item.left;
+        });
+        // 念のため少し遅れてもう一度（レンダリング遅延対策）
+        setTimeout(() => {
+            scrollPositions.forEach(item => {
+                if (item.el) item.el.scrollLeft = item.left;
+            });
+        }, 30);
+    });
+}
 
 function renderFreeBuildSection() {
     const container = document.getElementById('free-build-section');
@@ -531,7 +554,7 @@ function updateNamePreview() {
             <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
             <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
         </button>
-        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-white border-[#eee5d8] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             ${fortuneLabel}
         </button>
     </div>`;
@@ -673,9 +696,7 @@ function renderBuildSelection() {
                     <button onclick="addMoreToSlot(${idx})" class="text-[10px] font-bold text-[#5d5444] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#bca37f] rounded-full bg-white">
                         + 追加する
                     </button>
-                    <button onclick="reselectSlot(${idx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">
-                        ← 読みを戻す
-                    </button>
+                    <!-- reselectSlot は非表示 -->
                 </div>
             </div>
     `;
@@ -727,6 +748,12 @@ function renderBuildSelection() {
                 btn.onclick = () => {
                     selectBuildPiece(idx, item, btn);
                     updateNamePreview();
+                };
+                btn.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    if (typeof openKanjiRemovalOptions === 'function') {
+                        openKanjiRemovalOptions(item['漢字'], idx, false);
+                    }
                 };
 
                 let fortuneIndicator = '';
@@ -954,6 +981,7 @@ function renderBuildFreeMode(container) {
             const isSelected = selected === k;
             const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
+                    oncontextmenu="event.preventDefault(); openKanjiRemovalOptions('${k}', ${slotIdx}, true)"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
@@ -973,8 +1001,10 @@ function renderBuildFreeMode(container) {
         addBtn.className = 'w-full py-3 mb-2 border-2 border-dashed border-[#d4c5af] rounded-2xl text-sm font-bold text-[#a6967a] hover:border-[#bca37f] hover:text-[#bca37f] transition-all active:scale-95';
         addBtn.innerHTML = `＋ ${shownFbSlots + 1}文字目を追加`;
         addBtn.onclick = () => {
-            shownFbSlots = Math.min(shownFbSlots + 1, maxSlots);
-            renderBuildSelection();
+            withScrollPreservation(() => {
+                shownFbSlots = Math.min(shownFbSlots + 1, maxSlots);
+                renderBuildSelection();
+            });
         };
         container.appendChild(addBtn);
     }
@@ -1037,6 +1067,8 @@ function suggestReadingsForKanji(choices, container) {
         return (b.count || 0) - (a.count || 0);
     });
 
+    currentFbRecommendedReadings = scored; // グローバルに保存
+
     // UI 描画（コンパクトなチップスタイル）
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
@@ -1054,13 +1086,22 @@ function suggestReadingsForKanji(choices, container) {
                 : 'bg-white text-[#5d5444] border-[#d4c5af] hover:border-[#bca37f]'}`;
         chip.textContent = r.reading;
         chip.onclick = () => {
-            // 選択読みを固定（保存時に使用）
-            fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
-            renderBuildSelection();
-            executeFbBuild();
+            withScrollPreservation(() => {
+                // 選択読みを固定（保存時に使用）
+                fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
+                renderBuildSelection();
+                executeFbBuild();
+            });
         };
         chipRow.appendChild(chip);
     });
+
+    // 手入力ボタンを追加
+    const manualBtn = document.createElement('button');
+    manualBtn.className = `px-3 py-1.5 text-sm font-bold rounded-full border border-[#d4c5af] bg-[#fdfaf5] text-[#a6967a] hover:border-[#bca37f] transition-all active:scale-95`;
+    manualBtn.innerHTML = '✏️ 手入力';
+    manualBtn.onclick = () => promptManualFbReading();
+    chipRow.appendChild(manualBtn);
 
     section.appendChild(chipRow);
 
@@ -1072,6 +1113,26 @@ function suggestReadingsForKanji(choices, container) {
     }
 
     container.appendChild(section);
+}
+
+/**
+ * 読み方の手入力プロンプト
+ */
+function promptManualFbReading() {
+    const input = prompt('名前の読みを入力してください（ひらがな）', fbSelectedReading || '');
+    if (input === null) return; // キャンセル
+
+    const cleaned = clean(input);
+    if (!cleaned) {
+        fbSelectedReading = null;
+    } else {
+        fbSelectedReading = cleaned;
+    }
+
+    withScrollPreservation(() => {
+        renderBuildSelection();
+        executeFbBuild();
+    });
 }
 
 /**
@@ -1132,51 +1193,83 @@ function executeFbBuild() {
 window.renderBuildFreeMode = renderBuildFreeMode;
 window.executeFbBuild = executeFbBuild;
 
-// selectFbKanji / removeFbChoice: ビルド画面自由モード対応版
-window.selectFbKanji = function (slotIdx, kanji) {
-    fbChoices[slotIdx] = kanji;
-    fbSelectedReading = null; // 漢字変更時は読み選択をリセット
+/**
+ * 漢字の長押し（右クリック）メニューを表示
+ */
+function openKanjiRemovalOptions(kanji, slotIdx, isFreeMode) {
+    const msg = `漢字「${kanji}」をどうしますか？`;
+    const choice = confirm(`${msg}\n\n・「ストックから完全に削除」する場合は OK を押してください。\n\n・キャンセルする場合は キャンセル を押してください。`);
 
-    const scrollPositions = [];
-    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
-
-    const buildScreen = document.getElementById('scr-build');
-    if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
-        renderBuildSelection();
-        executeFbBuild();
-    } else {
-        renderFreeBuildSection();
+    if (choice) {
+        removeKanjiFromStock(kanji);
     }
+}
 
-    requestAnimationFrame(() => {
-        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
-            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
+/**
+ * 漢字をストックから完全に削除
+ */
+function removeKanjiFromStock(kanji) {
+    if (!liked) return;
+
+    const initialCount = liked.length;
+    // 全てのスロット、全ての読み合わせから削除
+    liked = liked.filter(item => item['漢字'] !== kanji);
+
+    if (liked.length < initialCount) {
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+            StorageBox.saveLiked();
+        }
+
+        // 統計記録
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+            MeimayStats.recordKanjiUnlike(kanji);
+        }
+
+        // 自由組み立ての選択からも解除
+        fbChoices = fbChoices.map(c => c === kanji ? null : c);
+
+        showToast(`「${kanji}」をストックから削除しました`, '🗑️');
+
+        withScrollPreservation(() => {
+            renderBuildSelection();
+            if (buildMode === 'free') executeFbBuild();
         });
+    }
+}
+
+window.openKanjiRemovalOptions = openKanjiRemovalOptions;
+window.removeKanjiFromStock = removeKanjiFromStock;
+
+window.selectFbKanji = function (slotIdx, kanji) {
+    withScrollPreservation(() => {
+        fbChoices[slotIdx] = kanji;
+        fbSelectedReading = null; // 漢字変更時は読み選択をリセット
+
+        const buildScreen = document.getElementById('scr-build');
+        if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
+            renderBuildSelection();
+            executeFbBuild();
+        } else {
+            renderFreeBuildSection();
+        }
     });
 };
 
 window.removeFbChoice = function (slotIdx) {
-    fbChoices.splice(slotIdx, 1);
-    fbSelectedReading = null; // 漢字変更時は読み選択をリセット
-    if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
-        shownFbSlots--;
-    }
+    withScrollPreservation(() => {
+        fbChoices.splice(slotIdx, 1);
+        fbSelectedReading = null; // 漢字変更時は読み選択をリセット
+        if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
+            shownFbSlots--;
+        }
 
-    const scrollPositions = [];
-    document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
-
-    const buildScreen = document.getElementById('scr-build');
-    if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
-        renderBuildSelection();
-        executeFbBuild();
-    } else {
-        renderFreeBuildSection();
-    }
-
-    requestAnimationFrame(() => {
-        document.querySelectorAll('.overflow-x-auto').forEach((el, i) => {
-            if (scrollPositions[i] !== undefined) el.scrollLeft = scrollPositions[i];
-        });
+        const buildScreen = document.getElementById('scr-build');
+        if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
+            renderBuildSelection();
+            executeFbBuild();
+        } else {
+            renderFreeBuildSection();
+        }
     });
 };
 
