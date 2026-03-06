@@ -516,26 +516,37 @@ function updateNamePreview() {
         </button>`;
     }
 
+    // デザイン案A＋Cの組み合わせ：背景を切り分けつつ、和紙風の命名カード枠を追加
+    const containerClasses = "relative flex items-center justify-center gap-4 min-h-[76px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] p-3 mx-1 mt-2 mb-3 before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none";
+
     // なにも選択されていないが苗字はある場合
     if (renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[64px]">
-            ${renderSurname}
+        preview.innerHTML = `<div class="${containerClasses}">
+            <div class="flex items-end justify-center gap-4 relative z-10 w-full px-2">
+                ${renderSurname}
+                <div class="flex-1 flex items-center justify-center border-b border-dashed border-[#d4c5af] h-[36px] ml-2 pb-1 text-[#d4c5af] text-sm">名前を作成...</div>
+            </div>
             ${fortuneBtn}
         </div>`;
         return;
     }
 
     if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="relative flex flex-col items-center justify-end h-[64px]">
-                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
-                ${fortuneBtn}
-            </div>`;
+        preview.innerHTML = `<div class="${containerClasses}">
+            <div class="relative flex flex-col items-center justify-center h-full z-10 w-full">
+                <p class="text-sm font-black text-[#d4c5af] tracking-wider mb-0.5">ー 命名キャンバス ー</p>
+                <p class="text-[10px] text-[#d4c5af]">漢字を選択して名前を作成してください</p>
+            </div>
+            ${fortuneBtn}
+        </div>`;
         return;
     }
 
-    preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[64px]">
-            ${renderSurname}
-            ${renderGiven}
+    preview.innerHTML = `<div class="${containerClasses}">
+            <div class="flex items-end justify-center gap-4 relative z-10 w-full px-2 pr-12">
+                ${renderSurname}
+                ${renderGiven}
+            </div>
             ${fortuneBtn}
         </div>`;
 }
