@@ -1397,7 +1397,7 @@ function showFortuneDetail() {
     <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${char}</div> `;
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-4 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
+    mapArea.className = "mb-2 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
     mapArea.innerHTML = `
         <div style = "text-align:center;font-size:9px;font-weight:900;letter-spacing:0.2em;color:#5d5444;opacity:0.5;margin-bottom:14px" > 姓名判断 鑑定図解</div>
 
@@ -1463,7 +1463,7 @@ function showFortuneDetail() {
 
     if (res.sansai) {
         const sansai = document.createElement('div');
-        sansai.className = "mb-4 bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8] shadow-inner animate-fade-in";
+        sansai.className = "mb-2 bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8] shadow-inner animate-fade-in";
         sansai.innerHTML = `
     <div class="flex justify-between items-center mb-3" >
                 <div class="flex items-center gap-2">
