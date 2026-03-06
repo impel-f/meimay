@@ -1842,10 +1842,16 @@ function showFortuneRanking() {
 function generateAllCombinations() {
     const currentReading = segments.join('');
     const slotArrays = segments.map((seg, idx) => {
-        let items = liked.filter(item => item.slot === idx && (!item.sessionReading || item.sessionReading === currentReading));
-        // 現在の読みで候補がない場合はスロット内の全漢字（重複排除）を使用
+        // 現在の読み方 + 除外されていない漢字をフィルタ
+        let items = liked.filter(item =>
+            item.slot === idx &&
+            (!item.sessionReading || item.sessionReading === currentReading) &&
+            !excludedKanjiFromBuild.includes(item['漢字'])
+        );
+
+        // 現在の読みで候補がない場合（フォールバック）でも除外リストを適用
         if (items.length === 0) {
-            const allSlotItems = liked.filter(item => item.slot === idx);
+            const allSlotItems = liked.filter(item => item.slot === idx && !excludedKanjiFromBuild.includes(item['漢字']));
             const seen = new Set();
             items = allSlotItems.filter(item => {
                 if (seen.has(item['漢字'])) return false;
