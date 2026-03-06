@@ -512,7 +512,7 @@ function updateNamePreview() {
 
     // \u30dc\u30bf\u30f3\u5185\u306e\u30e9\u30d9\u30eb
     const fortuneLabel = fortuneData ? `
-        <div class="flex items-center justify-center gap-1 mb-1.5 px-1 bg-[#fdfaf5] py-1 rounded-md border border-[#eee5d8] w-full">
+        <div class="flex items-center justify-center gap-1 mb-1 px-1">
             <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
             <span class="text-[11px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
         </div>
