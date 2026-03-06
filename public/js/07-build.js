@@ -475,8 +475,7 @@ function updateNamePreview() {
             <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
         </div>` : '';
 
-    let fortuneBadgeHtml = `<span class="text-sm leading-none mb-0.5 text-[#bca37f]">🏆</span>
-        <span class="text-[8px] font-bold leading-none text-[#bca37f]">運勢</span>`;
+    let fortuneBtn = '';
 
     if (surnameStr && givenKanji && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
         const chars = givenKanji.split('');
@@ -503,16 +502,17 @@ function updateNamePreview() {
             currentBuildResult.combination = givArr.map(g => ({ '漢字': g.kanji, '画数': g.strokes }));
         }
 
-        fortuneBadgeHtml = `
-            <div class="text-[8px] font-bold text-[#a6967a] leading-none mb-1">総格</div>
-            <div class="text-[12px] font-black ${fortune.so.res.color} leading-none mb-1">${fortune.so.val}<span class="text-[8px] font-normal text-[#a6967a]">画</span></div>
-            <div class="text-[10px] font-black ${fortune.so.res.color} leading-none">${fortune.so.res.label}</div>
+        const fortuneBadgeHtml = `
+            <div class="text-[9px] font-bold text-[#a6967a] leading-none mb-1">総格 ${fortune.so.val}画</div>
+            <div class="text-[11px] font-black ${fortune.so.res.color} leading-none mb-1">${fortune.so.res.label}</div>
+            <div class="text-sm leading-none mb-0.5">🔮</div>
+            <div class="text-[8px] font-bold text-[#bca37f] leading-none">運勢詳細</div>
         `;
-    }
 
-    const fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-2 transition-all active:scale-95 hover:scale-105 bg-white/60 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[54px] z-10">
-        ${fortuneBadgeHtml}
-    </button>`;
+        fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-0.5 flex flex-col items-center justify-center p-2 transition-all active:scale-95 hover:scale-105 bg-white/80 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[60px] z-10">
+            ${fortuneBadgeHtml}
+        </button>`;
+    }
 
     // なにも選択されていないが苗字はある場合
     if (renderSurname && !renderGiven) {
@@ -708,7 +708,7 @@ function renderBuildSelection() {
     // 🏆 運勢ランキングTOP10 を一番下に追加
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-4 flex justify-center';
-    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRankingModal()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10</button>`;
+    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10</button>`;
     container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
