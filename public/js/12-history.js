@@ -427,14 +427,37 @@ function showSavedNameDetail(index) {
 
     const f = item.fortune;
 
+    // 苗字のパースと画数補完
+    const nameParts = (item.fullName || '').split(' ');
+    const surStr = nameParts[0] || '';
+    const surnameChars = surStr.split('').map(char => {
+        const found = typeof master !== 'undefined' ? master.find(m => m['漢字'] === char) : null;
+        return { '漢字': char, '画数': found ? found['画数'] : '?' };
+    });
+
+    const renderKanjiBox = (kanji, isSurname = false) => {
+        const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
+        const strokes = typeof kanji === 'object' ? kanji['画数'] : '';
+        const borderColor = isSurname ? 'border-[#ede5d8]' : 'border-[#eee5d8]';
+        const bgColor = isSurname ? 'bg-[#fdfaf5]' : 'bg-white';
+
+        return `
+            <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
+                 class="w-14 h-18 ${bgColor} border-2 ${borderColor} rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#bca37f] hover:scale-105 transition-all shadow-sm active:scale-95">
+                <div class="text-2xl font-black text-[#5d5444]">${kStr}</div>
+                ${strokes ? `<div class="text-[9px] font-bold text-[#bca37f] mt-0.5">${strokes}画</div>` : ''}
+            </div>
+        `;
+    };
+
     // 格チップの生成
     const renderGakuChip = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
         return `
-            <div class="flex flex-col items-center gap-0.5 px-2 py-1.5 bg-white border border-[#eee5d8] rounded-xl flex-1 min-w-[54px]">
-                <span class="text-[8px] font-bold text-[#a6967a] leading-none uppercase">${label}</span>
+            <div class="flex flex-col items-center gap-0.5 px-1.5 py-1.5 bg-white border border-[#eee5d8] rounded-xl flex-1 min-w-[50px] max-w-[65px]">
+                <span class="text-[7px] font-bold text-[#a6967a] leading-none uppercase">${label}</span>
                 <span class="text-xs font-black text-[#5d5444] leading-none my-0.5">${gaku.val || gaku.num || 0}</span>
-                <span class="text-[9px] font-black ${gaku.res.color} leading-none">${gaku.res.label}</span>
+                <span class="text-[8px] font-black ${gaku.res.color} leading-none whitespace-nowrap">${gaku.res.label}</span>
             </div>
         `;
     };
@@ -447,20 +470,17 @@ function showSavedNameDetail(index) {
                 
                 <div class="modal-body">
                     <!-- 名前プレビュー風表示 -->
-                    <div class="flex flex-col items-center mb-6">
-                        <div class="text-xs font-bold text-[#a6967a] mb-2">${item.reading || ''}</div>
-                        <div class="flex gap-2 justify-center">
-                            ${(item.combination || []).map(kanji => {
-        const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
-        const strokes = typeof kanji === 'object' ? kanji['画数'] : '';
-        return `
-                                    <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
-                                         class="w-16 h-20 bg-white border-2 border-[#eee5d8] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#bca37f] hover:scale-105 transition-all shadow-sm active:scale-95">
-                                        <div class="text-3xl font-black text-[#5d5444]">${kStr}</div>
-                                        ${strokes ? `<div class="text-[10px] font-bold text-[#bca37f] mt-1">${strokes}画</div>` : ''}
-                                    </div>
-                                `;
-    }).join('')}
+                    <div class="flex flex-col items-center mb-8">
+                        <div class="text-xs font-bold text-[#a6967a] mb-3">${item.reading || ''}</div>
+                        <div class="flex items-center gap-2 justify-center flex-wrap">
+                            <!-- 苗字グループ -->
+                            <div class="flex gap-1 p-1 bg-[#fdfaf5]/50 border border-[#ede5d8] rounded-2xl">
+                                ${surnameChars.map(c => renderKanjiBox(c, true)).join('')}
+                            </div>
+                            <!-- 名前グループ -->
+                            <div class="flex gap-1 p-1 bg-white/50 border border-[#eee5d8] rounded-2xl">
+                                ${(item.combination || []).map(c => renderKanjiBox(c, false)).join('')}
+                            </div>
                         </div>
                     </div>
 
@@ -470,11 +490,11 @@ function showSavedNameDetail(index) {
                     </div>
                     ` : ''}
 
-                    <!-- 運勢5格チップ -->
+                    <!-- 運勢チップ -->
                     <div class="mb-6">
-                        <label class="text-[10px] font-bold text-[#a6967a] mb-2 block uppercase tracking-wider text-center">姓名判断（タップで詳細）</label>
+                        <label class="text-[10px] font-bold text-[#a6967a] mb-3 block uppercase tracking-wider text-center">姓名判断（タップで詳細）</label>
                         <div onclick="showFortuneDetailFromSaved(${index})" 
-                             class="flex gap-1.5 justify-center p-3 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8] cursor-pointer hover:bg-white transition-all shadow-sm active:scale-[0.98]">
+                             class="flex flex-wrap gap-1.5 justify-center p-3 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8] cursor-pointer hover:bg-white transition-all shadow-sm active:scale-[0.98]">
                             ${renderGakuChip('天', f?.ten)}
                             ${renderGakuChip('人', f?.jin)}
                             ${renderGakuChip('地', f?.chi)}
@@ -486,7 +506,7 @@ function showSavedNameDetail(index) {
 
                 <div class="modal-footer flex flex-col gap-2">
                     <button onclick="loadSavedName(${index})" class="w-full py-4 bg-[#bca37f] text-white rounded-2xl text-sm font-bold shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98]">
-                        この構成で作り直す
+                        この構成で漢字を選びなおす
                     </button>
                     <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-2xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
                         閉じる
