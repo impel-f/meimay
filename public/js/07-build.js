@@ -512,21 +512,23 @@ function updateNamePreview() {
 
     // \u30dc\u30bf\u30f3\u5185\u306e\u30e9\u30d9\u30eb
     const fortuneLabel = fortuneData ? `
-        <span class="text-[8px] font-bold text-[#a6967a] leading-none">\u7dcf\u683c</span>
-        <span class="text-[11px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
-        <span class="text-sm leading-none mt-0.5">\ud83d\udd2e</span>
-        <span class="text-[7px] font-bold text-[#bca37f] leading-none">\u904b\u52e2</span>
+        <div class="flex items-center justify-center gap-1 mb-1.5 px-1 bg-[#fdfaf5] py-1 rounded-md border border-[#eee5d8] w-full">
+            <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
+            <span class="text-[11px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
+        </div>
+        <span class="text-[15px] leading-none mb-1">\ud83d\udd2e</span>
+        <span class="text-[8px] font-bold text-[#bca37f] leading-none">運勢詳細</span>
     ` : `
-        <span class="text-sm leading-none mb-0.5 text-[#d4c5af]">\ud83d\udd2e</span>
-        <span class="text-[7px] font-bold text-[#d4c5af] leading-none">\u904b\u52e2</span>
+        <span class="text-[15px] leading-none mb-1 text-[#d4c5af]">\ud83d\udd2e</span>
+        <span class="text-[8px] font-bold text-[#d4c5af] leading-none">運勢</span>
     `;
 
-    // \u30ad\u30e3\u30f3\u30d0\u30b9\u3068\u6a2a\u5e45\u3092\u5de6\u53f3\u5bfe\u79f0\u306b\u3059\u308b\u305f\u3081 w-[56px] \u306b\u7d71\u4e00
-    const BTN_W = 'w-[56px]';
+    // キャンバスと横幅を左右対称にするため w-[64px] に統一
+    const BTN_W = 'w-[64px]';
     const rightButtons = `<div class="flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
         <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
-            <span class="text-[16px] leading-none mb-0.5">\ud83d\udcbe</span>
-            <span class="text-[7px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">\u4fdd\u5b58</span>
+            <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
+            <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
         </button>
         <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-white border-[#eee5d8] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             ${fortuneLabel}
