@@ -475,21 +475,10 @@ function updateNamePreview() {
             <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
         </div>` : '';
 
-    if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="flex flex-col items-center justify-end h-[52px]">
-                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
-            </div>`;
-        return;
-    }
-
-    // 自由組み立てで名前が未選択でも苗字だけは表示する
+    // なにも選択されていないが苗字はある場合
     if (renderSurname && !renderGiven) {
         preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
             ${renderSurname}
-            <div class="flex flex-col items-center opacity-50">
-                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5"></p>
-                <p class="text-3xl font-black text-[#d4c5af] tracking-widest">？</p>
-            </div>
         </div>`;
         return;
     }
@@ -537,7 +526,7 @@ function renderBuildSelection() {
             : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
             ✨ 自由組み立て
         </button>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-[calc(100%+16px)] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
+        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
     `;
 
     const namePreview = document.createElement('div');
@@ -737,8 +726,7 @@ function toggleReadingDropdown() {
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
         renderBuildSelection();
-        // 再描画後にドロップダウンを開く
-        setTimeout(() => toggleReadingDropdown(), 50);
+        // 再描画（初回タップではドロップダウンを開かない）
         return;
     }
 
