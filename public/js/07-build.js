@@ -751,8 +751,8 @@ function renderBuildSelection() {
                 };
                 btn.oncontextmenu = (e) => {
                     e.preventDefault();
-                    if (typeof openKanjiRemovalOptions === 'function') {
-                        openKanjiRemovalOptions(item['漢字'], idx, false);
+                    if (typeof openKanjiActionMenu === 'function') {
+                        openKanjiActionMenu(item['漢字'], idx, false);
                     }
                 };
 
@@ -981,7 +981,7 @@ function renderBuildFreeMode(container) {
             const isSelected = selected === k;
             const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
-                    oncontextmenu="event.preventDefault(); openKanjiRemovalOptions('${k}', ${slotIdx}, true)"
+                    oncontextmenu="event.preventDefault(); openKanjiActionMenu('${k}', ${slotIdx}, true)"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
@@ -1194,14 +1194,98 @@ window.renderBuildFreeMode = renderBuildFreeMode;
 window.executeFbBuild = executeFbBuild;
 
 /**
- * 漢字の長押し（右クリック）メニューを表示
+ * 漢字のアクションメニュー（ポップアップ）を表示
  */
-function openKanjiRemovalOptions(kanji, slotIdx, isFreeMode) {
-    const msg = `漢字「${kanji}」をどうしますか？`;
-    const choice = confirm(`${msg}\n\n・「ストックから完全に削除」する場合は OK を押してください。\n\n・キャンセルする場合は キャンセル を押してください。`);
+function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
+    // 既存のメニューがあれば削除
+    document.getElementById('kanji-action-popup')?.remove();
 
-    if (choice) {
+    const item = liked.find(i => i['漢字'] === kanji);
+    const isSuper = item?.isSuper ?? false;
+
+    const popupHtml = `
+        <div class="overlay active modal-overlay-dark" id="kanji-action-popup" onclick="if(event.target.id==='kanji-action-popup')closeKanjiActionMenu()">
+            <div class="modal-sheet w-11/12 max-w-sm flex flex-col gap-3 p-6" onclick="event.stopPropagation()">
+                <div class="text-center mb-2">
+                    <div class="text-4xl font-black text-[#5d5444] mb-1">${kanji}</div>
+                    <div class="text-xs text-[#a6967a]">漢字のアクション</div>
+                </div>
+                
+                <button onclick="toggleSuperLikeInStock('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">${isSuper ? '★' : '☆'}</span> 
+                    SUPER ${isSuper ? 'を解除する' : 'に設定する'}
+                </button>
+
+                <button onclick="removeFromBuildCandidates(${slotIdx})" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">✖</span> 候補から外す
+                </button>
+
+                <button onclick="confirmStockDeletion('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#d44e4e] flex items-center justify-center gap-2 hover:border-[#d44e4e] transition-all active:scale-95">
+                    <span class="text-lg">🗑️</span> ストックから完全に削除
+                </button>
+
+                <button onclick="closeKanjiActionMenu()" class="mt-2 w-full py-3 text-sm font-bold text-[#a6967a] hover:text-[#5d5444] transition-all">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', popupHtml);
+}
+
+function closeKanjiActionMenu() {
+    document.getElementById('kanji-action-popup')?.remove();
+}
+
+/**
+ * SUPER状態を切り替え
+ */
+function toggleSuperLikeInStock(kanji) {
+    if (!liked) return;
+    const item = liked.find(i => i['漢字'] === kanji);
+    if (item) {
+        item.isSuper = !item.isSuper;
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+            StorageBox.saveLiked();
+        }
+        showToast(`「${kanji}」をSUPER${item.isSuper ? 'にしました' : 'から外しました'}`, '★');
+
+        withScrollPreservation(() => {
+            renderBuildSelection();
+            if (buildMode === 'free') executeFbBuild();
+        });
+    }
+    closeKanjiActionMenu();
+}
+
+/**
+ * 候補から外す（ビルド中の選択のみクリア）
+ */
+function removeFromBuildCandidates(slotIdx) {
+    if (buildMode === 'free') {
+        fbChoices[slotIdx] = null;
+        fbSelectedReading = null;
+        withScrollPreservation(() => {
+            renderBuildSelection();
+            executeFbBuild();
+        });
+    } else {
+        selectedPieces[slotIdx] = null;
+        updateNamePreview();
+        renderBuildSelection();
+    }
+    showToast('候補から解除しました', '✖');
+    closeKanjiActionMenu();
+}
+
+/**
+ * ストック削除の最終確認
+ */
+function confirmStockDeletion(kanji) {
+    if (confirm(`漢字「${kanji}」をストックから完全に削除しますか？\nこの操作は取り消せません。`)) {
         removeKanjiFromStock(kanji);
+        closeKanjiActionMenu();
     }
 }
 
@@ -1212,7 +1296,6 @@ function removeKanjiFromStock(kanji) {
     if (!liked) return;
 
     const initialCount = liked.length;
-    // 全てのスロット、全ての読み合わせから削除
     liked = liked.filter(item => item['漢字'] !== kanji);
 
     if (liked.length < initialCount) {
@@ -1220,24 +1303,31 @@ function removeKanjiFromStock(kanji) {
             StorageBox.saveLiked();
         }
 
-        // 統計記録
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
             MeimayStats.recordKanjiUnlike(kanji);
         }
 
-        // 自由組み立ての選択からも解除
         fbChoices = fbChoices.map(c => c === kanji ? null : c);
+        // 通常モードの選択もクリア
+        if (typeof selectedPieces !== 'undefined') {
+            selectedPieces = selectedPieces.map(p => (p && p['漢字'] === kanji) ? null : p);
+        }
 
-        showToast(`「${kanji}」をストックから削除しました`, '🗑️');
+        showToast(`「${kanji}」を完全に削除しました`, '🗑️');
 
         withScrollPreservation(() => {
             renderBuildSelection();
             if (buildMode === 'free') executeFbBuild();
+            else updateNamePreview();
         });
     }
 }
 
-window.openKanjiRemovalOptions = openKanjiRemovalOptions;
+window.openKanjiActionMenu = openKanjiActionMenu;
+window.closeKanjiActionMenu = closeKanjiActionMenu;
+window.toggleSuperLikeInStock = toggleSuperLikeInStock;
+window.removeFromBuildCandidates = removeFromBuildCandidates;
+window.confirmStockDeletion = confirmStockDeletion;
 window.removeKanjiFromStock = removeKanjiFromStock;
 
 window.selectFbKanji = function (slotIdx, kanji) {
