@@ -20,6 +20,22 @@ function saveName() {
  * 保存メッセージ入力モーダル
  */
 function showSaveMessageModal() {
+    // 現在の「名前部分」の読みを特定する
+    // currentBuildResult.reading は "姓 読み" または "読み"
+    const parts = (currentBuildResult.reading || '').split(' ');
+    const currentGivenReading = parts.length > 1 ? parts[1] : parts[0];
+
+    // 表示する読み候補リストを作成
+    let displayReadings = [];
+    if (typeof currentFbRecommendedReadings !== 'undefined') {
+        displayReadings = [...currentFbRecommendedReadings];
+    }
+
+    // 現在の読み（手入力含む）がリストにない場合は先頭に追加（手入力チップとして扱う）
+    if (currentGivenReading && !displayReadings.some(r => r.reading === currentGivenReading)) {
+        displayReadings.unshift({ reading: currentGivenReading, isManual: true });
+    }
+
     const modal = `
         <div class="overlay active modal-overlay-dark" id="save-message-modal" onclick="if(event.target.id==='save-message-modal')closeSaveMessageModal()">
             <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
@@ -30,28 +46,37 @@ function showSaveMessageModal() {
                         <div class="text-3xl font-black text-[#5d5444] mb-2">${currentBuildResult.fullName}</div>
                         <div class="text-sm text-[#a6967a]">${currentBuildResult.reading}</div>
                     </div>
-                    <div class="mb-4">
+                    <div class="mb-5">
                         <label class="text-xs font-bold text-[#a6967a] mb-2 block">メモ（任意）</label>
                         <textarea id="save-message-input" 
                                   class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all resize-none"
                                   placeholder="例：第一候補、祖父の名前から"
-                                  rows="3"
+                                  rows="2"
                                   maxlength="100"></textarea>
                     </div>
 
-                    ${(typeof buildMode !== 'undefined' && buildMode === 'free' && typeof currentFbRecommendedReadings !== 'undefined' && currentFbRecommendedReadings.length > 0) ? `
                     <div class="mb-4">
                         <label class="text-xs font-bold text-[#a6967a] mb-2 block">読み方の選択・変更</label>
-                        <div class="flex flex-wrap gap-2">
-                            ${currentFbRecommendedReadings.slice(0, 10).map(r => `
+                        <div id="modal-reading-chips" class="flex flex-wrap gap-2">
+                            ${displayReadings.slice(0, 15).map(r => {
+        const isActive = currentGivenReading === r.reading;
+        const label = r.isManual ? `✏️ ${r.reading}` : r.reading;
+        return `
                                 <button onclick="selectReadingInModal('${r.reading}')" 
-                                        class="modal-reading-chip px-3 py-1.5 text-xs font-bold rounded-full border border-[#d4c5af] bg-white text-[#5d5444] hover:border-[#bca37f] transition-all">
-                                    ${r.reading}
+                                        class="modal-reading-chip px-3 py-1.5 text-xs font-bold rounded-full border transition-all
+                                        ${isActive
+                ? 'bg-[#bca37f] text-white border-[#bca37f] shadow-sm'
+                : 'border-[#d4c5af] bg-white text-[#5d5444] hover:border-[#bca37f]'}">
+                                    ${label}
                                 </button>
-                            `).join('')}
+                                `;
+    }).join('')}
+                            <button onclick="promptManualReadingInModal()" 
+                                    class="px-3 py-1.5 text-xs font-bold rounded-full border border-[#d4c5af] bg-[#fdfaf5] text-[#a6967a] hover:border-[#bca37f] transition-all">
+                                ＋ 読みを入力
+                            </button>
                         </div>
                     </div>
-                    ` : ''}
                 </div>
                 <div class="modal-footer">
                     <button onclick="executeSaveWithMessage()" class="btn-modal-primary">保存する</button>
@@ -75,31 +100,77 @@ function selectReadingInModal(reading) {
     if (!currentBuildResult) return;
 
     // 名字のふりがな部分を維持しつつ、名前部分だけ差し替える
-    // currentBuildResult.reading は "姓 読み" の形になっている
-    const parts = currentBuildResult.reading.split(' ');
-    let newReading = reading;
+    const parts = (currentBuildResult.reading || '').split(' ');
+    let newFullReading = reading;
     if (parts.length > 1) {
-        newReading = parts[0] + ' ' + reading;
+        newFullReading = parts[0] + ' ' + reading;
     }
 
-    currentBuildResult.reading = newReading;
+    currentBuildResult.reading = newFullReading;
 
     // モーダル内の表示を更新
     const readingDiv = document.querySelector('#save-message-modal .text-sm.text-\\[\\#a6967a\\]');
-    if (readingDiv) readingDiv.textContent = newReading;
+    if (readingDiv) readingDiv.textContent = newFullReading;
 
     // チップのスタイル更新
     document.querySelectorAll('.modal-reading-chip').forEach(chip => {
-        if (chip.textContent.trim() === reading) {
-            chip.classList.add('bg-[#bca37f]', 'text-white', 'border-[#bca37f]');
+        const chipText = chip.textContent.replace('✏️', '').trim();
+        if (chipText === reading) {
+            chip.classList.add('bg-[#bca37f]', 'text-white', 'border-[#bca37f]', 'shadow-sm');
             chip.classList.remove('bg-white', 'text-[#5d5444]', 'border-[#d4c5af]');
         } else {
-            chip.classList.remove('bg-[#bca37f]', 'text-white', 'border-[#bca37f]');
+            chip.classList.remove('bg-[#bca37f]', 'text-white', 'border-[#bca37f]', 'shadow-sm');
             chip.classList.add('bg-white', 'text-[#5d5444]', 'border-[#d4c5af]');
         }
     });
 
-    console.log("SAVE_MODAL: Reading updated to", newReading);
+    // 自由組み立てモードの場合はグローバルな選択状態も同期（ビルド画面に戻った時用）
+    if (typeof buildMode !== 'undefined' && buildMode === 'free') {
+        fbSelectedReading = reading;
+        if (typeof renderBuildSelection === 'function') renderBuildSelection();
+    }
+
+    console.log("SAVE_MODAL: Reading updated to", newFullReading);
+}
+
+/**
+ * 保存モーダル内での読み手入力
+ */
+function promptManualReadingInModal() {
+    const parts = (currentBuildResult.reading || '').split(' ');
+    const currentGiven = parts.length > 1 ? parts[1] : parts[0];
+
+    const input = prompt('名前の読みを入力してください（ひらがな）', currentGiven || '');
+    if (input === null) return;
+
+    const cleaned = input.trim().replace(/[A-Za-z0-9]/g, ''); // 簡易クリーン
+    if (!cleaned) return;
+
+    // もし既存のチップにない場合は、UIを一度閉じて開き直すのが確実だが、
+    // ここでは temporary にチップを追加するか、単に選択を反映させる
+    selectReadingInModal(cleaned);
+
+    // チップ一覧になければ追加して再描画（モーダルを閉じずに更新）
+    const container = document.getElementById('modal-reading-chips');
+    if (container) {
+        let exists = false;
+        container.querySelectorAll('.modal-reading-chip').forEach(chip => {
+            if (chip.textContent.replace('✏️', '').trim() === cleaned) exists = true;
+        });
+
+        if (!exists) {
+            const newChip = document.createElement('button');
+            newChip.className = 'modal-reading-chip px-3 py-1.5 text-xs font-bold rounded-full border bg-[#bca37f] text-white border-[#bca37f] shadow-sm transition-all';
+            newChip.innerHTML = `✏️ ${cleaned}`;
+            newChip.onclick = () => selectReadingInModal(cleaned);
+            // 「読みを入力」ボタンの前に挿入
+            const addBtn = container.querySelector('button:last-child');
+            container.insertBefore(newChip, addBtn);
+
+            // 他のチップのハイライトを外す
+            selectReadingInModal(cleaned);
+        }
+    }
 }
 
 /**
