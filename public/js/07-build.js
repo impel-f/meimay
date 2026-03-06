@@ -755,9 +755,11 @@ function renderBuildSelection() {
 
     // 🏆 運勢ランキングTOP10 を一番下に追加
     const rankingBtnWrapper = document.createElement('div');
-    rankingBtnWrapper.className = 'mt-6 mb-6 flex flex-col items-center gap-2';
-    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10を見る</button>
-        <p class="text-[10px] text-[#a6967a] text-center leading-relaxed max-w-[240px]">候補漢字から運勢が良い組み合わせを自動計算</p>`;
+    rankingBtnWrapper.className = 'mt-6 mb-6 flex justify-center';
+    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
+        <div class="text-sm font-bold flex items-center gap-1"><span>🏆</span> 運勢ランキング TOP10</div>
+        <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
+    </button>`;
     container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
