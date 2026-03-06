@@ -475,9 +475,43 @@ function updateNamePreview() {
             <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
         </div>` : '';
 
-    const fortuneBtn = buildMode === 'free' ? '' : `<button onclick="showFortuneRanking()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-1.5 transition-all active:scale-95 text-[#bca37f] hover:scale-110">
-        <span class="text-sm leading-none mb-0.5">🏆</span>
-        <span class="text-[8px] font-bold leading-none">運勢</span>
+    let fortuneBadgeHtml = `<span class="text-sm leading-none mb-0.5 text-[#bca37f]">🏆</span>
+        <span class="text-[8px] font-bold leading-none text-[#bca37f]">運勢</span>`;
+
+    if (surnameStr && givenKanji && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
+        const chars = givenKanji.split('');
+        const givArr = chars.map(ch => {
+            if (typeof selectedPieces !== 'undefined' && selectedPieces) {
+                const found = selectedPieces.find(p => p && p['漢字'] === ch);
+                if (found) return { kanji: ch, strokes: parseInt(found['画数']) || 0 };
+            }
+            if (typeof master !== 'undefined' && master) {
+                const m = master.find(m => m['漢字'] === ch);
+                if (m) return { kanji: ch, strokes: parseInt(m['画数']) || 0 };
+            }
+            return { kanji: ch, strokes: 1 };
+        });
+
+        const tempSurname = (typeof surnameData !== 'undefined' && surnameData && surnameData.length > 0) ? surnameData : [{ kanji: '', strokes: 1 }];
+        const fortune = FortuneLogic.calculate(tempSurname, givArr);
+
+        if (typeof currentBuildResult !== 'undefined') {
+            currentBuildResult = currentBuildResult || {};
+            currentBuildResult.fortune = fortune;
+            currentBuildResult.fullName = surnameStr + givenKanji;
+            currentBuildResult.givenName = givenKanji;
+            currentBuildResult.combination = givArr.map(g => ({ '漢字': g.kanji, '画数': g.strokes }));
+        }
+
+        fortuneBadgeHtml = `
+            <div class="text-[8px] font-bold text-[#a6967a] leading-none mb-1">総格</div>
+            <div class="text-[12px] font-black ${fortune.so.res.color} leading-none mb-1">${fortune.so.val}<span class="text-[8px] font-normal text-[#a6967a]">画</span></div>
+            <div class="text-[10px] font-black ${fortune.so.res.color} leading-none">${fortune.so.res.label}</div>
+        `;
+    }
+
+    const fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-2 transition-all active:scale-95 hover:scale-105 bg-white/60 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[54px] z-10">
+        ${fortuneBadgeHtml}
     </button>`;
 
     // なにも選択されていないが苗字はある場合
@@ -670,6 +704,12 @@ function renderBuildSelection() {
         row.appendChild(scrollBox);
         container.appendChild(row);
     });
+
+    // 🏆 運勢ランキングTOP10 を一番下に追加
+    const rankingBtnWrapper = document.createElement('div');
+    rankingBtnWrapper.className = 'mt-6 mb-4 flex justify-center';
+    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRankingModal()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10</button>`;
+    container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
 }
@@ -1421,6 +1461,12 @@ function showFortuneDetail() {
     if (descEl) descEl.innerHTML = '';
 
     modal.classList.add('active');
+
+    // スクロールを一番上に戻す
+    const scrollArea = document.getElementById('fortune-detail-scroll-area');
+    if (scrollArea) {
+        scrollArea.scrollTop = 0;
+    }
 }
 
 /**
