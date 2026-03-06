@@ -550,11 +550,11 @@ function updateNamePreview() {
     // キャンバスと横幅を左右対称にするため w-[64px] に統一
     const BTN_W = 'w-[64px]';
     const rightButtons = `<div class="flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
-        <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fffbeb] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+        <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
             <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
         </button>
-        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-[#fffbeb] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             ${fortuneLabel}
         </button>
     </div>`;
