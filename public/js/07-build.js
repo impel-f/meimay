@@ -501,7 +501,7 @@ function updateNamePreview() {
         if (typeof currentBuildResult !== 'undefined') {
             currentBuildResult = currentBuildResult || {};
             currentBuildResult.fortune = fortuneData;
-            currentBuildResult.fullName = surnameStr + givenKanji;
+            currentBuildResult.fullName = (surnameStr ? surnameStr + ' ' : '') + givenKanji;
             currentBuildResult.givenName = givenKanji;
             currentBuildResult.combination = givArr.map(g => ({ '\u6f22\u5b57': g.kanji, '\u753b\u6570': g.strokes }));
         }
