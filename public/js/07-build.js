@@ -1293,14 +1293,8 @@ function renderBuildResult() {
 
     const r = currentBuildResult;
 
-    container.innerHTML = `
-    <div class="glass-card rounded-[50px] p-6 mb-6 shadow-xl animate-fade-in">
-        <div class="flex flex-col gap-3">
-            <!-- AI由来: 一時非表示 -->
-            <!-- <button onclick="generateOrigin()" class="btn-gold py-3 text-sm flex items-center justify-center gap-2"><span class="text-lg leading-none mt-[-2px]">✨</span> AIで由来を生成</button> -->
-        </div>
-    </div>
-    `;
+    // AI由来ボタン一時非表示に伴い、空のカードが表示されないようクリア
+    container.innerHTML = '';
 }
 
 /**
