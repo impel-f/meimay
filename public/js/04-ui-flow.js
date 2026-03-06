@@ -1542,8 +1542,8 @@ function executeFreeBuild() {
     }
 
     currentBuildResult = {
-        fullName: surnameStr + givenName,
-        reading: '',
+        fullName: (surnameStr ? surnameStr + ' ' : '') + givenName,
+        reading: '', // 自由組み立てでは読みが不定
         fortune: fortune,
         combination: pieces,
         givenName: givenName,
@@ -1618,7 +1618,7 @@ function runDiagnosis() {
     surnameStr = surname;
     surnameData = surArr;
     currentBuildResult = {
-        fullName: surname + givenName,
+        fullName: (surname ? surname + ' ' : '') + givenName,
         reading: '',
         fortune: fortune,
         combination: givArr.map(g => {

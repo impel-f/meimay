@@ -1114,9 +1114,12 @@ function executeFbBuild() {
         }
     }
 
+    const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
+        (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
+
     currentBuildResult = {
-        fullName: (surnameStr || '') + givenName,
-        reading: givenReading,
+        fullName: (surnameStr ? surnameStr + ' ' : '') + givenName,
+        reading: (surnameRuby ? surnameRuby + ' ' : '') + givenReading,
         fortune: fortune,
         combination: combination,
         givenName: givenName,
