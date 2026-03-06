@@ -483,6 +483,13 @@ function updateNamePreview() {
         return;
     }
 
+    if (!renderSurname && !renderGiven) {
+        preview.innerHTML = `<div class="flex flex-col items-center justify-end h-[52px]">
+                <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
+            </div>`;
+        return;
+    }
+
     preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
             ${renderSurname}
             ${renderGiven}
@@ -509,24 +516,26 @@ function renderBuildSelection() {
 
     // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
-        ? `📖 ${currentReading} ▾`
-        : `📖 読みを選ぶ ▾`;
+        ? `読み（${currentReading}）▾`
+        : `読みを選ぶ ▾`;
 
     // 読みドロップダウンがヘッダーの下に潜り込むように配置
     modeBar.innerHTML = `
-        <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
-            class="flex-1 py-2 rounded-full text-xs font-bold transition-all ${buildMode === 'reading'
-            ? 'bg-[#bca37f] text-white shadow-md'
-            : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
-            ${readingBtnLabel}
-        </button>
-        <button onclick="setBuildMode('free')"
-            class="flex-1 py-2 rounded-full text-xs font-bold transition-all ${buildMode === 'free'
-            ? 'bg-[#bca37f] text-white shadow-md'
-            : 'bg-white border border-[#d4c5af] text-[#a6967a] hover:border-[#bca37f]'}">
-            ✨ 自由組み立て
-        </button>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
+        <div class="flex flex-1" id="build-tabs">
+            <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
+                class="flex-1 py-3 text-sm font-bold text-center border-b-2 transition-all ${buildMode === 'reading'
+            ? 'border-[#bca37f] text-[#5d5444]'
+            : 'border-transparent text-[#a6967a]'}">
+                ${readingBtnLabel}
+            </button>
+            <button onclick="setBuildMode('free')"
+                class="flex-1 py-3 text-sm font-bold text-center border-b-2 transition-all ${buildMode === 'free'
+            ? 'border-[#bca37f] text-[#5d5444]'
+            : 'border-transparent text-[#a6967a]'}">
+                自由組み立て
+            </button>
+        </div>
+        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-0 max-h-60 overflow-y-auto"></div>
     `;
 
     const namePreview = document.createElement('div');
@@ -535,11 +544,10 @@ function renderBuildSelection() {
 
     // モードタブを先にして、そのあとに名前プレビューを配置
     headerContainer.appendChild(modeBar);
-
-    // updateNamePreview()を実行して中身を入れる
-    updateNamePreview();
-
     headerContainer.appendChild(namePreview);
+
+    // DOMに追加してからupdateNamePreview()を実行（ID検索が機能するように）
+    updateNamePreview();
 
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
