@@ -742,7 +742,8 @@ function renderBuildSelection() {
 
             items.forEach((item, itemIdx) => {
                 const btn = document.createElement('button');
-                btn.className = 'build-piece-btn relative'; // modified: added relative
+                const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
+                btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''}`; // modified: added relative and selected class check
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
                 btn.onclick = () => {
