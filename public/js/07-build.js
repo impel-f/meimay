@@ -502,6 +502,7 @@ function updateNamePreview() {
             currentBuildResult = currentBuildResult || {};
             currentBuildResult.fortune = fortuneData;
             currentBuildResult.fullName = (surnameStr ? surnameStr + ' ' : '') + givenKanji;
+            currentBuildResult.reading = (surnameRuby ? surnameRuby + ' ' : '') + givenReading;
             currentBuildResult.givenName = givenKanji;
             currentBuildResult.combination = givArr.map(g => ({ '\u6f22\u5b57': g.kanji, '\u753b\u6570': g.strokes }));
         }
@@ -1256,8 +1257,12 @@ function executeBuild() {
     if (resultArea) resultArea.innerHTML = '';
 
     const givenName = selectedPieces.map(p => p['漢字']).join('');
-    const fullName = surnameStr + givenName;
-    const reading = segments.join('');
+    const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
+        (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
+    const givenReading = segments.join('');
+
+    const fullName = (surnameStr ? surnameStr + ' ' : '') + givenName;
+    const reading = (surnameRuby ? surnameRuby + ' ' : '') + givenReading;
 
     const givArr = selectedPieces.map(p => ({
         kanji: p['漢字'],
