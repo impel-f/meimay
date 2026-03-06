@@ -475,7 +475,7 @@ function updateNamePreview() {
             <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
         </div>` : '';
 
-    const fortuneBtn = `<button onclick="showFortuneRanking()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-1.5 transition-all active:scale-95 text-[#bca37f] hover:scale-110">
+    const fortuneBtn = buildMode === 'free' ? '' : `<button onclick="showFortuneRanking()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-1.5 transition-all active:scale-95 text-[#bca37f] hover:scale-110">
         <span class="text-sm leading-none mb-0.5">🏆</span>
         <span class="text-[8px] font-bold leading-none">運勢</span>
     </button>`;
@@ -1221,9 +1221,9 @@ function renderBuildResult() {
             ` : ''
         }
 
-<div class="grid grid-cols-2 gap-3 mt-6">
-    <button onclick="generateOrigin()" class="btn-gold py-3 text-sm">由来を生成</button>
-    <button onclick="saveName()" class="btn-premium-select !mb-0 py-3 text-sm">保存する</button>
+<div class="flex flex-col gap-3 mt-6">
+    <button onclick="generateOrigin()" class="btn-gold py-3 text-sm flex items-center justify-center gap-2"><span class="text-lg leading-none mt-[-2px]">✨</span> AIで由来を生成</button>
+    <button onclick="saveName()" class="btn-premium-select !mb-0 py-3 text-sm shadow-sm">保存する</button>
 </div>
         </div>
     `;
@@ -1654,9 +1654,10 @@ function displayFortuneRankingModal(rankedList) {
                         <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.gai.res.color}">外:${f.gai.res.label}</span>
                     </div>
                 </div>
-                <div style="text-align:right;flex-shrink:0;margin-left:4px">
+                <div style="text-align:center;flex-shrink:0;margin-left:4px;min-width:32px">
+                    <div style="font-size:9px;color:#a6967a;font-weight:900;margin-bottom:2px">総格</div>
                     <div style="font-size:20px;font-weight:900;line-height:1" class="${f.so.res.color}">${f.so.val}</div>
-                    <div style="font-size:10px;font-weight:700" class="${f.so.res.color}">${f.so.res.label}</div>
+                    <div style="font-size:10px;font-weight:700;margin-top:2px" class="${f.so.res.color}">${f.so.res.label}</div>
                 </div>
             </div>
     `;
