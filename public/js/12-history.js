@@ -55,6 +55,7 @@ function showSaveMessageModal() {
                                   maxlength="100"></textarea>
                     </div>
 
+                    ${(typeof buildMode !== 'undefined' && buildMode === 'free') ? `
                     <div class="mb-4">
                         <label class="text-xs font-bold text-[#a6967a] mb-2 block">読み方の選択・変更</label>
                         <div id="modal-reading-chips" class="flex flex-wrap gap-2">
@@ -77,6 +78,7 @@ function showSaveMessageModal() {
                             </button>
                         </div>
                     </div>
+                    ` : ''}
                 </div>
                 <div class="modal-footer">
                     <button onclick="executeSaveWithMessage()" class="btn-modal-primary">保存する</button>
