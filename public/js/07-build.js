@@ -44,6 +44,7 @@ let fbChoices = []; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
 let fbSelectedReading = null; // 修正部: 選択した読みを保存時に固定する
 let currentFbRecommendedReadings = []; // 保存モーダル等で共有するための変数
+let excludedKanjiFromBuild = []; // 「候補から外す」で一覧から消えた漢字
 
 /**
  * スクロール位置を保持しながら処理を実行するヘルパー
@@ -417,6 +418,7 @@ function openBuild() {
     selectedPieces = [];
     buildMode = 'reading';
     fbChoices = [];
+    excludedKanjiFromBuild = []; // 除外リストをリセット
     renderBuildSelection();
     changeScreen('scr-build');
 }
@@ -431,6 +433,7 @@ function openBuildFreeMode() {
     buildMode = 'free';
     fbChoices = [];
     shownFbSlots = 1;
+    excludedKanjiFromBuild = []; // 除外リストをリセット
     renderBuildSelection();
     changeScreen('scr-build');
 }
@@ -448,6 +451,7 @@ function setBuildMode(mode) {
         fbChoices = [];
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
+        excludedKanjiFromBuild = []; // モード切替時にリセット
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
@@ -708,6 +712,7 @@ function renderBuildSelection() {
         let items = liked.filter(item => {
             const slotMatch = item.slot === idx;
             const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
+            const isNotExcluded = !excludedKanjiFromBuild.includes(item['漢字']);
 
             // デバッグ
             if (slotMatch) {
@@ -715,11 +720,12 @@ function renderBuildSelection() {
                     kanji: item['漢字'],
                     sessionReading: item.sessionReading,
                     currentReading: currentReading,
-                    readingMatch: readingMatch
+                    readingMatch: readingMatch,
+                    isNotExcluded: isNotExcluded
                 });
             }
 
-            return slotMatch && readingMatch;
+            return slotMatch && readingMatch && isNotExcluded;
         });
 
         console.log(`Slot ${idx} filtered items: `, items.length);
@@ -919,6 +925,7 @@ window.toggleReadingDropdown = toggleReadingDropdown;
 function selectReadingForBuild(reading) {
     const dropdown = document.getElementById('reading-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
+    excludedKanjiFromBuild = []; // 読みを変更した際も除外リストをリセット
     if (typeof openBuildFromReading === 'function') {
         openBuildFromReading(reading);
     }
@@ -935,13 +942,13 @@ function renderBuildFreeMode(container) {
     const seen = new Set();
     const allKanji = [];
     (liked || []).forEach(item => {
-        if (item.isSuper && !seen.has(item['漢字'])) {
+        if (item.isSuper && !seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
             seen.add(item['漢字']);
             allKanji.push(item);
         }
     });
     (liked || []).forEach(item => {
-        if (!seen.has(item['漢字'])) {
+        if (!seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
             seen.add(item['漢字']);
             allKanji.push(item);
         }
@@ -1217,7 +1224,7 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
                     SUPER ${isSuper ? 'を解除する' : 'に設定する'}
                 </button>
 
-                <button onclick="removeFromBuildCandidates(${slotIdx})" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                <button onclick="removeFromBuildCandidates(${slotIdx}, '${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
                     <span class="text-lg">✖</span> 候補から外す
                 </button>
 
@@ -1261,9 +1268,14 @@ function toggleSuperLikeInStock(kanji) {
 }
 
 /**
- * 候補から外す（ビルド中の選択のみクリア）
+ * 候補から外す（一覧から非表示にする）
  */
-function removeFromBuildCandidates(slotIdx) {
+function removeFromBuildCandidates(slotIdx, kanji) {
+    // 除外リストに追加
+    if (kanji && !excludedKanjiFromBuild.includes(kanji)) {
+        excludedKanjiFromBuild.push(kanji);
+    }
+
     if (buildMode === 'free') {
         fbChoices[slotIdx] = null;
         fbSelectedReading = null;
@@ -1276,7 +1288,7 @@ function removeFromBuildCandidates(slotIdx) {
         updateNamePreview();
         renderBuildSelection();
     }
-    showToast('候補から解除しました', '✖');
+    showToast(`「${kanji}」を候補一覧から除外しました`, '✖');
     closeKanjiActionMenu();
 }
 
