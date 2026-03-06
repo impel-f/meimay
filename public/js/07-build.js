@@ -568,7 +568,7 @@ function updateNamePreview() {
 
     // scale font for long names
     const totalChars = (surnameStr || '').length + (givenKanji || '').length;
-    const nameFontClass = totalChars >= 6 ? 'text-xl' : totalChars >= 5 ? 'text-2xl' : 'text-3xl';
+    const nameFontClass = totalChars >= 7 ? 'text-xl' : totalChars >= 6 ? 'text-2xl' : totalChars >= 5 ? 'text-3xl' : 'text-4xl';
     const renderSurnameScaled = surname ? `<div class="flex flex-col items-center">
             <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
             <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${surname}</p>
