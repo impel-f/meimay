@@ -41,6 +41,11 @@ window.onload = () => {
     console.log("CORE: Initializing Meimay App...");
     const statusEl = document.getElementById('status');
 
+    // LocalStorageから同期的に復元（非同期前に実行してリロード時のデータ消散を防ぐ）
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.loadAll === 'function') {
+        StorageBox.loadAll();
+    }
+
     // 漢字データの読み込み
     fetch('/data/kanji_data.json')
         .then(res => {
@@ -70,11 +75,6 @@ window.onload = () => {
             // UI更新 (今日の一字)
             if (typeof initTodaysKanji === 'function') {
                 initTodaysKanji();
-            }
-
-            // LocalStorageから復元
-            if (typeof StorageBox !== 'undefined' && typeof StorageBox.loadAll === 'function') {
-                StorageBox.loadAll();
             }
 
             // 四字熟語・ことわざデータの読み込み（非同期）

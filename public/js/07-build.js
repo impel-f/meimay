@@ -475,24 +475,32 @@ function updateNamePreview() {
             <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
         </div>` : '';
 
+    const fortuneBtn = `<button onclick="showFortuneRanking()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center p-1.5 transition-all active:scale-95 text-[#bca37f] hover:scale-110">
+        <span class="text-sm leading-none mb-0.5">🏆</span>
+        <span class="text-[8px] font-bold leading-none">運勢</span>
+    </button>`;
+
     // なにも選択されていないが苗字はある場合
     if (renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
+        preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[52px]">
             ${renderSurname}
+            ${fortuneBtn}
         </div>`;
         return;
     }
 
     if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="flex flex-col items-center justify-end h-[52px]">
+        preview.innerHTML = `<div class="relative flex flex-col items-center justify-end h-[52px]">
                 <p class="text-lg font-black text-[#d4c5af] tracking-wider">名前を作成</p>
+                ${fortuneBtn}
             </div>`;
         return;
     }
 
-    preview.innerHTML = `<div class="flex items-end justify-center gap-4 min-h-[52px]">
+    preview.innerHTML = `<div class="relative flex items-end justify-center gap-4 min-h-[52px]">
             ${renderSurname}
             ${renderGiven}
+            ${fortuneBtn}
         </div>`;
 }
 window.updateNamePreview = updateNamePreview;
@@ -512,7 +520,7 @@ function renderBuildSelection() {
 
     // モード切り替えタブ
     const modeBar = document.createElement('div');
-    modeBar.className = 'relative flex gap-2 w-full';
+    modeBar.className = 'relative flex justify-between items-end border-b border-[#eee5d8] w-full';
 
     // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
@@ -662,13 +670,6 @@ function renderBuildSelection() {
         row.appendChild(scrollBox);
         container.appendChild(row);
     });
-
-    // 運勢ランキングボタン（常に表示・名字未設定時はクリック時に警告）
-    const rankingBtn = document.createElement('button');
-    rankingBtn.className = 'w-full mt-8 mb-6 py-5 bg-gradient-to-r from-[#c7b399] to-[#bca37f] text-white font-black rounded-[30px] shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 text-lg';
-    rankingBtn.innerHTML = '🏆 運勢ランキングTOP10を見る';
-    rankingBtn.onclick = () => showFortuneRanking();
-    container.appendChild(rankingBtn);
 
     console.log('=== BUILD DEBUG END ===');
 }
