@@ -476,8 +476,13 @@ function updateNamePreview() {
         </div>` : '';
 
     // --- 運勢・保存ボタン（常に表示、条件で無効化） ---
+    // 読みモードは全スロットが埋まったときのみ有効
+    const isComplete = buildMode === 'free'
+        ? (fbChoices && fbChoices.length > 0)
+        : (selectedPieces && selectedPieces.filter(x => x).length === segments.length);
+
     let fortuneData = null;
-    if (surnameStr && givenKanji && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
+    if (surnameStr && givenKanji && isComplete && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
         const chars = givenKanji.split('');
         const givArr = chars.map(ch => {
             if (typeof selectedPieces !== 'undefined' && selectedPieces) {
@@ -502,39 +507,36 @@ function updateNamePreview() {
         }
     }
 
-    const isComplete = buildMode === 'free'
-        ? (fbChoices && fbChoices.length > 0)
-        : (selectedPieces && selectedPieces.filter(x => x).length === segments.length);
-
     const canSave = !!(givenKanji && isComplete);
     const canFortune = !!(fortuneData);
 
+    // \u30dc\u30bf\u30f3\u5185\u306e\u30e9\u30d9\u30eb
     const fortuneLabel = fortuneData ? `
-        <div class="flex items-center justify-center gap-0.5 mb-0.5">
-            <span class="text-[8px] font-bold text-[#a6967a] leading-none">\u7dcf\u683c</span>
-            <span class="text-[10px] font-black ${fortuneData.so.res.color} leading-none">${fortuneData.so.res.label}</span>
-        </div>
-        <div class="text-xs leading-none mb-0.5">\ud83d\udd2e</div>
-        <div class="text-[7px] font-bold text-[#bca37f] leading-none">\u904b\u52e2</div>
+        <span class="text-[8px] font-bold text-[#a6967a] leading-none">\u7dcf\u683c</span>
+        <span class="text-[11px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
+        <span class="text-sm leading-none mt-0.5">\ud83d\udd2e</span>
+        <span class="text-[7px] font-bold text-[#bca37f] leading-none">\u904b\u52e2</span>
     ` : `
-        <div class="text-xs leading-none mb-0.5 text-[#d4c5af]">\ud83d\udd2e</div>
-        <div class="text-[7px] font-bold text-[#d4c5af] leading-none">\u904b\u52e2</div>
+        <span class="text-sm leading-none mb-0.5 text-[#d4c5af]">\ud83d\udd2e</span>
+        <span class="text-[7px] font-bold text-[#d4c5af] leading-none">\u904b\u52e2</span>
     `;
 
-    const rightButtons = `<div class="flex flex-col gap-2 flex-shrink-0">
-        <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl border w-[44px] transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
-            <div class="text-[16px] leading-none mb-0.5">\ud83d\udcbe</div>
-            <div class="text-[7px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">\u4fdd\u5b58</div>
+    // \u30ad\u30e3\u30f3\u30d0\u30b9\u3068\u6a2a\u5e45\u3092\u5de6\u53f3\u5bfe\u79f0\u306b\u3059\u308b\u305f\u3081 w-[56px] \u306b\u7d71\u4e00
+    const BTN_W = 'w-[56px]';
+    const rightButtons = `<div class="flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
+        <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+            <span class="text-[16px] leading-none mb-0.5">\ud83d\udcbe</span>
+            <span class="text-[7px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">\u4fdd\u5b58</span>
         </button>
-        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl border w-[44px] transition-all active:scale-95 ${canFortune ? 'bg-white border-[#eee5d8] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-white border-[#eee5d8] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             ${fortuneLabel}
         </button>
     </div>`;
 
-    const canvasClasses = 'relative flex items-center justify-center min-h-[72px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-3 py-3 flex-1 overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none';
+    const canvasClasses = 'relative flex items-center justify-center min-h-[88px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-3 py-3 flex-1 overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none';
 
     if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+        preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">
                 <div class="flex flex-col items-center z-10">
                     <p class="text-sm font-black text-[#d4c5af] tracking-wider">\u30fc \u547d\u540d\u30ad\u30e3\u30f3\u30d0\u30b9 \u30fc</p>
@@ -547,7 +549,7 @@ function updateNamePreview() {
     }
 
     if (renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+        preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">
                 <div class="flex items-end gap-2 z-10 min-w-0 flex-wrap justify-center">
                     ${renderSurname}
@@ -574,7 +576,7 @@ function updateNamePreview() {
             <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${givenKanji}</p>
         </div>` : '';
 
-    preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+    preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">
                 <div class="flex items-end gap-2 z-10 flex-wrap justify-center">
                     ${renderSurnameScaled}
@@ -754,8 +756,8 @@ function renderBuildSelection() {
     // 🏆 運勢ランキングTOP10 を一番下に追加
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-6 flex flex-col items-center gap-2';
-    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10</button>
-        <p class="text-[10px] text-[#a6967a] text-center leading-relaxed max-w-[240px]">ストックの候補漢字から運勢が良い組み合わせを自動計算してご紹介します</p>`;
+    rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[280px] py-3.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-full text-sm font-bold shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex items-center justify-center gap-2 active:scale-95"><span>🏆</span> 運勢ランキングTOP10を見る</button>
+        <p class="text-[10px] text-[#a6967a] text-center leading-relaxed max-w-[240px]">候補漢字から運勢が良い組み合わせを自動計算</p>`;
     container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
