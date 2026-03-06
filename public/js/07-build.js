@@ -481,73 +481,90 @@ function updateNamePreview() {
         const chars = givenKanji.split('');
         const givArr = chars.map(ch => {
             if (typeof selectedPieces !== 'undefined' && selectedPieces) {
-                const found = selectedPieces.find(p => p && p['漢字'] === ch);
-                if (found) return { kanji: ch, strokes: parseInt(found['画数']) || 0 };
+                const found = selectedPieces.find(p => p && p['\u6f22\u5b57'] === ch);
+                if (found) return { kanji: ch, strokes: parseInt(found['\u753b\u6570']) || 0 };
             }
             if (typeof master !== 'undefined' && master) {
-                const m = master.find(m => m['漢字'] === ch);
-                if (m) return { kanji: ch, strokes: parseInt(m['画数']) || 0 };
+                const m = master.find(m => m['\u6f22\u5b57'] === ch);
+                if (m) return { kanji: ch, strokes: parseInt(m['\u753b\u6570']) || 0 };
             }
             return { kanji: ch, strokes: 1 };
         });
-
         const tempSurname = (typeof surnameData !== 'undefined' && surnameData && surnameData.length > 0) ? surnameData : [{ kanji: '', strokes: 1 }];
         const fortune = FortuneLogic.calculate(tempSurname, givArr);
-
         if (typeof currentBuildResult !== 'undefined') {
             currentBuildResult = currentBuildResult || {};
             currentBuildResult.fortune = fortune;
             currentBuildResult.fullName = surnameStr + givenKanji;
             currentBuildResult.givenName = givenKanji;
-            currentBuildResult.combination = givArr.map(g => ({ '漢字': g.kanji, '画数': g.strokes }));
+            currentBuildResult.combination = givArr.map(g => ({ '\u6f22\u5b57': g.kanji, '\u753b\u6570': g.strokes }));
         }
-
         const fortuneBadgeHtml = `
             <div class="flex items-center justify-center gap-0.5 mb-0.5">
-                <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
+                <span class="text-[8px] font-bold text-[#a6967a] leading-none">\u7dcf\u683c</span>
                 <span class="text-[10px] font-black ${fortune.so.res.color} leading-none">${fortune.so.res.label}</span>
             </div>
-            <div class="text-xs leading-none mb-0.5">🔮</div>
-            <div class="text-[7px] font-bold text-[#bca37f] leading-none">運勢詳細</div>
+            <div class="text-xs leading-none mb-0.5">\ud83d\udd2e</div>
+            <div class="text-[7px] font-bold text-[#bca37f] leading-none">\u904b\u52e2\u8a73\u7d30</div>
         `;
-
-        fortuneBtn = `<button onclick="showFortuneDetail()" class="absolute right-0 bottom-1 flex flex-col items-center justify-center py-1.5 px-2 transition-all active:scale-95 hover:scale-105 bg-white/80 backdrop-blur-sm rounded-xl border border-[#eee5d8] shadow-sm min-w-[56px] z-10">
+        fortuneBtn = `<button onclick="showFortuneDetail()" class="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-95 hover:scale-105 bg-white rounded-xl border border-[#eee5d8] shadow-sm w-[48px] flex-shrink-0">
             ${fortuneBadgeHtml}
         </button>`;
     }
 
-    // デザイン案A＋Cの組み合わせ：背景を切り分けつつ、和紙風の命名カード枠を追加
-    const containerClasses = "relative flex items-center justify-center gap-4 min-h-[76px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] p-3 mx-1 mt-2 mb-3 before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none";
+    const isComplete = buildMode === 'free'
+        ? (fbChoices && fbChoices.length > 0)
+        : (selectedPieces && selectedPieces.filter(x => x).length === segments.length);
+    const saveBtn = (givenKanji && isComplete)
+        ? `<button onclick="saveName()" class="flex flex-col items-center justify-center py-2 px-1 transition-all active:scale-95 hover:scale-105 bg-[#fdfaf5] rounded-xl border border-[#d4c5af] shadow-sm w-[48px] flex-shrink-0">
+            <div class="text-[17px] leading-none mb-0.5">\ud83d\udcbe</div>
+            <div class="text-[7px] font-bold text-[#5d5444] leading-none">\u4fdd\u5b58</div>
+        </button>`
+        : '<div class="w-[48px] flex-shrink-0"></div>';
 
-    // なにも選択されていないが苗字はある場合
-    if (renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="${containerClasses}">
-            <div class="flex items-end justify-center gap-4 relative z-10 w-full px-2">
-                ${renderSurname}
-                <div class="flex-1 flex items-center justify-center border-b border-dashed border-[#d4c5af] h-[36px] ml-2 pb-1 text-[#d4c5af] text-sm">名前を作成...</div>
-            </div>
-            ${fortuneBtn}
-        </div>`;
-        return;
-    }
+    const rightSlot = fortuneBtn || '<div class="w-[48px] flex-shrink-0"></div>';
+    const canvasClasses = 'relative flex items-center justify-center min-h-[72px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-4 py-3 flex-1 before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none';
 
     if (!renderSurname && !renderGiven) {
-        preview.innerHTML = `<div class="${containerClasses}">
-            <div class="relative flex flex-col items-center justify-center h-full z-10 w-full">
-                <p class="text-sm font-black text-[#d4c5af] tracking-wider mb-0.5">ー 命名キャンバス ー</p>
-                <p class="text-[10px] text-[#d4c5af]">漢字を選択して名前を作成してください</p>
+        preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+            ${saveBtn}
+            <div class="${canvasClasses}">
+                <div class="flex flex-col items-center z-10">
+                    <p class="text-sm font-black text-[#d4c5af] tracking-wider">\u30fc \u547d\u540d\u30ad\u30e3\u30f3\u30d0\u30b9 \u30fc</p>
+                    <p class="text-[10px] text-[#d4c5af] mt-0.5">\u6f22\u5b57\u3092\u9078\u629e\u3057\u3066\u540d\u524d\u3092\u4f5c\u6210\u3057\u3066\u304f\u3060\u3055\u3044</p>
+                </div>
             </div>
-            ${fortuneBtn}
+            ${rightSlot}
         </div>`;
         return;
     }
 
-    preview.innerHTML = `<div class="${containerClasses}">
-            <div class="flex items-end justify-center gap-4 relative z-10 w-full px-2 pr-12">
-                ${renderSurname}
-                ${renderGiven}
+    if (renderSurname && !renderGiven) {
+        preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+            ${saveBtn}
+            <div class="${canvasClasses}">
+                <div class="flex items-end gap-3 z-10">
+                    ${renderSurname}
+                    <div class="flex flex-col items-center">
+                        <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5"></p>
+                        <p class="text-3xl font-black text-[#d4c5af] tracking-widest border-b-2 border-dashed border-[#d4c5af] pb-1 px-2">?</p>
+                    </div>
+                </div>
             </div>
-            ${fortuneBtn}
+            ${rightSlot}
+        </div>`;
+        return;
+    }
+
+    preview.innerHTML = `<div class="flex items-center gap-2 mt-1 mb-3 px-1">
+            ${saveBtn}
+            <div class="${canvasClasses}">
+                <div class="flex items-end gap-4 z-10">
+                    ${renderSurname}
+                    ${renderGiven}
+                </div>
+            </div>
+            ${rightSlot}
         </div>`;
 }
 window.updateNamePreview = updateNamePreview;
@@ -1256,14 +1273,11 @@ function renderBuildResult() {
     const r = currentBuildResult;
 
     container.innerHTML = `
-    <div class="glass-card rounded-[50px] p-8 mb-6 shadow-xl animate-fade-in" >
-        <h3 class="text-4xl font-black text-center mb-8 text-[#5d5444] tracking-tight leading-tight">${surnameStr ? surnameStr + ' ' : ''}${r.givenName}</h3>
-
-<div class="flex flex-col gap-3 mt-6">
-    <button onclick="generateOrigin()" class="btn-gold py-3 text-sm flex items-center justify-center gap-2"><span class="text-lg leading-none mt-[-2px]">✨</span> AIで由来を生成</button>
-    <button onclick="saveName()" class="btn-premium-select !mb-0 py-3 text-sm shadow-sm">保存する</button>
-</div>
+    <div class="glass-card rounded-[50px] p-6 mb-6 shadow-xl animate-fade-in">
+        <div class="flex flex-col gap-3">
+            <button onclick="generateOrigin()" class="btn-gold py-3 text-sm flex items-center justify-center gap-2"><span class="text-lg leading-none mt-[-2px]">✨</span> AIで由来を生成</button>
         </div>
+    </div>
     `;
 }
 
@@ -1910,5 +1924,4 @@ window.showFortuneTerm = showFortuneTerm;
 })();
 
 console.log("BUILD: Module loaded");
-
 
