@@ -344,7 +344,7 @@ function renderSavedScreen() {
                 ` : ''}
             </div>
             <div class="flex gap-2 mt-3">
-                <button onclick="loadSavedName(${index})" class="flex-1 py-2.5 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all active:scale-95">
+                <button onclick="showSavedNameDetail(${index})" class="flex-1 py-2.5 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all active:scale-95">
                     詳細を見る
                 </button>
                 <button onclick="deleteSavedName(${index})" class="px-4 py-2.5 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all active:scale-95">
@@ -418,7 +418,90 @@ function switchHistoryTab(tab) {
 }
 
 /**
- * 保存済み名前を読み込む
+ * 保存済み名前の詳細を表示するモーダル
+ */
+function showSavedNameDetail(index) {
+    const saved = getSavedNames();
+    if (index < 0 || index >= saved.length) return;
+    const item = saved[index];
+
+    // 運勢ラベルの取得ヘルパー
+    const getFortuneLabel = (f) => {
+        if (!f || !f.so) return '<span class="opacity-40">記録なし</span>';
+        const label = typeof f.so === 'object' ? f.so.res?.label : '';
+        const color = label === '大吉' ? 'text-[#f28b82]' : 'text-[#bca37f]';
+        return `<span class="${color} font-black">${label || '吉'}</span>`;
+    };
+
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="saved-detail-modal" onclick="if(event.target.id==='saved-detail-modal')closeSavedNameDetail()">
+            <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeSavedNameDetail()">✕</button>
+                <h3 class="modal-title">保存された名前</h3>
+                
+                <div class="modal-body">
+                    <div class="text-center mb-6">
+                        <div class="text-4xl font-black text-[#5d5444] mb-2">${item.fullName || ''}</div>
+                        <div class="text-sm text-[#a6967a]">${item.reading || ''}</div>
+                    </div>
+
+                    ${item.message ? `
+                    <div class="mb-5 p-4 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8]">
+                        <label class="text-[10px] font-bold text-[#a6967a] mb-1 block uppercase tracking-wider">メモ</label>
+                        <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
+                    </div>
+                    ` : ''}
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="p-3 bg-white rounded-2xl border border-[#eee5d8] text-center">
+                            <label class="text-[10px] font-bold text-[#a6967a] mb-1 block uppercase">総画運</label>
+                            <div class="text-lg">${getFortuneLabel(item.fortune)}</div>
+                        </div>
+                        <div class="p-3 bg-white rounded-2xl border border-[#eee5d8] text-center">
+                            <label class="text-[10px] font-bold text-[#a6967a] mb-1 block uppercase">画数</label>
+                            <div class="text-lg font-bold text-[#5d5444]">${typeof item.fortune?.so === 'object' ? item.fortune.so.val : (item.fortune?.so || '??')}画</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="text-[10px] font-bold text-[#a6967a] mb-3 block uppercase tracking-wider">漢字の構成（タップで詳細）</label>
+                        <div class="flex flex-wrap justify-center gap-3">
+                            ${(item.combination || []).map(kanji => {
+        const kanjiStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
+        // masterから漢字データを探す
+        const detailData = typeof master !== 'undefined' ? master.find(m => m['漢字'] === kanjiStr) : null;
+        return `
+                                    <button onclick="if(typeof showKanjiDetail === 'function' && ${!!detailData}){ showKanjiDetail(${JSON.stringify(detailData).replace(/"/g, '&quot;')}) }" 
+                                            class="w-14 h-14 bg-white border-2 border-[#eee5d8] rounded-2xl flex items-center justify-center text-2xl font-black text-[#5d5444] hover:border-[#bca37f] hover:scale-105 transition-all shadow-sm active:scale-95">
+                                        ${kanjiStr}
+                                    </button>
+                                `;
+    }).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer flex flex-col gap-2">
+                    <button onclick="loadSavedName(${index})" class="w-full py-4 bg-[#bca37f] text-white rounded-2xl text-sm font-bold shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98]">
+                        この構成で作り直す
+                    </button>
+                    <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-2xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
+                        閉じる
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function closeSavedNameDetail() {
+    document.getElementById('saved-detail-modal')?.remove();
+}
+
+/**
+ * 保存済み名前を読み込む（苗字を含めず名前のみをスロットにセット）
  */
 function loadSavedName(index) {
     const saved = getSavedNames();
@@ -426,35 +509,56 @@ function loadSavedName(index) {
 
     const item = saved[index];
 
-    // 設定を復元
-    if (item.combination && item.combination.length > 0) {
-        const reading = item.reading || '';
-        segments = reading.split('').map(c => c);
+    // ビルド画面の初期化
+    if (typeof clearBuildSelection === 'function') clearBuildSelection();
 
-        item.combination.forEach((kanji, idx) => {
-            const existing = liked.find(l => l['漢字'] === kanji['漢字'] && l.slot === idx);
-            if (!existing) {
-                liked.push({
-                    ...kanji,
-                    slot: idx,
-                    sessionReading: reading
-                });
-            }
-        });
+    // 苗字の特定
+    // 保存時のfullNameが "苗字 名前" の形であれば、苗字を引き継ぐ
+    const nameParts = (item.fullName || '').split(' ');
+    if (nameParts.length > 1) {
+        if (typeof surnameStr !== 'undefined') surnameStr = nameParts[0];
     }
 
-    currentBuildResult = item;
+    // 読みの特定
+    const readingParts = (item.reading || '').split(' ');
+    const givenReading = readingParts.length > 1 ? readingParts[1] : readingParts[0];
+
+    // 自由組み立てモードとしてセット
+    buildMode = 'free';
+    fbChoices = [];
+
+    if (item.combination && item.combination.length > 0) {
+        // 名前（下の名前）の漢字だけをスロットにセット
+        item.combination.forEach(kanjiData => {
+            const k = typeof kanjiData === 'string' ? kanjiData : kanjiData['漢字'];
+            fbChoices.push(k);
+        });
+        shownFbSlots = fbChoices.length;
+        fbSelectedReading = givenReading;
+    }
+
+    // currentBuildResultにはクローンをセット（不意な書き換え防止）
+    currentBuildResult = JSON.parse(JSON.stringify(item));
+
+    closeSavedNameDetail();
 
     // ビルド画面に遷移
     changeScreen('scr-build');
     if (typeof renderBuildSelection === 'function') {
         renderBuildSelection();
     }
-    if (typeof renderBuildResult === 'function') {
-        renderBuildResult();
+    // ビルド実行
+    if (typeof executeFbBuild === 'function') {
+        executeFbBuild();
     }
 
-    console.log('HISTORY: Loaded saved name with combination', item);
+    console.log('HISTORY: Re-loaded given name for rebuild', {
+        fullName: item.fullName,
+        fbChoices: fbChoices,
+        reading: givenReading
+    });
+
+    showToast('名前の構成を読み込みました', '✨');
 }
 
 /**
@@ -566,6 +670,8 @@ window.openReadingHistory = openReadingHistory;
 window.openHistory = openHistory;
 window.switchHistoryTab = switchHistoryTab;
 window.loadReadingHistory = loadReadingHistory;
+window.showSavedNameDetail = showSavedNameDetail;
+window.closeSavedNameDetail = closeSavedNameDetail;
 window.loadSavedName = loadSavedName;
 window.clearReadingHistory = clearReadingHistory;
 window.deleteReadingHistory = deleteReadingHistory;
