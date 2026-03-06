@@ -88,6 +88,9 @@ function executeSaveWithMessage() {
         saved.length = 50;
     }
 
+    // グローバル変数を更新（StorageBox.saveAll で上書きされないようにする）
+    if (typeof savedNames !== 'undefined') savedNames = saved;
+
     localStorage.setItem('meimay_saved', JSON.stringify(saved));
 
     closeSaveMessageModal();
@@ -138,7 +141,9 @@ function addToReadingHistory() {
 function getSavedNames() {
     try {
         const data = localStorage.getItem('meimay_saved');
-        return data ? JSON.parse(data) : [];
+        const list = data ? JSON.parse(data) : [];
+        if (typeof savedNames !== 'undefined') savedNames = list;
+        return list;
     } catch (error) {
         console.error('HISTORY: Failed to load saved names', error);
         return [];
@@ -393,6 +398,9 @@ function deleteSavedName(index) {
 
     const saved = getSavedNames();
     saved.splice(index, 1);
+    // グローバル変数を更新
+    if (typeof savedNames !== 'undefined') savedNames = saved;
+
     localStorage.setItem('meimay_saved', JSON.stringify(saved));
 
     renderSavedScreen();
