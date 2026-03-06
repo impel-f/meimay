@@ -1053,49 +1053,55 @@ function suggestReadingsForKanji(choices, container) {
         }, ['']);
     }
 
+    let scored = [];
     const readingArrays = choices.map(getKanjiReadings);
-    if (readingArrays.some(a => a.length === 0)) return; // 読みが不明な漢字があったらスキップ
-    const combinedSet = new Set(cartesian(readingArrays));
 
-    // readings_data.json の中でその読みに一致するものを抽出
-    const matched = readingsData.filter(r => combinedSet.has(r.reading));
-    if (matched.length === 0) return;
+    // 読みが取得できている場合のみ計算
+    if (!readingArrays.some(a => a.length === 0)) {
+        const combinedSet = new Set(cartesian(readingArrays));
+        const matched = readingsData.filter(r => combinedSet.has(r.reading));
+        const filtered = matched.filter(r => !(typeof noped !== 'undefined' && noped.has(r.reading)));
 
-    // 既存のNopeを除外
-    const filtered = matched.filter(r => !(typeof noped !== 'undefined' && noped.has(r.reading)));
-    if (filtered.length === 0) return;
-
-    // スコアで優先ソート（ユーザーのタグ傾向）
-    const scored = filtered.map(r => {
-        let score = 0;
-        if (r.tags && userTags) r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
-        return { ...r, _score: score };
-    }).sort((a, b) => {
-        if (a._score !== b._score) return b._score - a._score;
-        return (b.count || 0) - (a.count || 0);
-    });
+        scored = filtered.map(r => {
+            let score = 0;
+            if (r.tags && typeof userTags !== 'undefined') {
+                r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
+            }
+            return { ...r, _score: score };
+        }).sort((a, b) => {
+            if (a._score !== b._score) return b._score - a._score;
+            return (b.count || 0) - (a.count || 0);
+        });
+    }
 
     currentFbRecommendedReadings = scored; // グローバルに保存
 
-    // UI 描画（コンパクトなチップスタイル）
+    // 手入力された読みがおすすめに含まれていない場合、チップとして表示するために追加
+    if (fbSelectedReading && !scored.some(r => r.reading === fbSelectedReading)) {
+        scored.unshift({ reading: fbSelectedReading, isManual: true });
+    }
+
+    // UI 描画
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 おすすめの読み方</p>`;
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 読み方の構成${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
 
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
 
-    scored.slice(0, 12).forEach(r => {
+    scored.slice(0, 15).forEach(r => {
         const chip = document.createElement('button');
         const isActive = fbSelectedReading === r.reading;
+        // 手入力したものはアイコンをつける
+        const label = r.isManual ? `✏️ ${r.reading}` : r.reading;
+
         chip.className = `px-3 py-1.5 text-sm font-bold rounded-full border transition-all active:scale-95
             ${isActive
                 ? 'bg-[#bca37f] text-white border-[#bca37f] shadow-md'
                 : 'bg-white text-[#5d5444] border-[#d4c5af] hover:border-[#bca37f]'}`;
-        chip.textContent = r.reading;
+        chip.textContent = label;
         chip.onclick = () => {
             withScrollPreservation(() => {
-                // 選択読みを固定（保存時に使用）
                 fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
                 renderBuildSelection();
                 executeFbBuild();
@@ -1107,19 +1113,11 @@ function suggestReadingsForKanji(choices, container) {
     // 手入力ボタンを追加
     const manualBtn = document.createElement('button');
     manualBtn.className = `px-3 py-1.5 text-sm font-bold rounded-full border border-[#d4c5af] bg-[#fdfaf5] text-[#a6967a] hover:border-[#bca37f] transition-all active:scale-95`;
-    manualBtn.innerHTML = '✏️ 手入力';
+    manualBtn.innerHTML = '＋ 読みを入力';
     manualBtn.onclick = () => promptManualFbReading();
     chipRow.appendChild(manualBtn);
 
     section.appendChild(chipRow);
-
-    if (fbSelectedReading) {
-        const note = document.createElement('p');
-        note.className = 'text-[10px] text-[#bca37f] mt-2 font-bold';
-        note.textContent = `読み「${fbSelectedReading}」を固定中 — 保存時に使用されます`;
-        section.appendChild(note);
-    }
-
     container.appendChild(section);
 }
 
