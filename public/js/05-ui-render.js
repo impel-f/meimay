@@ -291,6 +291,7 @@ function getGradientFromTags(tags) {
     const colors2 = (cat2 && colorMap[cat2.class]) ? colorMap[cat2.class] : colors1;
     return `linear-gradient(135deg, ${colors1[0]} 0%, ${colors2[0]} 60%, ${colors2[1]} 100%)`;
 }
+window.getGradientFromTags = getGradientFromTags;
 
 /**
  * 次のスロットへ進む
