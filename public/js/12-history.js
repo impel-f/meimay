@@ -441,16 +441,28 @@ function showSavedNameDetail(index) {
 
     const f = item.fortune;
 
-    // 苗字のパース
+    // 苗字・名前のパース
     const nameParts = (item.fullName || '').split(' ');
     const surStr = nameParts[0] || '';
     const givStr = nameParts[1] || item.givenName || '';
+
+    // ふりがなのパース
+    const readingParts = (item.reading || '').split(' ');
+    const surRead = readingParts[0] || '';
+    const givRead = readingParts[1] || (readingParts.length === 1 ? readingParts[0] : '');
+
+    // 文字数に応じたフォントサイズ調整
+    const totalLen = surStr.length + givStr.length;
+    let nameFontSize = 'text-4xl';
+    if (totalLen >= 7) nameFontSize = 'text-xl';
+    else if (totalLen >= 6) nameFontSize = 'text-2xl';
+    else if (totalLen >= 5) nameFontSize = 'text-3xl';
 
     // 格チップの生成 (画数なし、1行用)
     const renderGakuChip = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
         return `
-            <div class="flex items-center gap-1 px-2 py-1 bg-white border border-[#eee5d8] rounded-lg shadow-sm">
+            <div class="flex items-center gap-1 px-1.5 py-1 bg-white border border-[#eee5d8] rounded-lg shadow-sm">
                 <span class="text-[7px] font-bold text-[#a6967a] uppercase">${label}</span>
                 <span class="text-[10px] font-black ${gaku.res.color} whitespace-nowrap">${gaku.res.label}</span>
             </div>
@@ -463,19 +475,27 @@ function showSavedNameDetail(index) {
                 <button class="modal-close-x" onclick="closeSavedNameDetail()">✕</button>
                 <div class="mb-6 text-center">
                     <h3 class="text-xs font-bold text-[#a6967a] mb-1">保存された名前</h3>
-                    <div class="text-[10px] text-[#bca37f] font-medium tracking-widest">${item.reading || ''}</div>
+                    <div class="text-[10px] text-[#bca37f] font-medium tracking-[0.2em] uppercase opacity-70">Saved Detail</div>
                 </div>
                 
-                <div class="modal-body">
-                    <!-- フルネーム枠表示 (ビルド画面スタイル) -->
-                    <div class="flex justify-center mb-10">
-                        <div class="inline-flex items-center px-8 py-5 bg-white border-2 border-[#bca37f] rounded-2xl shadow-sm">
-                            <span class="text-4xl font-black text-[#bca37f] mr-4">${surStr}</span>
-                            <span class="text-4xl font-black text-[#5d5444]">${givStr}</span>
+                <div class="modal-body px-1">
+                    <!-- フルネーム枠表示 (ビルド画面スタイル + ふりがな) -->
+                    <div class="flex justify-center mb-8">
+                        <div class="inline-flex items-center px-8 py-6 bg-white border-2 border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-b from-[#fdfaf5]/50 to-transparent pointer-events-none"></div>
+                            
+                            <div class="flex flex-col items-center mr-6">
+                                <span class="text-[10px] text-[#a6967a] font-bold mb-1 h-3 flex items-center">${surRead}</span>
+                                <span class="${nameFontSize} font-black text-[#bca37f] leading-none">${surStr}</span>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[10px] text-[#a6967a] font-bold mb-1 h-3 flex items-center">${givRead}</span>
+                                <span class="${nameFontSize} font-black text-[#5d5444] leading-none">${givStr}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- 漢字詳細用カード (分離配置) -->
+                    <!-- 漢字詳細用カード -->
                     <div class="mb-10">
                         <label class="text-[10px] font-bold text-[#a6967a] mb-4 block uppercase tracking-wider text-center">漢字の詳細を見る</label>
                         <div class="flex gap-2.5 justify-center flex-wrap">
@@ -483,8 +503,8 @@ function showSavedNameDetail(index) {
         const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
         return `
                                     <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
-                                         class="w-14 h-16 bg-[#fdfaf5] border border-[#ede5d8] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#bca37f] hover:bg-white transition-all active:scale-95 shadow-sm">
-                                        <div class="text-2xl font-black text-[#5d5444]">${kStr}</div>
+                                         class="w-14 h-18 bg-[#fdfaf5] border border-[#ede5d8] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#bca37f] hover:bg-white transition-all active:scale-90 shadow-sm group">
+                                        <div class="text-2xl font-black text-[#5d5444] group-hover:text-[#bca37f] transition-colors">${kStr}</div>
                                     </div>
                                 `;
     }).join('')}
@@ -492,30 +512,38 @@ function showSavedNameDetail(index) {
                     </div>
 
                     ${item.message ? `
-                    <div class="mb-8 p-4 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8]">
+                    <div class="mb-8 p-4 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
+                        <div class="text-[10px] font-bold text-[#a6967a] absolute -top-2 left-4 bg-[#fdfaf5] px-2 uppercase tracking-tight">Memo</div>
                         <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
                     </div>
                     ` : ''}
 
-                    <!-- 運勢チップ (1行化) -->
-                    <div class="mb-6">
-                        <label class="text-[10px] font-bold text-[#a6967a] mb-3 block uppercase tracking-wider text-center">姓名判断</label>
+                    <!-- 姓名判断エリア (ボタン風) -->
+                    <div class="mb-8">
                         <div onclick="showFortuneDetailFromSaved(${index})" 
-                             class="flex flex-wrap gap-1.5 justify-center p-2.5 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8] cursor-pointer hover:bg-white transition-all active:scale-[0.98]">
-                            ${renderGakuChip('天', f?.ten)}
-                            ${renderGakuChip('人', f?.jin)}
-                            ${renderGakuChip('地', f?.chi)}
-                            ${renderGakuChip('外', f?.gai)}
-                            ${renderGakuChip('総', f?.so)}
+                             class="group relative block p-4 bg-white rounded-[2rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer overflow-hidden">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="text-[11px] font-black text-[#a6967a] uppercase tracking-widest px-1">姓名判断</label>
+                                <span class="text-[10px] font-bold text-[#bca37f] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                    詳しく見る <span class="material-icons-outlined text-xs">chevron_right</span>
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5 justify-center">
+                                ${renderGakuChip('天', f?.ten)}
+                                ${renderGakuChip('人', f?.jin)}
+                                ${renderGakuChip('地', f?.chi)}
+                                ${renderGakuChip('外', f?.gai)}
+                                ${renderGakuChip('総', f?.so)}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="modal-footer flex flex-col gap-2">
-                    <button onclick="loadSavedName(${index})" class="w-full py-4 bg-[#bca37f] text-white rounded-2xl text-sm font-bold shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98]">
-                        この構成で漢字を選びなおす
+                    <button onclick="loadSavedName(${index})" class="w-full py-5 bg-[#bca37f] text-white rounded-[1.5rem] text-sm font-black shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                         <span>🛠️</span> この構成で漢字を選びなおす
                     </button>
-                    <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-2xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
+                    <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
                         閉じる
                     </button>
                 </div>
