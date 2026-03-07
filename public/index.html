@@ -356,8 +356,20 @@
         <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
             <!-- Gender Removed -->
 
-            <p class="label-mini mb-4">名前の読み（ひらがな）</p>
-            <input type="text" id="in-name" placeholder="めい" class="premium-input mb-8">
+            <p class="label-mini mb-2">名前の読み（ひらがな）</p>
+            <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2">
+
+            <!-- ストックから選ぶプルダウン（ストックがあるときのみ表示） -->
+            <div id="reading-stock-picker" class="hidden mb-6">
+                <button onclick="toggleReadingStockPicker()"
+                    class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
+                    <span>📖 ストックから選ぶ</span>
+                    <span id="reading-stock-picker-arrow">▼</span>
+                </button>
+                <div id="reading-stock-picker-list" class="hidden mt-1 bg-white border border-[#eee5d8] rounded-xl overflow-hidden shadow-sm">
+                    <!-- JS populated -->
+                </div>
+            </div>
 
             <div class="rule-box text-left space-y-4 mb-10 px-4">
                 <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('strict')">
@@ -462,17 +474,19 @@
 
             <button onclick="processNickname()" class="btn-gold py-4 shadow-xl w-full mb-3">次へ →</button>
 
-            <div class="relative flex items-center mb-4">
-                <div class="flex-grow border-t border-[#ede5d8]"></div>
-                <span class="flex-shrink-0 mx-4 text-[#a6967a] text-xs font-bold">または</span>
-                <div class="flex-grow border-t border-[#ede5d8]"></div>
+            <!-- あだなをスワイプ: 非表示 -->
+            <div class="hidden">
+                <div class="relative flex items-center mb-4">
+                    <div class="flex-grow border-t border-[#ede5d8]"></div>
+                    <span class="flex-shrink-0 mx-4 text-[#a6967a] text-xs font-bold">または</span>
+                    <div class="flex-grow border-t border-[#ede5d8]"></div>
+                </div>
+                <button onclick="initAdanaMode()"
+                    class="w-full py-3 bg-white text-[#bca37f] border-2 border-[#bca37f] rounded-2xl font-bold shadow-sm hover:bg-[#fffbeb] transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <span>あだなをスワイプして探す</span>
+                    <span>👉</span>
+                </button>
             </div>
-
-            <button onclick="initAdanaMode()"
-                class="w-full py-3 bg-white text-[#bca37f] border-2 border-[#bca37f] rounded-2xl font-bold shadow-sm hover:bg-[#fffbeb] transition-all active:scale-95 flex items-center justify-center gap-2">
-                <span>あだなをスワイプして探す</span>
-                <span>👉</span>
-            </button>
             <button onclick="goBack()" class="text-sm text-[#bca37f] mt-4 hover:underline">戻る</button>
         </div>
     </div>

@@ -193,7 +193,7 @@ function deleteAllStocks() {
 function openNicknameInput() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const current = wizData?.username || '';
-    showInputModal('ニックネームを入力', 'text', current, '例：さくらママ', (value) => {
+    showInputModal('ニックネームを入力', 'text', current, '例：メイ', (value) => {
         if (typeof WizardData !== 'undefined') {
             const data = WizardData.get() || {};
             data.username = value;
@@ -239,6 +239,13 @@ function openSurnameInput() {
                 updateSurnameData();
             }
         }
+        // WizardDataにも反映してドロワー表示を同期
+        if (typeof WizardData !== 'undefined') {
+            const data = WizardData.get() || {};
+            data.surname = surnameStr;
+            WizardData.save(data);
+        }
+        if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
         saveSettings();
         renderSettingsScreen();
     });

@@ -58,7 +58,49 @@ function startMode(mode) {
     } else {
         // reading mode
         changeScreen('scr-input-reading');
+        initReadingStockPicker();
     }
+}
+
+/**
+ * 読み入力画面: ストックがあればプルダウンを表示
+ */
+function initReadingStockPicker() {
+    const stock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const pickerWrap = document.getElementById('reading-stock-picker');
+    const list = document.getElementById('reading-stock-picker-list');
+    if (!pickerWrap || !list) return;
+
+    if (stock.length === 0) {
+        pickerWrap.classList.add('hidden');
+        return;
+    }
+    pickerWrap.classList.remove('hidden');
+    list.innerHTML = stock.map(r => `
+        <button onclick="selectReadingFromStock('${r}')"
+            class="w-full text-left px-4 py-2.5 text-sm text-[#5d5444] font-bold hover:bg-[#fdf7ef] border-b border-[#f5ede0] last:border-0 transition-colors">
+            ${r}
+        </button>
+    `).join('');
+}
+
+function selectReadingFromStock(reading) {
+    const input = document.getElementById('in-name');
+    if (input) input.value = reading;
+    // ドロップダウンを閉じる
+    const list = document.getElementById('reading-stock-picker-list');
+    const arrow = document.getElementById('reading-stock-picker-arrow');
+    if (list) list.classList.add('hidden');
+    if (arrow) arrow.textContent = '▼';
+}
+
+function toggleReadingStockPicker() {
+    const list = document.getElementById('reading-stock-picker-list');
+    const arrow = document.getElementById('reading-stock-picker-arrow');
+    if (!list) return;
+    const isHidden = list.classList.contains('hidden');
+    list.classList.toggle('hidden');
+    if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
 }
 
 /**
@@ -77,7 +119,9 @@ function initSoundModeEntry() {
     // 動的にオーバーレイを生成
     overlay = document.createElement('div');
     overlay.id = 'sound-entry-overlay';
+    // フッター（nav-bar）の高さ分だけ下を空けてフッターを見せる
     overlay.className = 'overlay active';
+    overlay.style.cssText = 'padding-bottom: 64px;';
     overlay.innerHTML = `
         <div class="detail-sheet text-center" onclick="event.stopPropagation()">
             <div class="text-4xl mb-4">🎵</div>
@@ -87,13 +131,13 @@ function initSoundModeEntry() {
             </p>
             <div class="space-y-3">
                 <button onclick="closeSoundEntryAndGo('nickname')"
-                    class="btn-gold py-4 shadow-xl w-full">
-                    ✨ はい、入れたい音がある<br>
-                    <span class="text-xs font-normal opacity-80">例：「はる」から始まる名前を探す</span>
+                    class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl font-bold text-sm text-[#5d5444] hover:border-[#bca37f] transition-all active:scale-95">
+                    ✨ 入れたい音がある<br>
+                    <span class="text-xs font-normal text-[#a6967a]">例：「はる」から始まる名前を探す</span>
                 </button>
                 <button onclick="closeSoundEntryAndGo('sound')"
-                    class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl font-bold text-sm text-[#5d5444] hover:border-[#bca37f] transition-all">
-                    🔊 いいえ、響きをスワイプして選ぶ<br>
+                    class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl font-bold text-sm text-[#5d5444] hover:border-[#bca37f] transition-all active:scale-95">
+                    🔊 響きをスワイプして選ぶ<br>
                     <span class="text-xs font-normal text-[#a6967a]">人気の名前の読みをスワイプして選ぶ</span>
                 </button>
             </div>
@@ -1428,10 +1472,13 @@ function startFreeSwiping() {
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
     // メインUIのスタックとしてセット (02-engine.js global)
-    // 直感スワイプモード（1日10枚制限）か通常モード（200枚）かで分岐
-    const limit = window._dailySwipeMode ? getDailyRemainingCount() : 200;
+    // 直感スワイプモード（1日10枚制限）のみ上限あり、それ以外は全件
+    if (window._dailySwipeMode) {
+        stack = list.slice(0, getDailyRemainingCount());
+    } else {
+        stack = list;
+    }
     window._dailySwipeMode = false; // フラグをリセット
-    stack = list.slice(0, limit);
     currentIdx = 0;
 
     changeScreen('scr-main');
@@ -2578,6 +2625,8 @@ window.openBuildFromReading = openBuildFromReading;
 window.addMoreForReading = addMoreForReading;
 window.inheritModalAction = inheritModalAction;
 window.showToast = showToast;
+window.toggleReadingStockPicker = toggleReadingStockPicker;
+window.selectReadingFromStock = selectReadingFromStock;
 window.showUniversalSwipeCheckpoint = showUniversalSwipeCheckpoint;
 window.startMultiReadingKanjiFlow = startMultiReadingKanjiFlow;
 window.advanceNicknameKanjiQueue = advanceNicknameKanjiQueue;
