@@ -343,7 +343,7 @@ function renderSavedScreen() {
             ${item.fromPartner ? `<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">👩 パートナーから</div>` : ''}
             <div class="flex items-start justify-between mb-2">
                 <div class="flex-1">
-                    <div class="text-lg font-black text-[#5d5444]">${item.fullName || ''}</div>
+                    <div class="text-xl font-black text-[#5d5444]">${item.fullName || ''}</div>
                     <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
                     ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">💬 ${item.message}</div>` : ''}
                 </div>
@@ -477,18 +477,18 @@ function showSavedNameDetail(index) {
                 </div>
                 
                 <div class="modal-body px-1">
-                    <!-- フルネーム枠表示 (ビルド画面スタイル完全踏襲 + 折り返し防止) -->
+                    <!-- フルネーム枠表示 (ビルド画面スタイル完全同期) -->
                     <div class="flex justify-center mb-10">
-                        <div class="inline-flex items-center px-10 py-6 bg-[#fdfaf5] border border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden flex-nowrap shrink-0">
-                            <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent opacity-60 pointer-events-none"></div>
-                            
-                            <div class="flex flex-col items-center mr-8 shrink-0">
-                                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${surRead}</p>
-                                <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
-                            </div>
-                            <div class="flex flex-col items-center shrink-0">
-                                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${givRead}</p>
-                                <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
+                        <div class="relative flex items-center justify-center min-h-[100px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-10 py-6 overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none flex-nowrap shrink-0">
+                            <div class="flex items-end gap-2 z-10 flex-nowrap justify-center">
+                                <div class="flex flex-col items-center mr-8 shrink-0">
+                                    <p class="text-[10px] text-[#a6967a] h-3.5 mb-1 font-bold">${surRead}</p>
+                                    <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
+                                </div>
+                                <div class="flex flex-col items-center shrink-0">
+                                    <p class="text-[10px] text-[#a6967a] h-3.5 mb-1 font-bold">${givRead}</p>
+                                    <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
