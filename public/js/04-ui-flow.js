@@ -2793,9 +2793,13 @@ function executeKanjiSearch() {
             .split(/[、,，\s/]+/)
             .filter(x => clean(x))
             .slice(0, 2);
+        // padding-bottom:100% で正方形を確保するラッパー（aspect-ratio はブラウザ依存のため使わない）
+        const cell = document.createElement('div');
+        cell.style.cssText = 'position:relative; width:100%; padding-bottom:100%;';
+
         const btn = document.createElement('button');
-        btn.className = `aspect-square bg-white rounded-xl shadow-sm border flex flex-col items-center justify-center hover:border-[#bca37f] relative transition-all active:scale-95 overflow-hidden
-            ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'}`;
+        btn.className = `absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-xl shadow-sm border transition-all active:scale-95
+            ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'bg-white border-[#eee5d8]'}`;
         btn.innerHTML = `
             <span class="text-2xl font-black text-[#5d5444]">${k['漢字']}</span>
             <span class="text-[8px] text-[#a6967a]">${strokes}画</span>
@@ -2807,7 +2811,8 @@ function executeKanjiSearch() {
             if (typeof showKanjiDetail === 'function') showKanjiDetail(k);
             else toggleSearchStock(k, btn);
         };
-        container.appendChild(btn);
+        cell.appendChild(btn);
+        container.appendChild(cell);
     });
 }
 
