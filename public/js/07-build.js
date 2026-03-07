@@ -1642,8 +1642,15 @@ function showFortuneDetail() {
                 <div style="position:relative;width:${LINE}px;height:${totalH}px;flex-shrink:0">
                     <div style="position:absolute;top:${spanMid(gaiSpan)}px;left:0;right:0;height:0;border-top:${BW}px solid ${BC}"></div>
                 </div>
-                <div style="height:${totalH}px;display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+                <div style="height:${totalH}px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;flex-shrink:0">
                     ${fBox(res.gai, '外格')}
+                    
+                    <div style="text-align:center;cursor:pointer;white-space:nowrap;margin-top:4px" onclick="showFortuneTerm('総格')">
+                        <div style="padding:4px 10px;background:linear-gradient(to bottom, white, #fdfaf5);border:1.5px solid #bca37f;border-radius:10px;display:inline-block;box-shadow:0 2px 6px rgba(188,163,127,0.15)">
+                            <div style="font-size:7px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
+                            <span style="font-size:14px;font-weight:900;color:#5d5444">${getNum(res.so)}</span><span style="font-size:8px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${res.so.res.color}">${res.so.res.label}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
