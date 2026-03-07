@@ -708,24 +708,24 @@ function renderBuildSelection() {
         const scrollBox = document.createElement('div');
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
-        // このスロットの候補を取得（現在の読み方のものだけ）
+        // このスロットの候補を取得
         let items = liked.filter(item => {
             const slotMatch = item.slot === idx;
             const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
             const isNotExcluded = !excludedKanjiFromBuild.includes(item['漢字']);
 
-            // デバッグ
-            if (slotMatch) {
-                console.log(`Slot ${idx} item: `, {
-                    kanji: item['漢字'],
-                    sessionReading: item.sessionReading,
-                    currentReading: currentReading,
-                    readingMatch: readingMatch,
-                    isNotExcluded: isNotExcluded
-                });
+            // Freeストックの統合ロジック
+            let freeMatch = false;
+            if (item.sessionReading === 'FREE') {
+                // Freeストックの場合、その漢字自体に保存されているセグメント読み、またはsessionReading（単字の場合など）が、
+                // 現在のスロットの読み(seg)と一致するかを確認する
+                const itemSeg = (item.sessionSegments && item.sessionSegments[item.slot]) || item.sessionReading;
+                if (itemSeg === seg) {
+                    freeMatch = true;
+                }
             }
 
-            return slotMatch && readingMatch && isNotExcluded;
+            return (slotMatch && readingMatch && isNotExcluded) || (freeMatch && isNotExcluded);
         });
 
         console.log(`Slot ${idx} filtered items: `, items.length);
