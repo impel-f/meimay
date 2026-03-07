@@ -184,14 +184,21 @@ function executeSaveWithMessage() {
 
     const saved = getSavedNames();
 
-    // 重複チェック
-    const isDuplicate = saved.some(item => item.fullName === currentBuildResult.fullName);
+    // 重複チェック (名前の文字列だけでなく、構成も完全に一致する場合のみ重複とみなす)
+    const isDuplicate = saved.some(item =>
+        item.fullName === currentBuildResult.fullName &&
+        JSON.stringify(item.combination) === JSON.stringify(currentBuildResult.combination)
+    );
+
     if (isDuplicate) {
-        if (!confirm('この名前は既に保存されています。上書きしますか？')) {
+        if (!confirm('同じ名前・構成のデータが既に保存されています。メッセージを更新しますか？')) {
             return;
         }
         // 既存を削除
-        const filtered = saved.filter(item => item.fullName !== currentBuildResult.fullName);
+        const filtered = saved.filter(item =>
+            !(item.fullName === currentBuildResult.fullName &&
+                JSON.stringify(item.combination) === JSON.stringify(currentBuildResult.combination))
+        );
         localStorage.setItem('meimay_saved', JSON.stringify(filtered));
     }
 
@@ -202,21 +209,24 @@ function executeSaveWithMessage() {
         savedAt: new Date().toISOString()
     };
 
-    saved.unshift(saveData);
+    // 最新を先頭へ
+    const updated = [saveData, ...getSavedNames().filter(item =>
+        !(item.fullName === currentBuildResult.fullName &&
+            JSON.stringify(item.combination) === JSON.stringify(currentBuildResult.combination))
+    )];
 
     // 最大50件まで
-    if (saved.length > 50) {
-        saved.length = 50;
+    if (updated.length > 50) {
+        updated.length = 50;
     }
 
-    // グローバル変数を更新（StorageBox.saveAll で上書きされないようにする）
-    if (typeof savedNames !== 'undefined') savedNames = saved;
-
-    localStorage.setItem('meimay_saved', JSON.stringify(saved));
+    // グローバル変数を更新
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
 
     closeSaveMessageModal();
     alert('✨ 名前を保存しました！');
-    console.log('HISTORY: Name saved with message', saveData);
+    console.log('HISTORY: Name saved', saveData);
 }
 
 /**
@@ -417,6 +427,9 @@ function switchHistoryTab(tab) {
     else openSavedNames();
 }
 
+// 詳細モーダルから戻るためのインデックス保持
+let _lastSavedDetailIndex = null;
+
 /**
  * 保存済み名前の詳細を表示するモーダル
  */
@@ -424,40 +437,22 @@ function showSavedNameDetail(index) {
     const saved = getSavedNames();
     if (index < 0 || index >= saved.length) return;
     const item = saved[index];
+    _lastSavedDetailIndex = index; // 戻り用に保存
 
     const f = item.fortune;
 
-    // 苗字のパースと画数補完
+    // 苗字のパース
     const nameParts = (item.fullName || '').split(' ');
     const surStr = nameParts[0] || '';
-    const surnameChars = surStr.split('').map(char => {
-        const found = typeof master !== 'undefined' ? master.find(m => m['漢字'] === char) : null;
-        return { '漢字': char, '画数': found ? found['画数'] : '?' };
-    });
+    const givStr = nameParts[1] || item.givenName || '';
 
-    const renderKanjiBox = (kanji, isSurname = false) => {
-        const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
-        const strokes = typeof kanji === 'object' ? kanji['画数'] : '';
-        const borderColor = isSurname ? 'border-[#ede5d8]' : 'border-[#eee5d8]';
-        const bgColor = isSurname ? 'bg-[#fdfaf5]' : 'bg-white';
-
-        return `
-            <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
-                 class="w-14 h-18 ${bgColor} border-2 ${borderColor} rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#bca37f] hover:scale-105 transition-all shadow-sm active:scale-95">
-                <div class="text-2xl font-black text-[#5d5444]">${kStr}</div>
-                ${strokes ? `<div class="text-[9px] font-bold text-[#bca37f] mt-0.5">${strokes}画</div>` : ''}
-            </div>
-        `;
-    };
-
-    // 格チップの生成
+    // 格チップの生成 (画数なし、1行用)
     const renderGakuChip = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
         return `
-            <div class="flex flex-col items-center gap-0.5 px-1.5 py-1.5 bg-white border border-[#eee5d8] rounded-xl flex-1 min-w-[50px] max-w-[65px]">
-                <span class="text-[7px] font-bold text-[#a6967a] leading-none uppercase">${label}</span>
-                <span class="text-xs font-black text-[#5d5444] leading-none my-0.5">${gaku.val || gaku.num || 0}</span>
-                <span class="text-[8px] font-black ${gaku.res.color} leading-none whitespace-nowrap">${gaku.res.label}</span>
+            <div class="flex items-center gap-1 px-2 py-1 bg-white border border-[#eee5d8] rounded-lg shadow-sm">
+                <span class="text-[7px] font-bold text-[#a6967a] uppercase">${label}</span>
+                <span class="text-[10px] font-black ${gaku.res.color} whitespace-nowrap">${gaku.res.label}</span>
             </div>
         `;
     };
@@ -466,35 +461,47 @@ function showSavedNameDetail(index) {
         <div class="overlay active modal-overlay-dark" id="saved-detail-modal" onclick="if(event.target.id==='saved-detail-modal')closeSavedNameDetail()">
             <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSavedNameDetail()">✕</button>
-                <h3 class="modal-title">保存された名前</h3>
+                <div class="mb-6 text-center">
+                    <h3 class="text-xs font-bold text-[#a6967a] mb-1">保存された名前</h3>
+                    <div class="text-[10px] text-[#bca37f] font-medium tracking-widest">${item.reading || ''}</div>
+                </div>
                 
                 <div class="modal-body">
-                    <!-- 名前プレビュー風表示 -->
-                    <div class="flex flex-col items-center mb-8">
-                        <div class="text-xs font-bold text-[#a6967a] mb-3">${item.reading || ''}</div>
-                        <div class="flex items-center gap-2 justify-center flex-wrap">
-                            <!-- 苗字グループ -->
-                            <div class="flex gap-1 p-1 bg-[#fdfaf5]/50 border border-[#ede5d8] rounded-2xl">
-                                ${surnameChars.map(c => renderKanjiBox(c, true)).join('')}
-                            </div>
-                            <!-- 名前グループ -->
-                            <div class="flex gap-1 p-1 bg-white/50 border border-[#eee5d8] rounded-2xl">
-                                ${(item.combination || []).map(c => renderKanjiBox(c, false)).join('')}
-                            </div>
+                    <!-- フルネーム枠表示 (ビルド画面スタイル) -->
+                    <div class="flex justify-center mb-10">
+                        <div class="inline-flex items-center px-8 py-5 bg-white border-2 border-[#bca37f] rounded-2xl shadow-sm">
+                            <span class="text-4xl font-black text-[#bca37f] mr-4">${surStr}</span>
+                            <span class="text-4xl font-black text-[#5d5444]">${givStr}</span>
+                        </div>
+                    </div>
+
+                    <!-- 漢字詳細用カード (分離配置) -->
+                    <div class="mb-10">
+                        <label class="text-[10px] font-bold text-[#a6967a] mb-4 block uppercase tracking-wider text-center">漢字の詳細を見る</label>
+                        <div class="flex gap-2.5 justify-center flex-wrap">
+                            ${(item.combination || []).map(kanji => {
+        const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
+        return `
+                                    <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
+                                         class="w-14 h-16 bg-[#fdfaf5] border border-[#ede5d8] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#bca37f] hover:bg-white transition-all active:scale-95 shadow-sm">
+                                        <div class="text-2xl font-black text-[#5d5444]">${kStr}</div>
+                                    </div>
+                                `;
+    }).join('')}
                         </div>
                     </div>
 
                     ${item.message ? `
-                    <div class="mb-6 p-4 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8]">
+                    <div class="mb-8 p-4 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8]">
                         <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
                     </div>
                     ` : ''}
 
-                    <!-- 運勢チップ -->
+                    <!-- 運勢チップ (1行化) -->
                     <div class="mb-6">
-                        <label class="text-[10px] font-bold text-[#a6967a] mb-3 block uppercase tracking-wider text-center">姓名判断（タップで詳細）</label>
+                        <label class="text-[10px] font-bold text-[#a6967a] mb-3 block uppercase tracking-wider text-center">姓名判断</label>
                         <div onclick="showFortuneDetailFromSaved(${index})" 
-                             class="flex flex-wrap gap-1.5 justify-center p-3 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8] cursor-pointer hover:bg-white transition-all shadow-sm active:scale-[0.98]">
+                             class="flex flex-wrap gap-1.5 justify-center p-2.5 bg-[#fdfaf5] rounded-2xl border border-[#eee5d8] cursor-pointer hover:bg-white transition-all active:scale-[0.98]">
                             ${renderGakuChip('天', f?.ten)}
                             ${renderGakuChip('人', f?.jin)}
                             ${renderGakuChip('地', f?.chi)}
@@ -574,7 +581,7 @@ function loadSavedName(index) {
     // ビルド画面の初期化
     if (typeof clearBuildSelection === 'function') clearBuildSelection();
 
-    // 苗字の特定
+    // 苗字の特定と反映
     const nameParts = (item.fullName || '').split(' ');
     if (nameParts.length > 1) {
         if (typeof surnameStr !== 'undefined') {
@@ -582,7 +589,7 @@ function loadSavedName(index) {
         }
     }
 
-    // 名前の読み
+    // 名前の読みを抽出（スペースがあれば後ろ、なければfullNameと照らし合わせる等の工夫が必要だが一旦スペース優先）
     const readingParts = (item.reading || '').split(' ');
     const givenReading = readingParts.length > 1 ? readingParts[1] : readingParts[0];
 
@@ -592,14 +599,28 @@ function loadSavedName(index) {
     if (isNormalBuild) {
         // 通常の読みモード
         buildMode = 'reading';
-        segments = givenReading.split('');
+
+        // 【重要】セグメント（スロット分割）の復元
+        if (item.segments && item.segments.length > 0) {
+            // 保存されたセグメントをそのまま使う（これが一番確実）
+            segments = [...item.segments];
+        } else {
+            // セグメントがない場合は読みを1文字ずつにするが、
+            // 苗字が混ざらないよう givenReading を使用する
+            segments = givenReading.split('');
+        }
+
         // 漢字の選択状態を復元
         item.combination.forEach((k, idx) => {
-            const exists = liked.some(l => l['漢字'] === k['漢字'] && l.slot === idx && l.sessionReading === k.sessionReading);
-            if (!exists) liked.push(JSON.parse(JSON.stringify(k)));
-            selectedPieces[idx] = k;
+            if (typeof k === 'object') {
+                // slotを現在のidxに合わせ、sessionReadingも保持してストックへ（疑似的）
+                const piece = { ...k, slot: idx };
+                const exists = liked.some(l => l['漢字'] === piece['漢字'] && l.slot === idx && l.sessionReading === piece.sessionReading);
+                if (!exists) liked.push(piece);
+                selectedPieces[idx] = piece;
+            }
         });
-        console.log("HISTORY: Re-loading in READING mode");
+        console.log("HISTORY: Re-loading in READING mode", segments);
     } else {
         // 自由組み立てモード
         buildMode = 'free';

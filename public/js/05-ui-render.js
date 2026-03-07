@@ -649,6 +649,18 @@ function closeKanjiDetail() {
     if (modal) modal.classList.remove('active');
     // スワイプ画面なら×★♡ボタンを復元
     if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+
+    // もし保存済み詳細から開いていたなら、詳細画面に戻す
+    if (typeof _lastSavedDetailIndex === 'number' && _lastSavedDetailIndex !== null) {
+        const scrSaved = document.getElementById('scr-saved');
+        if (scrSaved && scrSaved.classList.contains('active')) {
+            const index = _lastSavedDetailIndex;
+            _lastSavedDetailIndex = null; // 1度戻ったらクリア（連鎖防止）
+            if (typeof showSavedNameDetail === 'function') {
+                showSavedNameDetail(index);
+            }
+        }
+    }
 }
 
 window.updateSwipeMainState = updateSwipeMainState;
