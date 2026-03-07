@@ -110,10 +110,10 @@ function renderFreeBuildSection() {
             const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                             class="shrink-0 w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center text-xl font-black transition-all active:scale-90
-                            ${isSelected ? 'border-[#bca37f] bg-white text-[#bca37f] ring-2 ring-[#bca37f]/30' :
+                            ${isSelected ? 'bg-white text-[#bca37f] ring-2 ring-[#bca37f]/30' :
                     isUsed ? 'opacity-50 border-[#ede5d8] text-[#c8b99a]' :
                         'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}"
-                            style="${isSelected && (typeof getGradientFromTags === 'function') ? `border-image: ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])} 1; border-width: 2px; border-style: solid;` : ''}">
+                            style="${isSelected && (typeof getGradientFromTags === 'function') ? `border:none; padding:2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;` : ''}">
                             ${k}
                         </button>`;
         }).join('')}
@@ -384,10 +384,11 @@ function renderStock() {
             const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
             const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
             if (bgGradient) {
-               card.style.borderImage = `${bgGradient} 1`;
-               card.style.borderWidth = '2px';
-               card.style.borderStyle = 'solid';
-               card.style.background = 'white';
+               card.style.border = 'none';
+               card.style.padding = '2px';
+               card.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
+               card.style.backgroundOrigin = 'border-box';
+               card.style.backgroundClip = 'content-box, border-box';
             }
 
             card.innerHTML = `
@@ -764,14 +765,15 @@ function renderBuildSelection() {
                 const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
                 btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''}`; // modified: added relative and selected class check
                 
-                // タグ色の取得と適用（選択時のみ枠線に適用）
+                // タグ色の取得と適用（選択時のみ枠線に適用、角丸維持）
                 const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
                 const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
                 if (isSelected && bgGradient) {
-                    btn.style.borderImage = `${bgGradient} 1`;
-                    btn.style.borderWidth = '2px';
-                    btn.style.borderStyle = 'solid';
-                    btn.style.background = 'white';
+                    btn.style.border = 'none';
+                    btn.style.padding = '2px';
+                    btn.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
+                    btn.style.backgroundOrigin = 'border-box';
+                    btn.style.backgroundClip = 'content-box, border-box';
                 }
 
                 btn.setAttribute('data-slot', idx);
@@ -1016,7 +1018,7 @@ function renderBuildFreeMode(container) {
                     oncontextmenu="event.preventDefault(); openKanjiActionMenu('${k}', ${slotIdx}, true)"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
-                    style="${isSelected && (typeof getGradientFromTags === 'function') ? `border-image: ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])} 1; border-width: 2px; border-style: solid; background: white;` : ''}">
+                    style="${isSelected && (typeof getGradientFromTags === 'function') ? `border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;` : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
