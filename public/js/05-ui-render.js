@@ -698,11 +698,19 @@ function renderHomeProfile() {
     const elKanji = document.getElementById('home-liked-kanji-count');
     if (elKanji) elKanji.innerText = likedCount + '個';
 
-    // バッジ連動
-    const elBadge = document.getElementById('home-stock-badge');
-    if (elBadge) {
-        elBadge.innerText = savedCount > 0 ? savedCount : '';
-        elBadge.classList.toggle('hidden', savedCount === 0);
+    // フッター: ストック漢字数
+    const elNavKanjiCount = document.getElementById('nav-stock-kanji-count');
+    if (elNavKanjiCount) elNavKanjiCount.innerText = likedCount;
+
+    // フッター: 保存済み名前数
+    const elNavSavedCount = document.getElementById('nav-saved-count');
+    if (elNavSavedCount) elNavSavedCount.innerText = savedCount;
+    const elNavSavedLabel = document.getElementById('nav-saved-count-label');
+    if (elNavSavedLabel) elNavSavedLabel.classList.toggle('hidden', savedCount === 0);
+
+    // 日次残り枚数表示更新
+    if (typeof updateDailyRemainingDisplay === 'function') {
+        updateDailyRemainingDisplay();
     }
 
     // 4. あなたの好みの計算 (LIKEタグ集計)

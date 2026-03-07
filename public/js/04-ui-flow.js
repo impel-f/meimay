@@ -993,6 +993,11 @@ function universalSwipeAction(action) {
 
     SwipeState.history.push({ action: action, item: item });
 
+    // onSwipeコールバック（直感スワイプ等で毎回呼ばれる）
+    if (SwipeState.config.onSwipe) {
+        SwipeState.config.onSwipe(item, action);
+    }
+
     // 10スワイプごとにチェック
     if (SwipeState.history.length > 0 && SwipeState.history.length % 10 === 0) {
         showUniversalSwipeCheckpoint();
@@ -2461,6 +2466,98 @@ function navSearchAction() {
     }
 }
 
+// ==========================================
+// 直感スワイプ – 1日10枚制限
+// ==========================================
+
+const DAILY_KANJI_LIMIT = 10;
+
+function _getDailyKey() {
+    const d = new Date();
+    return `meimay_daily_kanji_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+
+function getDailySeenKanji() {
+    try {
+        const raw = localStorage.getItem(_getDailyKey());
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+}
+
+function addDailySeenKanji(kanji) {
+    try {
+        const seen = getDailySeenKanji();
+        if (!seen.includes(kanji)) {
+            seen.push(kanji);
+            localStorage.setItem(_getDailyKey(), JSON.stringify(seen));
+        }
+    } catch (e) { }
+}
+
+function getDailyRemainingCount() {
+    return Math.max(0, DAILY_KANJI_LIMIT - getDailySeenKanji().length);
+}
+
+function updateDailyRemainingDisplay() {
+    const el = document.getElementById('home-daily-remaining');
+    if (!el) return;
+    const remaining = getDailyRemainingCount();
+    if (remaining === 0) {
+        el.innerText = '今日のカードはおしまい 🌙';
+    } else {
+        el.innerText = `今日の漢字　残り ${remaining} / ${DAILY_KANJI_LIMIT}`;
+    }
+}
+
+function startDirectKanjiSwipe() {
+    const remaining = getDailyRemainingCount();
+    if (remaining === 0) {
+        updateDailyRemainingDisplay();
+        return;
+    }
+
+    if (!master || master.length === 0) {
+        alert('漢字データを読み込み中です。しばらくお待ちください。');
+        return;
+    }
+
+    const dailySeen = new Set(getDailySeenKanji());
+
+    // noped + 今日見たもの を除外してシャッフル
+    let candidates = master.filter(k => {
+        const kanji = k['漢字'];
+        if (!kanji) return false;
+        if (typeof noped !== 'undefined' && noped.has(kanji)) return false;
+        if (dailySeen.has(kanji)) return false;
+        return true;
+    });
+
+    candidates = candidates.sort(() => Math.random() - 0.5).slice(0, remaining);
+
+    if (candidates.length === 0) {
+        updateDailyRemainingDisplay();
+        return;
+    }
+
+    startUniversalSwipe('kanji_direct', candidates, {
+        title: '直感スワイプ',
+        subtitle: `残り ${remaining} / ${DAILY_KANJI_LIMIT}`,
+        disableSuper: false,
+        onSwipe: (item, action) => {
+            if (item['漢字']) addDailySeenKanji(item['漢字']);
+            updateDailyRemainingDisplay();
+        },
+        onLike: (item) => {
+            if (typeof liked !== 'undefined' && liked) {
+                if (!liked.find(k => k['漢字'] === item['漢字'])) {
+                    liked.push(item);
+                    if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
+                }
+            }
+        }
+    });
+}
+
 // Expose functions to global scope
 window.navSearchAction = navSearchAction;
 window.startMode = startMode;
@@ -2497,6 +2594,9 @@ window.executeFreeBuild = executeFreeBuild;
 window.renderFreeBuild = renderFreeBuild;
 window.getReadingStock = getReadingStock;
 window.addReadingToStock = addReadingToStock;
+window.startDirectKanjiSwipe = startDirectKanjiSwipe;
+window.updateDailyRemainingDisplay = updateDailyRemainingDisplay;
+window.getDailyRemainingCount = getDailyRemainingCount;
 window.removeReadingFromStock = removeReadingFromStock;
 window.renderReadingStockSection = renderReadingStockSection;
 window.startReadingFromStock = startReadingFromStock;
