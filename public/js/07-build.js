@@ -110,10 +110,10 @@ function renderFreeBuildSection() {
             const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                             class="shrink-0 w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center text-xl font-black transition-all active:scale-90
-                            ${isSelected ? 'border-[#bca37f] bg-[#fffbeb] text-[#bca37f] ring-2 ring-[#bca37f]/30' :
+                            ${isSelected ? 'border-[#bca37f] bg-white text-[#bca37f] ring-2 ring-[#bca37f]/30' :
                     isUsed ? 'opacity-50 border-[#ede5d8] text-[#c8b99a]' :
                         'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}"
-                            style="background: ${isSelected && (typeof getGradientFromTags === 'function') ? getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : []) : ''};">
+                            style="${isSelected && (typeof getGradientFromTags === 'function') ? `border-image: ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])} 1; border-width: 2px; border-style: solid;` : ''}">
                             ${k}
                         </button>`;
         }).join('')}
@@ -383,7 +383,12 @@ function renderStock() {
             // タグ色の取得
             const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
             const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
-            if (bgGradient) card.style.background = bgGradient;
+            if (bgGradient) {
+               card.style.borderImage = `${bgGradient} 1`;
+               card.style.borderWidth = '2px';
+               card.style.borderStyle = 'solid';
+               card.style.background = 'white';
+            }
 
             card.innerHTML = `
                 ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
@@ -759,10 +764,15 @@ function renderBuildSelection() {
                 const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
                 btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''}`; // modified: added relative and selected class check
                 
-                // タグ色の取得と適用（選択時のみ）
+                // タグ色の取得と適用（選択時のみ枠線に適用）
                 const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
                 const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
-                if (isSelected && bgGradient) btn.style.background = bgGradient;
+                if (isSelected && bgGradient) {
+                    btn.style.borderImage = `${bgGradient} 1`;
+                    btn.style.borderWidth = '2px';
+                    btn.style.borderStyle = 'solid';
+                    btn.style.background = 'white';
+                }
 
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
@@ -1006,7 +1016,7 @@ function renderBuildFreeMode(container) {
                     oncontextmenu="event.preventDefault(); openKanjiActionMenu('${k}', ${slotIdx}, true)"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
-                    style="background: ${isSelected && (typeof getGradientFromTags === 'function') ? getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : []) : ''};">
+                    style="${isSelected && (typeof getGradientFromTags === 'function') ? `border-image: ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])} 1; border-width: 2px; border-style: solid; background: white;` : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
