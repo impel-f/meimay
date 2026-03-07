@@ -451,20 +451,15 @@ function showSavedNameDetail(index) {
     const surRead = readingParts[0] || '';
     const givRead = readingParts[1] || (readingParts.length === 1 ? readingParts[0] : '');
 
-    // 文字数に応じたフォントサイズ調整
-    const totalLen = surStr.length + givStr.length;
-    let nameFontSize = 'text-4xl';
-    if (totalLen >= 7) nameFontSize = 'text-xl';
-    else if (totalLen >= 6) nameFontSize = 'text-2xl';
-    else if (totalLen >= 5) nameFontSize = 'text-3xl';
-
-    // 格チップの生成 (画数なし、1行用)
-    const renderGakuChip = (label, gaku) => {
+    // 格データの生成（ラベル・吉凶・画数）
+    const renderFortuneRow = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
+        const isSokaku = label === '総格';
         return `
-            <div class="flex items-center gap-1 px-1.5 py-1 bg-white border border-[#eee5d8] rounded-lg shadow-sm">
-                <span class="text-[7px] font-bold text-[#a6967a] uppercase">${label}</span>
-                <span class="text-[10px] font-black ${gaku.res.color} whitespace-nowrap">${gaku.res.label}</span>
+            <div class="flex items-center justify-between py-1.5 border-b border-[#eee5d8]/50 last:border-0 ${isSokaku ? 'mt-2 pt-3 border-t border-[#eee5d8]' : ''}">
+                <span class="text-[10px] font-bold text-[#a6967a] w-12 text-left">${label}</span>
+                <span class="text-xs font-black ${gaku.res.color} flex-1 text-center">${gaku.res.label}</span>
+                <span class="text-[10px] font-bold text-[#5d5444] text-right w-12">${gaku.val || gaku.num}画</span>
             </div>
         `;
     };
@@ -473,38 +468,38 @@ function showSavedNameDetail(index) {
         <div class="overlay active modal-overlay-dark" id="saved-detail-modal" onclick="if(event.target.id==='saved-detail-modal')closeSavedNameDetail()">
             <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSavedNameDetail()">✕</button>
-                <div class="mb-6 text-center">
-                    <h3 class="text-xs font-bold text-[#a6967a] mb-1">保存された名前</h3>
-                    <div class="text-[10px] text-[#bca37f] font-medium tracking-[0.2em] uppercase opacity-70">Saved Detail</div>
+                <div class="mb-5 text-center">
+                    <h3 class="text-xs font-bold text-[#a6967a] mb-1">保存された名前の詳細</h3>
                 </div>
                 
                 <div class="modal-body px-1">
-                    <!-- フルネーム枠表示 (ビルド画面スタイル + ふりがな) -->
-                    <div class="flex justify-center mb-8">
-                        <div class="inline-flex items-center px-8 py-6 bg-white border-2 border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-b from-[#fdfaf5]/50 to-transparent pointer-events-none"></div>
+                    <!-- フルネーム枠表示 (ビルド画面スタイル完全踏襲) -->
+                    <div class="flex justify-center mb-10">
+                        <div class="inline-flex items-center px-10 py-6 bg-[#fdfaf5] border border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden">
+                            <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent opacity-60"></div>
                             
-                            <div class="flex flex-col items-center mr-6">
-                                <span class="text-[10px] text-[#a6967a] font-bold mb-1 h-3 flex items-center">${surRead}</span>
-                                <span class="${nameFontSize} font-black text-[#bca37f] leading-none">${surStr}</span>
+                            <div class="flex flex-col items-center mr-8">
+                                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${surRead}</p>
+                                <p class="text-3xl font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
                             </div>
                             <div class="flex flex-col items-center">
-                                <span class="text-[10px] text-[#a6967a] font-bold mb-1 h-3 flex items-center">${givRead}</span>
-                                <span class="${nameFontSize} font-black text-[#5d5444] leading-none">${givStr}</span>
+                                <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${givRead}</p>
+                                <p class="text-3xl font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 漢字詳細用カード -->
+                    <!-- 漢字詳細用カード (🔍アイコン付き) -->
                     <div class="mb-10">
-                        <label class="text-[10px] font-bold text-[#a6967a] mb-4 block uppercase tracking-wider text-center">漢字の詳細を見る</label>
-                        <div class="flex gap-2.5 justify-center flex-wrap">
+                        <label class="text-[10px] font-black text-[#a6967a] mb-4 block uppercase tracking-wider text-center">漢字の構成（タップで詳細）</label>
+                        <div class="flex gap-3 justify-center flex-wrap">
                             ${(item.combination || []).map(kanji => {
         const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
         return `
                                     <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
-                                         class="w-14 h-18 bg-[#fdfaf5] border border-[#ede5d8] rounded-2xl flex items-center justify-center cursor-pointer hover:border-[#bca37f] hover:bg-white transition-all active:scale-90 shadow-sm group">
+                                         class="w-16 h-20 bg-white border-2 border-[#eee5d8] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#bca37f] transition-all active:scale-90 shadow-sm relative group">
                                         <div class="text-2xl font-black text-[#5d5444] group-hover:text-[#bca37f] transition-colors">${kStr}</div>
+                                        <div class="absolute bottom-1 right-1.5 text-[10px] opacity-40 group-hover:opacity-100 group-hover:text-[#bca37f]">🔍</div>
                                     </div>
                                 `;
     }).join('')}
@@ -512,28 +507,28 @@ function showSavedNameDetail(index) {
                     </div>
 
                     ${item.message ? `
-                    <div class="mb-8 p-4 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
-                        <div class="text-[10px] font-bold text-[#a6967a] absolute -top-2 left-4 bg-[#fdfaf5] px-2 uppercase tracking-tight">Memo</div>
+                    <div class="mb-8 p-5 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
+                        <div class="text-[9px] font-black text-[#a6967a] absolute -top-2.5 left-6 bg-white px-2 py-0.5 rounded-full border border-[#eee5d8] tracking-widest">メモ・願い</div>
                         <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
                     </div>
                     ` : ''}
 
-                    <!-- 姓名判断エリア (ボタン風) -->
+                    <!-- 姓名判断エリア -->
                     <div class="mb-8">
                         <div onclick="showFortuneDetailFromSaved(${index})" 
-                             class="group relative block p-4 bg-white rounded-[2rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer overflow-hidden">
-                            <div class="flex justify-between items-center mb-3">
-                                <label class="text-[11px] font-black text-[#a6967a] uppercase tracking-widest px-1">姓名判断</label>
-                                <span class="text-[10px] font-bold text-[#bca37f] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                    詳しく見る <span class="material-icons-outlined text-xs">chevron_right</span>
+                             class="group block p-5 bg-white rounded-[2.5rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer relative overflow-hidden">
+                            <div class="flex justify-between items-center mb-4 border-b border-[#eee5d8] pb-2">
+                                <label class="text-[11px] font-black text-[#a6967a] tracking-widest">姓名判断 鑑定書</label>
+                                <span class="text-[10px] font-black text-[#bca37f] flex items-center group-hover:translate-x-1 transition-transform">
+                                    鑑定結果をくわしく見る ＞
                                 </span>
                             </div>
-                            <div class="flex flex-wrap gap-1.5 justify-center">
-                                ${renderGakuChip('天', f?.ten)}
-                                ${renderGakuChip('人', f?.jin)}
-                                ${renderGakuChip('地', f?.chi)}
-                                ${renderGakuChip('外', f?.gai)}
-                                ${renderGakuChip('総', f?.so)}
+                            <div class="px-5">
+                                ${renderFortuneRow('天格', f?.ten)}
+                                ${renderFortuneRow('人格', f?.jin)}
+                                ${renderFortuneRow('地格', f?.chi)}
+                                ${renderFortuneRow('外格', f?.gai)}
+                                ${renderFortuneRow('総格', f?.so)}
                             </div>
                         </div>
                     </div>
@@ -590,6 +585,9 @@ function showFortuneDetailFromSaved(index) {
 
     if (typeof showFortuneDetail === 'function') {
         showFortuneDetail();
+        // 保存済みから開いた場合は保存ボタンを隠す
+        const saveBtn = document.getElementById('fortune-save-btn');
+        if (saveBtn) saveBtn.style.display = 'none';
     }
 }
 

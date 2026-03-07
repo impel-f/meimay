@@ -1761,6 +1761,10 @@ function closeFortuneDetail() {
     const modal = document.getElementById('modal-fortune-detail');
     if (modal) modal.classList.remove('active');
 
+    // 保存ボタンの表示を復元
+    const saveBtn = document.getElementById('fortune-save-btn');
+    if (saveBtn) saveBtn.style.display = 'block';
+
     // もし保存済み詳細から開いていたなら、詳細画面に戻す
     if (typeof _lastSavedDetailIndex === 'number' && _lastSavedDetailIndex !== null) {
         const scrSaved = document.getElementById('scr-saved');
