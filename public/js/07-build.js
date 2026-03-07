@@ -1635,17 +1635,22 @@ function showFortuneDetail() {
         <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
             
-            <div style="display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px;width:${BARM + LINE + 80}px;justify-content:flex-start">
+            <div style="position:relative;display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px;width:${BARM + LINE + 80}px;justify-content:flex-start">
                 <div style="position:relative;width:${BARM}px;height:${totalH}px;flex-shrink:0">
                     <div style="${bStyle(gaiSpan, 'left')}"></div>
                 </div>
                 <div style="position:relative;width:${LINE}px;height:${totalH}px;flex-shrink:0">
                     <div style="position:absolute;top:${spanMid(gaiSpan)}px;left:0;right:0;height:0;border-top:${BW}px solid ${BC}"></div>
                 </div>
-                <div style="height:${totalH}px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;flex-shrink:0">
-                    ${fBox(res.gai, '外格')}
+                <!-- 左側カラム：外格と総格の配置 -->
+                <div style="position:relative;width:80px;height:${totalH}px;flex-shrink:0">
+                    <!-- 外格：鑑定線の中央に合わせて絶対配置 -->
+                    <div style="position:absolute;top:${spanMid(gaiSpan)}px;left:50%;transform:translate(-50%, -50%)">
+                        ${fBox(res.gai, '外格')}
+                    </div>
                     
-                    <div style="text-align:center;cursor:pointer;white-space:nowrap;margin-top:4px" onclick="showFortuneTerm('総格')">
+                    <!-- 総格：構造に干渉しないよう下方に絶対配置 -->
+                    <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);text-align:center;cursor:pointer;white-space:nowrap" onclick="showFortuneTerm('総格')">
                         <div style="padding:4px 10px;background:linear-gradient(to bottom, white, #fdfaf5);border:1.5px solid #bca37f;border-radius:10px;display:inline-block;box-shadow:0 2px 6px rgba(188,163,127,0.15)">
                             <div style="font-size:7px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
                             <span style="font-size:14px;font-weight:900;color:#5d5444">${getNum(res.so)}</span><span style="font-size:8px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${res.so.res.color}">${res.so.res.label}</span>
