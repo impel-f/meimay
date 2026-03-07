@@ -1858,23 +1858,33 @@ function showFortuneRanking() {
 function generateAllCombinations() {
     const currentReading = segments.join('');
     const slotArrays = segments.map((seg, idx) => {
-        // 現在の読み方 + 除外されていない漢字をフィルタ
-        let items = liked.filter(item =>
-            item.slot === idx &&
-            (!item.sessionReading || item.sessionReading === currentReading) &&
-            !excludedKanjiFromBuild.includes(item['漢字'])
-        );
+        // このスロットに適合する漢字を抽出（Freeストック含む）
+        let items = liked.filter(item => {
+            const slotMatch = item.slot === idx;
+            const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
+            const isNotExcluded = !excludedKanjiFromBuild.includes(item['漢字']);
 
-        // 現在の読みで候補がない場合（フォールバック）でも除外リストを適用
-        if (items.length === 0) {
-            const allSlotItems = liked.filter(item => item.slot === idx && !excludedKanjiFromBuild.includes(item['漢字']));
-            const seen = new Set();
-            items = allSlotItems.filter(item => {
-                if (seen.has(item['漢字'])) return false;
-                seen.add(item['漢字']);
-                return true;
-            });
-        }
+            // Freeストックの統合ロジック
+            let freeMatch = false;
+            if (item.sessionReading === 'FREE') {
+                const readings = (item.kanji_reading || "").split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(x => x);
+                const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
+                if (readings.includes(targetSeg)) {
+                    freeMatch = true;
+                }
+            }
+
+            return (slotMatch && readingMatch && isNotExcluded) || (freeMatch && isNotExcluded);
+        });
+
+        // 重複除去（同じ漢字が複数ストックされている場合）
+        const seen = new Set();
+        items = items.filter(item => {
+            if (seen.has(item['漢字'])) return false;
+            seen.add(item['漢字']);
+            return true;
+        });
+
         return items;
     });
     if (slotArrays.some(arr => arr.length === 0)) return [];
