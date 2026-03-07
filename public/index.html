@@ -234,58 +234,70 @@
             <!-- ① ストック・保存状況（最上部） -->
             <div class="w-full max-w-sm">
                 <button onclick="alert('ダッシュボード機能は現在準備中です\nあなたの好みの系統（タグ分析）をここに見える化する予定です！');"
-                    class="w-full bg-white/80 rounded-2xl px-4 py-2.5 border border-[#ede5d8] shadow-sm active:scale-[0.98] transition-transform">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-[12px] font-bold text-[#8b7e66]">📋 ストック　漢字 <span id="home-liked-kanji-count" class="text-[#5d5444] font-black">-</span>個　読み <span id="home-reading-stock-count" class="text-[#5d5444] font-black">-</span>個</span>
-                    </div>
+                    class="w-full bg-white/80 rounded-2xl px-4 py-3 border border-[#ede5d8] shadow-sm active:scale-[0.98] transition-transform">
                     <div class="flex items-center justify-between">
-                        <span class="text-[12px] font-bold text-[#8b7e66]">💾 保存した名前 <span id="home-liked-name-count" class="text-[#5d5444] font-black">-</span>個</span>
-                        <span class="text-[11px] text-[#bca37f] font-bold">分析を見る ›</span>
+                        <div class="flex items-center gap-4">
+                            <div class="text-center">
+                                <div class="text-[20px] font-black text-[#5d5444] leading-none" id="home-liked-kanji-count">-</div>
+                                <div class="text-[9px] text-[#a6967a] mt-0.5">📋 漢字</div>
+                            </div>
+                            <div class="text-[#ddd0be] text-sm">|</div>
+                            <div class="text-center">
+                                <div class="text-[20px] font-black text-[#5d5444] leading-none" id="home-reading-stock-count">-</div>
+                                <div class="text-[9px] text-[#a6967a] mt-0.5">📖 読み</div>
+                            </div>
+                            <div class="text-[#ddd0be] text-sm">|</div>
+                            <div class="text-center">
+                                <div class="text-[20px] font-black text-[#5d5444] leading-none" id="home-liked-name-count">-</div>
+                                <div class="text-[9px] text-[#a6967a] mt-0.5">💾 保存名</div>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-[#bca37f] font-bold">分析を見る ›</div>
                     </div>
                 </button>
             </div>
 
             <!-- ② 直感スワイプ（メイン） -->
             <div class="w-full max-w-sm flex flex-col items-center">
-                <p class="text-[14px] font-black text-[#5d5444] mb-0.5">✨ 直感スワイプ</p>
-                <p class="text-[11px] text-[#8b7e66] mb-2">漢字との一期一会を楽しもう</p>
-
-                <!-- カードスタック（タップでスワイプへ） -->
+                <!-- カードスタック + タイトルをまとめてボタン枠に入れる -->
                 <button onclick="startDirectKanjiSwipe()"
-                    class="relative flex items-center justify-center w-full active:scale-[0.97] transition-transform rounded-2xl border-2 border-[#d4c5af] bg-[#fdf7ef]"
-                    style="height: 160px; box-shadow: 0 4px 16px rgba(139,126,102,0.15);">
+                    class="relative w-full active:scale-[0.97] transition-transform rounded-2xl border-2 border-[#d4c5af] bg-[#fdf7ef] flex flex-col items-center"
+                    style="padding: 14px 0 16px; box-shadow: 0 4px 16px rgba(139,126,102,0.15);">
 
-                    <!-- 背面カード左 -->
-                    <div class="absolute flex items-center justify-center"
-                        style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(-9deg) translateX(-40px); z-index:1;">
-                        <span class="text-5xl font-bold text-[#c0a882]">漢</span>
-                    </div>
+                    <!-- タイトル・サブタイトル（ボタン内） -->
+                    <p class="text-[14px] font-black text-[#5d5444] mb-0.5">✨ 直感スワイプ</p>
+                    <p class="text-[11px] text-[#8b7e66] mb-3">漢字との一期一会を楽しもう</p>
 
-                    <!-- 背面カード右 -->
-                    <div class="absolute flex items-center justify-center"
-                        style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(7deg) translateX(40px); z-index:1;">
-                        <span class="text-5xl font-bold text-[#c0a882]">字</span>
-                    </div>
+                    <!-- カードエリア -->
+                    <div class="relative flex items-center justify-center w-full" style="height: 148px;">
+                        <!-- 背面カード左 -->
+                        <div class="absolute flex items-center justify-center"
+                            style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(-9deg) translateX(-40px); z-index:1;">
+                            <span class="text-5xl font-bold text-[#c0a882]">漢</span>
+                        </div>
 
-                    <!-- 前面カード（メイン） -->
-                    <div class="absolute flex items-center justify-center"
-                        style="width: 122px; height: 148px; border-radius: 20px; background:#fffefb; border:1.5px solid #e0d0bc; box-shadow:0 8px 20px rgba(139,126,102,0.18); z-index:2;">
-                        <span class="text-6xl font-bold text-[#5d5444]">名</span>
-                        <!-- LIKE矢印（右端） -->
-                        <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[14px] flex flex-col items-center gap-0.5">
-                            <span class="text-[16px]">→</span>
-                            <span class="text-[8px] font-black text-[#81c995]">LIKE</span>
+                        <!-- 背面カード右 -->
+                        <div class="absolute flex items-center justify-center"
+                            style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(7deg) translateX(40px); z-index:1;">
+                            <span class="text-5xl font-bold text-[#c0a882]">字</span>
+                        </div>
+
+                        <!-- 前面カード（メイン）- 暖色グラデーション + 薄いハートwatermark -->
+                        <div class="absolute flex items-center justify-center overflow-hidden"
+                            style="width: 122px; height: 148px; border-radius: 20px; background: linear-gradient(145deg, #fef5e7, #fde8cc); border:1.5px solid #e8c99a; box-shadow:0 8px 20px rgba(139,126,102,0.22); z-index:2;">
+                            <!-- 薄いハート（装飾） -->
+                            <span class="absolute text-[80px] select-none pointer-events-none"
+                                style="opacity: 0.07; transform: translateX(30px) translateY(18px); color: #c87941;">❤</span>
+                            <span class="text-6xl font-bold text-[#5d5444]" style="position: relative; z-index:3;">名</span>
                         </div>
                     </div>
                 </button>
 
-                <!-- スワイプガイド（画像2スタイル） -->
-                <div class="mt-2 text-center text-[11px] font-bold text-[#8b6c4a] leading-relaxed">
-                    <div>気になる漢字を右へ　→</div>
-                    <div>違うと思ったら左へ　←</div>
+                <!-- スワイプガイド（ボタン外・左右配置） -->
+                <div class="mt-2 w-full flex justify-between px-1 text-[11px] font-bold text-[#8b6c4a]">
+                    <span>← 違うと思ったら左へ</span>
+                    <span>気になる漢字を右へ →</span>
                 </div>
-                <!-- 今日の残り枚数 -->
-                <div id="home-daily-remaining" class="mt-1 text-[11px] font-bold text-[#bca37f]">残り 10 / 10</div>
             </div>
 
             <!-- ③ 2択ボタン（大きめ、絵文字と文改行） -->
@@ -331,7 +343,6 @@
 
         <!-- JS互換用（非表示） -->
         <span id="home-swiped-count" class="hidden"></span>
-        <span id="home-liked-name-count" class="hidden"></span>
         <span id="home-preference-tags" class="hidden"></span>
     </div>
 

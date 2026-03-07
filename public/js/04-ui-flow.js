@@ -1428,7 +1428,10 @@ function startFreeSwiping() {
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
     // メインUIのスタックとしてセット (02-engine.js global)
-    stack = list.slice(0, 200); // イメージ一致分を十分確保するため200枚
+    // 直感スワイプモード（1日10枚制限）か通常モード（200枚）かで分岐
+    const limit = window._dailySwipeMode ? getDailyRemainingCount() : 200;
+    window._dailySwipeMode = false; // フラグをリセット
+    stack = list.slice(0, limit);
     currentIdx = 0;
 
     changeScreen('scr-main');
@@ -2522,6 +2525,8 @@ function startDirectKanjiSwipe() {
     }
 
     // 自由に漢字を探すと同じロジック（vibe選択スキップ・こだわらない固定）
+    // 1日10枚制限フラグをセットしてから startFreeSwiping を呼ぶ
+    window._dailySwipeMode = true;
     appMode = 'free';
     window.selectedImageTags = ['none'];
     startFreeSwiping();

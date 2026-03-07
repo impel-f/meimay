@@ -692,7 +692,7 @@ function renderHomeProfile() {
     // 2. 気に入った名前（保存済み名前）
     const savedCount = (typeof getSavedNames === 'function') ? getSavedNames().length : (window.savedNames ? window.savedNames.length : 0);
     const elSaved = document.getElementById('home-liked-name-count');
-    if (elSaved) elSaved.innerText = savedCount + '個';
+    if (elSaved) elSaved.innerText = savedCount;
 
     // 3. 漢字ストック数
     const elKanji = document.getElementById('home-liked-kanji-count');
