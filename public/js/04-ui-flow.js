@@ -2794,7 +2794,7 @@ function executeKanjiSearch() {
             .filter(x => clean(x))
             .slice(0, 2);
         const btn = document.createElement('button');
-        btn.className = `aspect-square bg-white rounded-xl shadow-sm border flex flex-col items-center justify-center hover:border-[#bca37f] relative transition-all active:scale-95
+        btn.className = `aspect-square bg-white rounded-xl shadow-sm border flex flex-col items-center justify-center hover:border-[#bca37f] relative transition-all active:scale-95 overflow-hidden
             ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'border-[#eee5d8]'}`;
         btn.innerHTML = `
             <span class="text-2xl font-black text-[#5d5444]">${k['漢字']}</span>
