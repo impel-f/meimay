@@ -2521,41 +2521,10 @@ function startDirectKanjiSwipe() {
         return;
     }
 
-    const dailySeen = new Set(getDailySeenKanji());
-
-    // noped + 今日見たもの を除外してシャッフル
-    let candidates = master.filter(k => {
-        const kanji = k['漢字'];
-        if (!kanji) return false;
-        if (typeof noped !== 'undefined' && noped.has(kanji)) return false;
-        if (dailySeen.has(kanji)) return false;
-        return true;
-    });
-
-    candidates = candidates.sort(() => Math.random() - 0.5).slice(0, remaining);
-
-    if (candidates.length === 0) {
-        updateDailyRemainingDisplay();
-        return;
-    }
-
-    startUniversalSwipe('kanji_direct', candidates, {
-        title: '直感スワイプ',
-        subtitle: `残り ${remaining} / ${DAILY_KANJI_LIMIT}`,
-        disableSuper: false,
-        onSwipe: (item, action) => {
-            if (item['漢字']) addDailySeenKanji(item['漢字']);
-            updateDailyRemainingDisplay();
-        },
-        onLike: (item) => {
-            if (typeof liked !== 'undefined' && liked) {
-                if (!liked.find(k => k['漢字'] === item['漢字'])) {
-                    liked.push(item);
-                    if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-                }
-            }
-        }
-    });
+    // 自由に漢字を探すと同じロジック（vibe選択スキップ・こだわらない固定）
+    appMode = 'free';
+    window.selectedImageTags = ['none'];
+    startFreeSwiping();
 }
 
 // Expose functions to global scope

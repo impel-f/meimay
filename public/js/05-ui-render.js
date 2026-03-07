@@ -694,19 +694,14 @@ function renderHomeProfile() {
     const elSaved = document.getElementById('home-liked-name-count');
     if (elSaved) elSaved.innerText = savedCount + '個';
 
-    // 3. 漢字の数
+    // 3. 漢字ストック数
     const elKanji = document.getElementById('home-liked-kanji-count');
-    if (elKanji) elKanji.innerText = likedCount + '個';
+    if (elKanji) elKanji.innerText = likedCount;
 
-    // フッター: ストック漢字数
-    const elNavKanjiCount = document.getElementById('nav-stock-kanji-count');
-    if (elNavKanjiCount) elNavKanjiCount.innerText = likedCount;
-
-    // フッター: 保存済み名前数
-    const elNavSavedCount = document.getElementById('nav-saved-count');
-    if (elNavSavedCount) elNavSavedCount.innerText = savedCount;
-    const elNavSavedLabel = document.getElementById('nav-saved-count-label');
-    if (elNavSavedLabel) elNavSavedLabel.classList.toggle('hidden', savedCount === 0);
+    // 4b. 読みストック数
+    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
 
     // 日次残り枚数表示更新
     if (typeof updateDailyRemainingDisplay === 'function') {

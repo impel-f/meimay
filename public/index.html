@@ -231,12 +231,17 @@
     <div id="scr-mode" class="screen bg-[#fdfaf5]" style="overflow: hidden;">
         <div class="flex flex-col items-center w-full h-full gap-3">
 
-            <!-- ① 分析リンク（最上部・小） -->
+            <!-- ① ストック・保存状況（最上部） -->
             <div class="w-full max-w-sm">
                 <button onclick="alert('ダッシュボード機能は現在準備中です\nあなたの好みの系統（タグ分析）をここに見える化する予定です！');"
-                    class="w-full flex items-center justify-between bg-white/80 rounded-2xl px-4 py-2.5 border border-[#ede5d8] shadow-sm active:scale-[0.98] transition-transform">
-                    <span class="text-[12px] font-bold text-[#8b7e66]">🎠 漢字 <span id="home-liked-kanji-count" class="text-[#5d5444] font-black">-</span>個ストック済み</span>
-                    <span class="text-[11px] text-[#bca37f] font-bold">分析を見る ›</span>
+                    class="w-full bg-white/80 rounded-2xl px-4 py-2.5 border border-[#ede5d8] shadow-sm active:scale-[0.98] transition-transform">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[12px] font-bold text-[#8b7e66]">📋 ストック　漢字 <span id="home-liked-kanji-count" class="text-[#5d5444] font-black">-</span>個　読み <span id="home-reading-stock-count" class="text-[#5d5444] font-black">-</span>個</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[12px] font-bold text-[#8b7e66]">💾 保存した名前 <span id="home-liked-name-count" class="text-[#5d5444] font-black">-</span>個</span>
+                        <span class="text-[11px] text-[#bca37f] font-bold">分析を見る ›</span>
+                    </div>
                 </button>
             </div>
 
@@ -247,25 +252,25 @@
 
                 <!-- カードスタック（タップでスワイプへ） -->
                 <button onclick="startDirectKanjiSwipe()"
-                    class="relative flex items-center justify-center w-full active:scale-[0.98] transition-transform"
-                    style="height: 155px;">
+                    class="relative flex items-center justify-center w-full active:scale-[0.97] transition-transform rounded-2xl border-2 border-[#d4c5af] bg-[#fdf7ef]"
+                    style="height: 160px; box-shadow: 0 4px 16px rgba(139,126,102,0.15);">
 
                     <!-- 背面カード左 -->
                     <div class="absolute flex items-center justify-center"
                         style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(-9deg) translateX(-40px); z-index:1;">
-                        <span class="text-5xl font-bold text-[#c0a882]">凛</span>
+                        <span class="text-5xl font-bold text-[#c0a882]">漢</span>
                     </div>
 
                     <!-- 背面カード右 -->
                     <div class="absolute flex items-center justify-center"
                         style="width: 108px; height: 132px; border-radius: 20px; background:#f5ede0; border:1px solid #ddd0be; box-shadow:0 3px 10px rgba(139,126,102,0.12); transform:rotate(7deg) translateX(40px); z-index:1;">
-                        <span class="text-5xl font-bold text-[#c0a882]">蒼</span>
+                        <span class="text-5xl font-bold text-[#c0a882]">字</span>
                     </div>
 
                     <!-- 前面カード（メイン） -->
                     <div class="absolute flex items-center justify-center"
                         style="width: 122px; height: 148px; border-radius: 20px; background:#fffefb; border:1.5px solid #e0d0bc; box-shadow:0 8px 20px rgba(139,126,102,0.18); z-index:2;">
-                        <span class="text-6xl font-bold text-[#5d5444]">璃</span>
+                        <span class="text-6xl font-bold text-[#5d5444]">名</span>
                         <!-- LIKE矢印（右端） -->
                         <div class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[14px] flex flex-col items-center gap-0.5">
                             <span class="text-[16px]">→</span>
@@ -861,22 +866,20 @@
                 <span class="text-xl transition-transform duration-200">🔍</span>
                 <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">さがす</span>
             </button>
-            <button onclick="openStock()" class="nav-item flex flex-col items-center gap-0.5 group outline-none"
+            <button onclick="openStock()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-stock">
                 <span class="text-xl transition-transform duration-200">📋</span>
                 <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">ストック</span>
-                <span id="nav-stock-counts" class="text-[7px] text-[#bca37f] font-bold leading-tight">漢字<span id="nav-stock-kanji-count">0</span>個</span>
             </button>
             <button onclick="openBuild()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-build">
                 <span class="text-xl transition-transform duration-200">⚒️</span>
                 <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
             </button>
-            <button onclick="openSavedNames()" class="nav-item flex flex-col items-center gap-0.5 group outline-none"
+            <button onclick="openSavedNames()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-saved">
                 <span class="text-xl transition-transform duration-200">💾</span>
                 <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">保存済み</span>
-                <span id="nav-saved-count-label" class="text-[7px] text-[#bca37f] font-bold leading-tight"><span id="nav-saved-count">0</span>個</span>
             </button>
         </div>
     </nav>
