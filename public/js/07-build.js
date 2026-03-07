@@ -111,8 +111,9 @@ function renderFreeBuildSection() {
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                             class="shrink-0 w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center text-xl font-black transition-all active:scale-90
                             ${isSelected ? 'border-[#bca37f] bg-[#fffbeb] text-[#bca37f] ring-2 ring-[#bca37f]/30' :
-                    isUsed ? 'border-[#ede5d8] bg-[#f8f5ef] text-[#c8b99a] opacity-50' :
-                        'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}">
+                    isUsed ? 'opacity-50 border-[#ede5d8] text-[#c8b99a]' :
+                        'border-[#ede5d8] bg-white text-[#5d5444] hover:border-[#bca37f]'}"
+                            style="background: ${(typeof getGradientFromTags === 'function') ? getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : []) : ''};">
                             ${k}
                         </button>`;
         }).join('')}
@@ -379,10 +380,14 @@ function renderStock() {
                 if (m) displayStrokes = m['画数'];
             }
 
+            // タグ色の取得
+            const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
+            const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
+
             card.innerHTML = `
                 ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
-                <div class="stock-kanji">${item['漢字']}</div>
+                <div class="stock-kanji" style="${bgGradient ? `background: ${bgGradient}; -webkit-background-clip: padding-box;` : ''}">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '？'}画</div>
 `;
             cardsGrid.appendChild(card);
