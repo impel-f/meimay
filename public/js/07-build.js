@@ -717,10 +717,12 @@ function renderBuildSelection() {
             // Freeストックの統合ロジック
             let freeMatch = false;
             if (item.sessionReading === 'FREE') {
-                // Freeストックの場合、その漢字自体に保存されているセグメント読み、またはsessionReading（単字の場合など）が、
-                // 現在のスロットの読み(seg)と一致するかを確認する
-                const itemSeg = (item.sessionSegments && item.sessionSegments[item.slot]) || item.sessionReading;
-                if (itemSeg === seg) {
+                // Freeストックの場合、kanji_reading には「リ, おさめる...」のようにカンマ区切りで複数の読みが入っている可能性がある
+                // これらの中に、現在のスロットの読み(seg)と一致するものがあるかを確認する
+                const readings = (item.kanji_reading || "").split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(x => x);
+                const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
+                
+                if (readings.includes(targetSeg)) {
                     freeMatch = true;
                 }
             }
