@@ -76,12 +76,14 @@ function initReadingStockPicker() {
         return;
     }
     pickerWrap.classList.remove('hidden');
-    list.innerHTML = stock.map(r => `
-        <button onclick="selectReadingFromStock('${r}')"
+    list.innerHTML = stock.map(r => {
+        const val = typeof r === 'object' ? r.reading : r;
+        return `
+        <button onclick="selectReadingFromStock('${val}')"
             class="w-full text-left px-4 py-2.5 text-sm text-[#5d5444] font-bold hover:bg-[#fdf7ef] border-b border-[#f5ede0] last:border-0 transition-colors">
-            ${r}
-        </button>
-    `).join('');
+            ${val}
+        </button>`;
+    }).join('');
 }
 
 function selectReadingFromStock(reading) {
