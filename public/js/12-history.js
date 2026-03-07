@@ -451,6 +451,10 @@ function showSavedNameDetail(index) {
     const surRead = readingParts[0] || '';
     const givRead = readingParts[1] || (readingParts.length === 1 ? readingParts[0] : '');
 
+    // 文字数に応じたフォントサイズ調整 (07-build.js と同期)
+    const totalChars = surStr.length + givStr.length;
+    const nameFontClass = totalChars >= 7 ? 'text-xl' : totalChars >= 6 ? 'text-2xl' : 'text-3xl';
+
     // 格データの生成（ラベル・吉凶・画数）
     const renderFortuneRow = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
@@ -473,18 +477,18 @@ function showSavedNameDetail(index) {
                 </div>
                 
                 <div class="modal-body px-1">
-                    <!-- フルネーム枠表示 (ビルド画面スタイル完全踏襲) -->
+                    <!-- フルネーム枠表示 (ビルド画面スタイル完全踏襲 + 折り返し防止) -->
                     <div class="flex justify-center mb-10">
-                        <div class="inline-flex items-center px-10 py-6 bg-[#fdfaf5] border border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden">
-                            <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent opacity-60"></div>
+                        <div class="inline-flex items-center px-10 py-6 bg-[#fdfaf5] border border-[#bca37f] rounded-[2.5rem] shadow-sm relative overflow-hidden flex-nowrap shrink-0">
+                            <div class="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent opacity-60 pointer-events-none"></div>
                             
-                            <div class="flex flex-col items-center mr-8">
+                            <div class="flex flex-col items-center mr-8 shrink-0">
                                 <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${surRead}</p>
-                                <p class="text-3xl font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
+                                <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
                             </div>
-                            <div class="flex flex-col items-center">
+                            <div class="flex flex-col items-center shrink-0">
                                 <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5 font-bold">${givRead}</p>
-                                <p class="text-3xl font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
+                                <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
                             </div>
                         </div>
                     </div>
@@ -513,22 +517,24 @@ function showSavedNameDetail(index) {
                     </div>
                     ` : ''}
 
-                    <!-- 姓名判断エリア -->
+                    <!-- 姓名判断エリア (タイトル中央・リンク右下) -->
                     <div class="mb-8">
                         <div onclick="showFortuneDetailFromSaved(${index})" 
                              class="group block p-5 bg-white rounded-[2.5rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer relative overflow-hidden">
-                            <div class="flex justify-between items-center mb-4 border-b border-[#eee5d8] pb-2">
+                            <div class="text-center mb-4 border-b border-[#eee5d8] pb-2">
                                 <label class="text-[11px] font-black text-[#a6967a] tracking-widest">姓名判断 鑑定書</label>
-                                <span class="text-[10px] font-black text-[#bca37f] flex items-center group-hover:translate-x-1 transition-transform">
-                                    鑑定結果をくわしく見る ＞
-                                </span>
                             </div>
-                            <div class="px-5">
+                            <div class="px-5 mb-4">
                                 ${renderFortuneRow('天格', f?.ten)}
                                 ${renderFortuneRow('人格', f?.jin)}
                                 ${renderFortuneRow('地格', f?.chi)}
                                 ${renderFortuneRow('外格', f?.gai)}
                                 ${renderFortuneRow('総格', f?.so)}
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] font-black text-[#bca37f] flex items-center justify-end group-hover:translate-x-1 transition-transform">
+                                    鑑定結果をくわしく見る ＞
+                                </span>
                             </div>
                         </div>
                     </div>
