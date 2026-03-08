@@ -16,8 +16,12 @@ const AdMobConfig = {
 
 const PremiumManager = {
     KEY: 'meimay_premium',
+    TOKEN_KEY: 'meimay_app_account_token',
+    _remotePremium: null,
+    _remoteStatus: null,
+    _userDocUnsub: null,
 
-    isPremium: function () {
+    getLocalPremiumState: function () {
         try {
             const data = localStorage.getItem(this.KEY);
             if (!data) return false;
@@ -26,6 +30,32 @@ const PremiumManager = {
         } catch (e) {
             return false;
         }
+    },
+
+    getAppAccountToken: function () {
+        try {
+            let token = localStorage.getItem(this.TOKEN_KEY);
+            if (token) return token;
+
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                token = window.crypto.randomUUID();
+            } else {
+                token = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
+            localStorage.setItem(this.TOKEN_KEY, token);
+            return token;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    isPremium: function () {
+        return this._remotePremium === true || this.getLocalPremiumState();
     },
 
     activate: function () {
@@ -49,6 +79,50 @@ const PremiumManager = {
         } else {
             this.activate();
         }
+    },
+
+    bindToUserDoc: async function (user) {
+        if (!user || typeof firebaseDb === 'undefined' || !firebaseDb) return;
+
+        const token = this.getAppAccountToken();
+        if (!token) return;
+
+        const platform = getPlatform();
+        const docRef = firebaseDb.collection('users').doc(user.uid);
+
+        try {
+            await docRef.set({
+                appAccountToken: token,
+                premiumPlatform: platform,
+                appStoreBundleId: 'com.impelf.meimay',
+                premiumLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (e) {
+            console.warn('PREMIUM: Failed to link appAccountToken', e);
+        }
+
+        if (this._userDocUnsub) {
+            this._userDocUnsub();
+            this._userDocUnsub = null;
+        }
+
+        this._userDocUnsub = docRef.onSnapshot((doc) => {
+            const data = doc.exists ? (doc.data() || {}) : {};
+            this._remotePremium = data.isPremium === true;
+            this._remoteStatus = typeof data.subscriptionStatus === 'string'
+                ? data.subscriptionStatus
+                : null;
+
+            if (this.isPremium()) {
+                hideAdBanner();
+            } else {
+                showAdBanner();
+            }
+            updatePremiumUI();
+        }, (error) => {
+            console.warn('PREMIUM: Failed to subscribe user doc', error);
+        });
     }
 };
 

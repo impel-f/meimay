@@ -71,6 +71,9 @@ if (firebaseAuth) {
         MeimayAuth.currentUser = user;
         if (user) {
             console.log(`FIREBASE: Anonymous user ready (${user.uid})`);
+            if (window.PremiumManager && typeof window.PremiumManager.bindToUserDoc === 'function') {
+                await window.PremiumManager.bindToUserDoc(user);
+            }
             // 保存済みルームがあれば再接続
             await MeimayPairing.resumeRoom();
         } else {
