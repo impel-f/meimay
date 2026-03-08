@@ -3143,6 +3143,317 @@ window.isNicknameKanjiQueueActive = isNicknameKanjiQueueActive;
 window.aiReorderCandidates = aiReorderCandidates;
 window.learnSoundPreference = learnSoundPreference;
 
+function pickReadingDisplayCandidates(allCandidates, limit) {
+    const selected = [];
+    const usedBySlot = [];
+
+    function canUse(candidate, requireFreshAllSlots) {
+        return candidate.combination.every((piece, slotIndex) => {
+            const kanji = piece && piece['漢字'];
+            if (!kanji) return false;
+            if (!usedBySlot[slotIndex]) usedBySlot[slotIndex] = new Set();
+            return !requireFreshAllSlots || !usedBySlot[slotIndex].has(kanji);
+        });
+    }
+
+    function markUsed(candidate) {
+        candidate.combination.forEach((piece, slotIndex) => {
+            const kanji = piece && piece['漢字'];
+            if (!kanji) return;
+            if (!usedBySlot[slotIndex]) usedBySlot[slotIndex] = new Set();
+            usedBySlot[slotIndex].add(kanji);
+        });
+    }
+
+    const strictPass = allCandidates.filter(candidate => canUse(candidate, true));
+    strictPass.forEach((candidate) => {
+        if (selected.length >= limit) return;
+        selected.push(candidate);
+        markUsed(candidate);
+    });
+
+    if (selected.length < limit) {
+        allCandidates.forEach((candidate) => {
+            if (selected.length >= limit) return;
+            const exists = selected.some(item => item.givenName === candidate.givenName);
+            if (exists) return;
+            selected.push(candidate);
+        });
+    }
+
+    return selected.slice(0, limit);
+}
+
+function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
+    if (!Array.isArray(path) || path.length === 0) return [];
+
+    const groups = path.map((segment) => {
+        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 10, targetGender);
+        const pool = rawGroup
+            .slice(0, 8)
+            .map((item, index) => ({
+                ...item,
+                _poolOrder: index,
+                _displayNoise: Math.random() * 36
+            }))
+            .sort((a, b) => {
+                const aScore = (a._recommendationScore || 0) - (a._poolOrder * 18) + a._displayNoise;
+                const bScore = (b._recommendationScore || 0) - (b._poolOrder * 18) + b._displayNoise;
+                return bScore - aScore;
+            });
+        return pool;
+    });
+
+    if (groups.some(group => !group || group.length === 0)) return [];
+
+    const allResults = [];
+    const seenNames = new Set();
+    const maxResults = Math.max(limit * 18, 32);
+
+    function build(index, pieces, score, usedKanji) {
+        if (allResults.length >= maxResults) return;
+
+        if (index >= groups.length) {
+            const givenName = pieces.map(piece => piece['漢字']).join('');
+            if (!givenName || seenNames.has(givenName)) return;
+            seenNames.add(givenName);
+            allResults.push({
+                givenName,
+                score: score + Math.random() * 24,
+                combination: pieces.map(piece => ({ ...piece }))
+            });
+            return;
+        }
+
+        groups[index].forEach((piece) => {
+            const kanji = piece['漢字'];
+            if (!kanji || usedKanji.has(kanji) || allResults.length >= maxResults) return;
+
+            const nextUsed = new Set(usedKanji);
+            nextUsed.add(kanji);
+
+            const pieceScore =
+                (piece._recommendationScore || 0) -
+                ((piece._readingMatchTier || 1) - 1) * 40 -
+                ((piece._poolOrder || 0) * 14);
+
+            build(index + 1, [...pieces, piece], score + pieceScore, nextUsed);
+        });
+    }
+
+    build(0, [], 0, new Set());
+
+    const sorted = allResults
+        .sort((a, b) => b.score - a.score)
+        .map(result => ({
+            ...result,
+            fullName: surnameStr ? `${surnameStr} ${result.givenName}` : result.givenName
+        }));
+
+    return pickReadingDisplayCandidates(sorted, limit);
+}
+
+function saveReadingCandidateToStock(option, candidate) {
+    const sessionReading = readingCombinationModalState.item.reading;
+    const sessionSegments = Array.isArray(option.path) ? [...option.path] : [];
+
+    addReadingToStock(
+        sessionReading,
+        readingCombinationModalState.item.baseNickname || '',
+        readingCombinationModalState.item.tags || [],
+        {
+            segments: sessionSegments,
+            isSuper: false,
+            gender: readingCombinationModalState.item.gender || gender || 'neutral'
+        }
+    );
+
+    candidate.combination.forEach((piece, slotIndex) => {
+        const existing = liked.find(item =>
+            item['漢字'] === piece['漢字'] &&
+            item.slot === slotIndex &&
+            item.sessionReading === sessionReading
+        );
+
+        if (existing) return;
+
+        liked.push({
+            ...piece,
+            slot: slotIndex,
+            sessionReading,
+            sessionSegments,
+            isSuper: false
+        });
+    });
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+}
+
+function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
+    if (!readingCombinationModalState) return;
+    const option = readingCombinationModalState.options[optionIndex];
+    const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
+    if (!option || !candidate) return;
+
+    saveReadingCandidateToStock(option, candidate);
+
+    const reading = readingCombinationModalState.item.reading;
+    const surnameRuby = typeof surnameReading !== 'undefined' ? surnameReading : '';
+    const combination = candidate.combination.map((piece, slotIndex) => ({
+        ...piece,
+        slot: slotIndex,
+        sessionReading: reading,
+        sessionSegments: [...option.path],
+        isSuper: false
+    }));
+
+    persistGeneratedSavedName({
+        fullName: surnameStr ? `${surnameStr} ${candidate.givenName}` : candidate.givenName,
+        reading: surnameRuby ? `${surnameRuby} ${reading}` : reading,
+        givenName: candidate.givenName,
+        combination,
+        fortune: null,
+        source: 'reading-combination',
+        splitLabel: option.label,
+        tags: readingCombinationModalState.item.tags || [],
+        savedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+    });
+
+    closeReadingCombinationModal();
+
+    if (typeof showToast === 'function') {
+        showToast(`${candidate.givenName}を保存しました`, '💾');
+    }
+
+    if (typeof openSavedNames === 'function') {
+        openSavedNames();
+    }
+}
+
+function renderReadingSwipeCard(item) {
+    const preview = getReadingFullNamePreview(item.reading);
+    const topLine = preview.ruby && preview.ruby !== item.reading
+        ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide">${preview.ruby}</div>`
+        : '';
+
+    return `
+        ${topLine}
+        ${renderReadingTagBadges(item.tags)}
+        <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+        <div class="w-full px-4 mt-2">
+            <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[280px] mx-auto shadow-sm">
+                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">上位の漢字候補</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold text-sm">
+                    ${getSampleKanjiHtml(item)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function openReadingCombinationModal(item, baseNickname = '') {
+    closeReadingCombinationModal();
+
+    const options = getReadingSegmentOptions(item.reading, 4);
+    const preview = getReadingFullNamePreview(item.reading);
+    readingCombinationModalState = {
+        item: { ...item, baseNickname },
+        options
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'reading-combination-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeReadingCombinationModal();
+    };
+
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
+            <div class="text-center mb-5">
+                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
+                <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
+            </div>
+            ${renderReadingTagBadges(item.tags || [])}
+            <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
+                ${options.length === 0 ? `
+                    <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
+                        この読みでは候補がまだ見つかりませんでした。
+                    </div>
+                ` : options.map((option, index) => {
+                    const candidateHtml = option.candidates.length > 0
+                        ? option.candidates.map((candidate, candidateIndex) => `
+                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="min-w-0">
+                                        <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
+                                        <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">候補</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
+                    return `
+                        <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
+                            <div class="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
+                                    <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                            </div>
+                            <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function saveReadingCombinationFromModal(index) {
+    if (!readingCombinationModalState) return;
+    const option = readingCombinationModalState.options[index];
+    if (!option || !option.candidates || option.candidates.length === 0) return;
+    saveReadingCandidateFromModal(index, 0);
+}
+
+function getSampleKanjiHtml(item) {
+    const options = getReadingSegmentOptions(item.reading, 2);
+    const examples = [];
+
+    options.forEach((option) => {
+        option.candidates.slice(0, 2).forEach((candidate) => {
+            const label = candidate.fullName || candidate.givenName;
+            if (!examples.includes(label)) {
+                examples.push(label);
+            }
+        });
+    });
+
+    if (examples.length === 0) {
+        return '<span class="text-xs text-[#d4c5af]">候補なし</span>';
+    }
+
+    return examples.slice(0, 4).map((example) =>
+        `<span class="text-sm font-bold mx-1">${example}</span>`
+    ).join('');
+}
+
+window.closeReadingCombinationModal = closeReadingCombinationModal;
+window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
+window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
 /**
  * ============================================================
  * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
