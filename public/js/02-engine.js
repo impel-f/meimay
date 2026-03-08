@@ -360,10 +360,11 @@ function loadStack() {
         const readings = [...majorReadings, ...minorReadings];
 
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+        const allowVoicedFallback = currentPos > 0;
         const isExact = majorReadings.includes(target) || minorReadings.includes(target) ||
             (targetSokuon !== target && (majorReadings.includes(targetSokuon) || minorReadings.includes(targetSokuon)));
-        const isSeionMatch = target !== targetSeion && readings.includes(targetSeion);
-        const isPartial = readings.some(r => r.startsWith(target)) || readings.some(r => r.startsWith(targetSeion)) ||
+        const isSeionMatch = allowVoicedFallback && target !== targetSeion && readings.includes(targetSeion);
+        const isPartial = readings.some(r => r.startsWith(target)) || (allowVoicedFallback && readings.some(r => r.startsWith(targetSeion))) ||
             (targetSokuon !== target && readings.some(r => r.startsWith(targetSokuon)));
 
         let match = false;
@@ -470,6 +471,7 @@ function loadStack() {
         // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
         // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+        const allowVoicedFallback = currentPos > 0;
 
         // 促音一致: きっ→きつ、てっ→てつ 等（targetSokuon は loadStack 冒頭で定義済み）
         const isMajorExact = majorReadings.includes(target) ||
@@ -478,9 +480,9 @@ function loadStack() {
             (targetSokuon !== target && minorReadings.includes(targetSokuon));
         const isExact = isMajorExact || isMinorExact;
         // 清音化一致：メジャー読みのみを対象（名乗りは除外）
-        const isSeionMatch = target !== targetSeion && majorReadings.includes(targetSeion);
+        const isSeionMatch = allowVoicedFallback && target !== targetSeion && majorReadings.includes(targetSeion);
         // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
-        const isPartial = majorReadings.some(r => r.startsWith(target)) || majorReadings.some(r => r.startsWith(targetSeion)) ||
+        const isPartial = majorReadings.some(r => r.startsWith(target)) || (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion))) ||
             (targetSokuon !== target && majorReadings.some(r => r.startsWith(targetSokuon)));
 
         if (isMajorExact) {

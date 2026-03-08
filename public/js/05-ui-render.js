@@ -1840,6 +1840,398 @@ window.updateSwipeMainState = updateSwipeMainState;
 window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
 
+function renderHomeProfile() {
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8;
+        }
+    } catch (e) { }
+
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount;
+
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount;
+
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = timeline.stageTitle;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) {
+        nextStepDetailEl.innerText = '';
+        nextStepDetailEl.classList.add('hidden');
+    }
+
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
+
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
+
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const pairCodeRow = document.getElementById('home-pair-code-row');
+    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
+
+    const pairCodeEl = document.getElementById('home-pair-room-code');
+    if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
+
+    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
+    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!pairing.inRoom);
+
+    const pairJoinRole = document.getElementById('home-pair-quick-role');
+    if (pairJoinRole) {
+        pairJoinRole.classList.toggle('hidden', !!pairing.inRoom);
+        pairJoinRole.innerText = getHomePairJoinRoleText();
+    }
+
+    const pairJoinRow = document.getElementById('home-pair-join-row');
+    if (pairJoinRow && pairing.inRoom) {
+        pairJoinRow.classList.add('hidden');
+    }
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+}
+
+window.renderHomeProfile = renderHomeProfile;
+function renderHomeProfile() {
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8;
+        }
+    } catch (e) { }
+
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount;
+
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount;
+
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = timeline.stageTitle;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) {
+        nextStepDetailEl.innerText = '';
+        nextStepDetailEl.classList.add('hidden');
+    }
+
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
+
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
+
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const pairCodeRow = document.getElementById('home-pair-code-row');
+    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
+
+    const pairCodeEl = document.getElementById('home-pair-room-code');
+    if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
+
+    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
+    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!pairing.inRoom);
+
+    const pairJoinRole = document.getElementById('home-pair-quick-role');
+    if (pairJoinRole) {
+        pairJoinRole.classList.toggle('hidden', !!pairing.inRoom);
+        pairJoinRole.innerText = getHomePairJoinRoleText();
+    }
+
+    const pairJoinRow = document.getElementById('home-pair-join-row');
+    if (pairJoinRow && pairing.inRoom) {
+        pairJoinRow.classList.add('hidden');
+    }
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+}
+
+window.renderHomeProfile = renderHomeProfile;
+function getDefaultHomePairJoinRole() {
+    if (typeof MeimayPairing !== 'undefined' && (MeimayPairing.myRole === 'mama' || MeimayPairing.myRole === 'papa')) {
+        return MeimayPairing.myRole;
+    }
+
+    try {
+        if (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function') {
+            const wizard = WizardData.get();
+            if (wizard?.role === 'mama' || wizard?.role === 'papa') {
+                return wizard.role;
+            }
+        }
+    } catch (e) { }
+
+    return null;
+}
+
+function getHomePairJoinRoleText() {
+    const role = getDefaultHomePairJoinRole();
+    if (role === 'mama') return 'ママとして参加';
+    if (role === 'papa') return 'パパとして参加';
+    return '役割を選んで参加';
+}
+
+function toggleHomePairJoinRow(event, forceOpen = null) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const row = document.getElementById('home-pair-join-row');
+    const input = document.getElementById('home-pair-quick-input');
+    if (!row) return;
+
+    const willOpen = typeof forceOpen === 'boolean' ? forceOpen : row.classList.contains('hidden');
+    row.classList.toggle('hidden', !willOpen);
+
+    if (willOpen && input) {
+        setTimeout(() => input.focus(), 0);
+    }
+}
+
+async function handleHomePairQuickJoin(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const input = document.getElementById('home-pair-quick-input');
+    const code = input?.value?.trim();
+    if (!code) {
+        if (typeof showToast === 'function') showToast('コードを入力してください', '⚠️');
+        return;
+    }
+
+    const role = getDefaultHomePairJoinRole();
+    if (!role) {
+        if (typeof showToast === 'function') showToast('参加前にママ / パパを選んでください', '⚠️');
+        if (typeof changeScreen === 'function') changeScreen('scr-login');
+        return;
+    }
+
+    try {
+        if (typeof MeimayPairing !== 'undefined' && typeof MeimayPairing.selectJoinRole === 'function') {
+            MeimayPairing.selectJoinRole(role);
+        } else if (typeof MeimayPairing !== 'undefined') {
+            MeimayPairing._selectedJoinRole = role;
+        }
+
+        const result = typeof MeimayPairing !== 'undefined' && typeof MeimayPairing.joinRoom === 'function'
+            ? await MeimayPairing.joinRoom(code)
+            : { success: false, error: '連携機能を読み込めませんでした' };
+
+        if (result.success) {
+            if (input) input.value = '';
+            toggleHomePairJoinRow(null, false);
+            if (typeof renderHomeProfile === 'function') renderHomeProfile();
+            if (typeof showToast === 'function') showToast('パートナーと連携しました', '💞');
+        } else if (result.error && typeof showToast === 'function') {
+            showToast(result.error, '⚠️');
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('コード入力に失敗しました', '⚠️');
+    }
+}
+
+function renderHomeProfile() {
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8;
+        }
+    } catch (e) { }
+
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount;
+
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount;
+
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = timeline.stageTitle;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) {
+        nextStepDetailEl.innerText = '';
+        nextStepDetailEl.classList.add('hidden');
+    }
+
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
+
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
+
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const pairCodeRow = document.getElementById('home-pair-code-row');
+    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
+
+    const pairCodeEl = document.getElementById('home-pair-room-code');
+    if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
+
+    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
+    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!pairing.inRoom);
+
+    const pairJoinRole = document.getElementById('home-pair-quick-role');
+    if (pairJoinRole) {
+        pairJoinRole.classList.toggle('hidden', !!pairing.inRoom);
+        pairJoinRole.innerText = getHomePairJoinRoleText();
+    }
+
+    const pairJoinRow = document.getElementById('home-pair-join-row');
+    if (pairJoinRow && pairing.inRoom) {
+        pairJoinRow.classList.add('hidden');
+    }
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+}
+
+window.toggleHomePairJoinRow = toggleHomePairJoinRow;
+window.handleHomePairQuickJoin = handleHomePairQuickJoin;
+window.renderHomeProfile = renderHomeProfile;
+window.openHomeInsightsModal = openHomeInsightsModal;
 function canDismissHomePairCard(pairing) {
     const totalMatches = (pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0);
     return !pairing?.hasPartner && totalMatches === 0;

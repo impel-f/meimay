@@ -310,6 +310,20 @@
                             </div>
                             <button onclick="copyHomePairCode(event)" class="shrink-0 px-3 py-1.5 rounded-full border border-[#eadfce] bg-white text-[10px] font-bold text-[#8b7e66] shadow-sm">コピー</button>
                         </div>
+                        <div class="mt-3 flex items-center gap-2">
+                            <button id="home-pair-join-toggle" onclick="toggleHomePairJoinRow(event)" class="hidden px-3 py-1.5 rounded-full border border-[#eadfce] bg-white text-[10px] font-bold text-[#8b7e66] shadow-sm">コード入力</button>
+                            <div id="home-pair-quick-role" class="hidden text-[10px] font-bold text-[#8b7e66]">ママとして参加</div>
+                        </div>
+                        <div id="home-pair-join-row" class="hidden mt-2">
+                            <div class="flex gap-2">
+                                <input type="text" id="home-pair-quick-input" placeholder="コードを入力"
+                                    class="flex-1 px-3 py-2.5 bg-white rounded-2xl text-[12px] border border-[#eadfce] uppercase font-black text-[#5d5444] tracking-[0.22em] focus:outline-none focus:border-[#b9965b]">
+                                <button onclick="handleHomePairQuickJoin(event)"
+                                    class="shrink-0 px-4 py-2.5 bg-[#8b7e66] text-white rounded-2xl text-[11px] font-bold shadow-sm active:scale-95 transition-transform">
+                                    参加
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="mt-3 flex items-center gap-2">
