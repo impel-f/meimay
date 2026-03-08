@@ -714,10 +714,10 @@ function getPairingHomeSummary() {
     if (!summary.inRoom) {
         return {
             ...summary,
-            shortText: 'まだ未連携',
-            title: 'まずはパートナーと連携しよう',
-            subtitle: '同じ漢字や同じ名前候補が見つかると、ここにまとめて表示されます。',
-            footnote: '連携すると、お互いの好みの重なりがすぐわかります。',
+            shortText: 'ソロでも使える',
+            title: '必要になったら、あとで連携できます',
+            subtitle: '今はひとりで候補を集めて、ペアで使いたくなった時だけ連携すれば大丈夫です。',
+            footnote: '連携は後からでも OK。必要な時だけ使えます。',
             actionLabel: '連携する'
         };
     }
@@ -758,6 +758,74 @@ function getPairingHomeSummary() {
     };
 }
 
+const HOME_PAIR_CARD_DISMISSED_KEY = 'meimay_home_pair_card_dismissed_v1';
+
+function canDismissHomePairCard(pairing) {
+    const totalMatches = (pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0);
+    return !pairing?.inRoom && !pairing?.hasPartner && totalMatches === 0;
+}
+
+function isHomePairCardDismissed() {
+    try {
+        return localStorage.getItem(HOME_PAIR_CARD_DISMISSED_KEY) === 'true';
+    } catch (e) {
+        return false;
+    }
+}
+
+function dismissHomePairCard(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    try {
+        localStorage.setItem(HOME_PAIR_CARD_DISMISSED_KEY, 'true');
+    } catch (e) { }
+    renderHomeProfile();
+}
+
+function restoreHomePairCard() {
+    try {
+        localStorage.removeItem(HOME_PAIR_CARD_DISMISSED_KEY);
+    } catch (e) { }
+    renderHomeProfile();
+}
+
+function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
+    if ((pairing?.matchedNameCount || 0) > 0) {
+        return {
+            title: '一致した保存名を見直す',
+            detail: 'おふたりで同じ候補を保存しています。保存済みから第一候補を絞る段階です。'
+        };
+    }
+
+    if ((pairing?.matchedKanjiCount || 0) > 0) {
+        return {
+            title: '一致した漢字から組み立てる',
+            detail: '同じ漢字に反応しているので、ストックから組み合わせると決まりやすくなります。'
+        };
+    }
+
+    if (savedCount > 0) {
+        return {
+            title: '保存済みの候補を見直す',
+            detail: '候補があるので、保存済みから比較して第一候補を絞る段階です。'
+        };
+    }
+
+    if (likedCount > 0 || readingStockCount > 0) {
+        return {
+            title: '集めた候補を名前に組み立てる',
+            detail: '候補が集まり始めています。次はビルドで実際の名前にしてみるのがおすすめです。'
+        };
+    }
+
+    return {
+        title: '入口から候補を集め始める',
+        detail: '最初は「響き・読みを探す」か「読みから漢字を探す」から始めるのが自然です。'
+    };
+}
+
 function renderHomeProfile() {
     let swipedCount = 0;
     try {
@@ -775,6 +843,8 @@ function renderHomeProfile() {
     const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
 
     const elSwiped = document.getElementById('home-swiped-count');
     if (elSwiped) elSwiped.innerText = swipedCount + '個';
@@ -818,14 +888,32 @@ function renderHomeProfile() {
 
     const pairActionBtn = document.getElementById('home-pair-action');
     if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = nextStep.title;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) nextStepDetailEl.innerText = nextStep.detail;
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
 }
 
 function openHomeInsightsModal() {
     closeHomeInsightsModal();
 
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
     const dailyText = document.getElementById('home-daily-remaining')?.innerText || '今日のカード 残り -';
     const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
         ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
@@ -838,41 +926,47 @@ function openHomeInsightsModal() {
         <div class="detail-sheet max-w-md max-h-[82vh] overflow-y-auto" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closeHomeInsightsModal()">✕</button>
             <div class="pt-4 pb-2">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Dashboard</div>
-                <h3 class="text-xl font-black text-[#5d5444] mb-2">いまの命名ダッシュボード</h3>
-                <p class="text-sm text-[#8b7e66] leading-relaxed">今日の進み具合と、おふたりの重なりをひと目で確認できます。</p>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Overview</div>
+                <h3 class="text-xl font-black text-[#4f4639] mb-2">いまの状況</h3>
+                <p class="text-sm text-[#8b7e66] leading-relaxed">この画面では、分析より先に「次に何をすると進むか」が分かるようにしています。</p>
             </div>
-            <div class="grid grid-cols-3 gap-2 mt-4">
+            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Next Step</div>
+                <div class="text-sm font-bold text-[#5d5444]">${nextStep.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-3">
                 <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
-                    <div class="text-xl font-black text-[#5d5444]">${liked.length}</div>
+                    <div class="text-xl font-black text-[#5d5444]">${likedCount}</div>
                     <div class="text-[10px] text-[#a6967a] mt-1">漢字ストック</div>
+                </div>
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${readingStockCount}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">読みストック</div>
                 </div>
                 <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
                     <div class="text-xl font-black text-[#5d5444]">${savedList.length}</div>
                     <div class="text-[10px] text-[#a6967a] mt-1">保存名</div>
                 </div>
-                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
-                    <div class="text-xl font-black text-[#5d5444]">${pairing.matchedKanjiCount + pairing.matchedNameCount}</div>
-                    <div class="text-[10px] text-[#a6967a] mt-1">ペア一致</div>
-                </div>
             </div>
-            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Today</div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Today</div>
                 <div class="text-sm font-bold text-[#5d5444]">${dailyText}</div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Taste</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">Taste</div>
                 <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Partner</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">Pair</div>
                 <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
                 <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
             </div>
         </div>
     `;
+    modal.addEventListener('click', closeHomeInsightsModal);
     document.body.appendChild(modal);
 }
 
@@ -919,6 +1013,8 @@ window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.closeHomeInsightsModal = closeHomeInsightsModal;
 window.handleHomePairAction = handleHomePairAction;
+window.dismissHomePairCard = dismissHomePairCard;
+window.restoreHomePairCard = restoreHomePairCard;
 
 // 初期化時にも呼ばれるようにする
 setTimeout(() => {
