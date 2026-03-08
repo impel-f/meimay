@@ -2233,8 +2233,7 @@ window.handleHomePairQuickJoin = handleHomePairQuickJoin;
 window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
 function canDismissHomePairCard(pairing) {
-    const totalMatches = (pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0);
-    return !pairing?.hasPartner && totalMatches === 0;
+    return true;
 }
 
 function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
@@ -2368,13 +2367,13 @@ function renderHomeProfile() {
     if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
 
     const collectionSummaryEl = document.getElementById('home-collection-summary');
-    if (collectionSummaryEl) collectionSummaryEl.innerText = `${timeline.steps[0].label} ${timeline.steps[0].short}`;
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
 
     const elPrefSummary = document.getElementById('home-preference-summary');
-    if (elPrefSummary) elPrefSummary.innerText = `${timeline.steps[1].label} ${timeline.steps[1].short}`;
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
 
     const elPartnerSummary = document.getElementById('home-partner-summary');
-    if (elPartnerSummary) elPartnerSummary.innerText = `${timeline.steps[2].label} ${timeline.steps[2].short}`;
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
 
     const elPartnerTitle = document.getElementById('home-partner-match-title');
     if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
@@ -2383,10 +2382,7 @@ function renderHomeProfile() {
     if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
 
     const elPartnerFootnote = document.getElementById('home-match-footnote');
-    if (elPartnerFootnote) {
-        const codeText = pairing.roomCode && !pairing.hasPartner ? `ルームコード ${pairing.roomCode}` : pairing.footnote;
-        elPartnerFootnote.innerText = codeText;
-    }
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
 
     const elMatchedKanji = document.getElementById('home-match-kanji-count');
     if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
@@ -2395,13 +2391,30 @@ function renderHomeProfile() {
     if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
 
     const pairActionBtn = document.getElementById('home-pair-action');
-    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+    if (pairActionBtn) {
+        pairActionBtn.innerText = pairing.actionLabel;
+        pairActionBtn.classList.toggle('hidden', !!pairing.hasPartner);
+    }
 
     const pairCodeRow = document.getElementById('home-pair-code-row');
     if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
 
     const pairCodeEl = document.getElementById('home-pair-room-code');
     if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
+
+    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
+    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!pairing.inRoom);
+
+    const pairJoinRole = document.getElementById('home-pair-quick-role');
+    if (pairJoinRole) {
+        pairJoinRole.classList.toggle('hidden', !!pairing.inRoom);
+        pairJoinRole.innerText = getHomePairJoinRoleText();
+    }
+
+    const pairJoinRow = document.getElementById('home-pair-join-row');
+    if (pairJoinRow && pairing.inRoom) {
+        pairJoinRow.classList.add('hidden');
+    }
 
     const pairCard = document.getElementById('home-pair-card');
     if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
