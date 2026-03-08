@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MODULE 04: UI FLOW (V14.3)
    ウィザード進行・モード管理
    ============================================================ */
@@ -35,6 +35,7 @@ const VIBES = [
 function startMode(mode) {
     console.log(`UI_FLOW: Start mode ${mode}`);
     appMode = mode;
+    window._addMoreFromBuild = false;
 
     // 診断モードの場合はイメージ等は不要
     if (mode === 'diagnosis') {
@@ -3441,3 +3442,4 @@ window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
+
