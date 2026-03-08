@@ -928,3 +928,166 @@ const MeimayStats = {
 window.MeimayStats = MeimayStats;
 
 console.log("FIREBASE: Module loaded (v22.0 - anonymous + room pairing)");
+
+function getPartnerRoleLabel(role) {
+    if (role === 'mama') return 'ママ';
+    if (role === 'papa') return 'パパ';
+    return 'パートナー';
+}
+
+function cleanupLegacyPartnerLocalData() {
+    try {
+        if (typeof liked !== 'undefined' && Array.isArray(liked)) {
+            const ownLiked = liked.filter(item => !item?.fromPartner);
+            if (ownLiked.length !== liked.length) {
+                liked.splice(0, liked.length, ...ownLiked);
+                if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
+            }
+        }
+    } catch (e) {
+        console.warn('PAIRING: Failed to cleanup legacy liked items', e);
+    }
+
+    try {
+        const savedRaw = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+        const ownSaved = Array.isArray(savedRaw) ? savedRaw.filter(item => !item?.fromPartner) : [];
+        if (ownSaved.length !== savedRaw.length) {
+            localStorage.setItem('meimay_saved', JSON.stringify(ownSaved));
+            if (typeof savedNames !== 'undefined') savedNames = ownSaved;
+        }
+    } catch (e) {
+        console.warn('PAIRING: Failed to cleanup legacy saved items', e);
+    }
+}
+
+MeimayPairing.syncMyData = async function () {
+    const user = MeimayAuth.getCurrentUser();
+    if (!user || !this.roomCode) return;
+
+    try {
+        const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+        const minifiedLiked = ownLiked.map(l => ({
+            '漢字': l['漢字'],
+            slot: l.slot,
+            sessionReading: l.sessionReading,
+            sessionSegments: l.sessionSegments || null,
+            isSuper: l.isSuper || false
+        }));
+
+        const savedData = JSON.parse(localStorage.getItem('meimay_saved') || '[]')
+            .filter(item => !item?.fromPartner);
+        const minifiedSaved = savedData.map(s => ({
+            fullName: s.fullName,
+            reading: s.reading || '',
+            givenName: s.givenName || '',
+            combinationKeys: s.combination ? s.combination.map(k => k['漢字'] || k.kanji || '') : [],
+            message: s.message || '',
+            savedAt: s.savedAt || s.timestamp
+        }));
+
+        const minifiedReadingStock = (typeof getReadingStock === 'function' ? getReadingStock() : []).map(item => ({
+            id: item.id,
+            reading: item.reading,
+            segments: Array.isArray(item.segments) ? item.segments : [],
+            baseNickname: item.baseNickname || '',
+            tags: Array.isArray(item.tags) ? item.tags : [],
+            gender: item.gender || 'neutral',
+            addedAt: item.addedAt || null
+        }));
+
+        await firebaseDb.collection('rooms').doc(this.roomCode)
+            .collection('data').doc(user.uid).set({
+                role: this.myRole,
+                liked: minifiedLiked,
+                savedNames: minifiedSaved,
+                readingStock: minifiedReadingStock,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        console.log('PAIRING: Synced my data to room');
+    } catch (e) {
+        console.error('PAIRING: Sync data failed', e);
+    }
+};
+
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null };
+
+MeimayShare.listenPartnerData = function (partnerUid) {
+    if (!partnerUid || !MeimayPairing.roomCode) return;
+    this.stopListening();
+
+    this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
+        .collection('data').doc(partnerUid)
+        .onSnapshot((doc) => {
+            if (!doc.exists) return;
+            const data = doc.data() || {};
+            cleanupLegacyPartnerLocalData();
+
+            this.partnerSnapshot = {
+                liked: Array.isArray(data.liked) ? data.liked : [],
+                savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
+                readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
+                role: data.role || null
+            };
+
+            if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+        }, (e) => {
+            console.warn('SHARE: Listen partner data error', e);
+        });
+
+    console.log('SHARE: Listening for partner data');
+};
+
+MeimayShare.stopListening = function () {
+    if (this._partnerUnsub) {
+        this._partnerUnsub();
+        this._partnerUnsub = null;
+    }
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null };
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+};
+
+MeimayPartnerInsights.getPartnerReadingStock = function () {
+    return Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
+};
+
+MeimayPartnerInsights.buildReadingStockKey = function (item) {
+    const reading = item?.reading || '';
+    const segments = Array.isArray(item?.segments) ? item.segments : [];
+    if (typeof getReadingStockKey === 'function') return getReadingStockKey(reading, segments);
+    return `${reading}::${segments.join('/')}`;
+};
+
+MeimayPartnerInsights.isPartnerSavedApproved = function (item) {
+    const key = this.buildSavedMatchKey(item);
+    if (!key) return false;
+    const ownKeys = new Set(this.getOwnSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean));
+    return ownKeys.has(key);
+};
+
+MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
+    const key = this.buildReadingStockKey(item);
+    if (!key) return false;
+    const ownKeys = new Set((typeof getReadingStock === 'function' ? getReadingStock() : []).map(entry => this.buildReadingStockKey(entry)));
+    return ownKeys.has(key);
+};
+
+function refreshPartnerAwareUI() {
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        renderHomeProfile();
+    }
+    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
+        renderSavedScreen();
+    }
+    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
+        renderSettingsScreen();
+    }
+    if (document.getElementById('scr-stock')?.classList.contains('active')) {
+        if (typeof renderStock === 'function') renderStock();
+        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+    }
+}
+
+window.refreshPartnerAwareUI = refreshPartnerAwareUI;
+window.getPartnerRoleLabel = getPartnerRoleLabel;
+cleanupLegacyPartnerLocalData();

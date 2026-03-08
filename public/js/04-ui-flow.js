@@ -4490,3 +4490,169 @@ window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
+
+function likePartnerReadingStock(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    if (index < 0 || index >= partnerReadings.length) return;
+
+    const item = partnerReadings[index];
+    if (!item || pairInsights?.isPartnerReadingApproved?.(item)) {
+        if (typeof showToast === 'function') showToast('この読み候補は取り込み済みです', '💛');
+        return;
+    }
+
+    addReadingToStock(item.reading, item.baseNickname || '', Array.isArray(item.tags) ? item.tags : [], {
+        segments: Array.isArray(item.segments) ? item.segments : [],
+        gender: item.gender || gender || 'neutral'
+    });
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderReadingStockSection();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('読み候補をストックに追加しました', '💞');
+}
+
+function renderReadingStockSection() {
+    const pendingStock = getReadingStock();
+    const section = document.getElementById('reading-stock-section');
+    if (!section) return;
+
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => {
+        const historyKey = getReadingStockKey(h.reading, h.segments || []);
+        readingToSegments[historyKey] = h.segments;
+        if (!readingToSegments[h.reading]) readingToSegments[h.reading] = h.segments;
+    });
+
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+
+    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const completedReadings = [...new Set(
+        ownLiked
+            .filter(item =>
+                item.sessionReading &&
+                item.sessionReading !== 'FREE' &&
+                item.sessionReading !== 'SEARCH' &&
+                item.slot >= 0 &&
+                !removedList.includes(item.sessionReading)
+            )
+            .map(item => item.sessionReading)
+    )];
+
+    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
+
+    const hasContent = completedReadings.length > 0 || pendingOnly.length > 0 || pendingPartnerReadings.length > 0;
+    const emptyMsg = document.getElementById('reading-stock-empty');
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent);
+
+    if (!hasContent) {
+        section.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+
+    if (completedReadings.length > 0) {
+        html += `<div class="mb-6">
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字を選んだ読み</div>
+            <div class="space-y-2">`;
+
+        completedReadings.forEach(reading => {
+            const kanjiCount = ownLiked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
+            const segs = readingToSegments[reading];
+            const display = segs ? segs.join('/') : reading;
+            html += `
+                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
+                     onclick="openReadingStockModal('${reading}')">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-lg font-black text-[#5d5444]">${display}</div>
+                        <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
+                        class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
+                        ビルドへ
+                    </button>
+                </div>`;
+        });
+
+        html += `</div></div>`;
+    }
+
+    if (pendingOnly.length > 0) {
+        const groups = {};
+        pendingOnly.forEach(item => {
+            const key = item.baseNickname || '響き・読み';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">自分の読みストック</div>`;
+
+        Object.keys(groups).forEach(groupName => {
+            const items = groups[groupName];
+            html += `<div class="mb-3">
+                <div class="text-[10px] text-[#bca37f] mb-1">${groupName}</div>
+                <div class="grid grid-cols-2 gap-2">
+                    ${items.map(item => {
+                        const display = getReadingDisplayLabel(item);
+                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '漢字を探す';
+                        return `
+                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
+                            <div class="flex items-start justify-between gap-2">
+                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
+                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                                </button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+    }
+
+    if (pendingPartnerReadings.length > 0) {
+        const partnerLabel = typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー';
+
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerLabel}の読み候補</div>
+            <div class="grid grid-cols-2 gap-2">
+                ${pendingPartnerReadings.map((item, index) => {
+                    const display = getReadingDisplayLabel(item);
+                    const sub = item.baseNickname || 'パートナー候補';
+                    return `
+                        <div class="bg-white border border-[#f4d3cf] rounded-xl p-3">
+                            <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2 py-0.5 text-[9px] font-bold text-[#dd7d73]">${partnerLabel}</div>
+                            <div class="mt-2 text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                            <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white text-[11px] font-bold shadow-sm active:scale-95">
+                                いいねして追加
+                            </button>
+                        </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }
+
+    section.innerHTML = html;
+}
+
+window.likePartnerReadingStock = likePartnerReadingStock;
+window.renderReadingStockSection = renderReadingStockSection;

@@ -876,3 +876,185 @@ if (typeof originalStartSwiping === 'function') {
 }
 
 console.log("HISTORY: Module loaded (v2.0)");
+
+function getSavedNames() {
+    try {
+        const data = localStorage.getItem('meimay_saved');
+        const rawList = data ? JSON.parse(data) : [];
+        const list = Array.isArray(rawList) ? rawList.filter(item => !item?.fromPartner) : [];
+        if (list.length !== rawList.length) {
+            localStorage.setItem('meimay_saved', JSON.stringify(list));
+        }
+        if (typeof savedNames !== 'undefined') savedNames = list;
+        return list;
+    } catch (error) {
+        console.error('HISTORY: Failed to load saved names', error);
+        return [];
+    }
+}
+
+function buildApprovedPartnerSavedItem(item, partnerName) {
+    const combination = Array.isArray(item.combination) && item.combination.length > 0
+        ? item.combination
+        : (Array.isArray(item.combinationKeys) && typeof master !== 'undefined'
+            ? item.combinationKeys.map(key => master.find(entry => entry['漢字'] === key) || { '漢字': key, '画数': 1 })
+            : []);
+
+    let fortune = null;
+    try {
+        if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
+            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0
+                ? surnameData
+                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+            const givArr = combination.map(part => ({
+                kanji: part['漢字'] || part.kanji || '',
+                strokes: parseInt(part['画数'] || part.strokes || 0, 10) || 0
+            }));
+            fortune = FortuneLogic.calculate(surArr, givArr);
+        }
+    } catch (e) { }
+
+    return {
+        fullName: item.fullName || '',
+        reading: item.reading || '',
+        givenName: item.givenName || '',
+        combination: combination,
+        fortune: fortune,
+        message: item.message || '',
+        savedAt: new Date().toISOString(),
+        approvedFromPartner: true,
+        partnerName: partnerName || 'パートナー'
+    };
+}
+
+function likePartnerSavedName(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    if (index < 0 || index >= partnerSaved.length) return;
+
+    const source = partnerSaved[index];
+    if (!source) return;
+
+    const saved = getSavedNames();
+    const sourceKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(source) : `${source.fullName}::${source.reading}`;
+    const exists = saved.some(item => {
+        const ownKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(item) : `${item.fullName}::${item.reading}`;
+        return ownKey === sourceKey;
+    });
+
+    if (exists) {
+        if (typeof showToast === 'function') showToast('この候補はすでに保存済みです', '💛');
+        return;
+    }
+
+    const partnerName = typeof getPartnerRoleLabel === 'function'
+        ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+        : 'パートナー';
+    const approved = buildApprovedPartnerSavedItem(source, partnerName);
+    const updated = [approved, ...saved];
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を保存しました`, '💞');
+}
+
+function renderSavedScreen() {
+    const container = document.getElementById('saved-list-content');
+    if (!container) return;
+
+    const saved = getSavedNames();
+    const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined') ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const pendingPartnerSaved = partnerSaved.filter(item => !pairInsights?.isPartnerSavedApproved?.(item));
+
+    const ownDecorated = saved.map((item, index) => ({
+        item,
+        index,
+        isMatched: pairInsights?.isSavedItemMatched ? pairInsights.isSavedItemMatched(item) : false
+    })).sort((a, b) => {
+        if (a.isMatched !== b.isMatched) return a.isMatched ? -1 : 1;
+        const aTime = new Date(a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const renderOwnCard = ({ item, index, isMatched }) => `
+        <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+            <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="flex-1 min-w-0">
+                    <div class="text-xl font-black text-[#5d5444]">${item.fullName || ''}</div>
+                    <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                    ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">メモ ${item.message}</div>` : ''}
+                </div>
+                <div class="shrink-0 text-right">
+                    ${isMatched ? '<div class="inline-flex items-center rounded-full bg-gradient-to-r from-[#f59e0b] to-[#f97316] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">一致</div>' : ''}
+                    ${item.fortune ? `<div class="mt-2 text-sm font-bold text-[#bca37f]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</div>` : ''}
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button onclick="showSavedNameDetail(${index})" class="flex-1 py-2.5 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all active:scale-95">
+                    詳細を見る
+                </button>
+                <button onclick="deleteSavedName(${index})" class="px-4 py-2.5 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all active:scale-95">
+                    削除
+                </button>
+            </div>
+        </div>
+    `;
+
+    const renderPartnerCard = (item, index) => {
+        const partnerName = typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー';
+        const fortuneText = item?.combinationKeys?.length ? `${item.combinationKeys.length}字候補` : '名前候補';
+        return `
+            <div class="bg-white rounded-2xl p-4 border border-[#f4d3cf] shadow-sm">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2.5 py-1 text-[10px] font-bold text-[#dd7d73]">${partnerName}から</div>
+                        <div class="mt-2 text-xl font-black text-[#5d5444]">${item.fullName || item.givenName || ''}</div>
+                        <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                        ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">メモ ${item.message}</div>` : ''}
+                    </div>
+                    <div class="shrink-0 text-sm font-bold text-[#bca37f]">${fortuneText}</div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="likePartnerSavedName(${index})" class="flex-1 py-2.5 bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] rounded-xl text-xs font-bold text-white shadow-sm active:scale-95">
+                        いいねして保存
+                    </button>
+                </div>
+            </div>
+        `;
+    };
+
+    let html = '';
+
+    if (ownDecorated.length > 0) {
+        html += ownDecorated.map(renderOwnCard).join('');
+    }
+
+    if (pendingPartnerSaved.length > 0) {
+        if (html) {
+            html += `<div class="pt-2"><div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase mb-3">Partner Picks</div></div>`;
+        }
+        html += pendingPartnerSaved.map(renderPartnerCard).join('');
+    }
+
+    container.innerHTML = html || `
+        <div class="text-center py-20 text-sm text-[#a6967a]">
+            <div class="text-4xl mb-4 opacity-50">📁</div>
+            <p>保存済みはまだありません</p>
+            <p class="text-[10px] mt-2">ビルドした候補を保存するとここに表示されます</p>
+        </div>
+    `;
+}
+
+window.likePartnerSavedName = likePartnerSavedName;
+window.getSavedNames = getSavedNames;
+window.renderSavedScreen = renderSavedScreen;
