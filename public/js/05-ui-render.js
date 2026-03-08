@@ -670,7 +670,7 @@ window.showKanjiDetail = showKanjiDetail;
  */
 function getHomePreferenceSummary(likedList) {
     if (!likedList || likedList.length === 0) {
-        return { shortText: 'まだ傾向は未表示', detailText: '候補が集まると好みの傾向が見えてきます。', topLabels: [] };
+        return { shortText: 'まだ傾向なし', detailText: '漢字をためると傾向が見えてきます。', topLabels: [] };
     }
 
     const tagCounts = {};
@@ -687,14 +687,35 @@ function getHomePreferenceSummary(likedList) {
     const topLabels = sortedTags.slice(0, 3).map(([tag]) => KANJI_CATEGORIES[tag]?.label || tag.replace('#', ''));
 
     if (topLabels.length === 0) {
-        return { shortText: '傾向を整理中', detailText: '候補が増えると好みの傾向が見えてきます。', topLabels: [] };
+        return { shortText: 'まだ傾向なし', detailText: '漢字をためると傾向が見えてきます。', topLabels: [] };
     }
 
     return {
-        shortText: topLabels.slice(0, 2).join(' × '),
-        detailText: `いまは「${topLabels.join(' / ')}」の系統に反応しています。`,
+        shortText: topLabels.slice(0, 2).join(' / '),
+        detailText: `漢字候補は「${topLabels.join(' / ')}」に寄っています。`,
         topLabels: topLabels
     };
+}
+
+function getHomeCollectionBreakdown(likedList, readingStockCount) {
+    const safeLiked = Array.isArray(likedList) ? likedList : [];
+    const directSwipeCount = safeLiked.filter(item => item?.sessionReading === 'FREE').length;
+    const readingDerivedCount = safeLiked.filter(item => {
+        const sessionReading = item?.sessionReading || '';
+        return item?.slot >= 0 && !['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(sessionReading);
+    }).length;
+
+    return {
+        readingStockCount: readingStockCount || 0,
+        readingDerivedCount,
+        directSwipeCount
+    };
+}
+
+function getHomeCollectionSummaryText(breakdown) {
+    const readingCount = breakdown?.readingStockCount || 0;
+    const kanjiCount = breakdown?.readingDerivedCount || 0;
+    return `読み${readingCount} / 漢字${kanjiCount}`;
 }
 
 function getPairingHomeSummary() {
@@ -714,10 +735,10 @@ function getPairingHomeSummary() {
     if (!summary.inRoom) {
         return {
             ...summary,
-            shortText: '連携は任意',
-            title: 'ペアで使う時だけ連携',
-            subtitle: '今はひとりで候補集めを進めれば OK です。',
-            footnote: '必要になった時だけ使えます。',
+            shortText: '未連携',
+            title: 'ペア機能は未連携です',
+            subtitle: '必要な時だけ連携できます。',
+            footnote: 'あとからルームを作れます。',
             actionLabel: '連携する'
         };
     }
@@ -726,9 +747,9 @@ function getPairingHomeSummary() {
         return {
             ...summary,
             shortText: 'コード共有待ち',
-            title: 'ルームを作成できました',
-            subtitle: 'コードを共有すると、一致候補が自動でまとまり始めます。',
-            footnote: 'パートナーにルームコードを送ってみましょう。',
+            title: 'ルームを作成済みです',
+            subtitle: 'コードを共有すると一致が見られます。',
+            footnote: 'パートナーにコードを送りましょう。',
             actionLabel: 'コード共有'
         };
     }
@@ -740,10 +761,10 @@ function getPairingHomeSummary() {
             : '一致候補を確認しましょう';
         return {
             ...summary,
-            shortText: `${summary.partnerLabel}と ${totalMatches}件 一致`,
+            shortText: `${summary.partnerLabel}と${totalMatches}件一致`,
             title: summary.matchedNameCount > 0 ? 'おふたりで同じ名前に反応しています' : '気になる漢字が重なっています',
             subtitle: previewText,
-            footnote: summary.matchedNameCount > 0 ? '保存候補を開いて、第一候補を絞り込みましょう。' : 'ストックから組み立てると、おふたりの好みが活かせます。',
+            footnote: summary.matchedNameCount > 0 ? '保存候補を開いて第一候補を絞りましょう。' : 'ストックから組み合わせると進めやすいです。',
             actionLabel: '一致を見る'
         };
     }
@@ -751,8 +772,8 @@ function getPairingHomeSummary() {
     return {
         ...summary,
         shortText: `${summary.partnerLabel}と連携中`,
-        title: 'まだ一致候補はありません',
-        subtitle: '気になる漢字や名前を保存すると、おふたりの重なりが見えてきます。',
+        title: 'まだ一致はありません',
+        subtitle: '候補をためると一致が見えてきます。',
         footnote: 'まずは候補を同期してみましょう。',
         actionLabel: '候補を同期'
     };
@@ -792,57 +813,68 @@ function restoreHomePairCard() {
 }
 
 function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
-    if ((pairing?.matchedNameCount || 0) > 0) {
+    const breakdown = getHomeCollectionBreakdown(typeof liked !== 'undefined' ? liked : [], readingStockCount);
+
+    if ((pairing?.matchedNameCount || 0) >= 2) {
         return {
-            title: '一致した保存名を確認',
-            detail: '保存済みから第一候補を絞りましょう。',
+            title: '一致した候補を比べる',
+            detail: '2件以上一致しています。保存済みから絞りましょう。',
             actionLabel: '保存済みを見る',
             action: 'saved'
         };
     }
 
-    if ((pairing?.matchedKanjiCount || 0) > 0) {
+    if ((pairing?.matchedKanjiCount || 0) >= 2) {
         return {
-            title: '一致した漢字を組み合わせる',
-            detail: 'ストックから名前を組み立てる段階です。',
+            title: '一致した漢字を見直す',
+            detail: '共通で気になった漢字から広げましょう。',
             actionLabel: 'ストックを見る',
             action: 'stock'
         };
     }
 
-    if (savedCount > 0) {
+    if (savedCount >= 3) {
         return {
-            title: '保存済み候補を見直す',
-            detail: '候補が集まってきたので比較しましょう。',
+            title: '保存済みを比較する',
+            detail: '候補が3件以上あるので絞り込みに進めます。',
             actionLabel: '保存済みを見る',
             action: 'saved'
         };
     }
 
-    if (likedCount > 0 && readingStockCount > 0) {
-        return {
-            title: '組み合わせを作り始める',
-            detail: '漢字も読みもあるのでビルドに進めます。',
-            actionLabel: 'ビルドへ進む',
-            action: 'build'
-        };
-    }
-
-    if (likedCount > 0) {
-        return {
-            title: '漢字から名前にする',
-            detail: '集めた漢字を組み合わせてみましょう。',
-            actionLabel: 'ビルドへ進む',
-            action: 'build'
-        };
-    }
-
-    if (readingStockCount > 0) {
+    if (breakdown.readingStockCount >= 1 && breakdown.readingDerivedCount < 2) {
         return {
             title: '読みから漢字候補を増やす',
-            detail: '読みストックを使って漢字を探しましょう。',
+            detail: `読みストック ${breakdown.readingStockCount}件 から漢字候補を増やしましょう。`,
             actionLabel: '読みから探す',
             action: 'reading'
+        };
+    }
+
+    if (breakdown.readingDerivedCount >= 3) {
+        return {
+            title: '名前を組み立てる',
+            detail: '読みから集まった漢字でビルドに進めます。',
+            actionLabel: 'ビルドへ進む',
+            action: 'build'
+        };
+    }
+
+    if (breakdown.directSwipeCount >= 1 && breakdown.readingStockCount === 0) {
+        return {
+            title: '読みを先に決める',
+            detail: '直感で集めた漢字はあります。次は読みを決めると進めやすいです。',
+            actionLabel: '読みから始める',
+            action: 'reading'
+        };
+    }
+
+    if (likedCount >= 4) {
+        return {
+            title: '漢字候補を見直す',
+            detail: '漢字は集まり始めています。ストックを整理しましょう。',
+            actionLabel: 'ストックを見る',
+            action: 'stock'
         };
     }
 
@@ -854,7 +886,12 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     };
 }
 
-function handleHomeNextStepAction() {
+function handleHomeNextStepAction(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
@@ -883,6 +920,11 @@ function handleHomeNextStepAction() {
         return;
     }
 
+    if (nextStep.action === 'free' && typeof startDirectKanjiSwipe === 'function') {
+        startDirectKanjiSwipe();
+        return;
+    }
+
     if (nextStep.action === 'reading') {
         if (typeof startMode === 'function') {
             startMode('reading');
@@ -890,6 +932,14 @@ function handleHomeNextStepAction() {
             changeScreen('scr-input-reading');
         }
     }
+}
+
+function openHomeInsightsModalFromEvent(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    openHomeInsightsModal();
 }
 
 function renderHomeProfile() {
@@ -910,6 +960,7 @@ function renderHomeProfile() {
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const breakdown = getHomeCollectionBreakdown(liked, readingStockCount);
     const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
 
     const elSwiped = document.getElementById('home-swiped-count');
@@ -961,6 +1012,12 @@ function renderHomeProfile() {
     const nextStepDetailEl = document.getElementById('home-next-step-detail');
     if (nextStepDetailEl) nextStepDetailEl.innerText = nextStep.detail;
 
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(breakdown);
+
     const pairCard = document.getElementById('home-pair-card');
     if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
 
@@ -980,7 +1037,8 @@ function openHomeInsightsModal() {
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
-    const dailyText = document.getElementById('home-daily-remaining')?.innerText || '今日のカード 残り -';
+    const dailyText = document.getElementById('home-daily-remaining')?.innerText || '直感スワイプを確認中';
+    const breakdown = getHomeCollectionBreakdown(liked, readingStockCount);
     const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
         ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
         : '<div class="text-[11px] text-[#a6967a]">一致候補が見つかると、ここに表示されます。</div>';
@@ -994,13 +1052,13 @@ function openHomeInsightsModal() {
             <div class="pt-4 pb-2">
                 <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">ホーム</div>
                 <h3 class="text-xl font-black text-[#4f4639] mb-2">いまの状況</h3>
-                <p class="text-sm text-[#8b7e66] leading-relaxed">次にやることが分かる画面です。</p>
+                <p class="text-sm text-[#8b7e66] leading-relaxed">次にやることと、候補の集まり方を確認できます。</p>
             </div>
             <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
                 <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次にやること</div>
                 <div class="text-sm font-bold text-[#5d5444]">${nextStep.title}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
-                <button onclick="handleHomeNextStepAction()" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
+                <button onclick="handleHomeNextStepAction(event)" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
             </div>
             <div class="grid grid-cols-3 gap-2 mt-3">
                 <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
@@ -1017,16 +1075,30 @@ function openHomeInsightsModal() {
                 </div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">今日</div>
-                <div class="text-sm font-bold text-[#5d5444]">${dailyText}</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">集まり方</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.readingStockCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">読み</div>
+                    </div>
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.readingDerivedCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">読みから漢字</div>
+                    </div>
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.directSwipeCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">直感</div>
+                    </div>
+                </div>
             </div>
+
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">好み</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">漢字の傾向</div>
                 <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">ペア</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">ペア状態</div>
                 <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
                 <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
@@ -1078,6 +1150,7 @@ async function handleHomePairAction() {
 
 window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
+window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.closeHomeInsightsModal = closeHomeInsightsModal;
 window.handleHomePairAction = handleHomePairAction;
 window.handleHomeNextStepAction = handleHomeNextStepAction;
@@ -1093,6 +1166,10 @@ setTimeout(() => {
 }, 500);
 
 console.log("UI RENDER: Module loaded (v14.3 - Added renderHomeProfile)");
+
+
+
+
 
 
 

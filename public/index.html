@@ -235,8 +235,9 @@
         <div class="flex flex-col items-center w-full gap-3 px-4 pb-6">
 
             <div class="w-full max-w-sm">
-                <button onclick="openHomeInsightsModal()"
-                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-4 shadow-sm text-left active:scale-[0.98] transition-transform">
+                <div onclick="handleHomeNextStepAction(event)" role="button" tabindex="0"
+                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleHomeNextStepAction(event);}"
+                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-4 shadow-sm text-left active:scale-[0.98] transition-transform cursor-pointer">
                     <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-r from-[#fbf4e7] via-[#fffaf2] to-[#f4f2fb] opacity-95"></div>
                     <div class="relative">
                         <div class="flex items-start justify-between gap-3">
@@ -272,26 +273,26 @@
 
                         <div class="mt-3 grid grid-cols-3 gap-2 text-left">
                             <div class="rounded-2xl bg-[#fdf7ef] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#b9965b]">今日</div>
-                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-daily-remaining">今日のカードを確認中</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#b9965b]">集まり方</div>
+                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-collection-summary">読み0 / 漢字0</div>
                             </div>
                             <div class="rounded-2xl bg-[#f7f4ff] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#9d8cbc]">好み</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#9d8cbc]">漢字の傾向</div>
                                 <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-preference-summary">まだ傾向は未表示</div>
                             </div>
                             <div class="rounded-2xl bg-[#f4f8ff] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#88a3c5]">ペア</div>
-                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-partner-summary">連携は任意</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#88a3c5]">ペア状態</div>
+                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-partner-summary">未連携</div>
                             </div>
                         </div>
 
-                        <div class="mt-3 flex items-center justify-end">
-                            <div class="text-[11px] font-bold text-[#b9965b]">状況を見る ›</div>
+                        <div class="mt-3 flex items-center justify-between gap-2">
+                            <div class="text-[11px] font-bold text-[#b9965b]" id="home-next-step-action-label">おすすめへ進む</div>
+                            <button onclick="openHomeInsightsModalFromEvent(event)" class="shrink-0 px-3 py-1.5 rounded-full border border-[#eadfce] bg-white text-[11px] font-bold text-[#8b7e66] shadow-sm">状況を見る</button>
                         </div>
                     </div>
-                </button>
+                </div>
             </div>
-
             <div id="home-pair-card" class="w-full max-w-sm rounded-[26px] border border-[#eadfce] bg-white/88 px-4 py-3 shadow-sm">
                 <div class="flex items-start gap-3">
                     <div class="shrink-0 w-11 h-11 rounded-2xl bg-[#f8efe2] border border-[#ebdcc7] flex items-center justify-center text-[18px]">💞</div>
@@ -1761,5 +1762,7 @@
 </body>
 
 </html>
+
+
 
 

@@ -2597,14 +2597,14 @@ function updateDailyRemainingDisplay() {
     if (!el) return;
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     if (premiumActive) {
-        el.innerText = '今日の直感スワイプは無制限';
+        el.innerText = '直感スワイプは無制限';
         return;
     }
     const remaining = getDailyRemainingCount();
     if (remaining === 0) {
-        el.innerText = '今日のカードは使い切りました';
+        el.innerText = '直感スワイプは使い切りました';
     } else {
-        el.innerText = `今日のカード 残り ${remaining}枚`;
+        el.innerText = `直感スワイプ 残り ${remaining}枚`;
     }
 }
 
@@ -3442,4 +3442,5 @@ window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
+
 
