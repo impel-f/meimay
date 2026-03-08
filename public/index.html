@@ -264,63 +264,69 @@
                 <div class="flex-1 h-px bg-[#e8ddd0]"></div>
             </div>
 
-            <!-- ② メイン2択ボタン（左:読みから / 右:響き） -->
+            <!-- ② メイン2択ボタン（左:響き / 右:読みから） -->
             <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
 
-                <!-- LEFT: 読みから漢字を探す -->
-                <button onclick="startMode('reading')"
-                    class="bg-white rounded-2xl border-2 border-[#c8dcf0] shadow-md flex flex-col active:scale-[0.97] transition-transform overflow-hidden text-left"
-                    style="padding: 12px 10px 11px;">
+                <!-- LEFT: 響き・読みを探す -->
+                <button onclick="startMode('sound')"
+                    class="bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                    style="padding: 12px 8px 11px; border-color: #c4caf2;">
 
-                    <!-- ビジュアル: 読み入力 → 漢字カード群 -->
-                    <div class="w-full mb-2.5">
-                        <!-- 入力フィールド風 -->
-                        <div class="flex items-center gap-1 mb-2">
-                            <div class="flex-1 bg-[#f0f6ff] border border-[#b8d4f0] rounded-lg px-2 py-1 text-[10px] font-bold text-[#3a587a] tracking-wide">はると</div>
-                            <span class="text-[#bca37f] text-[10px] font-black">→</span>
+                    <!-- タイトル (上・中央) -->
+                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響き・読みを探す</div>
+
+                    <!-- ビジュアル: 3枚ベージュ統一 ミニスワイプカード ファン状 -->
+                    <div class="relative w-full flex items-center justify-center" style="height: 76px;">
+                        <!-- みなと (後ろ左) -->
+                        <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
+                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">みなと</span>
                         </div>
-                        <!-- ミニ漢字カード（実際の探す画面のカードデザイン） -->
-                        <div class="flex gap-1">
-                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
-                                style="width:34px; height:42px;">
-                                <span class="text-[15px] font-black text-[#3a587a]">陽</span>
-                            </div>
-                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
-                                style="width:34px; height:42px; transform:rotate(3deg) translateY(3px);">
-                                <span class="text-[15px] font-black text-[#3a587a]">斗</span>
-                            </div>
-                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
-                                style="width:34px; height:42px; transform:rotate(-2deg) translateY(-2px);">
-                                <span class="text-[15px] font-black text-[#3a587a]">遥</span>
-                            </div>
+                        <!-- ひなた (中央) -->
+                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(1deg); z-index:2;">
+                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">ひなた</span>
+                        </div>
+                        <!-- あおい (前右) -->
+                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(6deg) translate(24px,-4px); z-index:3;">
+                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">あおい</span>
                         </div>
                     </div>
 
-                    <!-- タイトル・説明 -->
-                    <div class="text-[11px] font-black text-[#3a587a] leading-snug mb-0.5">読みから<br>漢字を探す</div>
-                    <div class="text-[9px] text-[#8b9eb5] leading-snug">希望の読みから<br>理想の漢字を探す</div>
+                    <!-- 説明 (下・中央) -->
+                    <div class="text-[9px] text-[#8b8fb5] leading-snug text-center mt-1">響きやイメージから<br>新しい読みを探す</div>
                 </button>
 
-                <!-- RIGHT: 響き・読みを探す -->
-                <button onclick="startMode('sound')"
-                    class="bg-white rounded-2xl border-2 border-[#c8c8f0] shadow-md flex flex-col active:scale-[0.97] transition-transform overflow-hidden text-left"
-                    style="padding: 12px 10px 11px;">
+                <!-- RIGHT: 読みから漢字を探す -->
+                <button onclick="startMode('reading')"
+                    class="bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                    style="padding: 12px 8px 11px; border-color: #c4caf2;">
 
-                    <!-- ビジュアル: vibe タグバブル群 -->
-                    <div class="w-full mb-2.5" style="min-height: 64px;">
-                        <div class="flex flex-wrap gap-1">
-                            <span class="bg-[#eef0ff] border border-[#c0c8f0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#4a5fa0]">夏</span>
-                            <span class="bg-[#fff0fb] border border-[#f0c0e4] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#8a4a8a]">あおい</span>
-                            <span class="bg-[#f0fff8] border border-[#a8e8c8] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#3a7a58]">ひなた</span>
-                            <span class="bg-[#fffbee] border border-[#e8d898] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#7a6820]">優しい</span>
-                            <span class="bg-[#f5eeff] border border-[#c8a8f0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#6a3a9a]">2文字</span>
-                            <span class="bg-[#eefff5] border border-[#a8e0c0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#3a6a50]">はる</span>
+                    <!-- タイトル (上・中央) -->
+                    <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">読みから漢字を探す</div>
+
+                    <!-- ビジュアル: 蒼・葵・碧 ファン状カード（実タグ色・漢字のみ） -->
+                    <div class="relative w-full flex items-center justify-center" style="height: 76px;">
+                        <!-- 蒼(#天空) 後ろ左 -->
+                        <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:#DBEAFE; border:1.5px solid #BFDBFE; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
+                            <span class="font-black" style="font-size:22px; color:#1a1a1a;">蒼</span>
+                        </div>
+                        <!-- 葵(#自然) 中央 -->
+                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:#DCFCE7; border:1.5px solid #BBF7D0; transform:rotate(1deg); z-index:2;">
+                            <span class="font-black" style="font-size:22px; color:#1a1a1a;">葵</span>
+                        </div>
+                        <!-- 碧(#水景) 前右 -->
+                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
+                            style="width:50px; height:58px; background:#CFFAFE; border:1.5px solid #A5F3FC; transform:rotate(6deg) translate(24px,-4px); z-index:3;">
+                            <span class="font-black" style="font-size:22px; color:#1a1a1a;">碧</span>
                         </div>
                     </div>
 
-                    <!-- タイトル・説明 -->
-                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug mb-0.5">響き・<br>読みを探す</div>
-                    <div class="text-[9px] text-[#8b8fb5] leading-snug">響きやイメージから<br>新しい読みを探す</div>
+                    <!-- 説明 (下・中央) -->
+                    <div class="text-[9px] text-[#8b9eb5] leading-snug text-center mt-1">希望の読みから<br>理想の漢字を探す</div>
                 </button>
 
             </div>

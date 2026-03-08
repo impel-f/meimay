@@ -66,7 +66,13 @@ function calcSegments() {
             // 修正：柔軟モードでもデタラメな分割は避けたいが、辞書にない読み（人名特有の読みなど）がある場合は許可する必要がある。
             // ここでは簡易的に「厳格モードなら辞書チェック必須」「柔軟モードならチェックなし」とする
             const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
-            if (rule === 'lax' || (validReadingsSet && (validReadingsSet.has(part) || validReadingsSet.has(partSeion)))) {
+            // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で辞書チェック
+            const partSokuon = part.replace(/っ$/, 'つ');
+            if (rule === 'lax' || (validReadingsSet && (
+                validReadingsSet.has(part) ||
+                validReadingsSet.has(partSeion) ||
+                (partSokuon !== part && validReadingsSet.has(partSokuon))
+            ))) {
                 currentPath.push(part);
                 findPath(remaining.slice(i), currentPath);
                 currentPath.pop();
@@ -198,7 +204,9 @@ function loadStack() {
     }
 
     const target = toHira(segments[currentPos]);
-    console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"`);
+    // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で漢字マッチング
+    const targetSokuon = target.replace(/っ$/, 'つ');
+    console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${targetSokuon !== target ? ` (→ "${targetSokuon}")` : ''}`);
 
     // --- Free Stock Auto-Matching ---
     const freeItems = liked.filter(l => l.sessionReading === 'FREE');
@@ -218,9 +226,11 @@ function loadStack() {
         const readings = [...majorReadings, ...minorReadings];
 
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-        const isExact = majorReadings.includes(target) || minorReadings.includes(target);
+        const isExact = majorReadings.includes(target) || minorReadings.includes(target) ||
+            (targetSokuon !== target && (majorReadings.includes(targetSokuon) || minorReadings.includes(targetSokuon)));
         const isSeionMatch = target !== targetSeion && readings.includes(targetSeion);
-        const isPartial = readings.some(r => r.startsWith(target)) || readings.some(r => r.startsWith(targetSeion));
+        const isPartial = readings.some(r => r.startsWith(target)) || readings.some(r => r.startsWith(targetSeion)) ||
+            (targetSokuon !== target && readings.some(r => r.startsWith(targetSokuon)));
 
         let match = false;
         if (typeof rule !== 'undefined' && rule === 'strict') {
@@ -320,13 +330,17 @@ function loadStack() {
         // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
         const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
 
-        const isMajorExact = majorReadings.includes(target);
-        const isMinorExact = minorReadings.includes(target);
+        // 促音一致: きっ→きつ、てっ→てつ 等（targetSokuon は loadStack 冒頭で定義済み）
+        const isMajorExact = majorReadings.includes(target) ||
+            (targetSokuon !== target && majorReadings.includes(targetSokuon));
+        const isMinorExact = minorReadings.includes(target) ||
+            (targetSokuon !== target && minorReadings.includes(targetSokuon));
         const isExact = isMajorExact || isMinorExact;
         // 清音化一致：メジャー読みのみを対象（名乗りは除外）
         const isSeionMatch = target !== targetSeion && majorReadings.includes(targetSeion);
         // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
-        const isPartial = majorReadings.some(r => r.startsWith(target)) || majorReadings.some(r => r.startsWith(targetSeion));
+        const isPartial = majorReadings.some(r => r.startsWith(target)) || majorReadings.some(r => r.startsWith(targetSeion)) ||
+            (targetSokuon !== target && majorReadings.some(r => r.startsWith(targetSokuon)));
 
         if (isMajorExact) {
             k.priority = 1;      // メジャー読み完全一致（最優先）
