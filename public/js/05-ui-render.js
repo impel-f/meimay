@@ -238,11 +238,9 @@ function updateSwipeCounter() {
     const el = document.getElementById('swipe-counter');
     if (!el || !stack) return;
 
-    const remaining = Math.max(0, stack.length - currentIdx);
-
     if (isFreeSwipeMode) {
         const selected = liked.filter(item => item.sessionReading === 'FREE').length;
-        el.innerText = `選:${selected} / 残:${remaining}`;
+        el.innerText = `選:${selected}`;
         return;
     }
 
@@ -252,7 +250,7 @@ function updateSwipeCounter() {
         (!item.sessionReading || item.sessionReading === currentReading)
     ).length;
 
-    el.innerText = `選:${selected} / 残:${remaining}`;
+    el.innerText = `選:${selected}`;
 }
 
 /**

@@ -55,25 +55,28 @@
 
         <!-- Menu Items -->
         <nav class="flex-1 overflow-y-auto py-4">
-            <!-- モード -->
+            <!-- 名前を作る（TOPと同じ構成） -->
             <div class="px-6 py-2">
-                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">名前を探す</p>
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">名前を作る</p>
             </div>
+            <button onclick="drawerNavigate('mode-sound')" class="drawer-menu-item" id="drawer-mode-sound">
+                <span class="drawer-icon">🎵</span>
+                <span>響き・読みを探す</span>
+            </button>
             <button onclick="drawerNavigate('mode-reading')" class="drawer-menu-item" id="drawer-mode-reading">
                 <span class="drawer-icon">🔤</span>
                 <span>読みから漢字を探す</span>
             </button>
-            <button onclick="drawerNavigate('mode-sound')" class="drawer-menu-item" id="drawer-mode-sound">
-                <span class="drawer-icon">🎵</span>
-                <span>響きから探す</span>
-            </button>
-            <button onclick="drawerNavigate('mode-free')" class="drawer-menu-item" id="drawer-mode-free">
+
+            <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
+
+            <!-- インスピレーション -->
+            <div class="px-6 py-2">
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">インスピレーション</p>
+            </div>
+            <button onclick="closeDrawer(); startDirectKanjiSwipe();" class="drawer-menu-item">
                 <span class="drawer-icon">✨</span>
-                <span>自由に漢字を探す</span>
-            </button>
-            <button onclick="openFreeBuild()" class="drawer-menu-item" id="drawer-mode-build">
-                <span class="drawer-icon">📦</span>
-                <span>ストックから組み立てる</span>
+                <span>直感スワイプ</span>
             </button>
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
@@ -86,13 +89,13 @@
                 <span class="drawer-icon">🔎</span>
                 <span>漢字を検索</span>
             </button>
-            <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
-                <span class="drawer-icon">🔮</span>
-                <span>姓名判断・診断</span>
-            </button>
             <button onclick="openRanking()" class="drawer-menu-item">
                 <span class="drawer-icon">👑</span>
                 <span>漢字ランキング</span>
+            </button>
+            <button onclick="drawerNavigate('diagnosis')" class="drawer-menu-item">
+                <span class="drawer-icon">🔮</span>
+                <span>姓名判断・診断</span>
             </button>
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>

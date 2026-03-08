@@ -891,7 +891,7 @@ function renderUniversalCard() {
     // Counter
     const elCounter = document.getElementById('uni-swipe-counter');
     if (elCounter) {
-        elCounter.innerText = `選:${SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length} / 残:${Math.max(0, SwipeState.candidates.length - SwipeState.currentIndex)}`;
+        elCounter.innerText = `選:${SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length}`;
     }
 
     if (SwipeState.currentIndex >= SwipeState.candidates.length) {
@@ -1484,13 +1484,8 @@ function startFreeSwiping() {
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
     // メインUIのスタックとしてセット (02-engine.js global)
-    // 直感スワイプモード（1日10枚制限）のみ上限あり、それ以外は全件
-    if (window._dailySwipeMode) {
-        stack = list.slice(0, getDailyRemainingCount());
-    } else {
-        stack = list;
-    }
-    window._dailySwipeMode = false; // フラグをリセット
+    // 枚数制限なし・全件
+    stack = list;
     currentIdx = 0;
 
     changeScreen('scr-main');
@@ -2523,8 +2518,20 @@ function navSearchAction() {
     if (appMode === 'nickname') {
         changeScreen('scr-input-nickname');
     } else {
-        changeScreen('scr-main');
-        if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+        // アクティブなスワイプセッションがある場合はスワイプ画面へ
+        const hasSession = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ||
+            (typeof segments !== 'undefined' && segments && segments.length > 0);
+        const hasCards = hasSession &&
+            (typeof stack !== 'undefined' && stack && stack.length > 0) &&
+            (typeof currentIdx !== 'undefined' && currentIdx < stack.length);
+
+        if (hasCards) {
+            changeScreen('scr-main');
+            if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+        } else {
+            // セッションなし → TOPの「名前を作る〜インスピレーション」を表示
+            changeScreen('scr-mode');
+        }
     }
 }
 
@@ -2572,20 +2579,13 @@ function updateDailyRemainingDisplay() {
 }
 
 function startDirectKanjiSwipe() {
-    const remaining = getDailyRemainingCount();
-    if (remaining === 0) {
-        updateDailyRemainingDisplay();
-        return;
-    }
-
     if (!master || master.length === 0) {
         alert('漢字データを読み込み中です。しばらくお待ちください。');
         return;
     }
 
     // 自由に漢字を探すと同じロジック（vibe選択スキップ・こだわらない固定）
-    // 1日10枚制限フラグをセットしてから startFreeSwiping を呼ぶ
-    window._dailySwipeMode = true;
+    // 枚数制限なし・無限スワイプ。10枚ごとのチェックポイントで離脱可能
     appMode = 'free';
     window.selectedImageTags = ['none'];
     startFreeSwiping();
