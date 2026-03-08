@@ -404,6 +404,7 @@ const MeimayPairing = {
 // ============================================================
 const MeimayShare = {
     _partnerUnsub: null,
+    partnerSnapshot: { liked: [], savedNames: [], role: null },
 
     // パートナーのデータをリアルタイム受信
     listenPartnerData: function (partnerUid) {
@@ -415,7 +416,13 @@ const MeimayShare = {
             .onSnapshot((doc) => {
                 if (!doc.exists) return;
                 const data = doc.data();
+                this.partnerSnapshot = {
+                    liked: Array.isArray(data.liked) ? data.liked : [],
+                    savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
+                    role: data.role || null
+                };
                 const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
+                if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
                 if (data.liked && data.liked.length > 0) {
                     const added = this.mergeSharedLiked(data.liked, partnerLabel);
@@ -442,6 +449,8 @@ const MeimayShare = {
             this._partnerUnsub();
             this._partnerUnsub = null;
         }
+        this.partnerSnapshot = { liked: [], savedNames: [], role: null };
+        if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
 
     // ストック漢字をルームに共有（= 自分のデータをルームに同期）
@@ -498,6 +507,7 @@ const MeimayShare = {
                 renderStock();
             }
         }
+        if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
         return added;
     },
 
@@ -543,11 +553,12 @@ const MeimayShare = {
             });
             if (added > 0) {
                 localStorage.setItem('meimay_saved', JSON.stringify(local));
-                if (typeof renderSavedList === 'function' &&
+                if (typeof renderSavedScreen === 'function' &&
                     document.getElementById('scr-saved')?.classList.contains('active')) {
-                    renderSavedList();
+                    renderSavedScreen();
                 }
             }
+            if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
             return added;
         } catch (e) {
             console.error('SHARE: Merge saved failed', e);
@@ -556,6 +567,119 @@ const MeimayShare = {
     }
 };
 
+function refreshPartnerAwareUI() {
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        renderHomeProfile();
+    }
+    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
+        renderSavedScreen();
+    }
+    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
+        renderSettingsScreen();
+    }
+}
+
+const MeimayPartnerInsights = {
+    normalizeReading: function (value) {
+        const text = String(value || '').trim();
+        if (!text) return '';
+        const target = text.includes(' ') ? text.split(' ').pop() : text;
+        return (typeof toHira === 'function' ? toHira(target) : target).replace(/\s+/g, '');
+    },
+
+    buildLikedMatchKey: function (item) {
+        if (!item || !item['漢字']) return '';
+        const sessionReading = item.sessionReading || '';
+        const slot = typeof item.slot === 'number' ? item.slot : -1;
+        if (slot < 0 || ['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(sessionReading)) {
+            return `free::${item['漢字']}`;
+        }
+        return `${sessionReading}::${slot}::${item['漢字']}`;
+    },
+
+    buildSavedMatchKey: function (item) {
+        if (!item) return '';
+        const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
+            ? item.combination.map(part => part['漢字'] || part.kanji || '').join('')
+            : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
+        const fullName = item.fullName || item.givenName || combinationKey;
+        const reading = this.normalizeReading(item.reading || item.givenName || '');
+        return `${fullName}::${combinationKey}::${reading}`;
+    },
+
+    getOwnLiked: function () {
+        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item.fromPartner);
+    },
+
+    getPartnerLiked: function () {
+        return Array.isArray(MeimayShare.partnerSnapshot?.liked) ? MeimayShare.partnerSnapshot.liked : [];
+    },
+
+    getOwnSaved: function () {
+        const list = typeof getSavedNames === 'function'
+            ? getSavedNames()
+            : JSON.parse(localStorage.getItem('meimay_saved') || '[]');
+        return list.filter(item => !item.fromPartner);
+    },
+
+    getPartnerSaved: function () {
+        return Array.isArray(MeimayShare.partnerSnapshot?.savedNames) ? MeimayShare.partnerSnapshot.savedNames : [];
+    },
+
+    getMatchedLikedItems: function () {
+        const partnerKeys = new Set(this.getPartnerLiked().map(item => this.buildLikedMatchKey(item)).filter(Boolean));
+        const seenKeys = new Set();
+        return this.getOwnLiked().filter(item => {
+            const key = this.buildLikedMatchKey(item);
+            if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+        });
+    },
+
+    getMatchedSavedItems: function () {
+        const partnerKeys = new Set(this.getPartnerSaved().map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+        const seenKeys = new Set();
+        return this.getOwnSaved().filter(item => {
+            const key = this.buildSavedMatchKey(item);
+            if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
+            seenKeys.add(key);
+            return true;
+        });
+    },
+
+    isSavedItemMatched: function (item) {
+        const key = this.buildSavedMatchKey(item);
+        if (!key) return false;
+        const compareSet = item.fromPartner
+            ? new Set(this.getOwnSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean))
+            : new Set(this.getPartnerSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean));
+        return compareSet.has(key);
+    },
+
+    getSummary: function () {
+        const matchedLikedItems = this.getMatchedLikedItems();
+        const matchedSavedItems = this.getMatchedSavedItems();
+        const partnerLabel = MeimayPairing.partnerRole === 'mama' ? 'ママ' : MeimayPairing.partnerRole === 'papa' ? 'パパ' : 'パートナー';
+        const previewLabels = [
+            ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
+            ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
+        ].filter(Boolean).slice(0, 4);
+
+        return {
+            inRoom: !!MeimayPairing.roomCode,
+            hasPartner: !!MeimayPairing.partnerUid,
+            partnerLabel: partnerLabel,
+            matchedKanjiCount: matchedLikedItems.length,
+            matchedNameCount: matchedSavedItems.length,
+            matchedLikedItems: matchedLikedItems,
+            matchedSavedItems: matchedSavedItems,
+            previewLabels: previewLabels
+        };
+    }
+};
+
+window.MeimayPartnerInsights = MeimayPartnerInsights;
 // ============================================================
 // PAIRING UI HELPERS
 // ============================================================
@@ -606,6 +730,8 @@ function updatePairingUI() {
     if (drawerPairingBadge) {
         drawerPairingBadge.classList.toggle('hidden', !inRoom);
     }
+
+    refreshPartnerAwareUI();
 }
 
 // ルーム作成ボタン

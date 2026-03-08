@@ -177,6 +177,11 @@ function executeSwipe(dir, data) {
         if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
+    if (data && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode && typeof addDailySeenKanji === 'function') {
+        addDailySeenKanji(data['漢字']);
+        if (typeof updateDailyRemainingDisplay === 'function') updateDailyRemainingDisplay();
+    }
+
     // データ処理（左以外はストック）
     if (data && dir !== 'left') {
         if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {

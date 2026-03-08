@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MODULE 12: HISTORY (V2.0 - 読み方単位履歴 + メッセージ保存)
    履歴・保存機能
    ============================================================ */
@@ -325,6 +325,21 @@ function renderSavedScreen() {
     if (!container) return;
 
     const saved = getSavedNames();
+    const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.isSavedItemMatched)
+        ? window.MeimayPartnerInsights
+        : null;
+
+    const decorated = saved.map((item, index) => ({
+        item: item,
+        index: index,
+        isMatched: pairInsights ? pairInsights.isSavedItemMatched(item) : false
+    })).sort((a, b) => {
+        if (a.isMatched !== b.isMatched) return a.isMatched ? -1 : 1;
+        if (!!a.item.fromPartner !== !!b.item.fromPartner) return a.item.fromPartner ? 1 : -1;
+        const aTime = new Date(a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
 
     const scrSaved = document.getElementById('scr-saved');
     if (scrSaved) {
@@ -338,9 +353,16 @@ function renderSavedScreen() {
         }
     }
 
-    container.innerHTML = saved.length > 0 ? saved.map((item, index) => `
+    container.innerHTML = decorated.length > 0 ? decorated.map(({ item, index, isMatched }) => {
+        const badgeHtml = isMatched
+            ? '<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f59e0b] to-[#f97316] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">💞 おふたり一致</div>'
+            : (item.fromPartner
+                ? '<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">👩 パートナーから</div>'
+                : '');
+
+        return `
         <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm relative">
-            ${item.fromPartner ? `<div class="absolute -top-2 -right-2 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10 break-keep">👩 パートナーから</div>` : ''}
+            ${badgeHtml}
             <div class="flex items-start justify-between mb-2">
                 <div class="flex-1">
                     <div class="text-xl font-black text-[#5d5444]">${item.fullName || ''}</div>
@@ -362,7 +384,8 @@ function renderSavedScreen() {
                 </button>
             </div>
         </div>
-    `).join('') : `
+        `;
+    }).join('') : `
         <div class="text-center py-20 text-sm text-[#a6967a]">
             <div class="text-4xl mb-4 opacity-50">📝</div>
             <p>保存された名前はまだありません</p>

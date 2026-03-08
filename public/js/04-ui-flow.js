@@ -1455,7 +1455,8 @@ function startFreeSwiping() {
     // フィルタリング
     let list = master.filter(k => {
         const flag = k['不適切フラグ'];
-        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
+        const shouldHideFlagged = !(typeof showInappropriateKanji !== 'undefined' && showInappropriateKanji);
+        if (shouldHideFlagged && flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
         return true;
     });
 
@@ -1483,8 +1484,26 @@ function startFreeSwiping() {
     // 既にストック済みは除外
     list = list.filter(k => !liked.some(l => l['漢字'] === k['漢字']));
 
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (!premiumActive) {
+        const dailySeen = getDailySeenKanji();
+        if (dailySeen.length > 0) {
+            list = list.filter(k => !dailySeen.includes(k['漢字']));
+        }
+
+        const remaining = getDailyRemainingCount();
+        if (remaining <= 0 || list.length === 0) {
+            changeScreen('scr-mode');
+            if (typeof renderHomeProfile === 'function') renderHomeProfile();
+            if (typeof showToast === 'function') showToast('今日の直感スワイプはおしまいです', '🌙');
+            if (remaining <= 0 && typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
+            return;
+        }
+
+        list = list.slice(0, remaining);
+    }
+
     // メインUIのスタックとしてセット (02-engine.js global)
-    // 枚数制限なし・全件
     stack = list;
     currentIdx = 0;
 
@@ -2575,11 +2594,16 @@ function getDailyRemainingCount() {
 function updateDailyRemainingDisplay() {
     const el = document.getElementById('home-daily-remaining');
     if (!el) return;
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (premiumActive) {
+        el.innerText = '今日の直感スワイプは無制限';
+        return;
+    }
     const remaining = getDailyRemainingCount();
     if (remaining === 0) {
-        el.innerText = '今日のカードはおしまい 🌙';
+        el.innerText = '今日のカードは使い切りました';
     } else {
-        el.innerText = `今日の漢字　残り ${remaining} / ${DAILY_KANJI_LIMIT}`;
+        el.innerText = `今日のカード 残り ${remaining}枚`;
     }
 }
 
@@ -2589,8 +2613,14 @@ function startDirectKanjiSwipe() {
         return;
     }
 
-    // 自由に漢字を探すと同じロジック（vibe選択スキップ・こだわらない固定）
-    // 枚数制限なし・無限スワイプ。10枚ごとのチェックポイントで離脱可能
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (!premiumActive && typeof getDailyRemainingCount === 'function' && getDailyRemainingCount() <= 0) {
+        if (typeof showToast === 'function') showToast('今日の直感スワイプは使い切りました', '🌙');
+        if (typeof renderHomeProfile === 'function') renderHomeProfile();
+        if (typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
+        return;
+    }
+
     appMode = 'free';
     window.selectedImageTags = ['none'];
     startFreeSwiping();

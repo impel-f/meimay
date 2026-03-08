@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MODULE 11: SETTINGS (V6.0 - 別画面版)
    設定画面（ストック・ビルドと同レベル）
    ============================================================ */
@@ -67,6 +67,13 @@ function renderSettingsScreen() {
         pairingStatusColor = '#4ade80';
     }
 
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const dailyRemainingText = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : '-';
+    const premiumText = premiumActive
+        ? '有効中'
+        : `無料プラン・今日あと ${dailyRemainingText} 枚`;
+
+
     container.innerHTML = `
         <div class="settings-screen-content">
             <!-- ニックネーム -->
@@ -131,7 +138,33 @@ function renderSettingsScreen() {
                 <div class="item-arrow-unified">›</div>
             </div>
 
+            <div class="settings-item-unified" onclick="if(typeof showPremiumModal==='function'){showPremiumModal();}">
+                <div class="item-icon-circle" style="background: #fff7ed;">
+                    <span style="color: #f59e0b;">👑</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">プレミアム</div>
+                    <div class="item-value-unified">${premiumText}</div>
+                </div>
+                <div class="item-arrow-unified flex items-center gap-2">
+                    <span id="premium-badge" class="px-2 py-1 rounded-full bg-[#fef3c7] text-[#b45309] text-[9px] font-black ${premiumActive ? '' : 'hidden'}">ACTIVE</span>
+                    <span>›</span>
+                </div>
+            </div>
+
+            <div class="settings-item-unified" onclick="if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
+                <div class="item-icon-circle" style="background: #f8fafc;">
+                    <span style="color: #64748b;">📄</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">利用規約・プライバシー</div>
+                    <div class="item-value-unified">公開前に内容を確認できます</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
             <div class="settings-divider-unified"></div>
+
 
             <!-- 不適切漢字の表示設定 -->
             <div class="settings-item-unified" onclick="toggleInappropriateSetting()">

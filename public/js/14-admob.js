@@ -182,11 +182,11 @@ function showPremiumModal() {
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-lg">✅</span>
-                            <span class="text-sm text-[#5d5444]">AI機能の優先利用</span>
+                            <span class="text-sm text-[#5d5444]">今日の直感スワイプが無制限</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="text-lg">✅</span>
-                            <span class="text-sm text-[#5d5444]">全機能へのアクセス</span>
+                            <span class="text-sm text-[#5d5444]">申請版以降のプレミアム機能に優先アクセス</span>
                         </div>
                     </div>
                     <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">

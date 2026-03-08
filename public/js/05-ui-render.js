@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    MODULE 05: UI RENDER (V14.1 - タップ範囲拡大版)
    カード描画・詳細表示
    ============================================================ */
@@ -666,78 +666,259 @@ window.updateSwipeMainState = updateSwipeMainState;
 window.showKanjiDetail = showKanjiDetail;
 
 /**
- * ホーム画面のプロファイルカードを更新
+ * ホーム画面の集計とダッシュボード表示
  */
+function getHomePreferenceSummary(likedList) {
+    if (!likedList || likedList.length === 0) {
+        return { shortText: '好みを学習中', detailText: 'まだデータがありません', topLabels: [] };
+    }
+
+    const tagCounts = {};
+    likedList.forEach(item => {
+        const tags = getUnifiedTags(item['分類'] || '');
+        tags.forEach(tag => {
+            if (tag !== '#その他') {
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            }
+        });
+    });
+
+    const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+    const topLabels = sortedTags.slice(0, 3).map(([tag]) => KANJI_CATEGORIES[tag]?.label || tag.replace('#', ''));
+
+    if (topLabels.length === 0) {
+        return { shortText: '標準的', detailText: 'まだ好みの傾向は見えていません', topLabels: [] };
+    }
+
+    return {
+        shortText: topLabels.slice(0, 2).join(' × '),
+        detailText: `いまは「${topLabels.join(' / ')}」の系統に反応しています。`,
+        topLabels: topLabels
+    };
+}
+
+function getPairingHomeSummary() {
+    const baseSummary = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.getSummary)
+        ? window.MeimayPartnerInsights.getSummary()
+        : null;
+
+    const summary = baseSummary || {
+        inRoom: false,
+        hasPartner: false,
+        partnerLabel: 'パートナー',
+        matchedKanjiCount: 0,
+        matchedNameCount: 0,
+        previewLabels: []
+    };
+
+    if (!summary.inRoom) {
+        return {
+            ...summary,
+            shortText: 'まだ未連携',
+            title: 'まずはパートナーと連携しよう',
+            subtitle: '同じ漢字や同じ名前候補が見つかると、ここにまとめて表示されます。',
+            footnote: '連携すると、お互いの好みの重なりがすぐわかります。',
+            actionLabel: '連携する'
+        };
+    }
+
+    if (!summary.hasPartner) {
+        return {
+            ...summary,
+            shortText: 'コード共有待ち',
+            title: 'ルームを作成できました',
+            subtitle: 'コードを共有すると、一致候補が自動でまとまり始めます。',
+            footnote: 'パートナーにルームコードを送ってみましょう。',
+            actionLabel: 'コード共有'
+        };
+    }
+
+    const totalMatches = summary.matchedKanjiCount + summary.matchedNameCount;
+    if (totalMatches > 0) {
+        const previewText = summary.previewLabels && summary.previewLabels.length > 0
+            ? summary.previewLabels.slice(0, 3).join(' ・ ')
+            : '一致候補を確認しましょう';
+        return {
+            ...summary,
+            shortText: `${summary.partnerLabel}と ${totalMatches}件 一致`,
+            title: summary.matchedNameCount > 0 ? 'おふたりで同じ名前に反応しています' : '気になる漢字が重なっています',
+            subtitle: previewText,
+            footnote: summary.matchedNameCount > 0 ? '保存候補を開いて、第一候補を絞り込みましょう。' : 'ストックから組み立てると、おふたりの好みが活かせます。',
+            actionLabel: '一致を見る'
+        };
+    }
+
+    return {
+        ...summary,
+        shortText: `${summary.partnerLabel}と連携中`,
+        title: 'まだ一致候補はありません',
+        subtitle: '気になる漢字や名前を保存すると、おふたりの重なりが見えてきます。',
+        footnote: 'まずは候補を同期してみましょう。',
+        actionLabel: '候補を同期'
+    };
+}
+
 function renderHomeProfile() {
-    // 1. スワイプした総数の計算（簡易推計）
-    // 厳密なスワイプ履歴がないため、履歴数(reading_history) × 平均スワイプ数 ＋ LIKE数 で推計
     let swipedCount = 0;
     try {
         const histRaw = localStorage.getItem('meimay_reading_history');
         if (histRaw) {
             const histList = JSON.parse(histRaw);
-            swipedCount = histList.length * 8; // 1度あたり8スワイプと仮定
+            swipedCount = histList.length * 8;
         }
     } catch (e) { }
-    // ストック数などを適当に足し合わせる
+
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
 
-    // もしゼロなら、新規ぽいので仮でいくつか設定したり0にしたりする
     const elSwiped = document.getElementById('home-swiped-count');
     if (elSwiped) elSwiped.innerText = swipedCount + '個';
 
-    // 2. 気に入った名前（保存済み名前）
-    const savedCount = (typeof getSavedNames === 'function') ? getSavedNames().length : (window.savedNames ? window.savedNames.length : 0);
     const elSaved = document.getElementById('home-liked-name-count');
     if (elSaved) elSaved.innerText = savedCount;
 
-    // 3. 漢字ストック数
     const elKanji = document.getElementById('home-liked-kanji-count');
     if (elKanji) elKanji.innerText = likedCount;
 
-    // 4b. 読みストック数
-    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
     const elReadingStock = document.getElementById('home-reading-stock-count');
     if (elReadingStock) elReadingStock.innerText = readingStockCount;
 
-    // 日次残り枚数表示更新
     if (typeof updateDailyRemainingDisplay === 'function') {
         updateDailyRemainingDisplay();
     }
 
-    // 4. あなたの好みの計算 (LIKEタグ集計)
-    const elPref = document.getElementById('home-preference-tags');
-    if (elPref) {
-        if (!liked || liked.length === 0) {
-            elPref.innerText = 'まだデータがありません';
-        } else {
-            const tagCounts = {};
-            liked.forEach(k => {
-                const tags = getUnifiedTags(k['分類'] || '');
-                tags.forEach(t => {
-                    if (t !== '#その他') {
-                        tagCounts[t] = (tagCounts[t] || 0) + 1;
-                    }
-                });
-            });
+    const elPrefHidden = document.getElementById('home-preference-tags');
+    if (elPrefHidden) elPrefHidden.innerText = preference.shortText;
 
-            const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
 
-            if (sortedTags.length === 0) {
-                elPref.innerText = '標準的';
-            } else if (sortedTags.length === 1) {
-                const t1 = KANJI_CATEGORIES[sortedTags[0][0]]?.label || sortedTags[0][0].replace('#', '');
-                elPref.innerText = t1;
-            } else {
-                const t1 = KANJI_CATEGORIES[sortedTags[0][0]]?.label || sortedTags[0][0].replace('#', '');
-                const t2 = KANJI_CATEGORIES[sortedTags[1][0]]?.label || sortedTags[1][0].replace('#', '');
-                elPref.innerText = `${t1} × ${t2}`;
-            }
-        }
-    }
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
 }
+
+function openHomeInsightsModal() {
+    closeHomeInsightsModal();
+
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const dailyText = document.getElementById('home-daily-remaining')?.innerText || '今日のカード 残り -';
+    const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
+        ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
+        : '<div class="text-[11px] text-[#a6967a]">一致候補が見つかると、ここに表示されます。</div>';
+
+    const modal = document.createElement('div');
+    modal.id = 'home-insights-modal';
+    modal.className = 'overlay active';
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md max-h-[82vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeHomeInsightsModal()">✕</button>
+            <div class="pt-4 pb-2">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Dashboard</div>
+                <h3 class="text-xl font-black text-[#5d5444] mb-2">いまの命名ダッシュボード</h3>
+                <p class="text-sm text-[#8b7e66] leading-relaxed">今日の進み具合と、おふたりの重なりをひと目で確認できます。</p>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-4">
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${liked.length}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">漢字ストック</div>
+                </div>
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${savedList.length}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">保存名</div>
+                </div>
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${pairing.matchedKanjiCount + pairing.matchedNameCount}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">ペア一致</div>
+                </div>
+            </div>
+            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Today</div>
+                <div class="text-sm font-bold text-[#5d5444]">${dailyText}</div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Taste</div>
+                <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase mb-2">Partner</div>
+                <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
+                <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function closeHomeInsightsModal() {
+    document.getElementById('home-insights-modal')?.remove();
+}
+
+async function handleHomePairAction() {
+    const pairing = getPairingHomeSummary();
+
+    if (!pairing.inRoom) {
+        changeScreen('scr-login');
+        return;
+    }
+
+    if (!pairing.hasPartner) {
+        if (typeof MeimayPairing !== 'undefined' && MeimayPairing.shareCode) {
+            MeimayPairing.shareCode();
+        } else {
+            changeScreen('scr-login');
+        }
+        return;
+    }
+
+    if (pairing.matchedNameCount > 0 && typeof openSavedNames === 'function') {
+        openSavedNames();
+        return;
+    }
+
+    if (pairing.matchedKanjiCount > 0) {
+        changeScreen('scr-stock');
+        if (typeof renderStock === 'function') renderStock();
+        return;
+    }
+
+    if (typeof MeimayShare !== 'undefined') {
+        if (MeimayShare.shareLiked) await MeimayShare.shareLiked(true);
+        if (MeimayShare.shareSavedNames) await MeimayShare.shareSavedNames(true);
+    }
+    if (typeof showToast === 'function') showToast('候補をパートナーに同期しました', '📤');
+}
+
 window.renderHomeProfile = renderHomeProfile;
+window.openHomeInsightsModal = openHomeInsightsModal;
+window.closeHomeInsightsModal = closeHomeInsightsModal;
+window.handleHomePairAction = handleHomePairAction;
 
 // 初期化時にも呼ばれるようにする
 setTimeout(() => {
