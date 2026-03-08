@@ -3131,6 +3131,282 @@ window.openBuildFromReading = openBuildFromReading;
 window.closeReadingCombinationModal = closeReadingCombinationModal;
 window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
 window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
+
+function getStrictReadingMatch(item, segment, options = {}) {
+    const target = toHira(segment || '');
+    if (!target || !item) return null;
+
+    const allowVoicedFallback = options.segmentIndex > 0;
+    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+    const targetSokuon = target.replace(/\u3063$/, '\u3064');
+    const majorReadings = ((item['\u97F3'] || '') + ',' + (item['\u8A13'] || ''))
+        .split(/[\u3001,\uFF0C\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+    const minorReadings = (item['\u4F1D\u7D71\u540D\u306E\u308A'] || '')
+        .split(/[\u3001,\uFF0C\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+
+    if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
+        return { tier: 1 };
+    }
+
+    if (minorReadings.includes(target) || (targetSokuon !== target && minorReadings.includes(targetSokuon))) {
+        return { tier: 2 };
+    }
+
+    if (allowVoicedFallback && target !== targetSeion && majorReadings.includes(targetSeion)) {
+        return { tier: 3 };
+    }
+
+    return null;
+}
+
+function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = gender || 'neutral', options = {}) {
+    const target = toHira(segment || '');
+    if (!target || !master || master.length === 0) return [];
+
+    const segmentIndex = Number(options.segmentIndex || 0);
+    const cacheKey = `strict::${target}::${targetGender}::${segmentIndex}`;
+    if (readingKanjiCache.has(cacheKey)) {
+        return readingKanjiCache.get(cacheKey).slice(0, limit);
+    }
+
+    const unique = [];
+    const seen = new Set();
+
+    master
+        .filter(item => {
+            const flag = item['\u4E0D\u9069\u5207\u30D5\u30E9\u30B0'];
+            if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
+            if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(item, targetGender)) return false;
+            return !!getStrictReadingMatch(item, target, { segmentIndex });
+        })
+        .map(item => {
+            const match = getStrictReadingMatch(item, target, { segmentIndex });
+            return {
+                ...item,
+                _readingMatchTier: match ? match.tier : 99,
+                _recommendationScore: typeof getKanjiRecommendationScore === 'function'
+                    ? getKanjiRecommendationScore(item, targetGender)
+                    : ((parseInt(item['\u304A\u3059\u3059\u3081\u5EA6']) || 0) * 100),
+                _genderPriority: typeof getKanjiGenderPriority === 'function'
+                    ? getKanjiGenderPriority(item, targetGender)
+                    : 1
+            };
+        })
+        .sort((a, b) => {
+            if (a._readingMatchTier !== b._readingMatchTier) return a._readingMatchTier - b._readingMatchTier;
+            if (a._genderPriority !== b._genderPriority) return a._genderPriority - b._genderPriority;
+            if (a._recommendationScore !== b._recommendationScore) return b._recommendationScore - a._recommendationScore;
+            if (typeof calculateKanjiScore === 'function') return calculateKanjiScore(b) - calculateKanjiScore(a);
+            return 0;
+        })
+        .forEach(item => {
+            const kanji = (item['\u6F22\u5B57'] || '').trim();
+            if (!kanji || seen.has(kanji)) return;
+            seen.add(kanji);
+            unique.push(item);
+        });
+
+    readingKanjiCache.set(cacheKey, unique.slice(0, 12));
+    return unique.slice(0, limit);
+}
+
+function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
+    if (!Array.isArray(path) || path.length === 0) return [];
+
+    const groups = path.map((segment, index) => {
+        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 12, targetGender, { segmentIndex: index });
+        const pool = rawGroup
+            .slice(0, 10)
+            .map((item, itemIndex) => ({
+                ...item,
+                _poolOrder: itemIndex,
+                _displayNoise: Math.random() * 42
+            }))
+            .sort((a, b) => {
+                const aScore = (a._recommendationScore || 0) - (a._poolOrder * 16) + a._displayNoise;
+                const bScore = (b._recommendationScore || 0) - (b._poolOrder * 16) + b._displayNoise;
+                return bScore - aScore;
+            });
+        return pool;
+    });
+
+    if (groups.some(group => !group || group.length === 0)) return [];
+
+    const allResults = [];
+    const seenNames = new Set();
+    const maxResults = Math.max(limit * 20, 36);
+
+    function build(index, pieces, score, usedKanji) {
+        if (allResults.length >= maxResults) return;
+
+        if (index >= groups.length) {
+            const givenName = pieces.map(piece => piece['漢字']).join('');
+            if (!givenName || seenNames.has(givenName)) return;
+            seenNames.add(givenName);
+            allResults.push({
+                givenName,
+                score: score + Math.random() * 18,
+                combination: pieces.map(piece => ({ ...piece }))
+            });
+            return;
+        }
+
+        groups[index].forEach((piece) => {
+            const kanji = piece['漢字'];
+            if (!kanji || usedKanji.has(kanji) || allResults.length >= maxResults) return;
+
+            const nextUsed = new Set(usedKanji);
+            nextUsed.add(kanji);
+
+            const pieceScore =
+                (piece._recommendationScore || 0) -
+                ((piece._readingMatchTier || 1) - 1) * 40 -
+                ((piece._poolOrder || 0) * 12);
+
+            build(index + 1, [...pieces, piece], score + pieceScore, nextUsed);
+        });
+    }
+
+    build(0, [], 0, new Set());
+
+    const sorted = allResults
+        .sort((a, b) => b.score - a.score)
+        .map(result => ({
+            ...result,
+            fullName: surnameStr ? `${surnameStr} ${result.givenName}` : result.givenName
+        }));
+
+    return pickReadingDisplayCandidates(sorted, limit);
+}
+
+function getReadingCardTagBadges(tags) {
+    if (!tags || tags.length === 0) return '';
+    return `<div class="flex flex-wrap justify-center gap-2 mb-4 px-2">${tags.map(tag => `
+        <span class="inline-flex items-center px-3 py-1 text-[11px] font-bold rounded-full border border-white/40 bg-white/35 text-[#4f4639] backdrop-blur-sm shadow-sm">${tag}</span>
+    `).join('')}</div>`;
+}
+
+function renderReadingSwipeCard(item) {
+    const preview = getReadingFullNamePreview(item.reading);
+    return `
+        <div class="w-full rounded-[34px] border border-[rgba(225,196,148,0.95)] shadow-[0_18px_40px_rgba(93,84,68,0.14)] px-5 py-6"
+            style="background:
+                radial-gradient(circle at top left, rgba(255,255,255,0.86), transparent 34%),
+                linear-gradient(145deg, rgba(236,241,249,0.96) 0%, rgba(230,236,245,0.94) 45%, rgba(221,228,239,0.96) 100%);
+            ">
+            <div class="text-[12px] font-bold text-[#8b7e66] mb-3 tracking-[0.08em] text-center">${preview.ruby}</div>
+            ${getReadingCardTagBadges(item.tags)}
+            <div class="text-[54px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+            <div class="w-full px-2 mt-2">
+                <div class="rounded-[28px] p-4 border border-white/70 max-w-[290px] mx-auto shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
+                    style="background:linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.62));">
+                    <p class="text-[10px] text-[#a6967a] text-center mb-3 font-bold">上位の漢字候補</p>
+                    <div class="flex justify-center flex-wrap gap-x-3 gap-y-2 text-[#5d5444] font-bold text-lg">
+                        ${getSampleKanjiHtml(item)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function openReadingCombinationModal(item, baseNickname = '') {
+    closeReadingCombinationModal();
+
+    const options = getReadingSegmentOptions(item.reading, 4);
+    const preview = getReadingFullNamePreview(item.reading);
+    readingCombinationModalState = {
+        item: { ...item, baseNickname },
+        options
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'reading-combination-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeReadingCombinationModal();
+    };
+
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
+            <div class="text-center mb-5">
+                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
+                <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
+            </div>
+            ${renderReadingTagBadges(item.tags || [])}
+            <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
+                ${options.length === 0 ? `
+                    <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
+                        この読みでは候補がまだ見つかりませんでした。
+                    </div>
+                ` : options.map((option, index) => {
+                    const candidateHtml = option.candidates.length > 0
+                        ? option.candidates.map((candidate, candidateIndex) => `
+                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="min-w-0">
+                                        <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
+                                        <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">候補</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
+                    return `
+                        <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
+                            <div class="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
+                                    <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                            </div>
+                            <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function getSampleKanjiHtml(item) {
+    const options = getReadingSegmentOptions(item.reading, 2);
+    const examples = [];
+
+    options.forEach((option) => {
+        option.candidates.slice(0, 2).forEach((candidate) => {
+            const label = candidate.givenName;
+            if (!examples.includes(label)) {
+                examples.push(label);
+            }
+        });
+    });
+
+    if (examples.length === 0) {
+        return '<span class="text-xs text-[#d4c5af]">候補なし</span>';
+    }
+
+    return examples.slice(0, 4).map((example) =>
+        `<span class="text-base font-bold mx-1">${example}</span>`
+    ).join('');
+}
+
+window.closeReadingCombinationModal = closeReadingCombinationModal;
+window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
+window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
 window.addMoreForReading = addMoreForReading;
 window.inheritModalAction = inheritModalAction;
 window.showToast = showToast;

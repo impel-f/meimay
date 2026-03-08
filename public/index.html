@@ -237,7 +237,7 @@
             <div class="w-full max-w-sm">
                 <div onclick="openHomeInsightsModalFromEvent(event)" role="button" tabindex="0"
                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHomeInsightsModalFromEvent(event);}"
-                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-4 shadow-sm text-left active:scale-[0.98] transition-transform cursor-pointer">
+                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-3 shadow-sm text-left active:scale-[0.98] transition-transform cursor-pointer">
                     <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-r from-[#fbf4e7] via-[#fffaf2] to-[#f4f2fb] opacity-95"></div>
                     <div class="relative">
                         <div class="flex items-start justify-between gap-3">
@@ -245,7 +245,7 @@
                                 <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">ホーム</div>
                                 <div class="mt-1 text-[18px] font-black text-[#4f4639] leading-tight">いまの名づけ状況</div>
                                 <div class="mt-2 text-[13px] font-black text-[#5d5444] leading-snug" id="home-next-step-title">読み候補を探す</div>
-                                <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-next-step-detail">読みが決まっていないので、まずは響き・読みから始めましょう。</div>
+                                <div class="hidden mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-next-step-detail"></div>
                             </div>
                             <div class="relative shrink-0" style="width:68px; height:74px;">
                                 <div class="absolute rounded-2xl shadow-sm" style="width:44px; height:56px; background:linear-gradient(145deg,#fbf2e3,#efdfc5); border:1.5px solid #d7c3a3; transform:rotate(-10deg) translate(0,10px);"></div>
@@ -303,7 +303,7 @@
                         </div>
                         <div class="mt-1 text-[14px] font-black text-[#4f4639] leading-snug" id="home-partner-match-title">パートナー連携はまだ未設定です</div>
                         <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-partner-match-subtitle">必要になったら連携できます。</div>
-                        <div id="home-pair-code-row" class="hidden mt-3 flex items-center justify-between gap-2 rounded-2xl border border-[#eee4d6] bg-[#fffaf2] px-3 py-2">
+                        <div id="home-pair-code-row" class="hidden mt-3 flex items-center justify-between gap-2 rounded-2xl border border-[#e7d7bf] bg-[#fff6e8] px-3 py-2">
                             <div class="min-w-0">
                                 <div class="text-[9px] font-black tracking-wide text-[#b9965b]">ルームコード</div>
                                 <div class="mt-1 text-[15px] font-black tracking-[0.18em] text-[#4f4639]" id="home-pair-room-code">------</div>

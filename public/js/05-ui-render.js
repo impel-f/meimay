@@ -1840,5 +1840,250 @@ window.updateSwipeMainState = updateSwipeMainState;
 window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
 
+function canDismissHomePairCard(pairing) {
+    const totalMatches = (pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0);
+    return !pairing?.hasPartner && totalMatches === 0;
+}
+
+function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
+    const breakdown = getHomeCollectionBreakdown(typeof liked !== 'undefined' ? liked : [], readingStockCount);
+
+    if ((pairing?.matchedNameCount || 0) >= 1) {
+        return {
+            title: '一致した名前候補を見る',
+            detail: 'ふたりで一致した候補が見つかっています。',
+            actionLabel: '保存済みを見る',
+            action: 'saved'
+        };
+    }
+
+    if ((pairing?.matchedKanjiCount || 0) >= 1) {
+        return {
+            title: '一致した漢字を確認する',
+            detail: '共通で気になった漢字があります。',
+            actionLabel: 'ストックを見る',
+            action: 'stock'
+        };
+    }
+
+    if (readingStockCount === 0) {
+        return {
+            title: '読み候補を集める',
+            detail: 'まずは響きや呼びやすさから候補を集めましょう。',
+            actionLabel: '響き・読みを探す',
+            action: 'sound'
+        };
+    }
+
+    if (breakdown.readingDerivedCount <= 0) {
+        return {
+            title: '読みから漢字を探す',
+            detail: '読み候補ごとに漢字材料を集めるタイミングです。',
+            actionLabel: '読みから漢字を探す',
+            action: 'reading'
+        };
+    }
+
+    if (savedCount < 2) {
+        return {
+            title: '名前候補を作って比べる',
+            detail: '材料が集まってきたので、ビルドで候補を増やせます。',
+            actionLabel: 'ビルドへ進む',
+            action: 'build'
+        };
+    }
+
+    return {
+        title: '保存した候補を見比べる',
+        detail: '候補が複数あるので、比較しながら絞り込みを進められます。',
+        actionLabel: '保存済みを見る',
+        action: 'saved'
+    };
+}
+
+function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
+    const readingGoal = 3;
+    const kanjiGoal = 6;
+    const savedGoal = 2;
+
+    return {
+        stageTitle:
+            savedCount >= savedGoal ? '比較できる材料がそろってきました' :
+            likedCount >= kanjiGoal ? '名前候補を作れる材料が集まっています' :
+            readingStockCount >= readingGoal ? '読み候補が集まってきました' :
+            '材料を集めているところです',
+        steps: [
+            {
+                label: '読み候補',
+                short: `${Math.min(readingStockCount, readingGoal)} / ${readingGoal}`,
+                detail: readingStockCount >= readingGoal ? '準備OK' : `あと ${Math.max(readingGoal - readingStockCount, 0)} 件`
+            },
+            {
+                label: '漢字材料',
+                short: `${Math.min(likedCount, kanjiGoal)} / ${kanjiGoal}`,
+                detail: likedCount >= kanjiGoal ? '準備OK' : `あと ${Math.max(kanjiGoal - likedCount, 0)} 件`
+            },
+            {
+                label: '比較候補',
+                short: `${Math.min(savedCount, savedGoal)} / ${savedGoal}`,
+                detail: savedCount >= savedGoal ? '比較OK' : `あと ${Math.max(savedGoal - savedCount, 0)} 件`
+            }
+        ]
+    };
+}
+
+function renderHomeProfile() {
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8;
+        }
+    } catch (e) { }
+
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount;
+
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount;
+
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = timeline.stageTitle;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) {
+        nextStepDetailEl.innerText = '';
+        nextStepDetailEl.classList.add('hidden');
+    }
+
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = `${timeline.steps[0].label} ${timeline.steps[0].short}`;
+
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = `${timeline.steps[1].label} ${timeline.steps[1].short}`;
+
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = `${timeline.steps[2].label} ${timeline.steps[2].short}`;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) {
+        const codeText = pairing.roomCode && !pairing.hasPartner ? `ルームコード ${pairing.roomCode}` : pairing.footnote;
+        elPartnerFootnote.innerText = codeText;
+    }
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const pairCodeRow = document.getElementById('home-pair-code-row');
+    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
+
+    const pairCodeEl = document.getElementById('home-pair-room-code');
+    if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+}
+
+function openHomeInsightsModal() {
+    closeHomeInsightsModal();
+
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
+    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedList.length);
+    const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
+        ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
+        : '<div class="text-[11px] text-[#a6967a]">一致や共通候補が出るとここに表示されます。</div>';
+    const timelineHtml = timeline.steps.map((step, index) => `
+        <div class="rounded-2xl border border-[#eee5d8] bg-white px-4 py-3">
+            <div class="text-[10px] font-black tracking-[0.16em] text-[#b9965b]">STEP ${index + 1}</div>
+            <div class="mt-1 text-sm font-bold text-[#5d5444]">${step.label}</div>
+            <div class="mt-2 flex items-end justify-between gap-2">
+                <div class="text-xl font-black text-[#4f4639]">${step.short}</div>
+                <div class="text-[11px] font-bold text-[#8b7e66]">${step.detail}</div>
+            </div>
+        </div>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'home-insights-modal';
+    modal.className = 'overlay active';
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md max-h-[82vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeHomeInsightsModal()">×</button>
+            <div class="pt-4 pb-2">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Dashboard</div>
+                <h3 class="text-xl font-black text-[#4f4639] mb-2">名づけの進み具合</h3>
+                <p class="text-sm text-[#8b7e66] leading-relaxed">名づけに必要な材料が、どこまで集まっているかを見られます。</p>
+            </div>
+            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次のおすすめ</div>
+                <div class="text-sm font-bold text-[#5d5444]">${nextStep.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
+                <button onclick="handleHomeNextStepAction(event)" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
+            </div>
+            <div class="mt-3 grid grid-cols-1 gap-2">${timelineHtml}</div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">漢字の傾向</div>
+                <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">ペア状態</div>
+                <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
+                ${pairing.roomCode && !pairing.hasPartner ? `<div class="mt-3 inline-flex items-center gap-2 rounded-full border border-[#e7d7bf] bg-[#fff6e8] px-3 py-2 text-[12px] font-black text-[#4f4639]">コード ${pairing.roomCode}</div>` : ''}
+                <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', closeHomeInsightsModal);
+    document.body.appendChild(modal);
+}
+
+window.renderHomeProfile = renderHomeProfile;
+window.openHomeInsightsModal = openHomeInsightsModal;
+
 
 
