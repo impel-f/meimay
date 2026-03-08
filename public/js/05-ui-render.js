@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 05: UI RENDER (V14.1 - タップ範囲拡大版)
    カード描画・詳細表示
    ============================================================ */
@@ -724,28 +724,112 @@ function getInviteTargetLabel(myRole) {
     return 'パートナー';
 }
 
-function getHomeCollectionSummaryText(breakdown) {
-    const readingCount = breakdown?.readingStockCount || 0;
-    const kanjiFromReadingCount = breakdown?.readingDerivedCount || 0;
-    const directCount = breakdown?.directSwipeCount || 0;
+function getHomeCollectionSummaryText(readingStock) {
+    const safeStock = Array.isArray(readingStock) ? readingStock : [];
+    const tagCounts = {};
 
-    if (readingCount === 0 && kanjiFromReadingCount === 0 && directCount === 0) {
-        return 'まだ読みは未定';
+    safeStock.forEach(item => {
+        const tags = Array.isArray(item?.tags) ? item.tags : [];
+        tags.forEach(tag => {
+            if (!tag) return;
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+    });
+
+    if (Object.keys(tagCounts).length === 0 && typeof getReadingHistory === 'function') {
+        const history = getReadingHistory().slice(0, 8);
+        history.forEach(entry => {
+            const tags = Array.isArray(entry?.settings?.imageTags) ? entry.settings.imageTags : [];
+            tags.forEach(tag => {
+                if (!tag) return;
+                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+            });
+        });
     }
 
-    if (readingCount > 0 && kanjiFromReadingCount === 0) {
-        return `読み候補 ${readingCount}件`;
+    const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([tag]) => tag.startsWith('#') ? tag : `#${tag}`);
+
+    if (topTags.length > 0) {
+        return topTags.join(' ');
     }
 
-    if (readingCount > 0 && kanjiFromReadingCount > 0) {
-        return `読み${readingCount}件 / 漢字化${kanjiFromReadingCount}件`;
+    return safeStock.length > 0 ? `読み候補 ${safeStock.length}件` : 'まだ読み候補なし';
+}
+
+function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairing) {
+    const safeReadingStock = Array.isArray(readingStock) ? readingStock : [];
+    const readingStockCount = safeReadingStock.length;
+    const breakdown = getHomeCollectionBreakdown(typeof liked !== 'undefined' ? liked : [], readingStockCount);
+    const todos = [];
+
+    if (readingStockCount === 0) {
+        todos.push({
+            label: '響き・読みを探して候補をためる',
+            detail: 'まずは呼びたい響きを2〜3件ためると進めやすくなります。',
+            action: 'sound'
+        });
+    } else {
+        todos.push({
+            label: '読み候補から漢字を選ぶ',
+            detail: `読み候補が ${readingStockCount}件 あるので、次は漢字を探していきましょう。`,
+            action: 'reading'
+        });
     }
 
-    if (directCount > 0 && readingCount === 0) {
-        return `直感漢字 ${directCount}件`;
+    if (breakdown.readingDerivedCount >= 2) {
+        todos.push({
+            label: '集まった漢字で名前を組み立てる',
+            detail: '気になる漢字が集まってきたら、ビルドで組み合わせを見てみましょう。',
+            action: 'build'
+        });
+    } else if (readingStockCount > 0) {
+        todos.push({
+            label: '読みごとの漢字候補を増やす',
+            detail: 'まだ漢字が少ない読みがあるので、読みから漢字をもう少し広げるのがおすすめです。',
+            action: 'reading'
+        });
     }
 
-    return `読み${readingCount}件 / 直感${directCount}件`;
+    if (savedCount >= 2) {
+        todos.push({
+            label: '保存した候補を見比べる',
+            detail: '保存名が2件以上あるので、比較しながら絞り込めます。',
+            action: 'saved'
+        });
+    } else if (savedCount === 1) {
+        todos.push({
+            label: '保存候補をもう1つ増やす',
+            detail: '比較しやすくするため、もう1件くらい保存しておくと判断しやすくなります。',
+            action: 'build'
+        });
+    }
+
+    if (pairing?.inRoom && !pairing?.hasPartner) {
+        todos.push({
+            label: `${pairing.inviteTargetLabel}にコードを共有する`,
+            detail: 'パートナーが参加すると、一致漢字や一致名が見られるようになります。',
+            action: 'pair'
+        });
+    } else if (pairing?.hasPartner && ((pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0) === 0)) {
+        todos.push({
+            label: 'パートナーに候補を同期する',
+            detail: 'お互いの候補が増えると、一致が出やすくなります。',
+            action: 'pair'
+        });
+    }
+
+    if (likedCount >= 4 && readingStockCount === 0) {
+        todos.push({
+            label: '直感で集めた漢字を参考に読みを決める',
+            detail: '直感スワイプは補助導線なので、次は読みを固めると本流が進みます。',
+            action: 'sound'
+        });
+    }
+
+    return todos.slice(0, 3);
 }
 
 function getPairingHomeSummary() {
@@ -783,10 +867,10 @@ function getPairingHomeSummary() {
     if (!summary.hasPartner) {
         return {
             ...summary,
-            shortText: summary.roomCode ? `コード ${summary.roomCode}` : 'コード共有待ち',
+            shortText: '連携待ち',
             title: `${summary.myRoleLabel}としてルームを作成済みです`,
             subtitle: `${summary.inviteTargetLabel}にコードを送ると一致が見られます。`,
-            footnote: summary.roomCode ? `ルームコード ${summary.roomCode}` : 'コードを共有しましょう。',
+            footnote: `${summary.inviteTargetLabel}にコードを送りましょう。`,
             actionLabel: 'コード共有'
         };
     }
@@ -881,8 +965,8 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 
     if (breakdown.readingStockCount >= 1 && breakdown.readingDerivedCount < 2) {
         return {
-            title: '読みから漢字候補を増やす段階です',
-            detail: `読み候補 ${breakdown.readingStockCount}件 から漢字を広げましょう。`,
+            title: '読み候補から漢字を探す',
+            detail: `読み候補が ${breakdown.readingStockCount}件 あるので、次は漢字を選んでいきましょう。`,
             actionLabel: '読みから漢字を探す',
             action: 'reading'
         };
@@ -899,8 +983,8 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 
     if (breakdown.directSwipeCount >= 1 && breakdown.readingStockCount === 0) {
         return {
-            title: '先に読み候補を決めると進めやすいです',
-            detail: '直感で集めた漢字があります。次は響き・読みを決めましょう。',
+            title: '読み候補を先に決める',
+            detail: 'まず読みを決めると、漢字を選びやすくなります。',
             actionLabel: '響き・読みを探す',
             action: 'sound'
         };
@@ -908,19 +992,66 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 
     if (likedCount >= 4 && breakdown.readingStockCount === 0) {
         return {
-            title: '読み候補を集める段階です',
-            detail: '漢字は集まり始めています。次は読みを決めるのがおすすめです。',
+            title: '読み候補を探す',
+            detail: '読みが決まると、漢字探しとビルドが進めやすくなります。',
             actionLabel: '響き・読みを探す',
             action: 'sound'
         };
     }
 
     return {
-        title: 'まずは読み候補を探す段階です',
-        detail: '読みがまだ決まっていないので、響き・読みから始めましょう。',
+        title: '読み候補を探す',
+        detail: '読みが決まっていないので、まずは響き・読みから始めましょう。',
         actionLabel: '響き・読みを探す',
         action: 'sound'
     };
+}
+
+function runHomeAction(action) {
+    if (action === 'saved' && typeof openSavedNames === 'function') {
+        openSavedNames();
+        return;
+    }
+
+    if (action === 'stock') {
+        changeScreen('scr-stock');
+        if (typeof renderStock === 'function') renderStock();
+        return;
+    }
+
+    if (action === 'build') {
+        if (typeof openBuild === 'function') {
+            openBuild();
+        } else {
+            changeScreen('scr-build');
+        }
+        return;
+    }
+
+    if (action === 'free' && typeof startDirectKanjiSwipe === 'function') {
+        startDirectKanjiSwipe();
+        return;
+    }
+
+    if (action === 'pair') {
+        handleHomePairAction();
+        return;
+    }
+
+    if (action === 'sound') {
+        if (typeof startMode === 'function') {
+            startMode('sound');
+        }
+        return;
+    }
+
+    if (action === 'reading') {
+        if (typeof startMode === 'function') {
+            startMode('reading');
+        } else {
+            changeScreen('scr-input-reading');
+        }
+    }
 }
 
 function handleHomeNextStepAction(event) {
@@ -930,52 +1061,23 @@ function handleHomeNextStepAction(event) {
     }
 
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
-    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
 
     closeHomeInsightsModal();
+    runHomeAction(nextStep.action);
+}
 
-    if (nextStep.action === 'saved' && typeof openSavedNames === 'function') {
-        openSavedNames();
-        return;
+function handleHomeTodoAction(action, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
     }
-
-    if (nextStep.action === 'stock') {
-        changeScreen('scr-stock');
-        if (typeof renderStock === 'function') renderStock();
-        return;
-    }
-
-    if (nextStep.action === 'build') {
-        if (typeof openBuild === 'function') {
-            openBuild();
-        } else {
-            changeScreen('scr-build');
-        }
-        return;
-    }
-
-    if (nextStep.action === 'free' && typeof startDirectKanjiSwipe === 'function') {
-        startDirectKanjiSwipe();
-        return;
-    }
-
-    if (nextStep.action === 'sound') {
-        if (typeof startMode === 'function') {
-            startMode('sound');
-        }
-        return;
-    }
-
-    if (nextStep.action === 'reading') {
-        if (typeof startMode === 'function') {
-            startMode('reading');
-        } else {
-            changeScreen('scr-input-reading');
-        }
-    }
+    closeHomeInsightsModal();
+    runHomeAction(action);
 }
 
 function openHomeInsightsModalFromEvent(event) {
@@ -1000,11 +1102,11 @@ function renderHomeProfile() {
     swipedCount += likedCount;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const savedCount = savedList.length;
-    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
-    const breakdown = getHomeCollectionBreakdown(liked, readingStockCount);
     const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
 
     const elSwiped = document.getElementById('home-swiped-count');
@@ -1048,7 +1150,7 @@ function renderHomeProfile() {
     if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
 
     const pairCodeRow = document.getElementById('home-pair-code-row');
-    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !pairing.inRoom || !pairing.roomCode);
+    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !pairing.inRoom || !pairing.roomCode || pairing.hasPartner);
 
     const pairCodeEl = document.getElementById('home-pair-room-code');
     if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
@@ -1063,7 +1165,7 @@ function renderHomeProfile() {
     if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
 
     const collectionSummaryEl = document.getElementById('home-collection-summary');
-    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(breakdown);
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
 
     const pairCard = document.getElementById('home-pair-card');
     if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
@@ -1080,18 +1182,27 @@ function openHomeInsightsModal() {
 
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
-    const readingStockCount = (typeof getReadingStock === 'function') ? getReadingStock().length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
     const preference = getHomePreferenceSummary(liked);
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
+    const todoRecommendations = getHomeTodoRecommendations(likedCount, readingStock, savedList.length, pairing);
+    const readingTrend = getHomeCollectionSummaryText(readingStock);
 
     const breakdown = getHomeCollectionBreakdown(liked, readingStockCount);
     const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
         ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
         : '<div class="text-[11px] text-[#a6967a]">一致候補が見つかると、ここに表示されます。</div>';
-    const pairCodeHtml = pairing.roomCode
+    const pairCodeHtml = pairing.roomCode && !pairing.hasPartner
         ? `<div class="mt-3 inline-flex items-center gap-2 rounded-full border border-[#eee5d8] bg-[#fffaf2] px-3 py-1.5 text-[11px] font-bold text-[#5d5444]">ルームコード ${pairing.roomCode}</div>`
         : '';
+    const todoHtml = todoRecommendations.map(item => `
+        <button onclick="handleHomeTodoAction('${item.action}', event)" class="w-full text-left rounded-2xl border border-[#eee5d8] bg-white px-4 py-3 active:scale-[0.99] transition-transform">
+            <div class="text-[12px] font-bold text-[#5d5444]">${item.label}</div>
+            <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed">${item.detail}</div>
+        </button>
+    `).join('');
 
     const modal = document.createElement('div');
     modal.id = 'home-insights-modal';
@@ -1110,6 +1221,10 @@ function openHomeInsightsModal() {
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
                 <button onclick="handleHomeNextStepAction(event)" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
             </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次のやること</div>
+                <div class="space-y-2">${todoHtml}</div>
+            </div>
             <div class="grid grid-cols-3 gap-2 mt-3">
                 <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
                     <div class="text-xl font-black text-[#5d5444]">${likedCount}</div>
@@ -1125,7 +1240,7 @@ function openHomeInsightsModal() {
                 </div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">読みの状況</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">読み候補の進み具合</div>
                 <div class="grid grid-cols-3 gap-2">
                     <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
                         <div class="text-lg font-black text-[#5d5444]">${breakdown.readingStockCount}</div>
@@ -1140,6 +1255,8 @@ function openHomeInsightsModal() {
                         <div class="text-[10px] text-[#a6967a] mt-1">直感から漢字</div>
                     </div>
                 </div>
+                <div class="mt-3 text-[11px] font-bold text-[#5d5444]">${readingTrend}</div>
+                <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed">${readingStockCount > 0 ? '読み候補があるので、次は読みごとに漢字を集めると進めやすいです。' : 'まだ読みが決まっていないので、まずは響きや呼びやすさから候補をためるのがおすすめです。'}</div>
             </div>
 
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
@@ -1225,6 +1342,7 @@ window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.closeHomeInsightsModal = closeHomeInsightsModal;
 window.handleHomePairAction = handleHomePairAction;
 window.handleHomeNextStepAction = handleHomeNextStepAction;
+window.handleHomeTodoAction = handleHomeTodoAction;
 window.dismissHomePairCard = dismissHomePairCard;
 window.restoreHomePairCard = restoreHomePairCard;
 window.copyHomePairCode = copyHomePairCode;
@@ -1238,3 +1356,6 @@ setTimeout(() => {
 }, 500);
 
 console.log("UI RENDER: Module loaded (v14.3 - Added renderHomeProfile)");
+
+
+

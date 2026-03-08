@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 04: UI FLOW (V14.3)
    ウィザード進行・モード管理
    ============================================================ */
@@ -289,6 +289,7 @@ function submitVibe() {
         startFreeSwiping();
     } else {
         isFreeSwipeMode = false;
+        window._addMoreFromBuild = false;
         // 苗字はウィザードで設定済みなので直接スワイプ開始
         startSwiping();
     }
@@ -308,7 +309,7 @@ function initSoundMode() {
         subtitle: '気に入った名前の響きをスワイプ',
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading);
+                addReadingToStock(item.reading, '', item.tags || []);
             }
         },
         renderCard: (item) => {
@@ -407,7 +408,7 @@ function initAdanaMode() {
                     subtitle: `「${nicknameBaseReading}」をベースにした候補`,
                     onLike: (item) => {
                         if (typeof addReadingToStock === 'function') {
-                            addReadingToStock(item.reading, nicknameBaseReading);
+                            addReadingToStock(item.reading, nicknameBaseReading, item.tags || []);
                         }
                     },
                     renderCard: (item) => {
@@ -736,7 +737,7 @@ function processNickname() {
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading);
+                addReadingToStock(item.reading, nicknameBaseReading, item.tags || []);
             }
         },
         renderCard: (item) => {
@@ -795,7 +796,7 @@ function showNicknameReadingSelectionWithStock(items) {
             list.classList.add('hidden');
             // 選ばれなかったものをストックに追加
             const others = items.filter(i => i.reading !== item.reading);
-            others.forEach(o => addReadingToStock(o.reading));
+            others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || []));
             if (others.length > 0) {
                 showToast(`${others.length}件の読みをストックに保存しました`);
             }
@@ -820,6 +821,7 @@ function showNicknameReadingSelection(items) {
  */
 function proceedWithNicknameReading(reading) {
     console.log("Nickname: Proceeding with reading", reading);
+    window._addMoreFromBuild = false;
 
     // 読みをin-nameに設定
     const nameInput = document.getElementById('in-name');
@@ -1520,6 +1522,7 @@ function startFreeSwiping() {
 
 function finishFreeModeToHome() {
     isFreeSwipeMode = false;
+    window._addMoreFromBuild = false;
     changeScreen('scr-mode');
 }
 
@@ -1913,6 +1916,7 @@ function autoInheritSameReadings() { }
 function startSwiping() {
     console.log("UI_FLOW: Starting swipe mode");
     isFreeSwipeMode = false;
+    window._addMoreFromBuild = false;
 
     if (typeof updateSurnameData === 'function') {
         updateSurnameData();
@@ -2057,17 +2061,34 @@ function saveReadingStock(stock) {
     }
 }
 
-function addReadingToStock(reading, baseNickname) {
+function addReadingToStock(reading, baseNickname, tags) {
     const stock = getReadingStock();
-    if (!stock.some(s => s.reading === reading)) {
-        stock.push({
-            reading: reading,
-            baseNickname: baseNickname || nicknameBaseReading || '',
-            addedAt: new Date().toISOString()
-        });
-        saveReadingStock(stock);
-        console.log("STOCK: Added reading to stock:", reading, "from:", baseNickname);
+    const normalizedTags = Array.isArray(tags)
+        ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
+        : [];
+    const existing = stock.find(s => s.reading === reading);
+
+    if (existing) {
+        const mergedTags = [...new Set([...(existing.tags || []), ...normalizedTags])];
+        const shouldSave = mergedTags.length !== (existing.tags || []).length || (!existing.baseNickname && (baseNickname || nicknameBaseReading));
+        existing.tags = mergedTags;
+        if (!existing.baseNickname && (baseNickname || nicknameBaseReading)) {
+            existing.baseNickname = baseNickname || nicknameBaseReading || '';
+        }
+        if (shouldSave) {
+            saveReadingStock(stock);
+        }
+        return;
     }
+
+    stock.push({
+        reading: reading,
+        baseNickname: baseNickname || nicknameBaseReading || '',
+        tags: normalizedTags,
+        addedAt: new Date().toISOString()
+    });
+    saveReadingStock(stock);
+    console.log("STOCK: Added reading to stock:", reading, "from:", baseNickname, "tags:", normalizedTags);
 }
 
 function removeReadingFromStock(reading) {
@@ -2270,6 +2291,7 @@ function addMoreForReading(reading) {
         const nameInput = document.getElementById('in-name');
         if (nameInput) nameInput.value = reading;
     }
+    window._addMoreFromBuild = false;
     if (typeof updateSurnameData === 'function') updateSurnameData();
     currentPos = 0;
     swipes = 0;
@@ -2285,6 +2307,7 @@ function startReadingFromStock(reading) {
     console.log("STOCK: Starting kanji search from stock reading:", reading);
     removeReadingFromStock(reading);
     appMode = 'nickname';
+    window._addMoreFromBuild = false;
     proceedWithNicknameReading(reading);
 }
 
@@ -2324,6 +2347,7 @@ function startMultiReadingKanjiFlow(readings) {
     calcSegments();
 
     // startSwiping相当の処理
+    window._addMoreFromBuild = false;
     if (typeof updateSurnameData === 'function') updateSurnameData();
     currentPos = 0;
     swipes = 0;
@@ -3442,5 +3466,6 @@ window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
+
 
 

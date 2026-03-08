@@ -267,12 +267,15 @@ function loadStack() {
 
     if (btnPrev) {
         btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+        btnPrev.onclick = () => prevChar();
 
         // 1文字目の場合は「戻る」表記にするなどの調整も可能だが、統一感のためアイコンのままでも可
         // ここでは特段の見た目変更はせず、機能のみ有効化
     }
 
     if (btnNext) {
+        window._addMoreFromBuild = currentPos >= segments.length - 1 ? window._addMoreFromBuild : false;
+        btnNext.onclick = () => nextChar();
         if (currentPos < segments.length - 1) {
             btnNext.innerHTML = '次へ &gt;';
             // Outline style
@@ -621,3 +624,4 @@ function isDakutenMatch(a, b) {
 
     return normalize(a) === normalize(b);
 }
+
