@@ -6,6 +6,7 @@
 let appMode = 'reading'; // reading, nickname, free, diagnosis
 let isFreeSwipeMode = false;
 let selectedVibes = new Set();
+let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 // gender is defined in 01-core.js
 
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
@@ -122,8 +123,9 @@ function initSoundModeEntry() {
     overlay = document.createElement('div');
     overlay.id = 'sound-entry-overlay';
     // フッター（nav-bar）の高さ分だけ下を空けてフッターを見せる
+    // padding-bottom ではなく bottom を指定しないと overlay 背景がフッターを覆ってしまう
     overlay.className = 'overlay active';
-    overlay.style.cssText = 'padding-bottom: 64px;';
+    overlay.style.cssText = 'bottom: 64px;';
     overlay.innerHTML = `
         <div class="detail-sheet text-center" onclick="event.stopPropagation()">
             <div class="text-4xl mb-4">🎵</div>
@@ -159,6 +161,7 @@ function closeSoundEntryAndGo(mode) {
 
     if (mode === 'nickname') {
         appMode = 'nickname';
+        soundModeEntryOrigin = true; // 響きエントリーから来た（戻るボタンでオーバーレイに戻るため）
         changeScreen('scr-input-nickname');
     } else {
         initSoundMode();
@@ -597,7 +600,14 @@ function goBack() {
     if (id === 'scr-gender') {
         changeScreen('scr-mode');
     } else if (id === 'scr-input-reading' || id === 'scr-input-nickname') {
-        changeScreen('scr-mode');
+        if (id === 'scr-input-nickname' && soundModeEntryOrigin) {
+            // 響きモードエントリーから来た場合はオーバーレイに戻る
+            soundModeEntryOrigin = false;
+            changeScreen('scr-mode');
+            initSoundModeEntry();
+        } else {
+            changeScreen('scr-mode');
+        }
     } else if (id === 'scr-nickname-swipe') {
         changeScreen('scr-input-nickname');
     } else if (id === 'scr-tomeji-selection') {
@@ -2719,6 +2729,20 @@ function setClassFilter(val) {
  * 送り仮名対応の読みバリアント抽出
  * 例: "か.わる" → ["かわる", "か"]
  */
+/**
+ * 厳格モード用: 送り仮名を含む完全形のみ返す（語幹を除外）
+ * 例: あ（う） → ['あう']  ※ 語幹の'あ'は含まない
+ * 例: か.わる → ['かわる'] ※ 語幹の'か'は含まない
+ */
+function getFullReadings(rawStr) {
+    if (!rawStr) return [];
+    return rawStr.split(/[、,，\s/]+/).map(raw => {
+        if (!raw.trim()) return null;
+        const full = toHira(raw.trim()).replace(/[^ぁ-んー]/g, '');
+        return full || null;
+    }).filter(Boolean);
+}
+
 function getReadingVariants(rawStr) {
     if (!rawStr) return [];
     return rawStr.split(/[、,，\s/]+/).flatMap(raw => {
@@ -2772,17 +2796,24 @@ function executeKanjiSearch() {
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
 
+        // Nopeした漢字は除外
+        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) return false;
+
         // テキスト検索（読み・漢字のみ）
         if (query || rawQuery) {
             const matchKanji = k['漢字'] === rawQuery;
 
-            // 送り仮名対応読みバリアント（語幹含む）
+            // 送り仮名対応読みバリアント（語幹含む）― 柔軟モード用
             const onReadings = getReadingVariants(k['音'] || '');
             const kunReadings = getReadingVariants(k['訓'] || '');
             const noriReadings = getReadingVariants(k['伝統名のり'] || '');
 
-            // 厳格: 音・訓・名乗り で完全一致（送り仮名の語幹も含む）
-            const strictMatch = [...onReadings, ...kunReadings, ...noriReadings]
+            // 厳格モード用: 語幹（送り仮名除去部分）は含まない完全形のみ
+            // 例: あ（う）→ あう のみ。'あ' 単独では一致させない
+            const onFull = getFullReadings(k['音'] || '');
+            const kunFull = getFullReadings(k['訓'] || '');
+            const noriFull = getFullReadings(k['伝統名のり'] || '');
+            const strictMatch = [...onFull, ...kunFull, ...noriFull]
                 .some(r => r === query || r === querySeion);
 
             let matchReading;
