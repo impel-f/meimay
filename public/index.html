@@ -264,24 +264,65 @@
                 <div class="flex-1 h-px bg-[#e8ddd0]"></div>
             </div>
 
-            <!-- ② メイン2択ボタン（読みから / 響き） -->
+            <!-- ② メイン2択ボタン（左:読みから / 右:響き） -->
             <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
+
+                <!-- LEFT: 読みから漢字を探す -->
                 <button onclick="startMode('reading')"
-                    class="bg-white rounded-2xl p-5 border-2 border-[#d4e4f0] shadow-md flex flex-col items-center gap-2 active:scale-[0.97] transition-transform">
-                    <span class="text-4xl">🔤</span>
-                    <div class="text-center">
-                        <div class="text-[12px] font-black text-[#3a587a] leading-tight">読みから漢字を探す</div>
-                        <div class="text-[9px] text-[#8b9eb5] leading-tight mt-1">読みが決まってる人</div>
+                    class="bg-white rounded-2xl border-2 border-[#c8dcf0] shadow-md flex flex-col active:scale-[0.97] transition-transform overflow-hidden text-left"
+                    style="padding: 12px 10px 11px;">
+
+                    <!-- ビジュアル: 読み入力 → 漢字カード群 -->
+                    <div class="w-full mb-2.5">
+                        <!-- 入力フィールド風 -->
+                        <div class="flex items-center gap-1 mb-2">
+                            <div class="flex-1 bg-[#f0f6ff] border border-[#b8d4f0] rounded-lg px-2 py-1 text-[10px] font-bold text-[#3a587a] tracking-wide">はると</div>
+                            <span class="text-[#bca37f] text-[10px] font-black">→</span>
+                        </div>
+                        <!-- ミニ漢字カード（実際の探す画面のカードデザイン） -->
+                        <div class="flex gap-1">
+                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
+                                style="width:34px; height:42px;">
+                                <span class="text-[15px] font-black text-[#3a587a]">陽</span>
+                            </div>
+                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
+                                style="width:34px; height:42px; transform:rotate(3deg) translateY(3px);">
+                                <span class="text-[15px] font-black text-[#3a587a]">斗</span>
+                            </div>
+                            <div class="flex items-center justify-center bg-gradient-to-b from-[#f5f9ff] to-[#deeaff] border border-[#b8d0f0] rounded-xl shadow-sm flex-shrink-0"
+                                style="width:34px; height:42px; transform:rotate(-2deg) translateY(-2px);">
+                                <span class="text-[15px] font-black text-[#3a587a]">遥</span>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- タイトル・説明 -->
+                    <div class="text-[11px] font-black text-[#3a587a] leading-snug mb-0.5">読みから<br>漢字を探す</div>
+                    <div class="text-[9px] text-[#8b9eb5] leading-snug">希望の読みから<br>理想の漢字を探す</div>
                 </button>
+
+                <!-- RIGHT: 響き・読みを探す -->
                 <button onclick="startMode('sound')"
-                    class="bg-white rounded-2xl p-5 border-2 border-[#d4d4f0] shadow-md flex flex-col items-center gap-2 active:scale-[0.97] transition-transform">
-                    <span class="text-4xl">🎵</span>
-                    <div class="text-center">
-                        <div class="text-[12px] font-black text-[#4a5fa0] leading-tight">響き・読みを探す</div>
-                        <div class="text-[9px] text-[#8b8fb5] leading-tight mt-1">まだ決まってない人</div>
+                    class="bg-white rounded-2xl border-2 border-[#c8c8f0] shadow-md flex flex-col active:scale-[0.97] transition-transform overflow-hidden text-left"
+                    style="padding: 12px 10px 11px;">
+
+                    <!-- ビジュアル: vibe タグバブル群 -->
+                    <div class="w-full mb-2.5" style="min-height: 64px;">
+                        <div class="flex flex-wrap gap-1">
+                            <span class="bg-[#eef0ff] border border-[#c0c8f0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#4a5fa0]">夏</span>
+                            <span class="bg-[#fff0fb] border border-[#f0c0e4] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#8a4a8a]">あおい</span>
+                            <span class="bg-[#f0fff8] border border-[#a8e8c8] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#3a7a58]">ひなた</span>
+                            <span class="bg-[#fffbee] border border-[#e8d898] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#7a6820]">優しい</span>
+                            <span class="bg-[#f5eeff] border border-[#c8a8f0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#6a3a9a]">2文字</span>
+                            <span class="bg-[#eefff5] border border-[#a8e0c0] rounded-full px-2 py-0.5 text-[8px] font-bold text-[#3a6a50]">はる</span>
+                        </div>
                     </div>
+
+                    <!-- タイトル・説明 -->
+                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug mb-0.5">響き・<br>読みを探す</div>
+                    <div class="text-[9px] text-[#8b8fb5] leading-snug">響きやイメージから<br>新しい読みを探す</div>
                 </button>
+
             </div>
 
             <!-- ─── インスピレーション ─── -->
