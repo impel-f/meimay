@@ -2796,51 +2796,53 @@ function executeKanjiSearch() {
 
     const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
 
-    let results = master.filter(k => {
+    let results = master.map(k => {
         // 不適切フラグチェック
         const flag = k['不適切フラグ'];
-        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return null;
 
         // Nopeした漢字は除外
-        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) return false;
+        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
 
-        // テキスト検索（読み・漢字のみ）
+        let tier = 99; // 1: Exact, 2: Stem(Flex), 3: Prefix(Flex), 4: OtherMatch
+        const matchKanji = k['漢字'] === rawQuery;
+
         if (query || rawQuery) {
-            const matchKanji = k['漢字'] === rawQuery;
-
-            // 送り仮名対応読みバリアント（語幹含む）― 柔軟モード用
-            const onReadings = getReadingVariants(k['音'] || '');
-            const kunReadings = getReadingVariants(k['訓'] || '');
-            const noriReadings = getReadingVariants(k['伝統名のり'] || '');
-
-            // 厳格モード用: 語幹（送り仮名除去部分）は含まない完全形のみ
-            // 例: あ（う）→ あう のみ。'あ' 単独では一致させない
+            // 1. 完全一致 (Tier 1) - 送り仮名等を除去した形
             const onFull = getFullReadings(k['音'] || '');
             const kunFull = getFullReadings(k['訓'] || '');
             const noriFull = getFullReadings(k['伝統名のり'] || '');
-            const strictMatch = [...onFull, ...kunFull, ...noriFull]
-                .some(r => r === query || r === querySeion);
+            const allFull = [...onFull, ...kunFull, ...noriFull];
+            const isExact = allFull.some(r => r === query || r === querySeion);
 
-            let matchReading;
-            if (searchFlexibleMode) {
-                // 柔軟: 厳格の条件 + 音・訓で前方一致（名乗りは完全一致のみ）
-                const flexMatch = [...onReadings, ...kunReadings]
-                    .some(r => r.startsWith(query) || r.startsWith(querySeion));
-                matchReading = strictMatch || flexMatch;
-            } else {
-                matchReading = strictMatch;
+            if (isExact || matchKanji) {
+                tier = 1;
+            } else if (searchFlexibleMode) {
+                // 2. 語幹一致 (Tier 2) - 柔軟モードのみ
+                const onVariants = getReadingVariants(k['音'] || '');
+                const kunVariants = getReadingVariants(k['訓'] || '');
+                const isStem = [...onVariants, ...kunVariants].some(r => r === query || r === querySeion);
+                
+                if (isStem) {
+                    tier = 2;
+                } else {
+                    // 3. 前方一致 (Tier 3) - 柔軟モードのみ
+                    const isPrefix = [...onVariants, ...kunVariants].some(r => r.startsWith(query) || r.startsWith(querySeion));
+                    if (isPrefix) tier = 3;
+                }
             }
-
-            if (!matchReading && !matchKanji) return false;
+            
+            // ヒットしない場合は除外
+            if (tier === 99) return null;
         }
 
-        // 分類フィルター（漢字データの分類フィールドのハッシュタグと直接照合）
+        // 分類フィルター（テキスト検索がある場合はAND、ない場合は単独フィルター）
         if (searchClassFilter) {
-            if (!(k['分類'] || '').includes(searchClassFilter)) return false;
+            if (!(k['分類'] || '').includes(searchClassFilter)) return null;
         }
 
-        return true;
-    });
+        return { ...k, tier };
+    }).filter(Boolean);
 
     // 漢字の重複排除
     const seenKanji = new Set();
@@ -2850,14 +2852,17 @@ function executeKanjiSearch() {
         return true;
     });
 
-    // スコア順ソート
+    // ソート: 1. 一致度(Tier), 2. おすすめ度(Score)
     if (typeof calculateKanjiScore === 'function') {
         results.forEach(k => k.score = calculateKanjiScore(k));
-        results.sort((a, b) => (b.score || 0) - (a.score || 0));
-    } else {
-        // スコア関数がない場合は画数でソート
-        results.sort((a, b) => (parseInt(a['画数']) || 0) - (parseInt(b['画数']) || 0));
     }
+    
+    results.sort((a, b) => {
+        // Tier優先 (1が最優先)
+        if (a.tier !== b.tier) return a.tier - b.tier;
+        // 同じTierならスコア順
+        return (b.score || 0) - (a.score || 0) || (parseInt(a['画数']) || 0) - (parseInt(b['画数']) || 0);
+    });
 
     // 表示
     if (results.length === 0) {
