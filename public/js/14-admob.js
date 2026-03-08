@@ -308,3 +308,107 @@ window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
 
 console.log("ADMOB: Module loaded (v19.0)");
+
+PremiumManager.getStatusSummary = function () {
+    if (this.isPremium()) {
+        return {
+            title: 'プレミアム利用中',
+            detail: this._remoteStatus ? `状態: ${this._remoteStatus}` : '購入状態は有効です。'
+        };
+    }
+
+    if (this._remoteStatus) {
+        return {
+            title: '購入状態を確認できます',
+            detail: `現在の状態: ${this._remoteStatus}`
+        };
+    }
+
+    return {
+        title: '購入状態を確認できます',
+        detail: 'アプリ版では購入後や復元後にここへ反映されます。'
+    };
+};
+
+PremiumManager.refreshPurchaseState = async function () {
+    const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
+        ? MeimayAuth.getCurrentUser()
+        : null;
+
+    if (!user) {
+        if (typeof showToast === 'function') showToast('購入状態の確認には接続準備が必要です', 'ℹ');
+        return false;
+    }
+
+    try {
+        await this.bindToUserDoc(user);
+        if (typeof showToast === 'function') {
+            showToast(this.isPremium() ? '購入状態を更新しました' : '現在の購入状態を確認しました', this.isPremium() ? '✓' : 'ℹ');
+        }
+        return true;
+    } catch (e) {
+        console.warn('PREMIUM: refreshPurchaseState failed', e);
+        if (typeof showToast === 'function') showToast('購入状態を確認できませんでした', '!');
+        return false;
+    }
+};
+
+function showPremiumModal() {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    const isPremium = PremiumManager.isPremium();
+    const statusSummary = PremiumManager.getStatusSummary();
+
+    modal.classList.add('active');
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
+            <div class="text-center py-6">
+                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
+                <div class="text-4xl mb-4">名</div>
+                <h3 class="text-lg font-black text-[#5d5444] mb-2">メイメー プレミアム</h3>
+                <p class="text-xs text-[#a6967a] mb-4">広告を減らして、比較や整理をしやすくするプランです。</p>
+
+                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
+                    <div class="text-[11px] font-black text-[#5d5444]">${statusSummary.title}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${statusSummary.detail}</div>
+                </div>
+
+                ${isPremium ? `
+                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6">
+                        <p class="text-sm font-bold text-green-700">現在プレミアム利用中です</p>
+                    </div>
+                    <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
+                        プレミアムを解除
+                    </button>
+                ` : `
+                    <div class="space-y-3 mb-6 text-left px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✓</span>
+                            <span class="text-sm text-[#5d5444]">広告の表示を減らします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✓</span>
+                            <span class="text-sm text-[#5d5444]">比較や整理の体験を強化します</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✓</span>
+                            <span class="text-sm text-[#5d5444]">購入状態の確認結果をこの画面に反映します</span>
+                        </div>
+                    </div>
+                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        プレミアムを有効にする
+                    </button>
+                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                        購入状態を確認する
+                    </button>
+                    <p class="text-[9px] text-[#a6967a] mt-3">ネイティブ購入フローの本実装後は、ここから復元確認にもつながります。</p>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+window.PremiumManager = PremiumManager;
+window.showPremiumModal = showPremiumModal;

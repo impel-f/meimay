@@ -1357,5 +1357,488 @@ setTimeout(() => {
 
 console.log("UI RENDER: Module loaded (v14.3 - Added renderHomeProfile)");
 
+function updateSwipeMainState() {
+    const actionBtns = document.getElementById('swipe-action-btns');
+    const sessionContent = document.getElementById('main-session-content');
+    const emptyState = document.getElementById('main-empty-state');
+
+    const hasSession = isFreeSwipeMode || (segments && segments.length > 0);
+    const hasCards = hasSession && stack && stack.length > 0 && currentIdx < stack.length;
+
+    if (emptyState) emptyState.classList.toggle('hidden', hasSession);
+    if (sessionContent) sessionContent.classList.toggle('hidden', !hasSession);
+    if (actionBtns) actionBtns.classList.toggle('hidden', !hasCards);
+
+    const indicator = document.getElementById('pos-indicator');
+    const btnPrev = document.getElementById('btn-prev-char');
+    const btnNext = document.getElementById('btn-next-char');
+    const isLastSlot = !isFreeSwipeMode && Array.isArray(segments) && segments.length > 0 && currentPos >= segments.length - 1;
+
+    if (isFreeSwipeMode) {
+        if (indicator) indicator.innerText = '自由に選ぶ';
+        if (btnPrev) {
+            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.innerHTML = '&lt; 戻る';
+            btnPrev.onclick = () => {
+                isFreeSwipeMode = false;
+                changeScreen('scr-vibe');
+            };
+        }
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = '完了 &gt;';
+            btnNext.onclick = () => {
+                isFreeSwipeMode = false;
+                if (typeof openBuildFreeMode === 'function') openBuildFreeMode();
+                else openBuild();
+            };
+        }
+        return;
+    }
+
+    if (window._addMoreFromBuild && isLastSlot) {
+        if (btnPrev) btnPrev.classList.add('opacity-0', 'pointer-events-none');
+        if (btnNext) {
+            btnNext.classList.remove('opacity-0', 'pointer-events-none');
+            btnNext.innerHTML = 'ビルドへ &gt;';
+            btnNext.onclick = () => {
+                window._addMoreFromBuild = false;
+                openBuild();
+            };
+        }
+    }
+}
+
+function getHomeCollectionSummaryText(readingStock) {
+    const safeStock = Array.isArray(readingStock) ? readingStock : [];
+    const tagCounts = {};
+
+    safeStock.forEach((item) => {
+        const tags = Array.isArray(item?.tags) ? item.tags : [];
+        tags.forEach((tag) => {
+            if (!tag) return;
+            const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+            tagCounts[normalized] = (tagCounts[normalized] || 0) + 1;
+        });
+    });
+
+    if (Object.keys(tagCounts).length === 0 && typeof getReadingHistory === 'function') {
+        const history = getReadingHistory().slice(0, 8);
+        history.forEach((entry) => {
+            const tags = Array.isArray(entry?.settings?.imageTags) ? entry.settings.imageTags : [];
+            tags.forEach((tag) => {
+                if (!tag) return;
+                const normalized = tag.startsWith('#') ? tag : `#${tag}`;
+                tagCounts[normalized] = (tagCounts[normalized] || 0) + 1;
+            });
+        });
+    }
+
+    const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([tag]) => tag);
+
+    return topTags.length > 0 ? topTags.join(' ') : 'まだ傾向なし';
+}
+
+function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairing) {
+    const safeReadingStock = Array.isArray(readingStock) ? readingStock : [];
+    const readingStockCount = safeReadingStock.length;
+    const breakdown = getHomeCollectionBreakdown(typeof liked !== 'undefined' ? liked : [], readingStockCount);
+    const todos = [];
+
+    if (readingStockCount === 0) {
+        todos.push({
+            label: 'まずは読み候補を探す',
+            detail: '読みがまだ決まっていないので、響きや呼びやすさから候補を集めましょう。',
+            action: 'sound'
+        });
+    } else {
+        todos.push({
+            label: '読み候補から漢字を探す',
+            detail: `読み候補が ${readingStockCount} 件あります。次は読みごとに漢字を集める段階です。`,
+            action: 'reading'
+        });
+    }
+
+    if (breakdown.readingDerivedCount >= 2 && savedCount === 0) {
+        todos.push({
+            label: '集まった漢字で名前を作る',
+            detail: '読みから集めた漢字が増えてきたので、ビルドで最初の名前候補を作りましょう。',
+            action: 'build'
+        });
+    } else if (readingStockCount > 0) {
+        todos.push({
+            label: '読みごとの漢字候補を増やす',
+            detail: 'まだ材料が少ない読みがあるので、読みから漢字をもう少し広げるのがおすすめです。',
+            action: 'reading'
+        });
+    }
+
+    if (savedCount >= 2) {
+        todos.push({
+            label: '保存した候補を見比べる',
+            detail: '候補が複数あるので、比較しながら絞り込みを進められます。',
+            action: 'saved'
+        });
+    } else if (savedCount === 1) {
+        todos.push({
+            label: '比較用にもう1案つくる',
+            detail: '保存した名前が1件だけなので、もう1案あると比較しやすくなります。',
+            action: 'build'
+        });
+    }
+
+    if (pairing?.inRoom && !pairing?.hasPartner) {
+        todos.push({
+            label: `${pairing.inviteTargetLabel}にコードを共有する`,
+            detail: '相手が入ると、一致した漢字や名前が自動で見え始めます。',
+            action: 'pair'
+        });
+    } else if (pairing?.hasPartner && ((pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0) === 0)) {
+        todos.push({
+            label: 'パートナーと候補を増やす',
+            detail: 'お互いの候補が増えるほど、一致や共通の好みが見えやすくなります。',
+            action: 'pair'
+        });
+    }
+
+    if (likedCount >= 4 && readingStockCount === 0) {
+        todos.push({
+            label: '直感で集めた漢字を読み候補につなげる',
+            detail: '直感スワイプの材料が増えているので、本流の読み候補にもつなげると進めやすいです。',
+            action: 'sound'
+        });
+    }
+
+    return todos.slice(0, 3);
+}
+
+function getPairingHomeSummary() {
+    const baseSummary = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.getSummary)
+        ? window.MeimayPartnerInsights.getSummary()
+        : null;
+    const roomCode = typeof MeimayPairing !== 'undefined' ? MeimayPairing.roomCode : null;
+    const myRoleLabel = getRoleLabel(typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null, '自分');
+    const inviteTargetLabel = getInviteTargetLabel(typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null);
+
+    const summary = {
+        inRoom: false,
+        hasPartner: false,
+        partnerLabel: 'パートナー',
+        matchedKanjiCount: 0,
+        matchedNameCount: 0,
+        previewLabels: [],
+        roomCode,
+        myRoleLabel,
+        inviteTargetLabel,
+        ...(baseSummary || {})
+    };
+
+    if (!summary.inRoom) {
+        return {
+            ...summary,
+            shortText: '未連携',
+            title: 'パートナーとはまだ連携していません',
+            subtitle: 'ひとりでもそのまま使えます。必要になったら連携できます。',
+            footnote: 'あとからでもルームを作成できます。',
+            actionLabel: '連携を始める'
+        };
+    }
+
+    if (!summary.hasPartner) {
+        return {
+            ...summary,
+            shortText: '連携待ち',
+            title: `${summary.myRoleLabel}としてルームを作成済みです`,
+            subtitle: `${summary.inviteTargetLabel}にコードを共有すると、一致が見られるようになります。`,
+            footnote: '共有後は自動で連携が始まります。',
+            actionLabel: 'コードを共有'
+        };
+    }
+
+    const totalMatches = summary.matchedKanjiCount + summary.matchedNameCount;
+    if (totalMatches > 0) {
+        const previewText = summary.previewLabels && summary.previewLabels.length > 0
+            ? summary.previewLabels.slice(0, 3).join(' / ')
+            : '一致した候補が見つかっています。';
+        return {
+            ...summary,
+            shortText: `${summary.partnerLabel}と連携中`,
+            title: summary.matchedNameCount > 0 ? '一致した名前候補があります' : '一致した漢字があります',
+            subtitle: previewText,
+            footnote: summary.matchedNameCount > 0 ? '保存済みから比較して絞り込みを進められます。' : '一致した漢字から名前候補へつなげられます。',
+            actionLabel: '一致を見る'
+        };
+    }
+
+    return {
+        ...summary,
+        shortText: `${summary.partnerLabel}と連携中`,
+        title: `${summary.partnerLabel}と連携中です`,
+        subtitle: 'まだ一致はありません。お互いに候補をためると共通点が見えてきます。',
+        footnote: '保存やストックが増えると自動で更新されます。',
+        actionLabel: '候補を共有する'
+    };
+}
+
+function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
+    const breakdown = getHomeCollectionBreakdown(typeof liked !== 'undefined' ? liked : [], readingStockCount);
+
+    if ((pairing?.matchedNameCount || 0) >= 1) {
+        return {
+            title: '一致した名前候補を確認する',
+            detail: 'ふたりで一致した候補が出てきました。保存済みから比較を始められます。',
+            actionLabel: '保存済みを見る',
+            action: 'saved'
+        };
+    }
+
+    if ((pairing?.matchedKanjiCount || 0) >= 1) {
+        return {
+            title: '一致した漢字から広げる',
+            detail: '共通で気になった漢字があります。ストックから名前候補へつなげやすい段階です。',
+            actionLabel: 'ストックを見る',
+            action: 'stock'
+        };
+    }
+
+    if (readingStockCount === 0) {
+        return {
+            title: 'まずは読み候補を探す段階です',
+            detail: '読みがまだ決まっていないので、響き・読みから始めるのがおすすめです。',
+            actionLabel: '響き・読みを探す',
+            action: 'sound'
+        };
+    }
+
+    if (breakdown.readingDerivedCount <= 0) {
+        return {
+            title: '読み候補から漢字を探す段階です',
+            detail: `読み候補が ${breakdown.readingStockCount} 件あります。次は読みごとに漢字候補を集めましょう。`,
+            actionLabel: '読みから漢字を探す',
+            action: 'reading'
+        };
+    }
+
+    if (savedCount === 0) {
+        return {
+            title: '集まった漢字で名前を作る段階です',
+            detail: '読みから集めた漢字がそろってきたので、ビルドで最初の名前候補を作りましょう。',
+            actionLabel: 'ビルドへ進む',
+            action: 'build'
+        };
+    }
+
+    if (savedCount === 1) {
+        return {
+            title: '比較用にもう1案つくる段階です',
+            detail: '保存した名前が1件あるので、もう1案あると比較しやすくなります。',
+            actionLabel: 'ビルドでもう1案つくる',
+            action: 'build'
+        };
+    }
+
+    if (savedCount >= 2) {
+        return {
+            title: '保存した候補を見比べる段階です',
+            detail: '候補が複数あるので、保存済みから比べながら絞り込みを進められます。',
+            actionLabel: '保存済みを見る',
+            action: 'saved'
+        };
+    }
+
+    return {
+        title: '次の候補を増やす段階です',
+        detail: '読みと漢字の材料を少しずつ増やしながら、比較しやすい形に整えていきましょう。',
+        actionLabel: '読みから漢字を探す',
+        action: 'reading'
+    };
+}
+
+function renderHomeProfile() {
+    let swipedCount = 0;
+    try {
+        const histRaw = localStorage.getItem('meimay_reading_history');
+        if (histRaw) {
+            const histList = JSON.parse(histRaw);
+            swipedCount = histList.length * 8;
+        }
+    } catch (e) { }
+
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    swipedCount += likedCount;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+
+    const elSwiped = document.getElementById('home-swiped-count');
+    if (elSwiped) elSwiped.innerText = swipedCount + '枚';
+
+    const elSaved = document.getElementById('home-liked-name-count');
+    if (elSaved) elSaved.innerText = savedCount;
+
+    const elKanji = document.getElementById('home-liked-kanji-count');
+    if (elKanji) elKanji.innerText = likedCount;
+
+    const elReadingStock = document.getElementById('home-reading-stock-count');
+    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+
+    const elPrefHidden = document.getElementById('home-preference-tags');
+    if (elPrefHidden) elPrefHidden.innerText = preference.shortText;
+
+    const elPrefSummary = document.getElementById('home-preference-summary');
+    if (elPrefSummary) elPrefSummary.innerText = preference.shortText;
+
+    const elPartnerSummary = document.getElementById('home-partner-summary');
+    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+
+    const elPartnerTitle = document.getElementById('home-partner-match-title');
+    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
+
+    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
+    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
+
+    const elPartnerFootnote = document.getElementById('home-match-footnote');
+    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
+
+    const elMatchedKanji = document.getElementById('home-match-kanji-count');
+    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+
+    const elMatchedNames = document.getElementById('home-match-name-count');
+    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+
+    const pairActionBtn = document.getElementById('home-pair-action');
+    if (pairActionBtn) pairActionBtn.innerText = pairing.actionLabel;
+
+    const pairCodeRow = document.getElementById('home-pair-code-row');
+    if (pairCodeRow) pairCodeRow.classList.add('hidden');
+
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    if (nextStepTitleEl) nextStepTitleEl.innerText = nextStep.title;
+
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    if (nextStepDetailEl) nextStepDetailEl.innerText = nextStep.detail;
+
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+
+    const collectionSummaryEl = document.getElementById('home-collection-summary');
+    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
+
+    const pairCard = document.getElementById('home-pair-card');
+    if (pairCard) pairCard.classList.toggle('hidden', !showPairCard);
+
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+
+    const restoreBtn = document.getElementById('home-pair-restore');
+    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+}
+
+function openHomeInsightsModal() {
+    closeHomeInsightsModal();
+
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const preference = getHomePreferenceSummary(liked);
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedList.length, pairing);
+    const todoRecommendations = getHomeTodoRecommendations(likedCount, readingStock, savedList.length, pairing);
+    const readingTrend = getHomeCollectionSummaryText(readingStock);
+    const breakdown = getHomeCollectionBreakdown(liked, readingStockCount);
+    const previewList = pairing.previewLabels && pairing.previewLabels.length > 0
+        ? pairing.previewLabels.map(label => `<span class="px-3 py-1.5 rounded-full bg-[#fdf7ef] border border-[#eee5d8] text-[11px] font-bold text-[#5d5444]">${label}</span>`).join('')
+        : '<div class="text-[11px] text-[#a6967a]">一致が出るとここに候補が表示されます。</div>';
+    const todoHtml = todoRecommendations.map(item => `
+        <button onclick="handleHomeTodoAction('${item.action}', event)" class="w-full text-left rounded-2xl border border-[#eee5d8] bg-white px-4 py-3 active:scale-[0.99] transition-transform">
+            <div class="text-[12px] font-bold text-[#5d5444]">${item.label}</div>
+            <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed">${item.detail}</div>
+        </button>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'home-insights-modal';
+    modal.className = 'overlay active';
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md max-h-[82vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeHomeInsightsModal()">×</button>
+            <div class="pt-4 pb-2">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">ホーム</div>
+                <h3 class="text-xl font-black text-[#4f4639] mb-2">いまの状況</h3>
+                <p class="text-sm text-[#8b7e66] leading-relaxed">候補の集まり具合と、次にやることを確認できます。</p>
+            </div>
+            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次のおすすめ</div>
+                <div class="text-sm font-bold text-[#5d5444]">${nextStep.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
+                <button onclick="handleHomeNextStepAction(event)" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次のやること</div>
+                <div class="space-y-2">${todoHtml}</div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mt-3">
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${likedCount}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">漢字ストック</div>
+                </div>
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${readingStockCount}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">読みストック</div>
+                </div>
+                <div class="bg-[#fdfaf5] rounded-2xl p-3 text-center border border-[#eee5d8]">
+                    <div class="text-xl font-black text-[#5d5444]">${savedList.length}</div>
+                    <div class="text-[10px] text-[#a6967a] mt-1">保存した名前</div>
+                </div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">読みの傾向</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.readingStockCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">読み候補</div>
+                    </div>
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.readingDerivedCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">読みから漢字</div>
+                    </div>
+                    <div class="rounded-2xl bg-[#fdfaf5] px-3 py-3 text-center">
+                        <div class="text-lg font-black text-[#5d5444]">${breakdown.directSwipeCount}</div>
+                        <div class="text-[10px] text-[#a6967a] mt-1">直感の漢字</div>
+                    </div>
+                </div>
+                <div class="mt-3 text-[11px] font-bold text-[#5d5444]">${readingTrend}</div>
+                <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed">${readingStockCount > 0 ? '読み候補があるので、次は読みごとに漢字を集めると進めやすいです。' : 'まだ読みが決まっていないので、まずは響きや呼びやすさから候補をためるのがおすすめです。'}</div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">漢字の傾向</div>
+                <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
+            </div>
+            <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">ペア状態</div>
+                <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
+                <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
+                <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', closeHomeInsightsModal);
+    document.body.appendChild(modal);
+}
+
+window.updateSwipeMainState = updateSwipeMainState;
+window.renderHomeProfile = renderHomeProfile;
+window.openHomeInsightsModal = openHomeInsightsModal;
+
 
 

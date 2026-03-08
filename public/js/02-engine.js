@@ -762,3 +762,40 @@ function isDakutenMatch(a, b) {
 
     return normalize(a) === normalize(b);
 }
+
+function nextChar() {
+    const hasMoreSlots = Array.isArray(segments) && currentPos < segments.length - 1;
+
+    if (hasMoreSlots) {
+        window._addMoreFromBuild = false;
+
+        if (typeof checkInheritForSlot === 'function') {
+            checkInheritForSlot(currentPos + 1, () => {
+                window._addMoreFromBuild = false;
+                currentPos++;
+                currentIdx = 0;
+                swipes = 0;
+                loadStack();
+            });
+            return;
+        }
+
+        currentPos++;
+        currentIdx = 0;
+        swipes = 0;
+        loadStack();
+        return;
+    }
+
+    if (liked.length === 0) {
+        if (!confirm('まだストックがありませんが、ビルド画面に進みますか？')) return;
+    }
+
+    if (typeof openBuild === 'function') {
+        openBuild();
+    } else {
+        console.error("ENGINE: openBuild function not found");
+    }
+}
+
+window.nextChar = nextChar;
