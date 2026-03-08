@@ -324,11 +324,31 @@ const KANJI_TAG_STYLES = {
     "#勇壮": { bgColor: "#FEE2E2", textColor: "#B91C1C", borderColor: "#FECACA" },
     "#天空": { bgColor: "#DBEAFE", textColor: "#1E40AF", borderColor: "#BFDBFE" },
     "#知性": { bgColor: "#E0E7FF", textColor: "#4338CA", borderColor: "#C7D2FE" },
-    "#幸福": { bgColor: "#D1FAE5", textColor: "#047857", borderColor: "#A7F3D0" }
+    "#幸福": { bgColor: "#D1FAE5", textColor: "#047857", borderColor: "#A7F3D0" },
+    "#力強い": { bgColor: "#DBEAFE", textColor: "#1D4ED8", borderColor: "#93C5FD" },
+    "#ふんわり": { bgColor: "#FCE7F3", textColor: "#BE185D", borderColor: "#F9A8D4" },
+    "#クール": { bgColor: "#E2E8F0", textColor: "#334155", borderColor: "#CBD5E1" },
+    "#爽やか": { bgColor: "#DCFCE7", textColor: "#15803D", borderColor: "#86EFAC" },
+    "#レトロ": { bgColor: "#FDE68A", textColor: "#92400E", borderColor: "#FCD34D" },
+    "#ロング": { bgColor: "#EDE9FE", textColor: "#6D28D9", borderColor: "#C4B5FD" },
+    "#自然語": { bgColor: "#D1FAE5", textColor: "#166534", borderColor: "#86EFAC" },
+    "#中性的": { bgColor: "#FEF3C7", textColor: "#92400E", borderColor: "#FDE68A" },
+    "#あたたかい": { bgColor: "#FFEDD5", textColor: "#C2410C", borderColor: "#FDBA74" },
+    "#今風": { bgColor: "#E0E7FF", textColor: "#4338CA", borderColor: "#A5B4FC" },
+    "#のびのび": { bgColor: "#CCFBF1", textColor: "#0F766E", borderColor: "#99F6E4" },
+    "#華やか": { bgColor: "#FBCFE8", textColor: "#9D174D", borderColor: "#F9A8D4" },
+    "#なごやか": { bgColor: "#FEF9C3", textColor: "#854D0E", borderColor: "#FDE68A" },
+    "#ショート": { bgColor: "#E0F2FE", textColor: "#0369A1", borderColor: "#7DD3FC" },
+    "#はつらつ": { bgColor: "#FECACA", textColor: "#B91C1C", borderColor: "#FCA5A5" },
+    "#存在感": { bgColor: "#DDD6FE", textColor: "#5B21B6", borderColor: "#C4B5FD" },
+    "#ひたむき": { bgColor: "#E9D5FF", textColor: "#7E22CE", borderColor: "#D8B4FE" },
+    "#繊細": { bgColor: "#F5D0FE", textColor: "#A21CAF", borderColor: "#F0ABFC" },
+    "#海外風": { bgColor: "#CFFAFE", textColor: "#0F766E", borderColor: "#67E8F9" }
 };
 
 function getTagStyle(tag) {
     const key = tag.startsWith("#") ? tag : "#" + tag;
+    if (KANJI_TAG_STYLES[key]) return KANJI_TAG_STYLES[key];
     const match = Object.keys(KANJI_TAG_STYLES).find(k => key.includes(k));
     if (match) return KANJI_TAG_STYLES[match];
     return { bgColor: "#F3F4F6", textColor: "#4B5563", borderColor: "#E5E7EB" };

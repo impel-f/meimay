@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 12: HISTORY (V2.0 - 読み方単位履歴 + メッセージ保存)
    履歴・保存機能
    ============================================================ */
@@ -236,13 +236,14 @@ function addToReadingHistory() {
     if (!segments || segments.length === 0) return;
 
     const reading = segments.join('');
+    const segmentKey = segments.join('/');
     const history = getReadingHistory();
 
-    // 重複を削除（最新を優先）
-    const filtered = history.filter(item => item.reading !== reading);
+    const filtered = history.filter(item => `${item.reading}::${(item.segments || []).join('/')}` !== `${reading}::${segmentKey}`);
 
     const historyData = {
         reading: reading,
+        segmentKey: segmentKey,
         segments: [...segments],
         settings: {
             gender: gender,

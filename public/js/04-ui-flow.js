@@ -302,46 +302,27 @@ function submitVibe() {
 function initSoundMode() {
     console.log("UI_FLOW: initSoundMode");
 
-    const popularNames = generatePopularNames(gender);
+    const popularNames = generatePopularNames(gender).map(item => ({
+        ...item,
+        gender: item.gender || gender || 'neutral'
+    }));
 
     startUniversalSwipe('sound', popularNames, {
         title: '響きで選ぶ',
         subtitle: '気に入った名前の響きをスワイプ',
-        onLike: (item) => {
+        onLike: (item, action) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, '', item.tags || []);
+                addReadingToStock(item.reading, '', item.tags || [], {
+                    segments: getPreferredReadingSegments(item.reading),
+                    isSuper: action === 'super',
+                    gender: item.gender || gender || 'neutral'
+                });
             }
         },
-        renderCard: (item) => {
-            // タグバッジの生成
-            let tagsHtml = '';
-            if (item.tags && item.tags.length > 0) {
-                tagsHtml = '<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">';
-                item.tags.forEach(t => {
-                    let style = {};
-                    if (typeof getTagStyle === 'function') {
-                        style = getTagStyle(t);
-                    } else {
-                        style = { label: t.replace('#', ''), bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
-                    }
-                    tagsHtml += `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color: ${style.bgColor}; color: ${style.textColor}; border-color: ${style.borderColor};">${t}</span>`;
-                });
-                tagsHtml += '</div>';
-            }
-
-            return `
-                ${tagsHtml}
-                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
-                <div class="w-full px-4 mt-2">
-                    <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
-                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
-                        <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
-                            ${item.examples && item.examples.length > 0 ? item.examples.slice(0, 5).map(e => `<span class="px-1">${e}</span>`).join('') : '?'}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
+        onTap: (item) => {
+            openReadingCombinationModal(item);
+        },
+        renderCard: (item) => renderReadingSwipeCard(item)
     });
 
     // AI分析ボタンをスワイプ画面に追加 (一旦非表示)
@@ -358,6 +339,251 @@ function initSoundMode() {
         }
     }, 500);
     */
+}
+/**
+ * 響きスワイプ用ヘルパー
+ */
+const READING_CARD_GENDER_BORDERS = {
+    male: '#9DC4FF',
+    female: '#F3A9B7',
+    neutral: '#E6C45F'
+};
+
+const readingKanjiCache = new Map();
+let readingCombinationModalState = null;
+
+function getReadingCardTone(item) {
+    const firstTag = item && item.tags && item.tags.length > 0 ? item.tags[0] : '';
+    const tagStyle = typeof getTagStyle === 'function' && firstTag
+        ? getTagStyle(firstTag)
+        : { bgColor: '#fdfaf5' };
+    const cardGender = item && item.gender ? item.gender : (gender || 'neutral');
+    return {
+        bgColor: tagStyle.bgColor || '#fdfaf5',
+        borderColor: READING_CARD_GENDER_BORDERS[cardGender] || READING_CARD_GENDER_BORDERS.neutral
+    };
+}
+
+function getReadingFullNamePreview(reading) {
+    const familyKanji = surnameStr || '';
+    const familyReading = typeof surnameReading !== 'undefined' ? surnameReading : '';
+    return {
+        visual: familyKanji ? `${familyKanji} ${reading}` : reading,
+        ruby: familyReading ? `${familyReading} ${reading}` : reading,
+        joined: familyKanji ? `${familyKanji}${reading}` : reading
+    };
+}
+
+function getReadingSegmentOptions(reading, limit = 4) {
+    let paths = typeof getReadingSegmentPaths === 'function'
+        ? getReadingSegmentPaths(reading, limit)
+        : [];
+
+    if (!paths || paths.length === 0) {
+        paths = [String(reading || '').split('').filter(Boolean)];
+    }
+
+    const seen = new Set();
+    return paths
+        .map(path => {
+            const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
+            const label = cleanPath.join('/');
+            if (!label || seen.has(label)) return null;
+            seen.add(label);
+            return {
+                path: cleanPath,
+                label,
+                examples: getReadingCombinationExamples(cleanPath, 4)
+            };
+        })
+        .filter(Boolean)
+        .slice(0, limit);
+}
+
+function getPreferredReadingSegments(reading) {
+    const options = getReadingSegmentOptions(reading, 1);
+    return options.length > 0 ? options[0].path : String(reading || '').split('').filter(Boolean);
+}
+
+function findKanjiCandidatesForSegment(segment, limit = 3) {
+    const target = toHira(segment || '');
+    if (!target || !master || master.length === 0) return [];
+
+    if (readingKanjiCache.has(target)) {
+        return readingKanjiCache.get(target).slice(0, limit);
+    }
+
+    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+    const targetSokuon = target.replace(/っ$/, 'つ');
+
+    const candidates = master.filter(item => {
+        const readings = [item['音'], item['訓'], item['伝統名のり']]
+            .filter(Boolean)
+            .join(',')
+            .split(/[、,，\s/]+/)
+            .map(value => toHira((value || '').trim()))
+            .filter(Boolean);
+        return readings.includes(target) || readings.includes(targetSeion) || readings.includes(targetSokuon);
+    });
+
+    const unique = [];
+    const seen = new Set();
+    candidates.forEach(item => {
+        const kanji = (item['漢字'] || '').trim();
+        if (!kanji || seen.has(kanji)) return;
+        seen.add(kanji);
+        unique.push(kanji);
+    });
+
+    const cached = unique.length > 0 ? unique.slice(0, 8) : [segment];
+    readingKanjiCache.set(target, cached);
+    return cached.slice(0, limit);
+}
+
+function getReadingCombinationExamples(path, limit = 4) {
+    if (!Array.isArray(path) || path.length === 0) return [];
+
+    const groups = path.map(segment => findKanjiCandidatesForSegment(segment, 2));
+    const results = [];
+
+    function build(index, acc) {
+        if (results.length >= limit) return;
+        if (index >= groups.length) {
+            if (acc) results.push(acc);
+            return;
+        }
+
+        const group = groups[index];
+        if (!group || group.length === 0) {
+            build(index + 1, acc + path[index]);
+            return;
+        }
+
+        group.forEach(kanji => {
+            if (results.length < limit) {
+                build(index + 1, acc + kanji);
+            }
+        });
+    }
+
+    build(0, '');
+    return [...new Set(results)].slice(0, limit);
+}
+
+function renderReadingTagBadges(tags) {
+    if (!tags || tags.length === 0) return '';
+
+    return `<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">${tags.map(tag => {
+        const style = typeof getTagStyle === 'function'
+            ? getTagStyle(tag)
+            : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
+        return `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color:${style.bgColor};color:${style.textColor};border-color:${style.borderColor};">${tag}</span>`;
+    }).join('')}</div>`;
+}
+
+function renderReadingSwipeCard(item) {
+    const preview = getReadingFullNamePreview(item.reading);
+    const surnameLine = surnameStr
+        ? `<div class="text-[11px] font-bold text-[#8b7e66] mb-3 tracking-wide">苗字と合わせると ${preview.visual}</div>`
+        : `<div class="text-[11px] font-bold text-[#a6967a] mb-3 tracking-wide">タップで分け方と漢字例を見る</div>`;
+
+    return `
+        ${renderReadingTagBadges(item.tags)}
+        <div class="text-[52px] font-black text-[#5d5444] mb-2 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+        ${surnameLine}
+        <div class="w-full px-4 mt-2">
+            <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[220px] mx-auto shadow-sm">
+                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
+                    ${getSampleKanjiHtml(item)}
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 text-[10px] text-[#a6967a] font-bold tracking-wide">タップで分け方を見る</div>
+    `;
+}
+
+function closeReadingCombinationModal() {
+    document.getElementById('reading-combination-modal')?.remove();
+    readingCombinationModalState = null;
+}
+
+function openReadingCombinationModal(item, baseNickname = '') {
+    closeReadingCombinationModal();
+
+    const options = getReadingSegmentOptions(item.reading, 4);
+    const preview = getReadingFullNamePreview(item.reading);
+    readingCombinationModalState = {
+        item: { ...item, baseNickname },
+        options
+    };
+
+    const modal = document.createElement('div');
+    modal.id = 'reading-combination-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeReadingCombinationModal();
+    };
+
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeReadingCombinationModal()">✕</button>
+            <div class="text-center mb-5">
+                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">読みの分け方</div>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
+                <p class="text-xs text-[#8b7e66] leading-relaxed">${surnameStr ? `${preview.visual} と続けたときの響きも見ながら選べます。` : '気になる分け方をストックして、あとから漢字を探せます。'}</p>
+            </div>
+            ${renderReadingTagBadges(item.tags || [])}
+            <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
+                ${options.map((option, index) => {
+                    const exampleHtml = option.examples.length > 0
+                        ? option.examples.map(example => `<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-sm font-bold text-[#5d5444] text-center">${surnameStr ? `${surnameStr} ${example}` : example}</div>`).join('')
+                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">漢字例はこれから増やせます</div>';
+                    return `
+                        <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
+                            <div class="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
+                                    <div class="text-[11px] text-[#a6967a] mt-1">${surnameStr ? `${surnameStr} ${item.reading}` : `${item.reading} の分け方`}</div>
+                                </div>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">${exampleHtml}</div>
+                            <div class="flex gap-2">
+                                <button onclick="saveReadingCombinationFromModal(${index}, false)" class="flex-1 py-3 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">この分け方を保存</button>
+                                <button onclick="saveReadingCombinationFromModal(${index}, true)" class="flex-1 py-3 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPERで保存</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function saveReadingCombinationFromModal(index, asSuper) {
+    if (!readingCombinationModalState) return;
+    const option = readingCombinationModalState.options[index];
+    if (!option) return;
+
+    addReadingToStock(
+        readingCombinationModalState.item.reading,
+        readingCombinationModalState.item.baseNickname || '',
+        readingCombinationModalState.item.tags || [],
+        {
+            segments: option.path,
+            isSuper: !!asSuper,
+            gender: readingCombinationModalState.item.gender || gender || 'neutral'
+        }
+    );
+
+    if (typeof showToast === 'function') {
+        showToast(`${option.label} を${asSuper ? 'SUPERで' : ''}ストックしました`, asSuper ? '⭐' : '📥');
+    }
+
+    closeReadingCombinationModal();
 }
 
 /**
@@ -920,23 +1146,25 @@ function renderUniversalCard() {
     container.innerHTML = '';
     const card = document.createElement('div');
 
-    // 背景色の決定 (タグの1つ目を利用)
-    let bgStyle = '#fdfaf5'; // default
-    if (item.tags && item.tags.length > 0) {
-        if (typeof getTagStyle === 'function') {
-            const tagInfo = getTagStyle(item.tags[0]);
-            if (tagInfo && tagInfo.bgColor) {
-                bgStyle = tagInfo.bgColor;
-            }
+    let bgStyle = '#fdfaf5';
+    let borderColor = '#ede5d8';
+
+    if (SwipeState.mode === 'sound' && typeof getReadingCardTone === 'function') {
+        const tone = getReadingCardTone(item);
+        bgStyle = tone.bgColor;
+        borderColor = tone.borderColor;
+    } else if (item.tags && item.tags.length > 0 && typeof getTagStyle === 'function') {
+        const tagInfo = getTagStyle(item.tags[0]);
+        if (tagInfo && tagInfo.bgColor) {
+            bgStyle = tagInfo.bgColor;
         }
     }
 
     card.className = 'card shadow-xl rounded-3xl flex flex-col justify-center items-center px-4';
     card.style.background = bgStyle;
+    card.style.border = `3px solid ${borderColor}`;
     card.style.touchAction = 'none';
     card.style.willChange = 'transform';
-    // card.style.border = '1px solid #ede5d8';
-
     card.innerHTML = SwipeState.config.renderCard(item);
 
     container.appendChild(card);
@@ -991,6 +1219,9 @@ function initUniversalSwipePhysics(card) {
 
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
             resetCard();
+            if (SwipeState.config.onTap) {
+                SwipeState.config.onTap(SwipeState.candidates[SwipeState.currentIndex]);
+            }
         } else if (dy < -threshold && !SwipeState.config.disableSuper) {
             universalSwipeAction('super');
         } else if (dx > threshold) {
@@ -1026,7 +1257,7 @@ function universalSwipeAction(action) {
         SwipeState.liked.push(item);
         // onLikeコールバック（自由モード等で即座にストックに追加）
         if (SwipeState.config.onLike) {
-            SwipeState.config.onLike(item);
+            SwipeState.config.onLike(item, action);
         }
     }
 
@@ -1233,74 +1464,23 @@ function renderNicknameCardForce() {
  * 漢字サンプルHTML生成
  */
 function getSampleKanjiHtml(item) {
-    if (!master) return '<span class="text-xs text-[#d4c5af]">Loading...</span>';
+    const options = getReadingSegmentOptions(item.reading, 2);
+    const examples = [];
 
-    // item.reading (e.g. "はると")
-    const r = item.reading;
-    let parts = [];
-
-    // Simple Heuristic Segmentation
-    if (r.length === 3) {
-        parts = [[r.substring(0, 2), r.substring(2)]]; // Haru-to
-        parts.push([r.substring(0, 1), r.substring(1)]); // Ha-ruto
-    } else if (r.length === 4) {
-        parts = [[r.substring(0, 2), r.substring(2)]]; // Masa-haru
-    } else if (r.length === 2) {
-        parts = [[r.substring(0, 1), r.substring(1)]]; // Haru
-    } else {
-        parts = [[r]];
-    }
-
-    // Example limit
-    let count = 0;
-
-    // Helper to find top kanji for a reading (using correct field check)
-    const findKanji = (readingSegment) => {
-        const target = toHira(readingSegment);
-
-        let cands = master.filter(m => {
-            const allReadings = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
-            return toHira(allReadings).indexOf(target) > -1;
-        });
-
-        // Exact match preference
-        const exacts = cands.filter(m => {
-            const arr = (m['音'] || '') + ',' + (m['訓'] || '') + ',' + (m['伝統名のり'] || '');
-            const splits = arr.split(/[、,，\s/]+/).map(x => toHira(x));
-            return splits.includes(target);
-        });
-
-        if (exacts.length > 0) cands = exacts;
-
-        // Sort by score if available, or just take top
-        return cands.slice(0, 2).map(c => c['漢字']);
-    };
-
-    let generatedExamples = new Set();
-
-    // Attempt to generate examples from parts
-    for (let p of parts) {
-        if (generatedExamples.size >= 3) break;
-
-        let segs = p;
-        if (segs.length === 1) {
-            const ks = findKanji(segs[0]);
-            ks.forEach(k => generatedExamples.add(k));
-        } else {
-            const k1s = findKanji(segs[0]);
-            const k2s = findKanji(segs[1]);
-
-            if (k1s.length > 0 && k2s.length > 0) {
-                generatedExamples.add(`${k1s[0]}${k2s[0]}`);
-                if (k1s[1] && k2s[1]) generatedExamples.add(`${k1s[1]}${k2s[1]}`);
+    options.forEach(option => {
+        option.examples.forEach(example => {
+            if (!examples.includes(example)) {
+                examples.push(example);
             }
-        }
+        });
+    });
+
+    if (examples.length === 0) {
+        return '<span class="text-xs text-[#d4c5af]">漢字例なし</span>';
     }
 
-    if (generatedExamples.size === 0) return '<span class="text-xs text-[#d4c5af]">漢字例なし</span>';
-
-    return Array.from(generatedExamples).slice(0, 3).map(ex =>
-        `<span class="text-lg font-bold mx-1">${ex}</span>`
+    return examples.slice(0, 4).map(example =>
+        `<span class="text-lg font-bold mx-1">${example}</span>`
     ).join('');
 }
 
@@ -2044,10 +2224,53 @@ function closeTutorial() {
 
 const READING_STOCK_KEY = 'meimay_reading_stock';
 
+function getReadingStockKey(reading, segments = []) {
+    return `${reading || ''}::${Array.isArray(segments) ? segments.join('/') : ''}`;
+}
+
+function normalizeReadingStockItem(item) {
+    if (typeof item === 'string') {
+        return {
+            id: getReadingStockKey(item, []),
+            reading: item,
+            segments: [],
+            baseNickname: '',
+            tags: [],
+            isSuper: false,
+            gender: gender || 'neutral',
+            addedAt: new Date().toISOString()
+        };
+    }
+
+    const reading = item && item.reading ? item.reading : '';
+    const segments = Array.isArray(item && item.segments) ? item.segments.filter(Boolean) : [];
+    return {
+        id: item && item.id ? item.id : getReadingStockKey(reading, segments),
+        reading,
+        segments,
+        baseNickname: item && item.baseNickname ? item.baseNickname : '',
+        tags: Array.isArray(item && item.tags) ? [...new Set(item.tags.filter(Boolean))] : [],
+        isSuper: !!(item && item.isSuper),
+        gender: item && item.gender ? item.gender : (gender || 'neutral'),
+        addedAt: item && item.addedAt ? item.addedAt : new Date().toISOString()
+    };
+}
+
+function getReadingDisplayLabel(item) {
+    return item && item.segments && item.segments.length > 0
+        ? item.segments.join('/')
+        : item.reading;
+}
+
+function matchesReadingStockTarget(item, target) {
+    return item.id === target || item.reading === target;
+}
+
 function getReadingStock() {
     try {
         const data = localStorage.getItem(READING_STOCK_KEY);
-        return data ? JSON.parse(data) : [];
+        const raw = data ? JSON.parse(data) : [];
+        return Array.isArray(raw) ? raw.map(normalizeReadingStockItem) : [];
     } catch (e) {
         return [];
     }
@@ -2055,56 +2278,62 @@ function getReadingStock() {
 
 function saveReadingStock(stock) {
     try {
-        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(stock));
+        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(stock.map(normalizeReadingStockItem)));
     } catch (e) {
         console.error("STOCK: Failed to save reading stock", e);
     }
 }
 
-function addReadingToStock(reading, baseNickname, tags) {
+function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const stock = getReadingStock();
     const normalizedTags = Array.isArray(tags)
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
         : [];
-    const existing = stock.find(s => s.reading === reading);
+    const normalizedSegments = Array.isArray(options.segments) ? options.segments.filter(Boolean) : [];
+    const targetId = getReadingStockKey(reading, normalizedSegments);
+    const existing = stock.find(item => item.id === targetId);
 
     if (existing) {
-        const mergedTags = [...new Set([...(existing.tags || []), ...normalizedTags])];
-        const shouldSave = mergedTags.length !== (existing.tags || []).length || (!existing.baseNickname && (baseNickname || nicknameBaseReading));
-        existing.tags = mergedTags;
+        existing.tags = [...new Set([...(existing.tags || []), ...normalizedTags])];
         if (!existing.baseNickname && (baseNickname || nicknameBaseReading)) {
             existing.baseNickname = baseNickname || nicknameBaseReading || '';
         }
-        if (shouldSave) {
-            saveReadingStock(stock);
-        }
-        return;
+        if (normalizedSegments.length > 0) existing.segments = normalizedSegments;
+        if (options.gender) existing.gender = options.gender;
+        existing.isSuper = existing.isSuper || !!options.isSuper;
+        saveReadingStock(stock);
+        return existing;
     }
 
-    stock.push({
+    const entry = normalizeReadingStockItem({
+        id: targetId,
         reading: reading,
+        segments: normalizedSegments,
         baseNickname: baseNickname || nicknameBaseReading || '',
         tags: normalizedTags,
+        isSuper: !!options.isSuper,
+        gender: options.gender || gender || 'neutral',
         addedAt: new Date().toISOString()
     });
+
+    stock.push(entry);
     saveReadingStock(stock);
-    console.log("STOCK: Added reading to stock:", reading, "from:", baseNickname, "tags:", normalizedTags);
+    console.log("STOCK: Added reading to stock:", entry);
+    return entry;
 }
 
-function removeReadingFromStock(reading) {
+function removeReadingFromStock(target) {
     let stock = getReadingStock();
-    stock = stock.filter(s => s.reading !== reading);
+    stock = stock.filter(item => !matchesReadingStockTarget(item, target));
     saveReadingStock(stock);
-    console.log("STOCK: Removed reading from stock:", reading);
+    console.log("STOCK: Removed reading from stock:", target);
 }
 
 function removeCompletedReadingFromStock(reading) {
     if (!confirm(`「${reading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
 
-    // 1. pending stock から削除
     removeReadingFromStock(reading);
 
-    // 2. 完了済みリストからも非表示にするために記録
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
     if (!removedList.includes(reading)) {
@@ -2112,15 +2341,10 @@ function removeCompletedReadingFromStock(reading) {
         localStorage.setItem('meimay_hidden_readings', JSON.stringify(removedList));
     }
 
-    // 3. 保存
     if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
-
-    // 4. クラウド同期
     if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
 
     showToast(`「${reading}」を外しました`, '🗑️');
-
-    // 5. 表示更新
     renderReadingStockSection();
 }
 
@@ -2136,11 +2360,9 @@ function openReadingStockModal(reading) {
 
     titleEl.textContent = reading;
 
-    // 漢字数カウント
     const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
     infoEl.textContent = `${kanjiCount}個の漢字を選びました`;
 
-    // イベント設定
     btnBuild.onclick = () => {
         closeModal('modal-reading-detail');
         openBuildFromReading(reading);
@@ -2157,11 +2379,6 @@ function openReadingStockModal(reading) {
     modal.classList.add('active');
 }
 
-/**
- * 読みストックのUI描画
- * - 完了済み読み（liked[] のsessionReadingから導出）: ビルドへ / 追加ボタン
- * - 未選択の読み（READING_STOCK_KEY）: 漢字を探すボタン
- */
 function renderReadingStockSection() {
     const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
@@ -2169,12 +2386,15 @@ function renderReadingStockSection() {
 
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
-    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    history.forEach(h => {
+        const historyKey = getReadingStockKey(h.reading, h.segments || []);
+        readingToSegments[historyKey] = h.segments;
+        if (!readingToSegments[h.reading]) readingToSegments[h.reading] = h.segments;
+    });
 
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
 
-    // liked[] から完了済み読みを導出（FREE/SEARCH/slot<0/削除済み を除外）
     const completedReadings = [...new Set(
         liked
             .filter(item =>
@@ -2187,8 +2407,7 @@ function renderReadingStockSection() {
             .map(item => item.sessionReading)
     )];
 
-    // 未選択の読みから完了済みを除外
-    const pendingOnly = pendingStock.filter(s => !completedReadings.includes(s.reading));
+    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
 
     const hasContent = completedReadings.length > 0 || pendingOnly.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
@@ -2201,7 +2420,6 @@ function renderReadingStockSection() {
 
     let html = '';
 
-    // 完了済み読み
     if (completedReadings.length > 0) {
         html += `<div class="mb-6">
             <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字を選んだ読み</div>
@@ -2230,32 +2448,40 @@ function renderReadingStockSection() {
         html += `</div></div>`;
     }
 
-    // 未選択の読み（pending）
     if (pendingOnly.length > 0) {
         const groups = {};
-        pendingOnly.forEach(s => {
-            const key = s.baseNickname || 'その他';
+        pendingOnly.forEach(item => {
+            const key = item.baseNickname || '響き候補';
             if (!groups[key]) groups[key] = [];
-            groups[key].push(s);
+            groups[key].push(item);
         });
 
         html += `<div class="mb-5">
             <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">未選択の読み</div>`;
 
-        Object.keys(groups).forEach(nickname => {
-            const items = groups[nickname];
+        Object.keys(groups).forEach(groupName => {
+            const items = groups[groupName];
             html += `<div class="mb-3">
-                <div class="text-[10px] text-[#bca37f] mb-1">「${nickname}」より</div>
+                <div class="text-[10px] text-[#bca37f] mb-1">「${groupName}」より</div>
                 <div class="grid grid-cols-2 gap-2">
-                    ${items.map(s => `
-                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center justify-between hover:border-[#bca37f] transition-all">
-                            <button onclick="startReadingFromStock('${s.reading}')" class="flex-1 text-left active:scale-95 transition-transform">
-                                <div class="text-lg font-black text-[#5d5444]">${s.reading}</div>
-                                <div class="text-[9px] text-[#bca37f]">漢字を探す →</div>
-                            </button>
-                            <button onclick="removeReadingFromStock('${s.reading}');renderReadingStockSection()" class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
-                        </div>
-                    `).join('')}
+                    ${items.map(item => {
+                        const display = getReadingDisplayLabel(item);
+                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '漢字を探す →';
+                        const badge = item.isSuper
+                            ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-[#fff1d8] text-[#b9965b] text-[9px] font-black">SUPER</span>'
+                            : '';
+                        return `
+                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
+                            <div class="flex items-start justify-between gap-2">
+                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
+                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                                </button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${badge}${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                        </div>`;
+                    }).join('')}
                 </div>
             </div>`;
         });
@@ -2266,9 +2492,6 @@ function renderReadingStockSection() {
     section.innerHTML = html;
 }
 
-/**
- * 特定の読みでビルド画面を開く
- */
 function openBuildFromReading(reading) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const entry = history.find(h => h.reading === reading);
@@ -2280,9 +2503,6 @@ function openBuildFromReading(reading) {
     if (typeof openBuild === 'function') openBuild();
 }
 
-/**
- * 特定の読みで漢字追加（スワイプ画面へ）
- */
 function addMoreForReading(reading) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const entry = history.find(h => h.reading === reading);
@@ -2300,17 +2520,32 @@ function addMoreForReading(reading) {
     changeScreen('scr-main');
 }
 
-/**
- * 読みストックから漢字探しへ
- */
-function startReadingFromStock(reading) {
-    console.log("STOCK: Starting kanji search from stock reading:", reading);
-    removeReadingFromStock(reading);
+function startReadingFromStock(target) {
+    const stock = getReadingStock();
+    const stockItem = stock.find(item => matchesReadingStockTarget(item, target));
+    if (!stockItem) return;
+
+    console.log("STOCK: Starting kanji search from stock reading:", stockItem);
+    removeReadingFromStock(stockItem.id);
     appMode = 'nickname';
     window._addMoreFromBuild = false;
-    proceedWithNicknameReading(reading);
-}
 
+    if (stockItem.segments && stockItem.segments.length > 0) {
+        segments = [...stockItem.segments];
+        currentPos = 0;
+        swipes = 0;
+        currentIdx = 0;
+        const nameInput = document.getElementById('in-name');
+        if (nameInput) nameInput.value = stockItem.reading;
+        if (typeof updateSurnameData === 'function') updateSurnameData();
+        seen.clear();
+        if (typeof loadStack === 'function') loadStack();
+        changeScreen('scr-main');
+        return;
+    }
+
+    proceedWithNicknameReading(stockItem.reading);
+}
 // ==========================================
 // 複数読み漢字選択フロー（共通prefix + suffix順次スワイプ）
 // ==========================================
@@ -3466,6 +3701,3 @@ window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
-
-
-

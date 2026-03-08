@@ -6,6 +6,90 @@
 /**
  * 読みの分割パターンを計算
  */
+function getReadingSegmentPaths(rawReading, limit = 5) {
+    const nameReading = toHira((rawReading || '').trim());
+    if (!nameReading || !/^[ぁ-ん]+$/.test(nameReading)) {
+        return [];
+    }
+
+    let allPaths = [];
+
+    function findPath(remaining, currentPath) {
+        if (currentPath.length > 3) return;
+
+        if (remaining.length === 0) {
+            if (currentPath.length >= 1) {
+                allPaths.push([...currentPath]);
+            }
+            return;
+        }
+
+        for (let i = 1; i <= Math.min(3, remaining.length); i++) {
+            const part = remaining.slice(0, i);
+            const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
+            const partSokuon = part.replace(/っ$/, 'つ');
+            if (rule === 'lax' || (validReadingsSet && (
+                validReadingsSet.has(part) ||
+                validReadingsSet.has(partSeion) ||
+                (partSokuon !== part && validReadingsSet.has(partSokuon))
+            ))) {
+                currentPath.push(part);
+                findPath(remaining.slice(i), currentPath);
+                currentPath.pop();
+            }
+        }
+    }
+
+    findPath(nameReading, []);
+
+    const scoredSplits = allPaths.map(path => {
+        let score = 0;
+
+        if (path.length === 2) score += 2000;
+        else if (path.length === 3) score += 1800;
+        else if (path.length === 1) score += 500;
+
+        path.forEach(p => {
+            if (p.length === 2) score += 500;
+            if (p.length === 1) {
+                if (["た", "ま", "と", "の", "か", "ほ", "ひ", "み", "な", "り", "さ", "こ", "あ"].includes(p)) {
+                    score += 200;
+                } else {
+                    score += 50;
+                }
+            }
+        });
+
+        let singleCombo = 0;
+        let maxSingleCombo = 0;
+        path.forEach(p => {
+            if (p.length === 1) singleCombo++;
+            else singleCombo = 0;
+            maxSingleCombo = Math.max(maxSingleCombo, singleCombo);
+        });
+        if (maxSingleCombo >= 3) score -= 3000;
+
+        return { path, score };
+    });
+
+    scoredSplits.sort((a, b) => b.score - a.score);
+
+    const uniquePaths = [];
+    const seenSet = new Set();
+    scoredSplits.forEach(item => {
+        const key = JSON.stringify(item.path);
+        if (!seenSet.has(key) && item.score > -1000) {
+            uniquePaths.push(item.path);
+            seenSet.add(key);
+        }
+    });
+
+    if (uniquePaths.length === 0) {
+        uniquePaths.push(nameReading.split(''));
+    }
+
+    return uniquePaths.slice(0, limit);
+}
 function calcSegments() {
     console.log("ENGINE: calcSegments() called");
 
@@ -601,6 +685,7 @@ function nextChar() {
 window.loadStack = loadStack;
 window.prevChar = prevChar;
 window.nextChar = nextChar;
+window.getReadingSegmentPaths = getReadingSegmentPaths;
 
 /**
  * 濁点・半濁点の関係かどうか判定
@@ -624,4 +709,3 @@ function isDakutenMatch(a, b) {
 
     return normalize(a) === normalize(b);
 }
-
