@@ -241,7 +241,7 @@
                     <div class="relative">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex-1">
-                                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Home Board</div>
+                                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">ホーム</div>
                                 <div class="mt-1 text-[18px] font-black text-[#4f4639] leading-tight">いまの名づけ状況</div>
                                 <div class="mt-2 text-[13px] font-black text-[#5d5444] leading-snug" id="home-next-step-title">入口から候補を集める</div>
                                 <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-next-step-detail">まずは読みか響きから始めるのがおすすめです。</div>
@@ -272,15 +272,15 @@
 
                         <div class="mt-3 grid grid-cols-3 gap-2 text-left">
                             <div class="rounded-2xl bg-[#fdf7ef] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#b9965b]">TODAY</div>
-                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-daily-remaining">今日のカード 残り -</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#b9965b]">今日</div>
+                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-daily-remaining">今日のカードを確認中</div>
                             </div>
                             <div class="rounded-2xl bg-[#f7f4ff] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#9d8cbc]">TASTE</div>
-                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-preference-summary">好みを学習中</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#9d8cbc]">好み</div>
+                                <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-preference-summary">まだ傾向は未表示</div>
                             </div>
                             <div class="rounded-2xl bg-[#f4f8ff] px-3 py-2 min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#88a3c5]">PAIR</div>
+                                <div class="text-[9px] font-black tracking-wide text-[#88a3c5]">ペア</div>
                                 <div class="mt-1 text-[11px] font-bold text-[#5d5444] leading-snug" id="home-partner-summary">連携は任意</div>
                             </div>
                         </div>
@@ -741,10 +741,10 @@
         <div id="main-empty-state"
             class="hidden flex-1 flex flex-col items-center justify-center text-[#a6967a] text-center p-8">
             <div class="text-4xl mb-4">🌫️</div>
-            <p class="text-sm font-bold">セッションが見つかりません</p>
-            <p class="text-[10px] mt-2">ホームから検索を開始してください</p>
+            <p class="text-sm font-bold text-[#5d5444]">続きから再開できませんでした</p>
+            <p class="text-[11px] mt-2 leading-relaxed">前回の検索が期限切れになったようです。<br>もう一度、読みを選ぶところから始めましょう。</p>
+            <button onclick="startMode('reading')" class="mt-5 px-5 py-3 rounded-full bg-[#b9965b] text-white text-sm font-bold shadow-sm active:scale-95 transition-transform">読みを選び直す</button>
         </div>
-
         <div id="main-session-content" class="hidden w-full flex-1 flex flex-col">
             <div
                 class="hud-top-mini flex items-center justify-between w-full max-w-[330px] mx-auto px-4 z-20 min-h-[44px] mb-4">
@@ -983,7 +983,7 @@
         <div class="w-full max-w-md pt-4 px-4 mx-auto h-screen flex flex-col">
             <div class="flex items-center gap-3 mb-4">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
-                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">AIおすすめ漢字</h2>
+                <h2 class="text-lg font-bold text-[#8b7e66] flex-1">おすすめ漢字</h2>
             </div>
             <div id="akinator-content" class="flex-1 overflow-y-auto pb-32">
                 <!-- JS populated -->
@@ -1659,7 +1659,7 @@
     <div id="scr-saved" class="screen">
         <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1 pt-2">
             <div class="flex justify-between items-center mb-4 border-b border-[#eee5d8] pb-2">
-                <h3 class="font-bold text-[#8b7e66] text-sm pl-1">保存リスト</h3>
+                <h3 class="font-bold text-[#8b7e66] text-sm pl-1">保存済み</h3>
                 <button onclick="MeimayShare.shareSavedNames()"
                     class="partner-share-btn hidden px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
                     <span>📤</span> 共有
@@ -1761,4 +1761,5 @@
 </body>
 
 </html>
+
 

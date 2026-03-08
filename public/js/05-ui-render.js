@@ -670,7 +670,7 @@ window.showKanjiDetail = showKanjiDetail;
  */
 function getHomePreferenceSummary(likedList) {
     if (!likedList || likedList.length === 0) {
-        return { shortText: '好みを学習中', detailText: 'まだデータがありません', topLabels: [] };
+        return { shortText: 'まだ傾向は未表示', detailText: '候補が集まると好みの傾向が見えてきます。', topLabels: [] };
     }
 
     const tagCounts = {};
@@ -687,7 +687,7 @@ function getHomePreferenceSummary(likedList) {
     const topLabels = sortedTags.slice(0, 3).map(([tag]) => KANJI_CATEGORIES[tag]?.label || tag.replace('#', ''));
 
     if (topLabels.length === 0) {
-        return { shortText: '標準的', detailText: 'まだ好みの傾向は見えていません', topLabels: [] };
+        return { shortText: '傾向を整理中', detailText: '候補が増えると好みの傾向が見えてきます。', topLabels: [] };
     }
 
     return {
@@ -992,12 +992,12 @@ function openHomeInsightsModal() {
         <div class="detail-sheet max-w-md max-h-[82vh] overflow-y-auto" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closeHomeInsightsModal()">✕</button>
             <div class="pt-4 pb-2">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Overview</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">ホーム</div>
                 <h3 class="text-xl font-black text-[#4f4639] mb-2">いまの状況</h3>
                 <p class="text-sm text-[#8b7e66] leading-relaxed">次にやることが分かる画面です。</p>
             </div>
             <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Next Step</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">次にやること</div>
                 <div class="text-sm font-bold text-[#5d5444]">${nextStep.title}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${nextStep.detail}</div>
                 <button onclick="handleHomeNextStepAction()" class="mt-3 w-full py-3 rounded-2xl bg-[#b9965b] text-white text-sm font-bold shadow-sm">${nextStep.actionLabel}</button>
@@ -1017,16 +1017,16 @@ function openHomeInsightsModal() {
                 </div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">Today</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase mb-2">今日</div>
                 <div class="text-sm font-bold text-[#5d5444]">${dailyText}</div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">Taste</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#9d8cbc] uppercase mb-2">好み</div>
                 <div class="text-sm font-bold text-[#5d5444]">${preference.shortText}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${preference.detailText}</div>
             </div>
             <div class="mt-3 rounded-2xl border border-[#eee5d8] bg-white p-4">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">Pair</div>
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#88a3c5] uppercase mb-2">ペア</div>
                 <div class="text-sm font-bold text-[#5d5444]">${pairing.title}</div>
                 <div class="text-[11px] text-[#8b7e66] mt-2 leading-relaxed">${pairing.subtitle}</div>
                 <div class="flex flex-wrap gap-2 mt-3">${previewList}</div>
@@ -1093,5 +1093,6 @@ setTimeout(() => {
 }, 500);
 
 console.log("UI RENDER: Module loaded (v14.3 - Added renderHomeProfile)");
+
 
 
