@@ -99,9 +99,15 @@ function openChoiceModal(slotIdx) {
         return;
     }
 
+    const moreBtn = document.getElementById('choice-more-btn');
+
     if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
         const itemCount = liked.filter(item => item.sessionReading === 'FREE').length;
         if (label) label.innerText = itemCount;
+        // 直感スワイプ: msg内に「探し続ける」+「ホームへ戻る」を直接配置
+        // 外側の「もっと探す」ボタンは重複するので非表示
+        if (moreBtn) moreBtn.style.display = 'none';
+        if (btn) btn.style.display = 'none';
         if (msg) {
             msg.innerHTML = `
                 <div class="mb-4">
@@ -117,12 +123,13 @@ function openChoiceModal(slotIdx) {
                 </div>
             `;
         }
-        if (btn) btn.style.display = 'none'; // Custom buttons used instead
         modal.classList.add('active');
         console.log(`CHOICE: Modal opened in Free Mode (${itemCount} items)`);
         return;
     }
 
+    // 通常モード（読みから漢字スワイプ）: 外側ボタンを「もっと探す」に戻して表示
+    if (moreBtn) { moreBtn.style.display = ''; moreBtn.innerText = 'もっと探す'; }
     if (btn) btn.style.display = 'block';
 
     const currentReading = segments.join('');

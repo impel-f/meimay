@@ -2487,8 +2487,12 @@ function showUniversalSwipeCheckpoint() {
     const modal = document.getElementById('modal-choice');
     const msg = document.getElementById('choice-message');
     const btn = document.getElementById('choice-main-btn');
+    const moreBtn = document.getElementById('choice-more-btn');
 
     if (!modal) return;
+
+    // 外側ボタンを「続ける」にリネーム（「もっと探す」は文脈的に不自然）
+    if (moreBtn) { moreBtn.style.display = ''; moreBtn.innerText = '続ける'; }
 
     if (msg) {
         msg.innerHTML = `
@@ -2504,6 +2508,7 @@ function showUniversalSwipeCheckpoint() {
     }
 
     if (btn) {
+        btn.style.display = 'block';
         btn.innerText = '候補リストを見る →';
         btn.onclick = () => {
             modal.classList.remove('active');
