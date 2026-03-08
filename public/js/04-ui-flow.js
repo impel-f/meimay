@@ -375,13 +375,10 @@ function getReadingFullNamePreview(reading) {
 }
 
 function getReadingSegmentOptions(reading, limit = 4) {
+    const targetGender = gender || 'neutral';
     let paths = typeof getReadingSegmentPaths === 'function'
-        ? getReadingSegmentPaths(reading, limit)
+        ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: true, allowFallback: false })
         : [];
-
-    if (!paths || paths.length === 0) {
-        paths = [String(reading || '').split('').filter(Boolean)];
-    }
 
     const seen = new Set();
     return paths
@@ -389,11 +386,14 @@ function getReadingSegmentOptions(reading, limit = 4) {
             const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
             const label = cleanPath.join('/');
             if (!label || seen.has(label)) return null;
+            const candidates = buildReadingCombinationCandidates(cleanPath, 4, targetGender);
+            if (!candidates || candidates.length === 0) return null;
             seen.add(label);
             return {
                 path: cleanPath,
                 label,
-                examples: getReadingCombinationExamples(cleanPath, 4)
+                candidates,
+                examples: candidates.map(candidate => candidate.givenName).slice(0, 3)
             };
         })
         .filter(Boolean)
@@ -402,7 +402,7 @@ function getReadingSegmentOptions(reading, limit = 4) {
 
 function getPreferredReadingSegments(reading) {
     const options = getReadingSegmentOptions(reading, 1);
-    return options.length > 0 ? options[0].path : String(reading || '').split('').filter(Boolean);
+    return options.length > 0 ? options[0].path : [];
 }
 
 function findKanjiCandidatesForSegment(segment, limit = 3) {
@@ -441,33 +441,234 @@ function findKanjiCandidatesForSegment(segment, limit = 3) {
 }
 
 function getReadingCombinationExamples(path, limit = 4) {
+    return buildReadingCombinationCandidates(path, limit).map(candidate => candidate.givenName);
+}
+
+function getStrictReadingMatch(item, segment) {
+    const target = toHira(segment || '');
+    if (!target || !item) return null;
+
+    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+    const targetSokuon = target.replace(/\u3063$/, '\u3064');
+    const majorReadings = ((item['\u97F3'] || '') + ',' + (item['\u8A13'] || ''))
+        .split(/[\u3001,\uFF0C\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+    const minorReadings = (item['\u4F1D\u7D71\u540D\u306E\u308A'] || '')
+        .split(/[\u3001,\uFF0C\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+
+    if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
+        return { tier: 1 };
+    }
+
+    if (minorReadings.includes(target) || (targetSokuon !== target && minorReadings.includes(targetSokuon))) {
+        return { tier: 2 };
+    }
+
+    if (target !== targetSeion && majorReadings.includes(targetSeion)) {
+        return { tier: 3 };
+    }
+
+    return null;
+}
+
+function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = gender || 'neutral') {
+    const target = toHira(segment || '');
+    if (!target || !master || master.length === 0) return [];
+
+    const cacheKey = `strict::${target}::${targetGender}`;
+    if (readingKanjiCache.has(cacheKey)) {
+        return readingKanjiCache.get(cacheKey).slice(0, limit);
+    }
+
+    const unique = [];
+    const seen = new Set();
+
+    master
+        .filter(item => {
+            const flag = item['\u4E0D\u9069\u5207\u30D5\u30E9\u30B0'];
+            if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
+            if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(item, targetGender)) return false;
+            return !!getStrictReadingMatch(item, target);
+        })
+        .map(item => {
+            const match = getStrictReadingMatch(item, target);
+            return {
+                ...item,
+                _readingMatchTier: match ? match.tier : 99,
+                _recommendationScore: typeof getKanjiRecommendationScore === 'function'
+                    ? getKanjiRecommendationScore(item, targetGender)
+                    : ((parseInt(item['\u304A\u3059\u3059\u3081\u5EA6']) || 0) * 100),
+                _genderPriority: typeof getKanjiGenderPriority === 'function'
+                    ? getKanjiGenderPriority(item, targetGender)
+                    : 1
+            };
+        })
+        .sort((a, b) => {
+            if (a._readingMatchTier !== b._readingMatchTier) return a._readingMatchTier - b._readingMatchTier;
+            if (a._genderPriority !== b._genderPriority) return a._genderPriority - b._genderPriority;
+            if (a._recommendationScore !== b._recommendationScore) return b._recommendationScore - a._recommendationScore;
+            if (typeof calculateKanjiScore === 'function') return calculateKanjiScore(b) - calculateKanjiScore(a);
+            return 0;
+        })
+        .forEach(item => {
+            const kanji = (item['\u6F22\u5B57'] || '').trim();
+            if (!kanji || seen.has(kanji)) return;
+            seen.add(kanji);
+            unique.push(item);
+        });
+
+    readingKanjiCache.set(cacheKey, unique.slice(0, 10));
+    return unique.slice(0, limit);
+}
+
+function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
     if (!Array.isArray(path) || path.length === 0) return [];
 
-    const groups = path.map(segment => findKanjiCandidatesForSegment(segment, 2));
+    const groups = path.map(segment => findStrictKanjiCandidatesForSegment(segment, 4, targetGender));
+    if (groups.some(group => !group || group.length === 0)) return [];
+
     const results = [];
+    const seenNames = new Set();
 
-    function build(index, acc) {
-        if (results.length >= limit) return;
+    function build(index, pieces, score, usedKanji) {
+        if (results.length >= limit * 4) return;
         if (index >= groups.length) {
-            if (acc) results.push(acc);
+            const givenName = pieces.map(piece => piece['\u6F22\u5B57']).join('');
+            if (!givenName || seenNames.has(givenName)) return;
+            seenNames.add(givenName);
+            results.push({
+                givenName,
+                score,
+                combination: pieces.map(piece => ({ ...piece }))
+            });
             return;
         }
 
-        const group = groups[index];
-        if (!group || group.length === 0) {
-            build(index + 1, acc + path[index]);
-            return;
-        }
-
-        group.forEach(kanji => {
-            if (results.length < limit) {
-                build(index + 1, acc + kanji);
-            }
+        groups[index].forEach(piece => {
+            const kanji = piece['\u6F22\u5B57'];
+            if (!kanji || usedKanji.has(kanji) || results.length >= limit * 4) return;
+            const nextUsed = new Set(usedKanji);
+            nextUsed.add(kanji);
+            build(
+                index + 1,
+                [...pieces, piece],
+                score + (piece._recommendationScore || 0) - ((piece._readingMatchTier || 1) - 1) * 40,
+                nextUsed
+            );
         });
     }
 
-    build(0, '');
-    return [...new Set(results)].slice(0, limit);
+    build(0, [], 0, new Set());
+
+    return results
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(result => ({
+            ...result,
+            fullName: surnameStr ? `${surnameStr} ${result.givenName}` : result.givenName
+        }));
+}
+
+function persistGeneratedSavedName(saveData) {
+    const existing = typeof getSavedNames === 'function' ? getSavedNames() : (savedNames || []);
+    const updated = [
+        saveData,
+        ...existing.filter(item => !(item.fullName === saveData.fullName &&
+            JSON.stringify((item.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || '')) ===
+            JSON.stringify((saveData.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || ''))))
+    ].slice(0, 50);
+
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveSavedNames) {
+        StorageBox.saveSavedNames();
+    }
+}
+
+function saveReadingCandidateToStock(option, candidate, asSuper) {
+    const sessionReading = readingCombinationModalState.item.reading;
+    const sessionSegments = Array.isArray(option.path) ? [...option.path] : [];
+
+    addReadingToStock(
+        sessionReading,
+        readingCombinationModalState.item.baseNickname || '',
+        readingCombinationModalState.item.tags || [],
+        {
+            segments: sessionSegments,
+            isSuper: !!asSuper,
+            gender: readingCombinationModalState.item.gender || gender || 'neutral'
+        }
+    );
+
+    candidate.combination.forEach((piece, slotIndex) => {
+        const existing = liked.find(item =>
+            item['\u6F22\u5B57'] === piece['\u6F22\u5B57'] &&
+            item.slot === slotIndex &&
+            item.sessionReading === sessionReading
+        );
+
+        if (existing) {
+            existing.isSuper = existing.isSuper || !!asSuper;
+            return;
+        }
+
+        liked.push({
+            ...piece,
+            slot: slotIndex,
+            sessionReading,
+            sessionSegments,
+            isSuper: !!asSuper
+        });
+    });
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+}
+
+function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper) {
+    if (!readingCombinationModalState) return;
+    const option = readingCombinationModalState.options[optionIndex];
+    const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
+    if (!option || !candidate) return;
+
+    saveReadingCandidateToStock(option, candidate, asSuper);
+
+    const reading = readingCombinationModalState.item.reading;
+    const surnameRuby = typeof surnameReading !== 'undefined' ? surnameReading : '';
+    const combination = candidate.combination.map((piece, slotIndex) => ({
+        ...piece,
+        slot: slotIndex,
+        sessionReading: reading,
+        sessionSegments: [...option.path],
+        isSuper: !!asSuper
+    }));
+
+    persistGeneratedSavedName({
+        fullName: surnameStr ? `${surnameStr} ${candidate.givenName}` : candidate.givenName,
+        reading: surnameRuby ? `${surnameRuby} ${reading}` : reading,
+        givenName: candidate.givenName,
+        combination,
+        fortune: null,
+        source: 'reading-combination',
+        splitLabel: option.label,
+        tags: readingCombinationModalState.item.tags || [],
+        savedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+    });
+
+    closeReadingCombinationModal();
+
+    if (typeof showToast === 'function') {
+        showToast(`${candidate.givenName}\u3092${asSuper ? 'SUPER\u3067' : ''}\u4FDD\u5B58\u3057\u307E\u3057\u305F`, asSuper ? '⭐' : '💾');
+    }
+
+    if (typeof openSavedNames === 'function') {
+        openSavedNames();
+    }
 }
 
 function renderReadingTagBadges(tags) {
@@ -484,8 +685,8 @@ function renderReadingTagBadges(tags) {
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
     const surnameLine = surnameStr
-        ? `<div class="text-[11px] font-bold text-[#8b7e66] mb-3 tracking-wide">苗字と合わせると ${preview.visual}</div>`
-        : `<div class="text-[11px] font-bold text-[#a6967a] mb-3 tracking-wide">タップで分け方と漢字例を見る</div>`;
+        ? `<div class="text-[11px] font-bold text-[#8b7e66] mb-3 tracking-wide">\u82D7\u5B57\u306B\u5408\u308F\u305B\u308B\u3068 ${preview.visual}</div>`
+        : `<div class="text-[11px] font-bold text-[#a6967a] mb-3 tracking-wide">\u30BF\u30C3\u30D7\u3067\u5206\u3051\u65B9\u3054\u3068\u306E\u6F22\u5B57\u5019\u88DC\u3092\u898B\u308B</div>`;
 
     return `
         ${renderReadingTagBadges(item.tags)}
@@ -493,13 +694,13 @@ function renderReadingSwipeCard(item) {
         ${surnameLine}
         <div class="w-full px-4 mt-2">
             <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[220px] mx-auto shadow-sm">
-                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
+                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">\u4E0A\u4F4D\u306E\u6F22\u5B57\u5019\u88DC</p>
                 <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
                     ${getSampleKanjiHtml(item)}
                 </div>
             </div>
         </div>
-        <div class="mt-3 text-[10px] text-[#a6967a] font-bold tracking-wide">タップで分け方を見る</div>
+        <div class="mt-3 text-[10px] text-[#a6967a] font-bold tracking-wide">\u30BF\u30C3\u30D7\u3067\u6F22\u5B57\u5019\u88DC\u3092\u898B\u308B</div>
     `;
 }
 
@@ -529,30 +730,44 @@ function openReadingCombinationModal(item, baseNickname = '') {
         <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">✕</button>
             <div class="text-center mb-5">
-                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">読みの分け方</div>
+                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
                 <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
-                <p class="text-xs text-[#8b7e66] leading-relaxed">${surnameStr ? `${preview.visual} と続けたときの響きも見ながら選べます。` : '気になる分け方をストックして、あとから漢字を探せます。'}</p>
+                <p class="text-xs text-[#8b7e66] leading-relaxed">${surnameStr ? `\u82D7\u5B57\u306B\u5408\u308F\u305B\u308B\u3068 ${preview.visual}\u3002\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002` : '\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002'}</p>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
-                ${options.map((option, index) => {
-                    const exampleHtml = option.examples.length > 0
-                        ? option.examples.map(example => `<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-sm font-bold text-[#5d5444] text-center">${surnameStr ? `${surnameStr} ${example}` : example}</div>`).join('')
-                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">漢字例はこれから増やせます</div>';
+                ${options.length === 0 ? `
+                    <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
+                        \u3053\u306E\u8AAD\u307F\u3067\u306F\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u51FA\u305B\u308B\u5019\u88DC\u304C\u307E\u3060\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002
+                    </div>
+                ` : options.map((option, index) => {
+                    const candidateHtml = option.candidates.length > 0
+                        ? option.candidates.map((candidate, candidateIndex) => `
+                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3">
+                                <div class="flex items-start justify-between gap-3 mb-3">
+                                    <div class="min-w-0">
+                                        <div class="text-lg font-black text-[#5d5444]">${candidate.givenName}</div>
+                                        <div class="text-[11px] text-[#a6967a] mt-1">${surnameStr ? `${candidate.fullName}` : '\u4FDD\u5B58\u3059\u308B\u3068\u6F22\u5B57\u30B9\u30C8\u30C3\u30AF\u306B\u3082\u5165\u308A\u307E\u3059'}</div>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">\u5019\u88DC</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="flex-1 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">\u4FDD\u5B58</button>
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, true)" class="flex-1 py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPER</button>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">\u5019\u88DC\u304C\u307E\u3060\u3042\u308A\u307E\u305B\u3093</div>';
                     return `
                         <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
                             <div class="flex items-center justify-between gap-3 mb-3">
                                 <div>
                                     <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
-                                    <div class="text-[11px] text-[#a6967a] mt-1">${surnameStr ? `${surnameStr} ${item.reading}` : `${item.reading} の分け方`}</div>
+                                    <div class="text-[11px] text-[#a6967a] mt-1">${surnameStr ? `${surnameStr} ${item.reading}` : '\u3053\u306E\u5206\u3051\u65B9\u304B\u3089\u51FA\u305B\u308B\u5019\u88DC'}</div>
                                 </div>
-                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}\u5206\u5272</span>
                             </div>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">${exampleHtml}</div>
-                            <div class="flex gap-2">
-                                <button onclick="saveReadingCombinationFromModal(${index}, false)" class="flex-1 py-3 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">この分け方を保存</button>
-                                <button onclick="saveReadingCombinationFromModal(${index}, true)" class="flex-1 py-3 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPERで保存</button>
-                            </div>
+                            <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
                         </div>
                     `;
                 }).join('')}
@@ -566,24 +781,8 @@ function openReadingCombinationModal(item, baseNickname = '') {
 function saveReadingCombinationFromModal(index, asSuper) {
     if (!readingCombinationModalState) return;
     const option = readingCombinationModalState.options[index];
-    if (!option) return;
-
-    addReadingToStock(
-        readingCombinationModalState.item.reading,
-        readingCombinationModalState.item.baseNickname || '',
-        readingCombinationModalState.item.tags || [],
-        {
-            segments: option.path,
-            isSuper: !!asSuper,
-            gender: readingCombinationModalState.item.gender || gender || 'neutral'
-        }
-    );
-
-    if (typeof showToast === 'function') {
-        showToast(`${option.label} を${asSuper ? 'SUPERで' : ''}ストックしました`, asSuper ? '⭐' : '📥');
-    }
-
-    closeReadingCombinationModal();
+    if (!option || !option.candidates || option.candidates.length === 0) return;
+    saveReadingCandidateFromModal(index, 0, asSuper);
 }
 
 /**
@@ -2929,6 +3128,9 @@ window.removeReadingFromStock = removeReadingFromStock;
 window.renderReadingStockSection = renderReadingStockSection;
 window.startReadingFromStock = startReadingFromStock;
 window.openBuildFromReading = openBuildFromReading;
+window.closeReadingCombinationModal = closeReadingCombinationModal;
+window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
+window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
 window.addMoreForReading = addMoreForReading;
 window.inheritModalAction = inheritModalAction;
 window.showToast = showToast;

@@ -6,12 +6,15 @@
 /**
  * 読みの分割パターンを計算
  */
-function getReadingSegmentPaths(rawReading, limit = 5) {
+function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const nameReading = toHira((rawReading || '').trim());
     if (!nameReading || !/^[ぁ-ん]+$/.test(nameReading)) {
         return [];
     }
 
+    const strictOnly = options && options.strictOnly === true;
+    const allowFallback = !options || options.allowFallback !== false;
+    const useStrictMatching = strictOnly || rule === 'strict';
     let allPaths = [];
 
     function findPath(remaining, currentPath) {
@@ -28,7 +31,7 @@ function getReadingSegmentPaths(rawReading, limit = 5) {
             const part = remaining.slice(0, i);
             const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
             const partSokuon = part.replace(/っ$/, 'つ');
-            if (rule === 'lax' || (validReadingsSet && (
+            if (!useStrictMatching || (validReadingsSet && (
                 validReadingsSet.has(part) ||
                 validReadingsSet.has(partSeion) ||
                 (partSokuon !== part && validReadingsSet.has(partSokuon))
@@ -84,11 +87,58 @@ function getReadingSegmentPaths(rawReading, limit = 5) {
         }
     });
 
-    if (uniquePaths.length === 0) {
+    if (uniquePaths.length === 0 && allowFallback) {
         uniquePaths.push(nameReading.split(''));
     }
 
     return uniquePaths.slice(0, limit);
+}
+
+function getKanjiRecommendationScore(k, targetGender = gender || 'neutral') {
+    const allScore = parseInt(k['\u304A\u3059\u3059\u3081\u5EA6']) || 0;
+    const maleScore = parseInt(k['\u7537\u306E\u304A\u3059\u3059\u3081\u5EA6']) || 0;
+    const femaleScore = parseInt(k['\u5973\u306E\u304A\u3059\u3059\u3081\u5EA6']) || 0;
+
+    if (targetGender === 'male') {
+        return (maleScore || allScore) * 100 + allScore * 8 - femaleScore * 12;
+    }
+
+    if (targetGender === 'female') {
+        return (femaleScore || allScore) * 100 + allScore * 8 - maleScore * 12;
+    }
+
+    return allScore * 100 + Math.max(maleScore, femaleScore) * 10;
+}
+
+function getKanjiGenderPriority(k, targetGender = gender || 'neutral') {
+    if (!targetGender || targetGender === 'neutral') {
+        return 1;
+    }
+
+    const kanji = (k['\u6F22\u5B57'] || '').trim();
+    const combined = `${kanji}${k['\u540D\u524D\u306E\u30A4\u30E1\u30FC\u30B8'] || ''}${k['\u610F\u5473'] || ''}`;
+    const maleScore = parseInt(k['\u7537\u306E\u304A\u3059\u3059\u3081\u5EA6']) || 0;
+    const femaleScore = parseInt(k['\u5973\u306E\u304A\u3059\u3059\u3081\u5EA6']) || 0;
+    const maleKeywords = ['\u7537', '\u529B\u5F37', '\u52C7', '\u96C4', '\u7FD4', '\u967D', '\u5263', '\u525B', '\u5927', '\u738B'];
+    const femaleKeywords = ['\u5973', '\u512A', '\u7F8E', '\u611B', '\u82B1', '\u97F3', '\u9999', '\u83DC', '\u67D4', '\u9E97'];
+    const hasMaleKeyword = maleKeywords.some(keyword => combined.includes(keyword));
+    const hasFemaleKeyword = femaleKeywords.some(keyword => combined.includes(keyword));
+
+    if (targetGender === 'male') {
+        if (kanji === '\u5973') return 3;
+        if (femaleScore > maleScore + 1 || hasFemaleKeyword) return 3;
+        if (maleScore > 0 || hasMaleKeyword) return 1;
+        return 2;
+    }
+
+    if (kanji === '\u7537') return 3;
+    if (maleScore > femaleScore + 1 || hasMaleKeyword) return 3;
+    if (femaleScore > 0 || hasFemaleKeyword) return 1;
+    return 2;
+}
+
+function isKanjiGenderMismatch(k, targetGender = gender || 'neutral') {
+    return getKanjiGenderPriority(k, targetGender) >= 3;
 }
 function calcSegments() {
     console.log("ENGINE: calcSegments() called");
@@ -381,6 +431,10 @@ function loadStack() {
             if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
         }
 
+        if (isKanjiGenderMismatch(k)) {
+            return false;
+        }
+
         // 同じ読みが続く場合は、seenチェックをスキップ
         const isSameReading = currentPos > 0 && segments[currentPos] === segments[currentPos - 1];
 
@@ -516,32 +570,31 @@ function loadStack() {
     }
 }
 function calculateKanjiScore(k) {
-    let score = 0;
+    let score = getKanjiRecommendationScore(k);
 
-    // 性別適性スコア（基本の「おすすめ度」に加え、男女別のおすすめ度を反映）
-    if (gender === 'male') {
-        score = (parseInt(k['男のおすすめ度']) || parseInt(k['おすすめ度']) || 0) * 10;
-    } else if (gender === 'female') {
-        score = (parseInt(k['女のおすすめ度']) || parseInt(k['おすすめ度']) || 0) * 10;
-    } else {
-        score = (parseInt(k['おすすめ度']) || 0) * 10;
+    if (isKanjiGenderMismatch(k)) {
+        return -999999;
     }
 
     // 不適切フラグ（名前にふさわしくない）
     if (k['不適切フラグ'] && !showInappropriateKanji) {
-        score -= 10000; // 大きく減点して除外
+        return -999999;
     }
 
-    // 画数適性（6〜15画が書きやすい）
+    const genderPriority = getKanjiGenderPriority(k);
+    if (genderPriority === 1) score += 160;
+    else if (genderPriority === 2) score += 40;
+
+    // 画数適性は補助的にだけ使う
     const strokes = parseInt(k['画数']) || 0;
     if (strokes >= 6 && strokes <= 15) {
-        score += 100;
+        score += 18;
     }
 
     // 姓名判断優先モード
     if (prioritizeFortune && surnameData && surnameData.length > 0) {
         // 簡易的な相性チェック（実装は fortune.js 参照）
-        score += 50;
+        score += 40;
     }
 
     return score;
