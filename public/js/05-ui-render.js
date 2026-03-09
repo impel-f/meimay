@@ -189,11 +189,8 @@ function render() {
 
     // タグの印象色は全面塗りではなく、カード枠のグラデーションに使う
     const bgGradient = getGradientFromTags(unifiedTags);
-    card.style.background = '#fffefb';
-    card.style.border = '2px solid transparent';
-    card.style.backgroundImage = `linear-gradient(#fffefb, #fffefb), ${bgGradient}`;
-    card.style.backgroundOrigin = 'border-box';
-    card.style.backgroundClip = 'padding-box, border-box';
+    card.style.background = bgGradient;
+    card.style.border = '1px solid rgba(139, 126, 102, 0.12)';
 
     // タグHTML: 背景色なし・#タグ名テキストのみ
     const tagsHTML = unifiedTags.filter(t => t !== '#その他').length > 0 ?
