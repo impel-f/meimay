@@ -465,13 +465,13 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                                 : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
                         ${step.metric.compact
                             ? `
-                                <span class="flex flex-col items-start leading-none">
-                                    <span class="text-[15px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
-                                    <span class="mt-0.5 text-[8px] font-black tracking-[0.08em] text-[#8b7e66]">${step.metric.countUnit}</span>
+                                <span class="flex flex-col items-start leading-none overflow-visible">
+                                    <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
+                                    <span class="mt-0.5 whitespace-nowrap text-[8px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
                                 </span>
                             `
                             : `
-                                <span class="whitespace-nowrap text-[15px] font-black text-[#4f4639]">${step.metric.countNumber}${step.metric.countUnit}</span>
+                                <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}<span class="text-[10px] ml-0.5">${step.metric.countUnit}</span></span>
                             `
                         }
                     </div>
