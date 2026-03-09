@@ -1071,3 +1071,13 @@ body.has-ad-banner #universal-footer {
 .tag-nature      { background: rgba(232, 245, 233, 0.7); color: #388e3c; border-color: rgba( 67, 160,  71, 0.25); }
 .tag-aquatic     { background: rgba(225, 245, 254, 0.7); color: #0277bd; border-color: rgba(  2, 136, 209, 0.25); }
 .tag-music       { background: rgba(243, 229, 245, 0.7); color: #6a1b9a; border-color: rgba(142,  36, 170, 0.25); }
+
+/* Home only: relax the conservative phone-width cap a little */
+#scr-mode > div {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+}
+
+#scr-mode .max-w-sm {
+    max-width: 430px !important;
+}
