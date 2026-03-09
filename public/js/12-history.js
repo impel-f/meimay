@@ -1229,7 +1229,7 @@ function renderSavedScreen() {
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase">Partner</div>
-                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${partnerName}の保存候補</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${partnerName}の保存済み</div>
                         <div class="mt-1 text-[11px] text-[#8b7e66]">いいねした候補だけ、自分の保存済みに入ります。</div>
                     </div>
                     <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#f0d0cb] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
@@ -1247,7 +1247,7 @@ function renderSavedScreen() {
                     <div>
                         <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Matched</div>
                         <div class="mt-1 text-sm font-bold text-[#4f4639]">おふたりで一致した名前</div>
-                        <div class="mt-1 text-[11px] text-[#8b7e66]">双方がいいねした保存候補だけを表示しています。</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">双方がいいねした保存済みだけを表示しています。</div>
                     </div>
                     <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
                         通常表示
@@ -1269,7 +1269,7 @@ function renderSavedScreen() {
 
     if (visiblePartner.length > 0) {
         if (html) {
-            html += `<div class="pt-2"><div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase mb-3">Partner Picks</div></div>`;
+            html += `<div class="pt-2"><div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase mb-3">${partnerName}の保存済み</div></div>`;
         }
         html += visiblePartner.map(renderPartnerCard).join('');
     }
@@ -1279,7 +1279,7 @@ function renderSavedScreen() {
             html = `
                 <div class="text-center py-20 text-sm text-[#a6967a]">
                     <div class="text-4xl mb-4 opacity-50">🤝</div>
-                    <p>${partnerName}から届いている保存候補はまだありません</p>
+                    <p>${partnerName}から届いている保存済みはまだありません</p>
                     <button onclick="clearSavedPartnerFocus()" class="mt-4 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-4 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95">
                         通常表示に戻る
                     </button>

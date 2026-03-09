@@ -324,17 +324,24 @@
                         </div>
                     </div>
                 </div>
-                <div class="mt-3 flex items-center gap-2">
-                    <div class="grid grid-cols-2 gap-2 flex-1 min-w-0">
-                        <div class="rounded-2xl bg-[#fdf7ef] px-3 py-2 text-center">
-                            <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-match-kanji-count">0</div>
-                            <div class="mt-1 text-[9px] font-bold text-[#a6967a]">一致漢字</div>
-                        </div>
-                        <div class="rounded-2xl bg-[#f7f3ff] px-3 py-2 text-center">
-                            <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-match-name-count">0</div>
-                            <div class="mt-1 text-[9px] font-bold text-[#a6967a]">一致名</div>
-                        </div>
-                    </div>
+                <div id="home-pair-stats-row" class="hidden mt-3 grid grid-cols-3 gap-2">
+                    <button id="home-pair-reading-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-reading')"
+                        class="rounded-2xl bg-[#fdf7ef] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
+                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-reading-count">0</div>
+                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">読み候補</div>
+                    </button>
+                    <button id="home-pair-liked-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-liked')"
+                        class="rounded-2xl bg-[#f2f6ff] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
+                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-liked-count">0</div>
+                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">漢字候補</div>
+                    </button>
+                    <button id="home-pair-saved-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-saved')"
+                        class="rounded-2xl bg-[#f7f3ff] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
+                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-saved-count">0</div>
+                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">保存済み</div>
+                    </button>
+                </div>
+                <div id="home-pair-action-row" class="mt-3 flex items-center gap-2">
                     <button id="home-pair-action" onclick="handleHomePairAction()"
                         class="shrink-0 px-4 py-2.5 bg-[#b9965b] text-white rounded-full text-[11px] font-bold shadow-sm active:scale-95 transition-transform">
                         連携する

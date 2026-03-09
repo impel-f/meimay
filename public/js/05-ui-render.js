@@ -187,9 +187,13 @@ function render() {
     // 分類タグを取得 (raw dataからのタグを取得)
     const unifiedTags = getUnifiedTags((data['分類'] || ''));
 
-    // 背景色をイメージに連動 (v15.0: 新分類タグに連動)
+    // タグの印象色は全面塗りではなく、カード枠のグラデーションに使う
     const bgGradient = getGradientFromTags(unifiedTags);
-    card.style.background = bgGradient;
+    card.style.background = '#fffefb';
+    card.style.border = '2px solid transparent';
+    card.style.backgroundImage = `linear-gradient(#fffefb, #fffefb), ${bgGradient}`;
+    card.style.backgroundOrigin = 'border-box';
+    card.style.backgroundClip = 'padding-box, border-box';
 
     // タグHTML: 背景色なし・#タグ名テキストのみ
     const tagsHTML = unifiedTags.filter(t => t !== '#その他').length > 0 ?

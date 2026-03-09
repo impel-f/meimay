@@ -433,6 +433,108 @@ function clearKanjiPartnerFocus() {
     renderStock();
 }
 
+function buildLikedCandidateKey(item) {
+    if (!item) return '';
+    const kanji = item['漢字'] || item.kanji || '';
+    const slot = Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1;
+    const reading = item.sessionReading || '';
+    const segmentsKey = Array.isArray(item.sessionSegments) ? item.sessionSegments.join('/') : '';
+    return `${reading}::${slot}::${kanji}::${segmentsKey}`;
+}
+
+function hydrateLikedCandidate(item, options = {}) {
+    const kanji = item?.['漢字'] || item?.kanji || '';
+    if (!kanji) return null;
+
+    const masterItem = typeof master !== 'undefined' && Array.isArray(master)
+        ? master.find(entry => entry['漢字'] === kanji)
+        : null;
+
+    return {
+        ...(masterItem || {}),
+        ...(item || {}),
+        '漢字': kanji,
+        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'],
+        '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'],
+        kanji_reading: item?.kanji_reading || masterItem?.kanji_reading || '',
+        slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
+        sessionReading: item?.sessionReading || '',
+        sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
+        isSuper: !!item?.isSuper,
+        fromPartner: !!options.fromPartner,
+        partnerAlsoPicked: !!options.partnerAlsoPicked,
+        partnerName: options.partnerName || item?.partnerName || ''
+    };
+}
+
+function getMergedLikedCandidates() {
+    const ownItems = (typeof liked !== 'undefined' && Array.isArray(liked))
+        ? liked.filter(item => !item?.fromPartner).map(item => hydrateLikedCandidate(item)).filter(Boolean)
+        : [];
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
+    const partnerItems = pairInsights?.getPartnerLiked
+        ? pairInsights.getPartnerLiked().map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
+        : [];
+
+    const merged = new Map();
+    ownItems.forEach((item) => {
+        const key = buildLikedCandidateKey(item);
+        if (!key) return;
+        merged.set(key, { ...item, fromPartner: false, partnerAlsoPicked: false });
+    });
+
+    partnerItems.forEach((item) => {
+        const key = buildLikedCandidateKey(item);
+        if (!key) return;
+        if (merged.has(key)) {
+            const existing = merged.get(key);
+            merged.set(key, {
+                ...existing,
+                partnerAlsoPicked: true,
+                partnerName: item.partnerName || existing.partnerName || ''
+            });
+        } else {
+            merged.set(key, item);
+        }
+    });
+
+    return Array.from(merged.values());
+}
+
+function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
+    const {
+        excluded = [],
+        partnerOnly = false,
+        matchedOnly = false
+    } = options;
+
+    const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
+    return getMergedLikedCandidates().filter((item) => {
+        const slotMatch = item.slot === idx;
+        const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
+        const isPartnerVisible = item.fromPartner || item.partnerAlsoPicked;
+        const isMatched = item.partnerAlsoPicked;
+        const isNotExcluded = !excludeSet.has(item['漢字']);
+
+        let freeMatch = false;
+        if (item.sessionReading === 'FREE') {
+            const readings = (item.kanji_reading || '').split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(Boolean);
+            const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
+            freeMatch = readings.includes(targetSeg);
+        }
+
+        const baseMatch = (slotMatch && readingMatch) || freeMatch;
+        if (!baseMatch || !isNotExcluded) return false;
+        if (partnerOnly && !isPartnerVisible) return false;
+        if (matchedOnly && !isMatched) return false;
+        return true;
+    });
+}
+
+window.getMergedLikedCandidates = getMergedLikedCandidates;
+window.getBuildSlotCandidates = getBuildSlotCandidates;
+
 function renderStock() {
     const container = document.getElementById('stock-list');
     if (!container) return;
@@ -453,11 +555,14 @@ function renderStock() {
         )
         : null;
 
-    let validItems = liked.filter(item => {
-        if (item?.fromPartner) return false;
+    let validItems = getMergedLikedCandidates().filter(item => {
         if (item.sessionReading === 'FREE') return true;
         return item.slot >= 0 && item.sessionReading !== 'SEARCH';
     });
+
+    if (kanjiFocus === 'partner') {
+        validItems = validItems.filter(item => item.fromPartner || item.partnerAlsoPicked);
+    }
 
     if (kanjiFocus === 'matched') {
         validItems = validItems.filter(item => {
@@ -466,17 +571,17 @@ function renderStock() {
         });
     }
 
-    if (kanjiFocus === 'matched') {
+    if (kanjiFocus === 'matched' || kanjiFocus === 'partner') {
         const banner = document.createElement('div');
         banner.className = 'col-span-5 rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-4';
         banner.innerHTML = `
             <div class="flex items-center justify-between gap-3">
                 <div>
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Matched</div>
-                    <div class="mt-1 text-sm font-bold text-[#4f4639]">おふたりで一致した漢字</div>
-                    <div class="mt-1 text-[11px] text-[#8b7e66]">共通で気になっている漢字だけを表示しています。</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">${kanjiFocus === 'matched' ? 'Matched' : 'Partner'}</div>
+                    <div class="mt-1 text-sm font-bold text-[#4f4639]">${kanjiFocus === 'matched' ? 'おふたりで一致した漢字' : 'パートナーの漢字候補'}</div>
+                    <div class="mt-1 text-[11px] text-[#8b7e66]">${kanjiFocus === 'matched' ? '共通で気になっている漢字だけを表示しています。' : '相手が選んだ漢字を、ストックの中で見ています。'}</div>
                 </div>
-                <button onclick="clearKanjiPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    <button onclick="clearKanjiPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
                     通常表示
                 </button>
             </div>
@@ -490,6 +595,13 @@ function renderStock() {
                 <div class="col-span-5 text-center py-20">
                     <p class="text-[#bca37f] italic text-lg mb-2">まだ一致した漢字はありません</p>
                     <p class="text-sm text-[#a6967a]">お互いに気になる漢字が増えると、ここに共通候補が並びます</p>
+                </div>
+            `
+            : kanjiFocus === 'partner'
+                ? `
+                <div class="col-span-5 text-center py-20">
+                    <p class="text-[#bca37f] italic text-lg mb-2">パートナーの漢字候補はまだありません</p>
+                    <p class="text-sm text-[#a6967a]">相手が漢字を選ぶと、ここで同じストック内に見られます</p>
                 </div>
             `
             : `
@@ -526,6 +638,10 @@ function renderStock() {
             segGroups[seg].push(item);
         } else if (item.isSuper && !dup.isSuper) {
             dup.isSuper = true;
+        } else if (item.fromPartner || item.partnerAlsoPicked) {
+            dup.partnerAlsoPicked = dup.partnerAlsoPicked || item.partnerAlsoPicked || !item.fromPartner;
+            dup.fromPartner = dup.fromPartner || item.fromPartner;
+            dup.partnerName = dup.partnerName || item.partnerName || '';
         }
     });
 
@@ -586,7 +702,14 @@ function renderStock() {
                 card.style.backgroundClip = 'content-box, border-box';
             }
 
+            const partnerBadge = item.partnerAlsoPicked
+                ? '<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#b9965b] to-[#9d8cbc] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">ふたり</div>'
+                : item.fromPartner
+                    ? '<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">相手</div>'
+                    : '';
+
             card.innerHTML = `
+                ${partnerBadge}
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
@@ -900,28 +1023,18 @@ function renderBuildSelection() {
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
         // このスロットの候補を取得
-        let items = liked.filter(item => {
-            const slotMatch = item.slot === idx;
-            const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
-            const isNotExcluded = !excludedKanjiFromBuild.includes(item['漢字']);
-
-            // Freeストックの統合ロジック
-            let freeMatch = false;
-            if (item.sessionReading === 'FREE') {
-                // Freeストックの場合、kanji_reading には「リ, おさめる...」のようにカンマ区切りで複数の読みが入っている可能性がある
-                // これらの中に、現在のスロットの読み(seg)と一致するものがあるかを確認する
-                const readings = (item.kanji_reading || "").split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(x => x);
-                const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
-                
-                if (readings.includes(targetSeg)) {
-                    freeMatch = true;
-                }
-            }
-
-            return (slotMatch && readingMatch && isNotExcluded) || (freeMatch && isNotExcluded);
+        let items = getBuildSlotCandidates(seg, idx, currentReading, {
+            excluded: excludedKanjiFromBuild
         });
 
         console.log(`Slot ${idx} filtered items: `, items.length);
+
+        const seen = new Set();
+        items = items.filter(item => {
+            if (seen.has(item['漢字'])) return false;
+            seen.add(item['漢字']);
+            return true;
+        });
 
         // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
@@ -2106,26 +2219,10 @@ function showFortuneRanking() {
 function generateAllCombinations() {
     const currentReading = segments.join('');
     const slotArrays = segments.map((seg, idx) => {
-        // このスロットに適合する漢字を抽出（Freeストック含む）
-        let items = liked.filter(item => {
-            const slotMatch = item.slot === idx;
-            const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
-            const isNotExcluded = !excludedKanjiFromBuild.includes(item['漢字']);
-
-            // Freeストックの統合ロジック
-            let freeMatch = false;
-            if (item.sessionReading === 'FREE') {
-                const readings = (item.kanji_reading || "").split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(x => x);
-                const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
-                if (readings.includes(targetSeg)) {
-                    freeMatch = true;
-                }
-            }
-
-            return (slotMatch && readingMatch && isNotExcluded) || (freeMatch && isNotExcluded);
+        let items = getBuildSlotCandidates(seg, idx, currentReading, {
+            excluded: excludedKanjiFromBuild
         });
 
-        // 重複除去（同じ漢字が複数ストックされている場合）
         const seen = new Set();
         items = items.filter(item => {
             if (seen.has(item['漢字'])) return false;

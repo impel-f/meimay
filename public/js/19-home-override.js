@@ -162,12 +162,14 @@ function getHomePairSummaryText(pairing) {
 }
 
 function getHomeBuildPatternCount() {
-    const ownLiked = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.filter(item => !item?.fromPartner)
-        : [];
+    const candidatePool = typeof getMergedLikedCandidates === 'function'
+        ? getMergedLikedCandidates()
+        : ((typeof liked !== 'undefined' && Array.isArray(liked))
+            ? liked.filter(item => !item?.fromPartner)
+            : []);
     const readingGroups = new Map();
 
-    ownLiked.forEach((item) => {
+    candidatePool.forEach((item) => {
         const sessionReading = String(item?.sessionReading || '');
         const slot = Number(item?.slot);
         if (!sessionReading || !Number.isFinite(slot) || slot < 0) return;
@@ -208,23 +210,29 @@ function getHomeBuildPatternCount() {
 
 function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
     if (stepKey === 'reading') {
-        return { countText: `${readingStockCount}件`, actionText: '読みを探す＞' };
+        return { countNumber: String(readingStockCount), countUnit: '件', actionText: '読みを探す＞' };
     }
     if (stepKey === 'kanji') {
-        return { countText: `${likedCount}件`, actionText: '漢字を探す＞' };
+        return { countNumber: String(likedCount), countUnit: '件', actionText: '漢字を探す＞' };
     }
     if (stepKey === 'build') {
-        return { countText: `${getHomeBuildPatternCount()}パターン`, actionText: '組み立てる＞', compact: true };
+        return {
+            countNumber: String(getHomeBuildPatternCount()),
+            countUnit: 'パターン',
+            actionText: '組み立てる＞',
+            compact: true
+        };
     }
-    return { countText: `${savedCount}件`, actionText: '名前を見る＞' };
+    return { countNumber: String(savedCount), countUnit: '件', actionText: '名前を見る＞' };
 }
 
 function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) {
     const wizard = getWizardHomeState();
+    const buildPatternCount = getHomeBuildPatternCount();
     if (stepKey === 'reading') return 'sound';
     if (stepKey === 'kanji') return (readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
-    if (stepKey === 'build') return likedCount >= 2 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound');
-    if (stepKey === 'save') return savedCount > 0 ? 'saved' : (likedCount >= 2 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound'));
+    if (stepKey === 'build') return buildPatternCount >= 1 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound');
+    if (stepKey === 'save') return savedCount > 0 ? 'saved' : (buildPatternCount >= 1 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound'));
     return 'sound';
 }
 
@@ -282,24 +290,8 @@ function getPairingHomeSummary() {
             title: `${summary.myRoleLabel}としてルームを作成済みです`,
             subtitle: `${summary.inviteTargetLabel}にコードを送ると一致が見られます。`,
             footnote: 'コード入力でも参加できます。',
-            actionLabel: '連携する',
-            canOpenHub: false
-        };
-    }
-
-    const totalMatches = summary.matchedKanjiCount + summary.matchedNameCount;
-    if (totalMatches > 0) {
-        const previewText = summary.previewLabels && summary.previewLabels.length > 0
-            ? summary.previewLabels.slice(0, 3).join(' ・ ')
-            : '一致候補を確認できます。';
-        return {
-            ...summary,
-            shortText: `${summary.partnerDisplayName}と連携中`,
-            title: `${summary.partnerCallName}と連携中です`,
-            subtitle: previewText,
-            footnote: 'タップで相手の候補や一致一覧を見られます。',
             actionLabel: '',
-            canOpenHub: true
+            canOpenHub: false
         };
     }
 
@@ -307,10 +299,10 @@ function getPairingHomeSummary() {
         ...summary,
         shortText: `${summary.partnerDisplayName}と連携中`,
         title: `${summary.partnerCallName}と連携中です`,
-        subtitle: '相手の候補が自動で届きます。',
-        footnote: 'タップで相手の候補や一致一覧を見られます。',
+        subtitle: '保存済みやストックは自動で共有されます。',
+        footnote: '数字を押すと、それぞれの候補を見られます。',
         actionLabel: '',
-        canOpenHub: true
+        canOpenHub: false
     };
 }
 
@@ -380,6 +372,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 }
 
 function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
+    const buildPatternCount = getHomeBuildPatternCount();
     const steps = [
         {
             key: 'reading',
@@ -390,26 +383,27 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
         {
             key: 'kanji',
             label: '漢字候補',
-            done: likedCount >= 2,
+            done: likedCount >= 1,
             status: likedCount >= 2 ? '進行中' : '次の段階'
         },
         {
             key: 'build',
             label: 'ビルド',
-            done: savedCount >= 1,
+            done: buildPatternCount >= 1,
             status: savedCount >= 1 ? '候補あり' : '準備中'
         },
         {
             key: 'save',
             label: '保存済み',
-            done: savedCount >= 2,
+            done: savedCount >= 1,
             status: savedCount >= 2 ? '比較OK' : 'これから'
         }
     ];
 
     const activeKey =
         savedCount >= 1 ? 'save' :
-        likedCount >= 2 ? 'build' :
+        buildPatternCount >= 1 ? 'build' :
+        likedCount >= 1 ? 'kanji' :
         readingStockCount >= 1 ? 'kanji' :
         'reading';
 
@@ -452,26 +446,36 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
 
     const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-4 gap-2">
+        <div class="grid grid-cols-4 gap-1.5">
             ${timeline.steps.map((step) => `
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="rounded-2xl px-2.5 py-2 text-left active:scale-[0.98] transition-transform ${step.done
+                    class="rounded-2xl px-2 py-2 text-center active:scale-[0.98] transition-transform ${step.done
                     ? 'bg-[#fff4df] border border-[#ecd5ac]'
                     : step.active
                         ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
                         : 'bg-white border border-[#eee5d8]'}">
-                    <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight">${step.label}</div>
-                    <div class="mt-2 flex items-center gap-1 text-[13px] font-black text-[#4f4639] ${step.metric.compact ? 'text-[11px]' : ''}">
+                    <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
+                    <div class="mt-2 flex items-center justify-center gap-1.5 ${step.metric.compact ? 'min-h-[34px]' : ''}">
                         <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
                             ? 'bg-[#b9965b] text-white'
                             : step.active
                                 ? 'bg-[#b7a6da] text-white'
                                 : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
-                        <span class="whitespace-nowrap">${step.metric.countText}</span>
+                        ${step.metric.compact
+                            ? `
+                                <span class="flex flex-col items-start leading-none">
+                                    <span class="text-[15px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
+                                    <span class="mt-0.5 text-[8px] font-black tracking-[0.08em] text-[#8b7e66]">${step.metric.countUnit}</span>
+                                </span>
+                            `
+                            : `
+                                <span class="whitespace-nowrap text-[15px] font-black text-[#4f4639]">${step.metric.countNumber}${step.metric.countUnit}</span>
+                            `
+                        }
                     </div>
-                    <div class="mt-2 text-[10px] font-black text-[#8b7e66]">${step.metric.actionText}</div>
+                    <div class="mt-2 text-[9px] font-black text-[#8b7e66] text-center whitespace-nowrap">${step.metric.actionText}</div>
                 </button>
             `).join('')}
         </div>
@@ -506,6 +510,11 @@ function runHomeAction(action) {
 
     if (action === 'matched-liked') {
         openStockWithPartnerFocus('kanji', 'kanjiFocus', 'matched');
+        return;
+    }
+
+    if (action === 'partner-liked') {
+        openStockWithPartnerFocus('kanji', 'kanjiFocus', 'partner');
         return;
     }
 
@@ -635,11 +644,14 @@ function renderHomeProfile() {
     const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
     const readingStockCount = readingStock.length;
     const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
+    const partnerInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
-    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
+    const partnerReadingCount = partnerInsights?.getPartnerReadingStock ? partnerInsights.getPartnerReadingStock().length : 0;
+    const partnerLikedCount = partnerInsights?.getPartnerLiked ? partnerInsights.getPartnerLiked().length : 0;
+    const partnerSavedCount = partnerInsights?.getPartnerSaved ? partnerInsights.getPartnerSaved().length : 0;
 
     const screen = document.getElementById('scr-mode');
     if (screen) {
@@ -718,16 +730,25 @@ function renderHomeProfile() {
     const elPartnerFootnote = document.getElementById('home-match-footnote');
     if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
 
-    const elMatchedKanji = document.getElementById('home-match-kanji-count');
-    if (elMatchedKanji) elMatchedKanji.innerText = pairing.matchedKanjiCount;
+    const elPartnerReadingCount = document.getElementById('home-pair-reading-count');
+    if (elPartnerReadingCount) elPartnerReadingCount.innerText = partnerReadingCount;
 
-    const elMatchedNames = document.getElementById('home-match-name-count');
-    if (elMatchedNames) elMatchedNames.innerText = pairing.matchedNameCount;
+    const elPartnerLikedCount = document.getElementById('home-pair-liked-count');
+    if (elPartnerLikedCount) elPartnerLikedCount.innerText = partnerLikedCount;
+
+    const elPartnerSavedCount = document.getElementById('home-pair-saved-count');
+    if (elPartnerSavedCount) elPartnerSavedCount.innerText = partnerSavedCount;
+
+    const pairStatsRow = document.getElementById('home-pair-stats-row');
+    if (pairStatsRow) pairStatsRow.classList.toggle('hidden', !pairing.hasPartner);
+
+    const pairActionRow = document.getElementById('home-pair-action-row');
+    if (pairActionRow) pairActionRow.classList.toggle('hidden', !!pairing.hasPartner || !!pairing.inRoom);
 
     const pairActionBtn = document.getElementById('home-pair-action');
     if (pairActionBtn) {
         pairActionBtn.innerText = pairing.actionLabel || '';
-        pairActionBtn.classList.toggle('hidden', !!pairing.hasPartner);
+        pairActionBtn.classList.toggle('hidden', !!pairing.hasPartner || !!pairing.inRoom || !pairing.actionLabel);
     }
 
     const pairCodeRow = document.getElementById('home-pair-code-row');
@@ -753,24 +774,11 @@ function renderHomeProfile() {
     const pairCard = document.getElementById('home-pair-card');
     if (pairCard) {
         pairCard.classList.toggle('hidden', !showPairCard);
-        if (pairing.canOpenHub) {
-            pairCard.style.cursor = 'pointer';
-            pairCard.onclick = openHomePartnerHubFromEvent;
-            pairCard.setAttribute('role', 'button');
-            pairCard.setAttribute('tabindex', '0');
-            pairCard.onkeydown = function (event) {
-                if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openHomePartnerHubFromEvent(event);
-                }
-            };
-        } else {
-            pairCard.style.cursor = '';
-            pairCard.onclick = null;
-            pairCard.onkeydown = null;
-            pairCard.removeAttribute('role');
-            pairCard.removeAttribute('tabindex');
-        }
+        pairCard.style.cursor = '';
+        pairCard.onclick = null;
+        pairCard.onkeydown = null;
+        pairCard.removeAttribute('role');
+        pairCard.removeAttribute('tabindex');
     }
 
     const dismissBtn = document.getElementById('home-pair-dismiss');
