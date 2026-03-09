@@ -4666,6 +4666,195 @@ function renderReadingStockSection() {
 window.likePartnerReadingStock = likePartnerReadingStock;
 window.renderReadingStockSection = renderReadingStockSection;
 
+function clearReadingPartnerFocus() {
+    if (typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus(['readingFocus']);
+    } else if (typeof window.setMeimayPartnerViewFocus === 'function') {
+        window.setMeimayPartnerViewFocus({ readingFocus: 'all' });
+    }
+    renderReadingStockSection();
+}
+
+function renderReadingStockSection() {
+    const pendingStock = getReadingStock();
+    const section = document.getElementById('reading-stock-section');
+    if (!section) return;
+
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => {
+        const historyKey = getReadingStockKey(h.reading, h.segments || []);
+        readingToSegments[historyKey] = h.segments;
+        if (!readingToSegments[h.reading]) readingToSegments[h.reading] = h.segments;
+    });
+
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+
+    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const completedReadings = [...new Set(
+        ownLiked
+            .filter(item =>
+                item.sessionReading &&
+                item.sessionReading !== 'FREE' &&
+                item.sessionReading !== 'SEARCH' &&
+                item.slot >= 0 &&
+                !removedList.includes(item.sessionReading)
+            )
+            .map(item => item.sessionReading)
+    )];
+
+    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { readingFocus: 'all' };
+    const readingFocus = partnerViewState.readingFocus || 'all';
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+
+    const showOwnSections = readingFocus !== 'partner';
+    const visibleCompleted = showOwnSections ? completedReadings : [];
+    const visiblePendingOnly = showOwnSections ? pendingOnly : [];
+    const visiblePartnerReadings = pendingPartnerReadings;
+
+    const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
+    const emptyMsg = document.getElementById('reading-stock-empty');
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent || readingFocus === 'partner');
+
+    if (!hasContent) {
+        if (readingFocus === 'partner') {
+            section.innerHTML = `
+                <div class="text-center py-16 text-sm text-[#a6967a]">
+                    <div class="text-4xl mb-4 opacity-50">🤝</div>
+                    <p>${partnerName}から届いている読み候補はまだありません</p>
+                    <button onclick="clearReadingPartnerFocus()" class="mt-4 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-4 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示に戻る
+                    </button>
+                </div>
+            `;
+        } else {
+            section.innerHTML = '';
+        }
+        return;
+    }
+
+    let html = '';
+
+    if (readingFocus === 'partner') {
+        html += `
+            <div class="rounded-2xl border border-[#f4d3cf] bg-[#fff8f6] px-4 py-3 mb-4">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase">Partner</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${partnerName}の読み候補</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">いいねした読みだけ、自分の読みストックに追加されます。</div>
+                    </div>
+                    <button onclick="clearReadingPartnerFocus()" class="shrink-0 rounded-full border border-[#f0d0cb] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    if (visibleCompleted.length > 0) {
+        html += `<div class="mb-6">
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">読み終えた読み</div>
+            <div class="space-y-2">`;
+
+        visibleCompleted.forEach(reading => {
+            const kanjiCount = ownLiked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
+            const segs = readingToSegments[reading];
+            const display = segs ? segs.join('/') : reading;
+            html += `
+                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
+                     onclick="openReadingStockModal('${reading}')">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-lg font-black text-[#5d5444]">${display}</div>
+                        <div class="text-[9px] text-[#a6967a]">${kanjiCount}件の漢字</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
+                        class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
+                        ビルドへ
+                    </button>
+                </div>`;
+        });
+
+        html += `</div></div>`;
+    }
+
+    if (visiblePendingOnly.length > 0) {
+        const groups = {};
+        visiblePendingOnly.forEach(item => {
+            const key = item.baseNickname || '響きからの読み';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">自分の読みストック</div>`;
+
+        Object.keys(groups).forEach(groupName => {
+            const items = groups[groupName];
+            html += `<div class="mb-3">
+                <div class="text-[10px] text-[#bca37f] mb-1">${groupName}</div>
+                <div class="grid grid-cols-2 gap-2">
+                    ${items.map(item => {
+                        const display = getReadingDisplayLabel(item);
+                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '読みを探す';
+                        return `
+                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
+                            <div class="flex items-start justify-between gap-2">
+                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
+                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                                </button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+    }
+
+    if (visiblePartnerReadings.length > 0) {
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerName}の読み候補</div>
+            <div class="grid grid-cols-2 gap-2">
+                ${visiblePartnerReadings.map((item, index) => {
+                    const display = getReadingDisplayLabel(item);
+                    const sub = item.baseNickname || 'パートナー候補';
+                    return `
+                        <div class="bg-white border border-[#f4d3cf] rounded-xl p-3">
+                            <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2 py-0.5 text-[9px] font-bold text-[#dd7d73]">${partnerName}</div>
+                            <div class="mt-2 text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                            <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white text-[11px] font-bold shadow-sm active:scale-95">
+                                いいねして追加
+                            </button>
+                        </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }
+
+    section.innerHTML = html;
+}
+
+window.clearReadingPartnerFocus = clearReadingPartnerFocus;
+window.renderReadingStockSection = renderReadingStockSection;
+
 const SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 
 function getSoundPreferenceInteractionCount() {

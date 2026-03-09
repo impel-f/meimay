@@ -298,7 +298,10 @@ function getReadingHistory() {
 /**
  * 保存済み画面を開く（独立画面）
  */
-function openSavedNames() {
+function openSavedNames(options = {}) {
+    if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus();
+    }
     changeScreen('scr-saved');
     renderSavedScreen();
 }
@@ -1076,5 +1079,238 @@ function renderSavedScreen() {
 }
 
 window.likePartnerSavedName = likePartnerSavedName;
+window.getSavedNames = getSavedNames;
+window.renderSavedScreen = renderSavedScreen;
+
+function clearSavedPartnerFocus() {
+    if (typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus(['savedFocus']);
+    } else if (typeof window.setMeimayPartnerViewFocus === 'function') {
+        window.setMeimayPartnerViewFocus({ savedFocus: 'all' });
+    }
+    renderSavedScreen();
+}
+
+function likePartnerSavedName(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    if (index < 0 || index >= partnerSaved.length) return;
+
+    const source = partnerSaved[index];
+    if (!source) return;
+
+    const saved = getSavedNames();
+    const sourceKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(source) : `${source.fullName}::${source.reading}`;
+    const existingIndex = saved.findIndex(item => {
+        const ownKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(item) : `${item.fullName}::${item.reading}`;
+        return ownKey === sourceKey;
+    });
+
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+
+    let updated = [...saved];
+    if (existingIndex >= 0) {
+        const existing = updated[existingIndex] || {};
+        if (existing.approvedFromPartner && (existing.approvedPartnerSavedKey || sourceKey) === sourceKey) {
+            if (typeof showToast === 'function') showToast('この候補にはすでにいいねしています', '✨');
+            return;
+        }
+        updated[existingIndex] = {
+            ...existing,
+            approvedFromPartner: true,
+            approvedPartnerSavedKey: sourceKey,
+            partnerName
+        };
+    } else {
+        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
+        updated = [approved, ...updated];
+    }
+
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を保存しました`, '💞');
+}
+
+function renderSavedScreen() {
+    const container = document.getElementById('saved-list-content');
+    if (!container) return;
+
+    const saved = getSavedNames();
+    const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined') ? window.MeimayPartnerInsights : null;
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { savedFocus: 'all' };
+    const savedFocus = partnerViewState.savedFocus || 'all';
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const pendingPartnerSaved = partnerSaved.filter(item => !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item));
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+
+    const ownDecorated = saved.map((item, index) => ({
+        item,
+        index,
+        isMatched: pairInsights?.isSavedItemMatched ? pairInsights.isSavedItemMatched(item) : false
+    })).sort((a, b) => {
+        if (a.isMatched !== b.isMatched) return a.isMatched ? -1 : 1;
+        const aTime = new Date(a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const renderOwnCard = ({ item, index, isMatched }) => `
+        <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+            <div class="flex items-start justify-between gap-3 mb-2">
+                <div class="flex-1 min-w-0">
+                    <div class="text-xl font-black text-[#5d5444]">${item.fullName || ''}</div>
+                    <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                    ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">メモ ${item.message}</div>` : ''}
+                    ${item.approvedFromPartner ? `<div class="text-[10px] text-[#dd7d73] mt-1">${item.partnerName || partnerName}にいいねした候補</div>` : ''}
+                </div>
+                <div class="shrink-0 text-right">
+                    ${isMatched ? '<div class="inline-flex items-center rounded-full bg-gradient-to-r from-[#f59e0b] to-[#f97316] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">一致</div>' : ''}
+                    ${item.fortune ? `<div class="mt-2 text-sm font-bold text-[#bca37f]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</div>` : ''}
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button onclick="showSavedNameDetail(${index})" class="flex-1 py-2.5 bg-[#fdfaf5] rounded-xl text-xs font-bold text-[#7a6f5a] hover:bg-[#bca37f] hover:text-white transition-all active:scale-95">
+                    詳細を見る
+                </button>
+                <button onclick="deleteSavedName(${index})" class="px-4 py-2.5 bg-[#fef2f2] rounded-xl text-xs font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all active:scale-95">
+                    削除
+                </button>
+            </div>
+        </div>
+    `;
+
+    const renderPartnerCard = (item, index) => {
+        const fortuneText = item?.combinationKeys?.length ? `${item.combinationKeys.length}文字候補` : '名前候補';
+        return `
+            <div class="bg-white rounded-2xl p-4 border border-[#f4d3cf] shadow-sm">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2.5 py-1 text-[10px] font-bold text-[#dd7d73]">${partnerName}から</div>
+                        <div class="mt-2 text-xl font-black text-[#5d5444]">${item.fullName || item.givenName || ''}</div>
+                        <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                        ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">メモ ${item.message}</div>` : ''}
+                    </div>
+                    <div class="shrink-0 text-sm font-bold text-[#bca37f]">${fortuneText}</div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="likePartnerSavedName(${index})" class="flex-1 py-2.5 bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] rounded-xl text-xs font-bold text-white shadow-sm active:scale-95">
+                        いいねして保存
+                    </button>
+                </div>
+            </div>
+        `;
+    };
+
+    let visibleOwn = ownDecorated;
+    let visiblePartner = pendingPartnerSaved;
+    let html = '';
+
+    if (savedFocus === 'partner') {
+        visibleOwn = [];
+        html += `
+            <div class="rounded-2xl border border-[#f4d3cf] bg-[#fff8f6] px-4 py-3 mb-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase">Partner</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${partnerName}の保存候補</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">いいねした候補だけ、自分の保存済みに入ります。</div>
+                    </div>
+                    <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#f0d0cb] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (savedFocus === 'matched') {
+        visibleOwn = ownDecorated.filter(entry => entry.isMatched);
+        visiblePartner = [];
+        html += `
+            <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Matched</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">おふたりで一致した名前</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">双方がいいねした保存候補だけを表示しています。</div>
+                    </div>
+                    <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    const scrSaved = document.getElementById('scr-saved');
+    if (scrSaved) {
+        const shareBtn = scrSaved.querySelector('.partner-share-btn');
+        if (shareBtn) shareBtn.classList.add('hidden');
+    }
+
+    if (visibleOwn.length > 0) {
+        html += visibleOwn.map(renderOwnCard).join('');
+    }
+
+    if (visiblePartner.length > 0) {
+        if (html) {
+            html += `<div class="pt-2"><div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase mb-3">Partner Picks</div></div>`;
+        }
+        html += visiblePartner.map(renderPartnerCard).join('');
+    }
+
+    if (!html) {
+        if (savedFocus === 'partner') {
+            html = `
+                <div class="text-center py-20 text-sm text-[#a6967a]">
+                    <div class="text-4xl mb-4 opacity-50">🤝</div>
+                    <p>${partnerName}から届いている保存候補はまだありません</p>
+                    <button onclick="clearSavedPartnerFocus()" class="mt-4 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-4 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示に戻る
+                    </button>
+                </div>
+            `;
+        } else if (savedFocus === 'matched') {
+            html = `
+                <div class="text-center py-20 text-sm text-[#a6967a]">
+                    <div class="text-4xl mb-4 opacity-50">✨</div>
+                    <p>まだ一致した名前はありません</p>
+                    <p class="text-[10px] mt-2">相手の候補にいいねすると、ここに一致した名前が並びます</p>
+                    <button onclick="clearSavedPartnerFocus()" class="mt-4 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-4 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示に戻る
+                    </button>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="text-center py-20 text-sm text-[#a6967a]">
+                    <div class="text-4xl mb-4 opacity-50">💾</div>
+                    <p>保存済みはまだありません</p>
+                    <p class="text-[10px] mt-2">ビルドした候補を保存するとここに表示されます</p>
+                </div>
+            `;
+        }
+    }
+
+    container.innerHTML = html;
+}
+
+window.likePartnerSavedName = likePartnerSavedName;
+window.clearSavedPartnerFocus = clearSavedPartnerFocus;
 window.getSavedNames = getSavedNames;
 window.renderSavedScreen = renderSavedScreen;

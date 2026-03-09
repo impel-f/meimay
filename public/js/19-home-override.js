@@ -21,6 +21,83 @@ function getWizardHomeState() {
     };
 }
 
+function getMeimayPartnerViewState() {
+    const defaults = {
+        savedFocus: 'all',
+        readingFocus: 'all',
+        kanjiFocus: 'all'
+    };
+
+    if (!window.MeimayPartnerViewState || typeof window.MeimayPartnerViewState !== 'object') {
+        window.MeimayPartnerViewState = { ...defaults };
+        return window.MeimayPartnerViewState;
+    }
+
+    window.MeimayPartnerViewState = {
+        ...defaults,
+        ...window.MeimayPartnerViewState
+    };
+    return window.MeimayPartnerViewState;
+}
+
+function setMeimayPartnerViewFocus(nextState = {}, options = {}) {
+    const defaults = {
+        savedFocus: 'all',
+        readingFocus: 'all',
+        kanjiFocus: 'all'
+    };
+    const baseState = options.resetAll ? { ...defaults } : getMeimayPartnerViewState();
+    window.MeimayPartnerViewState = {
+        ...baseState,
+        ...nextState
+    };
+    return window.MeimayPartnerViewState;
+}
+
+function resetMeimayPartnerViewFocus(keys = []) {
+    if (!Array.isArray(keys) || keys.length === 0) {
+        window.MeimayPartnerViewState = {
+            savedFocus: 'all',
+            readingFocus: 'all',
+            kanjiFocus: 'all'
+        };
+        return window.MeimayPartnerViewState;
+    }
+
+    const state = getMeimayPartnerViewState();
+    keys.forEach((key) => {
+        if (key === 'savedFocus' || key === 'readingFocus' || key === 'kanjiFocus') {
+            state[key] = 'all';
+        }
+    });
+    return state;
+}
+
+function openSavedNamesWithPartnerFocus(savedFocus) {
+    setMeimayPartnerViewFocus({
+        savedFocus: savedFocus || 'all'
+    }, { resetAll: true });
+    if (typeof changeScreen === 'function') changeScreen('scr-saved');
+    if (typeof renderSavedScreen === 'function') renderSavedScreen();
+}
+
+function openStockWithPartnerFocus(tab, focusKey, focusValue) {
+    setMeimayPartnerViewFocus({
+        [focusKey]: focusValue || 'all'
+    }, { resetAll: true });
+    if (typeof openStock === 'function') {
+        openStock(tab, { preservePartnerFocus: true });
+        return;
+    }
+    if (typeof changeScreen === 'function') changeScreen('scr-stock');
+    if (typeof switchStockTab === 'function') switchStockTab(tab || 'kanji');
+    if ((tab || 'kanji') === 'reading') {
+        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+    } else if (typeof renderStock === 'function') {
+        renderStock();
+    }
+}
+
 function getHomeRecommendedEntry(readingStockCount, likedCount, savedCount) {
     if (savedCount > 0 || likedCount >= 4) return null;
     const wizard = getWizardHomeState();
@@ -316,27 +393,34 @@ function runHomeAction(action) {
         return;
     }
 
-    if (action === 'matched-saved' && typeof openSavedNames === 'function') {
-        openSavedNames();
+    if (action === 'matched-saved') {
+        openSavedNamesWithPartnerFocus('matched');
         return;
     }
 
-    if (action === 'stock' || action === 'matched-liked') {
-        if (typeof changeScreen === 'function') changeScreen('scr-stock');
-        if (typeof switchStockTab === 'function') switchStockTab('kanji');
-        if (typeof renderStock === 'function') renderStock();
+    if (action === 'stock') {
+        if (typeof openStock === 'function') {
+            openStock('kanji');
+        } else {
+            if (typeof changeScreen === 'function') changeScreen('scr-stock');
+            if (typeof switchStockTab === 'function') switchStockTab('kanji');
+            if (typeof renderStock === 'function') renderStock();
+        }
+        return;
+    }
+
+    if (action === 'matched-liked') {
+        openStockWithPartnerFocus('kanji', 'kanjiFocus', 'matched');
         return;
     }
 
     if (action === 'partner-reading') {
-        if (typeof changeScreen === 'function') changeScreen('scr-stock');
-        if (typeof switchStockTab === 'function') switchStockTab('reading');
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        openStockWithPartnerFocus('reading', 'readingFocus', 'partner');
         return;
     }
 
-    if (action === 'partner-saved' && typeof openSavedNames === 'function') {
-        openSavedNames();
+    if (action === 'partner-saved') {
+        openSavedNamesWithPartnerFocus('partner');
         return;
     }
 
@@ -599,6 +683,9 @@ window.closeHomePartnerHub = closeHomePartnerHub;
 window.openHomePartnerHub = openHomePartnerHub;
 window.openHomePartnerHubFromEvent = openHomePartnerHubFromEvent;
 window.openHomePartnerHubAction = openHomePartnerHubAction;
+window.getMeimayPartnerViewState = getMeimayPartnerViewState;
+window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
+window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.renderHomeProfile = renderHomeProfile;
 
 try {

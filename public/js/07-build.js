@@ -11,7 +11,10 @@ let buildMode = 'reading'; // 'reading' | 'free'
  */
 let currentStockTab = 'kanji';
 
-function openStock(tab) {
+function openStock(tab, options = {}) {
+    if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus();
+    }
     console.log("BUILD: Opening stock screen");
     renderStock();
     changeScreen('scr-stock');
@@ -420,6 +423,182 @@ function toggleReadingGroup(reading) {
 
 // グローバルに公開
 window.toggleReadingGroup = toggleReadingGroup;
+
+function clearKanjiPartnerFocus() {
+    if (typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus(['kanjiFocus']);
+    } else if (typeof window.setMeimayPartnerViewFocus === 'function') {
+        window.setMeimayPartnerViewFocus({ kanjiFocus: 'all' });
+    }
+    renderStock();
+}
+
+function renderStock() {
+    const container = document.getElementById('stock-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { kanjiFocus: 'all' };
+    const kanjiFocus = partnerViewState.kanjiFocus || 'all';
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const matchedLikedKeys = kanjiFocus === 'matched' && pairInsights?.getMatchedLikedItems
+        ? new Set(
+            pairInsights
+                .getMatchedLikedItems()
+                .map(item => pairInsights.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '')
+                .filter(Boolean)
+        )
+        : null;
+
+    let validItems = liked.filter(item => {
+        if (item?.fromPartner) return false;
+        if (item.sessionReading === 'FREE') return true;
+        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
+    });
+
+    if (kanjiFocus === 'matched') {
+        validItems = validItems.filter(item => {
+            const key = pairInsights?.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '';
+            return key && matchedLikedKeys?.has(key);
+        });
+    }
+
+    if (kanjiFocus === 'matched') {
+        const banner = document.createElement('div');
+        banner.className = 'col-span-5 rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-4';
+        banner.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Matched</div>
+                    <div class="mt-1 text-sm font-bold text-[#4f4639]">おふたりで一致した漢字</div>
+                    <div class="mt-1 text-[11px] text-[#8b7e66]">共通で気になっている漢字だけを表示しています。</div>
+                </div>
+                <button onclick="clearKanjiPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    通常表示
+                </button>
+            </div>
+        `;
+        container.appendChild(banner);
+    }
+
+    if (validItems.length === 0) {
+        container.innerHTML += kanjiFocus === 'matched'
+            ? `
+                <div class="col-span-5 text-center py-20">
+                    <p class="text-[#bca37f] italic text-lg mb-2">まだ一致した漢字はありません</p>
+                    <p class="text-sm text-[#a6967a]">お互いに気になる漢字が増えると、ここに共通候補が並びます</p>
+                </div>
+            `
+            : `
+                <div class="col-span-5 text-center py-20">
+                    <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
+                    <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
+                </div>
+            `;
+        return;
+    }
+
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+
+    const segGroups = {};
+    validItems.forEach(item => {
+        let segRaw = '自由';
+        if (item.sessionReading === 'FREE') {
+            segRaw = 'FREE';
+        } else if (item.sessionSegments && item.sessionSegments[item.slot]) {
+            segRaw = item.sessionSegments[item.slot];
+        } else if (readingToSegments[item.sessionReading] && readingToSegments[item.sessionReading][item.slot]) {
+            segRaw = readingToSegments[item.sessionReading][item.slot];
+        } else if (item.sessionReading) {
+            segRaw = item.sessionReading;
+        }
+
+        const seg = segRaw;
+        if (!segGroups[seg]) segGroups[seg] = [];
+
+        const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
+        if (!dup) {
+            segGroups[seg].push(item);
+        } else if (item.isSuper && !dup.isSuper) {
+            dup.isSuper = true;
+        }
+    });
+
+    const sortedKeys = Object.keys(segGroups).sort((a, b) => {
+        if (a === 'FREE') return 1;
+        if (b === 'FREE') return -1;
+        return a.localeCompare(b, 'ja');
+    });
+
+    sortedKeys.forEach(seg => {
+        const items = segGroups[seg];
+        if (items.length === 0) return;
+
+        items.sort((a, b) => {
+            if (a.isSuper && !b.isSuper) return -1;
+            if (!a.isSuper && b.isSuper) return 1;
+            return 0;
+        });
+
+        const safeId = seg === 'FREE' ? 'FREE' : encodeURIComponent(seg).replace(/%/g, '');
+        const segHeader = document.createElement('div');
+        segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
+        segHeader.onclick = () => toggleReadingGroup(safeId);
+        segHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
+                    <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
+                    ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}件)</span>
+                </span>
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+            </div>
+        `;
+        container.appendChild(segHeader);
+
+        const cardsGrid = document.createElement('div');
+        cardsGrid.id = `group-${safeId}`;
+        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
+
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'stock-card relative';
+            card.onclick = () => showDetailByData(item);
+
+            let displayStrokes = item['画数'];
+            if (displayStrokes === undefined && typeof master !== 'undefined') {
+                const m = master.find(k => k['漢字'] === item['漢字']);
+                if (m) displayStrokes = m['画数'];
+            }
+
+            const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['特徴'] || '') : [];
+            const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
+            if (bgGradient) {
+                card.style.border = 'none';
+                card.style.padding = '2px';
+                card.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
+                card.style.backgroundOrigin = 'border-box';
+                card.style.backgroundClip = 'content-box, border-box';
+            }
+
+            card.innerHTML = `
+                ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
+                <div class="stock-kanji">${item['漢字']}</div>
+                <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
+            `;
+            cardsGrid.appendChild(card);
+        });
+
+        container.appendChild(cardsGrid);
+    });
+}
+
+window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 
 /**
  * ビルド画面を開く
