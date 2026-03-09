@@ -1056,8 +1056,8 @@ function renderBuildFreeMode(container) {
  */
 function suggestReadingsForKanji(choices, container) {
     if (!choices || choices.length === 0) return;
-    if (!readingsData || readingsData.length === 0) return;
     if (typeof master === 'undefined' || !master || master.length === 0) return;
+    const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
 
     // 各漢字の可能な読み一覧を取得（音・訓・伝統名のり をすべて split）
     function getKanjiReadings(kanji) {
@@ -1085,11 +1085,13 @@ function suggestReadingsForKanji(choices, container) {
 
     // 読みが取得できている場合のみ計算
     if (!readingArrays.some(a => a.length === 0)) {
-        const combinedSet = new Set(cartesian(readingArrays));
-        const matched = readingsData.filter(r => combinedSet.has(r.reading));
+        const combinedReadings = cartesian(readingArrays);
+        const combinedSet = new Set(combinedReadings);
+        const matched = dictionaryReadings.filter(r => combinedSet.has(r.reading));
         const filtered = matched.filter(r => !(typeof noped !== 'undefined' && noped.has(r.reading)));
+        const matchedSet = new Set(filtered.map(r => r.reading));
 
-        scored = filtered.map(r => {
+        const exactMatches = filtered.map(r => {
             let score = 0;
             if (r.tags && typeof userTags !== 'undefined') {
                 r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
@@ -1098,6 +1100,29 @@ function suggestReadingsForKanji(choices, container) {
         }).sort((a, b) => {
             if (a._score !== b._score) return b._score - a._score;
             return (b.count || 0) - (a.count || 0);
+        });
+
+        const generatedSet = new Set();
+        const generatedMatches = combinedReadings.filter(reading => {
+            if (!reading || matchedSet.has(reading) || generatedSet.has(reading)) return false;
+            if (typeof noped !== 'undefined' && noped.has(reading)) return false;
+            generatedSet.add(reading);
+            return true;
+        }).map((reading, index) => ({
+            reading,
+            tags: [],
+            count: 0,
+            isGenerated: true,
+            _score: 0,
+            _generatedOrder: index
+        })).sort((a, b) => a._generatedOrder - b._generatedOrder);
+
+        scored = [...exactMatches, ...generatedMatches].map(entry => {
+            if (typeof entry._generatedOrder === 'number') {
+                const { _generatedOrder, ...rest } = entry;
+                return rest;
+            }
+            return entry;
         });
     }
 
