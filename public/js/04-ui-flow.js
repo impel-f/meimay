@@ -4656,3 +4656,230 @@ function renderReadingStockSection() {
 
 window.likePartnerReadingStock = likePartnerReadingStock;
 window.renderReadingStockSection = renderReadingStockSection;
+
+const SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
+
+function getSoundPreferenceInteractionCount() {
+    return (soundPreferenceData?.liked?.length || 0) + (soundPreferenceData?.noped?.length || 0);
+}
+
+function shuffleReadingCandidates(list) {
+    const copied = Array.isArray(list) ? [...list] : [];
+    for (let i = copied.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copied[i], copied[j]] = [copied[j], copied[i]];
+    }
+    return copied;
+}
+
+function getReadingCandidateRankScore(candidate) {
+    return ((candidate?.popular ? 1 : 0) * 1000000) +
+        ((candidate?.score || 0) * 1000) +
+        (candidate?.rawCount || candidate?.count || 0);
+}
+
+function buildExplorationReadingOrder(candidates) {
+    const grouped = new Map();
+
+    (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
+        const primaryTag = Array.isArray(candidate?.tags) && candidate.tags.length > 0
+            ? candidate.tags[0]
+            : '#other';
+        if (!grouped.has(primaryTag)) grouped.set(primaryTag, []);
+        grouped.get(primaryTag).push(candidate);
+    });
+
+    grouped.forEach((items, key) => {
+        const ranked = [...items].sort((a, b) => getReadingCandidateRankScore(b) - getReadingCandidateRankScore(a));
+        const lead = shuffleReadingCandidates(ranked.slice(0, 6));
+        grouped.set(key, [...lead, ...ranked.slice(6)]);
+    });
+
+    const keys = shuffleReadingCandidates(
+        Array.from(grouped.keys()).sort((a, b) => grouped.get(b).length - grouped.get(a).length)
+    );
+
+    const result = [];
+    let madeProgress = true;
+    while (madeProgress) {
+        madeProgress = false;
+        keys.forEach(key => {
+            const queue = grouped.get(key);
+            if (queue && queue.length > 0) {
+                result.push(queue.shift());
+                madeProgress = true;
+            }
+        });
+    }
+
+    return result.length > 0 ? result : (Array.isArray(candidates) ? [...candidates] : []);
+}
+
+function aiReorderCandidates(candidates) {
+    const interactionCount = getSoundPreferenceInteractionCount();
+    if (interactionCount < SOUND_EXPLORATION_INTERACTION_THRESHOLD) {
+        return buildExplorationReadingOrder(candidates);
+    }
+
+    const likedEndings = soundPreferenceData.liked.map(r => r.slice(-2));
+    const nopedEndings = soundPreferenceData.noped.map(r => r.slice(-2));
+    const likedVowels = soundPreferenceData.liked.map(r => getVowelPattern(r));
+
+    const endingScore = {};
+    likedEndings.forEach(e => { endingScore[e] = (endingScore[e] || 0) + 2; });
+    nopedEndings.forEach(e => { endingScore[e] = (endingScore[e] || 0) - 1; });
+
+    const vowelScore = {};
+    likedVowels.forEach(v => { vowelScore[v] = (vowelScore[v] || 0) + 1; });
+
+    return (Array.isArray(candidates) ? candidates : []).map(candidate => {
+        let boost = 0;
+        const ending = (candidate.reading || '').slice(-2);
+        const vowel = getVowelPattern(candidate.reading || '');
+        boost += (endingScore[ending] || 0) * 10;
+        boost += (vowelScore[vowel] || 0) * 5;
+        return { ...candidate, _aiBoost: boost };
+    }).sort((a, b) =>
+        (getReadingCandidateRankScore(b) + (b._aiBoost || 0)) -
+        (getReadingCandidateRankScore(a) + (a._aiBoost || 0))
+    );
+}
+
+function prepareAdaptiveReadingCandidates(candidates) {
+    return aiReorderCandidates(Array.isArray(candidates) ? candidates : []);
+}
+
+function startNicknameCandidateSwipe(baseReading) {
+    nicknameBaseReading = toHira(baseReading || '');
+
+    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+        .map(item => ({
+            ...item,
+            gender: item.gender || gender || 'neutral'
+        }));
+
+    if (!candidates || candidates.length === 0) {
+        alert('候補が見つかりませんでした。別の読みで試してください。');
+        return;
+    }
+
+    startUniversalSwipe('nickname', candidates, {
+        title: '読みで選ぶ',
+        subtitle: `${nicknameBaseReading} を含む候補から、気になる読みを選びます`,
+        onLike: (item, action) => {
+            if (typeof addReadingToStock === 'function') {
+                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
+                    segments: getPreferredReadingSegments(item.reading),
+                    isSuper: action === 'super',
+                    gender: item.gender || gender || 'neutral'
+                });
+            }
+        },
+        onTap: (item) => {
+            openReadingCombinationModal(item, nicknameBaseReading);
+        },
+        renderCard: (item) => renderReadingSwipeCard(item)
+    });
+}
+
+function processNickname() {
+    const el = document.getElementById('in-nickname');
+    let val = el ? el.value.trim() : '';
+
+    if (!val) {
+        alert('ニックネームを入力してください');
+        return;
+    }
+
+    val = val.replace(/(ちゃん|くん|さん|たん|りん)$/g, '');
+    val = toHira(val);
+    if (!val) {
+        alert('読みが正しくありません');
+        return;
+    }
+
+    const posRadios = document.getElementsByName('nickname-pos');
+    let pos = 'prefix';
+    for (let i = 0; i < posRadios.length; i++) {
+        if (posRadios[i].checked) {
+            pos = posRadios[i].value;
+            break;
+        }
+    }
+    nicknamePosition = pos;
+    startNicknameCandidateSwipe(val);
+}
+
+function initAdanaMode() {
+    const adanaNames = generateAdanaNames(gender).map(item => ({
+        ...item,
+        gender: item.gender || gender || 'neutral'
+    }));
+
+    if (adanaNames.length === 0) {
+        alert('あだ名候補が見つかりませんでした。');
+        return;
+    }
+
+    startUniversalSwipe('adana', adanaNames, {
+        title: 'あだ名を選ぶ',
+        subtitle: 'あとから同じカードで読み候補を見られます',
+        onNext: (selectedItems) => {
+            const chosen = Array.isArray(selectedItems) && selectedItems.length > 0
+                ? selectedItems[0]
+                : null;
+            if (!chosen) return;
+
+            const inputEl = document.getElementById('in-nickname');
+            if (inputEl) inputEl.value = chosen.reading;
+            nicknamePosition = 'prefix';
+            startNicknameCandidateSwipe(chosen.reading);
+        },
+        renderCard: (item) => {
+            let tagsHtml = '';
+            if (item.tags && item.tags.length > 0) {
+                tagsHtml = renderReadingTagBadges(item.tags);
+            }
+
+            return `
+                ${tagsHtml}
+                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                <div class="w-full px-4 mt-2">
+                    <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[220px] mx-auto shadow-sm">
+                        <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">近い読みの例</p>
+                        <div class="flex justify-center flex-wrap gap-1.5 text-[#5d5444] font-bold text-base">
+                            ${(item.examples || []).slice(0, 4).map(example => `<span class="px-1">${example}</span>`).join('') || '<span class="text-xs text-[#d4c5af]">候補なし</span>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+function initSoundMode() {
+    const popularNames = generatePopularNames(gender).map(item => ({
+        ...item,
+        gender: item.gender || gender || 'neutral'
+    }));
+
+    startUniversalSwipe('sound', prepareAdaptiveReadingCandidates(popularNames), {
+        title: '響きで選ぶ',
+        subtitle: '好みが固まるまでは幅広く、だんだん寄せていきます',
+        onLike: (item, action) => {
+            if (typeof addReadingToStock === 'function') {
+                addReadingToStock(item.reading, '', item.tags || [], {
+                    segments: getPreferredReadingSegments(item.reading),
+                    isSuper: action === 'super',
+                    gender: item.gender || gender || 'neutral'
+                });
+            }
+        },
+        onTap: (item) => {
+            openReadingCombinationModal(item);
+        },
+        renderCard: (item) => renderReadingSwipeCard(item)
+    });
+}
+
+window.aiReorderCandidates = aiReorderCandidates;

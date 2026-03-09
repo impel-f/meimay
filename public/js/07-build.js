@@ -1704,7 +1704,8 @@ function showFortuneDetail() {
 `;
     container.appendChild(mapArea);
 
-    if (res.sansai) {
+    const showSansaiSection = false;
+    if (showSansaiSection && res.sansai) {
         const sansai = document.createElement('div');
         sansai.className = "mb-2 bg-[#fdfaf5] p-4 rounded-2xl border border-[#eee5d8] shadow-inner animate-fade-in";
         sansai.innerHTML = `

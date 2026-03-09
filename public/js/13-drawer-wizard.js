@@ -35,6 +35,7 @@ const WizardData = {
 
 let wizRole = '';
 let wizGender = 'neutral';
+let wizHasReadingCandidate = null;
 
 // ==========================================
 // WIZARD FUNCTIONS
@@ -51,8 +52,15 @@ function selectWizRole(role) {
 function selectWizGender(gender) {
     wizGender = gender;
 
-    // Instead of going to step 4, finish the wizard
     wizFinish(null);
+}
+
+function selectWizReadingCandidate(hasCandidate) {
+    wizHasReadingCandidate = !!hasCandidate;
+    document.querySelectorAll('[data-reading-candidate]').forEach(btn => {
+        const isSelected = btn.getAttribute('data-reading-candidate') === (hasCandidate ? 'yes' : 'no');
+        btn.classList.toggle('selected', isSelected);
+    });
 }
 
 function wizNext(currentStep) {
@@ -70,6 +78,9 @@ function wizNext(currentStep) {
             if (typeof updateSurnameData === 'function') updateSurnameData();
         }
     }
+    if (currentStep === 3 && wizHasReadingCandidate === null) {
+        wizHasReadingCandidate = false;
+    }
 
     // Hide current step
     const current = document.getElementById(`wiz-step-${currentStep}`);
@@ -84,7 +95,7 @@ function wizNext(currentStep) {
 }
 
 function updateWizardDots(step) {
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`wiz-dot-${i}`);
         if (dot) {
             dot.classList.toggle('active', i === step);
@@ -96,12 +107,15 @@ function wizFinish(mode) {
     // Save wizard data
     const username = document.getElementById('wiz-username');
     const surname = document.getElementById('wiz-surname');
+    const dueDate = document.getElementById('wiz-due-date');
 
     const data = {
         completed: true,
         username: username ? username.value.trim() : '',
         role: wizRole,
         surname: surname ? surname.value.trim() : '',
+        dueDate: dueDate ? dueDate.value : '',
+        hasReadingCandidate: wizHasReadingCandidate === true,
         gender: wizGender,
         completedAt: new Date().toISOString()
     };
@@ -126,6 +140,8 @@ function wizFinish(mode) {
     // Navigate to Login/Signup screen instead of Home
     changeScreen('scr-login');
 }
+
+window.selectWizReadingCandidate = selectWizReadingCandidate;
 
 // ==========================================
 // DRAWER FUNCTIONS

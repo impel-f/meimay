@@ -205,8 +205,34 @@
                 <button onclick="wizNext(2)" class="text-sm text-[#bca37f] hover:underline">あとで設定する</button>
             </div>
 
-            <!-- Step 3: Gender -->
+            <!-- Step 3: Due date and reading -->
             <div id="wiz-step-3" class="wizard-step w-full px-6">
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">名づけの準備</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">予定日と、読み候補があるかだけ教えてください</p>
+
+                <div class="mb-6">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block">予定日</label>
+                    <input type="date" id="wiz-due-date"
+                        class="w-full px-4 py-3.5 bg-white border-2 border-[#eee5d8] rounded-2xl text-base font-bold text-[#5d5444] focus:border-[#bca37f] outline-none transition-all">
+                </div>
+
+                <div class="mb-8">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-3 block">読み候補はありますか？</label>
+                    <div class="flex flex-col gap-3">
+                        <button onclick="selectWizReadingCandidate(true)" class="wiz-gender-btn" data-reading-candidate="yes">
+                            <span class="text-base font-bold text-[#5d5444]">あるので漢字から見たい</span>
+                        </button>
+                        <button onclick="selectWizReadingCandidate(false)" class="wiz-gender-btn" data-reading-candidate="no">
+                            <span class="text-base font-bold text-[#5d5444]">まだなので読みから探したい</span>
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="wizNext(3)" class="btn-gold py-4 shadow-lg mb-3">次へ</button>
+            </div>
+
+            <!-- Step 4: Gender -->
+            <div id="wiz-step-4" class="wizard-step w-full px-6">
                 <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">赤ちゃんの性別</h1>
                 <p class="text-xs text-[#a6967a] text-center mb-8">検索結果の精度が上がります（任意）</p>
 
@@ -358,9 +384,10 @@
             <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
 
                 <!-- LEFT: 響き・読みを探す -->
-                <button onclick="startMode('sound')"
-                    class="bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                <button id="home-entry-sound" onclick="startMode('sound')"
+                    class="relative bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
                     style="padding: 12px 8px 11px; border-color: #c4caf2;">
+                    <span id="home-entry-sound-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
                     <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響き・読みを探す</div>
@@ -389,9 +416,10 @@
                 </button>
 
                 <!-- RIGHT: 読みから漢字を探す -->
-                <button onclick="startMode('reading')"
-                    class="bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                <button id="home-entry-reading" onclick="startMode('reading')"
+                    class="relative bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
                     style="padding: 12px 8px 11px; border-color: #c4caf2;">
+                    <span id="home-entry-reading-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
                     <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">読みから漢字を探す</div>
@@ -1779,6 +1807,7 @@
     <script src="/js/data/todays-kanji-data.js?v=25.9"></script>
     <script src="/js/17-todays-kanji.js?v=25.9"></script>
     <script src="/js/18-ranking.js?v=25.9"></script>
+    <script src="/js/19-home-override.js?v=25.9"></script>
 
 </body>
 
