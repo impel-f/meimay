@@ -138,6 +138,51 @@ function getHomeCollectionSummaryText(readingStock) {
     return getWizardHomeState().hasReadingCandidate ? '候補あり' : 'まだ傾向なし';
 }
 
+function formatHashTagSummary(values = [], fallbackText = 'まだ傾向なし') {
+    const tags = (Array.isArray(values) ? values : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+        .map((value) => value.startsWith('#') ? value : `#${value}`);
+
+    if (tags.length === 0) return fallbackText;
+    return tags.slice(0, 2).join(' ');
+}
+
+function getHomeKanjiSummaryText(preference) {
+    if (!preference || !Array.isArray(preference.topLabels) || preference.topLabels.length === 0) {
+        return 'まだ傾向なし';
+    }
+    return formatHashTagSummary(preference.topLabels, 'まだ傾向なし');
+}
+
+function getHomePairSummaryText(pairing) {
+    if (!pairing?.inRoom) return '未連携';
+    if (!pairing?.hasPartner) return '連携待ち';
+    return `${pairing.partnerDisplayName || pairing.partnerLabel || 'パートナー'}と連携中`;
+}
+
+function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
+    if (stepKey === 'reading') {
+        return { value: readingStockCount, unit: '件', description: readingStockCount > 0 ? '読み候補あり' : '読みを探す' };
+    }
+    if (stepKey === 'kanji') {
+        return { value: likedCount, unit: '件', description: likedCount > 0 ? '漢字が集まり中' : '漢字を探す' };
+    }
+    if (stepKey === 'build') {
+        return { value: likedCount >= 2 ? '作成' : '準備', unit: '', description: likedCount >= 2 ? '名前を組み立てる' : '材料待ち' };
+    }
+    return { value: savedCount, unit: '件', description: savedCount > 0 ? '保存候補あり' : '保存して比べる' };
+}
+
+function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) {
+    const wizard = getWizardHomeState();
+    if (stepKey === 'reading') return 'sound';
+    if (stepKey === 'kanji') return (readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
+    if (stepKey === 'build') return likedCount >= 2 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound');
+    if (stepKey === 'save') return savedCount > 0 ? 'saved' : (likedCount >= 2 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound'));
+    return 'sound';
+}
+
 function getPairingHomeSummary() {
     const baseSummary = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.getSummary)
         ? window.MeimayPartnerInsights.getSummary()
@@ -204,7 +249,7 @@ function getPairingHomeSummary() {
             : '一致候補を確認できます。';
         return {
             ...summary,
-            shortText: summary.partnerCallName,
+            shortText: `${summary.partnerDisplayName}と連携中`,
             title: `${summary.partnerCallName}と連携中です`,
             subtitle: previewText,
             footnote: 'タップで相手の候補や一致一覧を見られます。',
@@ -215,7 +260,7 @@ function getPairingHomeSummary() {
 
     return {
         ...summary,
-        shortText: summary.partnerCallName,
+        shortText: `${summary.partnerDisplayName}と連携中`,
         title: `${summary.partnerCallName}と連携中です`,
         subtitle: '相手の候補が自動で届きます。',
         footnote: 'タップで相手の候補や一致一覧を見られます。',
@@ -334,22 +379,23 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
         activeKey,
         steps: steps.map(step => ({
             ...step,
-            active: step.key === activeKey
+            active: step.key === activeKey,
+            metric: getHomeStageMetric(step.key, likedCount, readingStockCount, savedCount),
+            action: getHomeStageAction(step.key, likedCount, readingStockCount, savedCount)
         }))
     };
 }
 
 function ensureHomeStageTrack() {
-    const countGrid = document.getElementById('home-liked-kanji-count')?.closest('.grid');
-    const parent = countGrid?.parentElement;
-    if (!countGrid || !parent) return null;
+    const anchor = document.getElementById('home-stage-track-anchor');
+    if (!anchor) return null;
 
     let stageTrack = document.getElementById('home-stage-track');
     if (!stageTrack) {
         stageTrack = document.createElement('div');
         stageTrack.id = 'home-stage-track';
-        stageTrack.className = 'mt-4 rounded-2xl border border-[#eee4d6] bg-[#fffaf5] px-3 py-3';
-        parent.insertBefore(stageTrack, countGrid);
+        stageTrack.className = 'rounded-2xl border border-[#eee4d6] bg-[#fffaf5] px-3 py-3';
+        anchor.appendChild(stageTrack);
     }
 
     return stageTrack;
@@ -363,21 +409,26 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
     stageTrack.innerHTML = `
         <div class="grid grid-cols-4 gap-2">
             ${timeline.steps.map((step) => `
-                <div class="rounded-2xl px-2.5 py-2 ${step.done
+                <button
+                    type="button"
+                    onclick="event.stopPropagation(); runHomeAction('${step.action}')"
+                    class="rounded-2xl px-2.5 py-2 text-left active:scale-[0.98] transition-transform ${step.done
                     ? 'bg-[#fff4df] border border-[#ecd5ac]'
                     : step.active
                         ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
                         : 'bg-white border border-[#eee5d8]'}">
-                    <div class="flex items-center gap-1.5">
+                    <div class="flex items-center justify-between gap-1.5">
                         <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
                             ? 'bg-[#b9965b] text-white'
                             : step.active
                                 ? 'bg-[#b7a6da] text-white'
                                 : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '•'}</span>
-                        <span class="text-[9px] font-black leading-tight text-[#5d5444]">${step.label}</span>
+                        <span class="text-[9px] font-black text-[#8b7e66]">${step.status}</span>
                     </div>
-                    <div class="mt-2 text-[9px] font-bold text-[#8b7e66]">${step.status}</div>
-                </div>
+                    <div class="mt-3 text-[20px] font-black leading-none text-[#4f4639]">${step.metric.value}<span class="text-[10px] ml-0.5">${step.metric.unit || ''}</span></div>
+                    <div class="mt-1 text-[11px] font-black leading-snug text-[#5d5444]">${step.label}</div>
+                    <div class="mt-1 text-[9px] font-bold text-[#a6967a]">${step.metric.description}</div>
+                </button>
             `).join('')}
         </div>
     `;

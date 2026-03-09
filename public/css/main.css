@@ -1088,7 +1088,7 @@ body.has-ad-banner #universal-footer {
 }
 
 #scr-mode .home-hero-width {
-    max-width: min(100%, 420px) !important;
+    max-width: min(100%, 400px) !important;
 }
 
 @media (min-width: 768px) {
@@ -1098,6 +1098,6 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode .home-hero-width {
-        max-width: min(100%, 430px) !important;
+        max-width: min(100%, 410px) !important;
     }
 }
