@@ -260,7 +260,7 @@
     <div id="scr-mode" class="screen bg-[#fdfaf5]">
         <div class="flex flex-col items-center w-full gap-3 px-4 pb-6">
 
-            <div class="w-full max-w-sm">
+            <div class="w-full max-w-sm home-hero-width">
                 <div onclick="openHomeInsightsModalFromEvent(event)" role="button" tabindex="0"
                     onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHomeInsightsModalFromEvent(event);}"
                     class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-3 shadow-sm text-left active:scale-[0.98] transition-transform cursor-pointer">
@@ -319,7 +319,7 @@
                     </div>
                 </div>
             </div>
-            <div id="home-pair-card" class="w-full max-w-sm rounded-[26px] border border-[#eadfce] bg-white/88 px-4 py-3 shadow-sm">
+            <div id="home-pair-card" class="w-full max-w-sm home-hero-width rounded-[26px] border border-[#eadfce] bg-white/88 px-4 py-3 shadow-sm">
                 <div class="flex items-start gap-3">
                     <div class="shrink-0 w-11 h-11 rounded-2xl bg-[#f8efe2] border border-[#ebdcc7] flex items-center justify-center text-[18px]">💞</div>
                     <div class="min-w-0 flex-1">
@@ -371,7 +371,7 @@
                 <div class="mt-2 text-[11px] text-[#8b7e66] leading-snug" id="home-match-footnote">必要になった時だけ使えます。</div>
             </div>
 
-            <button id="home-pair-restore" onclick="restoreHomePairCard()" class="hidden w-full max-w-sm -mt-1 text-right text-[11px] font-bold text-[#b9965b]">パートナー機能を再表示</button>
+            <button id="home-pair-restore" onclick="restoreHomePairCard()" class="hidden w-full max-w-sm home-hero-width -mt-1 text-right text-[11px] font-bold text-[#b9965b]">パートナー機能を再表示</button>
 
             <!-- ─── 名前を作る ─── -->
             <div class="w-full max-w-sm flex items-center gap-2">

@@ -548,8 +548,8 @@ function renderHomeProfile() {
 
     const screen = document.getElementById('scr-mode');
     if (screen) {
-        screen.style.paddingLeft = '10px';
-        screen.style.paddingRight = '10px';
+        screen.style.paddingLeft = '12px';
+        screen.style.paddingRight = '12px';
     }
 
     renderHomeStageTrack(likedCount, readingStockCount, savedCount);
