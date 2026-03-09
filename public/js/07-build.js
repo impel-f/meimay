@@ -1059,11 +1059,13 @@ function suggestReadingsForKanji(choices, container) {
     if (typeof master === 'undefined' || !master || master.length === 0) return;
     const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
 
-    // 各漢字の可能な読み一覧を取得（音・訓・伝統名のり をすべて split）
-    function getKanjiReadings(kanji) {
+    // 各漢字の可能な読み一覧を取得
+    function getKanjiReadings(kanji, mode = 'all') {
         const rec = master.find(m => m['漢字'] === kanji);
         if (!rec) return [];
-        const raw = [rec['音'] || '', rec['訓'] || '', rec['伝統名のり'] || ''].join(',');
+        const raw = mode === 'on'
+            ? (rec['音'] || '')
+            : [rec['音'] || '', rec['訓'] || '', rec['伝統名のり'] || ''].join(',');
         return [...new Set(
             raw.split(/[、,，\s/]+/)
                 .map(r => typeof toHira === 'function' ? toHira(r.trim()) : r.trim().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)))
@@ -1102,28 +1104,32 @@ function suggestReadingsForKanji(choices, container) {
             return (b.count || 0) - (a.count || 0);
         });
 
-        const generatedSet = new Set();
-        const generatedMatches = combinedReadings.filter(reading => {
-            if (!reading || matchedSet.has(reading) || generatedSet.has(reading)) return false;
-            if (typeof noped !== 'undefined' && noped.has(reading)) return false;
-            generatedSet.add(reading);
-            return true;
-        }).map((reading, index) => ({
-            reading,
-            tags: [],
-            count: 0,
-            isGenerated: true,
-            _score: 0,
-            _generatedOrder: index
-        })).sort((a, b) => a._generatedOrder - b._generatedOrder);
+        scored = exactMatches;
 
-        scored = [...exactMatches, ...generatedMatches].map(entry => {
-            if (typeof entry._generatedOrder === 'number') {
-                const { _generatedOrder, ...rest } = entry;
-                return rest;
+        if (scored.length === 0) {
+            const onReadingArrays = choices.map(kanji => getKanjiReadings(kanji, 'on'));
+            if (!onReadingArrays.some(a => a.length === 0)) {
+                const generatedSet = new Set();
+                const generatedMatches = cartesian(onReadingArrays).filter(reading => {
+                    if (!reading || matchedSet.has(reading) || generatedSet.has(reading)) return false;
+                    if (typeof noped !== 'undefined' && noped.has(reading)) return false;
+                    generatedSet.add(reading);
+                    return true;
+                }).map((reading, index) => ({
+                    reading,
+                    tags: [],
+                    count: 0,
+                    isGenerated: true,
+                    _score: 0,
+                    _generatedOrder: index
+                })).sort((a, b) => a._generatedOrder - b._generatedOrder);
+
+                scored = generatedMatches.map(entry => {
+                    const { _generatedOrder, ...rest } = entry;
+                    return rest;
+                });
             }
-            return entry;
-        });
+        }
     }
 
     currentFbRecommendedReadings = scored; // グローバルに保存
