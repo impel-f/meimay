@@ -161,17 +161,62 @@ function getHomePairSummaryText(pairing) {
     return `${pairing.partnerDisplayName || pairing.partnerLabel || 'パートナー'}と連携中`;
 }
 
+function getHomeBuildPatternCount() {
+    const ownLiked = (typeof liked !== 'undefined' && Array.isArray(liked))
+        ? liked.filter(item => !item?.fromPartner)
+        : [];
+    const readingGroups = new Map();
+
+    ownLiked.forEach((item) => {
+        const sessionReading = String(item?.sessionReading || '');
+        const slot = Number(item?.slot);
+        if (!sessionReading || !Number.isFinite(slot) || slot < 0) return;
+        if (['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(sessionReading)) return;
+
+        const groupKey = `${sessionReading}::${Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : ''}`;
+        if (!readingGroups.has(groupKey)) {
+            readingGroups.set(groupKey, {
+                slotCount: Array.isArray(item?.sessionSegments) && item.sessionSegments.length > 0
+                    ? item.sessionSegments.length
+                    : slot + 1,
+                slots: new Map()
+            });
+        }
+
+        const group = readingGroups.get(groupKey);
+        group.slotCount = Math.max(group.slotCount, slot + 1);
+        if (!group.slots.has(slot)) group.slots.set(slot, new Set());
+        if (item?.['漢字']) group.slots.get(slot).add(item['漢字']);
+    });
+
+    let total = 0;
+    readingGroups.forEach((group) => {
+        let combinations = 1;
+        for (let i = 0; i < group.slotCount; i += 1) {
+            const count = group.slots.get(i)?.size || 0;
+            if (!count) {
+                combinations = 0;
+                break;
+            }
+            combinations *= count;
+        }
+        total += combinations;
+    });
+
+    return total;
+}
+
 function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
     if (stepKey === 'reading') {
-        return { value: readingStockCount, unit: '件', description: readingStockCount > 0 ? '読み候補あり' : '読みを探す' };
+        return { countText: `${readingStockCount}件`, actionText: '読みを探す＞' };
     }
     if (stepKey === 'kanji') {
-        return { value: likedCount, unit: '件', description: likedCount > 0 ? '漢字が集まり中' : '漢字を探す' };
+        return { countText: `${likedCount}件`, actionText: '漢字を探す＞' };
     }
     if (stepKey === 'build') {
-        return { value: likedCount >= 2 ? '作成' : '準備', unit: '', description: likedCount >= 2 ? '名前を組み立てる' : '材料待ち' };
+        return { countText: `${getHomeBuildPatternCount()}パターン`, actionText: '組み立てる＞', compact: true };
     }
-    return { value: savedCount, unit: '件', description: savedCount > 0 ? '保存候補あり' : '保存して比べる' };
+    return { countText: `${savedCount}件`, actionText: '名前を見る＞' };
 }
 
 function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) {
@@ -338,25 +383,25 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
     const steps = [
         {
             key: 'reading',
-            label: '読みをためる',
+            label: '読み候補',
             done: readingStockCount >= 1,
             status: readingStockCount >= 1 ? '候補あり' : 'これから'
         },
         {
             key: 'kanji',
-            label: '漢字をためる',
+            label: '漢字候補',
             done: likedCount >= 2,
             status: likedCount >= 2 ? '進行中' : '次の段階'
         },
         {
             key: 'build',
-            label: 'ビルドする',
+            label: 'ビルド',
             done: savedCount >= 1,
             status: savedCount >= 1 ? '候補あり' : '準備中'
         },
         {
             key: 'save',
-            label: '保存して比べる',
+            label: '保存済み',
             done: savedCount >= 2,
             status: savedCount >= 2 ? '比較OK' : 'これから'
         }
@@ -417,17 +462,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                     : step.active
                         ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
                         : 'bg-white border border-[#eee5d8]'}">
-                    <div class="flex items-center justify-between gap-1.5">
+                    <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight">${step.label}</div>
+                    <div class="mt-2 flex items-center gap-1 text-[13px] font-black text-[#4f4639] ${step.metric.compact ? 'text-[11px]' : ''}">
                         <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
                             ? 'bg-[#b9965b] text-white'
                             : step.active
                                 ? 'bg-[#b7a6da] text-white'
-                                : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '•'}</span>
-                        <span class="text-[9px] font-black text-[#8b7e66]">${step.status}</span>
+                                : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
+                        <span class="whitespace-nowrap">${step.metric.countText}</span>
                     </div>
-                    <div class="mt-3 text-[20px] font-black leading-none text-[#4f4639]">${step.metric.value}<span class="text-[10px] ml-0.5">${step.metric.unit || ''}</span></div>
-                    <div class="mt-1 text-[11px] font-black leading-snug text-[#5d5444]">${step.label}</div>
-                    <div class="mt-1 text-[9px] font-bold text-[#a6967a]">${step.metric.description}</div>
+                    <div class="mt-2 text-[10px] font-black text-[#8b7e66]">${step.metric.actionText}</div>
                 </button>
             `).join('')}
         </div>
@@ -615,7 +659,10 @@ function renderHomeProfile() {
     if (elReadingStock) elReadingStock.innerText = readingStockCount;
 
     const nextStepTitleEl = document.getElementById('home-next-step-title');
-    if (nextStepTitleEl) nextStepTitleEl.innerText = timeline.stageTitle;
+    if (nextStepTitleEl) {
+        nextStepTitleEl.innerText = '';
+        nextStepTitleEl.classList.add('hidden');
+    }
 
     const nextStepDetailEl = document.getElementById('home-next-step-detail');
     if (nextStepDetailEl) {
@@ -624,7 +671,10 @@ function renderHomeProfile() {
     }
 
     const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
-    if (nextStepActionLabelEl) nextStepActionLabelEl.innerText = nextStep.actionLabel;
+    if (nextStepActionLabelEl) {
+        nextStepActionLabelEl.innerText = nextStep.actionLabel;
+        nextStepActionLabelEl.classList.add('hidden');
+    }
 
     const collectionSummaryEl = document.getElementById('home-collection-summary');
     if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
