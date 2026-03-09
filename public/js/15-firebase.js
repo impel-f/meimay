@@ -725,7 +725,7 @@ function updatePairingUI() {
     // 共有ボタン（ストック/保存画面）
     const shareButtons = document.querySelectorAll('.partner-share-btn');
     shareButtons.forEach(btn => {
-        btn.classList.toggle('hidden', !hasPartner);
+        btn.classList.add('hidden');
     });
 
     // ドロワーのパートナー連携バッジ
@@ -965,6 +965,9 @@ MeimayPairing.syncMyData = async function () {
     if (!user || !this.roomCode) return;
 
     try {
+        const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+            ? (WizardData.get() || {})
+            : {};
         const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
         const minifiedLiked = ownLiked.map(l => ({
             '漢字': l['漢字'],
@@ -982,7 +985,9 @@ MeimayPairing.syncMyData = async function () {
             givenName: s.givenName || '',
             combinationKeys: s.combination ? s.combination.map(k => k['漢字'] || k.kanji || '') : [],
             message: s.message || '',
-            savedAt: s.savedAt || s.timestamp
+            savedAt: s.savedAt || s.timestamp,
+            approvedFromPartner: s.approvedFromPartner === true,
+            approvedPartnerSavedKey: s.approvedPartnerSavedKey || ''
         }));
 
         const minifiedReadingStock = (typeof getReadingStock === 'function' ? getReadingStock() : []).map(item => ({
@@ -998,6 +1003,7 @@ MeimayPairing.syncMyData = async function () {
         await firebaseDb.collection('rooms').doc(this.roomCode)
             .collection('data').doc(user.uid).set({
                 role: this.myRole,
+                displayName: String(wizard.username || '').trim(),
                 liked: minifiedLiked,
                 savedNames: minifiedSaved,
                 readingStock: minifiedReadingStock,
@@ -1010,7 +1016,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -1027,7 +1033,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 liked: Array.isArray(data.liked) ? data.liked : [],
                 savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                 readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
-                role: data.role || null
+                role: data.role || null,
+                displayName: String(data.displayName || '').trim()
             };
 
             if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
@@ -1043,7 +1050,7 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 };
 
@@ -1058,11 +1065,74 @@ MeimayPartnerInsights.buildReadingStockKey = function (item) {
     return `${reading}::${segments.join('/')}`;
 };
 
+MeimayPartnerInsights.getPartnerDisplayName = function () {
+    const snapshot = MeimayShare.partnerSnapshot || {};
+    const explicitName = String(snapshot.displayName || '').trim();
+    if (explicitName) return explicitName;
+    if (typeof getPartnerRoleLabel === 'function') return getPartnerRoleLabel(snapshot.role);
+    return snapshot.role === 'mama' ? 'ママ' : snapshot.role === 'papa' ? 'パパ' : 'パートナー';
+};
+
+MeimayPartnerInsights.getOwnApprovedSavedKeys = function () {
+    return new Set(this.getOwnSaved()
+        .filter(item => item?.approvedFromPartner)
+        .map(item => item.approvedPartnerSavedKey || this.buildSavedMatchKey(item))
+        .filter(Boolean));
+};
+
+MeimayPartnerInsights.getPartnerApprovedSavedKeys = function () {
+    return new Set(this.getPartnerSaved()
+        .filter(item => item?.approvedFromPartner)
+        .map(item => item.approvedPartnerSavedKey || this.buildSavedMatchKey(item))
+        .filter(Boolean));
+};
+
+MeimayPartnerInsights.getExplicitMatchedSavedKeys = function () {
+    const matched = new Set();
+    const ownSavedKeys = new Set(this.getOwnSaved().map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+    const partnerSavedKeys = new Set(this.getPartnerSaved().map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+
+    this.getOwnApprovedSavedKeys().forEach(key => {
+        if (partnerSavedKeys.has(key)) matched.add(key);
+    });
+    this.getPartnerApprovedSavedKeys().forEach(key => {
+        if (ownSavedKeys.has(key)) matched.add(key);
+    });
+
+    return matched;
+};
+
+MeimayPartnerInsights.getMatchedSavedItems = function () {
+    const matchedKeys = this.getExplicitMatchedSavedKeys();
+    if (matchedKeys.size === 0) return [];
+
+    const ownSaved = this.getOwnSaved();
+    const representativeByKey = new Map();
+    ownSaved.forEach(item => {
+        const key = this.buildSavedMatchKey(item);
+        if (!key || !matchedKeys.has(key)) return;
+        const existing = representativeByKey.get(key);
+        if (!existing || (existing.approvedFromPartner && !item.approvedFromPartner)) {
+            representativeByKey.set(key, item);
+        }
+    });
+
+    return Array.from(matchedKeys)
+        .map(key => representativeByKey.get(key))
+        .filter(Boolean);
+};
+
+MeimayPartnerInsights.isSavedItemMatched = function (item) {
+    const key = this.buildSavedMatchKey(item);
+    if (!key) return false;
+    return this.getExplicitMatchedSavedKeys().has(key);
+};
+
 MeimayPartnerInsights.isPartnerSavedApproved = function (item) {
     const key = this.buildSavedMatchKey(item);
     if (!key) return false;
-    const ownKeys = new Set(this.getOwnSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean));
-    return ownKeys.has(key);
+    if (item?.approvedFromPartner) return true;
+    return this.getOwnApprovedSavedKeys().has(key);
 };
 
 MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
@@ -1070,6 +1140,28 @@ MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
     if (!key) return false;
     const ownKeys = new Set((typeof getReadingStock === 'function' ? getReadingStock() : []).map(entry => this.buildReadingStockKey(entry)));
     return ownKeys.has(key);
+};
+
+MeimayPartnerInsights.getSummary = function () {
+    const matchedLikedItems = this.getMatchedLikedItems();
+    const matchedSavedItems = this.getMatchedSavedItems();
+    const partnerName = this.getPartnerDisplayName();
+    const previewLabels = [
+        ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
+        ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
+    ].filter(Boolean).slice(0, 4);
+
+    return {
+        inRoom: !!MeimayPairing.roomCode,
+        hasPartner: !!MeimayPairing.partnerUid,
+        partnerLabel: partnerName,
+        partnerDisplayName: partnerName,
+        matchedKanjiCount: matchedLikedItems.length,
+        matchedNameCount: matchedSavedItems.length,
+        matchedLikedItems: matchedLikedItems,
+        matchedSavedItems: matchedSavedItems,
+        previewLabels: previewLabels
+    };
 };
 
 function refreshPartnerAwareUI() {

@@ -893,7 +893,7 @@ function getSavedNames() {
     }
 }
 
-function buildApprovedPartnerSavedItem(item, partnerName) {
+function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKey = '') {
     const combination = Array.isArray(item.combination) && item.combination.length > 0
         ? item.combination
         : (Array.isArray(item.combinationKeys) && typeof master !== 'undefined'
@@ -923,6 +923,7 @@ function buildApprovedPartnerSavedItem(item, partnerName) {
         message: item.message || '',
         savedAt: new Date().toISOString(),
         approvedFromPartner: true,
+        approvedPartnerSavedKey: approvedPartnerSavedKey || '',
         partnerName: partnerName || 'パートナー'
     };
 }
@@ -937,21 +938,33 @@ function likePartnerSavedName(index) {
 
     const saved = getSavedNames();
     const sourceKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(source) : `${source.fullName}::${source.reading}`;
-    const exists = saved.some(item => {
+    const existingIndex = saved.findIndex(item => {
         const ownKey = pairInsights?.buildSavedMatchKey ? pairInsights.buildSavedMatchKey(item) : `${item.fullName}::${item.reading}`;
         return ownKey === sourceKey;
     });
 
-    if (exists) {
-        if (typeof showToast === 'function') showToast('この候補はすでに保存済みです', '💛');
-        return;
-    }
-
     const partnerName = typeof getPartnerRoleLabel === 'function'
         ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
         : 'パートナー';
-    const approved = buildApprovedPartnerSavedItem(source, partnerName);
-    const updated = [approved, ...saved];
+
+    let updated = [...saved];
+    if (existingIndex >= 0) {
+        const existing = updated[existingIndex] || {};
+        if (existing.approvedFromPartner && (existing.approvedPartnerSavedKey || sourceKey) === sourceKey) {
+            if (typeof showToast === 'function') showToast('この候補にはすでにいいねしています', '💛');
+            return;
+        }
+        updated[existingIndex] = {
+            ...existing,
+            approvedFromPartner: true,
+            approvedPartnerSavedKey: sourceKey,
+            partnerName: partnerName
+        };
+    } else {
+        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
+        updated = [approved, ...updated];
+    }
+
     localStorage.setItem('meimay_saved', JSON.stringify(updated));
     if (typeof savedNames !== 'undefined') savedNames = updated;
 
@@ -971,7 +984,7 @@ function renderSavedScreen() {
     const saved = getSavedNames();
     const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined') ? window.MeimayPartnerInsights : null;
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
-    const pendingPartnerSaved = partnerSaved.filter(item => !pairInsights?.isPartnerSavedApproved?.(item));
+    const pendingPartnerSaved = partnerSaved.filter(item => !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item));
 
     const ownDecorated = saved.map((item, index) => ({
         item,
@@ -991,6 +1004,7 @@ function renderSavedScreen() {
                     <div class="text-xl font-black text-[#5d5444]">${item.fullName || ''}</div>
                     <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
                     ${item.message ? `<div class="text-xs text-[#bca37f] mt-1">メモ ${item.message}</div>` : ''}
+                    ${item.approvedFromPartner ? `<div class="text-[10px] text-[#dd7d73] mt-1">${item.partnerName || 'パートナー'}にいいねした候補</div>` : ''}
                 </div>
                 <div class="shrink-0 text-right">
                     ${isMatched ? '<div class="inline-flex items-center rounded-full bg-gradient-to-r from-[#f59e0b] to-[#f97316] px-2.5 py-1 text-[10px] font-bold text-white shadow-sm">一致</div>' : ''}
@@ -1034,6 +1048,12 @@ function renderSavedScreen() {
     };
 
     let html = '';
+
+    const scrSaved = document.getElementById('scr-saved');
+    if (scrSaved) {
+        const shareBtn = scrSaved.querySelector('.partner-share-btn');
+        if (shareBtn) shareBtn.classList.add('hidden');
+    }
 
     if (ownDecorated.length > 0) {
         html += ownDecorated.map(renderOwnCard).join('');
