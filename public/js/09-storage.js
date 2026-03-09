@@ -12,6 +12,14 @@ const StorageBox = {
     KEY_KANJI_AI_CACHE: 'naming_app_kanji_ai_cache',
     KEY_USER_TAGS: 'meimay_user_tags',
     KEY_NOPED: 'meimay_noped',
+    KEY_SOUND_PREFERENCES: 'meimay_sound_preferences',
+    KEY_READING_STOCK: 'meimay_reading_stock',
+    KEY_READING_HISTORY: 'meimay_reading_history',
+    KEY_WIZARD: 'meimay_wizard',
+    KEY_APP_SETTINGS: 'meimay_settings',
+    KEY_PREMIUM: 'meimay_premium',
+    KEY_APP_ACCOUNT_TOKEN: 'meimay_app_account_token',
+    KEY_HOME_PAIR_CARD_DISMISSED: 'meimay_home_pair_card_dismissed_v1',
 
     /**
      * 全状態を保存
@@ -33,6 +41,11 @@ const StorageBox = {
             }));
             localStorage.setItem(this.KEY_USER_TAGS, JSON.stringify(userTags));
             localStorage.setItem(this.KEY_NOPED, JSON.stringify(Array.from(noped)));
+            localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(
+                typeof soundPreferenceData !== 'undefined'
+                    ? soundPreferenceData
+                    : { liked: [], noped: [] }
+            ));
 
             console.log("STORAGE: State saved successfully");
             return true;
@@ -105,6 +118,15 @@ const StorageBox = {
             if (nopedData) {
                 const arr = JSON.parse(nopedData);
                 noped = new Set(arr);
+            }
+
+            const soundPrefData = localStorage.getItem(this.KEY_SOUND_PREFERENCES);
+            if (soundPrefData && typeof soundPreferenceData !== 'undefined') {
+                const parsedSoundPref = JSON.parse(soundPrefData);
+                soundPreferenceData = {
+                    liked: Array.isArray(parsedSoundPref?.liked) ? parsedSoundPref.liked : [],
+                    noped: Array.isArray(parsedSoundPref?.noped) ? parsedSoundPref.noped : []
+                };
             }
 
             console.log("STORAGE: State restored successfully");
@@ -191,11 +213,35 @@ const StorageBox = {
      */
     exportData: function () {
         const data = {
+            version: 'meimay-backup-v2',
             liked: liked,
             savedNames: savedNames,
             surname: { str: surnameStr, data: surnameData, reading: typeof surnameReading !== 'undefined' ? surnameReading : '' },
             segments: segments,
-            settings: { gender, rule, prioritizeFortune },
+            settings: {
+                gender,
+                rule,
+                prioritizeFortune,
+                imageTags: typeof selectedImageTags !== 'undefined' ? selectedImageTags : ['none'],
+                shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
+                showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji : false
+            },
+            userTags: typeof userTags !== 'undefined' ? userTags : {},
+            noped: Array.from(typeof noped !== 'undefined' ? noped : []),
+            readingStock: typeof getReadingStock === 'function' ? getReadingStock() : [],
+            readingHistory: typeof getReadingHistory === 'function' ? getReadingHistory() : [],
+            wizard: (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function') ? WizardData.get() : null,
+            soundPreferenceData: typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : { liked: [], noped: [] },
+            localPremiumState: (() => {
+                try {
+                    const raw = localStorage.getItem(this.KEY_PREMIUM);
+                    return raw ? JSON.parse(raw) : null;
+                } catch (e) {
+                    return null;
+                }
+            })(),
+            appAccountToken: localStorage.getItem(this.KEY_APP_ACCOUNT_TOKEN) || '',
+            homePairCardDismissed: localStorage.getItem(this.KEY_HOME_PAIR_CARD_DISMISSED) === 'true',
             exportDate: new Date().toISOString()
         };
 
@@ -233,6 +279,69 @@ const StorageBox = {
                     gender = data.settings.gender || 'neutral';
                     rule = data.settings.rule || 'strict';
                     prioritizeFortune = data.settings.prioritizeFortune || false;
+                    if (typeof selectedImageTags !== 'undefined' && Array.isArray(data.settings.imageTags)) {
+                        selectedImageTags = data.settings.imageTags;
+                    }
+                    if (typeof shareMode !== 'undefined' && data.settings.shareMode) {
+                        shareMode = data.settings.shareMode;
+                    }
+                    if (typeof showInappropriateKanji !== 'undefined') {
+                        showInappropriateKanji = data.settings.showInappropriateKanji === true;
+                    }
+                }
+
+                if (typeof userTags !== 'undefined') {
+                    userTags = data.userTags || {};
+                }
+
+                if (typeof noped !== 'undefined') {
+                    noped = new Set(Array.isArray(data.noped) ? data.noped : []);
+                }
+
+                if (Array.isArray(data.readingStock)) {
+                    localStorage.setItem(this.KEY_READING_STOCK, JSON.stringify(data.readingStock));
+                }
+
+                if (Array.isArray(data.readingHistory)) {
+                    localStorage.setItem(this.KEY_READING_HISTORY, JSON.stringify(data.readingHistory));
+                }
+
+                if (data.wizard && typeof WizardData !== 'undefined' && typeof WizardData.save === 'function') {
+                    WizardData.save(data.wizard);
+                }
+
+                if (typeof soundPreferenceData !== 'undefined') {
+                    soundPreferenceData = {
+                        liked: Array.isArray(data.soundPreferenceData?.liked) ? data.soundPreferenceData.liked : [],
+                        noped: Array.isArray(data.soundPreferenceData?.noped) ? data.soundPreferenceData.noped : []
+                    };
+                    localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(soundPreferenceData));
+                }
+
+                localStorage.setItem(this.KEY_APP_SETTINGS, JSON.stringify({
+                    surname: surnameStr,
+                    surnameReading: typeof surnameReading !== 'undefined' ? surnameReading : '',
+                    gender: gender,
+                    imageTags: typeof selectedImageTags !== 'undefined' ? selectedImageTags : ['none'],
+                    rule: rule,
+                    prioritizeFortune: prioritizeFortune,
+                    segments: segments,
+                    shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
+                    showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji : false
+                }));
+
+                if (data.localPremiumState) {
+                    localStorage.setItem(this.KEY_PREMIUM, JSON.stringify(data.localPremiumState));
+                }
+
+                if (typeof data.appAccountToken === 'string' && data.appAccountToken) {
+                    localStorage.setItem(this.KEY_APP_ACCOUNT_TOKEN, data.appAccountToken);
+                }
+
+                if (data.homePairCardDismissed === true) {
+                    localStorage.setItem(this.KEY_HOME_PAIR_CARD_DISMISSED, 'true');
+                } else {
+                    localStorage.removeItem(this.KEY_HOME_PAIR_CARD_DISMISSED);
                 }
 
                 this.saveAll();

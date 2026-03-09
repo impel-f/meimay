@@ -28,6 +28,23 @@ let selectedImageTags = ['none'];
 let shareMode = 'auto'; // 'auto' or 'manual'
 let showInappropriateKanji = false; // 不適切フラグがある漢字を表示するかどうか
 
+function getDueDateDisplayText(dueDate) {
+    if (!dueDate) return '未設定';
+
+    const target = new Date(dueDate);
+    if (Number.isNaN(target.getTime())) return '未設定';
+
+    const now = new Date();
+    target.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((target.getTime() - now.getTime()) / 86400000);
+    const label = `${target.getFullYear()}/${String(target.getMonth() + 1).padStart(2, '0')}/${String(target.getDate()).padStart(2, '0')}`;
+
+    if (diffDays > 0) return `${label} ・ あと${diffDays}日`;
+    if (diffDays === 0) return `${label} ・ 予定日`;
+    return `${label} ・ ${Math.abs(diffDays)}日経過`;
+}
+
 /**
  * 設定画面を開く（別画面として）
  */
@@ -58,6 +75,7 @@ function renderSettingsScreen() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ👨' : wizData?.role === 'mama' ? 'ママ👩' : '未設定';
+    const dueDateText = getDueDateDisplayText(wizData?.dueDate || '');
 
     // Partner linking status
     let pairingStatusText = '未連携';
@@ -96,6 +114,17 @@ function renderSettingsScreen() {
                 <div class="item-content-unified">
                     <div class="item-title-unified">役割</div>
                     <div class="item-value-unified">${roleText}</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <div class="settings-item-unified" onclick="openDueDateInput()">
+                <div class="item-icon-circle" style="background: #fff7ed;">
+                    <span style="color: #f59e0b;">📅</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">予定日</div>
+                    <div class="item-value-unified">${dueDateText}</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
@@ -159,6 +188,17 @@ function renderSettingsScreen() {
                 <div class="item-content-unified">
                     <div class="item-title-unified">利用規約・プライバシー</div>
                     <div class="item-value-unified">公開前に内容を確認できます</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
+            <div class="settings-item-unified" onclick="openTransferModal()">
+                <div class="item-icon-circle" style="background: #eef6ff;">
+                    <span style="color: #4f6fad;">📦</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">データの引き継ぎ</div>
+                    <div class="item-value-unified">バックアップを書き出す・読み込む</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>
@@ -258,6 +298,20 @@ function openRoleInput() {
     });
 }
 
+function openDueDateInput() {
+    const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
+    const current = wizData?.dueDate || '';
+    showInputModal('予定日を入力', 'date', current, '', (value) => {
+        if (typeof WizardData !== 'undefined') {
+            const data = WizardData.get() || {};
+            data.dueDate = value || '';
+            WizardData.save(data);
+        }
+        renderSettingsScreen();
+        if (typeof renderHomeProfile === 'function') renderHomeProfile();
+    });
+}
+
 /**
  * 苗字入力
  */
@@ -317,6 +371,63 @@ function editShareMode() {
             display.innerText = value === 'manual' ? '都度連携（手動）' : '自動連携';
         }
     });
+}
+
+function openTransferModal() {
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="transfer-modal" onclick="if(event.target.id==='transfer-modal')closeTransferModal()">
+            <div class="modal-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
+                <h3 class="modal-title">データの引き継ぎ</h3>
+                <p class="modal-desc">機種変更の前にバックアップを書き出して、新しい端末で読み込めます。</p>
+                <div class="modal-body space-y-3">
+                    <button onclick="exportBackupData()" class="w-full py-4 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
+                        バックアップを書き出す
+                    </button>
+                    <button onclick="triggerBackupImport()" class="w-full py-4 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm">
+                        バックアップを読み込む
+                    </button>
+                    <div class="rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] px-4 py-3 text-left">
+                        <div class="text-[11px] font-bold text-[#5d5444]">引き継がれるもの</div>
+                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">読み候補、漢字ストック、保存済み、設定、ウィザード情報、好み学習</div>
+                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">パートナー連携の状態や匿名ログイン自体は端末で変わるので、新端末で再確認が必要です。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function closeTransferModal() {
+    document.getElementById('transfer-modal')?.remove();
+}
+
+function exportBackupData() {
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.exportData === 'function') {
+        StorageBox.exportData();
+        closeTransferModal();
+        if (typeof showToast === 'function') showToast('バックアップを書き出しました', '✓');
+    }
+}
+
+function triggerBackupImport() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!confirm('バックアップを読み込むと、この端末の保存データが上書きされます。続けますか？')) {
+            return;
+        }
+        closeTransferModal();
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.importData === 'function') {
+            StorageBox.importData(file);
+        }
+    };
+    input.click();
 }
 
 

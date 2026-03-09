@@ -2865,6 +2865,14 @@ function isNicknameKanjiQueueActive() {
 
 let soundPreferenceData = { liked: [], noped: [] };
 
+function persistSoundPreferenceData() {
+    try {
+        localStorage.setItem('meimay_sound_preferences', JSON.stringify(soundPreferenceData));
+    } catch (e) {
+        console.warn('SOUND_PREF: Failed to persist', e);
+    }
+}
+
 /**
  * スワイプ結果から好みの音パターンを学習
  */
@@ -2874,6 +2882,7 @@ function learnSoundPreference(item, action) {
     } else if (action === 'nope') {
         soundPreferenceData.noped.push(item.reading);
     }
+    persistSoundPreferenceData();
 }
 
 /**
