@@ -916,17 +916,22 @@ function updateNamePreview() {
     } else {
         const chosen = [];
         const chosenReads = [];
+        const hasCompoundFixedPiece = selectedPieces.some((item) => item && item._compoundFixed);
         if (selectedPieces && selectedPieces.length > 0) {
             selectedPieces.forEach((item, i) => {
                 if (item) {
                     chosen.push(item['漢字']);
                     const seg = (item.sessionSegments && item.sessionSegments[i]) || segments[i] || '';
-                    chosenReads.push(seg);
+                    if (!String(seg).startsWith('__compound_slot_')) {
+                        chosenReads.push(seg);
+                    }
                 }
             });
         }
         givenKanji = chosen.length > 0 ? chosen.join('') : '';
-        givenReading = chosenReads.join('') || (typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''));
+        givenReading = hasCompoundFixedPiece
+            ? (typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''))
+            : (chosenReads.join('') || (typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('')));
     }
 
     const surname = surnameStr || '';

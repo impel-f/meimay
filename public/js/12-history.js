@@ -241,8 +241,11 @@ function addToReadingHistory() {
     const reading = compoundFlow && compoundFlow.reading
         ? compoundFlow.reading
         : segments.join('');
-    const segmentKey = compoundFlow && Array.isArray(compoundFlow.segments)
-        ? compoundFlow.segments.join('/')
+    const displaySegments = compoundFlow && Array.isArray(compoundFlow.displaySegments)
+        ? compoundFlow.displaySegments
+        : segments;
+    const segmentKey = Array.isArray(displaySegments)
+        ? displaySegments.join('/')
         : segments.join('/');
     const history = getReadingHistory();
 
@@ -251,7 +254,7 @@ function addToReadingHistory() {
     const historyData = {
         reading: reading,
         segmentKey: segmentKey,
-        segments: [...segments],
+        segments: [...displaySegments],
         settings: {
             gender: gender,
             rule: rule,

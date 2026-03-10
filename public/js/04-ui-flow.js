@@ -539,27 +539,8 @@ function startCompoundReadingFlow(option, item = {}) {
     if (!fixedSource || !fixedSource['漢字']) return;
 
     const compoundChars = Array.from(fixedSource['漢字'] || '').filter(Boolean);
-    if (option.optionMode === 'exact' && compoundChars.length > 1 && typeof window.openBuildFreeModeWithChoices === 'function') {
-        seedCompoundSingleKanjiStock(fixedSource['漢字'], sessionReading);
-        segments = [sessionReading];
-        swipes = 0;
-        currentIdx = 0;
-        window._addMoreFromBuild = false;
-        isFreeSwipeMode = false;
-
-        if (typeof updateSurnameData === 'function') {
-            updateSurnameData();
-        }
-        if (typeof addToReadingHistory === 'function') {
-            addToReadingHistory();
-        }
-
-        window.openBuildFreeModeWithChoices(compoundChars, sessionReading);
-        return;
-    }
-
-    if (option.optionMode === 'prefix' && compoundChars.length > 1) {
-        const tailSegments = option.path.slice(1);
+    if (compoundChars.length > 1) {
+        const tailSegments = option.optionMode === 'prefix' ? option.path.slice(1) : [];
         const fixedSlotsBySlot = {};
         const expandedSegments = [
             ...compoundChars.map((_, idx) => `__compound_slot_${idx}__`),
@@ -586,6 +567,7 @@ function startCompoundReadingFlow(option, item = {}) {
         const flow = setCompoundBuildFlow({
             reading: sessionReading,
             segments: [...expandedSegments],
+            displaySegments: [...option.path],
             slotLabels: buildExpandedCompoundSlotLabels(option.path[0], compoundChars.length, tailSegments),
             fixedSlotsBySlot,
             firstInteractiveSlot: tailSegments.length > 0 ? compoundChars.length : -1,
