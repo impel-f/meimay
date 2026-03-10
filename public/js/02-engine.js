@@ -341,16 +341,12 @@ function calcSegments() {
                 </div>
             `;
             btn.onclick = () => {
-                if (typeof openReadingCombinationModal === 'function') {
-                    openReadingCombinationModal(
-                        {
-                            reading: nameReading,
-                            tags: Array.isArray(option.tags) ? option.tags : [],
-                            gender: gender || 'neutral'
-                        },
-                        '',
-                        option.label
-                    );
+                if (typeof startCompoundReadingFlow === 'function') {
+                    startCompoundReadingFlow(option, {
+                        reading: nameReading,
+                        tags: Array.isArray(option.tags) ? option.tags : [],
+                        gender: gender || 'neutral'
+                    });
                 }
             };
 
@@ -371,8 +367,19 @@ function calcSegments() {
 /**
  * 分割パターン選択
  */
+function getActiveCompoundSwipeFlow() {
+    if (typeof window.getCompoundBuildFlow !== 'function') return null;
+    const flow = window.getCompoundBuildFlow();
+    if (!flow || !Array.isArray(flow.segments) || !Array.isArray(segments)) return null;
+    if (flow.segments.join('/') !== segments.join('/')) return null;
+    return flow;
+}
+
 function selectSegment(path) {
     console.log("ENGINE: Selected segments ->", path);
+    if (typeof clearCompoundBuildFlow === 'function') {
+        clearCompoundBuildFlow();
+    }
     segments = path;
     swipes = 0;
     currentPos = 0; // Reset position
@@ -449,6 +456,7 @@ function loadStack() {
     const indicator = document.getElementById('pos-indicator');
     if (indicator) {
         const totalSlots = segments.length;
+        const compoundFlow = getActiveCompoundSwipeFlow();
         const slotLabel = totalSlots === 2 ?
             (currentPos === 0 ? '1文字目' : '2文字目') :
             (currentPos === 0 ? '1文字目' : currentPos === totalSlots - 1 ? `${totalSlots}文字目` : `${currentPos + 1}文字目`);
@@ -466,6 +474,34 @@ function loadStack() {
 
         // 1文字目の場合は「戻る」表記にするなどの調整も可能だが、統一感のためアイコンのままでも可
         // ここでは特段の見た目変更はせず、機能のみ有効化
+    }
+
+    if (indicator) {
+        const totalSlots = segments.length;
+        const activeCompoundFlow = getActiveCompoundSwipeFlow();
+        const compoundLabel = activeCompoundFlow && Array.isArray(activeCompoundFlow.slotLabels)
+            ? activeCompoundFlow.slotLabels[currentPos]
+            : '';
+        const fallbackLabel = totalSlots === 2
+            ? (currentPos === 0 ? '1文字目' : '2文字目')
+            : (currentPos === 0 ? '1文字目' : currentPos === totalSlots - 1 ? `${totalSlots}文字目` : `${currentPos + 1}文字目`);
+
+        indicator.innerText = compoundLabel || `${fallbackLabel}：${target}`;
+    }
+
+    if (btnPrev) {
+        const activeCompoundFlow = getActiveCompoundSwipeFlow();
+        const minSwipeSlot = activeCompoundFlow && Number.isInteger(activeCompoundFlow.firstInteractiveSlot) && activeCompoundFlow.firstInteractiveSlot >= 0
+            ? activeCompoundFlow.firstInteractiveSlot
+            : 0;
+
+        if (currentPos <= minSwipeSlot) {
+            btnPrev.classList.add('opacity-0', 'pointer-events-none');
+            btnPrev.onclick = null;
+        } else {
+            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.onclick = () => prevChar();
+        }
     }
 
     if (btnNext) {
@@ -749,7 +785,12 @@ console.log("ENGINE: Module loaded (v13.1 - Gender + Image Tag filters)");
  * 前の文字へ戻る
  */
 function prevChar() {
-    if (currentPos > 0) {
+    const compoundFlow = getActiveCompoundSwipeFlow();
+    const minSwipeSlot = compoundFlow && Number.isInteger(compoundFlow.firstInteractiveSlot) && compoundFlow.firstInteractiveSlot >= 0
+        ? compoundFlow.firstInteractiveSlot
+        : 0;
+
+    if (currentPos > minSwipeSlot) {
         currentPos--;
         currentIdx = 0; // スタックの先頭に戻す
         swipes = 0;

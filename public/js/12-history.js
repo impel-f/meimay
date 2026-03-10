@@ -238,6 +238,9 @@ function addToReadingHistory() {
     const reading = segments.join('');
     const segmentKey = segments.join('/');
     const history = getReadingHistory();
+    const compoundFlow = typeof window.getCompoundBuildFlow === 'function'
+        ? window.getCompoundBuildFlow()
+        : null;
 
     const filtered = history.filter(item => `${item.reading}::${(item.segments || []).join('/')}` !== `${reading}::${segmentKey}`);
 
@@ -252,6 +255,9 @@ function addToReadingHistory() {
             prioritizeFortune: prioritizeFortune,
             surname: surnameStr
         },
+        compoundFlow: compoundFlow && compoundFlow.reading === reading
+            ? JSON.parse(JSON.stringify(compoundFlow))
+            : null,
         likedCount: liked.filter(item => segments[item.slot]).length,
         searchedAt: new Date().toISOString()
     };

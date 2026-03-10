@@ -6,6 +6,7 @@
 let appMode = 'reading'; // reading, nickname, free, diagnosis
 let isFreeSwipeMode = false;
 let selectedVibes = new Set();
+let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 // gender is defined in 01-core.js
 
@@ -32,10 +33,50 @@ const VIBES = [
 /**
  * モード開始（性別はウィザードで設定済みなのでスキップ）
  */
+function setCompoundBuildFlow(flow) {
+    compoundBuildFlowState = flow ? {
+        ...flow,
+        segments: Array.isArray(flow.segments) ? [...flow.segments] : [],
+        slotLabels: Array.isArray(flow.slotLabels) ? [...flow.slotLabels] : [],
+        fixedSlotsBySlot: flow.fixedSlotsBySlot ? { ...flow.fixedSlotsBySlot } : {}
+    } : null;
+    window.meimayCompoundBuildFlow = compoundBuildFlowState;
+    return compoundBuildFlowState;
+}
+
+function getCompoundBuildFlow() {
+    return compoundBuildFlowState || window.meimayCompoundBuildFlow || null;
+}
+
+function clearCompoundBuildFlow() {
+    compoundBuildFlowState = null;
+    window.meimayCompoundBuildFlow = null;
+}
+
+function formatCompoundSlotLabel(startIndex, segmentReading) {
+    const length = Array.from(segmentReading || '').length || 1;
+    const labels = Array.from({ length }, (_, offset) => `${startIndex + offset + 1}文字目`);
+    return `${labels.join('＋')}: ${segmentReading}`;
+}
+
+function buildCompoundSlotLabels(path) {
+    let cursor = 0;
+    return (Array.isArray(path) ? path : []).map((segment) => {
+        const label = formatCompoundSlotLabel(cursor, segment);
+        cursor += Array.from(segment || '').length || 1;
+        return label;
+    });
+}
+
+window.setCompoundBuildFlow = setCompoundBuildFlow;
+window.getCompoundBuildFlow = getCompoundBuildFlow;
+window.clearCompoundBuildFlow = clearCompoundBuildFlow;
+
 function startMode(mode) {
     console.log(`UI_FLOW: Start mode ${mode}`);
     appMode = mode;
     window._addMoreFromBuild = false;
+    clearCompoundBuildFlow();
 
     // 診断モードの場合はイメージ等は不要
     if (mode === 'diagnosis') {
@@ -420,6 +461,65 @@ function createCompoundPiece(entry, consumedReading, targetGender = gender || 'n
     };
 }
 
+function startCompoundReadingFlow(option, item = {}) {
+    if (!option || !Array.isArray(option.path) || option.path.length === 0) return;
+
+    const sessionReading = toHira(item.reading || option.path.join(''));
+    const fixedSource = option.fixedPiece || option.candidates?.[0]?.combination?.[0];
+    if (!fixedSource || !fixedSource['漢字']) return;
+
+    const fixedPiece = {
+        ...fixedSource,
+        slot: 0,
+        sessionReading: sessionReading,
+        sessionSegments: [...option.path],
+        isFixedCompound: true,
+        _compoundFixed: true
+    };
+
+    const fixedSlotsBySlot = { 0: fixedPiece };
+    const firstInteractiveSlot = option.path.findIndex((_, idx) => !fixedSlotsBySlot[idx]);
+    const flow = setCompoundBuildFlow({
+        reading: sessionReading,
+        segments: [...option.path],
+        slotLabels: Array.isArray(option.slotLabels) ? [...option.slotLabels] : buildCompoundSlotLabels(option.path),
+        fixedSlotsBySlot,
+        firstInteractiveSlot,
+        optionLabel: option.label || '',
+        compoundKanji: fixedPiece['漢字'] || '',
+        optionMode: option.optionMode || 'compound'
+    });
+
+    segments = [...flow.segments];
+    swipes = 0;
+    currentIdx = 0;
+    window._addMoreFromBuild = false;
+    isFreeSwipeMode = false;
+
+    if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
+        seen.clear();
+    }
+
+    if (typeof updateSurnameData === 'function') {
+        updateSurnameData();
+    }
+    if (typeof addToReadingHistory === 'function') {
+        addToReadingHistory();
+    }
+
+    if (firstInteractiveSlot === -1) {
+        currentPos = 0;
+        if (typeof openBuild === 'function') openBuild();
+        return;
+    }
+
+    currentPos = firstInteractiveSlot;
+    if (typeof loadStack === 'function') loadStack();
+    changeScreen('scr-main');
+}
+
+window.startCompoundReadingFlow = startCompoundReadingFlow;
+
 function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 'neutral') {
     const inputReading = toHira(reading || '');
     if (!inputReading || !Array.isArray(compoundReadingsData) || compoundReadingsData.length === 0) {
@@ -458,6 +558,8 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                         path: [inputReading],
                         label,
                         optionType: 'compound',
+                        optionMode: 'exact',
+                        fixedPiece: { ...fixedPiece },
                         badgeLabel: 'まとめ読み',
                         candidates: [{
                             givenName: entry.kanji,
@@ -467,6 +569,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                         }],
                         examples: [entry.kanji],
                         tags,
+                        slotLabels: buildCompoundSlotLabels([inputReading]),
                         sortScore: baseScore + 50
                     });
                 }
@@ -502,10 +605,13 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                         path: [consumedReading, ...cleanTailPath],
                         label,
                         optionType: 'compound',
+                        optionMode: 'prefix',
+                        fixedPiece: { ...fixedPiece },
                         badgeLabel: '先頭まとめ',
                         candidates: tailCandidates,
-                        examples: tailCandidates.map(candidate => candidate.givenName).slice(0, 3),
+                        examples: [],
                         tags,
+                        slotLabels: buildCompoundSlotLabels([consumedReading, ...cleanTailPath]),
                         sortScore: Math.max(...tailCandidates.map(candidate => candidate.score || 0))
                     });
                 });
@@ -2856,10 +2962,14 @@ function renderReadingStockSection() {
 function openBuildFromReading(reading) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const entry = history.find(h => h.reading === reading);
+    clearCompoundBuildFlow();
     if (entry && entry.segments) {
         segments = entry.segments;
         const nameInput = document.getElementById('in-name');
         if (nameInput) nameInput.value = reading;
+    }
+    if (entry && entry.compoundFlow) {
+        setCompoundBuildFlow(entry.compoundFlow);
     }
     if (typeof openBuild === 'function') openBuild();
 }
@@ -2867,14 +2977,21 @@ function openBuildFromReading(reading) {
 function addMoreForReading(reading) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const entry = history.find(h => h.reading === reading);
+    clearCompoundBuildFlow();
     if (entry && entry.segments) {
         segments = entry.segments;
         const nameInput = document.getElementById('in-name');
         if (nameInput) nameInput.value = reading;
     }
+    if (entry && entry.compoundFlow) {
+        setCompoundBuildFlow(entry.compoundFlow);
+    }
     window._addMoreFromBuild = false;
     if (typeof updateSurnameData === 'function') updateSurnameData();
-    currentPos = 0;
+    const compoundFlow = getCompoundBuildFlow();
+    currentPos = compoundFlow && Number.isInteger(compoundFlow.firstInteractiveSlot) && compoundFlow.firstInteractiveSlot >= 0
+        ? compoundFlow.firstInteractiveSlot
+        : 0;
     swipes = 0;
     seen.clear();
     if (typeof loadStack === 'function') loadStack();
@@ -2890,6 +3007,7 @@ function startReadingFromStock(target) {
     removeReadingFromStock(stockItem.id);
     appMode = 'nickname';
     window._addMoreFromBuild = false;
+    clearCompoundBuildFlow();
 
     if (stockItem.segments && stockItem.segments.length > 0) {
         segments = [...stockItem.segments];
@@ -5026,7 +5144,7 @@ function renderReadingStockSection() {
 window.clearReadingPartnerFocus = clearReadingPartnerFocus;
 window.renderReadingStockSection = renderReadingStockSection;
 
-const SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
+var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 
 function getSoundPreferenceInteractionCount() {
     return (soundPreferenceData?.liked?.length || 0) + (soundPreferenceData?.noped?.length || 0);

@@ -11,6 +11,87 @@ let buildMode = 'reading'; // 'reading' | 'free'
  */
 let currentStockTab = 'kanji';
 
+function getActiveCompoundBuildFlow() {
+    if (typeof window.getCompoundBuildFlow === 'function') {
+        return window.getCompoundBuildFlow();
+    }
+    return window.meimayCompoundBuildFlow || null;
+}
+
+function getCompoundFixedPieceForSlot(slotIdx) {
+    const flow = getActiveCompoundBuildFlow();
+    if (!flow || !flow.fixedSlotsBySlot) return null;
+    return flow.fixedSlotsBySlot[slotIdx] || flow.fixedSlotsBySlot[String(slotIdx)] || null;
+}
+
+function hydrateCompoundBuildSelections() {
+    selectedPieces = [];
+    const flow = getActiveCompoundBuildFlow();
+    if (!flow || !flow.fixedSlotsBySlot) return;
+
+    Object.keys(flow.fixedSlotsBySlot).forEach((key) => {
+        const slotIdx = Number(key);
+        if (!Number.isFinite(slotIdx)) return;
+        selectedPieces[slotIdx] = { ...flow.fixedSlotsBySlot[key] };
+    });
+}
+
+function getBuildSlotDisplayLabel(seg, idx) {
+    const flow = getActiveCompoundBuildFlow();
+    if (flow && Array.isArray(flow.slotLabels) && flow.slotLabels[idx]) {
+        return flow.slotLabels[idx];
+    }
+    return `${idx + 1}文字目: ${seg}`;
+}
+
+function flattenBuildCombination(pieces) {
+    const flattened = [];
+
+    (Array.isArray(pieces) ? pieces : []).forEach((piece) => {
+        if (!piece) return;
+
+        const kanji = piece['漢字'] || '';
+        const chars = Array.from(kanji);
+        if (piece.isCompound && chars.length > 1) {
+            chars.forEach((char) => {
+                const masterItem = Array.isArray(master)
+                    ? master.find(entry => entry['漢字'] === char)
+                    : null;
+                flattened.push({
+                    ...(masterItem || {}),
+                    '漢字': char,
+                    '画数': masterItem?.['画数'] ?? 1
+                });
+            });
+            return;
+        }
+
+        flattened.push(piece);
+    });
+
+    return flattened;
+}
+
+function normalizeSingleKanjiStock() {
+    if (!Array.isArray(liked)) return;
+
+    const cleaned = liked.filter((item) => {
+        const kanji = item?.['漢字'] || item?.kanji || '';
+        return Array.from(kanji).length <= 1;
+    });
+
+    if (cleaned.length === liked.length) return;
+
+    liked = cleaned;
+    try {
+        localStorage.setItem('meimay_liked', JSON.stringify(cleaned));
+    } catch (error) {
+        console.warn('BUILD: Failed to normalize stock', error);
+    }
+}
+
+normalizeSingleKanjiStock();
+
 function openStock(tab, options = {}) {
     if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus();
@@ -449,6 +530,7 @@ function buildLikedCandidateKey(item) {
 function hydrateLikedCandidate(item, options = {}) {
     const kanji = item?.['漢字'] || item?.kanji || '';
     if (!kanji) return null;
+    if (Array.from(kanji).length > 1) return null;
 
     const masterItem = typeof master !== 'undefined' && Array.isArray(master)
         ? master.find(entry => entry['漢字'] === kanji)
@@ -512,6 +594,11 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         partnerOnly = false,
         matchedOnly = false
     } = options;
+
+    const fixedPiece = getCompoundFixedPieceForSlot(idx);
+    if (fixedPiece) {
+        return [{ ...fixedPiece }];
+    }
 
     const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
     return getMergedLikedCandidates().filter((item) => {
@@ -733,12 +820,15 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 function openBuild() {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
-    selectedPieces = [];
+    hydrateCompoundBuildSelections();
     buildMode = 'reading';
     fbChoices = [];
     excludedKanjiFromBuild = []; // 除外リストをリセット
     renderBuildSelection();
     changeScreen('scr-build');
+    if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
+        executeBuild();
+    }
 }
 
 /**
@@ -747,6 +837,9 @@ function openBuild() {
 function openBuildFreeMode() {
     console.log("BUILD: Opening build screen in free mode");
     window._addMoreFromBuild = false;
+    if (typeof window.clearCompoundBuildFlow === 'function') {
+        window.clearCompoundBuildFlow();
+    }
     selectedPieces = [];
     buildMode = 'free';
     fbChoices = [];
@@ -769,6 +862,9 @@ function setBuildMode(mode) {
         fbChoices = [];
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
+        if (mode === 'reading') {
+            hydrateCompoundBuildSelections();
+        }
         excludedKanjiFromBuild = []; // モード切替時にリセット
     }
     const resultArea = document.getElementById('build-result-area');
@@ -1007,6 +1103,8 @@ function renderBuildSelection() {
     segments.forEach((seg, idx) => {
         const row = document.createElement('div');
         row.className = 'mb-6';
+        const isFixedSlot = !!getCompoundFixedPieceForSlot(idx);
+        const slotLabel = getBuildSlotDisplayLabel(seg, idx);
 
         row.innerHTML = `
     <div class="flex items-center justify-between mb-3" >
@@ -1022,6 +1120,19 @@ function renderBuildSelection() {
                 </div>
             </div>
     `;
+
+        const rowHeader = row.querySelector('p');
+        if (rowHeader) {
+            const badgeHtml = rowHeader.querySelector('span')?.outerHTML || '';
+            rowHeader.innerHTML = `${badgeHtml}${slotLabel}`;
+        }
+
+        if (isFixedSlot) {
+            const rowActions = row.querySelector('.flex.gap-2');
+            if (rowActions) {
+                rowActions.innerHTML = '<span class="text-[10px] font-bold text-[#b9965b] px-3 py-1 border border-[#eadfce] rounded-full bg-[#fff8ef]">固定</span>';
+            }
+        }
 
         const scrollBox = document.createElement('div');
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
@@ -1182,6 +1293,7 @@ function toggleReadingDropdown() {
         buildMode = 'reading';
         fbChoices = [];
         selectedPieces = [];
+        hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
         renderBuildSelection();
@@ -1794,6 +1906,12 @@ function selectBuildPiece(slot, data, btnElement) {
  */
 function executeBuild() {
     console.log("BUILD: Executing build with selected pieces");
+    const selectedCombination = Array.isArray(selectedPieces) ? selectedPieces.filter(Boolean) : [];
+    const flattenedCombination = flattenBuildCombination(selectedPieces).filter(Boolean);
+
+    if (selectedCombination.length === 0 || flattenedCombination.length === 0) {
+        return;
+    }
 
     currentBuildResult = {
         fullName: '',
@@ -1815,7 +1933,7 @@ function executeBuild() {
     const fullName = (surnameStr ? surnameStr + ' ' : '') + givenName;
     const reading = (surnameRuby ? surnameRuby + ' ' : '') + givenReading;
 
-    const givArr = selectedPieces.map(p => ({
+    const givArr = flattenedCombination.map(p => ({
         kanji: p['漢字'],
         strokes: parseInt(p['画数']) || 0
     }));
@@ -1834,7 +1952,7 @@ function executeBuild() {
         fullName: fullName,
         reading: reading,
         fortune: fortune,
-        combination: selectedPieces,
+        combination: flattenedCombination,
         givenName: givenName,
         timestamp: new Date().toISOString()
     };
@@ -2407,6 +2525,9 @@ function reselectSlot(slotIdx) {
  * スロットに追加で漢字を探す（現在の選択を保持）
  */
 function addMoreToSlot(slotIdx) {
+    if (getCompoundFixedPieceForSlot(slotIdx)) {
+        return;
+    }
     currentPos = slotIdx;
     currentIdx = 0;
     // ビルドからの「追加する」は常に読みモードで動作させる
