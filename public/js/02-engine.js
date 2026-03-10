@@ -281,8 +281,25 @@ function calcSegments() {
         console.log("ENGINE: No patterns found, using character split");
     }
 
-    // UI生成（上位5件）
+    const compoundOptions = typeof getCompoundReadingOptions === 'function'
+        ? getCompoundReadingOptions(nameReading, 8, gender || 'neutral')
+        : [];
+
+    function createSectionTitle(title, subtitle = '') {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-3 text-left';
+        wrapper.innerHTML = `
+            <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b] uppercase">${title}</div>
+            ${subtitle ? `<div class="mt-1 text-[11px] text-[#a6967a]">${subtitle}</div>` : ''}
+        `;
+        return wrapper;
+    }
+
     optionsContainer.innerHTML = '';
+    const normalSection = document.createElement('div');
+    normalSection.className = 'mb-6';
+    normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
+
     uniquePaths.slice(0, 5).forEach((path, idx) => {
         const btn = document.createElement('button');
         btn.className = "w-full py-6 bg-white text-[#5d5444] font-black rounded-[40px] border-2 border-[#fdfaf5] shadow-sm transition-all text-xl mb-4 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
@@ -294,15 +311,58 @@ function calcSegments() {
         btn.innerHTML = displayParts;
         btn.onclick = () => selectSegment(path);
 
-        // 最初の選択肢を強調（おすすめバッジは削除）
         if (idx === 0) {
             btn.classList.add('border-[#bca37f]');
-            // バッジ削除要望により削除
-            // btn.innerHTML += '<span class="ml-2 text-xs text-[#bca37f]">おすすめ</span>';
         }
 
-        optionsContainer.appendChild(btn);
+        normalSection.appendChild(btn);
     });
+    optionsContainer.appendChild(normalSection);
+
+    if (compoundOptions.length > 0) {
+        const compoundSection = document.createElement('div');
+        compoundSection.className = 'mt-2';
+        compoundSection.appendChild(createSectionTitle('まとめ読み候補', 'まとまりで使える名前候補は、ここからそのまま保存できます。'));
+
+        compoundOptions.forEach((option, idx) => {
+            const btn = document.createElement('button');
+            const examples = Array.isArray(option.examples) && option.examples.length > 0
+                ? option.examples.slice(0, 3).join(' ・ ')
+                : '';
+
+            btn.className = "w-full mb-3 rounded-[34px] border border-[#eadfce] bg-[#fffaf5] px-5 py-4 text-left shadow-sm transition-all hover:border-[#bca37f] hover:shadow-md active:scale-[0.99]";
+            btn.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
+                        ${examples ? `<div class="mt-2 text-[11px] text-[#8b7e66] break-keep">${examples}</div>` : ''}
+                    </div>
+                    <span class="shrink-0 px-3 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#eadfce]">${option.badgeLabel || 'まとめ読み'}</span>
+                </div>
+            `;
+            btn.onclick = () => {
+                if (typeof openReadingCombinationModal === 'function') {
+                    openReadingCombinationModal(
+                        {
+                            reading: nameReading,
+                            tags: Array.isArray(option.tags) ? option.tags : [],
+                            gender: gender || 'neutral'
+                        },
+                        '',
+                        option.label
+                    );
+                }
+            };
+
+            if (idx === 0) {
+                btn.classList.add('border-[#d9c7ab]');
+            }
+
+            compoundSection.appendChild(btn);
+        });
+
+        optionsContainer.appendChild(compoundSection);
+    }
 
     // 画面遷移
     changeScreen('scr-segment');

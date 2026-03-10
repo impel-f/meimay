@@ -558,6 +558,12 @@ body {
     line-height: 1;
 }
 
+.build-kanji-text.is-compound {
+    font-size: clamp(1.15rem, 4vw, 1.45rem);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+}
+
 .build-piece-btn.selected .build-kanji-text {
     color: var(--main);
     transform: scale(1.08);

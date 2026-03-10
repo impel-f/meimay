@@ -1,0 +1,118 @@
+[
+  {
+    "kanji": "大和",
+    "priority": 98,
+    "gender": ["male", "neutral"],
+    "variants": [
+      { "reading": "やまと", "mode": "exact", "score": 98 }
+    ]
+  },
+  {
+    "kanji": "飛鳥",
+    "priority": 99,
+    "gender": ["female", "neutral"],
+    "variants": [
+      { "reading": "あすか", "mode": "exact", "score": 99 }
+    ]
+  },
+  {
+    "kanji": "日向",
+    "priority": 97,
+    "gender": ["female", "neutral"],
+    "variants": [
+      { "reading": "ひなた", "mode": "exact", "score": 98, "gender": ["female", "neutral"] },
+      { "reading": "ひな", "mode": "exact_prefix", "score": 94, "gender": ["female", "neutral"] },
+      { "reading": "ひゅうが", "mode": "exact", "score": 82, "gender": ["male", "neutral"] }
+    ]
+  },
+  {
+    "kanji": "陽向",
+    "priority": 97,
+    "gender": ["female", "neutral"],
+    "variants": [
+      { "reading": "ひなた", "mode": "exact", "score": 98, "gender": ["female", "neutral"] },
+      { "reading": "ひな", "mode": "exact_prefix", "score": 93, "gender": ["female", "neutral"] }
+    ]
+  },
+  {
+    "kanji": "陽葵",
+    "priority": 96,
+    "gender": ["female"],
+    "variants": [
+      { "reading": "ひまり", "mode": "exact", "score": 96 }
+    ]
+  },
+  {
+    "kanji": "弥生",
+    "priority": 95,
+    "gender": ["female"],
+    "variants": [
+      { "reading": "やよい", "mode": "exact", "score": 95 }
+    ]
+  },
+  {
+    "kanji": "百合",
+    "priority": 94,
+    "gender": ["female"],
+    "variants": [
+      { "reading": "ゆり", "mode": "exact", "score": 94 }
+    ]
+  },
+  {
+    "kanji": "五月",
+    "priority": 93,
+    "gender": ["female", "neutral"],
+    "variants": [
+      { "reading": "さつき", "mode": "exact", "score": 93 }
+    ]
+  },
+  {
+    "kanji": "紅葉",
+    "priority": 93,
+    "gender": ["female", "neutral"],
+    "variants": [
+      { "reading": "もみじ", "mode": "exact", "score": 93 }
+    ]
+  },
+  {
+    "kanji": "日和",
+    "priority": 92,
+    "gender": ["female"],
+    "variants": [
+      { "reading": "ひより", "mode": "exact", "score": 92 }
+    ]
+  },
+  {
+    "kanji": "常盤",
+    "priority": 91,
+    "gender": ["neutral"],
+    "variants": [
+      { "reading": "ときわ", "mode": "exact", "score": 91 }
+    ]
+  },
+  {
+    "kanji": "常磐",
+    "priority": 91,
+    "gender": ["neutral"],
+    "variants": [
+      { "reading": "ときわ", "mode": "exact", "score": 91 }
+    ]
+  },
+  {
+    "kanji": "明日",
+    "priority": 96,
+    "gender": ["neutral"],
+    "variants": [
+      { "reading": "あす", "mode": "exact_prefix", "score": 96 },
+      { "reading": "あした", "mode": "exact_prefix", "score": 88 }
+    ]
+  },
+  {
+    "kanji": "千歳",
+    "priority": 89,
+    "gender": ["neutral"],
+    "variants": [
+      { "reading": "ちとせ", "mode": "exact", "score": 89 }
+    ]
+  }
+]

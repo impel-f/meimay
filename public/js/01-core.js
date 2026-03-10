@@ -25,6 +25,7 @@ let prioritizeFortune = false;
 let savedNames = [];
 let yomiSearchData = [];
 let readingsData = []; // 追加: 読み(タグ付き)詳細データ
+let compoundReadingsData = []; // まとめ読み候補データ
 let currentBuildResult = {
     fullName: "",
     reading: "",
@@ -124,6 +125,17 @@ window.onload = () => {
                     console.log(`CORE: Loaded ${rData.length} reading entries with tags`);
                 })
                 .catch(err => console.warn("CORE: Failed to load readings data", err));
+
+            fetch('/data/compound_readings_data.json')
+                .then(res => {
+                    if (res.ok) return res.json();
+                    return [];
+                })
+                .then(cData => {
+                    compoundReadingsData = Array.isArray(cData) ? cData : [];
+                    console.log(`CORE: Loaded ${compoundReadingsData.length} compound reading entries`);
+                })
+                .catch(err => console.warn("CORE: Failed to load compound reading data", err));
         })
         .catch(err => {
             console.error("CORE: データ読み込みエラー:", err);

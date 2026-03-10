@@ -186,6 +186,10 @@ function renderFbFortune(choices) {
     }
     try {
         const givenStrokes = choices.map(k => {
+            const likedItem = liked.find(l => l['漢字'] === k);
+            if (likedItem && likedItem['画数'] !== undefined) {
+                return parseInt(likedItem['画数']) || 1;
+            }
             const item = master?.find(m => m['漢字'] === k);
             return item ? parseInt(item['画数']) || 1 : 1;
         });
@@ -1096,7 +1100,7 @@ function renderBuildSelection() {
                 btn.innerHTML = `
                     ${partnerBadge}
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
-                    <div class="build-kanji-text">${item['漢字']}</div>
+                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}">${item['漢字']}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
                     ${fortuneIndicator}
 `;
@@ -1312,7 +1316,7 @@ function renderBuildFreeMode(container) {
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                     style="${isSelected && (typeof getGradientFromTags === 'function') ? `border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;` : ''}">
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
-                    <div class="build-kanji-text">${k}</div>
+                    <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
                 </button>`;
         }).join('')}

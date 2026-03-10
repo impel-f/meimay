@@ -374,14 +374,161 @@ function getReadingFullNamePreview(reading) {
     };
 }
 
-function getReadingSegmentOptions(reading, limit = 4) {
+function isCompoundGenderAllowed(entryGender, targetGender = gender || 'neutral') {
+    const allowed = Array.isArray(entryGender) ? entryGender.filter(Boolean) : [];
+    if (allowed.length === 0 || !targetGender || targetGender === 'neutral') return true;
+    return allowed.includes(targetGender) || allowed.includes('neutral');
+}
+
+function getCompoundStrokeCount(kanji) {
+    const chars = (kanji || '').split('').filter(Boolean);
+    if (chars.length === 0) return 1;
+
+    const total = chars.reduce((sum, char) => {
+        const strokeFromMap = strokeData && strokeData[char] ? parseInt(strokeData[char]) || 0 : 0;
+        if (strokeFromMap > 0) return sum + strokeFromMap;
+        const found = Array.isArray(master) ? master.find(item => item['漢字'] === char) : null;
+        return sum + (found ? parseInt(found['画数']) || 0 : 0);
+    }, 0);
+
+    return total > 0 ? total : chars.length;
+}
+
+function getCompoundTags(reading, fallbackTags = []) {
+    const normalizedReading = toHira(reading || '');
+    const source = Array.isArray(readingsData)
+        ? readingsData.find(item => toHira(item?.reading || '') === normalizedReading)
+        : null;
+    const readingTags = Array.isArray(source?.tags) ? source.tags.filter(Boolean) : [];
+    const entryTags = Array.isArray(fallbackTags) ? fallbackTags.filter(Boolean) : [];
+    return [...new Set([...(readingTags || []), ...(entryTags || [])])];
+}
+
+function createCompoundPiece(entry, consumedReading, targetGender = gender || 'neutral', tags = [], score = 0) {
+    const normalizedTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
+    return {
+        '漢字': entry.kanji,
+        '画数': getCompoundStrokeCount(entry.kanji),
+        '分類': normalizedTags.join(' '),
+        '意味': entry.meaning || '',
+        '名前のイメージ': entry.note || '',
+        '_recommendationScore': score,
+        '_readingMatchTier': 0,
+        '_genderPriority': isCompoundGenderAllowed(entry.gender, targetGender) ? 0 : 2,
+        isCompound: true,
+        compoundReading: consumedReading
+    };
+}
+
+function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 'neutral') {
+    const inputReading = toHira(reading || '');
+    if (!inputReading || !Array.isArray(compoundReadingsData) || compoundReadingsData.length === 0) {
+        return [];
+    }
+
+    const options = [];
+    const seenKeys = new Set();
+
+    compoundReadingsData.forEach((entry) => {
+        if (!entry || !entry.kanji) return;
+        const variants = Array.isArray(entry.variants) ? entry.variants : [];
+
+        variants.forEach((variant) => {
+            const consumedReading = toHira(variant?.reading || '');
+            if (!consumedReading) return;
+
+            const allowedGender = Array.isArray(variant?.gender) && variant.gender.length > 0
+                ? variant.gender
+                : entry.gender;
+            if (!isCompoundGenderAllowed(allowedGender, targetGender)) return;
+
+            const mode = variant.mode || 'exact';
+            const supportsExact = mode === 'exact' || mode === 'exact_prefix';
+            const supportsPrefix = mode === 'prefix' || mode === 'exact_prefix';
+            const baseScore = (parseInt(variant.score, 10) || parseInt(entry.priority, 10) || 80) * 100;
+            const tags = getCompoundTags(inputReading, entry.tags || []);
+            const fixedPiece = createCompoundPiece(entry, consumedReading, targetGender, tags, baseScore);
+
+            if (supportsExact && inputReading === consumedReading) {
+                const label = entry.kanji;
+                const exactKey = `exact::${entry.kanji}::${inputReading}`;
+                if (!seenKeys.has(exactKey)) {
+                    seenKeys.add(exactKey);
+                    options.push({
+                        path: [inputReading],
+                        label,
+                        optionType: 'compound',
+                        badgeLabel: 'まとめ読み',
+                        candidates: [{
+                            givenName: entry.kanji,
+                            fullName: surnameStr ? `${surnameStr} ${entry.kanji}` : entry.kanji,
+                            score: baseScore,
+                            combination: [{ ...fixedPiece }]
+                        }],
+                        examples: [entry.kanji],
+                        tags,
+                        sortScore: baseScore + 50
+                    });
+                }
+            }
+
+            if (supportsPrefix && inputReading.startsWith(consumedReading) && inputReading.length > consumedReading.length) {
+                const tailReading = inputReading.slice(consumedReading.length);
+                const tailPaths = typeof getReadingSegmentPaths === 'function'
+                    ? getReadingSegmentPaths(tailReading, 4, { strictOnly: true, allowFallback: false })
+                    : [];
+
+                tailPaths.forEach((tailPath) => {
+                    const cleanTailPath = Array.isArray(tailPath) ? tailPath.filter(Boolean) : [];
+                    if (cleanTailPath.length === 0) return;
+
+                    const label = `${entry.kanji} / ${cleanTailPath.join('/')}`;
+                    const prefixKey = `prefix::${entry.kanji}::${cleanTailPath.join('/')}`;
+                    if (seenKeys.has(prefixKey)) return;
+
+                    const tailCandidates = buildReadingCombinationCandidates(cleanTailPath, 4, targetGender)
+                        .map((candidate) => ({
+                            givenName: `${entry.kanji}${candidate.givenName}`,
+                            fullName: surnameStr ? `${surnameStr} ${entry.kanji}${candidate.givenName}` : `${entry.kanji}${candidate.givenName}`,
+                            score: baseScore + (candidate.score || 0),
+                            combination: [{ ...fixedPiece }, ...candidate.combination.map(piece => ({ ...piece }))]
+                        }))
+                        .filter(candidate => candidate.givenName && candidate.combination.length > 1);
+
+                    if (tailCandidates.length === 0) return;
+
+                    seenKeys.add(prefixKey);
+                    options.push({
+                        path: [consumedReading, ...cleanTailPath],
+                        label,
+                        optionType: 'compound',
+                        badgeLabel: '先頭まとめ',
+                        candidates: tailCandidates,
+                        examples: tailCandidates.map(candidate => candidate.givenName).slice(0, 3),
+                        tags,
+                        sortScore: Math.max(...tailCandidates.map(candidate => candidate.score || 0))
+                    });
+                });
+            }
+        });
+    });
+
+    return options
+        .sort((a, b) => {
+            if ((b.sortScore || 0) !== (a.sortScore || 0)) return (b.sortScore || 0) - (a.sortScore || 0);
+            return a.label.localeCompare(b.label, 'ja');
+        })
+        .slice(0, limit);
+}
+
+function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
     const targetGender = gender || 'neutral';
-    let paths = typeof getReadingSegmentPaths === 'function'
+    const paths = typeof getReadingSegmentPaths === 'function'
         ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: true, allowFallback: false })
         : [];
 
     const seen = new Set();
-    return paths
+    const normalOptions = paths
         .map(path => {
             const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
             const label = cleanPath.join('/');
@@ -398,6 +545,17 @@ function getReadingSegmentOptions(reading, limit = 4) {
         })
         .filter(Boolean)
         .slice(0, limit);
+
+    const compoundOptions = typeof getCompoundReadingOptions === 'function'
+        ? getCompoundReadingOptions(reading, extraOptions.compoundLimit || limit, targetGender)
+        : [];
+
+    let merged = [...normalOptions, ...compoundOptions];
+    if (extraOptions && extraOptions.preferredLabel) {
+        merged = merged.filter(option => option.label === extraOptions.preferredLabel);
+    }
+
+    return merged;
 }
 
 function getPreferredReadingSegments(reading) {
@@ -709,10 +867,14 @@ function closeReadingCombinationModal() {
     readingCombinationModalState = null;
 }
 
-function openReadingCombinationModal(item, baseNickname = '') {
+function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
     closeReadingCombinationModal();
 
-    const options = getReadingSegmentOptions(item.reading, 4);
+    const options = getReadingSegmentOptions(
+        item.reading,
+        4,
+        preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
+    );
     const preview = getReadingFullNamePreview(item.reading);
     readingCombinationModalState = {
         item: { ...item, baseNickname },
@@ -3323,10 +3485,14 @@ function renderReadingSwipeCard(item) {
     `;
 }
 
-function openReadingCombinationModal(item, baseNickname = '') {
+function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
     closeReadingCombinationModal();
 
-    const options = getReadingSegmentOptions(item.reading, 4);
+    const options = getReadingSegmentOptions(
+        item.reading,
+        4,
+        preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
+    );
     const preview = getReadingFullNamePreview(item.reading);
     readingCombinationModalState = {
         item: { ...item, baseNickname },
@@ -3378,7 +3544,7 @@ function openReadingCombinationModal(item, baseNickname = '') {
                                     <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
                                     <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
                                 </div>
-                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
                             </div>
                             <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
                         </div>
@@ -3639,10 +3805,14 @@ function renderReadingSwipeCard(item) {
     `;
 }
 
-function openReadingCombinationModal(item, baseNickname = '') {
+function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
     closeReadingCombinationModal();
 
-    const options = getReadingSegmentOptions(item.reading, 4);
+    const options = getReadingSegmentOptions(
+        item.reading,
+        4,
+        preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
+    );
     const preview = getReadingFullNamePreview(item.reading);
     readingCombinationModalState = {
         item: { ...item, baseNickname },
@@ -3694,7 +3864,7 @@ function openReadingCombinationModal(item, baseNickname = '') {
                                     <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
                                     <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
                                 </div>
-                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.path.length}分割</span>
+                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
                             </div>
                             <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
                         </div>
@@ -3720,7 +3890,7 @@ function getSampleKanjiHtml(item) {
 
     options.forEach((option) => {
         option.candidates.slice(0, 2).forEach((candidate) => {
-            const label = candidate.fullName || candidate.givenName;
+            const label = candidate.givenName || candidate.fullName;
             if (!examples.includes(label)) {
                 examples.push(label);
             }
@@ -3739,6 +3909,7 @@ function getSampleKanjiHtml(item) {
 window.closeReadingCombinationModal = closeReadingCombinationModal;
 window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
 window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
+window.getCompoundReadingOptions = getCompoundReadingOptions;
 /**
  * ============================================================
  * 漢字検索・フィルター機能（V2 - 読み/画数/分類フィルター）
