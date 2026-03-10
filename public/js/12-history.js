@@ -235,12 +235,16 @@ function executeSaveWithMessage() {
 function addToReadingHistory() {
     if (!segments || segments.length === 0) return;
 
-    const reading = segments.join('');
-    const segmentKey = segments.join('/');
-    const history = getReadingHistory();
     const compoundFlow = typeof window.getCompoundBuildFlow === 'function'
         ? window.getCompoundBuildFlow()
         : null;
+    const reading = compoundFlow && compoundFlow.reading
+        ? compoundFlow.reading
+        : segments.join('');
+    const segmentKey = compoundFlow && Array.isArray(compoundFlow.segments)
+        ? compoundFlow.segments.join('/')
+        : segments.join('/');
+    const history = getReadingHistory();
 
     const filtered = history.filter(item => `${item.reading}::${(item.segments || []).join('/')}` !== `${reading}::${segmentKey}`);
 

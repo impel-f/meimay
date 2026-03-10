@@ -445,7 +445,7 @@ function loadStack() {
             liked.push({
                 ...freeItem,
                 slot: currentPos,
-                sessionReading: segments.join(''),
+                sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
                 sessionSegments: [...segments]
             });
             console.log(`ENGINE: Auto-injected Free Stock => ${freeItem['漢字']} for slot ${currentPos}`);

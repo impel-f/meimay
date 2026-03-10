@@ -48,6 +48,14 @@ function getCompoundBuildFlow() {
     return compoundBuildFlowState || window.meimayCompoundBuildFlow || null;
 }
 
+function getCurrentSessionReading() {
+    const flow = getCompoundBuildFlow();
+    if (flow && flow.reading) {
+        return flow.reading;
+    }
+    return Array.isArray(segments) ? segments.join('') : '';
+}
+
 function clearCompoundBuildFlow() {
     compoundBuildFlowState = null;
     window.meimayCompoundBuildFlow = null;
@@ -70,6 +78,7 @@ function buildCompoundSlotLabels(path) {
 
 window.setCompoundBuildFlow = setCompoundBuildFlow;
 window.getCompoundBuildFlow = getCompoundBuildFlow;
+window.getCurrentSessionReading = getCurrentSessionReading;
 window.clearCompoundBuildFlow = clearCompoundBuildFlow;
 
 function startMode(mode) {
@@ -503,6 +512,25 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading) {
     return chars;
 }
 
+function buildExpandedCompoundSlotLabels(consumedReading, fixedCount, tailSegments = []) {
+    const labels = [];
+    const fixedLabel = fixedCount > 1
+        ? `${Array.from({ length: fixedCount }, (_, idx) => `${idx + 1}文字目`).join('＋')}: ${consumedReading}`
+        : `1文字目: ${consumedReading}`;
+
+    for (let i = 0; i < fixedCount; i++) {
+        labels.push(fixedLabel);
+    }
+
+    let offset = fixedCount;
+    (Array.isArray(tailSegments) ? tailSegments : []).forEach((segment) => {
+        labels.push(`${offset + 1}文字目: ${segment}`);
+        offset += 1;
+    });
+
+    return labels;
+}
+
 function startCompoundReadingFlow(option, item = {}) {
     if (!option || !Array.isArray(option.path) || option.path.length === 0) return;
 
@@ -527,6 +555,70 @@ function startCompoundReadingFlow(option, item = {}) {
         }
 
         window.openBuildFreeModeWithChoices(compoundChars, sessionReading);
+        return;
+    }
+
+    if (option.optionMode === 'prefix' && compoundChars.length > 1) {
+        const tailSegments = option.path.slice(1);
+        const fixedSlotsBySlot = {};
+        const expandedSegments = [
+            ...compoundChars.map((_, idx) => `__compound_slot_${idx}__`),
+            ...tailSegments
+        ];
+
+        seedCompoundSingleKanjiStock(fixedSource['漢字'], sessionReading);
+
+        compoundChars.forEach((char, idx) => {
+            const masterItem = Array.isArray(master)
+                ? master.find((entry) => entry['漢字'] === char)
+                : null;
+            fixedSlotsBySlot[idx] = {
+                ...(masterItem || {}),
+                '漢字': char,
+                slot: idx,
+                sessionReading,
+                sessionSegments: [...expandedSegments],
+                isFixedCompound: true,
+                _compoundFixed: true
+            };
+        });
+
+        const flow = setCompoundBuildFlow({
+            reading: sessionReading,
+            segments: [...expandedSegments],
+            slotLabels: buildExpandedCompoundSlotLabels(option.path[0], compoundChars.length, tailSegments),
+            fixedSlotsBySlot,
+            firstInteractiveSlot: tailSegments.length > 0 ? compoundChars.length : -1,
+            optionLabel: option.label || '',
+            compoundKanji: fixedSource['漢字'] || '',
+            optionMode: option.optionMode || 'compound'
+        });
+
+        segments = [...flow.segments];
+        swipes = 0;
+        currentIdx = 0;
+        window._addMoreFromBuild = false;
+        isFreeSwipeMode = false;
+
+        if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
+            seen.clear();
+        }
+        if (typeof updateSurnameData === 'function') {
+            updateSurnameData();
+        }
+        if (typeof addToReadingHistory === 'function') {
+            addToReadingHistory();
+        }
+
+        if (flow.firstInteractiveSlot === -1) {
+            currentPos = 0;
+            if (typeof openBuild === 'function') openBuild();
+            return;
+        }
+
+        currentPos = flow.firstInteractiveSlot;
+        if (typeof loadStack === 'function') loadStack();
+        changeScreen('scr-main');
         return;
     }
 
@@ -2454,7 +2546,7 @@ function setRule(r) {
 function findInheritCandidates() {
     if (!segments || segments.length === 0) return [];
 
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });
@@ -2492,7 +2584,7 @@ function findInheritCandidates() {
  * 引き継ぎ候補を liked[] に追加
  */
 function doInheritKanji(candidates) {
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     candidates.forEach(c => {
         c.items.forEach(item => {
             const exists = liked.some(l =>
@@ -2561,7 +2653,7 @@ function checkInheritForSlot(slotIdx, onDone) {
         return;
     }
 
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });

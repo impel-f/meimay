@@ -211,7 +211,7 @@ function executeSwipe(dir, data) {
                     ...data,
                     slot: currentPos,
                     isSuper: (dir === 'up'),
-                    sessionReading: segments.join(''), // どの読み方で選ばれたかを記録
+                    sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''), // どの読み方で選ばれたかを記録
                     sessionSegments: [...segments] // セグメント配列も記録してグループ化バグを防ぐ
                 });
             } else {

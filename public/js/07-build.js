@@ -926,7 +926,7 @@ function updateNamePreview() {
             });
         }
         givenKanji = chosen.length > 0 ? chosen.join('') : '';
-        givenReading = chosenReads.join('') || segments.join('');
+        givenReading = chosenReads.join('') || (typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''));
     }
 
     const surname = surnameStr || '';
@@ -1069,7 +1069,7 @@ function renderBuildSelection() {
     container.innerHTML = '';
     headerContainer.innerHTML = '';
 
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
 
     // モード切り替えタブ
     const modeBar = document.createElement('div');
@@ -1350,7 +1350,7 @@ function toggleReadingDropdown() {
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });
 
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
 
     if (completedReadings.length === 0) {
         dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読みストックがありません</div>';
@@ -1955,7 +1955,7 @@ function executeBuild() {
     const givenName = selectedPieces.map(p => p['漢字']).join('');
     const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
         (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
-    const givenReading = segments.join('');
+    const givenReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
 
     const fullName = (surnameStr ? surnameStr + ' ' : '') + givenName;
     const reading = (surnameRuby ? surnameRuby + ' ' : '') + givenReading;
@@ -2366,7 +2366,7 @@ function showFortuneRanking() {
  * 全組み合わせを生成
  */
 function generateAllCombinations() {
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     const slotArrays = segments.map((seg, idx) => {
         let items = getBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
@@ -2396,7 +2396,7 @@ function generateAllCombinations() {
     return combinations.map(pieces => ({
         pieces: pieces,
         name: pieces.map(p => p['漢字']).join(''),
-        reading: segments.join('')
+        reading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('')
     }));
 }
 

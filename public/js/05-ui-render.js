@@ -245,7 +245,7 @@ function updateSwipeCounter() {
         return;
     }
 
-    const currentReading = segments.join('');
+    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     const selected = liked.filter(item =>
         item.slot === currentPos &&
         (!item.sessionReading || item.sessionReading === currentReading)
@@ -604,7 +604,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
                 sessionReading = 'FREE';
                 slot = -1;
             } else {
-                sessionReading = segments.join('');
+                sessionReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
                 slot = currentPos;
                 sessionSegments = [...segments];
             }
