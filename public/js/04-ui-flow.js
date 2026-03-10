@@ -461,12 +461,74 @@ function createCompoundPiece(entry, consumedReading, targetGender = gender || 'n
     };
 }
 
+function seedCompoundSingleKanjiStock(compoundKanji, sessionReading) {
+    const chars = Array.from(compoundKanji || '').filter(Boolean);
+    if (chars.length <= 1 || !Array.isArray(liked)) {
+        return chars;
+    }
+
+    chars.forEach((char, idx) => {
+        const exists = liked.some((item) =>
+            item &&
+            item['漢字'] === char &&
+            item.slot === idx &&
+            item.sessionReading === sessionReading
+        );
+        if (exists) return;
+
+        const masterItem = Array.isArray(master)
+            ? master.find((entry) => entry['漢字'] === char)
+            : null;
+
+        liked.push({
+            ...(masterItem || {}),
+            '漢字': char,
+            slot: idx,
+            sessionReading,
+            sessionSegments: [],
+            _compoundSeeded: true
+        });
+    });
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    } else {
+        try {
+            localStorage.setItem('meimay_liked', JSON.stringify(liked));
+        } catch (error) {
+            console.warn('COMPOUND: Failed to seed kanji stock', error);
+        }
+    }
+
+    return chars;
+}
+
 function startCompoundReadingFlow(option, item = {}) {
     if (!option || !Array.isArray(option.path) || option.path.length === 0) return;
 
     const sessionReading = toHira(item.reading || option.path.join(''));
     const fixedSource = option.fixedPiece || option.candidates?.[0]?.combination?.[0];
     if (!fixedSource || !fixedSource['漢字']) return;
+
+    const compoundChars = Array.from(fixedSource['漢字'] || '').filter(Boolean);
+    if (option.optionMode === 'exact' && compoundChars.length > 1 && typeof window.openBuildFreeModeWithChoices === 'function') {
+        seedCompoundSingleKanjiStock(fixedSource['漢字'], sessionReading);
+        segments = [sessionReading];
+        swipes = 0;
+        currentIdx = 0;
+        window._addMoreFromBuild = false;
+        isFreeSwipeMode = false;
+
+        if (typeof updateSurnameData === 'function') {
+            updateSurnameData();
+        }
+        if (typeof addToReadingHistory === 'function') {
+            addToReadingHistory();
+        }
+
+        window.openBuildFreeModeWithChoices(compoundChars, sessionReading);
+        return;
+    }
 
     const fixedPiece = {
         ...fixedSource,

@@ -850,6 +850,33 @@ function openBuildFreeMode() {
 }
 window.openBuildFreeMode = openBuildFreeMode;
 
+function openBuildFreeModeWithChoices(choices = [], reading = '') {
+    console.log("BUILD: Opening build screen in free mode with seeded choices");
+    window._addMoreFromBuild = false;
+    if (typeof window.clearCompoundBuildFlow === 'function') {
+        window.clearCompoundBuildFlow();
+    }
+
+    selectedPieces = [];
+    buildMode = 'free';
+    fbChoices = (Array.isArray(choices) ? choices : []).filter(Boolean);
+    shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
+    fbSelectedReading = reading || null;
+    excludedKanjiFromBuild = [];
+
+    currentFbRecommendedReadings = fbSelectedReading
+        ? [{ reading: fbSelectedReading, score: 999999 }]
+        : [];
+
+    renderBuildSelection();
+    changeScreen('scr-build');
+
+    if (typeof executeFbBuild === 'function' && fbChoices.length > 0) {
+        executeFbBuild();
+    }
+}
+window.openBuildFreeModeWithChoices = openBuildFreeModeWithChoices;
+
 /**
  * ビルドモードを切り替える
  */
