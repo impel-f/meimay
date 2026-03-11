@@ -985,11 +985,17 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
         return [];
     }
 
-    const options = [];
-    const seenKeys = new Set();
+    const optionsByKey = new Map();
     const basePaths = typeof getReadingSegmentPaths === 'function'
         ? getReadingSegmentPaths(inputReading, 12, { strictOnly: true, allowFallback: false })
         : [];
+
+    function setOption(optionKey, option) {
+        const existing = optionsByKey.get(optionKey);
+        if (!existing || (option.sortScore || 0) > (existing.sortScore || 0)) {
+            optionsByKey.set(optionKey, option);
+        }
+    }
 
     compoundReadingsData.forEach((entry) => {
         if (!entry || !entry.kanji) return;
@@ -1008,6 +1014,29 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
             const tags = getCompoundTags(inputReading, entry.tags || []);
             const fixedPiece = createCompoundPiece(entry, consumedReading, targetGender, tags, baseScore);
 
+            if (inputReading === consumedReading) {
+                setOption(`${entry.kanji}::${consumedReading}`, {
+                    path: [inputReading],
+                    label: entry.kanji,
+                    optionType: 'compound',
+                    optionMode: 'exact',
+                    fixedPiece: { ...fixedPiece },
+                    compoundSegmentStart: 0,
+                    compoundSegmentEnd: 0,
+                    badgeLabel: 'まとめ読み',
+                    candidates: [{
+                        givenName: entry.kanji,
+                        fullName: surnameStr ? surnameStr + ' ' + entry.kanji : entry.kanji,
+                        score: baseScore,
+                        combination: [{ ...fixedPiece }]
+                    }],
+                    examples: [entry.kanji],
+                    tags,
+                    slotLabels: buildCompoundSlotLabels([inputReading]),
+                    sortScore: baseScore + 100
+                });
+            }
+
             basePaths.forEach((path) => {
                 const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
                 if (cleanPath.length === 0) return;
@@ -1021,13 +1050,15 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 
                         const prefixSegments = cleanPath.slice(0, start);
                         const suffixSegments = cleanPath.slice(end + 1);
+                        if (prefixSegments.length === 0 && suffixSegments.length === 0) {
+                            break;
+                        }
                         const labelParts = [];
                         if (prefixSegments.length > 0) labelParts.push(prefixSegments.join('/'));
                         labelParts.push(entry.kanji);
                         if (suffixSegments.length > 0) labelParts.push(suffixSegments.join('/'));
 
-                        const optionKey = entry.kanji + '::' + labelParts.join('|') + '::' + cleanPath.join('/');
-                        if (seenKeys.has(optionKey)) break;
+                        const optionKey = entry.kanji + '::' + labelParts.join('|');
 
                         const emptyCandidate = {
                             givenName: '',
@@ -1086,8 +1117,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                             .sort((a, b) => (b.score || 0) - (a.score || 0))
                             .slice(0, 6);
 
-                        seenKeys.add(optionKey);
-                        options.push({
+                        setOption(optionKey, {
                             path: cleanPath,
                             label: labelParts.join(' / '),
                             optionType: 'compound',
@@ -1109,7 +1139,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
         });
     });
 
-    return options
+    return Array.from(optionsByKey.values())
         .sort((a, b) => {
             if ((b.sortScore || 0) !== (a.sortScore || 0)) return (b.sortScore || 0) - (a.sortScore || 0);
             return a.label.localeCompare(b.label, 'ja');
