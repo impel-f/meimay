@@ -143,7 +143,12 @@ function getDisplaySegmentsForReading(reading, historyLookup = {}) {
 
     const historyEntry = reading ? historyLookup[reading] : null;
     if (historyEntry && Array.isArray(historyEntry.segments) && historyEntry.segments.length > 0) {
-        return historyEntry.segments.filter(Boolean).map((seg) => String(seg));
+        const safeSegments = historyEntry.segments
+            .filter(seg => seg && !isCompoundSlotPlaceholder(seg))
+            .map((seg) => String(seg));
+        if (safeSegments.length > 0) {
+            return safeSegments;
+        }
     }
     return reading ? [reading] : [];
 }
@@ -195,6 +200,33 @@ function getBuildSlotDisplayLabel(seg, idx) {
         return reading ? `${idx + 1}文字目: ${reading}` : `${idx + 1}文字目`;
     }
     return `${idx + 1}文字目: ${seg}`;
+}
+
+function getSafeBuildCurrentReading() {
+    const currentReading = typeof getCurrentSessionReading === 'function'
+        ? getCurrentSessionReading()
+        : '';
+    if (currentReading && !/__compound_slot_/.test(currentReading)) {
+        return currentReading;
+    }
+
+    const flow = getActiveCompoundBuildFlow();
+    if (flow && typeof flow.reading === 'string' && flow.reading && !/__compound_slot_/.test(flow.reading)) {
+        return flow.reading;
+    }
+
+    const nameInput = document.getElementById('in-name');
+    const typedReading = nameInput && typeof nameInput.value === 'string'
+        ? nameInput.value.trim()
+        : '';
+    if (typedReading) {
+        return typedReading;
+    }
+
+    if (!Array.isArray(segments)) return '';
+    return segments
+        .filter(seg => seg && !isCompoundSlotPlaceholder(seg))
+        .join('');
 }
 
 function openStock(tab, options = {}) {
@@ -1206,7 +1238,7 @@ function renderBuildSelection() {
     container.innerHTML = '';
     headerContainer.innerHTML = '';
 
-    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+    const currentReading = getSafeBuildCurrentReading();
 
     // モード切り替えタブ
     const modeBar = document.createElement('div');
@@ -1274,7 +1306,7 @@ function renderBuildSelection() {
     <div class="flex items-center justify-between mb-3" >
                 <p class="text-[11px] font-black text-[#bca37f] uppercase tracking-widest flex items-center gap-2">
                     <span class="bg-[#bca37f] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">${idx + 1}</span>
-                    ${idx + 1}文字目: ${seg}
+                    ${slotLabel}
                 </p>
                 <div class="flex gap-2">
                     <button onclick="addMoreToSlot(${idx})" class="text-[10px] font-bold text-[#5d5444] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#bca37f] rounded-full bg-white">
@@ -1489,7 +1521,7 @@ function toggleReadingDropdown() {
 
     const historyLookup = getLatestReadingHistoryLookup();
 
-    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+    const currentReading = getSafeBuildCurrentReading();
 
     if (completedReadings.length === 0) {
         dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読みストックがありません</div>';
@@ -2094,7 +2126,7 @@ function executeBuild() {
     const givenName = selectedPieces.map(p => p['漢字']).join('');
     const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
         (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
-    const givenReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+    const givenReading = getSafeBuildCurrentReading();
 
     const fullName = (surnameStr ? surnameStr + ' ' : '') + givenName;
     const reading = (surnameRuby ? surnameRuby + ' ' : '') + givenReading;
@@ -2505,7 +2537,7 @@ function showFortuneRanking() {
  * 全組み合わせを生成
  */
 function generateAllCombinations() {
-    const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+    const currentReading = getSafeBuildCurrentReading();
     const slotArrays = segments.map((seg, idx) => {
         let items = getBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
@@ -2535,7 +2567,7 @@ function generateAllCombinations() {
     return combinations.map(pieces => ({
         pieces: pieces,
         name: pieces.map(p => p['漢字']).join(''),
-        reading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('')
+        reading: getSafeBuildCurrentReading()
     }));
 }
 

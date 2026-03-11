@@ -48,12 +48,31 @@ function getCompoundBuildFlow() {
     return compoundBuildFlowState || window.meimayCompoundBuildFlow || null;
 }
 
+function isCompoundBuildPlaceholderSegment(seg) {
+    return typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg);
+}
+
 function getCurrentSessionReading() {
     const flow = getCompoundBuildFlow();
     if (flow && flow.reading) {
         return flow.reading;
     }
-    return Array.isArray(segments) ? segments.join('') : '';
+    if (flow && Array.isArray(flow.displaySegments)) {
+        const flowReading = flow.displaySegments
+            .filter(seg => seg && !isCompoundBuildPlaceholderSegment(seg))
+            .join('');
+        if (flowReading) return flowReading;
+    }
+    const nameInput = document.getElementById('in-name');
+    const typedReading = nameInput && typeof nameInput.value === 'string'
+        ? nameInput.value.trim()
+        : '';
+    if (typedReading) {
+        return typedReading;
+    }
+    if (!Array.isArray(segments)) return '';
+    const safeSegments = segments.filter(seg => seg && !isCompoundBuildPlaceholderSegment(seg));
+    return safeSegments.join('');
 }
 
 function clearCompoundBuildFlow() {
