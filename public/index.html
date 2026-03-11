@@ -528,6 +528,38 @@
         </div>
     </div>
 
+    <div id="scr-input-sound-entry" class="screen">
+        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
+            <p class="label-mini mb-2">響きから探す</p>
+            <h2 class="text-3xl font-black text-[#5d5444] mb-4">入れたい音はありますか？</h2>
+            <p class="text-sm text-[#8b7e66] leading-relaxed mb-8">
+                すでに呼びたい音があれば、そこから名前候補を広げられます。<br>
+                まだ決まっていなければ、響きをスワイプして好みを探せます。
+            </p>
+
+            <div class="rule-box text-left space-y-4 mb-8 px-4">
+                <button onclick="closeSoundEntryAndGo('nickname')"
+                    class="w-full flex items-start gap-3 text-left active:scale-95 transition-transform">
+                    <span class="mt-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#d9c5a4] bg-[#fff8ef] text-[#b9965b] text-xs font-black">✓</span>
+                    <span>
+                        <span class="block text-sm font-bold text-[#5d5444]">入れたい音がある</span>
+                        <span class="mt-1 block text-[10px] text-[#a6967a]">例: 「はる」から始まる名前を探す</span>
+                    </span>
+                </button>
+                <button onclick="closeSoundEntryAndGo('sound')"
+                    class="w-full flex items-start gap-3 text-left active:scale-95 transition-transform">
+                    <span class="mt-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#d4c5af] bg-white text-[#d4c5af] text-xs font-black">○</span>
+                    <span>
+                        <span class="block text-sm font-bold text-[#5d5444]">響きをスワイプして選ぶ</span>
+                        <span class="mt-1 block text-[10px] text-[#a6967a]">人気の読みを見ながら、好みの方向を探す</span>
+                    </span>
+                </button>
+            </div>
+
+            <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
+        </div>
+    </div>
+
     <!-- NEW WIZARD SCREENS -->
 
     <div id="scr-gender" class="screen">

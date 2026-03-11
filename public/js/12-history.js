@@ -734,7 +734,17 @@ function loadReadingHistory(index) {
     const item = history[index];
 
     // 設定を復元
-    segments = [...item.segments];
+    if (item.compoundFlow && typeof window.setCompoundBuildFlow === 'function') {
+        const restoredFlow = window.setCompoundBuildFlow(item.compoundFlow);
+        segments = Array.isArray(restoredFlow?.segments) && restoredFlow.segments.length > 0
+            ? [...restoredFlow.segments]
+            : [...item.segments];
+    } else {
+        if (typeof window.clearCompoundBuildFlow === 'function') {
+            window.clearCompoundBuildFlow();
+        }
+        segments = [...item.segments];
+    }
     gender = item.settings.gender || 'neutral';
     rule = item.settings.rule || 'flexible';
     selectedImageTags = item.settings.imageTags || ['none'];

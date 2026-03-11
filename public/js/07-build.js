@@ -92,6 +92,111 @@ function normalizeSingleKanjiStock() {
 
 normalizeSingleKanjiStock();
 
+function isCompoundSlotPlaceholder(seg) {
+    return typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg);
+}
+
+function extractSlotReadingLabel(label) {
+    if (typeof label !== 'string') return '';
+    const cleaned = label.replace(/^\s*\d+文字目(?:＋\d+文字目)*\s*:\s*/, '').trim();
+    return cleaned || label.trim();
+}
+
+function getLatestReadingHistoryLookup() {
+    const lookup = {};
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    history.forEach((entry) => {
+        if (!entry || !entry.reading || lookup[entry.reading]) return;
+        lookup[entry.reading] = entry;
+    });
+    return lookup;
+}
+
+function getCompoundFlowLikeForReading(reading, historyLookup = {}) {
+    const activeFlow = getActiveCompoundBuildFlow();
+    if (activeFlow && activeFlow.reading === reading) {
+        return activeFlow;
+    }
+    const historyEntry = reading ? historyLookup[reading] : null;
+    return historyEntry?.compoundFlow || null;
+}
+
+function getDisplaySegmentsForReading(reading, historyLookup = {}) {
+    const flow = getCompoundFlowLikeForReading(reading, historyLookup);
+    if (flow) {
+        if (Array.isArray(flow.displaySegments) && flow.displaySegments.length > 0) {
+            return flow.displaySegments.filter(Boolean).map((seg) => String(seg));
+        }
+        if (Array.isArray(flow.slotLabels) && flow.slotLabels.length > 0) {
+            const deduped = [];
+            flow.slotLabels.forEach((label) => {
+                const readable = extractSlotReadingLabel(label);
+                if (readable && deduped[deduped.length - 1] !== readable) {
+                    deduped.push(readable);
+                }
+            });
+            if (deduped.length > 0) {
+                return deduped;
+            }
+        }
+    }
+
+    const historyEntry = reading ? historyLookup[reading] : null;
+    if (historyEntry && Array.isArray(historyEntry.segments) && historyEntry.segments.length > 0) {
+        return historyEntry.segments.filter(Boolean).map((seg) => String(seg));
+    }
+    return reading ? [reading] : [];
+}
+
+function getReadableSegmentForItem(item, historyLookup = {}) {
+    const slotIdx = Number(item?.slot);
+    const reading = item?.sessionReading || '';
+    const flow = getCompoundFlowLikeForReading(reading, historyLookup);
+
+    if (flow && Array.isArray(flow.slotLabels) && Number.isInteger(slotIdx) && slotIdx >= 0) {
+        const readable = extractSlotReadingLabel(flow.slotLabels[slotIdx]);
+        if (readable) {
+            return readable;
+        }
+    }
+
+    const itemDisplaySegments = Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments : [];
+    if (Number.isInteger(slotIdx) && slotIdx >= 0 && itemDisplaySegments[slotIdx] && !isCompoundSlotPlaceholder(itemDisplaySegments[slotIdx])) {
+        return itemDisplaySegments[slotIdx];
+    }
+
+    const displaySegments = getDisplaySegmentsForReading(reading, historyLookup);
+    if (displaySegments.length === 1 && displaySegments[0]) {
+        return displaySegments[0];
+    }
+    if (Number.isInteger(slotIdx) && slotIdx >= 0 && displaySegments[slotIdx] && !isCompoundSlotPlaceholder(displaySegments[slotIdx])) {
+        return displaySegments[slotIdx];
+    }
+
+    return reading || '自由';
+}
+
+function getPartnerChipHTML(options = {}, classes = '') {
+    const label = options.partnerAlsoPicked ? 'ふたり' : '相手';
+    const colorClass = options.partnerAlsoPicked
+        ? 'bg-gradient-to-r from-[#b9965b] to-[#c9a977] text-white'
+        : 'bg-[#f7b2a7] text-white';
+    const merged = classes ? ` ${classes}` : '';
+    return `<span class="inline-flex items-center justify-center min-w-[46px] px-2 py-0.5 rounded-full text-[10px] font-bold leading-none shadow-sm ${colorClass}${merged}">${label}</span>`;
+}
+
+function getBuildSlotDisplayLabel(seg, idx) {
+    const flow = getActiveCompoundBuildFlow();
+    if (flow && Array.isArray(flow.slotLabels) && flow.slotLabels[idx]) {
+        return flow.slotLabels[idx];
+    }
+    if (isCompoundSlotPlaceholder(seg)) {
+        const reading = flow?.reading || '';
+        return reading ? `${idx + 1}文字目: ${reading}` : `${idx + 1}文字目`;
+    }
+    return `${idx + 1}文字目: ${seg}`;
+}
+
 function openStock(tab, options = {}) {
     if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus();
@@ -381,6 +486,7 @@ function renderStock() {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    const historyLookup = getLatestReadingHistoryLookup();
 
     // セグメント読みでグループ化（重複排除）
     const segGroups = {}; // { "はる": [item, ...], "と": [...] }
@@ -401,7 +507,7 @@ function renderStock() {
             segRaw = item.sessionReading; // 読み全体をそのままグループ名にする
         }
 
-        const seg = segRaw;
+        const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
         const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
@@ -479,11 +585,17 @@ function renderStock() {
                card.style.backgroundClip = 'content-box, border-box';
             }
 
+            const partnerBadge = item.partnerAlsoPicked
+                ? getPartnerChipHTML({ partnerAlsoPicked: true })
+                : item.fromPartner
+                    ? getPartnerChipHTML({ fromPartner: true })
+                    : '';
+
             card.innerHTML = `
-                ${item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">👩</div>` : ''}
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '？'}画</div>
+                ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
 `;
             cardsGrid.appendChild(card);
         });
@@ -546,6 +658,7 @@ function hydrateLikedCandidate(item, options = {}) {
         slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
         sessionReading: item?.sessionReading || '',
         sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
+        sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments : [],
         isSuper: !!item?.isSuper,
         fromPartner: !!options.fromPartner,
         partnerAlsoPicked: !!options.partnerAlsoPicked,
@@ -721,7 +834,7 @@ function renderStock() {
             segRaw = item.sessionReading;
         }
 
-        const seg = segRaw;
+        const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
         const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
@@ -794,16 +907,16 @@ function renderStock() {
             }
 
             const partnerBadge = item.partnerAlsoPicked
-                ? '<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#b9965b] to-[#9d8cbc] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">ふたり</div>'
+                ? getPartnerChipHTML({ partnerAlsoPicked: true })
                 : item.fromPartner
-                    ? '<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center">相手</div>'
+                    ? getPartnerChipHTML({ fromPartner: true })
                     : '';
 
             card.innerHTML = `
-                ${partnerBadge}
                 ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
                 <div class="stock-kanji">${item['漢字']}</div>
                 <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
+                ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
             `;
             cardsGrid.appendChild(card);
         });
@@ -1234,17 +1347,21 @@ function renderBuildSelection() {
                     fortuneIndicator = `<div class="text-lg mt-1" > ${badges[itemIdx]}</div> `;
                 }
 
-                let partnerBadge = item.fromPartner ? `<div class="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#f28b82] to-[#f4978e] text-white text-[8px] px-1.5 py-0.5 rounded-full shadow-sm z-10 break-keep leading-none flex items-center" >👩</div> ` : '';
+                const partnerBadge = item.partnerAlsoPicked
+                    ? getPartnerChipHTML({ partnerAlsoPicked: true })
+                    : item.fromPartner
+                        ? getPartnerChipHTML({ fromPartner: true })
+                        : '';
 
                 // 画数が未設定の場合はmasterから補完
                 const strokes = item['画数'] !== undefined ? item['画数']
                     : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '?';
 
                 btn.innerHTML = `
-                    ${partnerBadge}
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
                     <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}">${item['漢字']}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
+                    ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
                     ${fortuneIndicator}
 `;
                 scrollBox.appendChild(btn);
@@ -1351,9 +1468,7 @@ function toggleReadingDropdown() {
         ).map(item => item.sessionReading)
     )];
 
-    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const readingToSegments = {};
-    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    const historyLookup = getLatestReadingHistoryLookup();
 
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
 
@@ -1361,8 +1476,8 @@ function toggleReadingDropdown() {
         dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読みストックがありません</div>';
     } else {
         dropdown.innerHTML = completedReadings.map(reading => {
-            const segs = readingToSegments[reading];
-            const display = segs ? segs.join(' / ') : reading;
+            const displaySegments = getDisplaySegmentsForReading(reading, historyLookup);
+            const display = displaySegments.length > 0 ? displaySegments.join(' / ') : reading;
             const isCurrent = reading === currentReading;
             const kanjiCount = (liked || []).filter(i => i.sessionReading === reading && i.slot >= 0).length;
             return `<button onclick="selectReadingForBuild('${reading}')"
