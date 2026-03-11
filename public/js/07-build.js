@@ -202,9 +202,27 @@ function openStock(tab, options = {}) {
         window.resetMeimayPartnerViewFocus();
     }
     console.log("BUILD: Opening stock screen");
-    renderStock();
     changeScreen('scr-stock');
-    switchStockTab(tab || currentStockTab || 'kanji');
+    const targetTab = tab || currentStockTab || 'kanji';
+    switchStockTab(targetTab);
+    try {
+        if (targetTab === 'reading') {
+            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        } else {
+            renderStock();
+        }
+    } catch (error) {
+        console.error('BUILD: Failed to render stock screen', error);
+        const container = document.getElementById('stock-list');
+        if (container && targetTab !== 'reading') {
+            container.innerHTML = `
+                <div class="col-span-5 text-center py-20">
+                    <p class="text-[#bca37f] italic text-lg mb-2">ストックの表示で問題が起きました</p>
+                    <p class="text-sm text-[#a6967a]">もう一度開くと直ることがあります。</p>
+                </div>
+            `;
+        }
+    }
 }
 
 /**
@@ -820,6 +838,7 @@ function renderStock() {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
     const readingToSegments = {};
     history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    const historyLookup = getLatestReadingHistoryLookup();
 
     const segGroups = {};
     validItems.forEach(item => {
