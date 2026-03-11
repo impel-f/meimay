@@ -673,17 +673,13 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
             const consumedReading = toHira(variant?.reading || '');
             if (!consumedReading) return;
 
-            const allowedGender = Array.isArray(variant?.gender) && variant.gender.length > 0
-                ? variant.gender
-                : entry.gender;
-            if (!isCompoundGenderAllowed(allowedGender, targetGender)) return;
-
+            const compoundTargetGender = 'neutral';
             const mode = variant.mode || 'exact';
             const supportsExact = mode === 'exact' || mode === 'exact_prefix';
             const supportsPrefix = mode === 'prefix' || mode === 'exact_prefix';
             const baseScore = (parseInt(variant.score, 10) || parseInt(entry.priority, 10) || 80) * 100;
             const tags = getCompoundTags(inputReading, entry.tags || []);
-            const fixedPiece = createCompoundPiece(entry, consumedReading, targetGender, tags, baseScore);
+            const fixedPiece = createCompoundPiece(entry, consumedReading, compoundTargetGender, tags, baseScore);
 
             if (supportsExact && inputReading === consumedReading) {
                 const label = entry.kanji;
@@ -1005,14 +1001,10 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
             const consumedReading = toHira(variant?.reading || '');
             if (!consumedReading) return;
 
-            const allowedGender = Array.isArray(variant?.gender) && variant.gender.length > 0
-                ? variant.gender
-                : entry.gender;
-            if (!isCompoundGenderAllowed(allowedGender, targetGender)) return;
-
+            const compoundTargetGender = 'neutral';
             const baseScore = (parseInt(variant.score, 10) || parseInt(entry.priority, 10) || 80) * 100;
             const tags = getCompoundTags(inputReading, entry.tags || []);
-            const fixedPiece = createCompoundPiece(entry, consumedReading, targetGender, tags, baseScore);
+            const fixedPiece = createCompoundPiece(entry, consumedReading, compoundTargetGender, tags, baseScore);
 
             if (inputReading === consumedReading) {
                 setOption(`${entry.kanji}::${consumedReading}`, {
@@ -1067,10 +1059,10 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                             combination: []
                         };
                         const prefixCandidates = prefixSegments.length > 0
-                            ? buildReadingCombinationCandidates(prefixSegments, 4, targetGender)
+                            ? buildReadingCombinationCandidates(prefixSegments, 4, compoundTargetGender)
                             : [emptyCandidate];
                         const suffixCandidates = suffixSegments.length > 0
-                            ? buildReadingCombinationCandidates(suffixSegments, 4, targetGender)
+                            ? buildReadingCombinationCandidates(suffixSegments, 4, compoundTargetGender)
                             : [emptyCandidate];
                         const compoundChars = new Set(Array.from(fixedPiece['漢字'] || '').filter(Boolean));
                         const combinedCandidates = [];
@@ -5889,4 +5881,5 @@ function initSoundMode() {
 }
 
 window.aiReorderCandidates = aiReorderCandidates;
+
 
