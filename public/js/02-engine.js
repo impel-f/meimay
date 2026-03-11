@@ -781,6 +781,23 @@ function applyImageTagFilter(kanjis) {
 
 console.log("ENGINE: Module loaded (v13.1 - Gender + Image Tag filters)");
 
+function getCompoundInteractiveSlotBefore(slotIndex) {
+    const flow = getActiveCompoundSwipeFlow();
+    if (!flow || !Array.isArray(flow.interactiveSlots)) return slotIndex - 1;
+    const candidates = flow.interactiveSlots.filter((idx) => idx < slotIndex);
+    if (candidates.length === 0) return null;
+    return candidates[candidates.length - 1];
+}
+
+function getCompoundInteractiveSlotAfter(slotIndex) {
+    const flow = getActiveCompoundSwipeFlow();
+    if (!flow || !Array.isArray(flow.interactiveSlots)) {
+        return Array.isArray(segments) && slotIndex < segments.length - 1 ? slotIndex + 1 : null;
+    }
+    const next = flow.interactiveSlots.find((idx) => idx > slotIndex);
+    return Number.isInteger(next) ? next : null;
+}
+
 /**
  * 前の文字へ戻る
  */
@@ -790,8 +807,10 @@ function prevChar() {
         ? compoundFlow.firstInteractiveSlot
         : 0;
 
-    if (currentPos > minSwipeSlot) {
-        currentPos--;
+    const prevInteractiveSlot = getCompoundInteractiveSlotBefore(currentPos);
+
+    if (prevInteractiveSlot !== null && prevInteractiveSlot >= minSwipeSlot) {
+        currentPos = prevInteractiveSlot;
         currentIdx = 0; // スタックの先頭に戻す
         swipes = 0;
         loadStack();
@@ -867,15 +886,16 @@ function isDakutenMatch(a, b) {
 }
 
 function nextChar() {
-    const hasMoreSlots = Array.isArray(segments) && currentPos < segments.length - 1;
+    const nextInteractiveSlot = getCompoundInteractiveSlotAfter(currentPos);
+    const hasMoreSlots = Number.isInteger(nextInteractiveSlot);
 
     if (hasMoreSlots) {
         window._addMoreFromBuild = false;
 
         if (typeof checkInheritForSlot === 'function') {
-            checkInheritForSlot(currentPos + 1, () => {
+            checkInheritForSlot(nextInteractiveSlot, () => {
                 window._addMoreFromBuild = false;
-                currentPos++;
+                currentPos = nextInteractiveSlot;
                 currentIdx = 0;
                 swipes = 0;
                 loadStack();
@@ -883,7 +903,7 @@ function nextChar() {
             return;
         }
 
-        currentPos++;
+        currentPos = nextInteractiveSlot;
         currentIdx = 0;
         swipes = 0;
         loadStack();

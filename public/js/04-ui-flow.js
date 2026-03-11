@@ -763,6 +763,359 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
         .slice(0, limit);
 }
 
+function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset = 0, sessionSegments = []) {
+    const chars = Array.from(compoundKanji || '').filter(Boolean);
+    if (chars.length <= 1 || !Array.isArray(liked)) {
+        return chars;
+    }
+
+    chars.forEach((char, idx) => {
+        const slotIndex = slotOffset + idx;
+        const exists = liked.some((item) =>
+            item &&
+            item['漢字'] === char &&
+            item.slot === slotIndex &&
+            item.sessionReading === sessionReading
+        );
+        if (exists) return;
+
+        const masterItem = Array.isArray(master)
+            ? master.find((entry) => entry['漢字'] === char)
+            : null;
+
+        liked.push({
+            ...(masterItem || {}),
+            '漢字': char,
+            slot: slotIndex,
+            sessionReading,
+            sessionSegments: Array.isArray(sessionSegments) ? [...sessionSegments] : [],
+            _compoundSeeded: true
+        });
+    });
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    } else {
+        try {
+            localStorage.setItem('meimay_liked', JSON.stringify(liked));
+        } catch (error) {
+            console.warn('COMPOUND: Failed to seed kanji stock', error);
+        }
+    }
+
+    return chars;
+}
+
+function buildExpandedCompoundSlotLabels(path, compoundStartIndex, compoundEndIndex, fixedCount) {
+    const labels = [];
+    const safePath = Array.isArray(path) ? path.filter(Boolean) : [];
+    const safeStart = Math.max(0, Number(compoundStartIndex) || 0);
+    const safeEnd = Math.max(safeStart, Number(compoundEndIndex) || safeStart);
+    const compoundReading = safePath.slice(safeStart, safeEnd + 1).join('');
+    let cursor = 0;
+
+    safePath.forEach((segment, index) => {
+        if (index < safeStart || index > safeEnd) {
+            labels.push(formatCompoundSlotLabel(cursor, segment));
+            cursor += Array.from(segment || '').length || 1;
+            return;
+        }
+
+        if (index === safeStart) {
+            const fixedLabel = formatCompoundSlotLabel(cursor, compoundReading || segment);
+            for (let i = 0; i < fixedCount; i++) {
+                labels.push(fixedLabel);
+            }
+            cursor += Array.from(compoundReading || segment || '').length || fixedCount || 1;
+        }
+    });
+
+    return labels;
+}
+
+function startCompoundReadingFlow(option, item = {}) {
+    if (!option || !Array.isArray(option.path) || option.path.length === 0) return;
+
+    const sessionReading = toHira(item.reading || option.path.join(''));
+    const fixedSource = option.fixedPiece || option.candidates?.[0]?.combination?.find((piece) => piece?.isCompound);
+    if (!fixedSource || !fixedSource['漢字']) return;
+
+    const compoundChars = Array.from(fixedSource['漢字'] || '').filter(Boolean);
+    if (compoundChars.length > 1) {
+        const safePath = option.path.filter(Boolean);
+        const compoundStartIndex = Number.isInteger(option.compoundSegmentStart) ? option.compoundSegmentStart : 0;
+        const compoundEndIndex = Number.isInteger(option.compoundSegmentEnd) ? option.compoundSegmentEnd : compoundStartIndex;
+        const prefixSegments = safePath.slice(0, compoundStartIndex);
+        const suffixSegments = safePath.slice(compoundEndIndex + 1);
+        const fixedSlotStart = prefixSegments.length;
+        const fixedSlotsBySlot = {};
+        const expandedSegments = [
+            ...prefixSegments,
+            ...compoundChars.map((_, idx) => '__compound_slot_' + (fixedSlotStart + idx) + '__'),
+            ...suffixSegments
+        ];
+
+        seedCompoundSingleKanjiStock(
+            fixedSource['漢字'],
+            sessionReading,
+            fixedSlotStart,
+            expandedSegments
+        );
+
+        compoundChars.forEach((char, idx) => {
+            const masterItem = Array.isArray(master)
+                ? master.find((entry) => entry['漢字'] === char)
+                : null;
+            const slotIndex = fixedSlotStart + idx;
+            fixedSlotsBySlot[slotIndex] = {
+                ...(masterItem || {}),
+                '漢字': char,
+                slot: slotIndex,
+                sessionReading,
+                sessionSegments: [...expandedSegments],
+                isFixedCompound: true,
+                _compoundFixed: true
+            };
+        });
+
+        const interactiveSlots = expandedSegments
+            .map((_, idx) => fixedSlotsBySlot[idx] ? null : idx)
+            .filter((idx) => idx !== null);
+        const flow = setCompoundBuildFlow({
+            reading: sessionReading,
+            segments: [...expandedSegments],
+            displaySegments: [...safePath],
+            slotLabels: buildExpandedCompoundSlotLabels(
+                safePath,
+                compoundStartIndex,
+                compoundEndIndex,
+                compoundChars.length
+            ),
+            fixedSlotsBySlot,
+            firstInteractiveSlot: interactiveSlots.length > 0 ? interactiveSlots[0] : -1,
+            interactiveSlots,
+            optionLabel: option.label || '',
+            compoundKanji: fixedSource['漢字'] || '',
+            optionMode: option.optionMode || 'compound'
+        });
+
+        segments = [...flow.segments];
+        swipes = 0;
+        currentIdx = 0;
+        window._addMoreFromBuild = false;
+        isFreeSwipeMode = false;
+
+        if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
+            seen.clear();
+        }
+        if (typeof updateSurnameData === 'function') {
+            updateSurnameData();
+        }
+        if (typeof addToReadingHistory === 'function') {
+            addToReadingHistory();
+        }
+
+        if (flow.firstInteractiveSlot === -1) {
+            currentPos = 0;
+            if (typeof openBuild === 'function') openBuild();
+            return;
+        }
+
+        currentPos = flow.firstInteractiveSlot;
+        if (typeof loadStack === 'function') loadStack();
+        changeScreen('scr-main');
+        return;
+    }
+
+    const fixedPiece = {
+        ...fixedSource,
+        slot: 0,
+        sessionReading,
+        sessionSegments: [...option.path],
+        isFixedCompound: true,
+        _compoundFixed: true
+    };
+
+    const fixedSlotsBySlot = { 0: fixedPiece };
+    const firstInteractiveSlot = option.path.findIndex((_, idx) => !fixedSlotsBySlot[idx]);
+    const flow = setCompoundBuildFlow({
+        reading: sessionReading,
+        segments: [...option.path],
+        slotLabels: Array.isArray(option.slotLabels) ? [...option.slotLabels] : buildCompoundSlotLabels(option.path),
+        fixedSlotsBySlot,
+        firstInteractiveSlot,
+        optionLabel: option.label || '',
+        compoundKanji: fixedPiece['漢字'] || '',
+        optionMode: option.optionMode || 'compound'
+    });
+
+    segments = [...flow.segments];
+    swipes = 0;
+    currentIdx = 0;
+    window._addMoreFromBuild = false;
+    isFreeSwipeMode = false;
+
+    if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
+        seen.clear();
+    }
+
+    if (typeof updateSurnameData === 'function') {
+        updateSurnameData();
+    }
+    if (typeof addToReadingHistory === 'function') {
+        addToReadingHistory();
+    }
+
+    if (firstInteractiveSlot === -1) {
+        currentPos = 0;
+        if (typeof openBuild === 'function') openBuild();
+        return;
+    }
+
+    currentPos = firstInteractiveSlot;
+    if (typeof loadStack === 'function') loadStack();
+    changeScreen('scr-main');
+}
+
+window.startCompoundReadingFlow = startCompoundReadingFlow;
+
+function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 'neutral') {
+    const inputReading = toHira(reading || '');
+    if (!inputReading || !Array.isArray(compoundReadingsData) || compoundReadingsData.length === 0) {
+        return [];
+    }
+
+    const options = [];
+    const seenKeys = new Set();
+    const basePaths = typeof getReadingSegmentPaths === 'function'
+        ? getReadingSegmentPaths(inputReading, 12, { strictOnly: true, allowFallback: false })
+        : [];
+
+    compoundReadingsData.forEach((entry) => {
+        if (!entry || !entry.kanji) return;
+        const variants = Array.isArray(entry.variants) ? entry.variants : [];
+
+        variants.forEach((variant) => {
+            const consumedReading = toHira(variant?.reading || '');
+            if (!consumedReading) return;
+
+            const allowedGender = Array.isArray(variant?.gender) && variant.gender.length > 0
+                ? variant.gender
+                : entry.gender;
+            if (!isCompoundGenderAllowed(allowedGender, targetGender)) return;
+
+            const baseScore = (parseInt(variant.score, 10) || parseInt(entry.priority, 10) || 80) * 100;
+            const tags = getCompoundTags(inputReading, entry.tags || []);
+            const fixedPiece = createCompoundPiece(entry, consumedReading, targetGender, tags, baseScore);
+
+            basePaths.forEach((path) => {
+                const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
+                if (cleanPath.length === 0) return;
+
+                for (let start = 0; start < cleanPath.length; start++) {
+                    let readingSlice = '';
+                    for (let end = start; end < cleanPath.length; end++) {
+                        readingSlice += cleanPath[end] || '';
+                        if (readingSlice.length > consumedReading.length) break;
+                        if (readingSlice !== consumedReading) continue;
+
+                        const prefixSegments = cleanPath.slice(0, start);
+                        const suffixSegments = cleanPath.slice(end + 1);
+                        const labelParts = [];
+                        if (prefixSegments.length > 0) labelParts.push(prefixSegments.join('/'));
+                        labelParts.push(entry.kanji);
+                        if (suffixSegments.length > 0) labelParts.push(suffixSegments.join('/'));
+
+                        const optionKey = entry.kanji + '::' + labelParts.join('|') + '::' + cleanPath.join('/');
+                        if (seenKeys.has(optionKey)) break;
+
+                        const emptyCandidate = {
+                            givenName: '',
+                            fullName: surnameStr ? surnameStr + ' ' : '',
+                            score: 0,
+                            combination: []
+                        };
+                        const prefixCandidates = prefixSegments.length > 0
+                            ? buildReadingCombinationCandidates(prefixSegments, 4, targetGender)
+                            : [emptyCandidate];
+                        const suffixCandidates = suffixSegments.length > 0
+                            ? buildReadingCombinationCandidates(suffixSegments, 4, targetGender)
+                            : [emptyCandidate];
+                        const compoundChars = new Set(Array.from(fixedPiece['漢字'] || '').filter(Boolean));
+                        const combinedCandidates = [];
+                        const seenGivenNames = new Set();
+
+                        prefixCandidates.forEach((prefixCandidate) => {
+                            const prefixPieces = Array.isArray(prefixCandidate.combination)
+                                ? prefixCandidate.combination.map((piece) => ({ ...piece }))
+                                : [];
+                            const usedChars = new Set(compoundChars);
+                            prefixPieces.forEach((piece) => {
+                                Array.from(piece['漢字'] || '').forEach((char) => usedChars.add(char));
+                            });
+
+                            suffixCandidates.forEach((suffixCandidate) => {
+                                const suffixPieces = Array.isArray(suffixCandidate.combination)
+                                    ? suffixCandidate.combination.map((piece) => ({ ...piece }))
+                                    : [];
+                                const overlaps = suffixPieces.some((piece) =>
+                                    Array.from(piece['漢字'] || '').some((char) => usedChars.has(char))
+                                );
+                                if (overlaps) return;
+
+                                const combination = [
+                                    ...prefixPieces,
+                                    { ...fixedPiece },
+                                    ...suffixPieces
+                                ];
+                                const givenName = combination.map((piece) => piece['漢字'] || '').join('');
+                                if (!givenName || seenGivenNames.has(givenName)) return;
+                                seenGivenNames.add(givenName);
+                                combinedCandidates.push({
+                                    givenName,
+                                    fullName: surnameStr ? surnameStr + ' ' + givenName : givenName,
+                                    score: baseScore + (prefixCandidate.score || 0) + (suffixCandidate.score || 0),
+                                    combination
+                                });
+                            });
+                        });
+
+                        if (combinedCandidates.length === 0) break;
+
+                        const rankedCandidates = combinedCandidates
+                            .sort((a, b) => (b.score || 0) - (a.score || 0))
+                            .slice(0, 6);
+
+                        seenKeys.add(optionKey);
+                        options.push({
+                            path: cleanPath,
+                            label: labelParts.join(' / '),
+                            optionType: 'compound',
+                            optionMode: prefixSegments.length === 0 && suffixSegments.length === 0 ? 'exact' : 'compound',
+                            fixedPiece: { ...fixedPiece },
+                            compoundSegmentStart: start,
+                            compoundSegmentEnd: end,
+                            badgeLabel: 'まとめ読み',
+                            candidates: rankedCandidates,
+                            examples: rankedCandidates.slice(0, 3).map((candidate) => candidate.givenName),
+                            tags,
+                            slotLabels: buildCompoundSlotLabels(cleanPath),
+                            sortScore: rankedCandidates[0] ? (rankedCandidates[0].score || baseScore) : baseScore
+                        });
+                        break;
+                    }
+                }
+            });
+        });
+    });
+
+    return options
+        .sort((a, b) => {
+            if ((b.sortScore || 0) !== (a.sortScore || 0)) return (b.sortScore || 0) - (a.sortScore || 0);
+            return a.label.localeCompare(b.label, 'ja');
+        })
+        .slice(0, limit);
+}
 function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
     const targetGender = gender || 'neutral';
     const paths = typeof getReadingSegmentPaths === 'function'
@@ -5506,3 +5859,4 @@ function initSoundMode() {
 }
 
 window.aiReorderCandidates = aiReorderCandidates;
+
