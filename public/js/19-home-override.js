@@ -465,8 +465,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                         ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
                         : 'bg-white border border-[#eee5d8]'}">
                     <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
-                    <div class="mt-2 flex min-h-[34px] items-center justify-center gap-1.5">
-                        <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
+                    <div class="mt-2 flex min-h-[34px] items-start justify-center gap-1.5">
+                        <span class="mt-[1px] inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
                             ? 'bg-[#b9965b] text-white'
                             : step.active
                                 ? 'bg-[#b7a6da] text-white'
