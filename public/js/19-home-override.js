@@ -741,6 +741,23 @@ function openHomeInsightsModal() {
     document.body.appendChild(modal);
 }
 
+function getHomeStatusLine(likedCount, readingStockCount, savedCount) {
+    const buildPatternCount = getHomeBuildPatternCount();
+    if (readingStockCount === 0) {
+        return 'まずは読み候補を集めて、方向を決めていきましょう。';
+    }
+    if (likedCount === 0) {
+        return '読み候補をもとに、合う漢字を集めているところです。';
+    }
+    if (buildPatternCount === 0) {
+        return '集めた候補から、組み合わせを広げていく段階です。';
+    }
+    if (savedCount === 0) {
+        return '組み立てた候補を見ながら、保存する名前を選びましょう。';
+    }
+    return '保存した候補を見比べながら、絞り込んでいるところです。';
+}
+
 function renderHomeProfile() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
@@ -787,22 +804,21 @@ function renderHomeProfile() {
         nextStepActionLabelEl.classList.add('hidden');
     }
 
+    const statusLineEl = document.getElementById('home-status-line');
+    if (statusLineEl) {
+        statusLineEl.innerText = getHomeStatusLine(likedCount, readingStockCount, savedCount);
+    }
+
 
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
     const partnerInlineTitle = document.getElementById('home-partner-inline-title');
-    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
-    if (partnerInlineTitle || partnerInlineSubtitle) {
+    if (partnerInlineTitle) {
         let title = 'パートナー：未連携';
-        let subtitle = '連携すると保存済み・ストックを共有できます';
         if (pairing.hasPartner) {
             title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
-            subtitle = '保存済み・ストックを共有しています';
-        } else if (pairing.inRoom && pairing.roomCode) {
-            subtitle = `招待コード ${pairing.roomCode}`;
         }
-        if (partnerInlineTitle) partnerInlineTitle.innerText = title;
-        if (partnerInlineSubtitle) partnerInlineSubtitle.innerText = subtitle;
+        partnerInlineTitle.innerText = title;
     }
 
     const soundBadge = document.getElementById('home-entry-sound-badge');
