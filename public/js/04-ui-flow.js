@@ -271,10 +271,6 @@ function renderSoundEntryScreen() {
     screen.innerHTML = `
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-4 shadow-2xl mx-auto">
             <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">響きから探す</h2>
-            <p class="text-xs text-[#bca37f] mb-4 leading-relaxed">
-                入れたい音があればそこから探せます。<br>
-                まだ決まっていなければ、そのまま響きを見ながら探せます。
-            </p>
 
             <div class="space-y-2.5 text-left">
                 <button
@@ -303,8 +299,8 @@ function renderSoundEntryScreen() {
                     type="text"
                     maxlength="8"
                     inputmode="kana"
-                    placeholder="はる"
-                    class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-3xl font-black text-[#5d5444] text-center tracking-widest shadow-inner outline-none focus:border-[#b9965b]"
+                    placeholder="例: はる"
+                    class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-2xl font-black text-[#5d5444] text-center tracking-[0.12em] shadow-inner outline-none focus:border-[#b9965b]"
                     onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
                 <div class="mt-3 grid grid-cols-2 gap-2">
                     <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
@@ -316,7 +312,6 @@ function renderSoundEntryScreen() {
                         <span class="text-[11px] font-bold">「○○」で終わる</span>
                     </label>
                 </div>
-                <p class="mt-2 text-[10px] text-[#a6967a] text-center">例: はる</p>
             </div>
 
             <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full mt-5">
