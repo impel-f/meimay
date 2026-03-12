@@ -465,23 +465,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                         ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
                         : 'bg-white border border-[#eee5d8]'}">
                     <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
-                    <div class="mt-2 flex items-center justify-center gap-1.5 ${step.metric.compact ? 'min-h-[34px]' : ''}">
+                    <div class="mt-2 flex min-h-[34px] items-center justify-center gap-1.5">
                         <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
                             ? 'bg-[#b9965b] text-white'
                             : step.active
                                 ? 'bg-[#b7a6da] text-white'
                                 : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
-                        ${step.metric.compact
-                            ? `
-                                <span class="flex flex-col items-start leading-none overflow-visible">
-                                    <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
-                                    <span class="mt-0.5 whitespace-nowrap text-[8px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
-                                </span>
-                            `
-                            : `
-                                <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}<span class="text-[10px] ml-0.5">${step.metric.countUnit}</span></span>
-                            `
-                        }
+                        <span class="flex flex-col items-center leading-none overflow-visible">
+                            <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
+                            <span class="mt-0.5 whitespace-nowrap text-[8px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
+                        </span>
                     </div>
                     <div class="mt-2 text-[9px] font-black text-[#8b7e66] text-center whitespace-nowrap">${step.metric.actionText}</div>
                 </button>
