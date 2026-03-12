@@ -349,6 +349,46 @@ function escapeEncounteredHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function formatEncounteredDayLabel(value) {
+    if (!value) return '最近';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '最近';
+    return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+}
+
+function groupEncounteredItemsByDay(items) {
+    const groups = [];
+    const map = new Map();
+    items.forEach((item) => {
+        const source = item.lastSeenAt || item.firstSeenAt || '';
+        const key = source ? source.slice(0, 10) : 'recent';
+        if (!map.has(key)) {
+            const group = {
+                key,
+                label: formatEncounteredDayLabel(source),
+                items: []
+            };
+            map.set(key, group);
+            groups.push(group);
+        }
+        map.get(key).items.push(item);
+    });
+    return groups;
+}
+
+function renderEncounteredStateBadge({ isLiked = false, isMatched = false, isNope = false }) {
+    if (isMatched) {
+        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#fff4d6] px-1 text-[10px] font-black text-[#b9965b]">◎</span>';
+    }
+    if (isLiked) {
+        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f7efe2] px-1 text-[10px] font-black text-[#8b7e66]">★</span>';
+    }
+    if (isNope) {
+        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f2efea] px-1 text-[10px] font-black text-[#a6967a]">×</span>';
+    }
+    return '';
+}
+
 function getEncounteredActionLabel(action) {
     if (action === 'super') return 'かなり好き';
     if (action === 'like') return 'いいかも';
@@ -471,6 +511,141 @@ function renderEncounteredLibrary() {
     });
     html += '</div>';
     container.innerHTML = html;
+}
+
+function renderEncounteredLibrary() {
+    const container = document.getElementById('encountered-list-content');
+    if (!container) return;
+
+    const tabKanji = document.getElementById('encountered-tab-kanji');
+    const tabReading = document.getElementById('encountered-tab-reading');
+    if (tabKanji) tabKanji.className = `flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-all ${currentEncounteredTab === 'kanji' ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm' : 'text-[#a6967a]'}`;
+    if (tabReading) tabReading.className = `flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-all ${currentEncounteredTab === 'reading' ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm' : 'text-[#a6967a]'}`;
+
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [], readings: [] };
+    const items = [...(currentEncounteredTab === 'reading' ? library.readings : library.kanji)]
+        .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-20 text-sm text-[#a6967a]">
+                <div class="text-4xl mb-4 opacity-50">🗂️</div>
+                <p>まだ出会った候補はありません</p>
+                <p class="text-[10px] mt-2">スワイプした候補が、ここにたまっていきます。</p>
+            </div>
+        `;
+        return;
+    }
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const matchedKanjiSet = pairInsights?.getMatchedLikedItems
+        ? new Set(pairInsights.getMatchedLikedItems().map(entry => entry?.['漢字'] || entry?.kanji).filter(Boolean))
+        : new Set();
+    const ownReadingKeys = pairInsights?.buildReadingStockKey
+        ? new Set((typeof getReadingStock === 'function' ? getReadingStock() : []).map(entry => pairInsights.buildReadingStockKey(entry)).filter(Boolean))
+        : new Set();
+    const partnerReadingKeys = pairInsights?.buildReadingStockKey && pairInsights?.getPartnerReadingStock
+        ? new Set(pairInsights.getPartnerReadingStock().map(entry => pairInsights.buildReadingStockKey(entry)).filter(Boolean))
+        : new Set();
+    const groups = groupEncounteredItemsByDay(items);
+
+    if (currentEncounteredTab === 'kanji') {
+        container.innerHTML = `
+            <div class="space-y-4 pb-32 pt-2">
+                ${groups.map(group => `
+                    <section>
+                        <div class="text-[11px] font-bold text-[#a6967a] px-1 mb-2">${escapeEncounteredHtml(group.label)}</div>
+                        <div class="grid grid-cols-4 gap-2">
+                            ${group.items.map(item => {
+                                const isLiked = Array.isArray(liked)
+                                    ? liked.some(likedItem => (likedItem['漢字'] || likedItem.kanji) === item.kanji)
+                                    : false;
+                                const isMatched = matchedKanjiSet.has(item.kanji);
+                                const isNope = !isLiked && !isMatched && item.lastAction === 'nope';
+                                const strokes = Number.isFinite(Number(item.strokes)) ? Number(item.strokes) : '−';
+                                const readings = String(item.kanjiReading || item.snapshot?.kanji_reading || '')
+                                    .split(/[、,\s/]+/)
+                                    .map(part => part.trim())
+                                    .filter(Boolean)
+                                    .slice(0, 2)
+                                    .join(',');
+                                const toneClass = isMatched
+                                    ? 'border-[#e7d39b] bg-[#fff9ec]'
+                                    : isLiked
+                                        ? 'border-[#bca37f] bg-[#fffbeb]'
+                                        : isNope
+                                            ? 'border-[#ddd6ca] bg-[#fbfaf8]'
+                                            : 'border-[#eee5d8] bg-white';
+
+                                return `
+                                    <div class="relative w-full" style="padding-bottom:100%;">
+                                        <button
+                                            onclick="openEncounteredKanjiDetail('${escapeEncounteredHtml(item.key || item.kanji)}')"
+                                            class="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-xl shadow-sm border transition-all active:scale-95 ${toneClass}">
+                                            ${renderEncounteredStateBadge({ isLiked, isMatched, isNope })}
+                                            <span class="text-2xl font-black text-[#5d5444] leading-none">${escapeEncounteredHtml(item.kanji)}</span>
+                                            <span class="mt-1 text-[8px] text-[#a6967a]">${strokes}画</span>
+                                            <span class="mt-1 text-[7px] text-[#bca37f] truncate w-full text-center px-1">${escapeEncounteredHtml(readings || getEncounteredActionLabel(item.lastAction))}</span>
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </section>
+                `).join('')}
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="space-y-4 pb-32 pt-2">
+            ${groups.map(group => `
+                <section>
+                    <div class="text-[11px] font-bold text-[#a6967a] px-1 mb-2">${escapeEncounteredHtml(group.label)}</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${group.items.map(item => {
+                            const isStocked = typeof getReadingStock === 'function'
+                                ? getReadingStock().some(stockItem => stockItem.reading === item.reading)
+                                : false;
+                            const readingKey = pairInsights?.buildReadingStockKey
+                                ? pairInsights.buildReadingStockKey(item)
+                                : (item.key || item.reading);
+                            const isMatched = !!(readingKey && ownReadingKeys.has(readingKey) && partnerReadingKeys.has(readingKey));
+                            const isNope = !isStocked && !isMatched && item.lastAction === 'nope';
+                            const tags = Array.isArray(item.tags) ? item.tags.slice(0, 2) : [];
+                            const examples = Array.isArray(item.examples) ? item.examples.slice(0, 2) : [];
+                            const subline = examples.length > 0
+                                ? examples.map(escapeEncounteredHtml).join(' ・ ')
+                                : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : getEncounteredActionLabel(item.lastAction));
+                            const toneClass = isMatched
+                                ? 'border-[#e7d39b] bg-[#fff9ec]'
+                                : isStocked
+                                    ? 'border-[#bca37f] bg-[#fffbeb]'
+                                    : isNope
+                                        ? 'border-[#ddd6ca] bg-[#fbfaf8]'
+                                        : 'border-[#eee5d8] bg-white';
+
+                            return `
+                                <button
+                                    onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')"
+                                    class="relative min-h-[104px] rounded-2xl border px-3 py-3 text-left shadow-sm transition-all active:scale-95 ${toneClass}">
+                                    ${renderEncounteredStateBadge({ isLiked: isStocked, isMatched, isNope })}
+                                    <div class="pr-5">
+                                        <div class="text-lg font-black text-[#5d5444] truncate">${escapeEncounteredHtml(item.reading)}</div>
+                                        <div class="mt-1 text-[10px] leading-tight text-[#8b7e66] min-h-[28px]">${subline}</div>
+                                        <div class="mt-2 text-[10px] font-bold text-[#bca37f]">${isStocked ? '読みストック済み' : 'タップでこの読みを探す'}</div>
+                                    </div>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </section>
+            `).join('')}
+        </div>
+    `;
 }
 
 function openEncounteredKanjiDetail(key) {

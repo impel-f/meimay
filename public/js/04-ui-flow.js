@@ -348,6 +348,74 @@ function getEncounteredLibrary() {
             }));
         }
 
+        if (typeof noped !== 'undefined' && noped instanceof Set && noped.size > 0) {
+            const existingKanjiKeys = new Set(library.kanji.map(item => item?.key || item?.kanji).filter(Boolean));
+            const existingReadingKeys = new Set(library.readings.map(item => item?.key || item?.reading).filter(Boolean));
+            const historyItems = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+            const now = new Date().toISOString();
+
+            Array.from(noped).forEach((value) => {
+                if (!value) return;
+
+                const foundKanji = (typeof master !== 'undefined' && Array.isArray(master))
+                    ? master.find(entry => entry && entry['漢字'] === value)
+                    : null;
+
+                if (foundKanji || Array.from(String(value)).length === 1) {
+                    const kanjiKey = foundKanji?.['漢字'] || String(value);
+                    if (existingKanjiKeys.has(kanjiKey)) return;
+
+                    library.kanji.push({
+                        key: kanjiKey,
+                        kanji: kanjiKey,
+                        strokes: foundKanji?.['画数'] ?? null,
+                        category: foundKanji?.['カテゴリ'] || '',
+                        kanjiReading: foundKanji?.kanji_reading || '',
+                        tags: Array.isArray(foundKanji?.tags) ? [...foundKanji.tags] : [],
+                        snapshot: foundKanji ? {
+                            ...foundKanji,
+                            slot: -1,
+                            sessionReading: foundKanji.sessionReading || '',
+                            sessionSegments: Array.isArray(foundKanji.sessionSegments) ? [...foundKanji.sessionSegments] : [],
+                            sessionDisplaySegments: Array.isArray(foundKanji.sessionDisplaySegments) ? [...foundKanji.sessionDisplaySegments] : []
+                        } : {
+                            '漢字': kanjiKey,
+                            '画数': null,
+                            'カテゴリ': '',
+                            kanji_reading: ''
+                        },
+                        seenCount: 1,
+                        likeCount: 0,
+                        nopeCount: 1,
+                        lastAction: 'nope',
+                        firstSeenAt: now,
+                        lastSeenAt: now
+                    });
+                    existingKanjiKeys.add(kanjiKey);
+                    return;
+                }
+
+                const readingKey = String(value);
+                if (existingReadingKeys.has(readingKey)) return;
+
+                const historyMatch = historyItems.find(item => item?.reading === readingKey);
+                library.readings.push({
+                    key: readingKey,
+                    reading: readingKey,
+                    tags: Array.isArray(historyMatch?.tags) ? [...historyMatch.tags] : [],
+                    examples: [],
+                    mode: historyMatch?.mode || '',
+                    seenCount: 1,
+                    likeCount: 0,
+                    nopeCount: 1,
+                    lastAction: 'nope',
+                    firstSeenAt: historyMatch?.searchedAt || now,
+                    lastSeenAt: historyMatch?.searchedAt || now
+                });
+                existingReadingKeys.add(readingKey);
+            });
+        }
+
         return library;
     } catch (error) {
         console.warn('ENCOUNTERED: Failed to read library', error);
