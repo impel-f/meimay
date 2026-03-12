@@ -210,10 +210,18 @@ function getHomeBuildPatternCount() {
 
 function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
     if (stepKey === 'reading') {
-        return { countNumber: String(readingStockCount), countUnit: '件', actionText: '読みを探す＞' };
+        return {
+            countNumber: String(readingStockCount),
+            countUnit: '件',
+            actionText: readingStockCount > 0 ? '読みを見る＞' : '読みを探す＞'
+        };
     }
     if (stepKey === 'kanji') {
-        return { countNumber: String(likedCount), countUnit: '件', actionText: '漢字を探す＞' };
+        return {
+            countNumber: String(likedCount),
+            countUnit: '件',
+            actionText: likedCount > 0 ? '漢字を見る＞' : '漢字を探す＞'
+        };
     }
     if (stepKey === 'build') {
         return {
@@ -223,14 +231,14 @@ function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) 
             compact: true
         };
     }
-    return { countNumber: String(savedCount), countUnit: '件', actionText: '名前を見る＞' };
+    return { countNumber: String(savedCount), countUnit: '件', actionText: '保存を見る＞' };
 }
 
 function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) {
     const wizard = getWizardHomeState();
     const buildPatternCount = getHomeBuildPatternCount();
-    if (stepKey === 'reading') return 'sound';
-    if (stepKey === 'kanji') return (readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
+    if (stepKey === 'reading') return readingStockCount > 0 ? 'stock-reading' : 'sound';
+    if (stepKey === 'kanji') return likedCount > 0 ? 'stock' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound');
     if (stepKey === 'build') return buildPatternCount >= 1 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound');
     if (stepKey === 'save') return savedCount > 0 ? 'saved' : (buildPatternCount >= 1 ? 'build' : ((readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound'));
     return 'sound';
@@ -376,13 +384,13 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
     const steps = [
         {
             key: 'reading',
-            label: '読み候補',
+            label: '読み',
             done: readingStockCount >= 1,
             status: readingStockCount >= 1 ? '候補あり' : 'これから'
         },
         {
             key: 'kanji',
-            label: '漢字候補',
+            label: '漢字',
             done: likedCount >= 1,
             status: likedCount >= 2 ? '進行中' : '次の段階'
         },
@@ -394,7 +402,7 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
         },
         {
             key: 'save',
-            label: '保存済み',
+            label: '保存',
             done: savedCount >= 1,
             status: savedCount >= 2 ? '比較OK' : 'これから'
         }
@@ -489,6 +497,17 @@ function closeHomePartnerHub() {
 function runHomeAction(action) {
     if (action === 'saved' && typeof openSavedNames === 'function') {
         openSavedNames();
+        return;
+    }
+
+    if (action === 'stock-reading') {
+        if (typeof openStock === 'function') {
+            openStock('reading');
+        } else {
+            if (typeof changeScreen === 'function') changeScreen('scr-stock');
+            if (typeof switchStockTab === 'function') switchStockTab('reading');
+            if (typeof renderStock === 'function') renderStock();
+        }
         return;
     }
 
@@ -676,10 +695,10 @@ function openHomeInsightsModal() {
         .slice(0, 3);
 
     const cards = [
-        { label: '読み候補', count: readingStockCount, action: 'sound', suffix: '件' },
-        { label: '漢字候補', count: likedCount, action: readingStockCount > 0 ? 'reading' : 'sound', suffix: '件' },
+        { label: '読み', count: readingStockCount, action: readingStockCount > 0 ? 'stock-reading' : 'sound', suffix: '件' },
+        { label: '漢字', count: likedCount, action: likedCount > 0 ? 'stock' : (readingStockCount > 0 ? 'reading' : 'sound'), suffix: '件' },
         { label: 'ビルド', count: buildPatternCount, action: buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound'), suffix: 'パターン' },
-        { label: '保存済み', count: savedCount, action: savedCount > 0 ? 'saved' : (buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound')), suffix: '件' }
+        { label: '保存', count: savedCount, action: savedCount > 0 ? 'saved' : (buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound')), suffix: '件' }
     ];
 
     const cardHtml = cards.map(card => {
