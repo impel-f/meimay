@@ -382,73 +382,123 @@ function renderEncounteredLibrary() {
         return;
     }
 
-    container.innerHTML = items.map((item) => {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const matchedKanjiSet = pairInsights?.getMatchedLikedItems
+        ? new Set(pairInsights.getMatchedLikedItems().map(entry => entry?.['漢字'] || entry?.kanji).filter(Boolean))
+        : new Set();
+    const ownReadingKeys = pairInsights?.buildReadingStockKey
+        ? new Set((typeof getReadingStock === 'function' ? getReadingStock() : []).map(entry => pairInsights.buildReadingStockKey(entry)).filter(Boolean))
+        : new Set();
+    const partnerReadingKeys = pairInsights?.buildReadingStockKey && pairInsights?.getPartnerReadingStock
+        ? new Set(pairInsights.getPartnerReadingStock().map(entry => pairInsights.buildReadingStockKey(entry)).filter(Boolean))
+        : new Set();
+
+    const renderStateMarks = (isLiked, isMatched) => {
+        const parts = [];
+        if (isMatched) {
+            parts.push('<span class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#fff4d6] px-1.5 text-[11px] font-black text-[#b9965b]">◎</span>');
+        }
+        if (isLiked) {
+            parts.push('<span class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#f7efe2] px-1.5 text-[11px] font-black text-[#8b7e66]">★</span>');
+        }
+        if (parts.length === 0) {
+            parts.push('<span class="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[#f8f5ef] px-1.5 text-[11px] font-black text-[#c3b59f]">・</span>');
+        }
+        return parts.join('');
+    };
+
+    let html = '<div class="space-y-2 pb-8 pt-2">';
+    items.forEach((item) => {
         const seenAt = item.lastSeenAt
             ? new Date(item.lastSeenAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
             : '';
-        const badge = getEncounteredActionLabel(item.lastAction);
 
         if (currentEncounteredTab === 'reading') {
             const isStocked = typeof getReadingStock === 'function'
                 ? getReadingStock().some(stockItem => stockItem.reading === item.reading)
                 : false;
-            const tags = Array.isArray(item.tags) ? item.tags.slice(0, 4) : [];
-            const examples = Array.isArray(item.examples) ? item.examples.slice(0, 4) : [];
-            return `
-                <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex-1">
-                            <div class="text-xl font-black text-[#5d5444]">${escapeEncounteredHtml(item.reading)}</div>
-                            <div class="mt-1 text-[10px] text-[#bca37f] font-bold">${badge}</div>
-                            ${examples.length > 0 ? `<div class="mt-2 text-xs text-[#8b7e66]">${examples.map(escapeEncounteredHtml).join(' ・ ')}</div>` : ''}
-                            ${tags.length > 0 ? `<div class="mt-2 flex flex-wrap gap-1">${tags.map(tag => `<span class="px-2 py-1 rounded-full bg-[#f8f5ef] text-[10px] font-bold text-[#8b7e66]">${escapeEncounteredHtml(tag)}</span>`).join('')}</div>` : ''}
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="text-[10px] text-[#a6967a]">${seenAt}</div>
-                            <div class="text-[10px] text-[#a6967a] mt-1">見た回数 ${item.seenCount || 0}</div>
-                        </div>
+            const readingKey = pairInsights?.buildReadingStockKey ? pairInsights.buildReadingStockKey(item) : (item.key || item.reading);
+            const isMatched = !!(readingKey && ownReadingKeys.has(readingKey) && partnerReadingKeys.has(readingKey));
+            const tags = Array.isArray(item.tags) ? item.tags.slice(0, 2) : [];
+            const examples = Array.isArray(item.examples) ? item.examples.slice(0, 2) : [];
+            const subline = examples.length > 0
+                ? examples.map(escapeEncounteredHtml).join(' ・ ')
+                : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : `${getEncounteredActionLabel(item.lastAction)} / ${seenAt}`);
+            html += `
+                <div class="flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isMatched ? 'border-[#e7d39b] ring-1 ring-[#e7d39b]/30' : isStocked ? 'border-[#d9c5a4]' : 'border-[#ede5d8]'} transition-all active:scale-95 cursor-pointer"
+                    onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')">
+                    <div class="flex items-center justify-center gap-1 shrink-0 w-14">
+                        ${renderStateMarks(isStocked, isMatched)}
                     </div>
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="stockEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')" class="flex-1 py-2.5 rounded-xl text-xs font-bold ${isStocked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-[#bca37f] text-white'}">
-                            ${isStocked ? '読みストック済み' : '読みストックに追加'}
-                        </button>
-                        <button onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')" class="px-4 py-2.5 rounded-xl bg-[#fdfaf5] text-xs font-bold text-[#7a6f5a]">
-                            この読みで探す
-                        </button>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-base font-black text-[#5d5444] truncate">${escapeEncounteredHtml(item.reading)}</div>
+                        <div class="text-[10px] text-[#8b7e66] leading-tight truncate">${subline}</div>
                     </div>
+                    <button onclick="event.stopPropagation(); stockEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')" class="px-3 py-1.5 ${isStocked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm'} rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0">
+                        ${isStocked ? '済' : '追加'}
+                    </button>
                 </div>
             `;
+            return;
         }
 
         const isLiked = Array.isArray(liked)
             ? liked.some(likedItem => (likedItem['漢字'] || likedItem.kanji) === item.kanji)
             : false;
-        const tags = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
-        return `
-            <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
-                <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-4">
-                        <div class="w-16 h-20 rounded-[24px] border-2 border-[#d4c5af] bg-[#fffdf8] flex flex-col items-center justify-center shadow-sm">
-                            <div class="text-4xl font-black text-[#5d5444] leading-none">${escapeEncounteredHtml(item.kanji)}</div>
-                            <div class="text-[10px] text-[#bca37f] mt-2">${item.strokes || '--'}画</div>
-                        </div>
-                        <div class="flex-1">
-                            <div class="text-[10px] text-[#bca37f] font-bold">${badge}</div>
-                            ${item.kanjiReading ? `<div class="mt-1 text-xs text-[#8b7e66]">${escapeEncounteredHtml(item.kanjiReading)}</div>` : ''}
-                            ${tags.length > 0 ? `<div class="mt-2 flex flex-wrap gap-1">${tags.map(tag => `<span class="px-2 py-1 rounded-full bg-[#f8f5ef] text-[10px] font-bold text-[#8b7e66]">${escapeEncounteredHtml(tag)}</span>`).join('')}</div>` : ''}
-                            <div class="mt-2 text-[10px] text-[#a6967a]">${seenAt}</div>
-                        </div>
-                    </div>
-                    <div class="text-[10px] text-[#a6967a] shrink-0">見た回数 ${item.seenCount || 0}</div>
+        const isMatched = matchedKanjiSet.has(item.kanji);
+        const tags = Array.isArray(item.tags) ? item.tags.slice(0, 2) : [];
+        const subline = item.kanjiReading
+            ? escapeEncounteredHtml(item.kanjiReading)
+            : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : `${getEncounteredActionLabel(item.lastAction)} / ${seenAt}`);
+        html += `
+            <div class="flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isMatched ? 'border-[#e7d39b] ring-1 ring-[#e7d39b]/30' : isLiked ? 'border-[#d9c5a4]' : 'border-[#ede5d8]'} transition-all active:scale-95 cursor-pointer"
+                onclick="openEncounteredKanjiDetail('${escapeEncounteredHtml(item.key || item.kanji)}')">
+                <div class="flex items-center justify-center gap-1 shrink-0 w-14">
+                    ${renderStateMarks(isLiked, isMatched)}
                 </div>
-                <div class="flex gap-2 mt-3">
-                    <button onclick="likeEncounteredKanji('${escapeEncounteredHtml(item.key || item.kanji)}')" class="flex-1 py-2.5 rounded-xl text-xs font-bold ${isLiked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-[#bca37f] text-white'}">
-                        ${isLiked ? 'ストック済み' : 'ストックに追加'}
-                    </button>
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fdfaf5] to-[#f5f0e6] border border-[#ede5d8] flex items-center justify-center text-2xl font-black text-[#5d5444] shadow-sm shrink-0">
+                    ${escapeEncounteredHtml(item.kanji)}
                 </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-[#8b7e66] font-bold leading-tight truncate">${subline}</div>
+                    <div class="text-[10px] text-[#a6967a] leading-tight mt-0.5 truncate">見た回数 ${item.seenCount || 0}${seenAt ? ` / ${seenAt}` : ''}</div>
+                </div>
+                <button onclick="event.stopPropagation(); likeEncounteredKanji('${escapeEncounteredHtml(item.key || item.kanji)}')" class="px-3 py-1.5 ${isLiked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm'} rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0">
+                    ${isLiked ? '済' : '追加'}
+                </button>
             </div>
         `;
-    }).join('');
+    });
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function openEncounteredKanjiDetail(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [] };
+    const item = (library.kanji || []).find(entry => (entry.key || entry.kanji) === key);
+    if (!item) return;
+
+    const snapshot = item.snapshot || {};
+    const targetKanji = item.kanji;
+    if (typeof master !== 'undefined' && Array.isArray(master) && typeof showKanjiDetail === 'function') {
+        const found = master.find(entry => entry['漢字'] === targetKanji);
+        if (found) {
+            showKanjiDetail(found);
+            return;
+        }
+    }
+
+    if (typeof showDetailByData === 'function') {
+        showDetailByData({
+            ...snapshot,
+            '漢字': targetKanji,
+            '画数': snapshot['画数'] ?? item.strokes ?? 1,
+            'カテゴリ': snapshot['カテゴリ'] || item.category || '',
+            kanji_reading: snapshot.kanji_reading || item.kanjiReading || ''
+        });
+    }
 }
 
 function likeEncounteredKanji(key) {
@@ -1054,6 +1104,7 @@ window.switchHistoryTab = switchHistoryTab;
 window.switchEncounteredTab = switchEncounteredTab;
 window.loadReadingHistory = loadReadingHistory;
 window.renderEncounteredLibrary = renderEncounteredLibrary;
+window.openEncounteredKanjiDetail = openEncounteredKanjiDetail;
 window.likeEncounteredKanji = likeEncounteredKanji;
 window.stockEncounteredReading = stockEncounteredReading;
 window.useEncounteredReading = useEncounteredReading;
