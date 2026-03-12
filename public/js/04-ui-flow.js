@@ -8,6 +8,7 @@ let isFreeSwipeMode = false;
 let selectedVibes = new Set();
 let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
+let soundEntryMode = 'browse';
 // gender is defined in 01-core.js
 
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
@@ -256,9 +257,131 @@ function toggleReadingStockPicker() {
  */
 function initSoundModeEntry() {
     console.log('UI_FLOW: initSoundModeEntry');
+    soundModeEntryOrigin = false;
+    soundEntryMode = 'browse';
     changeScreen('scr-input-sound-entry');
-    const input = document.getElementById('in-sound-entry');
-    if (input) input.value = '';
+    renderSoundEntryScreen();
+    updateSoundEntryModeUI();
+}
+
+function renderSoundEntryScreen() {
+    const screen = document.getElementById('scr-input-sound-entry');
+    if (!screen) return;
+
+    screen.innerHTML = `
+        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
+            <p class="label-mini mb-2">響きから探す</p>
+            <h2 class="text-3xl font-black text-[#5d5444] mb-5">どちらで探しますか？</h2>
+
+            <div class="space-y-3 text-left">
+                <button
+                    id="sound-entry-choice-input"
+                    onclick="selectSoundEntryMode('input')"
+                    class="w-full rounded-[30px] border-2 border-[#d9c5a4] bg-[#fffdf9] px-5 py-4 shadow-sm transition-all active:scale-[0.99]">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#d9c5a4] bg-[#fff8ef] text-[#b9965b] text-xs font-black">✓</span>
+                        <div>
+                            <div class="text-lg font-black text-[#5d5444]">入れたい音から探す</div>
+                            <p class="mt-1 text-sm text-[#8b7e66] leading-relaxed">例: 「はる」からはじまる名前を探す</p>
+                        </div>
+                    </div>
+                </button>
+
+                <div
+                    id="sound-entry-input-panel"
+                    class="hidden rounded-[28px] border border-[#eadfcd] bg-[#fffaf3] px-4 py-4">
+                    <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
+                    <input
+                        id="in-sound-entry"
+                        type="text"
+                        maxlength="8"
+                        inputmode="kana"
+                        placeholder="はる"
+                        class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-xl font-black text-[#5d5444] text-center shadow-inner outline-none focus:border-[#b9965b]"
+                        onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-[#8b7e66]">
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border border-[#e4d8c7] bg-white px-2 py-2 cursor-pointer">
+                            <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
+                            <span>「○○」から始まる</span>
+                        </label>
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border border-[#e4d8c7] bg-white px-2 py-2 cursor-pointer">
+                            <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
+                            <span>「○○」で終わる</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button
+                    id="sound-entry-choice-browse"
+                    onclick="selectSoundEntryMode('browse')"
+                    class="w-full rounded-[30px] border-2 border-[#e9e0d2] bg-white px-5 py-4 shadow-sm transition-all active:scale-[0.99]">
+                    <div class="flex items-start gap-3">
+                        <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#d4c5af] bg-white text-[#d4c5af] text-xs font-black">○</span>
+                        <div>
+                            <div class="text-lg font-black text-[#5d5444]">響きを見ながら探す</div>
+                            <p class="mt-1 text-sm text-[#8b7e66] leading-relaxed">人気の響きをスワイプして好みを探す</p>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full mt-6">
+                響きを見て探す
+            </button>
+            <button onclick="goBack()" class="text-[#bca37f] text-xl font-semibold mt-5">戻る</button>
+        </div>
+    `;
+}
+
+function selectSoundEntryMode(mode) {
+    soundEntryMode = mode === 'input' ? 'input' : 'browse';
+    updateSoundEntryModeUI();
+}
+
+function updateSoundEntryModeUI() {
+    const isInputMode = soundEntryMode === 'input';
+    const inputChoice = document.getElementById('sound-entry-choice-input');
+    const browseChoice = document.getElementById('sound-entry-choice-browse');
+    const inputPanel = document.getElementById('sound-entry-input-panel');
+    const submitBtn = document.getElementById('btn-sound-entry-submit');
+
+    if (inputChoice) {
+        inputChoice.className = `w-full rounded-[30px] border-2 px-5 py-4 shadow-sm transition-all active:scale-[0.99] ${isInputMode ? 'border-[#c8a873] bg-[#fff8ef]' : 'border-[#e9e0d2] bg-white'}`;
+        const icon = inputChoice.querySelector('span');
+        if (icon) {
+            icon.className = `mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black ${isInputMode ? 'border-[#b9965b] bg-[#fff0d7] text-[#b9965b]' : 'border-[#d9c5a4] bg-[#fff8ef] text-[#d1c2a7]'}`;
+        }
+    }
+
+    if (browseChoice) {
+        browseChoice.className = `w-full rounded-[30px] border-2 px-5 py-4 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#c8a873] bg-[#fff8ef]' : 'border-[#e9e0d2] bg-white'}`;
+        const icon = browseChoice.querySelector('span');
+        if (icon) {
+            icon.className = `mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black ${!isInputMode ? 'border-[#b9965b] bg-[#fff0d7] text-[#b9965b]' : 'border-[#d4c5af] bg-white text-[#d4c5af]'}`;
+        }
+    }
+
+    if (inputPanel) {
+        inputPanel.classList.toggle('hidden', !isInputMode);
+    }
+
+    if (submitBtn) {
+        submitBtn.textContent = isInputMode ? 'この音で探す' : '響きを見て探す';
+    }
+
+    const posLabels = document.querySelectorAll('.sound-entry-pos-label');
+    posLabels.forEach((label) => {
+        const radio = label.querySelector('input[type="radio"]');
+        const isChecked = !!radio?.checked;
+        label.className = `sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer ${isChecked ? 'border-[#c8a873] bg-[#fff0d7] text-[#8b6c34]' : 'border-[#e4d8c7] bg-white text-[#8b7e66]'}`;
+    });
+
+    if (isInputMode) {
+        const input = document.getElementById('in-sound-entry');
+        if (input) {
+            setTimeout(() => input.focus(), 30);
+        }
+    }
 }
 
 /**
@@ -279,20 +402,18 @@ function submitSoundEntry() {
     const raw = input && typeof input.value === 'string' ? input.value.trim() : '';
     const cleaned = typeof toHira === 'function' ? toHira(raw) : raw;
 
-    if (!cleaned) {
+    if (soundEntryMode !== 'input' || !cleaned) {
+        appMode = 'sound';
+        soundModeEntryOrigin = true;
         initSoundMode();
         return;
     }
 
+    const selectedPosition = document.querySelector('input[name="sound-entry-position"]:checked');
+    nicknamePosition = selectedPosition?.value === 'suffix' ? 'suffix' : 'prefix';
     appMode = 'nickname';
     soundModeEntryOrigin = true;
-    changeScreen('scr-input-nickname');
-
-    const nicknameInput = document.getElementById('in-nickname');
-    if (nicknameInput) {
-        nicknameInput.value = cleaned;
-        setTimeout(() => nicknameInput.focus(), 50);
-    }
+    startNicknameCandidateSwipe(cleaned);
 }
 
 function getEncounteredLibrary() {
@@ -2142,6 +2263,11 @@ function goBack() {
         changeScreen('scr-mode');
     } else if (id === 'scr-swipe-universal') {
         // スワイプ画面からの戻り：モードに応じて分岐
+        if (soundModeEntryOrigin) {
+            soundModeEntryOrigin = false;
+            initSoundModeEntry();
+            return;
+        }
         if (appMode === 'sound') {
             changeScreen('scr-mode');
         } else if (appMode === 'free') {
@@ -5606,6 +5732,9 @@ ${answersText}
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
 window.initAdanaMode = initAdanaMode;
+window.initSoundModeEntry = initSoundModeEntry;
+window.selectSoundEntryMode = selectSoundEntryMode;
+window.updateSoundEntryModeUI = updateSoundEntryModeUI;
 window.submitSoundEntry = submitSoundEntry;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
