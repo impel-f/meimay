@@ -637,6 +637,110 @@ function openHomePartnerHub() {
     document.body.appendChild(modal);
 }
 
+function handleHomeInlinePartnerAction(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (typeof changeScreen === 'function') changeScreen('scr-login');
+}
+
+function openHomeInsightsModalFromEvent(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    openHomeInsightsModal();
+}
+
+function openHomeInsightsModal() {
+    if (typeof closeHomeInsightsModal === 'function') closeHomeInsightsModal();
+
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const likedCount = (typeof liked !== 'undefined' && Array.isArray(liked)) ? liked.length : 0;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = Array.isArray(readingStock) ? readingStock.length : 0;
+    const savedCount = Array.isArray(savedList) ? savedList.length : 0;
+    const buildPatternCount = getHomeBuildPatternCount();
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) || {
+        title: '次に進める候補があります',
+        detail: 'いま足りない材料から順に案内します。',
+        actionLabel: '開く',
+        action: 'sound'
+    };
+    const todoRecommendations = (typeof getHomeTodoRecommendations === 'function'
+        ? getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairing)
+        : [])
+        .filter(todo => todo && todo.action && todo.action !== nextStep.action)
+        .slice(0, 3);
+
+    const cards = [
+        { label: '読み候補', count: readingStockCount, action: 'sound', suffix: '件' },
+        { label: '漢字候補', count: likedCount, action: readingStockCount > 0 ? 'reading' : 'sound', suffix: '件' },
+        { label: 'ビルド', count: buildPatternCount, action: buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound'), suffix: 'パターン' },
+        { label: '保存済み', count: savedCount, action: savedCount > 0 ? 'saved' : (buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound')), suffix: '件' }
+    ];
+
+    const cardHtml = cards.map(card => {
+        const safeCount = Number.isFinite(Number(card.count)) ? Number(card.count) : 0;
+        return `
+            <button
+                onclick="handleHomeTodoAction('${card.action}', event)"
+                class="rounded-2xl border border-[#eee5d8] bg-white px-4 py-4 text-left shadow-sm active:scale-[0.98] transition-transform">
+                <div class="text-[11px] font-black tracking-wide text-[#a6967a]">${card.label}</div>
+                <div class="mt-2 flex items-end gap-1">
+                    <span class="text-[24px] font-black leading-none text-[#4f4639]">${safeCount}</span>
+                    <span class="pb-0.5 text-[11px] font-bold leading-none text-[#a6967a]">${card.suffix}</span>
+                </div>
+            </button>
+        `;
+    }).join('');
+
+    const todoHtml = todoRecommendations.length > 0
+        ? `
+            <div class="mt-4 flex flex-wrap gap-2">
+                ${todoRecommendations.map(todo => `
+                    <button
+                        onclick="handleHomeTodoAction('${todo.action}', event)"
+                        class="rounded-full border border-[#eadfce] bg-white px-3 py-2 text-[11px] font-bold text-[#5d5444] shadow-sm active:scale-[0.98] transition-transform">
+                        ${todo.label}
+                    </button>
+                `).join('')}
+            </div>
+        `
+        : '';
+
+    const modal = document.createElement('div');
+    modal.id = 'home-insights-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.innerHTML = `
+        <div class="modal-sheet w-11/12 max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeHomeInsightsModal()">✕</button>
+            <div class="pt-4 pb-2">
+                <h3 class="text-[24px] font-black text-[#4f4639]">名づけの進み具合</h3>
+                <p class="mt-2 text-[12px] leading-relaxed text-[#8b7e66]">いま集まっている候補と、次にやることだけをまとめています。</p>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3">
+                ${cardHtml}
+            </div>
+            <div class="mt-4 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] p-4">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">次のおすすめ</div>
+                <div class="mt-2 text-[16px] font-black text-[#4f4639]">${nextStep.title || '次に進める候補があります'}</div>
+                <div class="mt-2 text-[12px] leading-relaxed text-[#8b7e66]">${nextStep.detail || 'いま足りない材料から順に案内します。'}</div>
+                <button
+                    onclick="handleHomeNextStepAction(event)"
+                    class="mt-4 w-full rounded-2xl bg-[#b9965b] py-3 text-sm font-bold text-white shadow-sm active:scale-[0.98] transition-transform">
+                    ${nextStep.actionLabel || '開く'}
+                </button>
+                ${todoHtml}
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', closeHomeInsightsModal);
+    document.body.appendChild(modal);
+}
+
 function renderHomeProfile() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
@@ -644,14 +748,9 @@ function renderHomeProfile() {
     const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
     const readingStockCount = readingStock.length;
     const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
-    const partnerInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
-    const showPairCard = !canDismissHomePairCard(pairing) || !isHomePairCardDismissed();
-    const partnerReadingCount = partnerInsights?.getPartnerReadingStock ? partnerInsights.getPartnerReadingStock().length : 0;
-    const partnerLikedCount = partnerInsights?.getPartnerLiked ? partnerInsights.getPartnerLiked().length : 0;
-    const partnerSavedCount = partnerInsights?.getPartnerSaved ? partnerInsights.getPartnerSaved().length : 0;
 
     const screen = document.getElementById('scr-mode');
     if (screen) {
@@ -688,14 +787,23 @@ function renderHomeProfile() {
         nextStepActionLabelEl.classList.add('hidden');
     }
 
-    const collectionSummaryEl = document.getElementById('home-collection-summary');
-    if (collectionSummaryEl) collectionSummaryEl.innerText = getHomeCollectionSummaryText(readingStock);
 
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
-
-    const elPartnerSummary = document.getElementById('home-partner-summary');
-    if (elPartnerSummary) elPartnerSummary.innerText = pairing.shortText;
+    const partnerInlineTitle = document.getElementById('home-partner-inline-title');
+    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
+    if (partnerInlineTitle || partnerInlineSubtitle) {
+        let title = 'パートナー：未連携';
+        let subtitle = '連携すると保存済み・ストックを共有できます';
+        if (pairing.hasPartner) {
+            title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
+            subtitle = '保存済み・ストックを共有しています';
+        } else if (pairing.inRoom && pairing.roomCode) {
+            subtitle = `招待コード ${pairing.roomCode}`;
+        }
+        if (partnerInlineTitle) partnerInlineTitle.innerText = title;
+        if (partnerInlineSubtitle) partnerInlineSubtitle.innerText = subtitle;
+    }
 
     const soundBadge = document.getElementById('home-entry-sound-badge');
     if (soundBadge) soundBadge.classList.add('hidden');
@@ -721,80 +829,28 @@ function renderHomeProfile() {
         readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : '#c4caf2';
     }
 
-    const elPartnerTitle = document.getElementById('home-partner-match-title');
-    if (elPartnerTitle) elPartnerTitle.innerText = pairing.title;
-
-    const elPartnerSubtitle = document.getElementById('home-partner-match-subtitle');
-    if (elPartnerSubtitle) elPartnerSubtitle.innerText = pairing.subtitle;
-
-    const elPartnerFootnote = document.getElementById('home-match-footnote');
-    if (elPartnerFootnote) elPartnerFootnote.innerText = pairing.footnote;
-
-    const elPartnerReadingCount = document.getElementById('home-pair-reading-count');
-    if (elPartnerReadingCount) elPartnerReadingCount.innerText = partnerReadingCount;
-
-    const elPartnerLikedCount = document.getElementById('home-pair-liked-count');
-    if (elPartnerLikedCount) elPartnerLikedCount.innerText = partnerLikedCount;
-
-    const elPartnerSavedCount = document.getElementById('home-pair-saved-count');
-    if (elPartnerSavedCount) elPartnerSavedCount.innerText = partnerSavedCount;
-
-    const pairStatsRow = document.getElementById('home-pair-stats-row');
-    if (pairStatsRow) pairStatsRow.classList.toggle('hidden', !pairing.hasPartner);
-
-    const pairActionRow = document.getElementById('home-pair-action-row');
-    if (pairActionRow) pairActionRow.classList.toggle('hidden', !!pairing.hasPartner || !!pairing.inRoom);
-
-    const pairActionBtn = document.getElementById('home-pair-action');
-    if (pairActionBtn) {
-        pairActionBtn.innerText = pairing.actionLabel || '';
-        pairActionBtn.classList.toggle('hidden', !!pairing.hasPartner || !!pairing.inRoom || !pairing.actionLabel);
-    }
-
-    const pairCodeRow = document.getElementById('home-pair-code-row');
-    if (pairCodeRow) pairCodeRow.classList.toggle('hidden', !(pairing.inRoom && pairing.roomCode && !pairing.hasPartner));
-
-    const pairCodeEl = document.getElementById('home-pair-room-code');
-    if (pairCodeEl) pairCodeEl.innerText = pairing.roomCode || '------';
-
-    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
-    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!pairing.inRoom);
-
-    const pairJoinRole = document.getElementById('home-pair-quick-role');
-    if (pairJoinRole) {
-        pairJoinRole.classList.toggle('hidden', !!pairing.inRoom);
-        if (typeof getHomePairJoinRoleText === 'function') pairJoinRole.innerText = getHomePairJoinRoleText();
-    }
-
-    const pairJoinRow = document.getElementById('home-pair-join-row');
-    if (pairJoinRow && pairing.inRoom) {
-        pairJoinRow.classList.add('hidden');
-    }
-
     const pairCard = document.getElementById('home-pair-card');
     if (pairCard) {
-        pairCard.classList.toggle('hidden', !showPairCard);
-        pairCard.style.cursor = '';
-        pairCard.onclick = null;
-        pairCard.onkeydown = null;
-        pairCard.removeAttribute('role');
-        pairCard.removeAttribute('tabindex');
+        pairCard.classList.add('hidden');
     }
 
     const dismissBtn = document.getElementById('home-pair-dismiss');
-    if (dismissBtn) dismissBtn.classList.toggle('hidden', !canDismissHomePairCard(pairing));
+    if (dismissBtn) dismissBtn.classList.add('hidden');
 
     const restoreBtn = document.getElementById('home-pair-restore');
-    if (restoreBtn) restoreBtn.classList.toggle('hidden', showPairCard || !canDismissHomePairCard(pairing));
+    if (restoreBtn) restoreBtn.classList.add('hidden');
 }
 
 window.closeHomePartnerHub = closeHomePartnerHub;
 window.openHomePartnerHub = openHomePartnerHub;
 window.openHomePartnerHubFromEvent = openHomePartnerHubFromEvent;
 window.openHomePartnerHubAction = openHomePartnerHubAction;
+window.handleHomeInlinePartnerAction = handleHomeInlinePartnerAction;
 window.getMeimayPartnerViewState = getMeimayPartnerViewState;
 window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
+window.openHomeInsightsModal = openHomeInsightsModal;
+window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.renderHomeProfile = renderHomeProfile;
 
 try {
