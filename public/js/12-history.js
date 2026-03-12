@@ -327,6 +327,214 @@ function openReadingHistory() {
     renderHistoryScreen();
 }
 
+let currentEncounteredTab = 'kanji';
+
+function openEncounteredLibrary(tab = 'kanji') {
+    currentEncounteredTab = tab === 'reading' ? 'reading' : 'kanji';
+    changeScreen('scr-encountered');
+    renderEncounteredLibrary();
+}
+
+function switchEncounteredTab(tab) {
+    currentEncounteredTab = tab === 'reading' ? 'reading' : 'kanji';
+    renderEncounteredLibrary();
+}
+
+function escapeEncounteredHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getEncounteredActionLabel(action) {
+    if (action === 'super') return 'かなり好き';
+    if (action === 'like') return 'いいかも';
+    if (action === 'nope') return '見送り';
+    return '見た候補';
+}
+
+function renderEncounteredLibrary() {
+    const container = document.getElementById('encountered-list-content');
+    if (!container) return;
+
+    const tabKanji = document.getElementById('encountered-tab-kanji');
+    const tabReading = document.getElementById('encountered-tab-reading');
+    if (tabKanji) tabKanji.className = `flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-all ${currentEncounteredTab === 'kanji' ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm' : 'text-[#a6967a]'}`;
+    if (tabReading) tabReading.className = `flex-1 rounded-xl px-3 py-2 text-sm font-bold transition-all ${currentEncounteredTab === 'reading' ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm' : 'text-[#a6967a]'}`;
+
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [], readings: [] };
+    const items = [...(currentEncounteredTab === 'reading' ? library.readings : library.kanji)]
+        .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-20 text-sm text-[#a6967a]">
+                <div class="text-4xl mb-4 opacity-50">🗂️</div>
+                <p>まだ出会った候補はありません</p>
+                <p class="text-[10px] mt-2">スワイプした読みや漢字が、ここにたまっていきます。</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = items.map((item) => {
+        const seenAt = item.lastSeenAt
+            ? new Date(item.lastSeenAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            : '';
+        const badge = getEncounteredActionLabel(item.lastAction);
+
+        if (currentEncounteredTab === 'reading') {
+            const isStocked = typeof getReadingStock === 'function'
+                ? getReadingStock().some(stockItem => stockItem.reading === item.reading)
+                : false;
+            const tags = Array.isArray(item.tags) ? item.tags.slice(0, 4) : [];
+            const examples = Array.isArray(item.examples) ? item.examples.slice(0, 4) : [];
+            return `
+                <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                            <div class="text-xl font-black text-[#5d5444]">${escapeEncounteredHtml(item.reading)}</div>
+                            <div class="mt-1 text-[10px] text-[#bca37f] font-bold">${badge}</div>
+                            ${examples.length > 0 ? `<div class="mt-2 text-xs text-[#8b7e66]">${examples.map(escapeEncounteredHtml).join(' ・ ')}</div>` : ''}
+                            ${tags.length > 0 ? `<div class="mt-2 flex flex-wrap gap-1">${tags.map(tag => `<span class="px-2 py-1 rounded-full bg-[#f8f5ef] text-[10px] font-bold text-[#8b7e66]">${escapeEncounteredHtml(tag)}</span>`).join('')}</div>` : ''}
+                        </div>
+                        <div class="text-right shrink-0">
+                            <div class="text-[10px] text-[#a6967a]">${seenAt}</div>
+                            <div class="text-[10px] text-[#a6967a] mt-1">見た回数 ${item.seenCount || 0}</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button onclick="stockEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')" class="flex-1 py-2.5 rounded-xl text-xs font-bold ${isStocked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-[#bca37f] text-white'}">
+                            ${isStocked ? '読みストック済み' : '読みストックに追加'}
+                        </button>
+                        <button onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')" class="px-4 py-2.5 rounded-xl bg-[#fdfaf5] text-xs font-bold text-[#7a6f5a]">
+                            この読みで探す
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        const isLiked = Array.isArray(liked)
+            ? liked.some(likedItem => (likedItem['漢字'] || likedItem.kanji) === item.kanji)
+            : false;
+        const tags = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
+        return `
+            <div class="bg-white rounded-2xl p-4 border border-[#eee5d8] shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-4">
+                        <div class="w-16 h-20 rounded-[24px] border-2 border-[#d4c5af] bg-[#fffdf8] flex flex-col items-center justify-center shadow-sm">
+                            <div class="text-4xl font-black text-[#5d5444] leading-none">${escapeEncounteredHtml(item.kanji)}</div>
+                            <div class="text-[10px] text-[#bca37f] mt-2">${item.strokes || '--'}画</div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-[10px] text-[#bca37f] font-bold">${badge}</div>
+                            ${item.kanjiReading ? `<div class="mt-1 text-xs text-[#8b7e66]">${escapeEncounteredHtml(item.kanjiReading)}</div>` : ''}
+                            ${tags.length > 0 ? `<div class="mt-2 flex flex-wrap gap-1">${tags.map(tag => `<span class="px-2 py-1 rounded-full bg-[#f8f5ef] text-[10px] font-bold text-[#8b7e66]">${escapeEncounteredHtml(tag)}</span>`).join('')}</div>` : ''}
+                            <div class="mt-2 text-[10px] text-[#a6967a]">${seenAt}</div>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-[#a6967a] shrink-0">見た回数 ${item.seenCount || 0}</div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button onclick="likeEncounteredKanji('${escapeEncounteredHtml(item.key || item.kanji)}')" class="flex-1 py-2.5 rounded-xl text-xs font-bold ${isLiked ? 'bg-[#f8f5ef] text-[#a6967a]' : 'bg-[#bca37f] text-white'}">
+                        ${isLiked ? 'ストック済み' : 'ストックに追加'}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function likeEncounteredKanji(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [] };
+    const item = (library.kanji || []).find(entry => (entry.key || entry.kanji) === key);
+    if (!item) return;
+
+    if (Array.isArray(liked) && liked.some(entry => (entry['漢字'] || entry.kanji) === item.kanji)) {
+        if (typeof showToast === 'function') showToast('すでにストック済みです', '🔖');
+        return;
+    }
+
+    const snapshot = item.snapshot || {};
+    const payload = {
+        ...snapshot,
+        '漢字': item.kanji,
+        '画数': snapshot['画数'] ?? item.strokes ?? 1,
+        'カテゴリ': snapshot['カテゴリ'] || item.category || '',
+        kanji_reading: snapshot.kanji_reading || item.kanjiReading || '',
+        slot: Number.isFinite(Number(snapshot.slot)) ? Number(snapshot.slot) : -1,
+        sessionReading: snapshot.sessionReading || 'FREE',
+        sessionSegments: Array.isArray(snapshot.sessionSegments) ? snapshot.sessionSegments : [],
+        sessionDisplaySegments: Array.isArray(snapshot.sessionDisplaySegments) ? snapshot.sessionDisplaySegments : [],
+        isSuper: false
+    };
+
+    if (!Array.isArray(liked)) liked = [];
+    liked.unshift(payload);
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveLiked === 'function') {
+        StorageBox.saveLiked();
+    } else {
+        localStorage.setItem('naming_app_liked_chars', JSON.stringify(liked));
+    }
+
+    if (typeof noped !== 'undefined') {
+        noped.delete(item.kanji);
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNoped === 'function') {
+            StorageBox.saveNoped();
+        }
+    }
+
+    if (typeof updateEncounteredLibraryEntry === 'function') {
+        updateEncounteredLibraryEntry('kanji', item.key || item.kanji, { lastAction: 'like' }, { action: 'like', incrementLike: true });
+    }
+
+    renderEncounteredLibrary();
+    if (typeof showToast === 'function') showToast('ストックに追加しました', '📚');
+}
+
+function stockEncounteredReading(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
+    if (!item || !item.reading) return;
+
+    if (typeof addReadingToStock === 'function') {
+        addReadingToStock(item.reading, item.reading, Array.isArray(item.tags) ? item.tags : []);
+    }
+    if (typeof noped !== 'undefined') {
+        noped.delete(item.reading);
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNoped === 'function') {
+            StorageBox.saveNoped();
+        }
+    }
+    if (typeof updateEncounteredLibraryEntry === 'function') {
+        updateEncounteredLibraryEntry('reading', item.key || item.reading, { lastAction: 'like' }, { action: 'like', incrementLike: true });
+    }
+
+    renderEncounteredLibrary();
+    if (typeof showToast === 'function') showToast('読みストックに追加しました', '📖');
+}
+
+function useEncounteredReading(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
+    if (!item || !item.reading) return;
+    if (typeof proceedWithSoundReading === 'function') {
+        proceedWithSoundReading(item.reading);
+    }
+}
+
 /**
  * 互換性のためopenHistoryは保存済みを開く
  */
@@ -840,9 +1048,15 @@ window.executeSaveWithMessage = executeSaveWithMessage;
 window.closeSaveMessageModal = closeSaveMessageModal;
 window.openSavedNames = openSavedNames;
 window.openReadingHistory = openReadingHistory;
+window.openEncounteredLibrary = openEncounteredLibrary;
 window.openHistory = openHistory;
 window.switchHistoryTab = switchHistoryTab;
+window.switchEncounteredTab = switchEncounteredTab;
 window.loadReadingHistory = loadReadingHistory;
+window.renderEncounteredLibrary = renderEncounteredLibrary;
+window.likeEncounteredKanji = likeEncounteredKanji;
+window.stockEncounteredReading = stockEncounteredReading;
+window.useEncounteredReading = useEncounteredReading;
 window.showSavedNameDetail = showSavedNameDetail;
 window.closeSavedNameDetail = closeSavedNameDetail;
 window.showKanjiDetailFromSaved = showKanjiDetailFromSaved;

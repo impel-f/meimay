@@ -187,6 +187,9 @@ function drawerNavigate(target) {
             case 'history':
                 if (typeof openReadingHistory === 'function') openReadingHistory();
                 break;
+            case 'encountered':
+                if (typeof openEncounteredLibrary === 'function') openEncounteredLibrary();
+                break;
             case 'saved':
                 if (typeof openSavedNames === 'function') openSavedNames();
                 break;
@@ -310,6 +313,7 @@ function updateTopBarTitle(screenId) {
         'scr-diagnosis-input': '姓名判断',
         'scr-saved': '保存済み',
         'scr-history': '検索履歴',
+        'scr-encountered': '出会った候補',
         'scr-akinator': 'AIおすすめ'
     };
 

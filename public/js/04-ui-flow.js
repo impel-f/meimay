@@ -48,6 +48,8 @@ function getCompoundBuildFlow() {
     return compoundBuildFlowState || window.meimayCompoundBuildFlow || null;
 }
 
+const ENCOUNTERED_LIBRARY_KEY = 'meimay_encountered_library_v1';
+
 function isCompoundBuildPlaceholderSegment(seg) {
     return typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg);
 }
@@ -255,6 +257,8 @@ function toggleReadingStockPicker() {
 function initSoundModeEntry() {
     console.log('UI_FLOW: initSoundModeEntry');
     changeScreen('scr-input-sound-entry');
+    const input = document.getElementById('in-sound-entry');
+    if (input) input.value = '';
 }
 
 /**
@@ -267,6 +271,179 @@ function closeSoundEntryAndGo(mode) {
         changeScreen('scr-input-nickname');
     } else {
         initSoundMode();
+    }
+}
+
+function submitSoundEntry() {
+    const input = document.getElementById('in-sound-entry');
+    const raw = input && typeof input.value === 'string' ? input.value.trim() : '';
+    const cleaned = typeof toHira === 'function' ? toHira(raw) : raw;
+
+    if (!cleaned) {
+        initSoundMode();
+        return;
+    }
+
+    appMode = 'nickname';
+    soundModeEntryOrigin = true;
+    changeScreen('scr-input-nickname');
+
+    const nicknameInput = document.getElementById('in-nickname');
+    if (nicknameInput) {
+        nicknameInput.value = cleaned;
+        setTimeout(() => nicknameInput.focus(), 50);
+    }
+}
+
+function getEncounteredLibrary() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(ENCOUNTERED_LIBRARY_KEY) || '{}');
+        const library = {
+            kanji: Array.isArray(raw.kanji) ? raw.kanji : [],
+            readings: Array.isArray(raw.readings) ? raw.readings : []
+        };
+
+        if (library.kanji.length === 0 && Array.isArray(liked)) {
+            library.kanji = liked
+                .filter(item => item && item['漢字'])
+                .map(item => ({
+                    key: item['漢字'],
+                    kanji: item['漢字'],
+                    strokes: item['画数'] ?? item.strokes ?? null,
+                    category: item['カテゴリ'] || item.category || '',
+                    kanjiReading: item.kanji_reading || '',
+                    tags: Array.isArray(item.tags) ? [...item.tags] : [],
+                    snapshot: {
+                        '漢字': item['漢字'],
+                        '画数': item['画数'] ?? item.strokes ?? null,
+                        'カテゴリ': item['カテゴリ'] || item.category || '',
+                        kanji_reading: item.kanji_reading || '',
+                        slot: Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1,
+                        sessionReading: item.sessionReading || '',
+                        sessionSegments: Array.isArray(item.sessionSegments) ? [...item.sessionSegments] : [],
+                        sessionDisplaySegments: Array.isArray(item.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : []
+                    },
+                    seenCount: 1,
+                    likeCount: 1,
+                    nopeCount: 0,
+                    lastAction: 'like',
+                    firstSeenAt: item.savedAt || item.timestamp || new Date().toISOString(),
+                    lastSeenAt: item.savedAt || item.timestamp || new Date().toISOString()
+                }));
+        }
+
+        if (library.readings.length === 0 && typeof getReadingHistory === 'function') {
+            library.readings = getReadingHistory().map(item => ({
+                key: item.reading,
+                reading: item.reading,
+                tags: Array.isArray(item.tags) ? [...item.tags] : [],
+                examples: [],
+                mode: '',
+                seenCount: 1,
+                likeCount: 1,
+                nopeCount: 0,
+                lastAction: 'like',
+                firstSeenAt: item.searchedAt || new Date().toISOString(),
+                lastSeenAt: item.searchedAt || new Date().toISOString()
+            }));
+        }
+
+        return library;
+    } catch (error) {
+        console.warn('ENCOUNTERED: Failed to read library', error);
+        return { kanji: [], readings: [] };
+    }
+}
+
+function saveEncounteredLibrary(library) {
+    try {
+        const safeLibrary = {
+            kanji: Array.isArray(library?.kanji) ? library.kanji.slice(0, 300) : [],
+            readings: Array.isArray(library?.readings) ? library.readings.slice(0, 300) : []
+        };
+        localStorage.setItem(ENCOUNTERED_LIBRARY_KEY, JSON.stringify(safeLibrary));
+    } catch (error) {
+        console.warn('ENCOUNTERED: Failed to save library', error);
+    }
+}
+
+function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
+    if (!kind || !key) return;
+    const library = getEncounteredLibrary();
+    const list = kind === 'reading' ? library.readings : library.kanji;
+    const index = list.findIndex(item => item && item.key === key);
+    const now = new Date().toISOString();
+    const action = options.action || payload.lastAction || '';
+
+    const base = index >= 0 ? list[index] : {
+        key,
+        seenCount: 0,
+        likeCount: 0,
+        nopeCount: 0,
+        firstSeenAt: now
+    };
+
+    const next = {
+        ...base,
+        ...payload,
+        key,
+        seenCount: base.seenCount + (options.incrementSeen ? 1 : 0),
+        likeCount: base.likeCount + (options.incrementLike ? 1 : 0),
+        nopeCount: base.nopeCount + (options.incrementNope ? 1 : 0),
+        lastSeenAt: now
+    };
+
+    if (action) next.lastAction = action;
+
+    if (index >= 0) {
+        list[index] = next;
+    } else {
+        list.unshift(next);
+    }
+
+    saveEncounteredLibrary(library);
+}
+
+function recordEncounteredSwipeItem(item, action) {
+    if (!item) return;
+
+    if (item['漢字']) {
+        updateEncounteredLibraryEntry('kanji', item['漢字'], {
+            kanji: item['漢字'],
+            strokes: item['画数'] ?? item.strokes ?? null,
+            category: item['カテゴリ'] || item.category || '',
+            kanjiReading: item.kanji_reading || '',
+            tags: Array.isArray(item.tags) ? [...item.tags] : [],
+            snapshot: {
+                '漢字': item['漢字'],
+                '画数': item['画数'] ?? item.strokes ?? null,
+                'カテゴリ': item['カテゴリ'] || item.category || '',
+                kanji_reading: item.kanji_reading || '',
+                slot: Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1,
+                sessionReading: item.sessionReading || '',
+                sessionSegments: Array.isArray(item.sessionSegments) ? [...item.sessionSegments] : [],
+                sessionDisplaySegments: Array.isArray(item.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : []
+            }
+        }, {
+            action,
+            incrementSeen: true,
+            incrementLike: action === 'like' || action === 'super',
+            incrementNope: action === 'nope'
+        });
+    }
+
+    if (item.reading) {
+        updateEncounteredLibraryEntry('reading', item.reading, {
+            reading: item.reading,
+            tags: Array.isArray(item.tags) ? [...item.tags] : [],
+            examples: Array.isArray(item.examples) ? [...item.examples] : [],
+            mode: SwipeState.mode || ''
+        }, {
+            action,
+            incrementSeen: true,
+            incrementLike: action === 'like' || action === 'super',
+            incrementNope: action === 'nope'
+        });
     }
 }
 
@@ -2320,6 +2497,8 @@ function universalSwipeAction(action) {
         const delta = (action === 'like' || action === 'super') ? 1 : -1;
         updateTagScore(item.tags, delta);
     }
+
+    recordEncounteredSwipeItem(item, action);
 
     SwipeState.history.push({ action: action, item: item });
 
@@ -5359,6 +5538,7 @@ ${answersText}
 window.openKanjiSearch = openKanjiSearch;
 window.initSoundMode = initSoundMode;
 window.initAdanaMode = initAdanaMode;
+window.submitSoundEntry = submitSoundEntry;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
 window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;
@@ -5373,6 +5553,8 @@ window.openAkinator = openAkinator;
 window.answerAkinator = answerAkinator;
 window.akinatorBack = akinatorBack;
 window.renderAkinatorStep = renderAkinatorStep;
+window.getEncounteredLibrary = getEncounteredLibrary;
+window.updateEncounteredLibraryEntry = updateEncounteredLibraryEntry;
 
 console.log("UI_FLOW: Module loaded (V19 - Free Swipe, AI Learning, Akinator)");
 

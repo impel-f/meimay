@@ -20,8 +20,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-    <link rel="stylesheet" href="/css/main.css?v=25.10">
-    <link rel="stylesheet" href="/css/settings-style.css?v=25.10">
+    <link rel="stylesheet" href="/css/main.css?v=25.11">
+    <link rel="stylesheet" href="/css/settings-style.css?v=25.11">
 
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9172754377890289"
@@ -104,6 +104,10 @@
             <button onclick="drawerNavigate('history')" class="drawer-menu-item">
                 <span class="drawer-icon">🕐</span>
                 <span>検索履歴</span>
+            </button>
+            <button onclick="drawerNavigate('encountered')" class="drawer-menu-item">
+                <span class="drawer-icon">🗂️</span>
+                <span>出会った候補</span>
             </button>
             <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
                 <span class="drawer-icon">⚙️</span>
@@ -536,6 +540,16 @@
                 すでに呼びたい音があれば、そこから名前候補を広げられます。<br>
                 まだ決まっていなければ、響きをスワイプして好みを探せます。
             </p>
+
+            <div class="mb-6">
+                <input type="text" id="in-sound-entry" placeholder="例：はる"
+                    class="premium-input mb-3 text-center text-2xl tracking-widest ime-active"
+                    onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                <button onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full">
+                    入力した音で探す
+                </button>
+                <p class="mt-2 text-[11px] text-[#a6967a]">空欄のまま進むと、指定なしで響きを探します。</p>
+            </div>
 
             <div class="rule-box text-left space-y-4 mb-8 px-4">
                 <button onclick="closeSoundEntryAndGo('nickname')"
@@ -1741,6 +1755,27 @@
         </div>
     </div>
 
+    <div id="scr-encountered" class="screen">
+        <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1">
+            <div class="sticky top-0 z-10 bg-[#fdfaf5]/95 backdrop-blur-sm pt-2 pb-3">
+                <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm">
+                    <button id="encountered-tab-kanji" onclick="switchEncounteredTab('kanji')"
+                        class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-[#5d5444]">
+                        漢字
+                    </button>
+                    <button id="encountered-tab-reading" onclick="switchEncounteredTab('reading')"
+                        class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-[#5d5444]">
+                        読み
+                    </button>
+                </div>
+                <p class="mt-3 text-[11px] text-[#a6967a] px-1">スワイプで出会った候補を、あとから見返せます。</p>
+            </div>
+            <div id="encountered-list-content" class="space-y-3 overflow-y-auto flex-1 pb-32">
+                <!-- JS populated -->
+            </div>
+        </div>
+    </div>
+
     <!-- AI響き分析モーダル -->
     <div id="modal-ai-sound" class="overlay"></div>
 
@@ -1796,29 +1831,29 @@
     </div>
 
     <!-- Module 02.5: Generator -->
-    <script src="/js/engine_v2_generator.js?v=25.10"></script>
+    <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=25.10"></script>
-    <script src="/js/02-engine.js?v=25.10"></script>
-    <script src="/js/03-fortune.js?v=25.10"></script>
-    <script src="/js/04-ui-flow.js?v=25.10"></script>
-    <script src="/js/05-ui-render.js?v=25.10"></script>
-    <script src="/js/06-ui-physics.js?v=25.10"></script>
-    <script src="/js/07-build.js?v=25.10"></script>
-    <script src="/js/08-origin.js?v=25.10"></script>
-    <script src="/js/09-storage.js?v=25.10"></script>
-    <script src="/js/10-choice.js?v=25.10"></script>
-    <script src="/js/11-settings.js?v=25.10"></script>
-    <script src="/js/12-history.js?v=25.10"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.10"></script>
-    <script src="/js/14-admob.js?v=25.10"></script>
-    <script src="/js/15-firebase.js?v=25.10"></script>
-    <script src="/js/data/legal-docs.js?v=25.10"></script>
-    <script src="/js/16-legal.js?v=25.10"></script>
-    <script src="/js/data/todays-kanji-data.js?v=25.10"></script>
-    <script src="/js/17-todays-kanji.js?v=25.10"></script>
-    <script src="/js/18-ranking.js?v=25.10"></script>
-    <script src="/js/19-home-override.js?v=25.10"></script>
+    <script src="/js/01-core.js?v=25.11"></script>
+    <script src="/js/02-engine.js?v=25.11"></script>
+    <script src="/js/03-fortune.js?v=25.11"></script>
+    <script src="/js/04-ui-flow.js?v=25.11"></script>
+    <script src="/js/05-ui-render.js?v=25.11"></script>
+    <script src="/js/06-ui-physics.js?v=25.11"></script>
+    <script src="/js/07-build.js?v=25.11"></script>
+    <script src="/js/08-origin.js?v=25.11"></script>
+    <script src="/js/09-storage.js?v=25.11"></script>
+    <script src="/js/10-choice.js?v=25.11"></script>
+    <script src="/js/11-settings.js?v=25.11"></script>
+    <script src="/js/12-history.js?v=25.11"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.11"></script>
+    <script src="/js/14-admob.js?v=25.11"></script>
+    <script src="/js/15-firebase.js?v=25.11"></script>
+    <script src="/js/data/legal-docs.js?v=25.11"></script>
+    <script src="/js/16-legal.js?v=25.11"></script>
+    <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
+    <script src="/js/17-todays-kanji.js?v=25.11"></script>
+    <script src="/js/18-ranking.js?v=25.11"></script>
+    <script src="/js/19-home-override.js?v=25.11"></script>
 
 </body>
 
