@@ -381,7 +381,7 @@ function renderEncounteredStateBadge({ isLiked = false, isMatched = false, isNop
         return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#fff4d6] px-1 text-[10px] font-black text-[#b9965b]">◎</span>';
     }
     if (isLiked) {
-        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f7efe2] px-1 text-[10px] font-black text-[#8b7e66]">★</span>';
+        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f7efe2] px-1 text-[10px] font-black text-[#8b7e66]">❤</span>';
     }
     if (isNope) {
         return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f2efea] px-1 text-[10px] font-black text-[#a6967a]">×</span>';
@@ -587,7 +587,7 @@ function renderEncounteredLibrary() {
                                             ${renderEncounteredStateBadge({ isLiked, isMatched, isNope })}
                                             <span class="text-2xl font-black text-[#5d5444] leading-none">${escapeEncounteredHtml(item.kanji)}</span>
                                             <span class="mt-1 text-[8px] text-[#a6967a]">${strokes}画</span>
-                                            <span class="mt-1 text-[7px] text-[#bca37f] truncate w-full text-center px-1">${escapeEncounteredHtml(readings || getEncounteredActionLabel(item.lastAction))}</span>
+                                            <span class="mt-1 text-[7px] text-[#bca37f] truncate w-full text-center px-1">${escapeEncounteredHtml(readings)}</span>
                                         </button>
                                     </div>
                                 `;
@@ -619,7 +619,7 @@ function renderEncounteredLibrary() {
                             const examples = Array.isArray(item.examples) ? item.examples.slice(0, 2) : [];
                             const subline = examples.length > 0
                                 ? examples.map(escapeEncounteredHtml).join(' ・ ')
-                                : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : getEncounteredActionLabel(item.lastAction));
+                                : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : '');
                             const toneClass = isMatched
                                 ? 'border-[#e7d39b] bg-[#fff9ec]'
                                 : isStocked
@@ -636,7 +636,6 @@ function renderEncounteredLibrary() {
                                     <div class="pr-5">
                                         <div class="text-lg font-black text-[#5d5444] truncate">${escapeEncounteredHtml(item.reading)}</div>
                                         <div class="mt-1 text-[10px] leading-tight text-[#8b7e66] min-h-[28px]">${subline}</div>
-                                        <div class="mt-2 text-[10px] font-bold text-[#bca37f]">${isStocked ? '読みストック済み' : 'タップでこの読みを探す'}</div>
                                     </div>
                                 </button>
                             `;
