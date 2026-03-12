@@ -269,66 +269,60 @@ function renderSoundEntryScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <p class="label-mini mb-2">響きから探す</p>
-            <h2 class="text-3xl font-black text-[#5d5444] mb-5">どちらで探しますか？</h2>
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-4 shadow-2xl mx-auto">
+            <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">響きから探す</h2>
+            <p class="text-xs text-[#bca37f] mb-4 leading-relaxed">
+                入れたい音があればそこから探せます。<br>
+                まだ決まっていなければ、そのまま響きを見ながら探せます。
+            </p>
 
-            <div class="space-y-3 text-left">
+            <div class="space-y-2.5 text-left">
                 <button
                     id="sound-entry-choice-input"
                     onclick="selectSoundEntryMode('input')"
-                    class="w-full rounded-[30px] border-2 border-[#d9c5a4] bg-[#fffdf9] px-5 py-4 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="flex items-start gap-3">
-                        <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#d9c5a4] bg-[#fff8ef] text-[#b9965b] text-xs font-black">✓</span>
-                        <div>
-                            <div class="text-lg font-black text-[#5d5444]">入れたい音から探す</div>
-                            <p class="mt-1 text-sm text-[#8b7e66] leading-relaxed">例: 「はる」からはじまる名前を探す</p>
-                        </div>
-                    </div>
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
+                    <div class="text-base font-bold text-[#5d5444]">入れたい音から探す</div>
+                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed">例: 「はる」からはじまる名前を探す</p>
                 </button>
-
-                <div
-                    id="sound-entry-input-panel"
-                    class="hidden rounded-[28px] border border-[#eadfcd] bg-[#fffaf3] px-4 py-4">
-                    <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
-                    <input
-                        id="in-sound-entry"
-                        type="text"
-                        maxlength="8"
-                        inputmode="kana"
-                        placeholder="はる"
-                        class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-xl font-black text-[#5d5444] text-center shadow-inner outline-none focus:border-[#b9965b]"
-                        onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
-                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-[#8b7e66]">
-                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border border-[#e4d8c7] bg-white px-2 py-2 cursor-pointer">
-                            <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
-                            <span>「○○」から始まる</span>
-                        </label>
-                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border border-[#e4d8c7] bg-white px-2 py-2 cursor-pointer">
-                            <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
-                            <span>「○○」で終わる</span>
-                        </label>
-                    </div>
-                </div>
 
                 <button
                     id="sound-entry-choice-browse"
                     onclick="selectSoundEntryMode('browse')"
-                    class="w-full rounded-[30px] border-2 border-[#e9e0d2] bg-white px-5 py-4 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="flex items-start gap-3">
-                        <span class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-[#d4c5af] bg-white text-[#d4c5af] text-xs font-black">○</span>
-                        <div>
-                            <div class="text-lg font-black text-[#5d5444]">響きを見ながら探す</div>
-                            <p class="mt-1 text-sm text-[#8b7e66] leading-relaxed">人気の響きをスワイプして好みを探す</p>
-                        </div>
-                    </div>
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
+                    <div class="text-base font-bold text-[#5d5444]">響きを見ながら探す</div>
+                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed">人気の響きをスワイプして好みを探す</p>
                 </button>
             </div>
 
-            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full mt-6">
+            <div
+                id="sound-entry-input-panel"
+                class="hidden mt-4 rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 py-4 text-left">
+                <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
+                <input
+                    id="in-sound-entry"
+                    type="text"
+                    maxlength="8"
+                    inputmode="kana"
+                    placeholder="はる"
+                    class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-3xl font-black text-[#5d5444] text-center tracking-widest shadow-inner outline-none focus:border-[#b9965b]"
+                    onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                <div class="mt-3 grid grid-cols-2 gap-2">
+                    <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                        <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
+                        <span class="text-[11px] font-bold">「○○」から始まる</span>
+                    </label>
+                    <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                        <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
+                        <span class="text-[11px] font-bold">「○○」で終わる</span>
+                    </label>
+                </div>
+                <p class="mt-2 text-[10px] text-[#a6967a] text-center">例: はる</p>
+            </div>
+
+            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full mt-5">
                 響きを見て探す
             </button>
-            <button onclick="goBack()" class="text-[#bca37f] text-xl font-semibold mt-5">戻る</button>
+            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-4 hover:underline">戻る</button>
         </div>
     `;
 }
@@ -346,19 +340,11 @@ function updateSoundEntryModeUI() {
     const submitBtn = document.getElementById('btn-sound-entry-submit');
 
     if (inputChoice) {
-        inputChoice.className = `w-full rounded-[30px] border-2 px-5 py-4 shadow-sm transition-all active:scale-[0.99] ${isInputMode ? 'border-[#c8a873] bg-[#fff8ef]' : 'border-[#e9e0d2] bg-white'}`;
-        const icon = inputChoice.querySelector('span');
-        if (icon) {
-            icon.className = `mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black ${isInputMode ? 'border-[#b9965b] bg-[#fff0d7] text-[#b9965b]' : 'border-[#d9c5a4] bg-[#fff8ef] text-[#d1c2a7]'}`;
-        }
+        inputChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
 
     if (browseChoice) {
-        browseChoice.className = `w-full rounded-[30px] border-2 px-5 py-4 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#c8a873] bg-[#fff8ef]' : 'border-[#e9e0d2] bg-white'}`;
-        const icon = browseChoice.querySelector('span');
-        if (icon) {
-            icon.className = `mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black ${!isInputMode ? 'border-[#b9965b] bg-[#fff0d7] text-[#b9965b]' : 'border-[#d4c5af] bg-white text-[#d4c5af]'}`;
-        }
+        browseChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
 
     if (inputPanel) {
@@ -373,7 +359,7 @@ function updateSoundEntryModeUI() {
     posLabels.forEach((label) => {
         const radio = label.querySelector('input[type="radio"]');
         const isChecked = !!radio?.checked;
-        label.className = `sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer ${isChecked ? 'border-[#c8a873] bg-[#fff0d7] text-[#8b6c34]' : 'border-[#e4d8c7] bg-white text-[#8b7e66]'}`;
+        label.className = `sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap ${isChecked ? 'border-[#c8a873] bg-[#fff0d7] text-[#8b6c34]' : 'border-[#e4d8c7] bg-white text-[#8b7e66]'}`;
     });
 
     if (isInputMode) {
@@ -402,10 +388,19 @@ function submitSoundEntry() {
     const raw = input && typeof input.value === 'string' ? input.value.trim() : '';
     const cleaned = typeof toHira === 'function' ? toHira(raw) : raw;
 
-    if (soundEntryMode !== 'input' || !cleaned) {
+    if (soundEntryMode !== 'input') {
         appMode = 'sound';
         soundModeEntryOrigin = true;
         initSoundMode();
+        return;
+    }
+
+    if (!cleaned) {
+        if (typeof showToast === 'function') {
+            showToast('入れたい音を入力してください', '✏️');
+        } else {
+            alert('入れたい音を入力してください');
+        }
         return;
     }
 
