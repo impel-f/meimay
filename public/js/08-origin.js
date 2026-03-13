@@ -350,6 +350,213 @@ function renderKanjiDetailText(resultEl, aiText) {
     resultEl.innerHTML = html;
 }
 
+function isSpecialKanjiAiReading(reading) {
+    return !reading || ['FREE', 'SEARCH', 'RANKING', 'SHARED'].includes(reading);
+}
+
+function sanitizeKanjiAiText(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\*/g, '')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function buildKanjiDetailPrompt(kanji, readings, meaning) {
+    return `
+漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
+
+【基本情報】
+読み: ${readings || '不明'}
+意味: ${meaning || '不明'}
+
+以下の各セクションを【】で区切って回答してください。
+
+【成り立ち】
+この漢字がどのように作られたか（象形・会意・形声など）を、50〜80文字で説明してください。
+
+【意味の深掘り】
+元々の意味と、名前に使われるときの前向きな意味合いを、50〜80文字で説明してください。
+
+【代表的な熟語】
+この漢字を使った実在する二字熟語または三字熟語を3〜5個、読みと意味付きで挙げてください。
+
+【絶対に守るルール】
+・口調は必ずです・ます調で統一してください。
+・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
+・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。
+・四字熟語、故事成語、ことわざは書かないでください。
+・脚注記号、アスタリスク、参考番号、URLは書かないでください。
+・セクション名以外の前置きや締めの一文は書かないでください。
+`.trim();
+}
+
+function buildKanjiReadingPrompt(kanji, currentReading) {
+    return `
+漢字「${kanji}」が名前で「${currentReading}」と読まれる理由や由来を、100文字以内でわかりやすく説明してください。
+
+【絶対に守るルール】
+・口調は必ずです・ます調で統一してください。
+・本文だけを出力し、見出しは付けないでください。
+・架空の理由、存在しない出典、存在しない人物名は絶対に書かないでください。
+・不確かな場合は断定しないでください。
+・アスタリスク、参考番号、URLは書かないでください。
+`.trim();
+}
+
+async function generateKanjiDetail(kanji, currentReading) {
+    const resultEl = document.getElementById('ai-kanji-result');
+    if (!resultEl) return;
+
+    resultEl.innerHTML = `
+        <div class="flex items-center justify-center py-6">
+            <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
+            <span class="text-sm text-[#7a6f5a]">AIが分析中です...</span>
+        </div>
+    `;
+
+    const kanjiData = Array.isArray(master)
+        ? master.find((item) => item && item['漢字'] === kanji)
+        : null;
+
+    if (!kanjiData) {
+        resultEl.innerHTML = '<p class="text-xs text-[#f28b82]">漢字データが見つかりません。</p>';
+        return;
+    }
+
+    const meaning = typeof clean === 'function' ? clean(kanjiData['意味'] || '') : String(kanjiData['意味'] || '').trim();
+    const readings = [kanjiData['音'], kanjiData['訓'], kanjiData['伝統名のり']]
+        .map((item) => (typeof clean === 'function' ? clean(item) : String(item || '').trim()))
+        .filter(Boolean)
+        .join(' / ');
+
+    let baseText = '';
+    let readingText = '';
+
+    try {
+        let cacheHit = false;
+        if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+            const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
+            const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
+            if (cachedText) {
+                baseText = cachedText;
+                cacheHit = true;
+            }
+        }
+
+        if (!cacheHit) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const response = await fetch('/api/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning)
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            baseText = sanitizeKanjiAiText(data.text || '');
+            if (!baseText) {
+                throw new Error('AIから説明を取得できませんでした。');
+            }
+
+            if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+                await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
+                    text: baseText,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+        }
+
+        if (!isSpecialKanjiAiReading(currentReading)) {
+            resultEl.innerHTML = `
+                <div class="flex items-center justify-center py-6">
+                    <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
+                    <span class="text-sm text-[#7a6f5a]">「${currentReading}」という読みを確認しています...</span>
+                </div>
+            `;
+
+            const controller2 = new AbortController();
+            const timeoutId2 = setTimeout(() => controller2.abort(), 30000);
+            const response2 = await fetch('/api/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: buildKanjiReadingPrompt(kanji, currentReading)
+                }),
+                signal: controller2.signal
+            });
+            clearTimeout(timeoutId2);
+
+            if (response2.ok) {
+                const data2 = await response2.json();
+                const reasonText = sanitizeKanjiAiText(data2.text || '');
+                if (reasonText) {
+                    readingText = `【「${currentReading}」の由来】\n${reasonText}`;
+                }
+            }
+        }
+
+        const combinedText = [baseText, readingText].filter(Boolean).join('\n\n');
+        if (!combinedText) {
+            throw new Error('表示できる説明がありません。');
+        }
+
+        renderKanjiDetailText(resultEl, combinedText);
+    } catch (err) {
+        console.error('AI_KANJI_DETAIL:', err);
+        resultEl.innerHTML = `
+            <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82] mb-2">
+                漢字の説明を取得できませんでした。時間をおいてもう一度お試しください。
+            </div>
+        `;
+    }
+}
+
+function renderKanjiDetailText(resultEl, aiText) {
+    const normalizedText = sanitizeKanjiAiText(aiText);
+    const matches = Array.from(normalizedText.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g));
+    const iconMap = {
+        '成り立ち': '🧬',
+        '意味の深掘り': '💡',
+        '代表的な熟語': '📚'
+    };
+
+    if (!matches.length) {
+        resultEl.innerHTML = `
+            <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const html = matches.map((match) => {
+        const title = sanitizeKanjiAiText(match[1]);
+        const content = sanitizeKanjiAiText(match[2]);
+        const icon = iconMap[title] || (title.includes('由来') ? '🏷️' : '✨');
+        return `
+            <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
+                    <span>${icon}</span>
+                    ${title}
+                </div>
+                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content}</p>
+            </div>
+        `;
+    }).join('');
+
+    resultEl.innerHTML = html;
+}
+
 // Global Exports
 window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
