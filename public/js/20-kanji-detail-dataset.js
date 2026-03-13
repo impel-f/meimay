@@ -43,22 +43,36 @@
         };
     }
 
-    function getIdiomSection(kanji) {
-        if (!Array.isArray(window.idiomsData)) return null;
-        const items = [];
-        const seenWords = new Set();
+    function getExistingIdiomWordSet(kanji) {
+        const words = new Set();
+        if (!Array.isArray(window.idiomsData)) return words;
         window.idiomsData.forEach((item) => {
             const word = safeClean(item?.['漢字'] || '');
-            if (!word || !word.includes(kanji) || seenWords.has(word) || items.length >= 3) return;
-            seenWords.add(word);
-            const reading = safeClean(item?.['読み'] || '');
-            const meaning = safeClean(item?.['意味'] || '') || '意味あり';
-            items.push(reading ? `${word}（${reading}）：${meaning}` : `${word}：${meaning}`);
+            if (word && word.includes(kanji)) words.add(word);
         });
-        if (!items.length) return null;
+        return words;
+    }
+
+    function extractIdiomWord(line) {
+        return safeClean(String(line || '').split(/[（(:：]/)[0]);
+    }
+
+    function filterDuplicateRepresentativeIdioms(section, kanji) {
+        if (!section || section.title !== '代表的な熟語') return section;
+        const existingWords = getExistingIdiomWordSet(kanji);
+        if (!existingWords.size) return section;
+        const lines = String(section.text || '')
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .filter((line) => {
+                const word = extractIdiomWord(line);
+                return word && !existingWords.has(word);
+            });
+        if (!lines.length) return null;
         return {
-            title: '代表的な熟語',
-            text: items.join('\n')
+            ...section,
+            text: lines.join('\n')
         };
     }
 
@@ -70,10 +84,12 @@
         if (entry && Array.isArray(entry.sections)) {
             entry.sections.forEach((section) => {
                 if (!section?.title || !section?.text) return;
-                sections.push({
+                const normalizedSection = {
                     title: safeClean(section.title),
                     text: safeClean(section.text)
-                });
+                };
+                const dedupedSection = filterDuplicateRepresentativeIdioms(normalizedSection, kanji);
+                if (dedupedSection) sections.push(dedupedSection);
             });
         }
 
@@ -84,11 +100,6 @@
 
         const readingSection = getDatasetReadingReason(entry, currentReading);
         if (readingSection) sections.push(readingSection);
-
-        const idiomSection = getIdiomSection(kanji);
-        if (!sections.some((section) => section.title === '代表的な熟語') && idiomSection) {
-            sections.push(idiomSection);
-        }
 
         if (!sections.length) {
             sections.push({
