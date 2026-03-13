@@ -57,17 +57,22 @@
         return safeClean(String(line || '').split(/[（(:：]/)[0]);
     }
 
+    function isFourCharacterIdiom(word) {
+        return Array.from(word || '').length === 4;
+    }
+
     function filterDuplicateRepresentativeIdioms(section, kanji) {
         if (!section || section.title !== '代表的な熟語') return section;
         const existingWords = getExistingIdiomWordSet(kanji);
-        if (!existingWords.size) return section;
         const lines = String(section.text || '')
             .split('\n')
             .map((line) => line.trim())
             .filter(Boolean)
             .filter((line) => {
                 const word = extractIdiomWord(line);
-                return word && !existingWords.has(word);
+                if (!word) return false;
+                if (isFourCharacterIdiom(word)) return false;
+                return !existingWords.has(word);
             });
         if (!lines.length) return null;
         return {
