@@ -1,5 +1,5 @@
 (function () {
-    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.13';
+    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.14';
     const SPECIAL_SESSION_READINGS = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
     let datasetPromise = null;
     let kanjiDetailDataset = {};
@@ -30,18 +30,16 @@
         };
     }
 
-    function getReadingSection(kanjiRow, currentReading) {
+    function getDatasetReadingReason(entry, currentReading) {
         const reading = safeClean(currentReading);
         if (!reading || SPECIAL_SESSION_READINGS.has(reading)) return null;
-        const allReadings = [
-            ...splitReadings(kanjiRow?.['音']),
-            ...splitReadings(kanjiRow?.['訓']),
-            ...splitReadings(kanjiRow?.['名乗り・人名訓'])
-        ];
-        if (!allReadings.includes(reading)) return null;
+        const reasonMap = entry?.readingReasons;
+        if (!reasonMap || typeof reasonMap !== 'object') return null;
+        const reasonText = safeClean(reasonMap[reading] || '');
+        if (!reasonText) return null;
         return {
-            title: `「${reading}」という読み`,
-            text: `アプリ内の読みデータに「${reading}」が含まれています。`
+            title: `「${reading}」と読む理由`,
+            text: reasonText
         };
     }
 
@@ -53,11 +51,13 @@
             const word = safeClean(item?.['漢字'] || '');
             if (!word || !word.includes(kanji) || seenWords.has(word) || items.length >= 3) return;
             seenWords.add(word);
-            items.push(`${word}：${safeClean(item?.['意味'] || '') || '意味あり'}`);
+            const reading = safeClean(item?.['読み'] || '');
+            const meaning = safeClean(item?.['意味'] || '') || '意味あり';
+            items.push(reading ? `${word}（${reading}）：${meaning}` : `${word}：${meaning}`);
         });
         if (!items.length) return null;
         return {
-            title: '用例',
+            title: '代表的な熟語',
             text: items.join('\n')
         };
     }
@@ -82,11 +82,13 @@
             if (meaningSection) sections.push(meaningSection);
         }
 
-        const readingSection = getReadingSection(kanjiRow, currentReading);
+        const readingSection = getDatasetReadingReason(entry, currentReading);
         if (readingSection) sections.push(readingSection);
 
         const idiomSection = getIdiomSection(kanji);
-        if (idiomSection) sections.push(idiomSection);
+        if (!sections.some((section) => section.title === '代表的な熟語') && idiomSection) {
+            sections.push(idiomSection);
+        }
 
         if (!sections.length) {
             sections.push({
@@ -95,7 +97,14 @@
             });
         }
 
-        return sections;
+        const order = ['成り立ち', '意味の深掘り', '代表的な熟語'];
+        return sections.sort((a, b) => {
+            const aIndex = order.indexOf(a.title);
+            const bIndex = order.indexOf(b.title);
+            const safeA = aIndex === -1 ? order.length : aIndex;
+            const safeB = bIndex === -1 ? order.length : bIndex;
+            return safeA - safeB;
+        });
     }
 
     async function loadKanjiDetailDataset() {
@@ -133,7 +142,7 @@
         const iconMap = {
             '成り立ち': '📜',
             '意味の深掘り': '💡',
-            '用例': '📚'
+            '代表的な熟語': '📚'
         };
 
         const html = sections.map((section) => {
