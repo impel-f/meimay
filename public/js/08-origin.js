@@ -366,11 +366,39 @@ function sanitizeKanjiAiText(text) {
         .trim();
 }
 
+function normalizeKanjiDetailTitle(title) {
+    const normalized = sanitizeKanjiAiText(title);
+    if (normalized === '入力情報' || normalized === '基本情報') return '';
+    return normalized;
+}
+
+function formatRepresentativeIdiomContent(content) {
+    return sanitizeKanjiAiText(content)
+        .split('\n')
+        .map((line) => sanitizeKanjiAiText(line).replace(/^[・\-•●]+/, ''))
+        .filter(Boolean)
+        .map((line) => {
+            const match = line.match(/^(.+?)（(.+?)）[:：]\s*(.+)$/);
+            if (match) {
+                const word = sanitizeKanjiAiText(match[1]);
+                const reading = sanitizeKanjiAiText(match[2]);
+                let meaning = sanitizeKanjiAiText(match[3]);
+                if (meaning && !/[。.!！?？]$/.test(meaning)) meaning += '。';
+                return `・${word}（${reading}）：${meaning}`;
+            }
+            let normalizedLine = line;
+            if (!normalizedLine.startsWith('・')) normalizedLine = `・${normalizedLine}`;
+            if (!/[。.!！?？]$/.test(normalizedLine)) normalizedLine += '。';
+            return normalizedLine;
+        })
+        .join('\n');
+}
+
 function buildKanjiDetailPrompt(kanji, readings, meaning) {
     return `
 漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
 
-【基本情報】
+【入力情報】
 読み: ${readings || '不明'}
 意味: ${meaning || '不明'}
 
@@ -388,9 +416,12 @@ function buildKanjiDetailPrompt(kanji, readings, meaning) {
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
-・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。
+・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
+・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
+・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・四字熟語、故事成語、ことわざは書かないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
+・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
 `.trim();
 }
@@ -406,6 +437,33 @@ function buildKanjiReadingPrompt(kanji, currentReading) {
 ・不確かな場合は断定しないでください。
 ・アスタリスク、参考番号、URLは書かないでください。
 `.trim();
+}
+
+async function resetKanjiDetailCache(kanji, currentReading) {
+    if (typeof firebaseDb === 'undefined' || !firebaseDb) {
+        alert('キャッシュをリセットできませんでした。');
+        return false;
+    }
+
+    try {
+        await firebaseDb.collection('kanji_ai_explanations').doc(kanji).delete();
+    } catch (error) {
+        console.warn('KANJI_DETAIL_RESET: base cache delete failed', error);
+    }
+
+    if (!isSpecialKanjiAiReading(currentReading)) {
+        const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
+        try {
+            await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).delete();
+        } catch (error) {
+            console.warn('KANJI_DETAIL_RESET: reading cache delete failed', error);
+        }
+    }
+
+    const resultEl = document.getElementById('ai-kanji-result');
+    if (resultEl) resultEl.innerHTML = '';
+    alert('漢字の深掘りキャッシュをリセットしました。');
+    return true;
 }
 
 async function generateKanjiDetail(kanji, currentReading) {
@@ -563,8 +621,12 @@ function renderKanjiDetailText(resultEl, aiText) {
     }
 
     const html = matches.map((match) => {
-        const title = sanitizeKanjiAiText(match[1]);
-        const content = sanitizeKanjiAiText(match[2]);
+        const title = normalizeKanjiDetailTitle(match[1]);
+        let content = sanitizeKanjiAiText(match[2]);
+        if (!title || !content) return '';
+        if (title === '代表的な熟語') {
+            content = formatRepresentativeIdiomContent(content);
+        }
         const icon = iconMap[title] || (title.includes('由来') ? '🏷️' : '✨');
         return `
             <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
@@ -584,6 +646,7 @@ function renderKanjiDetailText(resultEl, aiText) {
 window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
 window.renderKanjiDetailText = renderKanjiDetailText;
+window.resetKanjiDetailCache = resetKanjiDetailCache;
 window.closeOriginModal = closeOriginModal;
 window.copyOriginToClipboard = copyOriginToClipboard;
 

@@ -477,7 +477,7 @@ async function showKanjiDetail(data) {
     aiSection.id = 'btn-ai-kanji-detail';
     aiSection.className = 'mb-4';
     aiSection.innerHTML = `
-        <button onclick="generateKanjiDetail('${data['漢字']}', ${currentReadingForAI ? `'${currentReadingForAI}'` : 'null'})"
+        <button id="btn-ai-kanji-detail-action" onclick="generateKanjiDetail('${data['漢字']}', ${currentReadingForAI ? `'${currentReadingForAI}'` : 'null'})"
                 class="w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
             <span>🤖</span> AIで漢字の成り立ち・意味を深掘り
         </button>
@@ -488,6 +488,41 @@ async function showKanjiDetail(data) {
     const yojiWrapperAi = yojijukugoEl.parentNode;
     if (yojiWrapperAi && yojiWrapperAi.parentNode) {
         yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
+    }
+
+    const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
+    if (aiActionButton) {
+        let longPressTimer = null;
+        let longPressTriggered = false;
+        const clearLongPress = () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        };
+        const startLongPress = () => {
+            clearLongPress();
+            longPressTriggered = false;
+            longPressTimer = setTimeout(async () => {
+                longPressTriggered = true;
+                if (typeof resetKanjiDetailCache === 'function') {
+                    await resetKanjiDetailCache(data['漢字'], currentReadingForAI);
+                }
+            }, 5000);
+        };
+
+        aiActionButton.addEventListener('mousedown', startLongPress);
+        aiActionButton.addEventListener('touchstart', startLongPress, { passive: true });
+        aiActionButton.addEventListener('mouseup', clearLongPress);
+        aiActionButton.addEventListener('mouseleave', clearLongPress);
+        aiActionButton.addEventListener('touchend', clearLongPress);
+        aiActionButton.addEventListener('touchcancel', clearLongPress);
+        aiActionButton.addEventListener('click', (event) => {
+            if (!longPressTriggered) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            longPressTriggered = false;
+        }, true);
     }
 
     // 四字熟語・ことわざ表示
