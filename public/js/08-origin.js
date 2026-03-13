@@ -366,6 +366,25 @@ function sanitizeKanjiAiText(text) {
         .trim();
 }
 
+const KANJI_DETAIL_GROUNDED_HINTS = {
+    '舵': {
+        promptContext: '検証済みメモ: 「舵」は形声字として扱い、漢字構成は「舟」と「它」です。右側のつくりは「朶」でも「巴」でもありません。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
+        requiredKeywords: ['舟', '它']
+    }
+};
+
+function getKanjiDetailGroundedHint(kanji) {
+    return KANJI_DETAIL_GROUNDED_HINTS[kanji] || null;
+}
+
+function cachedKanjiDetailMatchesHint(text, groundedHint) {
+    if (!groundedHint || !Array.isArray(groundedHint.requiredKeywords) || !groundedHint.requiredKeywords.length) {
+        return true;
+    }
+    const normalizedText = sanitizeKanjiAiText(text);
+    return groundedHint.requiredKeywords.every((keyword) => normalizedText.includes(keyword));
+}
+
 function normalizeKanjiDetailTitle(title) {
     const normalized = sanitizeKanjiAiText(title);
     if (normalized === '入力情報' || normalized === '基本情報') return '';
@@ -394,13 +413,14 @@ function formatRepresentativeIdiomContent(content) {
         .join('\n');
 }
 
-function buildKanjiDetailPrompt(kanji, readings, meaning) {
+function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
     return `
 漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
 
 【入力情報】
 読み: ${readings || '不明'}
 意味: ${meaning || '不明'}
+${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
 
 以下の各セクションを【】で区切って回答してください。
 
@@ -423,6 +443,7 @@ function buildKanjiDetailPrompt(kanji, readings, meaning) {
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
+・検証済み情報が与えられている場合は、必ずそれに従ってください。勝手に別の部品へ言い換えないでください。
 `.trim();
 }
 
@@ -491,6 +512,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         .map((item) => (typeof clean === 'function' ? clean(item) : String(item || '').trim()))
         .filter(Boolean)
         .join(' / ');
+    const groundedHint = getKanjiDetailGroundedHint(kanji);
 
     let baseText = '';
     let readingText = '';
@@ -500,7 +522,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         if (typeof firebaseDb !== 'undefined' && firebaseDb) {
             const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
             const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
-            if (cachedText) {
+            if (cachedText && cachedKanjiDetailMatchesHint(cachedText, groundedHint)) {
                 baseText = cachedText;
                 cacheHit = true;
             }
@@ -513,7 +535,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning)
+                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint)
                 }),
                 signal: controller.signal
             });
