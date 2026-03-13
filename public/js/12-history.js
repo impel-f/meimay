@@ -376,6 +376,14 @@ function groupEncounteredItemsByDay(items) {
     return groups;
 }
 
+function normalizeEncounteredReadingText(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw
+        .replace(/[ァ-ヶ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
+        .replace(/[^ぁ-ゖーゝゞ]/g, '');
+}
+
 function renderEncounteredStateBadge({ isLiked = false, isMatched = false, isNope = false }) {
     if (isLiked) {
         return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#fde8e5] px-1 text-[10px] font-black text-[#dd7d73]">❤️</span>';
@@ -592,32 +600,25 @@ function renderEncounteredLibrary() {
                     <div class="text-[11px] font-bold text-[#a6967a] px-1 mb-2">${escapeEncounteredHtml(group.label)}</div>
                     <div class="grid grid-cols-2 gap-2">
                         ${group.items.map(item => {
+                            const displayReading = normalizeEncounteredReadingText(item.reading);
+                            if (!displayReading) return '';
                             const isStocked = typeof getReadingStock === 'function'
-                                ? getReadingStock().some(stockItem => stockItem.reading === item.reading)
+                                ? getReadingStock().some(stockItem => stockItem.reading === displayReading || stockItem.reading === item.reading)
                                 : false;
-                            const isMatched = false;
                             const isNope = !isStocked && item.lastAction === 'nope';
-                            const tags = Array.isArray(item.tags) ? item.tags.slice(0, 2) : [];
-                            const examples = Array.isArray(item.examples) ? item.examples.slice(0, 2) : [];
-                            const subline = examples.length > 0
-                                ? examples.map(escapeEncounteredHtml).join(' ・ ')
-                                : (tags.length > 0 ? tags.map(escapeEncounteredHtml).join(' ') : '');
-                            const toneClass = isMatched
-                                ? 'border-[#e7d39b] bg-[#fff9ec]'
-                                : isStocked
-                                    ? 'border-[#f2b2b2] bg-[#fff1f1]'
-                                    : isNope
-                                        ? 'border-[#ddd6ca] bg-[#fbfaf8]'
-                                        : 'border-[#eee5d8] bg-[#fdfaf5]';
+                            const toneClass = isStocked
+                                ? 'border-[#f2b2b2] bg-[#fff1f1]'
+                                : isNope
+                                    ? 'border-[#ddd6ca] bg-[#fbfaf8]'
+                                    : 'border-[#eee5d8] bg-[#fdfaf5]';
 
                             return `
                                 <button
                                     onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')"
-                                    class="relative min-h-[84px] rounded-2xl border px-3 py-2.5 text-left shadow-sm transition-all active:scale-95 ${toneClass}">
-                                    ${renderEncounteredStateBadge({ isLiked: isStocked, isMatched, isNope })}
+                                    class="relative min-h-[68px] rounded-xl border px-3 py-2 text-left shadow-sm transition-all active:scale-95 ${toneClass}">
+                                    ${renderEncounteredStateBadge({ isLiked: isStocked, isMatched: false, isNope })}
                                     <div class="pr-5">
-                                        <div class="text-[17px] font-black text-[#5d5444] truncate">${escapeEncounteredHtml(item.reading)}</div>
-                                        <div class="mt-0.5 text-[10px] leading-tight text-[#8b7e66] min-h-[20px]">${subline}</div>
+                                        <div class="text-[18px] font-black leading-none text-[#5d5444] truncate">${escapeEncounteredHtml(displayReading)}</div>
                                     </div>
                                 </button>
                             `;
@@ -712,12 +713,15 @@ function stockEncounteredReading(key) {
         : { readings: [] };
     const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
     if (!item || !item.reading) return;
+    const normalizedReading = normalizeEncounteredReadingText(item.reading);
+    if (!normalizedReading) return;
 
     if (typeof addReadingToStock === 'function') {
-        addReadingToStock(item.reading, item.reading, Array.isArray(item.tags) ? item.tags : []);
+        addReadingToStock(normalizedReading, normalizedReading, Array.isArray(item.tags) ? item.tags : []);
     }
     if (typeof noped !== 'undefined') {
         noped.delete(item.reading);
+        noped.delete(normalizedReading);
         if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNoped === 'function') {
             StorageBox.saveNoped();
         }
@@ -736,8 +740,10 @@ function useEncounteredReading(key) {
         : { readings: [] };
     const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
     if (!item || !item.reading) return;
+    const normalizedReading = normalizeEncounteredReadingText(item.reading);
+    if (!normalizedReading) return;
     if (typeof proceedWithSoundReading === 'function') {
-        proceedWithSoundReading(item.reading);
+        proceedWithSoundReading(normalizedReading);
     }
 }
 
