@@ -1014,31 +1014,34 @@
         </div>
     </div>
 
-    <div id="scr-stock" class="screen" style="padding-top: 48px;">
-        <div class="w-full max-w-md px-4 pt-0 mx-auto">
-            <!-- タブと共有ボタン -->
-            <div class="flex justify-between items-end border-b border-[#eee5d8] mb-4 pt-4">
-                <div class="flex flex-1" id="stock-tabs">
-                    <button onclick="switchStockTab('kanji')" id="stock-tab-kanji"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">漢字</button>
-                    <button onclick="switchStockTab('reading')" id="stock-tab-reading"
-                        class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">読み</button>
+    <div id="scr-stock" class="screen bg-[#fdfaf5]" style="padding-top: 48px;">
+        <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1">
+            <div class="sticky top-0 z-30 -mx-4 px-4 pt-2 pb-3 bg-[#fdfaf5] border-b border-[#efe6d9] shadow-[0_1px_0_0_rgba(212,197,175,0.2)]">
+                <div class="flex justify-between items-end gap-3">
+                    <div class="flex flex-1" id="stock-tabs">
+                        <button onclick="switchStockTab('kanji')" id="stock-tab-kanji"
+                            class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]">漢字</button>
+                        <button onclick="switchStockTab('reading')" id="stock-tab-reading"
+                            class="flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]">読み</button>
+                    </div>
+                    <button onclick="MeimayShare.shareLiked()"
+                        class="partner-share-btn hidden mb-2 px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
+                        <span>📤</span> 共有
+                    </button>
                 </div>
-                <button onclick="MeimayShare.shareLiked()"
-                    class="partner-share-btn hidden ml-3 mb-2 px-4 py-1.5 bg-[#bca37f] text-white rounded-full text-xs font-bold hover:bg-[#8b7e66] transition-all whitespace-nowrap shadow-sm flex items-center gap-1 active:scale-95">
-                    <span>📤</span> 共有
-                </button>
             </div>
-            <!-- 漢字ストック -->
-            <div id="stock-kanji-panel">
-                <div id="stock-list" class="grid grid-cols-5 gap-2 pb-40"></div>
-            </div>
-            <!-- 読みストック -->
-            <div id="reading-stock-panel" class="hidden">
-                <div id="reading-stock-section"></div>
-                <div id="reading-stock-empty" class="text-center py-16 hidden">
-                    <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
-                    <p class="text-sm text-[#a6967a]">響きをひろげるで読みを選びましょう</p>
+            <div class="flex-1">
+                <!-- 漢字ストック -->
+                <div id="stock-kanji-panel">
+                    <div id="stock-list" class="grid grid-cols-5 gap-2 pb-40 pt-3"></div>
+                </div>
+                <!-- 読みストック -->
+                <div id="reading-stock-panel" class="hidden pt-3">
+                    <div id="reading-stock-section"></div>
+                    <div id="reading-stock-empty" class="text-center py-16 hidden">
+                        <p class="text-[#bca37f] italic text-lg mb-2">読みストックはまだありません</p>
+                        <p class="text-sm text-[#a6967a]">響きをひろげるで読みを選びましょう</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1761,7 +1764,7 @@
         </div>
     </div>
 
-    <div id="scr-encountered" class="screen">
+    <div id="scr-encountered" class="screen bg-[#fdfaf5]" style="padding-top: 48px;">
         <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1">
             <div class="sticky top-0 z-30 -mx-4 px-4 pt-2 pb-3 bg-[#fdfaf5] border-b border-[#efe6d9] shadow-[0_1px_0_0_rgba(212,197,175,0.2)]">
                 <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm">
@@ -1781,6 +1784,8 @@
             </div>
         </div>
     </div>
+
+    <div id="modal-encountered-reading-actions" class="overlay"></div>
 
     <!-- AI響き分析モーダル -->
     <div id="modal-ai-sound" class="overlay"></div>
@@ -1842,7 +1847,7 @@
     <script src="/js/01-core.js?v=25.11"></script>
     <script src="/js/02-engine.js?v=25.11"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-    <script src="/js/04-ui-flow.js?v=25.11"></script>
+    <script src="/js/04-ui-flow.js?v=25.12"></script>
     <script src="/js/05-ui-render.js?v=25.19"></script>
     <script src="/js/06-ui-physics.js?v=25.11"></script>
     <script src="/js/07-build.js?v=25.11"></script>
@@ -1850,7 +1855,7 @@
     <script src="/js/09-storage.js?v=25.11"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.11"></script>
-    <script src="/js/12-history.js?v=25.12"></script>
+    <script src="/js/12-history.js?v=25.13"></script>
     <script src="/js/13-drawer-wizard.js?v=25.11"></script>
     <script src="/js/14-admob.js?v=25.11"></script>
     <script src="/js/15-firebase.js?v=25.11"></script>

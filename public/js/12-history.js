@@ -328,6 +328,7 @@ function openReadingHistory() {
 }
 
 let currentEncounteredTab = 'kanji';
+let currentEncounteredReadingActionKey = '';
 
 function openEncounteredLibrary(tab = 'kanji') {
     currentEncounteredTab = tab === 'reading' ? 'reading' : 'kanji';
@@ -630,6 +631,55 @@ function renderEncounteredLibrary() {
     `;
 }
 
+function closeEncounteredReadingActionModal() {
+    currentEncounteredReadingActionKey = '';
+    const modal = document.getElementById('modal-encountered-reading-actions');
+    if (!modal) return;
+    modal.className = 'overlay';
+    modal.onclick = null;
+    modal.innerHTML = '';
+}
+
+function openEncounteredReadingActionModal(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
+    if (!item || !item.reading) return;
+
+    const normalizedReading = normalizeEncounteredReadingText(item.reading);
+    if (!normalizedReading) return;
+
+    const modal = document.getElementById('modal-encountered-reading-actions');
+    if (!modal) return;
+
+    currentEncounteredReadingActionKey = item.key || item.reading;
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeEncounteredReadingActionModal();
+    };
+    modal.innerHTML = `
+        <div class="modal-sheet w-11/12 max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeEncounteredReadingActionModal()">✕</button>
+            <h3 class="modal-title">「${escapeEncounteredHtml(normalizedReading)}」をどうしますか？</h3>
+            <div class="modal-body">
+                <div class="space-y-3">
+                    <button onclick="searchEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl bg-[#bca37f] text-white text-sm font-black shadow-sm active:scale-95">
+                        漢字を探す
+                    </button>
+                    <button onclick="stockEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl border-2 border-[#d4c5af] bg-white text-[#5d5444] text-sm font-black active:scale-95">
+                        読みストックにためる
+                    </button>
+                    <button onclick="closeEncounteredReadingActionModal()" class="w-full py-3 text-xs font-bold text-[#a6967a] active:scale-95">
+                        戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
 function openEncounteredKanjiDetail(key) {
     const library = typeof getEncounteredLibrary === 'function'
         ? getEncounteredLibrary()
@@ -734,14 +784,27 @@ function stockEncounteredReading(key) {
     if (typeof showToast === 'function') showToast('読みストックに追加しました', '📖');
 }
 
+function stockEncounteredReadingFromModal() {
+    if (!currentEncounteredReadingActionKey) return;
+    const key = currentEncounteredReadingActionKey;
+    closeEncounteredReadingActionModal();
+    stockEncounteredReading(key);
+}
+
 function useEncounteredReading(key) {
+    openEncounteredReadingActionModal(key);
+}
+
+function searchEncounteredReadingFromModal() {
     const library = typeof getEncounteredLibrary === 'function'
         ? getEncounteredLibrary()
         : { readings: [] };
+    const key = currentEncounteredReadingActionKey;
     const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
     if (!item || !item.reading) return;
     const normalizedReading = normalizeEncounteredReadingText(item.reading);
     if (!normalizedReading) return;
+    closeEncounteredReadingActionModal();
     if (typeof proceedWithSoundReading === 'function') {
         proceedWithSoundReading(normalizedReading);
     }
@@ -1270,6 +1333,10 @@ window.openEncounteredKanjiDetail = openEncounteredKanjiDetail;
 window.likeEncounteredKanji = likeEncounteredKanji;
 window.stockEncounteredReading = stockEncounteredReading;
 window.useEncounteredReading = useEncounteredReading;
+window.openEncounteredReadingActionModal = openEncounteredReadingActionModal;
+window.closeEncounteredReadingActionModal = closeEncounteredReadingActionModal;
+window.stockEncounteredReadingFromModal = stockEncounteredReadingFromModal;
+window.searchEncounteredReadingFromModal = searchEncounteredReadingFromModal;
 window.showSavedNameDetail = showSavedNameDetail;
 window.closeSavedNameDetail = closeSavedNameDetail;
 window.showKanjiDetailFromSaved = showKanjiDetailFromSaved;

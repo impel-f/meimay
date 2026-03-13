@@ -6010,7 +6010,7 @@ function renderReadingStockSection() {
 
     if (visibleCompleted.length > 0) {
         html += `<div class="mb-6">
-            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">読み終えた読み</div>
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字を選んだ読み</div>
             <div class="space-y-2">`;
 
         visibleCompleted.forEach(reading => {
