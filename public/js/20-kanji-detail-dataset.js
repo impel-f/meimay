@@ -1,5 +1,5 @@
 (function () {
-    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.14';
+    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.17';
     const SPECIAL_SESSION_READINGS = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
     let datasetPromise = null;
     let kanjiDetailDataset = {};
@@ -142,11 +142,15 @@
         return datasetPromise;
     }
 
+    function buildLegacyText(sections) {
+        return sections
+            .map((section) => `【${section.title}】\n${section.text}`)
+            .join('\n\n');
+    }
+
     function renderSections(resultEl, sections) {
         if (typeof renderKanjiDetailText === 'function') {
-            const legacyText = sections
-                .map((section) => `【${section.title}】\n${section.text}`)
-                .join('\n\n');
+            const legacyText = buildLegacyText(sections);
             try {
                 renderKanjiDetailText(resultEl, legacyText);
                 return;
@@ -189,7 +193,12 @@
         `;
 
         await loadKanjiDetailDataset();
-        renderSections(resultEl, buildSections(kanji, currentReading));
+        const sections = buildSections(kanji, currentReading);
+        renderSections(resultEl, sections);
+
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveKanjiAiCache === 'function') {
+            StorageBox.saveKanjiAiCache(kanji, buildLegacyText(sections));
+        }
     }
 
     function clearLegacyResult() {
