@@ -200,6 +200,9 @@ async function generateKanjiDetail(kanji, currentReading) {
 
     let baseText = '';
     let readingText = '';
+    const readingCacheId = !isSpecialKanjiAiReading(currentReading)
+        ? encodeURIComponent(`${kanji}__${currentReading}`)
+        : '';
 
     try {
         // 1. 基本解説のキャッシュ確認 (Firestore)
@@ -484,23 +487,43 @@ async function generateKanjiDetail(kanji, currentReading) {
                 </div>
             `;
 
-            const controller2 = new AbortController();
-            const timeoutId2 = setTimeout(() => controller2.abort(), 30000);
-            const response2 = await fetch('/api/gemini', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: buildKanjiReadingPrompt(kanji, currentReading)
-                }),
-                signal: controller2.signal
-            });
-            clearTimeout(timeoutId2);
+            let readingCacheHit = false;
+            if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
+                const readingDoc = await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get();
+                const cachedReason = sanitizeKanjiAiText(readingDoc.exists ? readingDoc.data()?.text : '');
+                if (cachedReason) {
+                    readingText = `【「${currentReading}」の由来】\n${cachedReason}`;
+                    readingCacheHit = true;
+                }
+            }
 
-            if (response2.ok) {
-                const data2 = await response2.json();
-                const reasonText = sanitizeKanjiAiText(data2.text || '');
-                if (reasonText) {
-                    readingText = `【「${currentReading}」の由来】\n${reasonText}`;
+            if (!readingCacheHit) {
+                const controller2 = new AbortController();
+                const timeoutId2 = setTimeout(() => controller2.abort(), 30000);
+                const response2 = await fetch('/api/gemini', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        prompt: buildKanjiReadingPrompt(kanji, currentReading)
+                    }),
+                    signal: controller2.signal
+                });
+                clearTimeout(timeoutId2);
+
+                if (response2.ok) {
+                    const data2 = await response2.json();
+                    const reasonText = sanitizeKanjiAiText(data2.text || '');
+                    if (reasonText) {
+                        readingText = `【「${currentReading}」の由来】\n${reasonText}`;
+                        if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
+                            await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).set({
+                                kanji,
+                                reading: currentReading,
+                                text: reasonText,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        }
+                    }
                 }
             }
         }
