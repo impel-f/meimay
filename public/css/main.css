@@ -61,6 +61,11 @@ body {
     transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#scr-stock,
+#scr-encountered {
+    overflow-y: hidden !important;
+}
+
 .screen.active {
     display: flex !important;
     opacity: 1;
