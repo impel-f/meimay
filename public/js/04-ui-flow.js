@@ -4981,7 +4981,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
     const topLine = preview.ruby && preview.ruby !== item.reading
-        ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide">${preview.ruby}</div>`
+        ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide text-center">${preview.ruby}</div>`
         : '';
 
     return `
@@ -4990,9 +4990,11 @@ function renderReadingSwipeCard(item) {
         ${renderReadingTagBadges(item.tags)}
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full mt-2">
-            <p class="text-[10px] text-white/90 text-center mb-3 font-bold tracking-[0.08em] drop-shadow-[0_1px_2px_rgba(93,84,68,0.22)]">漢字の例</p>
-            <div class="flex justify-center flex-wrap gap-2 text-white font-bold text-base px-6 drop-shadow-[0_1px_2px_rgba(93,84,68,0.22)]">
-                ${getSampleKanjiHtml(item)}
+            <div class="mx-auto max-w-[286px] rounded-[26px] border border-white/75 px-4 py-3">
+                <p class="text-[10px] text-[#fffdf8] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#fffdf8] font-bold text-base px-2">
+                    ${getSampleKanjiHtml(item)}
+                </div>
             </div>
         </div>
         </div>
@@ -5031,8 +5033,8 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
             </div>
             ${renderReadingTagBadges(item.tags || [])}
             <div class="flex gap-2 mb-4">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">読みをライク</button>
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="w-full py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">読みをSUPER</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♡</span> LIKE</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>⭐</span> SUPER</button>
             </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
