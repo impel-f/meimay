@@ -505,12 +505,15 @@
             <p class="label-mini mb-2">名前の読み（ひらがな）</p>
             <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2" style="font-size:1.7rem; padding:10px 0;">
 
-            <div id="reading-stock-picker" class="hidden mb-4">
+            <div id="reading-stock-picker" class="hidden mb-4 relative">
                 <button onclick="toggleReadingStockPicker()"
                     class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
                     <span id="reading-stock-picker-label">📖 ストックから選ぶ</span>
-                    <span id="reading-stock-picker-arrow">↗</span>
+                    <span id="reading-stock-picker-arrow">▼</span>
                 </button>
+                <div id="reading-stock-picker-list"
+                    class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-[#eee5d8] rounded-2xl overflow-hidden shadow-xl z-[60] max-h-56 overflow-y-auto">
+                </div>
             </div>
 
             <div class="rule-box text-left space-y-4 mb-4 px-4 py-4">
@@ -1858,9 +1861,9 @@
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
     <script src="/js/01-core.js?v=25.11"></script>
-    <script src="/js/02-engine.js?v=25.12"></script>
+    <script src="/js/02-engine.js?v=25.13"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-    <script src="/js/04-ui-flow.js?v=25.17"></script>
+    <script src="/js/04-ui-flow.js?v=25.18"></script>
     <script src="/js/05-ui-render.js?v=25.19"></script>
     <script src="/js/06-ui-physics.js?v=25.11"></script>
     <script src="/js/07-build.js?v=25.18"></script>

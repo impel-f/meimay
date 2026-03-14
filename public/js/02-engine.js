@@ -6,6 +6,77 @@
 /**
  * 読みの分割パターンを計算
  */
+function isInvalidReadingSegment(part) {
+    if (!part) return true;
+    if (/^[んぁぃぅぇぉゃゅょゎっ]/.test(part)) return true;
+    return false;
+}
+
+function splitReadingIntoMoraUnits(rawReading) {
+    const nameReading = toHira((rawReading || '').trim());
+    const units = [];
+    Array.from(nameReading).forEach((char) => {
+        if (/^[ゃゅょぁぃぅぇぉゎ]$/.test(char) && units.length > 0) {
+            units[units.length - 1] += char;
+        } else {
+            units.push(char);
+        }
+    });
+    return units;
+}
+
+function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
+    const units = splitReadingIntoMoraUnits(rawReading);
+    if (!units.length) return [];
+
+    const candidates = [];
+    const pushPath = (path) => {
+        if (!Array.isArray(path) || path.length === 0 || path.length > 3) return;
+        if (path.some(isInvalidReadingSegment)) return;
+        candidates.push(path);
+    };
+
+    pushPath([units.join('')]);
+
+    for (let i = 1; i < units.length; i++) {
+        pushPath([units.slice(0, i).join(''), units.slice(i).join('')]);
+    }
+
+    for (let i = 1; i < units.length - 1; i++) {
+        for (let j = i + 1; j < units.length; j++) {
+            pushPath([
+                units.slice(0, i).join(''),
+                units.slice(i, j).join(''),
+                units.slice(j).join('')
+            ]);
+        }
+    }
+
+    const scored = candidates.map((path) => {
+        let score = 0;
+        if (path.length === 2) score += 2000;
+        else if (path.length === 3) score += 1800;
+        else score += 400;
+        path.forEach((segment) => {
+            if (segment.length === 2) score += 450;
+            else if (segment.length === 3) score += 320;
+            else if (segment.length === 1) score += 80;
+        });
+        return { path, score };
+    }).sort((a, b) => b.score - a.score);
+
+    const uniquePaths = [];
+    const seenSet = new Set();
+    scored.forEach(({ path }) => {
+        const key = JSON.stringify(path);
+        if (!seenSet.has(key)) {
+            seenSet.add(key);
+            uniquePaths.push(path);
+        }
+    });
+    return uniquePaths.slice(0, limit);
+}
+
 function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const nameReading = toHira((rawReading || '').trim());
     if (!nameReading || !/^[ぁ-ん]+$/.test(nameReading)) {
@@ -29,6 +100,7 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
 
         for (let i = 1; i <= Math.min(3, remaining.length); i++) {
             const part = remaining.slice(0, i);
+            if (isInvalidReadingSegment(part)) continue;
             const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
             const partSokuon = part.replace(/っ$/, 'つ');
             if (!useStrictMatching || (validReadingsSet && (
@@ -88,7 +160,7 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     });
 
     if (uniquePaths.length === 0 && allowFallback) {
-        uniquePaths.push(nameReading.split(''));
+        return getFallbackReadingSegmentPaths(nameReading, limit);
     }
 
     return uniquePaths.slice(0, limit);
@@ -195,6 +267,7 @@ function calcSegments() {
         // 1〜3文字ずつ試行
         for (let i = 1; i <= Math.min(3, remaining.length); i++) {
             let part = remaining.slice(0, i);
+            if (isInvalidReadingSegment(part)) continue;
 
             // 辞書に存在する読みかチェック（柔軟モードなら全ての分割を許容、ただし辞書にあるものを優先するロジックは別途必要だが、ここでは簡易的にチェックパス）
             // 修正：柔軟モードでもデタラメな分割は避けたいが、辞書にない読み（人名特有の読みなど）がある場合は許可する必要がある。
@@ -274,16 +347,9 @@ function calcSegments() {
 
     console.log(`ENGINE: ${uniquePaths.length} unique patterns after dedup`);
 
-    const charSplit = nameReading.split('');
-    const charSplitKey = JSON.stringify(charSplit);
-
-    // 結果なしの場合、1文字ずつの分割を強制追加
     if (uniquePaths.length === 0) {
-        uniquePaths.push(charSplit);
-        console.log("ENGINE: No patterns found, using character split");
-    } else if (charSplit.length > 1 && !seenSet.has(charSplitKey)) {
-        // 「1文字ずつ探す」の画面では、完全な1文字分割も必ず候補に残す
-        uniquePaths.unshift(charSplit);
+        uniquePaths.push(...getFallbackReadingSegmentPaths(nameReading, 8));
+        console.log("ENGINE: No strict patterns found, using natural fallback");
     }
 
     const compoundOptions = typeof getCompoundReadingOptions === 'function'
@@ -307,7 +373,7 @@ function calcSegments() {
 
     uniquePaths.forEach((path, idx) => {
         const btn = document.createElement('button');
-        btn.className = "w-full py-6 bg-white text-[#5d5444] font-black rounded-[40px] border-2 border-[#fdfaf5] shadow-sm transition-all text-xl mb-4 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
+        btn.className = "w-[92%] mx-auto py-5 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all text-xl mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
 
         const displayParts = path.map(p =>
             `<span class="px-2">${p}</span>`
@@ -317,7 +383,7 @@ function calcSegments() {
         btn.onclick = () => selectSegment(path);
 
         if (idx === 0) {
-            btn.classList.add('border-[#bca37f]');
+            btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
         }
 
         normalSection.appendChild(btn);
@@ -331,7 +397,7 @@ function calcSegments() {
 
         compoundOptions.forEach((option, idx) => {
             const btn = document.createElement('button');
-            btn.className = "w-full mb-3 rounded-[34px] border border-[#eadfce] bg-[#fffaf5] px-5 py-4 text-left shadow-sm transition-all hover:border-[#bca37f] hover:shadow-md active:scale-[0.99]";
+            btn.className = "w-[92%] mx-auto mb-3 rounded-[34px] border border-[#eadfce] bg-[#fffaf4] px-5 py-4 text-left shadow-sm transition-all hover:border-[#bca37f] hover:shadow-md active:scale-[0.99]";
             btn.innerHTML = `
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
