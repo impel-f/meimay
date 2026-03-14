@@ -860,16 +860,31 @@ const READING_CARD_GENDER_BORDERS = {
 
 const readingKanjiCache = new Map();
 let readingCombinationModalState = null;
+let readingCombinationModalOpenedAt = 0;
+
+function getReadingTonePalette(reading) {
+    const firstMora = splitReadingIntoMoraUnits(reading || '')[0] || '';
+    const firstKana = Array.from(firstMora)[0] || '';
+    const vowel = (typeof getVowelPattern === 'function' ? getVowelPattern(firstKana) : '') || '';
+    const key = vowel.charAt(0) || 'n';
+    const palettes = {
+        a: { base: '#fbf1ea', mid: '#f7ede5', accent: '#f1e1d1' },
+        i: { base: '#eef4fb', mid: '#e7eef9', accent: '#dde7f5' },
+        u: { base: '#edf6f0', mid: '#e6f1ea', accent: '#d9e9df' },
+        e: { base: '#faf5e8', mid: '#f6f0e0', accent: '#eee3c9' },
+        o: { base: '#f4eef8', mid: '#eee6f5', accent: '#e5d9ef' },
+        n: { base: '#f7f2eb', mid: '#f2ece2', accent: '#eadfcf' }
+    };
+    return palettes[key] || palettes.n;
+}
 
 function getReadingCardTone(item) {
-    const firstTag = item && item.tags && item.tags.length > 0 ? item.tags[0] : '';
-    const tagStyle = typeof getTagStyle === 'function' && firstTag
-        ? getTagStyle(firstTag)
-        : { bgColor: '#fdfaf5' };
-    const cardGender = item && item.gender ? item.gender : (gender || 'neutral');
+    const palette = getReadingTonePalette(item?.reading || '');
     return {
-        bgColor: tagStyle.bgColor || '#fdfaf5',
-        borderColor: READING_CARD_GENDER_BORDERS[cardGender] || READING_CARD_GENDER_BORDERS.neutral
+        bgColor: `linear-gradient(160deg, ${palette.base} 0%, ${palette.mid} 52%, ${palette.accent} 100%)`,
+        surfaceStyle: `radial-gradient(circle at top left, rgba(255,255,255,0.88), transparent 34%), linear-gradient(145deg, ${palette.base} 0%, ${palette.mid} 48%, ${palette.accent} 100%)`,
+        panelStyle: 'linear-gradient(180deg, rgba(255,255,255,0.80), rgba(255,255,255,0.64))',
+        borderColor: '#e4d6c1'
     };
 }
 
@@ -1921,12 +1936,9 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper) {
 function renderReadingTagBadges(tags) {
     if (!tags || tags.length === 0) return '';
 
-    return `<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">${tags.map(tag => {
-        const style = typeof getTagStyle === 'function'
-            ? getTagStyle(tag)
-            : { bgColor: '#F3F4F6', textColor: '#374151', borderColor: '#E5E7EB' };
-        return `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm" style="background-color:${style.bgColor};color:${style.textColor};border-color:${style.borderColor};">${tag}</span>`;
-    }).join('')}</div>`;
+    return `<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">${tags.map(tag =>
+        `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm text-[#4f4639]" style="background-color:rgba(255,255,255,0.34);border-color:rgba(255,255,255,0.58);backdrop-filter:blur(6px);">${tag}</span>`
+    ).join('')}</div>`;
 }
 
 function renderReadingSwipeCard(item) {
@@ -1954,6 +1966,7 @@ function renderReadingSwipeCard(item) {
 function closeReadingCombinationModal() {
     document.getElementById('reading-combination-modal')?.remove();
     readingCombinationModalState = null;
+    readingCombinationModalOpenedAt = 0;
 }
 
 function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
@@ -4758,15 +4771,25 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
         });
     }
 
-    const strictPass = allCandidates.filter(candidate => canUse(candidate, true));
-    strictPass.forEach((candidate) => {
+    const strictPool = shuffleReadingCandidates(
+        [...(Array.isArray(allCandidates) ? allCandidates : [])]
+            .sort((a, b) => (b.score || 0) - (a.score || 0))
+            .slice(0, Math.max(limit * 8, 24))
+    );
+    strictPool.forEach((candidate) => {
         if (selected.length >= limit) return;
+        const exists = selected.some(item => item.givenName === candidate.givenName);
+        if (exists || !canUse(candidate, true)) return;
         selected.push(candidate);
         markUsed(candidate);
     });
 
     if (selected.length < limit) {
-        allCandidates.forEach((candidate) => {
+        shuffleReadingCandidates(
+            [...(Array.isArray(allCandidates) ? allCandidates : [])]
+                .sort((a, b) => (b.score || 0) - (a.score || 0))
+                .slice(0, Math.max(limit * 10, 32))
+        ).forEach((candidate) => {
             if (selected.length >= limit) return;
             const exists = selected.some(item => item.givenName === candidate.givenName);
             if (exists) return;
@@ -4781,17 +4804,17 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
     if (!Array.isArray(path) || path.length === 0) return [];
 
     const groups = path.map((segment) => {
-        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 10, targetGender);
+        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender);
         const pool = rawGroup
-            .slice(0, 8)
+            .slice(0, 16)
             .map((item, index) => ({
                 ...item,
                 _poolOrder: index,
-                _displayNoise: Math.random() * 36
+                _displayNoise: Math.random() * 120
             }))
             .sort((a, b) => {
-                const aScore = (a._recommendationScore || 0) - (a._poolOrder * 18) + a._displayNoise;
-                const bScore = (b._recommendationScore || 0) - (b._poolOrder * 18) + b._displayNoise;
+                const aScore = (a._recommendationScore || 0) - (a._poolOrder * 8) + a._displayNoise;
+                const bScore = (b._recommendationScore || 0) - (b._poolOrder * 8) + b._displayNoise;
                 return bScore - aScore;
             });
         return pool;
@@ -4812,7 +4835,7 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
             seenNames.add(givenName);
             allResults.push({
                 givenName,
-                score: score + Math.random() * 24,
+                score: score + Math.random() * 60,
                 combination: pieces.map(piece => ({ ...piece }))
             });
             return;
@@ -4836,9 +4859,11 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
 
     build(0, [], 0, new Set());
 
-    const sorted = allResults
-        .sort((a, b) => b.score - a.score)
-        .map(result => ({
+    const sorted = shuffleReadingCandidates(
+        allResults
+            .sort((a, b) => b.score - a.score)
+            .slice(0, Math.max(limit * 20, 40))
+    ).map(result => ({
             ...result,
             fullName: surnameStr ? `${surnameStr} ${result.givenName}` : result.givenName
         }));
@@ -4886,6 +4911,7 @@ function saveReadingCandidateToStock(option, candidate) {
 
 function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const option = readingCombinationModalState.options[optionIndex];
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
@@ -4907,6 +4933,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
         reading: surnameRuby ? `${surnameRuby} ${reading}` : reading,
         givenName: candidate.givenName,
         combination,
+        segments: [...option.path],
         fortune: null,
         source: 'reading-combination',
         splitLabel: option.label,
@@ -4920,29 +4947,28 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
     if (typeof showToast === 'function') {
         showToast(`${candidate.givenName}を保存しました`, '💾');
     }
-
-    if (typeof openSavedNames === 'function') {
-        openSavedNames();
-    }
 }
 
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
+    const tone = getReadingCardTone(item);
     const topLine = preview.ruby && preview.ruby !== item.reading
         ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide">${preview.ruby}</div>`
         : '';
 
     return `
+        <div class="w-full rounded-[34px] border shadow-[0_18px_40px_rgba(93,84,68,0.14)] px-5 py-6"
+            style="background:${tone.surfaceStyle};border-color:${tone.borderColor};">
         ${topLine}
         ${renderReadingTagBadges(item.tags)}
-        <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+        <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full px-4 mt-2">
-            <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[280px] mx-auto shadow-sm">
-                <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">上位の漢字候補</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold text-sm">
+            <div class="rounded-[28px] p-4 border border-white/70 max-w-[280px] mx-auto shadow-[0_10px_24px_rgba(93,84,68,0.08)]" style="background:${tone.panelStyle};">
+                <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold text-base">
                     ${getSampleKanjiHtml(item)}
                 </div>
             </div>
+        </div>
         </div>
     `;
 }
@@ -4960,6 +4986,7 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
         item: { ...item, baseNickname },
         options
     };
+    readingCombinationModalOpenedAt = Date.now();
 
     const modal = document.createElement('div');
     modal.id = 'reading-combination-modal';
@@ -4972,7 +4999,6 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
         <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
             <div class="text-center mb-5">
-                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
                 <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
                 <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
             </div>
@@ -4985,16 +5011,12 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                 ` : options.map((option, index) => {
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => `
-                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3">
-                                <div class="flex items-start justify-between gap-3 mb-3">
-                                    <div class="min-w-0">
+                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] px-3 py-2.5">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0 flex-1">
                                         <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
-                                        <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
                                     </div>
-                                    <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">候補</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
+                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="shrink-0 px-3 py-1.5 rounded-full bg-white text-[#b9965b] text-[11px] font-black border border-[#e7dac7] active:scale-95 transition-all">保存</button>
                                 </div>
                             </div>
                         `).join('')
@@ -5002,10 +5024,7 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                     return `
                         <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
                             <div class="flex items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
-                                    <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
-                                </div>
+                                <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
                                 <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
                             </div>
                             <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
@@ -5027,11 +5046,11 @@ function saveReadingCombinationFromModal(index) {
 }
 
 function getSampleKanjiHtml(item) {
-    const options = getReadingSegmentOptions(item.reading, 2);
+    const options = getReadingSegmentOptions(item.reading, 4);
     const examples = [];
 
     options.forEach((option) => {
-        option.candidates.slice(0, 2).forEach((candidate) => {
+        shuffleReadingCandidates(option.candidates.slice(0, 4)).forEach((candidate) => {
             const label = candidate.givenName || candidate.fullName;
             if (!examples.includes(label)) {
                 examples.push(label);
@@ -5043,7 +5062,7 @@ function getSampleKanjiHtml(item) {
         return '<span class="text-xs text-[#d4c5af]">候補なし</span>';
     }
 
-    return examples.slice(0, 4).map((example) =>
+    return shuffleReadingCandidates(examples).slice(0, 4).map((example) =>
         `<span class="text-sm font-bold mx-1">${example}</span>`
     ).join('');
 }
@@ -6199,17 +6218,19 @@ function buildExplorationReadingOrder(candidates) {
     const grouped = new Map();
 
     (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
+        const firstMora = splitReadingIntoMoraUnits(candidate?.reading || '')[0] || '';
         const primaryTag = Array.isArray(candidate?.tags) && candidate.tags.length > 0
             ? candidate.tags[0]
             : '#other';
-        if (!grouped.has(primaryTag)) grouped.set(primaryTag, []);
-        grouped.get(primaryTag).push(candidate);
+        const groupKey = `${firstMora}::${primaryTag}`;
+        if (!grouped.has(groupKey)) grouped.set(groupKey, []);
+        grouped.get(groupKey).push(candidate);
     });
 
     grouped.forEach((items, key) => {
         const ranked = [...items].sort((a, b) => getReadingCandidateRankScore(b) - getReadingCandidateRankScore(a));
-        const lead = shuffleReadingCandidates(ranked.slice(0, 6));
-        grouped.set(key, [...lead, ...ranked.slice(6)]);
+        const lead = shuffleReadingCandidates(ranked.slice(0, 8));
+        grouped.set(key, [...lead, ...shuffleReadingCandidates(ranked.slice(8))]);
     });
 
     const keys = shuffleReadingCandidates(
