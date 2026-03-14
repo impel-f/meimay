@@ -63,7 +63,9 @@ body {
 
 #scr-stock,
 #scr-build,
-#scr-encountered {
+#scr-encountered,
+#scr-kanji-search,
+#scr-ranking {
     overflow-y: hidden !important;
     padding-bottom: 0 !important;
 }
