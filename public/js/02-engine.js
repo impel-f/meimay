@@ -33,6 +33,7 @@ function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
     const pushPath = (path) => {
         if (!Array.isArray(path) || path.length === 0 || path.length > 3) return;
         if (path.some(isInvalidReadingSegment)) return;
+        if (path.some((segment) => !hasViableKanjiForReading(segment))) return;
         candidates.push(path);
     };
 
@@ -77,6 +78,35 @@ function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
     return uniquePaths.slice(0, limit);
 }
 
+function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
+    if (!part || !Array.isArray(master) || master.length === 0) return false;
+    const target = toHira(part);
+    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+    const targetSokuon = target.replace(/っ$/, 'つ');
+
+    return master.some((k) => {
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+        }
+        if (isKanjiGenderMismatch(k, targetGender)) return false;
+
+        const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
+            .filter(Boolean);
+        const minorReadings = (k['伝統名のり'] || '')
+            .split(/[、,，\s/]+/)
+            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
+            .filter(Boolean);
+        const readings = [...majorReadings, ...minorReadings];
+
+        return readings.includes(target) ||
+            readings.includes(targetSeion) ||
+            (targetSokuon !== target && readings.includes(targetSokuon));
+    });
+}
+
 function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const nameReading = toHira((rawReading || '').trim());
     if (!nameReading || !/^[ぁ-ん]+$/.test(nameReading)) {
@@ -103,11 +133,15 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
             if (isInvalidReadingSegment(part)) continue;
             const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
             const partSokuon = part.replace(/っ$/, 'つ');
-            if (!useStrictMatching || (validReadingsSet && (
-                validReadingsSet.has(part) ||
-                validReadingsSet.has(partSeion) ||
-                (partSokuon !== part && validReadingsSet.has(partSokuon))
-            ))) {
+            if (
+                (
+                    !useStrictMatching || (validReadingsSet && (
+                        validReadingsSet.has(part) ||
+                        validReadingsSet.has(partSeion) ||
+                        (partSokuon !== part && validReadingsSet.has(partSokuon))
+                    ))
+                ) && hasViableKanjiForReading(part, options?.gender || gender || 'neutral')
+            ) {
                 currentPath.push(part);
                 findPath(remaining.slice(i), currentPath);
                 currentPath.pop();
@@ -249,107 +283,17 @@ function calcSegments() {
     }
     optionsContainer.innerHTML = '<div class="text-center text-[#bca37f] text-sm">分割パターンを計算中...</div>';
 
-    // 分割パターンの探索
-    let allPaths = [];
-
-    function findPath(remaining, currentPath) {
-        // 最大3文字まで
-        if (currentPath.length > 3) return;
-
-        // 完了
-        if (remaining.length === 0) {
-            if (currentPath.length >= 1) {
-                allPaths.push([...currentPath]);
-            }
-            return;
-        }
-
-        // 1〜3文字ずつ試行
-        for (let i = 1; i <= Math.min(3, remaining.length); i++) {
-            let part = remaining.slice(0, i);
-            if (isInvalidReadingSegment(part)) continue;
-
-            // 辞書に存在する読みかチェック（柔軟モードなら全ての分割を許容、ただし辞書にあるものを優先するロジックは別途必要だが、ここでは簡易的にチェックパス）
-            // 修正：柔軟モードでもデタラメな分割は避けたいが、辞書にない読み（人名特有の読みなど）がある場合は許可する必要がある。
-            // ここでは簡易的に「厳格モードなら辞書チェック必須」「柔軟モードならチェックなし」とする
-            const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
-            // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で辞書チェック
-            const partSokuon = part.replace(/っ$/, 'つ');
-            if (rule === 'lax' || (validReadingsSet && (
-                validReadingsSet.has(part) ||
-                validReadingsSet.has(partSeion) ||
-                (partSokuon !== part && validReadingsSet.has(partSokuon))
-            ))) {
-                currentPath.push(part);
-                findPath(remaining.slice(i), currentPath);
-                currentPath.pop();
-            }
-        }
-    }
-
+    let uniquePaths = [];
     try {
-        findPath(nameReading, []);
-        console.log(`ENGINE: Found ${allPaths.length} raw patterns`);
+        uniquePaths = getReadingSegmentPaths(nameReading, 8, {
+            strictOnly: true,
+            allowFallback: false
+        });
+        console.log(`ENGINE: ${uniquePaths.length} strict segment patterns ready`);
     } catch (e) {
         console.error("ENGINE: Search failed", e);
         alert("分割計算中にエラーが発生しました。");
         return;
-    }
-
-    // スコアリング
-    const scoredSplits = allPaths.map(path => {
-        let score = 0;
-
-        // 文字数ボーナス（2文字が最優先）
-        if (path.length === 2) score += 2000;
-        else if (path.length === 3) score += 1800;
-        else if (path.length === 1) score += 500;
-
-        // 各パーツのスコア
-        path.forEach(p => {
-            if (p.length === 2) score += 500; // 2音読みは自然
-            if (p.length === 1) {
-                // 1音で完結しやすい読み
-                if (["た", "ま", "と", "の", "か", "ほ", "ひ", "み", "な", "り", "さ", "こ", "あ"].includes(p)) {
-                    score += 200;
-                } else {
-                    score += 50;
-                }
-            }
-        });
-
-        // 1音連続ペナルティ
-        let singleCombo = 0;
-        let maxSingleCombo = 0;
-        path.forEach(p => {
-            if (p.length === 1) singleCombo++;
-            else singleCombo = 0;
-            maxSingleCombo = Math.max(maxSingleCombo, singleCombo);
-        });
-        if (maxSingleCombo >= 3) score -= 3000; // 3連続1音は不自然
-
-        return { path, score };
-    });
-
-    // スコア順にソート
-    scoredSplits.sort((a, b) => b.score - a.score);
-
-    // 重複排除
-    const uniquePaths = [];
-    const seenSet = new Set();
-    scoredSplits.forEach(item => {
-        let key = JSON.stringify(item.path);
-        if (!seenSet.has(key) && item.score > -1000) {
-            uniquePaths.push(item.path);
-            seenSet.add(key);
-        }
-    });
-
-    console.log(`ENGINE: ${uniquePaths.length} unique patterns after dedup`);
-
-    if (uniquePaths.length === 0) {
-        uniquePaths.push(...getFallbackReadingSegmentPaths(nameReading, 8));
-        console.log("ENGINE: No strict patterns found, using natural fallback");
     }
 
     const compoundOptions = typeof getCompoundReadingOptions === 'function'
@@ -371,24 +315,31 @@ function calcSegments() {
     normalSection.className = 'mb-6';
     normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
 
-    uniquePaths.forEach((path, idx) => {
-        const btn = document.createElement('button');
-        btn.className = "w-[92%] mx-auto py-5 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all text-xl mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
+    if (uniquePaths.length > 0) {
+        uniquePaths.forEach((path, idx) => {
+            const btn = document.createElement('button');
+            btn.className = "w-[92%] mx-auto py-5 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all text-xl mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
 
-        const displayParts = path.map(p =>
-            `<span class="px-2">${p}</span>`
-        ).join('<span class="text-[#d4c5af] text-sm px-2 opacity-40 group-hover:opacity-100 transition-opacity">/</span>');
+            const displayParts = path.map(p =>
+                `<span class="px-2">${p}</span>`
+            ).join('<span class="text-[#d4c5af] text-sm px-2 opacity-40 group-hover:opacity-100 transition-opacity">/</span>');
 
-        btn.innerHTML = displayParts;
-        btn.onclick = () => selectSegment(path);
+            btn.innerHTML = displayParts;
+            btn.onclick = () => selectSegment(path);
 
-        if (idx === 0) {
-            btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
-        }
+            if (idx === 0) {
+                btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
+            }
 
-        normalSection.appendChild(btn);
-    });
-    optionsContainer.appendChild(normalSection);
+            normalSection.appendChild(btn);
+        });
+        optionsContainer.appendChild(normalSection);
+    } else {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'mb-5 rounded-[28px] border border-dashed border-[#eadfce] bg-[#fffaf4] px-5 py-5 text-center text-[0.9rem] font-bold text-[#a6967a]';
+        emptyState.textContent = '1文字ずつで進められる候補がまだ見つかりません';
+        optionsContainer.appendChild(emptyState);
+    }
 
     if (compoundOptions.length > 0) {
         const compoundSection = document.createElement('div');
