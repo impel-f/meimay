@@ -76,6 +76,11 @@ body {
     padding: 1rem 1rem 0;
 }
 
+#stock-header-sticky,
+#encountered-header-sticky {
+    padding-top: 0.5rem;
+}
+
 .screen.active {
     display: flex !important;
     opacity: 1;
