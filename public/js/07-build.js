@@ -229,6 +229,28 @@ function getSafeBuildCurrentReading() {
         .join('');
 }
 
+function getSafeFreeBuildAutoReading(choices) {
+    const historyLookup = getLatestReadingHistoryLookup();
+    const safeParts = (Array.isArray(choices) ? choices : []).map((kanji) => {
+        const item = (liked || []).find(l => l['漢字'] === kanji);
+        if (!item) return '';
+
+        const readable = getReadableSegmentForItem(item, historyLookup);
+        if (readable && !isCompoundSlotPlaceholder(readable) && !['FREE', 'SEARCH', 'SHARED', 'UNKNOWN'].includes(readable)) {
+            return readable;
+        }
+
+        const sessionReading = String(item?.sessionReading || '');
+        if (sessionReading && !isCompoundSlotPlaceholder(sessionReading) && !['FREE', 'SEARCH', 'SHARED', 'UNKNOWN'].includes(sessionReading)) {
+            return sessionReading;
+        }
+
+        return '';
+    }).filter(Boolean);
+
+    return safeParts.join('');
+}
+
 function openStock(tab, options = {}) {
     if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus();
@@ -369,10 +391,7 @@ function renderFreeBuildSection() {
     let fortuneHtml = '';
     if (fbChoices.length >= 1) {
         const givenName = fbChoices.join('');
-        const givenReading = fbChoices.map(k => {
-            const item = liked.find(l => l['漢字'] === k);
-            return item?.sessionSegments?.[item.slot] || item?.sessionReading || k;
-        }).join('');
+        const givenReading = getSafeFreeBuildAutoReading(fbChoices);
         fortuneHtml = `
             <div class="mt-4 border-t border-[#ede5d8] pt-4">
                 <p class="text-xs font-bold text-[#8b7e66] mb-3">🔮 運勢ランキング（${givenName}）</p>
@@ -465,10 +484,7 @@ function confirmFbBuild() {
     const combination = fbChoices.map(k =>
         liked.find(l => l['漢字'] === k) || master?.find(m => m['漢字'] === k) || { '漢字': k, '画数': 1 }
     );
-    const givenReading = fbChoices.map(k => {
-        const item = liked.find(l => l['漢字'] === k);
-        return item?.sessionSegments?.[item.slot] || item?.sessionReading || k;
-    }).join('');
+    const givenReading = getSafeFreeBuildAutoReading(fbChoices);
     if (typeof openSaveScreen === 'function') {
         openSaveScreen(combination, givenName, givenReading);
     } else {
@@ -1838,11 +1854,8 @@ function executeFbBuild() {
         return fromMaster || { '漢字': k, '画数': 1 };
     });
 
-    // fbSelectedReadingが設定されている場合はそれを使用、なければ甫結フォールバック
-    const givenReading = fbSelectedReading || fbChoices.map(k => {
-        const item = (liked || []).find(l => l['漢字'] === k);
-        return item?.sessionSegments?.[item.slot] || item?.sessionReading || k;
-    }).join('');
+    // fbSelectedReadingが設定されている場合はそれを使用、なければ安全な自動読みを使う
+    const givenReading = fbSelectedReading || getSafeFreeBuildAutoReading(fbChoices);
 
     const givArr = combination.map(p => ({
         kanji: p['漢字'],
