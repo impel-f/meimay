@@ -4871,7 +4871,7 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
     return pickReadingDisplayCandidates(sorted, limit);
 }
 
-function saveReadingCandidateToStock(option, candidate) {
+function saveReadingCandidateToStock(option, candidate, asSuper = false) {
     const sessionReading = readingCombinationModalState.item.reading;
     const sessionSegments = Array.isArray(option.path) ? [...option.path] : [];
 
@@ -4881,7 +4881,7 @@ function saveReadingCandidateToStock(option, candidate) {
         readingCombinationModalState.item.tags || [],
         {
             segments: sessionSegments,
-            isSuper: false,
+            isSuper: !!asSuper,
             gender: readingCombinationModalState.item.gender || gender || 'neutral'
         }
     );
@@ -4893,14 +4893,17 @@ function saveReadingCandidateToStock(option, candidate) {
             item.sessionReading === sessionReading
         );
 
-        if (existing) return;
+        if (existing) {
+            existing.isSuper = existing.isSuper || !!asSuper;
+            return;
+        }
 
         liked.push({
             ...piece,
             slot: slotIndex,
             sessionReading,
             sessionSegments,
-            isSuper: false
+            isSuper: !!asSuper
         });
     });
 
@@ -4909,14 +4912,14 @@ function saveReadingCandidateToStock(option, candidate) {
     }
 }
 
-function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
+function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = false) {
     if (!readingCombinationModalState) return;
     if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const option = readingCombinationModalState.options[optionIndex];
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
 
-    saveReadingCandidateToStock(option, candidate);
+    saveReadingCandidateToStock(option, candidate, asSuper);
 
     const reading = readingCombinationModalState.item.reading;
     const surnameRuby = typeof surnameReading !== 'undefined' ? surnameReading : '';
@@ -4925,7 +4928,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
         slot: slotIndex,
         sessionReading: reading,
         sessionSegments: [...option.path],
-        isSuper: false
+        isSuper: !!asSuper
     }));
 
     persistGeneratedSavedName({
@@ -4945,7 +4948,10 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
     closeReadingCombinationModal();
 
     if (typeof showToast === 'function') {
-        showToast(`${candidate.givenName}を保存しました`, '💾');
+        showToast(
+            asSuper ? `${candidate.givenName}をSUPER保存しました` : `${candidate.givenName}を保存しました`,
+            asSuper ? '⭐' : '💾'
+        );
     }
 }
 
@@ -4971,14 +4977,12 @@ function saveReadingOnlyFromModal() {
 
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
-    const tone = getReadingCardTone(item);
     const topLine = preview.ruby && preview.ruby !== item.reading
         ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide">${preview.ruby}</div>`
         : '';
 
     return `
-        <div class="w-full rounded-[34px] border shadow-[0_18px_40px_rgba(93,84,68,0.14)] px-5 py-6"
-            style="background:${tone.surfaceStyle};border-color:${tone.borderColor};">
+        <div class="w-full px-5 py-6">
         ${topLine}
         ${renderReadingTagBadges(item.tags)}
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
@@ -5035,12 +5039,13 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => `
                             <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] px-3 py-2.5">
-                                <div class="flex items-start justify-between gap-3">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
-                                        <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
-                                    </div>
-                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="shrink-0 px-3 py-1.5 rounded-full bg-white text-[#b9965b] text-[11px] font-black border border-[#e7dac7] active:scale-95 transition-all">保存</button>
+                                <div class="min-w-0">
+                                    <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
+                                    <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
+                                </div>
+                                <div class="flex gap-2 mt-3">
+                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">ライク</button>
+                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, true)" class="w-full py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPER</button>
                                 </div>
                             </div>
                         `).join('')
