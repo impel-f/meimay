@@ -755,19 +755,19 @@ function openHomeInsightsModal() {
 
 function getHomeStatusLine(likedCount, readingStockCount, savedCount) {
     const buildPatternCount = getHomeBuildPatternCount();
-    if (readingStockCount === 0) {
-        return 'まずは読み候補を集めて、方向を決めていきましょう。';
+    if (savedCount > 0) {
+        return '保存した候補を見比べながら、絞り込んでいるところです。';
     }
-    if (likedCount === 0) {
+    if (buildPatternCount > 0) {
+        return '組み立てた候補を見ながら、保存する名前を選ぶ段階です。';
+    }
+    if (likedCount > 0) {
+        return '集めた漢字をもとに、名前の組み合わせを広げていく段階です。';
+    }
+    if (readingStockCount > 0) {
         return '読み候補をもとに、合う漢字を集めているところです。';
     }
-    if (buildPatternCount === 0) {
-        return '集めた候補から、組み合わせを広げていく段階です。';
-    }
-    if (savedCount === 0) {
-        return '組み立てた候補を見ながら、保存する名前を選びましょう。';
-    }
-    return '保存した候補を見比べながら、絞り込んでいるところです。';
+    return 'まずは読み候補を集めて、方向を決めていきましょう。';
 }
 
 function renderHomeProfile() {
