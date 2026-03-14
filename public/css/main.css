@@ -66,6 +66,16 @@ body {
     overflow-y: hidden !important;
 }
 
+.screen-header-shell {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: #fdfaf5;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 1rem 1rem 0;
+}
+
 .screen.active {
     display: flex !important;
     opacity: 1;
