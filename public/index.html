@@ -500,11 +500,14 @@
     </div>
 
     <div id="scr-input-reading" class="screen">
-        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <p class="label-mini mb-2">名前の読み（ひらがな）</p>
-            <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2">
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
+            <p class="label-mini mb-2">読みから漢字を探す</p>
+            <div class="rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 mb-3 text-left shadow-sm">
+                <label for="in-name" class="block text-sm font-bold text-[#8b7e66] mb-2">名前の読み（ひらがな）</label>
+                <input type="text" id="in-name" placeholder="めい" class="premium-input mb-0" style="font-size:1.7rem; padding:10px 0;">
+            </div>
 
-            <div id="reading-stock-picker" class="hidden mb-6">
+            <div id="reading-stock-picker" class="hidden mb-4">
                 <button onclick="toggleReadingStockPicker()"
                     class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
                     <span>📖 ストックから選ぶ</span>
@@ -515,7 +518,7 @@
                 </div>
             </div>
 
-            <div class="rule-box text-left space-y-4 mb-10 px-4">
+            <div class="rule-box text-left space-y-4 mb-4 px-4 py-4">
                 <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('strict')">
                     <div id="btn-strict" class="dot-selector active"></div>
                     <div>
@@ -531,49 +534,65 @@
                     </div>
                 </div>
             </div>
-            <button onclick="calcSegments()" class="btn-gold py-5 shadow-lg mb-4">分け方の提案へ</button>
+            <button onclick="calcSegments()" class="btn-gold py-4 shadow-lg mb-3">分け方の提案へ</button>
             <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
         </div>
     </div>
 
     <div id="scr-input-sound-entry" class="screen">
-        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
-            <p class="label-mini mb-2">響きから探す</p>
-            <h2 class="text-3xl font-black text-[#5d5444] mb-4">入れたい音はありますか？</h2>
-            <p class="text-sm text-[#8b7e66] leading-relaxed mb-8">
-                すでに呼びたい音があれば、そこから名前候補を広げられます。<br>
-                まだ決まっていなければ、響きをスワイプして好みを探せます。
-            </p>
-
-            <div class="mb-6">
-                <input type="text" id="in-sound-entry" placeholder="例：はる"
-                    class="premium-input mb-3 text-center text-2xl tracking-widest ime-active"
-                    onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
-                <button onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full">
-                    入力した音で探す
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
+            <p class="label-mini mb-2">響き・読みを探す</p>
+            <div class="space-y-2.5 text-left mb-3">
+                <button
+                    id="sound-entry-choice-input-static"
+                    onclick="selectSoundEntryMode('input')"
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-input-static" class="dot-selector"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a] whitespace-nowrap">例: 「はる」から始まる名前を探す</p>
+                        </div>
+                    </div>
                 </button>
-                <p class="mt-2 text-[11px] text-[#a6967a]">空欄のまま進むと、指定なしで響きを探します。</p>
-            </div>
-
-            <div class="rule-box text-left space-y-4 mb-8 px-4">
-                <button onclick="closeSoundEntryAndGo('nickname')"
-                    class="w-full flex items-start gap-3 text-left active:scale-95 transition-transform">
-                    <span class="mt-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#d9c5a4] bg-[#fff8ef] text-[#b9965b] text-xs font-black">✓</span>
-                    <span>
-                        <span class="block text-sm font-bold text-[#5d5444]">入れたい音がある</span>
-                        <span class="mt-1 block text-[10px] text-[#a6967a]">例: 「はる」から始まる名前を探す</span>
-                    </span>
-                </button>
-                <button onclick="closeSoundEntryAndGo('sound')"
-                    class="w-full flex items-start gap-3 text-left active:scale-95 transition-transform">
-                    <span class="mt-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#d4c5af] bg-white text-[#d4c5af] text-xs font-black">○</span>
-                    <span>
-                        <span class="block text-sm font-bold text-[#5d5444]">響きをスワイプして選ぶ</span>
-                        <span class="mt-1 block text-[10px] text-[#a6967a]">人気の読みを見ながら、好みの方向を探す</span>
-                    </span>
+                <button
+                    id="sound-entry-choice-browse-static"
+                    onclick="selectSoundEntryMode('browse')"
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-browse-static" class="dot-selector active"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
+                        </div>
+                    </div>
                 </button>
             </div>
 
+            <div id="sound-entry-input-slot-static" class="mt-0 min-h-[118px] mb-4">
+                <div id="sound-entry-input-placeholder-static" class="h-full rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[10px] leading-relaxed text-[#bca37f] flex items-center justify-center">
+                    音を指定する場合は、ここに入力欄が出ます
+                </div>
+                <div id="sound-entry-input-panel-static" class="hidden rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
+                    <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
+                    <input type="text" id="in-sound-entry" placeholder="例: はる"
+                        class="premium-input mb-0 text-center ime-active"
+                        style="font-size:1.7rem; padding:10px 0;"
+                        onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                            <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
+                            <span class="text-[11px] font-bold">「○○」から始まる</span>
+                        </label>
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                            <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
+                            <span class="text-[11px] font-bold">「○○」で終わる</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-sound-entry-submit-static" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 w-full">響きを見て探す</button>
             <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
         </div>
     </div>
@@ -1847,7 +1866,7 @@
     <script src="/js/01-core.js?v=25.11"></script>
     <script src="/js/02-engine.js?v=25.11"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-    <script src="/js/04-ui-flow.js?v=25.13"></script>
+    <script src="/js/04-ui-flow.js?v=25.14"></script>
     <script src="/js/05-ui-render.js?v=25.19"></script>
     <script src="/js/06-ui-physics.js?v=25.11"></script>
     <script src="/js/07-build.js?v=25.18"></script>

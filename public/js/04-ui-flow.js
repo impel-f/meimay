@@ -269,35 +269,43 @@ function renderSoundEntryScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto">
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
             <p class="label-mini mb-2">響き・読みを探す</p>
-            <h2 class="text-xl font-bold mb-4 text-[#8b7e66]">どちらで探しますか？</h2>
-
-            <div class="space-y-2.5 text-left">
+            <div class="space-y-2.5 text-left mb-3">
                 <button
                     id="sound-entry-choice-input"
                     onclick="selectSoundEntryMode('input')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="text-sm font-black text-[#5d5444]">入れたい音から探す</div>
-                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed whitespace-nowrap">例: 「はる」からはじまる名前を探す</p>
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-input" class="dot-selector"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a] whitespace-nowrap">例: 「はる」から始まる名前を探す</p>
+                        </div>
+                    </div>
                 </button>
 
                 <button
                     id="sound-entry-choice-browse"
                     onclick="selectSoundEntryMode('browse')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="text-sm font-black text-[#5d5444]">響きを見ながら探す</div>
-                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed">人気の響きをスワイプして好みを探す</p>
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-browse" class="dot-selector active"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
+                        </div>
+                    </div>
                 </button>
             </div>
 
-            <div id="sound-entry-input-slot" class="mt-3 min-h-[138px]">
-                <div id="sound-entry-input-placeholder" class="h-full rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[11px] leading-relaxed text-[#bca37f] flex items-center justify-center">
-                    入れたい音を選ぶと、ここに入力欄が出ます
+            <div id="sound-entry-input-slot" class="mt-0 min-h-[118px] mb-4">
+                <div id="sound-entry-input-placeholder" class="h-full rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[10px] leading-relaxed text-[#bca37f] flex items-center justify-center">
+                    音を指定する場合は、ここに入力欄が出ます
                 </div>
                 <div
                     id="sound-entry-input-panel"
-                    class="hidden rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 py-4 text-left shadow-sm">
+                    class="hidden rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
                     <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
                     <input
                         id="in-sound-entry"
@@ -305,8 +313,8 @@ function renderSoundEntryScreen() {
                         maxlength="8"
                         inputmode="kana"
                         placeholder="例: はる"
-                        class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 font-black text-[#5d5444] text-center tracking-[0.12em] shadow-inner outline-none focus:border-[#b9965b]"
-                        style="font-size:1.9rem;"
+                        class="premium-input mb-0 text-center"
+                        style="font-size:1.7rem; padding:10px 0;"
                         onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
                     <div class="mt-3 grid grid-cols-2 gap-2">
                         <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
@@ -321,12 +329,8 @@ function renderSoundEntryScreen() {
                 </div>
             </div>
 
-            <div class="mt-4 space-y-3">
-                <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full">
-                    響きを見て探す
-                </button>
-                <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
-            </div>
+            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 w-full">響きを見て探す</button>
+            <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
         </div>
     `;
 }
@@ -340,6 +344,8 @@ function updateSoundEntryModeUI() {
     const isInputMode = soundEntryMode === 'input';
     const inputChoice = document.getElementById('sound-entry-choice-input');
     const browseChoice = document.getElementById('sound-entry-choice-browse');
+    const inputDot = document.getElementById('sound-entry-dot-input');
+    const browseDot = document.getElementById('sound-entry-dot-browse');
     const inputPlaceholder = document.getElementById('sound-entry-input-placeholder');
     const inputPanel = document.getElementById('sound-entry-input-panel');
     const submitBtn = document.getElementById('btn-sound-entry-submit');
@@ -351,6 +357,9 @@ function updateSoundEntryModeUI() {
     if (browseChoice) {
         browseChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
+
+    if (inputDot) inputDot.classList.toggle('active', isInputMode);
+    if (browseDot) browseDot.classList.toggle('active', !isInputMode);
 
     if (inputPlaceholder) {
         inputPlaceholder.classList.toggle('hidden', isInputMode);
