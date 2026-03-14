@@ -370,11 +370,79 @@ const KANJI_DETAIL_GROUNDED_HINTS = {
     '舵': {
         promptContext: '検証済みメモ: 「舵」は形声字として扱い、漢字構成は「舟」と「它」です。右側のつくりは「朶」でも「巴」でもありません。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
         requiredKeywords: ['舟', '它']
+    },
+    '櫂': {
+        promptContext: '検証済みメモ: 「櫂」は形声字として扱い、漢字構成は「木」と「翟」です。右側のつくりは「會」ではありません。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
+        requiredKeywords: ['木', '翟']
     }
 };
 
-function getKanjiDetailGroundedHint(kanji) {
-    return KANJI_DETAIL_GROUNDED_HINTS[kanji] || null;
+const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.21';
+let kanjiDetailDatasetPromise = null;
+
+function isKanjiCharacter(ch) {
+    if (!ch) return false;
+    const code = ch.codePointAt(0);
+    return (
+        (code >= 0x3400 && code <= 0x4DBF) ||
+        (code >= 0x4E00 && code <= 0x9FFF) ||
+        code === 0x3005
+    );
+}
+
+function appendRequiredHanCharacters(keywordSet, text) {
+    for (const ch of Array.from(String(text || ''))) {
+        if (isKanjiCharacter(ch)) keywordSet.add(ch);
+    }
+}
+
+function getKanjiDetailDatasetSectionText(datasetEntry, title) {
+    if (!datasetEntry || !Array.isArray(datasetEntry.sections)) return '';
+    const section = datasetEntry.sections.find((item) => normalizeKanjiDetailTitle(item?.title) === title);
+    return sanitizeKanjiAiText(section?.text || '');
+}
+
+function extractRequiredKeywordsFromOriginText(originText) {
+    const keywordSet = new Set();
+    const structureMatch = originText.match(/漢字構成は([^。]+?)と整理されています/);
+    if (structureMatch) {
+        appendRequiredHanCharacters(keywordSet, structureMatch[1].replace(/[\u2FF0-\u2FFF]/g, ''));
+    }
+
+    const soundMatches = originText.matchAll(/(?:声符|脚注では声符)は([^。]+?)とされます/g);
+    for (const match of soundMatches) {
+        appendRequiredHanCharacters(keywordSet, match[1]);
+    }
+
+    return Array.from(keywordSet);
+}
+
+async function loadKanjiDetailDataset() {
+    if (!kanjiDetailDatasetPromise) {
+        kanjiDetailDatasetPromise = fetch(KANJI_DETAIL_DATASET_URL)
+            .then((response) => {
+                if (!response.ok) throw new Error(`dataset load failed: ${response.status}`);
+                return response.json();
+            })
+            .catch((error) => {
+                console.warn('KANJI_DETAIL_DATASET:', error);
+                return {};
+            });
+    }
+    return kanjiDetailDatasetPromise;
+}
+
+function buildDatasetGroundedHint(kanji, datasetEntry) {
+    const originText = getKanjiDetailDatasetSectionText(datasetEntry, '成り立ち');
+    if (!originText) return null;
+    return {
+        promptContext: `検証済みメモ: 「${kanji}」の成り立ちは次の情報に従ってください。${originText}`,
+        requiredKeywords: extractRequiredKeywordsFromOriginText(originText)
+    };
+}
+
+function getKanjiDetailGroundedHint(kanji, datasetEntry) {
+    return KANJI_DETAIL_GROUNDED_HINTS[kanji] || buildDatasetGroundedHint(kanji, datasetEntry) || null;
 }
 
 function cachedKanjiDetailMatchesHint(text, groundedHint) {
@@ -383,6 +451,32 @@ function cachedKanjiDetailMatchesHint(text, groundedHint) {
     }
     const normalizedText = sanitizeKanjiAiText(text);
     return groundedHint.requiredKeywords.every((keyword) => normalizedText.includes(keyword));
+}
+
+function upsertKanjiDetailSection(aiText, title, content) {
+    const normalizedText = sanitizeKanjiAiText(aiText);
+    const normalizedContent = sanitizeKanjiAiText(content);
+    if (!normalizedContent) return normalizedText;
+
+    const matches = Array.from(normalizedText.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g));
+    if (!matches.length) {
+        return `【${title}】\n${normalizedContent}`;
+    }
+
+    let found = false;
+    const rebuilt = matches.map((match) => {
+        const currentTitle = normalizeKanjiDetailTitle(match[1]);
+        const currentContent = sanitizeKanjiAiText(match[2]);
+        if (!currentTitle) return '';
+        if (currentTitle === title) {
+            found = true;
+            return `【${title}】\n${normalizedContent}`;
+        }
+        return `【${currentTitle}】\n${currentContent}`;
+    }).filter(Boolean);
+
+    if (!found) rebuilt.unshift(`【${title}】\n${normalizedContent}`);
+    return rebuilt.join('\n\n');
 }
 
 function normalizeKanjiDetailTitle(title) {
@@ -425,7 +519,9 @@ ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContex
 以下の各セクションを【】で区切って回答してください。
 
 【成り立ち】
-この漢字がどのように作られたか（象形・会意・形声など）を、50〜80文字で説明してください。
+${groundedHint?.promptContext
+        ? 'この漢字がどのように作られたか（象形・会意・形声など）を、50〜80文字で説明してください。'
+        : '部品やつくりを確実に断定できる場合にのみ、50〜80文字で説明してください。少しでも自信がない場合は、このセクション自体を出力しないでください。'}
 
 【意味の深掘り】
 元々の意味と、名前に使われるときの前向きな意味合いを、50〜80文字で説明してください。
@@ -443,6 +539,7 @@ ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContex
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
+・部品、つくり、声符を推測で書かないでください。確信がない場合は【成り立ち】を出力しないでください。
 ・検証済み情報が与えられている場合は、必ずそれに従ってください。勝手に別の部品へ言い換えないでください。
 `.trim();
 }
@@ -512,7 +609,13 @@ async function generateKanjiDetail(kanji, currentReading) {
         .map((item) => (typeof clean === 'function' ? clean(item) : String(item || '').trim()))
         .filter(Boolean)
         .join(' / ');
-    const groundedHint = getKanjiDetailGroundedHint(kanji);
+    const kanjiDetailDataset = await loadKanjiDetailDataset();
+    const datasetEntry = kanjiDetailDataset?.[kanji] || null;
+    const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry);
+    const groundedOriginText = getKanjiDetailDatasetSectionText(datasetEntry, '成り立ち');
+    const readingCacheId = !isSpecialKanjiAiReading(currentReading)
+        ? encodeURIComponent(`${kanji}__${currentReading}`)
+        : '';
 
     let baseText = '';
     let readingText = '';
@@ -549,6 +652,10 @@ async function generateKanjiDetail(kanji, currentReading) {
             baseText = sanitizeKanjiAiText(data.text || '');
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
+            }
+
+            if (groundedOriginText && !cachedKanjiDetailMatchesHint(baseText, groundedHint)) {
+                baseText = upsertKanjiDetailSection(baseText, '成り立ち', groundedOriginText);
             }
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
