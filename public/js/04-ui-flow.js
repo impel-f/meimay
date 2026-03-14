@@ -4949,6 +4949,26 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex) {
     }
 }
 
+function saveReadingOnlyFromModal() {
+    if (!readingCombinationModalState) return;
+    const item = readingCombinationModalState.item || {};
+    const options = Array.isArray(readingCombinationModalState.options) ? readingCombinationModalState.options : [];
+    const preferred = options[0]?.path || getPreferredReadingSegments(item.reading);
+    addReadingToStock(
+        item.reading,
+        item.baseNickname || '',
+        item.tags || [],
+        {
+            segments: Array.isArray(preferred) ? preferred : [],
+            isSuper: false,
+            gender: item.gender || gender || 'neutral'
+        }
+    );
+    if (typeof showToast === 'function') {
+        showToast(`${item.reading}を読みストックに追加しました`, '💾');
+    }
+}
+
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
     const tone = getReadingCardTone(item);
@@ -4963,7 +4983,8 @@ function renderReadingSwipeCard(item) {
         ${renderReadingTagBadges(item.tags)}
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full px-4 mt-2">
-            <div class="rounded-[28px] p-4 border border-white/70 max-w-[280px] mx-auto shadow-[0_10px_24px_rgba(93,84,68,0.08)]" style="background:${tone.panelStyle};">
+            <div class="rounded-[28px] p-4 max-w-[280px] mx-auto shadow-[0_10px_24px_rgba(93,84,68,0.08)]" style="background:${tone.panelStyle};">
+                <p class="text-[10px] text-[#a6967a] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
                 <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold text-base">
                     ${getSampleKanjiHtml(item)}
                 </div>
@@ -4982,6 +5003,7 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
         preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
     );
     const preview = getReadingFullNamePreview(item.reading);
+    const tone = getReadingCardTone(item);
     readingCombinationModalState = {
         item: { ...item, baseNickname },
         options
@@ -4996,13 +5018,16 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     };
 
     modal.innerHTML = `
-        <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
+        <div class="detail-sheet max-w-[440px] border" onclick="event.stopPropagation()" style="background:${tone.surfaceStyle};border-color:${tone.borderColor};">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
             <div class="text-center mb-5">
                 <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
                 <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
+            <div class="flex justify-center mb-4">
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal()" class="px-4 py-2 rounded-full bg-white/88 text-[#b9965b] text-[12px] font-black border border-[#e7dac7] shadow-sm active:scale-95 transition-all">読みを保存</button>
+            </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
                     <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
@@ -5014,6 +5039,7 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                             <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] px-3 py-2.5">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0 flex-1">
+                                        <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
                                         <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                                     </div>
                                     <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="shrink-0 px-3 py-1.5 rounded-full bg-white text-[#b9965b] text-[11px] font-black border border-[#e7dac7] active:scale-95 transition-all">保存</button>
@@ -5069,6 +5095,7 @@ function getSampleKanjiHtml(item) {
 
 window.closeReadingCombinationModal = closeReadingCombinationModal;
 window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
+window.saveReadingOnlyFromModal = saveReadingOnlyFromModal;
 window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
 window.getCompoundReadingOptions = getCompoundReadingOptions;
 /**
