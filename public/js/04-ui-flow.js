@@ -272,7 +272,7 @@ function renderSoundEntryScreen() {
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響き・読みを探す</h2>
 
-            <div id="sound-entry-input-slot" class="mt-0 min-h-[118px] mb-3">
+            <div id="sound-entry-input-slot" class="mt-0 min-h-[156px] mb-3">
                 <div id="sound-entry-input-placeholder" class="h-full rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[10px] leading-relaxed text-[#bca37f] flex items-center justify-center">
                     音を指定する場合は、ここに入力欄が出ます
                 </div>
