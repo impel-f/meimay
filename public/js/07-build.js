@@ -1884,6 +1884,11 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
                     <div class="text-4xl font-black text-[#5d5444] mb-1">${kanji}</div>
                     <div class="text-xs text-[#a6967a]">漢字のアクション</div>
                 </div>
+
+                <button onclick="openKanjiDetailFromBuild('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">📖</span>
+                    漢字詳細を見る
+                </button>
                 
                 <button onclick="toggleSuperLikeInStock('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
                     <span class="text-lg">${isSuper ? '★' : '☆'}</span> 
@@ -1910,6 +1915,33 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
 
 function closeKanjiActionMenu() {
     document.getElementById('kanji-action-popup')?.remove();
+}
+
+function openKanjiDetailFromBuild(kanji) {
+    const likedItem = Array.isArray(liked) ? liked.find(item => item['漢字'] === kanji) : null;
+    const masterItem = (typeof master !== 'undefined' && Array.isArray(master))
+        ? master.find(item => item['漢字'] === kanji)
+        : null;
+    const detailItem = { ...(masterItem || {}), ...(likedItem || {}) };
+
+    closeKanjiActionMenu();
+
+    if (!detailItem || !detailItem['漢字']) {
+        if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '⚠️');
+        return;
+    }
+
+    if (typeof showDetailByData === 'function') {
+        showDetailByData(detailItem);
+        return;
+    }
+
+    if (typeof showKanjiDetail === 'function') {
+        showKanjiDetail(detailItem);
+        return;
+    }
+
+    if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '⚠️');
 }
 
 /**
@@ -2004,6 +2036,7 @@ function removeKanjiFromStock(kanji) {
 
 window.openKanjiActionMenu = openKanjiActionMenu;
 window.closeKanjiActionMenu = closeKanjiActionMenu;
+window.openKanjiDetailFromBuild = openKanjiDetailFromBuild;
 window.toggleSuperLikeInStock = toggleSuperLikeInStock;
 window.removeFromBuildCandidates = removeFromBuildCandidates;
 window.confirmStockDeletion = confirmStockDeletion;
