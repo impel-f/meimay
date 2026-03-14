@@ -1668,6 +1668,7 @@ function suggestReadingsForKanji(choices, container) {
     if (!choices || choices.length === 0) return;
     if (typeof master === 'undefined' || !master || master.length === 0) return;
     const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
+    const selectedName = choices.join('');
 
     // 各漢字の可能な読み一覧を取得
     function getKanjiReadings(kanji, mode = 'all') {
@@ -1708,9 +1709,18 @@ function suggestReadingsForKanji(choices, container) {
             if (r.tags && typeof userTags !== 'undefined') {
                 r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
             }
-            return { ...r, _score: score };
+            const exampleText = String(r.examples || '');
+            const exactNameMatch = selectedName && exampleText.includes(selectedName);
+            return {
+                ...r,
+                _score: score,
+                _exactNameMatch: exactNameMatch ? 1 : 0,
+                _popularBoost: r.isPopular ? 1 : 0
+            };
         }).sort((a, b) => {
+            if (a._exactNameMatch !== b._exactNameMatch) return b._exactNameMatch - a._exactNameMatch;
             if (a._score !== b._score) return b._score - a._score;
+            if (a._popularBoost !== b._popularBoost) return b._popularBoost - a._popularBoost;
             return (b.count || 0) - (a.count || 0);
         });
 
@@ -1752,7 +1762,7 @@ function suggestReadingsForKanji(choices, container) {
     // UI 描画
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 読み方の構成${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
 
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
