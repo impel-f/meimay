@@ -215,41 +215,87 @@ function startMode(mode) {
 function initReadingStockPicker() {
     const stock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
     const pickerWrap = document.getElementById('reading-stock-picker');
-    const list = document.getElementById('reading-stock-picker-list');
-    if (!pickerWrap || !list) return;
+    const label = document.getElementById('reading-stock-picker-label');
+    const arrow = document.getElementById('reading-stock-picker-arrow');
+    if (!pickerWrap) return;
 
     if (stock.length === 0) {
         pickerWrap.classList.add('hidden');
         return;
     }
     pickerWrap.classList.remove('hidden');
-    list.innerHTML = stock.map(r => {
-        const val = typeof r === 'object' ? r.reading : r;
-        return `
-        <button onclick="selectReadingFromStock('${val}')"
-            class="w-full text-left px-4 py-2.5 text-sm text-[#5d5444] font-bold hover:bg-[#fdf7ef] border-b border-[#f5ede0] last:border-0 transition-colors">
-            ${val}
-        </button>`;
-    }).join('');
+    if (label) {
+        label.textContent = `📖 ストックから選ぶ（${stock.length}件）`;
+    }
+    if (arrow) {
+        arrow.textContent = '↗';
+    }
 }
 
 function selectReadingFromStock(reading) {
     const input = document.getElementById('in-name');
     if (input) input.value = reading;
-    // ドロップダウンを閉じる
-    const list = document.getElementById('reading-stock-picker-list');
-    const arrow = document.getElementById('reading-stock-picker-arrow');
-    if (list) list.classList.add('hidden');
-    if (arrow) arrow.textContent = '▼';
+    closeReadingStockPickerModal();
 }
 
 function toggleReadingStockPicker() {
-    const list = document.getElementById('reading-stock-picker-list');
-    const arrow = document.getElementById('reading-stock-picker-arrow');
-    if (!list) return;
-    const isHidden = list.classList.contains('hidden');
-    list.classList.toggle('hidden');
-    if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+    const stock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    if (!stock.length) return;
+
+    const existing = document.getElementById('reading-stock-picker-modal');
+    if (existing) {
+        closeReadingStockPickerModal();
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'reading-stock-picker-modal';
+    modal.className = 'overlay active';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeReadingStockPickerModal();
+    };
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const items = stock.map((entry) => {
+        const reading = typeof entry === 'object' ? entry.reading : entry;
+        const safeReading = escapeHtml(reading);
+        const encodedReading = encodeURIComponent(reading);
+        return `
+            <button onclick="selectReadingFromStock(decodeURIComponent('${encodedReading}'))"
+                class="w-full flex items-center justify-between px-5 py-4 text-left text-[#5d5444] font-bold text-[1.05rem] border-b border-[#f3eadf] last:border-0 hover:bg-[#fdf8f0] transition-colors">
+                <span>${safeReading}</span>
+                <span class="text-[#c7b08a] text-sm">使う</span>
+            </button>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div class="detail-sheet text-center max-w-sm" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closeReadingStockPickerModal()">✕</button>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">読みストックから選ぶ</h2>
+            <p class="text-[0.8rem] text-[#a6967a] mb-6">気になる読みをそのまま入力できます</p>
+            <div class="bg-white border border-[#eee5d8] rounded-[28px] overflow-hidden shadow-sm text-left">
+                ${items}
+            </div>
+            <button onclick="closeReadingStockPickerModal()"
+                class="mt-6 text-sm text-[#bca37f] font-bold border-b border-[#bca37f] pb-1 hover:text-[#8b7e66] transition-colors">
+                閉じる
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function closeReadingStockPickerModal() {
+    const modal = document.getElementById('reading-stock-picker-modal');
+    if (modal) modal.remove();
 }
 
 /**
