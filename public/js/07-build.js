@@ -1270,11 +1270,11 @@ function renderBuildSelection() {
 
     const namePreview = document.createElement('div');
     namePreview.id = 'build-name-preview';
-    namePreview.className = 'mb-1 -mx-2';
+    namePreview.className = 'mt-3 mb-1 -mx-2';
 
-    // ヘッダーはモードタブのみ固定し、命名キャンバスは本文側へ置いて遷移時の高さ差を減らす
+    // モードタブを先にして、そのあとに名前プレビューを配置
     headerContainer.appendChild(modeBar);
-    container.appendChild(namePreview);
+    headerContainer.appendChild(namePreview);
 
     // DOMに追加してからupdateNamePreview()を実行（ID検索が機能するように）
     updateNamePreview();
