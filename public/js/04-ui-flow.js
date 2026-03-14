@@ -1201,6 +1201,10 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
         return chars;
     }
 
+    const resolvedSessionSegments = Array.isArray(sessionSegments) && sessionSegments.length > 0
+        ? [...sessionSegments]
+        : chars.map((_, idx) => `__compound_slot_${slotOffset + idx}__`);
+
     chars.forEach((char, idx) => {
         const slotIndex = slotOffset + idx;
         const exists = liked.some((item) =>
@@ -1220,7 +1224,7 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
             '漢字': char,
             slot: slotIndex,
             sessionReading,
-            sessionSegments: resolvedSegments,
+            sessionSegments: [...resolvedSessionSegments],
             sessionDisplaySegments: Array.isArray(sessionDisplaySegments) ? [...sessionDisplaySegments] : [sessionReading],
             _compoundSeeded: true
         });
@@ -2272,6 +2276,14 @@ function goBack() {
         changeScreen('scr-mode');
     } else if (id === 'scr-segment') {
         changeScreen('scr-input-reading');
+    } else if (id === 'scr-main') {
+        if (isFreeSwipeMode) {
+            changeScreen('scr-vibe');
+        } else if (segments && segments.length > 0) {
+            changeScreen('scr-segment');
+        } else {
+            changeScreen('scr-mode');
+        }
     } else if (id === 'scr-saved' || id === 'scr-history') {
         changeScreen('scr-mode');
     } else if (id === 'scr-swipe-universal') {

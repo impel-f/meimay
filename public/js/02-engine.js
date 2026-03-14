@@ -274,11 +274,16 @@ function calcSegments() {
 
     console.log(`ENGINE: ${uniquePaths.length} unique patterns after dedup`);
 
+    const charSplit = nameReading.split('');
+    const charSplitKey = JSON.stringify(charSplit);
+
     // 結果なしの場合、1文字ずつの分割を強制追加
     if (uniquePaths.length === 0) {
-        const charSplit = nameReading.split('');
         uniquePaths.push(charSplit);
         console.log("ENGINE: No patterns found, using character split");
+    } else if (charSplit.length > 1 && !seenSet.has(charSplitKey)) {
+        // 「1文字ずつ探す」の画面では、完全な1文字分割も必ず候補に残す
+        uniquePaths.unshift(charSplit);
     }
 
     const compoundOptions = typeof getCompoundReadingOptions === 'function'
@@ -300,7 +305,7 @@ function calcSegments() {
     normalSection.className = 'mb-6';
     normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
 
-    uniquePaths.slice(0, 5).forEach((path, idx) => {
+    uniquePaths.forEach((path, idx) => {
         const btn = document.createElement('button');
         btn.className = "w-full py-6 bg-white text-[#5d5444] font-black rounded-[40px] border-2 border-[#fdfaf5] shadow-sm transition-all text-xl mb-4 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center justify-center group";
 
@@ -322,20 +327,15 @@ function calcSegments() {
     if (compoundOptions.length > 0) {
         const compoundSection = document.createElement('div');
         compoundSection.className = 'mt-2';
-        compoundSection.appendChild(createSectionTitle('まとめ読み候補', 'まとまりで使える名前候補は、ここからそのまま保存できます。'));
+        compoundSection.appendChild(createSectionTitle('まとめ読み候補'));
 
         compoundOptions.forEach((option, idx) => {
             const btn = document.createElement('button');
-            const examples = Array.isArray(option.examples) && option.examples.length > 0
-                ? option.examples.slice(0, 3).join(' ・ ')
-                : '';
-
             btn.className = "w-full mb-3 rounded-[34px] border border-[#eadfce] bg-[#fffaf5] px-5 py-4 text-left shadow-sm transition-all hover:border-[#bca37f] hover:shadow-md active:scale-[0.99]";
             btn.innerHTML = `
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
-                        ${examples ? `<div class="mt-2 text-[11px] text-[#8b7e66] break-keep">${examples}</div>` : ''}
                     </div>
                     <span class="shrink-0 px-3 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#eadfce]">${option.badgeLabel || 'まとめ読み'}</span>
                 </div>
@@ -496,10 +496,14 @@ function loadStack() {
             : 0;
 
         if (currentPos <= minSwipeSlot) {
-            btnPrev.classList.add('opacity-0', 'pointer-events-none');
-            btnPrev.onclick = null;
+            btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.innerHTML = '&lt; 戻る';
+            btnPrev.onclick = () => {
+                if (typeof goBack === 'function') goBack();
+            };
         } else {
             btnPrev.classList.remove('opacity-0', 'pointer-events-none');
+            btnPrev.innerHTML = '&lt; 戻る';
             btnPrev.onclick = () => prevChar();
         }
     }
