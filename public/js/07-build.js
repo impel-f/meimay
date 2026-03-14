@@ -1767,7 +1767,7 @@ function suggestReadingsForKanji(choices, container) {
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
 
-    scored.slice(0, 15).forEach(r => {
+    scored.forEach(r => {
         const chip = document.createElement('button');
         const isActive = fbSelectedReading === r.reading;
         // 手入力したものはアイコンをつける
