@@ -500,52 +500,39 @@
     </div>
 
     <div id="scr-input-reading" class="screen">
-        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto">
-            <p class="label-mini mb-2">読みから漢字を探す</p>
-            <h2 class="text-xl font-bold text-[#8b7e66] mb-4">読みを入力</h2>
+        <div class="glass-card p-8 rounded-[50px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
+            <p class="label-mini mb-2">名前の読み（ひらがな）</p>
+            <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2">
 
-            <div class="rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 mb-3 text-left shadow-sm">
-                <label for="in-name" class="block text-sm font-bold text-[#8b7e66] mb-2">名前の読み（ひらがな）</label>
-                <input type="text" id="in-name" placeholder="めい" class="premium-input mb-0" style="font-size:1.9rem; padding:12px 0;">
-            </div>
-
-            <!-- ストックから選ぶプルダウン（ストックがあるときのみ表示） -->
-            <div id="reading-stock-picker" class="hidden mb-3 text-left">
+            <div id="reading-stock-picker" class="hidden mb-6">
                 <button onclick="toggleReadingStockPicker()"
-                    class="w-full flex items-center justify-between px-4 py-2.5 rounded-2xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform shadow-sm">
+                    class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
                     <span>📖 ストックから選ぶ</span>
                     <span id="reading-stock-picker-arrow">▼</span>
                 </button>
-                <div id="reading-stock-picker-list" class="hidden mt-1 bg-white border border-[#eee5d8] rounded-2xl overflow-hidden shadow-sm">
+                <div id="reading-stock-picker-list" class="hidden mt-1 bg-white border border-[#eee5d8] rounded-xl overflow-hidden shadow-sm">
                     <!-- JS populated -->
                 </div>
             </div>
 
-            <div class="space-y-2.5 text-left">
-                <button id="rule-strict-item" class="w-full rounded-2xl border border-[#b9965b] bg-[#fffbef] px-4 py-3 shadow-sm transition-all active:scale-[0.99]" onclick="setRule('strict')">
-                    <div class="flex items-start gap-3">
-                        <div id="btn-strict" class="dot-selector active mt-0.5"></div>
-                        <div>
-                            <span class="text-sm font-bold text-[#5d5444]">厳格モード（読み一致）</span>
-                            <p class="text-[10px] text-[#a6967a] mt-1 leading-relaxed">読みが完全一致する漢字のみ表示</p>
-                        </div>
+            <div class="rule-box text-left space-y-4 mb-10 px-4">
+                <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('strict')">
+                    <div id="btn-strict" class="dot-selector active"></div>
+                    <div>
+                        <span class="text-sm font-bold text-[#5d5444]">厳格モード（読み一致）</span>
+                        <p class="text-[10px] text-[#a6967a] mt-1">読みが完全一致する漢字のみ表示</p>
                     </div>
-                </button>
-                <button id="rule-lax-item" class="w-full rounded-2xl border border-[#ede5d8] bg-white/70 px-4 py-3 shadow-sm transition-all active:scale-[0.99]" onclick="setRule('lax')">
-                    <div class="flex items-start gap-3">
-                        <div id="btn-lax" class="dot-selector mt-0.5"></div>
-                        <div>
-                            <span class="text-sm font-bold text-[#5d5444]">柔軟モード（ぶった切り）</span>
-                            <p class="text-[10px] text-[#a6967a] mt-1 leading-relaxed">読みの一部が一致すれば表示</p>
-                        </div>
+                </div>
+                <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('lax')">
+                    <div id="btn-lax" class="dot-selector"></div>
+                    <div>
+                        <span class="text-sm font-bold text-[#5d5444]">柔軟モード（ぶった切り）</span>
+                        <p class="text-[10px] text-[#a6967a] mt-1">読みの一部が一致すれば表示</p>
                     </div>
-                </button>
+                </div>
             </div>
-
-            <div class="mt-4 space-y-3">
-                <button onclick="calcSegments()" class="btn-gold py-4 shadow-xl">分け方の提案へ</button>
-                <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
-            </div>
+            <button onclick="calcSegments()" class="btn-gold py-5 shadow-lg mb-4">分け方の提案へ</button>
+            <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
         </div>
     </div>
 
