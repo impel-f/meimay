@@ -1701,7 +1701,7 @@ function suggestReadingsForKanji(choices, container) {
         const combinedReadings = cartesian(readingArrays);
         const combinedSet = new Set(combinedReadings);
         const matched = dictionaryReadings.filter(r => combinedSet.has(r.reading));
-        const filtered = matched.filter(r => !(typeof noped !== 'undefined' && noped.has(r.reading)));
+        const filtered = matched;
         const matchedSet = new Set(filtered.map(r => r.reading));
 
         const exactMatches = filtered.map(r => {
@@ -1732,7 +1732,6 @@ function suggestReadingsForKanji(choices, container) {
                 const generatedSet = new Set();
                 const generatedMatches = cartesian(onReadingArrays).filter(reading => {
                     if (!reading || matchedSet.has(reading) || generatedSet.has(reading)) return false;
-                    if (typeof noped !== 'undefined' && noped.has(reading)) return false;
                     generatedSet.add(reading);
                     return true;
                 }).map((reading, index) => ({
