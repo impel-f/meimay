@@ -489,16 +489,16 @@ function switchStockTab(tab) {
     // 全タブ/パネルを非アクティブに
     const allTabs = [readingTab, kanjiTab];
     const allPanels = [readingPanel, kanjiPanel];
-    allTabs.forEach(t => t && (t.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-transparent text-[#a6967a]'));
+    allTabs.forEach(t => t && (t.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a] transition-all'));
     allPanels.forEach(p => p && p.classList.add('hidden'));
 
     if (tab === 'reading') {
-        if (readingTab) readingTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]';
+        if (readingTab) readingTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (readingPanel) readingPanel.classList.remove('hidden');
         if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     } else {
         // kanji (default)
-        if (kanjiTab) kanjiTab.className = 'flex-1 py-3 text-sm font-bold text-center border-b-2 border-[#bca37f] text-[#5d5444]';
+        if (kanjiTab) kanjiTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (kanjiPanel) kanjiPanel.classList.remove('hidden');
     }
 }
@@ -1242,7 +1242,7 @@ function renderBuildSelection() {
 
     // モード切り替えタブ
     const modeBar = document.createElement('div');
-    modeBar.className = 'relative flex justify-between items-end border-b border-[#eee5d8] w-full';
+    modeBar.className = 'relative w-full';
 
     // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
@@ -1251,21 +1251,21 @@ function renderBuildSelection() {
 
     // 読みドロップダウンがヘッダーの下に潜り込むように配置
     modeBar.innerHTML = `
-        <div class="flex flex-1" id="build-tabs">
+        <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="build-tabs">
             <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
-                class="flex-1 py-3 text-sm font-bold text-center border-b-2 transition-all ${buildMode === 'reading'
-            ? 'border-[#bca37f] text-[#5d5444]'
-            : 'border-transparent text-[#a6967a]'}">
+                class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'reading'
+            ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
+            : 'text-[#a6967a]'}">
                 ${readingBtnLabel}
             </button>
             <button onclick="setBuildMode('free')"
-                class="flex-1 py-3 text-sm font-bold text-center border-b-2 transition-all ${buildMode === 'free'
-            ? 'border-[#bca37f] text-[#5d5444]'
-            : 'border-transparent text-[#a6967a]'}">
+                class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'free'
+            ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
+            : 'text-[#a6967a]'}">
                 自由組み立て
             </button>
         </div>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-0 max-h-60 overflow-y-auto"></div>
+        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
     `;
 
     const namePreview = document.createElement('div');
