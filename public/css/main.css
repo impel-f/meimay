@@ -62,8 +62,10 @@ body {
 }
 
 #scr-stock,
+#scr-build,
 #scr-encountered {
     overflow-y: hidden !important;
+    padding-bottom: 0 !important;
 }
 
 .screen-header-shell {
