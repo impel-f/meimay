@@ -4955,7 +4955,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     }
 }
 
-function saveReadingOnlyFromModal() {
+function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
     const item = readingCombinationModalState.item || {};
     const options = Array.isArray(readingCombinationModalState.options) ? readingCombinationModalState.options : [];
@@ -4966,12 +4966,15 @@ function saveReadingOnlyFromModal() {
         item.tags || [],
         {
             segments: Array.isArray(preferred) ? preferred : [],
-            isSuper: false,
+            isSuper: !!asSuper,
             gender: item.gender || gender || 'neutral'
         }
     );
     if (typeof showToast === 'function') {
-        showToast(`${item.reading}を読みストックに追加しました`, '💾');
+        showToast(
+            asSuper ? `${item.reading}をSUPER保存しました` : `${item.reading}をライク保存しました`,
+            asSuper ? '⭐' : '💾'
+        );
     }
 }
 
@@ -4987,8 +4990,8 @@ function renderReadingSwipeCard(item) {
         ${renderReadingTagBadges(item.tags)}
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full mt-2">
-            <p class="text-[10px] text-[#8b7e66] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
-            <div class="flex justify-center flex-wrap gap-2 text-[#5d5444] font-bold text-base px-6">
+            <p class="text-[10px] text-white/90 text-center mb-3 font-bold tracking-[0.08em] drop-shadow-[0_1px_2px_rgba(93,84,68,0.22)]">漢字の例</p>
+            <div class="flex justify-center flex-wrap gap-2 text-white font-bold text-base px-6 drop-shadow-[0_1px_2px_rgba(93,84,68,0.22)]">
                 ${getSampleKanjiHtml(item)}
             </div>
         </div>
@@ -5027,8 +5030,9 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                 <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
-            <div class="flex justify-center mb-4">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal()" class="px-4 py-2 rounded-full bg-white/88 text-[#b9965b] text-[12px] font-black border border-[#e7dac7] shadow-sm active:scale-95 transition-all">読みを保存</button>
+            <div class="flex gap-2 mb-4">
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">読みをライク</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="w-full py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">読みをSUPER</button>
             </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
@@ -5039,13 +5043,12 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => `
                             <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] px-3 py-2.5">
-                                <div class="min-w-0">
+                                <div class="min-w-0 text-center">
                                     <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
                                     <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                                 </div>
-                                <div class="flex gap-2 mt-3">
-                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">ライク</button>
-                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, true)" class="w-full py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPER</button>
+                                <div class="flex mt-3">
+                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
                                 </div>
                             </div>
                         `).join('')
