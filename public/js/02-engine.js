@@ -124,6 +124,19 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const strictOnly = options && options.strictOnly === true;
     const allowFallback = !options || options.allowFallback !== false;
     const useStrictMatching = strictOnly || rule === 'strict';
+    const targetGender = options?.gender || gender || 'neutral';
+    const canUseReadingSegment = (part) => {
+        if (isInvalidReadingSegment(part)) return false;
+        const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
+        const partSokuon = part.replace(/っ$/, 'つ');
+        const canUseSeionFallback = isLeadingDakutenVariant(part, partSeion);
+        const hasStrictReading = !useStrictMatching || (validReadingsSet && (
+            validReadingsSet.has(part) ||
+            (canUseSeionFallback && validReadingsSet.has(partSeion)) ||
+            (partSokuon !== part && validReadingsSet.has(partSokuon))
+        ));
+        return hasStrictReading && hasViableKanjiForReading(part, targetGender);
+    };
     let allPaths = [];
 
     function findPath(remaining, currentPath) {
@@ -138,19 +151,7 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
 
         for (let i = 1; i <= Math.min(3, remaining.length); i++) {
             const part = remaining.slice(0, i);
-            if (isInvalidReadingSegment(part)) continue;
-            const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
-            const partSokuon = part.replace(/っ$/, 'つ');
-            const canUseSeionFallback = isLeadingDakutenVariant(part, partSeion);
-            if (
-                (
-                    !useStrictMatching || (validReadingsSet && (
-                        validReadingsSet.has(part) ||
-                        (canUseSeionFallback && validReadingsSet.has(partSeion)) ||
-                        (partSokuon !== part && validReadingsSet.has(partSokuon))
-                    ))
-                ) && hasViableKanjiForReading(part, options?.gender || gender || 'neutral')
-            ) {
+            if (canUseReadingSegment(part)) {
                 currentPath.push(part);
                 findPath(remaining.slice(i), currentPath);
                 currentPath.pop();
@@ -201,6 +202,19 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
             seenSet.add(key);
         }
     });
+
+    const moraUnits = splitReadingIntoMoraUnits(nameReading);
+    const fullMoraPath = [...moraUnits];
+    const fullMoraKey = JSON.stringify(fullMoraPath);
+    if (
+        moraUnits.length === 3 &&
+        !seenSet.has(fullMoraKey) &&
+        fullMoraPath.every(canUseReadingSegment)
+    ) {
+        const insertIndex = Math.min(1, uniquePaths.length);
+        uniquePaths.splice(insertIndex, 0, fullMoraPath);
+        seenSet.add(fullMoraKey);
+    }
 
     if (uniquePaths.length === 0 && allowFallback) {
         return getFallbackReadingSegmentPaths(nameReading, limit);
