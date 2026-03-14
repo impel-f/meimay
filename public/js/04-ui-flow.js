@@ -269,55 +269,64 @@ function renderSoundEntryScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-4 shadow-2xl mx-auto">
-            <h2 class="text-xl font-bold mb-2 text-[#8b7e66]">響きから探す</h2>
+        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center shadow-2xl mx-auto">
+            <p class="label-mini mb-2">響き・読みを探す</p>
+            <h2 class="text-xl font-bold mb-4 text-[#8b7e66]">どちらで探しますか？</h2>
 
             <div class="space-y-2.5 text-left">
                 <button
                     id="sound-entry-choice-input"
                     onclick="selectSoundEntryMode('input')"
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="text-base font-bold text-[#5d5444]">入れたい音から探す</div>
-                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed">例: 「はる」からはじまる名前を探す</p>
+                    <div class="text-sm font-black text-[#5d5444]">入れたい音から探す</div>
+                    <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed whitespace-nowrap">例: 「はる」からはじまる名前を探す</p>
                 </button>
 
                 <button
                     id="sound-entry-choice-browse"
                     onclick="selectSoundEntryMode('browse')"
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99]">
-                    <div class="text-base font-bold text-[#5d5444]">響きを見ながら探す</div>
+                    <div class="text-sm font-black text-[#5d5444]">響きを見ながら探す</div>
                     <p class="mt-1 text-[11px] text-[#a6967a] leading-relaxed">人気の響きをスワイプして好みを探す</p>
                 </button>
             </div>
 
-            <div
-                id="sound-entry-input-panel"
-                class="hidden mt-4 rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 py-4 text-left">
-                <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
-                <input
-                    id="in-sound-entry"
-                    type="text"
-                    maxlength="8"
-                    inputmode="kana"
-                    placeholder="例: はる"
-                    class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 text-2xl font-black text-[#5d5444] text-center tracking-[0.12em] shadow-inner outline-none focus:border-[#b9965b]"
-                    onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
-                <div class="mt-3 grid grid-cols-2 gap-2">
-                    <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
-                        <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
-                        <span class="text-[11px] font-bold">「○○」から始まる</span>
-                    </label>
-                    <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
-                        <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
-                        <span class="text-[11px] font-bold">「○○」で終わる</span>
-                    </label>
+            <div id="sound-entry-input-slot" class="mt-3 min-h-[138px]">
+                <div id="sound-entry-input-placeholder" class="h-full rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[11px] leading-relaxed text-[#bca37f] flex items-center justify-center">
+                    入れたい音を選ぶと、ここに入力欄が出ます
+                </div>
+                <div
+                    id="sound-entry-input-panel"
+                    class="hidden rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 py-4 text-left shadow-sm">
+                    <label for="in-sound-entry" class="block text-sm font-bold text-[#8b7e66] mb-2">入れたい音</label>
+                    <input
+                        id="in-sound-entry"
+                        type="text"
+                        maxlength="8"
+                        inputmode="kana"
+                        placeholder="例: はる"
+                        class="w-full rounded-2xl border border-[#d9c5a4] bg-white px-4 py-3 font-black text-[#5d5444] text-center tracking-[0.12em] shadow-inner outline-none focus:border-[#b9965b]"
+                        style="font-size:1.9rem;"
+                        onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                            <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
+                            <span class="text-[11px] font-bold">「○○」から始まる</span>
+                        </label>
+                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                            <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
+                            <span class="text-[11px] font-bold">「○○」で終わる</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full mt-5">
-                響きを見て探す
-            </button>
-            <button onclick="goBack()" class="text-sm text-[#bca37f] mt-4 hover:underline">戻る</button>
+            <div class="mt-4 space-y-3">
+                <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-xl w-full">
+                    響きを見て探す
+                </button>
+                <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
+            </div>
         </div>
     `;
 }
@@ -331,6 +340,7 @@ function updateSoundEntryModeUI() {
     const isInputMode = soundEntryMode === 'input';
     const inputChoice = document.getElementById('sound-entry-choice-input');
     const browseChoice = document.getElementById('sound-entry-choice-browse');
+    const inputPlaceholder = document.getElementById('sound-entry-input-placeholder');
     const inputPanel = document.getElementById('sound-entry-input-panel');
     const submitBtn = document.getElementById('btn-sound-entry-submit');
 
@@ -340,6 +350,10 @@ function updateSoundEntryModeUI() {
 
     if (browseChoice) {
         browseChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+    }
+
+    if (inputPlaceholder) {
+        inputPlaceholder.classList.toggle('hidden', isInputMode);
     }
 
     if (inputPanel) {
@@ -3313,9 +3327,19 @@ function setRule(r) {
 
     const bStrict = document.getElementById('btn-strict');
     const bLax = document.getElementById('btn-lax');
+    const strictItem = document.getElementById('rule-strict-item');
+    const laxItem = document.getElementById('rule-lax-item');
 
     if (bStrict) bStrict.classList.toggle('active', r === 'strict');
     if (bLax) bLax.classList.toggle('active', r === 'lax');
+
+    if (strictItem) {
+        strictItem.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${r === 'strict' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+    }
+
+    if (laxItem) {
+        laxItem.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${r === 'lax' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+    }
 }
 
 // ==========================================
