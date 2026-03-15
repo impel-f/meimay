@@ -51,6 +51,21 @@ function getCompoundBuildFlow() {
 
 const ENCOUNTERED_LIBRARY_KEY = 'meimay_encountered_library_v1';
 
+function isLegacySyntheticEncounteredReading(item) {
+    if (!item || item.encounterOrigin) return false;
+
+    const modeEmpty = !item.mode;
+    const examplesEmpty = !Array.isArray(item.examples) || item.examples.length === 0;
+    const keyMatchesReading = !item.key || item.key === item.reading;
+    const seenCount = Number(item.seenCount || 0);
+    const likeCount = Number(item.likeCount || 0);
+    const nopeCount = Number(item.nopeCount || 0);
+    const isSyntheticLike = seenCount === 1 && likeCount === 1 && nopeCount === 0 && item.lastAction === 'like';
+    const isSyntheticNope = seenCount === 1 && likeCount === 0 && nopeCount === 1 && item.lastAction === 'nope';
+
+    return modeEmpty && examplesEmpty && keyMatchesReading && (isSyntheticLike || isSyntheticNope);
+}
+
 function isCompoundBuildPlaceholderSegment(seg) {
     return typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg);
 }
@@ -465,118 +480,10 @@ function getEncounteredLibrary() {
             kanji: Array.isArray(raw.kanji) ? raw.kanji : [],
             readings: Array.isArray(raw.readings) ? raw.readings : []
         };
-
-        if (library.kanji.length === 0 && Array.isArray(liked)) {
-            library.kanji = liked
-                .filter(item => item && item['漢字'])
-                .map(item => ({
-                    key: item['漢字'],
-                    kanji: item['漢字'],
-                    strokes: item['画数'] ?? item.strokes ?? null,
-                    category: item['カテゴリ'] || item.category || '',
-                    kanjiReading: item.kanji_reading || '',
-                    tags: Array.isArray(item.tags) ? [...item.tags] : [],
-                    snapshot: {
-                        '漢字': item['漢字'],
-                        '画数': item['画数'] ?? item.strokes ?? null,
-                        'カテゴリ': item['カテゴリ'] || item.category || '',
-                        kanji_reading: item.kanji_reading || '',
-                        slot: Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1,
-                        sessionReading: item.sessionReading || '',
-                        sessionSegments: Array.isArray(item.sessionSegments) ? [...item.sessionSegments] : [],
-                        sessionDisplaySegments: Array.isArray(item.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : []
-                    },
-                    seenCount: 1,
-                    likeCount: 1,
-                    nopeCount: 0,
-                    lastAction: 'like',
-                    firstSeenAt: item.savedAt || item.timestamp || new Date().toISOString(),
-                    lastSeenAt: item.savedAt || item.timestamp || new Date().toISOString()
-                }));
-        }
-
-        if (library.readings.length === 0 && typeof getReadingHistory === 'function') {
-            library.readings = getReadingHistory().map(item => ({
-                key: item.reading,
-                reading: item.reading,
-                tags: Array.isArray(item.tags) ? [...item.tags] : [],
-                examples: [],
-                mode: '',
-                seenCount: 1,
-                likeCount: 1,
-                nopeCount: 0,
-                lastAction: 'like',
-                firstSeenAt: item.searchedAt || new Date().toISOString(),
-                lastSeenAt: item.searchedAt || new Date().toISOString()
-            }));
-        }
-
-        if (typeof noped !== 'undefined' && noped instanceof Set && noped.size > 0) {
-            const existingKanjiKeys = new Set(library.kanji.map(item => item?.key || item?.kanji).filter(Boolean));
-            const existingReadingKeys = new Set(library.readings.map(item => item?.key || item?.reading).filter(Boolean));
-            const historyItems = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-            const now = new Date().toISOString();
-
-            Array.from(noped).forEach((value) => {
-                if (!value) return;
-
-                const foundKanji = (typeof master !== 'undefined' && Array.isArray(master))
-                    ? master.find(entry => entry && entry['漢字'] === value)
-                    : null;
-
-                if (foundKanji || Array.from(String(value)).length === 1) {
-                    const kanjiKey = foundKanji?.['漢字'] || String(value);
-                    if (existingKanjiKeys.has(kanjiKey)) return;
-
-                    library.kanji.push({
-                        key: kanjiKey,
-                        kanji: kanjiKey,
-                        strokes: foundKanji?.['画数'] ?? null,
-                        category: foundKanji?.['カテゴリ'] || '',
-                        kanjiReading: foundKanji?.kanji_reading || '',
-                        tags: Array.isArray(foundKanji?.tags) ? [...foundKanji.tags] : [],
-                        snapshot: foundKanji ? {
-                            ...foundKanji,
-                            slot: -1,
-                            sessionReading: foundKanji.sessionReading || '',
-                            sessionSegments: Array.isArray(foundKanji.sessionSegments) ? [...foundKanji.sessionSegments] : [],
-                            sessionDisplaySegments: Array.isArray(foundKanji.sessionDisplaySegments) ? [...foundKanji.sessionDisplaySegments] : []
-                        } : {
-                            '漢字': kanjiKey,
-                            '画数': null,
-                            'カテゴリ': '',
-                            kanji_reading: ''
-                        },
-                        seenCount: 1,
-                        likeCount: 0,
-                        nopeCount: 1,
-                        lastAction: 'nope',
-                        firstSeenAt: now,
-                        lastSeenAt: now
-                    });
-                    existingKanjiKeys.add(kanjiKey);
-                    return;
-                }
-
-                const readingKey = String(value);
-                if (existingReadingKeys.has(readingKey)) return;
-
-                const historyMatch = historyItems.find(item => item?.reading === readingKey);
-                library.readings.push({
-                    key: readingKey,
-                    reading: readingKey,
-                    tags: Array.isArray(historyMatch?.tags) ? [...historyMatch.tags] : [],
-                    examples: [],
-                    mode: historyMatch?.mode || '',
-                    seenCount: 1,
-                    likeCount: 0,
-                    nopeCount: 1,
-                    lastAction: 'nope',
-                    firstSeenAt: historyMatch?.searchedAt || now,
-                    lastSeenAt: historyMatch?.searchedAt || now
-                });
-                existingReadingKeys.add(readingKey);
-            });
+        const initialReadingCount = library.readings.length;
+        library.readings = library.readings.filter(item => !isLegacySyntheticEncounteredReading(item));
+        if (library.readings.length !== initialReadingCount) {
+            saveEncounteredLibrary(library);
         }
 
         return library;
@@ -618,6 +525,7 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
         ...base,
         ...payload,
         key,
+        encounterOrigin: base.encounterOrigin || (options.incrementSeen ? 'swipe' : payload.encounterOrigin || ''),
         seenCount: base.seenCount + (options.incrementSeen ? 1 : 0),
         likeCount: base.likeCount + (options.incrementLike ? 1 : 0),
         nopeCount: base.nopeCount + (options.incrementNope ? 1 : 0),
@@ -625,6 +533,7 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
     };
 
     if (action) next.lastAction = action;
+    if (!next.encounterOrigin) delete next.encounterOrigin;
 
     if (index >= 0) {
         list[index] = next;

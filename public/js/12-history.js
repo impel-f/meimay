@@ -357,11 +357,16 @@ function formatEncounteredDayLabel(value) {
     return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
 }
 
+function getEncounteredDateSource(item) {
+    if (!item) return '';
+    return item.firstSeenAt || item.lastSeenAt || '';
+}
+
 function groupEncounteredItemsByDay(items) {
     const groups = [];
     const map = new Map();
     items.forEach((item) => {
-        const source = item.lastSeenAt || item.firstSeenAt || '';
+        const source = getEncounteredDateSource(item);
         const key = source ? source.slice(0, 10) : 'recent';
         if (!map.has(key)) {
             const group = {
@@ -415,7 +420,7 @@ function renderEncounteredLibrary() {
         ? getEncounteredLibrary()
         : { kanji: [], readings: [] };
     const items = [...(currentEncounteredTab === 'reading' ? library.readings : library.kanji)]
-        .sort((a, b) => new Date(b.lastSeenAt || 0).getTime() - new Date(a.lastSeenAt || 0).getTime());
+        .sort((a, b) => new Date(getEncounteredDateSource(b) || 0).getTime() - new Date(getEncounteredDateSource(a) || 0).getTime());
 
     if (items.length === 0) {
         container.innerHTML = `
