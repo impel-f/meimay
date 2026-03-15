@@ -627,8 +627,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     }
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-4 gap-1 md:gap-1.5">
-            ${timeline.steps.map((step) => {
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+            ${timeline.steps.map((step, index) => {
                 const cardStyle = step.done
                     ? tone.cardDone
                     : step.active
@@ -655,7 +655,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         </div>
                         <div class="mt-0.5 text-[7px] font-black text-center whitespace-nowrap leading-none md:mt-1 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
                     </div>
-                </button>
+                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
             }).join('')}
         </div>
