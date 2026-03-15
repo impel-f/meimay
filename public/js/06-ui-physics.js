@@ -221,6 +221,15 @@ function executeSwipe(dir, data) {
     }
 
     // 即座に保存＆クラウド同期トリガー
+    if (data && typeof recordEncounteredSwipeItem === 'function') {
+        const encounteredAction = dir === 'left'
+            ? 'nope'
+            : dir === 'up'
+                ? 'super'
+                : 'like';
+        recordEncounteredSwipeItem(data, encounteredAction);
+    }
+
     if ((dir === 'right' || dir === 'up') && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
         if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {

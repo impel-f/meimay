@@ -438,25 +438,34 @@
                 <div class="flex-1 h-px bg-[#e8ddd0]"></div>
             </div>
 
-            <!-- ③ 直感スワイプ（コンパクト横型） -->
-            <button onclick="startDirectKanjiSwipe()"
-                class="w-full max-w-sm flex items-center gap-3 px-4 py-3 bg-[#fdf7ef] rounded-2xl border border-[#d4c5af] active:scale-[0.97] transition-transform"
-                style="box-shadow: 0 2px 10px rgba(139,126,102,0.10);">
-                <!-- ミニカードスタック -->
-                <div class="relative flex-shrink-0" style="width:46px; height:54px;">
-                    <div class="absolute" style="width:36px; height:44px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(-8deg) translate(-4px,4px); z-index:1;"></div>
-                    <div class="absolute" style="width:36px; height:44px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(7deg) translate(10px,4px); z-index:1;"></div>
-                    <div class="absolute flex items-center justify-center" style="width:40px; height:50px; border-radius:9px; background:linear-gradient(145deg,#ece9f5,#ddd5ef); border:1.5px solid #c8bde8; left:3px; top:2px; z-index:2;">
-                        <span class="text-lg font-bold text-[#5d5444]">名</span>
+            <!-- ③ 直感スワイプ / 出会った候補 -->
+            <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
+                <button id="home-direct-kanji-btn" onclick="startDirectKanjiSwipe()"
+                    class="flex items-center gap-3 px-3 py-3 bg-[#fdf7ef] rounded-2xl border border-[#d4c5af] active:scale-[0.97] transition-transform text-left"
+                    style="box-shadow: 0 2px 10px rgba(139,126,102,0.10);">
+                    <div class="relative flex-shrink-0" style="width:40px; height:46px;">
+                        <div class="absolute" style="width:30px; height:38px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(-8deg) translate(-3px,4px); z-index:1;"></div>
+                        <div class="absolute" style="width:30px; height:38px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(7deg) translate(9px,4px); z-index:1;"></div>
+                        <div class="absolute flex items-center justify-center" style="width:34px; height:42px; border-radius:9px; background:linear-gradient(145deg,#ece9f5,#ddd5ef); border:1.5px solid #c8bde8; left:3px; top:2px; z-index:2;">
+                            <span class="text-base font-bold text-[#5d5444]">直</span>
+                        </div>
                     </div>
-                </div>
-                <!-- テキスト -->
-                <div class="flex-1 text-left">
-                    <div class="text-[13px] font-black text-[#5d5444]">✨ 直感スワイプ</div>
-                    <div class="text-[10px] text-[#8b7e66]">漢字との一期一会を楽しもう</div>
-                </div>
-                <span class="text-[#bca37f] text-lg font-bold">›</span>
-            </button>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[12px] font-black text-[#5d5444] leading-tight">直感スワイプ</div>
+                        <div class="mt-1 text-[9px] text-[#8b7e66] leading-snug">漢字との一期一会</div>
+                    </div>
+                </button>
+                <button id="home-encountered-btn" onclick="openEncounteredLibrary('kanji')"
+                    class="flex items-center gap-3 px-3 py-3 bg-white/85 rounded-2xl border border-[#d9dff6] active:scale-[0.97] transition-transform text-left">
+                    <div class="relative flex-shrink-0 w-10 h-10 rounded-2xl bg-[#eef3ff] border border-[#d5dff8] flex items-center justify-center">
+                        <span class="text-[17px] font-black text-[#5d5444]">候</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[12px] font-black text-[#5d5444] leading-tight">出会った候補</div>
+                        <div class="mt-1 text-[9px] text-[#8b7e66] leading-snug">見返してストックへ</div>
+                    </div>
+                </button>
+            </div>
 
             <!-- ─── ツール ─── -->
             <div class="w-full max-w-sm flex items-center gap-2">
@@ -1857,7 +1866,7 @@
     <script src="/js/03-fortune.js?v=25.11"></script>
     <script src="/js/04-ui-flow.js?v=25.34"></script>
     <script src="/js/05-ui-render.js?v=25.19"></script>
-    <script src="/js/06-ui-physics.js?v=25.11"></script>
+    <script src="/js/06-ui-physics.js?v=25.12"></script>
     <script src="/js/07-build.js?v=25.22"></script>
     <script src="/js/08-origin.js?v=25.21"></script>
     <script src="/js/09-storage.js?v=25.14"></script>
