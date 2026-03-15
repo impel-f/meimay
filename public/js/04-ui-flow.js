@@ -3676,9 +3676,33 @@ function normalizeReadingStockItem(item) {
 }
 
 function getReadingDisplayLabel(item) {
-    return item && item.segments && item.segments.length > 0
-        ? item.segments.join('/')
-        : item.reading;
+    const reading = String(item?.reading || item?.sessionReading || '').trim();
+    const segments = Array.isArray(item?.segments)
+        ? item.segments
+        : (Array.isArray(item?.sessionSegments) ? item.sessionSegments : []);
+    const readableSegments = segments.filter(seg =>
+        typeof seg === 'string' &&
+        seg.trim() &&
+        !/^__compound_slot_\d+__$/.test(seg.trim())
+    );
+
+    if (readableSegments.length > 1) {
+        const normalizedJoined = typeof toHira === 'function'
+            ? toHira(readableSegments.join(''))
+            : readableSegments.join('');
+        const normalizedReading = typeof toHira === 'function'
+            ? toHira(reading)
+            : reading;
+        if (!reading || normalizedJoined === normalizedReading) {
+            return readableSegments.join('/');
+        }
+    }
+
+    if (readableSegments.length === 1 && !reading) {
+        return readableSegments[0];
+    }
+
+    return reading || readableSegments.join('/') || '';
 }
 
 function matchesReadingStockTarget(item, target) {
@@ -6320,7 +6344,7 @@ function getReadingCardToneV2(kind) {
             ? window.getMeimayRelationshipPalettes()
             : { self: palette, partner: palette };
         return {
-            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 12px 24px ${palette.shadow};`,
+            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             title: '#5d5444',
             sub: '#846d78',
             tagBg: 'rgba(255,255,255,0.82)',
@@ -6330,7 +6354,7 @@ function getReadingCardToneV2(kind) {
         };
     }
     return {
-        card: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 12px 24px ${palette.shadow};`,
+        card: `border:1px solid ${palette.border};background:${palette.surface};`,
         title: '#5d5444',
         sub: palette.text || '#8b7e66',
         tagBg: 'rgba(255,255,255,0.82)',

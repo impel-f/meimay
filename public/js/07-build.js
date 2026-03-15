@@ -882,13 +882,13 @@ function getStockCardSurfaceStyle(kind) {
     }
     if (kind === 'matched') {
         return {
-            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             kanjiColor: '#5d5444',
             strokesColor: '#8c7281'
         };
     }
     return {
-        card: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 28px ${palette.shadow};`,
+        card: `border:1px solid ${palette.border};background:${palette.surface};`,
         kanjiColor: '#5d5444',
         strokesColor: palette.text || '#a6967a'
     };
@@ -905,14 +905,14 @@ function getBuildPieceSurfaceStyle(item, isSelected) {
 
     if (kind === 'matched') {
         return {
-            button: `border:1.5px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+            button: `border:1.5px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             kanjiColor: '#5d5444',
             strokesColor: '#8c7281'
         };
     }
 
     return {
-        button: `border:1.5px solid transparent;background:${palette.surface} padding-box, linear-gradient(${kind === 'partner' ? '315deg' : '135deg'}, ${palette.border} 0%, rgba(255,255,255,0.96) 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+        button: `border:1.5px solid transparent;background:${palette.surface} padding-box, linear-gradient(${kind === 'partner' ? '315deg' : '135deg'}, ${palette.border} 0%, rgba(255,255,255,0.96) 100%) border-box;`,
         kanjiColor: '#5d5444',
         strokesColor: palette.text || '#a6967a'
     };

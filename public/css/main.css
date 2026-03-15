@@ -362,7 +362,6 @@ body {
 
 .stock-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
 }
 
 .stock-stars {
@@ -594,7 +593,6 @@ body {
 }
 
 .build-piece-btn.selected {
-    box-shadow: var(--shadow-md);
     transform: translateY(-8px);
 }
 
