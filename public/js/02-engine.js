@@ -267,7 +267,8 @@ function getKanjiGenderPriority(k, targetGender = gender || 'neutral') {
 }
 
 function isKanjiGenderMismatch(k, targetGender = gender || 'neutral') {
-    return getKanjiGenderPriority(k, targetGender) >= 3;
+    // 性別は並び順の優先度としてだけ使い、候補の除外には使わない。
+    return false;
 }
 function calcSegments() {
     console.log("ENGINE: calcSegments() called");
