@@ -6008,6 +6008,17 @@ function renderReadingStockSection() {
     const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
+    const partnerReadingByReading = new Map();
+    partnerReadingCollection.forEach(item => {
+        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+        if (normalizedReading && !partnerReadingByReading.has(normalizedReading)) partnerReadingByReading.set(normalizedReading, item);
+    });
+    const matchedReadingValues = new Set(
+        (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
+            .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
+            .filter(Boolean)
+    );
     const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
@@ -6187,7 +6198,10 @@ function getPartnerViewNormalizedReading(value, pairInsights) {
 function getReadingOwnershipPaletteFallback(kind) {
     const myRole = typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null;
     const resolvedSelfRole = (myRole === 'mama' || myRole === 'papa') ? myRole : 'papa';
-    const partnerRole = MeimayShare?.partnerSnapshot?.role;
+    const shareState = typeof MeimayShare !== 'undefined'
+        ? MeimayShare
+        : (typeof window !== 'undefined' ? window.MeimayShare : null);
+    const partnerRole = shareState?.partnerSnapshot?.role;
     const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
         ? partnerRole
         : (resolvedSelfRole === 'mama' ? 'papa' : 'mama');
