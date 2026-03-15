@@ -1022,21 +1022,21 @@ function getHomeOverviewSwitchStyle(mode) {
     if (!palette) {
         return {
             button: 'border:1px solid #b9965b;background:#b9965b;',
-            text: '#ffffff',
-            sub: 'rgba(255,255,255,0.92)'
+            text: '#4f4639',
+            sub: '#5d5444'
         };
     }
     if (kind === 'matched') {
         return {
             button: `border:1px solid transparent;background:linear-gradient(135deg, ${selfChip} 0%, ${partnerChip} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            text: '#ffffff',
-            sub: 'rgba(255,255,255,0.92)'
+            text: '#4f4639',
+            sub: '#5d5444'
         };
     }
     return {
         button: `border:1px solid ${singleChip};background:${singleChip};`,
-        text: '#ffffff',
-        sub: 'rgba(255,255,255,0.92)'
+        text: '#4f4639',
+        sub: '#5d5444'
     };
 }
 
@@ -1066,11 +1066,11 @@ function renderHomeOverviewSwitch(pairing) {
             ${canCycle ? 'onclick="event.stopPropagation(); cycleHomeOverviewMode()"' : ''}
             class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="text-[9px] font-black leading-tight md:text-[10px]" style="color:${switchStyle.text};">
+            <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
                 ${activeOption.label}
             </div>
             ${canCycle ? `
-                <div class="mt-1 text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
+                <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
                     タップで切り替え
                 </div>
             ` : ''}
