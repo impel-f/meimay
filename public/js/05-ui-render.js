@@ -130,7 +130,8 @@ function render() {
 
         // addMoreToSlot から来た場合 / 最後の文字スロットの場合 → ビルドへ
         const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
-        const canOfferFlexibleRetry = typeof rule !== 'undefined' && rule === 'strict';
+        const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
+        const canOfferFlexibleRetry = typeof activeRule !== 'undefined' && activeRule === 'strict';
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-[320px]">
@@ -327,7 +328,9 @@ function retrySwipeEmptyState(options = {}) {
     } = options;
 
     if (nextRule) {
-        if (typeof setRule === 'function') {
+        if (typeof setTemporarySwipeRule === 'function') {
+            setTemporarySwipeRule(currentPos, nextRule);
+        } else if (typeof setRule === 'function') {
             setRule(nextRule);
         } else {
             rule = nextRule;

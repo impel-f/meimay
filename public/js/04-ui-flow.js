@@ -1024,6 +1024,7 @@ function startCompoundReadingFlow(option, item = {}) {
     if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
         seen.clear();
     }
+    if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
 
     if (typeof updateSurnameData === 'function') {
         updateSurnameData();
@@ -1350,6 +1351,7 @@ function startCompoundReadingFlow(option, item = {}) {
     if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') {
         seen.clear();
     }
+    if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
 
     if (typeof updateSurnameData === 'function') {
         updateSurnameData();
@@ -3021,6 +3023,7 @@ function startFreeSwiping() {
     currentPos = 0;
     swipes = 0;
     seen.clear();
+    if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
 
     if (!master || master.length === 0) return;
 
@@ -3504,6 +3507,7 @@ function startSwiping() {
     currentPos = 0;
     swipes = 0;
     seen.clear();
+    if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
 
     function beginSwiping() {
         if (typeof loadStack === 'function') loadStack();
@@ -3964,6 +3968,7 @@ function startReadingFromStock(target) {
         if (nameInput) nameInput.value = stockItem.reading;
         if (typeof updateSurnameData === 'function') updateSurnameData();
         seen.clear();
+        if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
         if (typeof loadStack === 'function') loadStack();
         changeScreen('scr-main');
         return;

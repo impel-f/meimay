@@ -2820,7 +2820,9 @@ function restartBuildSlotSelection(slotIdx, options = {}) {
     const defaultMessage = `${slotIdx + 1} 文字目「${segments[slotIdx]}」を選び直しますか？\n現在の選択がリセットされます。`;
     if (!confirm(confirmMessage || defaultMessage)) return;
 
-    if (nextRule) {
+    if (typeof setTemporarySwipeRule === 'function') {
+        setTemporarySwipeRule(slotIdx, nextRule);
+    } else if (nextRule) {
         if (typeof setRule === 'function') {
             setRule(nextRule);
         } else {

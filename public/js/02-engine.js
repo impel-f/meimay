@@ -432,6 +432,36 @@ function selectSegment(path) {
     if (typeof startSwiping === 'function') startSwiping();
 }
 
+function setTemporarySwipeRule(slotIdx, nextRule) {
+    if (!Number.isInteger(slotIdx) || slotIdx < 0) return;
+    if (!window._temporarySwipeRules || typeof window._temporarySwipeRules !== 'object') {
+        window._temporarySwipeRules = {};
+    }
+    if (nextRule) {
+        window._temporarySwipeRules[slotIdx] = nextRule;
+        return;
+    }
+    delete window._temporarySwipeRules[slotIdx];
+}
+
+function getTemporarySwipeRule(slotIdx = currentPos) {
+    if (!Number.isInteger(slotIdx) || slotIdx < 0) return null;
+    const overrides = window._temporarySwipeRules;
+    if (!overrides || typeof overrides !== 'object') return null;
+    return overrides[slotIdx] || null;
+}
+
+function getActiveSwipeRule(slotIdx = currentPos) {
+    return getTemporarySwipeRule(slotIdx) || rule;
+}
+
+function clearTemporarySwipeRules() {
+    window._temporarySwipeRules = {};
+}
+window.setTemporarySwipeRule = setTemporarySwipeRule;
+window.getActiveSwipeRule = getActiveSwipeRule;
+window.clearTemporarySwipeRules = clearTemporarySwipeRules;
+
 /**
  * スワイプ用スタックの生成
  */
@@ -446,6 +476,7 @@ function loadStack() {
     }
 
     const target = toHira(segments[currentPos]);
+    const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
     const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
     window._includeNopedForSlot = null;
     // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で漢字マッチング
@@ -478,7 +509,7 @@ function loadStack() {
             (targetSokuon !== target && readings.some(r => r.startsWith(targetSokuon)));
 
         let match = false;
-        if (typeof rule !== 'undefined' && rule === 'strict') {
+        if (typeof activeRule !== 'undefined' && activeRule === 'strict') {
             match = isExact || isSeionMatch;
         } else {
             match = isExact || isSeionMatch || isPartial;
@@ -646,7 +677,7 @@ function loadStack() {
         }
 
         // ルールに応じてフィルタ (priority=1:完全一致, priority=2:連濁一致)
-        return rule === 'strict' ? (k.priority === 1 || k.priority === 2) : k.priority > 0;
+        return activeRule === 'strict' ? (k.priority === 1 || k.priority === 2) : k.priority > 0;
     });
 
     // 々（同じ字点）の対応
