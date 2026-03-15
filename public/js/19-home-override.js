@@ -616,10 +616,14 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
+    const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
+    if (heroCard) {
+        heroCard.style.cssText = tone.panel;
+    }
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
-        summaryPanel.style.cssText = tone.panel;
+        summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
@@ -1194,6 +1198,7 @@ function renderHomeProfile() {
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
 
     const screen = document.getElementById('scr-mode');
+    const heroCard = document.getElementById('home-hero-card');
     if (screen) {
         screen.style.paddingLeft = '12px';
         screen.style.paddingRight = '12px';
@@ -1201,6 +1206,7 @@ function renderHomeProfile() {
 
     const summaryPanel = document.getElementById('home-summary-panel');
     if (summaryPanel) summaryPanel.classList.remove('hidden');
+    if (heroCard) heroCard.style.cssText = '';
 
     renderHomeOverviewSwitch(pairing);
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
@@ -1478,6 +1484,7 @@ function renderHomeProfileV2() {
         heroCard.removeAttribute('role');
         heroCard.removeAttribute('tabindex');
         heroCard.removeAttribute('onkeydown');
+        heroCard.style.cssText = '';
     }
 
     if (statusLineEl) statusLineEl.classList.add('hidden');
