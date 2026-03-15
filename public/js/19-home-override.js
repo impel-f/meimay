@@ -219,19 +219,19 @@ function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) 
     if (stepKey === 'kanji') {
         return {
             countNumber: String(likedCount),
-            countUnit: '件',
+            countUnit: '字',
             actionText: likedCount > 0 ? '漢字を見る＞' : '漢字を探す＞'
         };
     }
     if (stepKey === 'build') {
         return {
             countNumber: String(getHomeBuildPatternCount()),
-            countUnit: 'パターン',
+            countUnit: '通り',
             actionText: '組み立てる＞',
             compact: true
         };
     }
-    return { countNumber: String(savedCount), countUnit: '件', actionText: '保存を見る＞' };
+    return { countNumber: String(savedCount), countUnit: '件', actionText: '候補を見る＞' };
 }
 
 function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) {
@@ -461,7 +461,7 @@ function ensureHomeStageTrack() {
     if (!stageTrack) {
         stageTrack = document.createElement('div');
         stageTrack.id = 'home-stage-track';
-        stageTrack.className = 'rounded-2xl border border-[#eee4d6] bg-[#fffaf5] px-3 py-3';
+        stageTrack.className = 'rounded-[30px] border border-[#eadfce] bg-[#fffaf6] px-4 py-5 sm:px-6';
         anchor.appendChild(stageTrack);
     }
 
@@ -474,31 +474,33 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
 
     const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-4 gap-1.5">
-            ${timeline.steps.map((step) => `
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+            ${timeline.steps.map((step) => {
+                const countValue = Number(step.metric.countNumber) || 0;
+                const isReady = countValue > 0 || step.done;
+                const cardClass = isReady
+                    ? 'bg-gradient-to-b from-[#fff8e8] to-[#fffaf2] border-[#ebcf97] shadow-[0_10px_24px_rgba(188,163,127,0.12)]'
+                    : 'bg-white border-[#eee5d8] shadow-[0_8px_20px_rgba(188,163,127,0.06)]';
+                const badgeClass = isReady
+                    ? 'bg-[#c8a057] text-white'
+                    : 'bg-[#efe6d7] text-[#a6967a]';
+                return `
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="rounded-2xl px-2 py-2 text-center active:scale-[0.98] transition-transform ${step.done
-                    ? 'bg-[#fff4df] border border-[#ecd5ac]'
-                    : step.active
-                        ? 'bg-[#f7f3ff] border border-[#d8c9ef]'
-                        : 'bg-white border border-[#eee5d8]'}">
-                    <div class="text-[10px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
-                    <div class="mt-2 flex min-h-[34px] items-start justify-center gap-1.5">
-                        <span class="mt-[1px] inline-flex h-5 min-w-[20px] items-center justify-center rounded-full text-[10px] font-black ${step.done
-                            ? 'bg-[#b9965b] text-white'
-                            : step.active
-                                ? 'bg-[#b7a6da] text-white'
-                                : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
-                        <span class="flex flex-col items-center leading-none overflow-visible">
-                            <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
-                            <span class="mt-0.5 whitespace-nowrap text-[8px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
+                    class="min-h-[188px] rounded-[30px] border px-4 py-5 text-center active:scale-[0.98] transition-transform ${cardClass}">
+                    <div class="text-[13px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
+                    <div class="mt-7 flex items-center justify-center gap-3">
+                        <span class="inline-flex h-12 w-12 items-center justify-center rounded-full text-[28px] font-black leading-none ${badgeClass}">✓</span>
+                        <span class="flex flex-col items-start leading-none text-left">
+                            <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[32px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
+                            <span class="mt-1 whitespace-nowrap text-[14px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
                         </span>
                     </div>
-                    <div class="mt-2 text-[9px] font-black text-[#8b7e66] text-center whitespace-nowrap">${step.metric.actionText}</div>
+                    <div class="mt-8 text-[13px] font-black text-[#8b7e66] text-center whitespace-nowrap">${step.metric.actionText}</div>
                 </button>
-            `).join('')}
+            `;
+            }).join('')}
         </div>
     `;
 }
