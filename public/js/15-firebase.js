@@ -1266,6 +1266,9 @@ function getMeimayRelationshipPalettes() {
     const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
         ? partnerRole
         : inferPartnerRole(resolvedSelfRole);
+    const getRoleMatchedSurface = (role) => role === 'mama' ? '#ffe8ef' : '#e7f3ff';
+    const getRoleMatchedAccent = (role) => role === 'mama' ? '#fde1ea' : '#e3f0ff';
+    const getRoleMatchedBorder = (role) => role === 'mama' ? '#f5c7d6' : '#c6dcff';
     const selfBase = getMeimayRolePalette(resolvedSelfRole);
     const partnerBase = getMeimayRolePalette(resolvedPartnerRole);
     const self = {
@@ -1285,10 +1288,10 @@ function getMeimayRelationshipPalettes() {
             label: 'ふたり',
             accent: self.accent,
             accentAlt: partner.accent,
-            accentSoft: `linear-gradient(135deg, ${self.accentSoft} 0%, #fffafc 46%, ${partner.accentSoft} 100%)`,
-            surface: `linear-gradient(135deg, ${self.mist} 0%, #fffdfb 44%, ${partner.mist} 100%)`,
-            border: self.border,
-            borderAlt: partner.border,
+            accentSoft: `linear-gradient(135deg, ${getRoleMatchedAccent(resolvedSelfRole)} 0%, #fffafc 46%, ${getRoleMatchedAccent(resolvedPartnerRole)} 100%)`,
+            surface: `linear-gradient(135deg, ${getRoleMatchedSurface(resolvedSelfRole)} 0%, #fffdfb 44%, ${getRoleMatchedSurface(resolvedPartnerRole)} 100%)`,
+            border: getRoleMatchedBorder(resolvedSelfRole),
+            borderAlt: getRoleMatchedBorder(resolvedPartnerRole),
             text: '#7d6671',
             shadow: 'rgba(189, 166, 204, 0.18)'
         }
