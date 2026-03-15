@@ -1064,7 +1064,7 @@ function renderHomeOverviewSwitch(pairing) {
         <button
             type="button"
             ${canCycle ? 'onclick="event.stopPropagation(); cycleHomeOverviewMode()"' : ''}
-            class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
+            class="w-full rounded-[1.05rem] px-1.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2 md:py-2.5"
             style="${switchStyle.button}">
             <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
                 ${activeOption.label}
