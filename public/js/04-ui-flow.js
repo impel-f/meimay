@@ -3869,7 +3869,6 @@ function renderReadingStockSection() {
                 <div class="grid grid-cols-2 gap-2">
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
-                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '漢字を探す →';
                         const badge = item.isSuper
                             ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-[#fff1d8] text-[#b9965b] text-[9px] font-black">SUPER</span>'
                             : '';
@@ -3878,11 +3877,10 @@ function renderReadingStockSection() {
                             <div class="flex items-start justify-between gap-2">
                                 <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
                                 </button>
                                 <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
                             </div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${badge}${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${badge}</div>
                         </div>`;
                     }).join('')}
                 </div>
@@ -5846,6 +5844,17 @@ function renderReadingStockSection() {
     const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
+    const partnerReadingByReading = new Map();
+    partnerReadingCollection.forEach(item => {
+        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+        if (normalizedReading && !partnerReadingByReading.has(normalizedReading)) partnerReadingByReading.set(normalizedReading, item);
+    });
+    const matchedReadingValues = new Set(
+        (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
+            .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
+            .filter(Boolean)
+    );
     const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
 
     const hasContent = completedReadings.length > 0 || pendingOnly.length > 0 || pendingPartnerReadings.length > 0;
@@ -5903,17 +5912,19 @@ function renderReadingStockSection() {
                 <div class="grid grid-cols-2 gap-2">
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
-                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '漢字を探す';
+                        const tone = getReadingCardToneV2('self');
+                        const stars = renderReadingCardStarsV2(item.isSuper, false);
                         return `
-                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}">
                             <div class="flex items-start justify-between gap-2">
                                 <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
-                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                                    <div class="flex items-center gap-2">
+                                        ${stars}
+                                        <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                                    </div>
                                 </button>
-                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                             </div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
                         </div>`;
                     }).join('')}
                 </div>
@@ -5933,14 +5944,15 @@ function renderReadingStockSection() {
             <div class="grid grid-cols-2 gap-2">
                 ${pendingPartnerReadings.map((item, index) => {
                     const display = getReadingDisplayLabel(item);
-                    const sub = item.baseNickname || 'パートナー候補';
+                    const tone = getReadingCardToneV2('partner');
+                    const stars = renderReadingCardStarsV2(false, item.isSuper);
                     return `
-                        <div class="bg-white border border-[#f4d3cf] rounded-xl p-3">
-                            <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2 py-0.5 text-[9px] font-bold text-[#dd7d73]">${partnerLabel}</div>
-                            <div class="mt-2 text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                            <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
-                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white text-[11px] font-bold shadow-sm active:scale-95">
+                        <div class="rounded-2xl p-3" style="${tone.card}">
+                            <div class="flex items-center gap-2">
+                                ${stars}
+                                <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                            </div>
+                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
                                 いいねして追加
                             </button>
                         </div>`;
@@ -6061,15 +6073,25 @@ function renderReadingStockSection() {
             const kanjiCount = ownLiked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
             const segs = readingToSegments[reading];
             const display = segs ? segs.join('/') : reading;
+            const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
+            const partnerItem = partnerReadingByReading.get(normalizedReading) || null;
+            const kind = (partnerItem || matchedReadingValues.has(normalizedReading)) ? 'matched' : 'self';
+            const tone = getReadingCardToneV2(kind);
+            const stars = renderReadingCardStarsV2(false, partnerItem?.isSuper);
             html += `
-                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
+                <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
+                     style="${tone.card}"
                      onclick="openReadingStockModal('${reading}')">
                     <div class="flex-1 min-w-0">
-                        <div class="text-lg font-black text-[#5d5444]">${display}</div>
-                        <div class="text-[9px] text-[#a6967a]">${kanjiCount}件の漢字</div>
+                        <div class="flex items-center gap-2">
+                            ${stars}
+                            <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                        </div>
+                        <div class="text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字</div>
                     </div>
                     <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
-                        class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
+                        class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
+                        style="${tone.action}">
                         ビルドへ
                     </button>
                 </div>`;
@@ -6096,17 +6118,22 @@ function renderReadingStockSection() {
                 <div class="grid grid-cols-2 gap-2">
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
-                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '読みを探す';
+                        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+                        const partnerItem = partnerReadingByReading.get(normalizedReading) || null;
+                        const kind = (partnerItem || matchedReadingValues.has(normalizedReading)) ? 'matched' : 'self';
+                        const tone = getReadingCardToneV2(kind);
+                        const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
-                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}">
                             <div class="flex items-start justify-between gap-2">
                                 <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
-                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                                    <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
+                                    <div class="flex items-center gap-2">
+                                        ${stars}
+                                        <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                                    </div>
                                 </button>
-                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                             </div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
                         </div>`;
                     }).join('')}
                 </div>
@@ -6122,14 +6149,15 @@ function renderReadingStockSection() {
             <div class="grid grid-cols-2 gap-2">
                 ${visiblePartnerReadings.map((item, index) => {
                     const display = getReadingDisplayLabel(item);
-                    const sub = item.baseNickname || 'パートナー候補';
+                    const tone = getReadingCardToneV2('partner');
+                    const stars = renderReadingCardStarsV2(false, item.isSuper);
                     return `
-                        <div class="bg-white border border-[#f4d3cf] rounded-xl p-3">
-                            <div class="inline-flex items-center rounded-full bg-[#fde8e5] px-2 py-0.5 text-[9px] font-bold text-[#dd7d73]">${partnerName}</div>
-                            <div class="mt-2 text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                            <div class="text-[9px] text-[#a6967a] mt-1">${sub}</div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] text-[#8b7e66] bg-[#f7f1e7] px-2 py-0.5 rounded-full">${tag}</span>`).join('')}</div>
-                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white text-[11px] font-bold shadow-sm active:scale-95">
+                        <div class="rounded-2xl p-3" style="${tone.card}">
+                            <div class="flex items-center gap-2">
+                                ${stars}
+                                <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                            </div>
+                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
                                 いいねして追加
                             </button>
                         </div>`;
@@ -6156,10 +6184,69 @@ function getPartnerViewNormalizedReading(value, pairInsights) {
     return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
 }
 
+function getReadingOwnershipPaletteFallback(kind) {
+    const myRole = typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null;
+    const resolvedSelfRole = (myRole === 'mama' || myRole === 'papa') ? myRole : 'papa';
+    const partnerRole = MeimayShare?.partnerSnapshot?.role;
+    const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
+        ? partnerRole
+        : (resolvedSelfRole === 'mama' ? 'papa' : 'mama');
+
+    const getRolePalette = (role) => role === 'mama'
+        ? {
+            accent: '#f2a2b8',
+            accentStrong: '#dc7f9c',
+            accentSoft: '#fef0f5',
+            surface: '#fff8fb',
+            mist: '#fff5f8',
+            border: '#f7dbe5',
+            text: '#8e6170',
+            shadow: 'rgba(242, 162, 184, 0.14)',
+            star: '#ea89a7'
+        }
+        : {
+            accent: '#8fbff8',
+            accentStrong: '#5f98de',
+            accentSoft: '#eff7ff',
+            surface: '#f8fbff',
+            mist: '#f3f8ff',
+            border: '#d9e8ff',
+            text: '#59779d',
+            shadow: 'rgba(143, 191, 248, 0.14)',
+            star: '#6ea9ef'
+        };
+
+    const selfBase = getRolePalette(resolvedSelfRole);
+    const partnerBase = getRolePalette(resolvedPartnerRole);
+    const self = {
+        ...selfBase,
+        surface: `linear-gradient(to bottom right, ${selfBase.mist} 0%, ${selfBase.accentSoft} 28%, #ffffff 100%)`
+    };
+    const partner = {
+        ...partnerBase,
+        surface: `linear-gradient(to top left, ${partnerBase.mist} 0%, ${partnerBase.accentSoft} 28%, #ffffff 100%)`
+    };
+    const matched = {
+        accent: self.accent,
+        accentStrong: self.accentStrong,
+        accentAlt: partner.accent,
+        border: resolvedSelfRole === 'mama' ? '#f5c7d6' : '#c6dcff',
+        borderAlt: resolvedPartnerRole === 'mama' ? '#f5c7d6' : '#c6dcff',
+        surface: `linear-gradient(135deg, ${resolvedSelfRole === 'mama' ? '#ffe8ef' : '#e7f3ff'} 0%, #fffdfb 44%, ${resolvedPartnerRole === 'mama' ? '#ffe8ef' : '#e7f3ff'} 100%)`,
+        text: '#7d6671',
+        shadow: 'rgba(189, 166, 204, 0.18)'
+    };
+
+    if (kind === 'partner') return partner;
+    if (kind === 'matched') return matched;
+    return self;
+}
+
 function getReadingCardToneV2(kind) {
-    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+    let palette = typeof window.getMeimayOwnershipPalette === 'function'
         ? window.getMeimayOwnershipPalette(kind)
-        : null;
+        : getReadingOwnershipPaletteFallback(kind);
+    if (!palette) palette = getReadingOwnershipPaletteFallback(kind);
     if (!palette) {
         return {
             card: 'border:1px solid #ede5d8;background:#fff;',
@@ -6413,7 +6500,6 @@ function renderReadingStockSectionV2() {
                 <div class="grid grid-cols-2 gap-2">
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
-                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '読みを広げる';
                         const key = getPartnerViewReadingKey(item, pairInsights);
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
                         const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
@@ -6427,7 +6513,6 @@ function renderReadingStockSectionV2() {
                                         ${stars}
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
-                                    <div class="text-[9px] mt-1" style="color:${tone.sub}">${sub}</div>
                                 </button>
                                 <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                             </div>
@@ -6447,7 +6532,6 @@ function renderReadingStockSectionV2() {
                 ${visiblePartnerReadings.map(entry => {
                     const item = entry.item;
                     const display = getReadingDisplayLabel(item);
-                    const sub = item.baseNickname || 'パートナー候補';
                     const tone = getReadingCardToneV2('partner');
                     const stars = renderReadingCardStarsV2(false, item.isSuper);
                     return `
@@ -6456,7 +6540,6 @@ function renderReadingStockSectionV2() {
                                 ${stars}
                                 <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                             </div>
-                            <div class="text-[9px] mt-1" style="color:${tone.sub}">${sub}</div>
                             <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
                                 いいねして取り込む
                             </button>
