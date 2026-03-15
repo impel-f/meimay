@@ -1535,7 +1535,7 @@ function renderBuildSelection() {
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-6 flex justify-center';
     rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
-        <div class="text-sm font-bold">運勢ランキング TOP10</div>
+        <div class="text-sm font-bold">🏆 運勢ランキング TOP10</div>
         <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
     </button>`;
     container.appendChild(rankingBtnWrapper);
@@ -2425,11 +2425,14 @@ function showFortuneDetail() {
     const kBox = (char, isSur) => `
     <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${char}</div> `;
 
+    const mapTitle = document.createElement('div');
+    mapTitle.className = "mb-2 text-center text-[12px] font-black tracking-[0.16em] text-[#5d5444] opacity-70 animate-fade-in";
+    mapTitle.textContent = '姓名判断 鑑定図解';
+    container.appendChild(mapTitle);
+
     const mapArea = document.createElement('div');
     mapArea.className = "mb-2 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
     mapArea.innerHTML = `
-        <div style = "text-align:center;font-size:9px;font-weight:900;letter-spacing:0.2em;color:#5d5444;opacity:0.5;margin-bottom:14px" > 姓名判断 鑑定図解</div>
-
         <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
             
@@ -2559,18 +2562,20 @@ function showFortuneTerm(term) {
  */
 function renderFortuneDetails(container, res, getNum) {
     const items = [
-        { k: "天格", sub: "祖先運", d: res.ten, icon: "天" },
-        { k: "人格", sub: "主運", d: res.jin, icon: "人" },
-        { k: "地格", sub: "初年運", d: res.chi, icon: "地" },
-        { k: "外格", sub: "対人運", d: res.gai, icon: "外" },
-        { k: "総格", sub: "総合運", d: res.so, icon: "総" }
+        { k: "天格", sub: "祖先運", d: res.ten, icon: "🏛️" },
+        { k: "人格", sub: "主運", d: res.jin, icon: "💎" },
+        { k: "地格", sub: "初年運", d: res.chi, icon: "🌱" },
+        { k: "外格", sub: "対人運", d: res.gai, icon: "🌍" },
+        { k: "総格", sub: "総合運", d: res.so, icon: "🏆" }
     ];
     items.forEach(p => {
         if (!p.d) return;
 
         let descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
         // 副題（例：祖先運）が先頭に来る場合は除去
-        descText = descText.replace(new RegExp(`^ ${p.sub} [。、|｜\\s] * `), '');
+        descText = descText
+            .replace(new RegExp(`^${p.sub}[、。・:：|｜\\s-]*`), '')
+            .replace(/^\s+/, '');
 
         const row = document.createElement('div');
         row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
@@ -2738,9 +2743,9 @@ function displayFortuneRankingModal(rankedList) {
     const descEl = document.getElementById('for-desc');
 
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
-    if (nameEl) nameEl.innerText = '運勢ランキング TOP10';
+    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
     gridEl.innerHTML =
-        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">運勢ランキング TOP10</div>' : '') +
+        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : '') +
         '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
