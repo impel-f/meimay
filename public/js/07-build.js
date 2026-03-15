@@ -870,6 +870,23 @@ function getBuildPieceSurfaceStyle(item, isSelected) {
     };
 }
 
+function applyBuildPieceVisualState(button, item, isSelected) {
+    if (!button) return;
+    const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
+    button.classList.toggle('selected', !!isSelected);
+    button.style.cssText = surfaceStyle?.button || '';
+
+    const kanjiEl = button.querySelector('.build-kanji-text');
+    if (kanjiEl) {
+        kanjiEl.style.color = surfaceStyle?.kanjiColor || '';
+    }
+
+    const strokesEl = button.querySelector('.build-piece-strokes');
+    if (strokesEl) {
+        strokesEl.style.color = surfaceStyle?.strokesColor || '';
+    }
+}
+
 function getCardSuperFlags(item) {
     return {
         self: !!item?.ownSuper || (!!item?.isSuper && !item?.fromPartner && !item?.partnerSuper),
@@ -1473,11 +1490,8 @@ function renderBuildSelection() {
             items.forEach((item, itemIdx) => {
                 const btn = document.createElement('button');
                 const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
-                btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''}`; // modified: added relative and selected class check
-                const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
-                if (surfaceStyle?.button) {
-                    btn.style.cssText += surfaceStyle.button;
-                }
+                btn.className = 'build-piece-btn relative';
+                btn._buildPieceData = item;
 
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
@@ -1501,15 +1515,14 @@ function renderBuildSelection() {
                 // 画数が未設定の場合はmasterから補完
                 const strokes = item['画数'] !== undefined ? item['画数']
                     : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '--';
-                const kanjiStyleAttr = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
-                const strokesStyleAttr = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
 
                 btn.innerHTML = `
-                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}"${kanjiStyleAttr}>${item['漢字']}</div>
-                    <div class="text-[10px] font-bold"${strokesStyleAttr}>${strokes}画</div>
+                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}">${item['漢字']}</div>
+                    <div class="build-piece-strokes text-[10px] font-bold">${strokes}画</div>
                     ${renderBuildSuperStars(item)}
                     ${fortuneIndicator}
 `;
+                applyBuildPieceVisualState(btn, item, isSelected);
                 scrollBox.appendChild(btn);
             });
         }
@@ -2230,10 +2243,10 @@ function selectBuildPiece(slot, data, btnElement) {
 
     const parent = btnElement.parentElement;
     parent.querySelectorAll('.build-piece-btn').forEach(btn => {
-        btn.classList.remove('selected');
+        applyBuildPieceVisualState(btn, btn._buildPieceData, false);
     });
 
-    btnElement.classList.add('selected');
+    applyBuildPieceVisualState(btnElement, data, true);
 
     const allSelected = selectedPieces.filter(x => x).length === segments.length;
     if (allSelected) {
@@ -2795,13 +2808,15 @@ function applyRankedCombination(combination) {
     console.log("BUILD: Applying ranked combination", combination);
     selectedPieces = [];
     document.querySelectorAll('.build-piece-btn').forEach(btn => {
-        btn.classList.remove('selected');
+        applyBuildPieceVisualState(btn, btn._buildPieceData, false);
     });
 
     combination.pieces.forEach((piece, idx) => {
         selectedPieces[idx] = piece;
         const targetBtn = document.querySelector(`.build-piece-btn[data-slot="${idx}"][data-kanji="${piece['漢字']}"]`);
-        if (targetBtn) targetBtn.classList.add('selected');
+        if (targetBtn) {
+            applyBuildPieceVisualState(targetBtn, targetBtn._buildPieceData || piece, true);
+        }
     });
 
     closeFortuneDetail();
@@ -3021,3 +3036,4 @@ window.showFortuneTerm = showFortuneTerm;
 })();
 
 console.log("BUILD: Module loaded");
+

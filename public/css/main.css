@@ -342,6 +342,7 @@ body {
     border-radius: 12px;
     padding: 8px 2px;
     margin-bottom: 0;
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -379,7 +380,19 @@ body {
     border-radius: 0;
     box-shadow: none;
     pointer-events: none;
-    margin-top: 4px;
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    transform: translateX(-50%);
+    margin-top: 0;
+}
+
+.stock-card.has-stock-stars .stock-strokes {
+    margin-bottom: 14px;
+}
+
+.stock-strokes {
+    line-height: 1;
 }
 
 .stock-kanji {
