@@ -846,6 +846,31 @@ function getStockCardSurfaceStyle(kind) {
     };
 }
 
+function getBuildPieceSurfaceStyle(item, isSelected) {
+    if (isSelected) return null;
+    const kind = getStockOwnershipKind(item);
+    if (kind === 'self') return null;
+
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    if (!palette) return null;
+
+    if (kind === 'matched') {
+        return {
+            button: `border:1.5px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+            kanjiColor: '#5d5444',
+            strokesColor: '#8c7281'
+        };
+    }
+
+    return {
+        button: `border:1.5px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 28px ${palette.shadow};`,
+        kanjiColor: '#5d5444',
+        strokesColor: palette.text || '#a6967a'
+    };
+}
+
 function renderStockSuperStars(item) {
     if (typeof window.renderMeimaySuperStars !== 'function') {
         return item?.isSuper ? '<div class="stock-stars">★</div>' : '';
@@ -1429,6 +1454,10 @@ function renderBuildSelection() {
                 const btn = document.createElement('button');
                 const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
                 btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''}`; // modified: added relative and selected class check
+                const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
+                if (surfaceStyle?.button) {
+                    btn.style.cssText += surfaceStyle.button;
+                }
                 
                 // タグ色の取得と適用（選択時のみ枠線に適用、角丸維持）
                 const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
@@ -1469,11 +1498,13 @@ function renderBuildSelection() {
                 // 画数が未設定の場合はmasterから補完
                 const strokes = item['画数'] !== undefined ? item['画数']
                     : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '--';
+                const kanjiStyleAttr = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
+                const strokesStyleAttr = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
 
                 btn.innerHTML = `
                     ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
-                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}">${item['漢字']}</div>
-                    <div class="text-[10px] text-[#a6967a] font-bold">${strokes}画</div>
+                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}"${kanjiStyleAttr}>${item['漢字']}</div>
+                    <div class="text-[10px] font-bold"${strokesStyleAttr}>${strokes}画</div>
                     ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
                     ${fortuneIndicator}
 `;

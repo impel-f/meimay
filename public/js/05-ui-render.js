@@ -576,6 +576,56 @@ async function showKanjiDetail(data) {
 }
 
 /**
+ * ストック追加時に元の読み文脈を引き継ぐ
+ * @param {Object} data - 漢字データ
+ */
+function resolveStockSourceSessionContext(data) {
+    const sourceSessionReading = typeof data?.sessionReading === 'string' ? data.sessionReading : '';
+    const sourceSlot = Number.isFinite(Number(data?.slot)) ? Number(data.slot) : -1;
+    const sourceSessionSegments = Array.isArray(data?.sessionSegments) && data.sessionSegments.length > 0
+        ? [...data.sessionSegments]
+        : null;
+    const sourceDisplaySegments = Array.isArray(data?.sessionDisplaySegments) && data.sessionDisplaySegments.length > 0
+        ? [...data.sessionDisplaySegments]
+        : null;
+    const fallbackReadingFromSegments = sourceSessionSegments ? sourceSessionSegments.join('') : '';
+
+    if (sourceSessionReading || sourceSlot >= 0 || sourceSessionSegments) {
+        return {
+            sessionReading: sourceSessionReading || fallbackReadingFromSegments || 'FREE',
+            slot: sourceSlot,
+            sessionSegments: sourceSessionSegments,
+            sessionDisplaySegments: sourceDisplaySegments
+        };
+    }
+
+    const mainSwipeScreen = document.getElementById('scr-main');
+    if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') && segments && segments[currentPos]) {
+        if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+            return {
+                sessionReading: 'FREE',
+                slot: -1,
+                sessionSegments: null,
+                sessionDisplaySegments: null
+            };
+        }
+        return {
+            sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
+            slot: currentPos,
+            sessionSegments: [...segments],
+            sessionDisplaySegments: Array.isArray(window.displaySegments) ? [...window.displaySegments] : null
+        };
+    }
+
+    return {
+        sessionReading: 'FREE',
+        slot: -1,
+        sessionSegments: null,
+        sessionDisplaySegments: null
+    };
+}
+
+/**
  * モーダルからストックを切り替え
  * @param {Object} data - 漢字データ
  * @param {boolean} isCurrentlyLiked - 現在ストック中かどうか
@@ -616,23 +666,11 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             closeKanjiDetail();
         }
     } else {
-        // ストックに追加
-        let sessionReading = 'FREE'; // 全てフリーストックとして扱う
-        let slot = -1;
-        let sessionSegments = null;
-
-        // もしスワイプ画面からの追加なら文脈を引き継ぐ（表示中スロットに結びつける）
-        const mainSwipeScreen = document.getElementById('scr-main');
-        if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') && segments && segments[currentPos]) {
-            if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
-                sessionReading = 'FREE';
-                slot = -1;
-            } else {
-                sessionReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
-                slot = currentPos;
-                sessionSegments = [...segments];
-            }
-        }
+        const sourceContext = resolveStockSourceSessionContext(data);
+        const sessionReading = sourceContext.sessionReading;
+        const slot = sourceContext.slot;
+        const sessionSegments = sourceContext.sessionSegments;
+        const sessionDisplaySegments = sourceContext.sessionDisplaySegments;
 
         const readingToSave = [data['音'], data['訓'], data['伝統名のり']].filter(x => x).join(',');
 
@@ -649,6 +687,9 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         delete likeData.partnerName;
         if (sessionSegments) {
             likeData.sessionSegments = sessionSegments;
+        }
+        if (sessionDisplaySegments) {
+            likeData.sessionDisplaySegments = sessionDisplaySegments;
         }
 
         liked.push(likeData);

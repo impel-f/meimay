@@ -1327,6 +1327,9 @@ function refreshPartnerAwareUI() {
         if (typeof renderStock === 'function') renderStock();
         if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     }
+    if (document.getElementById('scr-build')?.classList.contains('active')) {
+        if (typeof renderBuildSelection === 'function') renderBuildSelection();
+    }
 }
 
 window.refreshPartnerAwareUI = refreshPartnerAwareUI;
