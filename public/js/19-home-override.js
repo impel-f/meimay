@@ -478,13 +478,16 @@ function getHomeStageTrackTone(mode) {
     const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
         ? window.getMeimayRelationshipPalettes()
         : { self: palette, partner: palette };
+    const cardDone = 'border:1px solid rgba(226,214,196,0.94);background:rgba(255,255,255,0.76);';
+    const cardActive = 'border:1px solid rgba(226,214,196,0.9);background:rgba(255,255,255,0.68);';
+    const cardIdle = 'border:1px solid rgba(234,223,206,0.84);background:rgba(255,255,255,0.56);';
 
     if (!palette) {
         return {
             panel: 'border:1px solid #eee4d6;background:#fffaf6;',
-            cardDone: 'border:1px solid #ecdcb7;background:#fff8ee;',
-            cardActive: 'border:1px solid #eadfce;background:#fffaf6;',
-            cardIdle: 'border:1px solid #eee5d8;background:#ffffff;',
+            cardDone,
+            cardActive,
+            cardIdle,
             badgeDone: 'background:#b9965b;color:#fff;',
             badgeActive: 'background:#d8cfbe;color:#7f725d;',
             badgeIdle: 'background:#f0e8db;color:#8b7e66;',
@@ -496,9 +499,9 @@ function getHomeStageTrackTone(mode) {
     if (kind === 'matched') {
         return {
             panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            cardDone: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            cardActive: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            cardIdle: 'border:1px solid rgba(255,255,255,0.86);background:rgba(255,255,255,0.88);',
+            cardDone,
+            cardActive,
+            cardIdle,
             badgeDone: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
             badgeActive: 'background:rgba(255,255,255,0.92);color:#7d6671;border:1px solid rgba(255,255,255,0.86);',
             badgeIdle: 'background:rgba(255,255,255,0.82);color:#846d78;',
@@ -509,9 +512,9 @@ function getHomeStageTrackTone(mode) {
 
     return {
         panel: `border:1px solid ${palette.border};background:${palette.surface};`,
-        cardDone: `border:1px solid ${palette.border};background:${palette.surface};`,
-        cardActive: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.surface};`,
-        cardIdle: `border:1px solid ${palette.border};background:rgba(255,255,255,0.9);`,
+        cardDone,
+        cardActive,
+        cardIdle,
         badgeDone: `background:${palette.accentStrong || palette.accent};color:#fff;`,
         badgeActive: `background:${palette.accentSoft || palette.mist || '#fff7ef'};color:${palette.text || '#8b7e66'};`,
         badgeIdle: `background:rgba(255,255,255,0.86);color:${palette.text || '#8b7e66'};`,
@@ -989,6 +992,10 @@ function updateHomeAggregateStageCounts(aggregateCounts) {
     });
 }
 
+function getHomeOverviewChipColor(role) {
+    return role === 'mama' ? '#F2A9C2' : '#AFCBFF';
+}
+
 function getHomeOverviewSwitchOptions(pairing) {
     if (!pairing?.hasPartner) {
         return [{ mode: 'self', label: 'マイ候補' }];
@@ -1009,24 +1016,27 @@ function getHomeOverviewSwitchStyle(mode) {
     const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
         ? window.getMeimayRelationshipPalettes()
         : { self: palette, partner: palette };
+    const selfChip = getHomeOverviewChipColor(pairPalettes?.self?.role);
+    const partnerChip = getHomeOverviewChipColor(pairPalettes?.partner?.role);
+    const singleChip = kind === 'partner' ? partnerChip : selfChip;
     if (!palette) {
         return {
-            button: 'border:1px solid #b9965b;background:#b9965b;',
-            text: '#ffffff',
-            sub: 'rgba(255,255,255,0.88)'
+            button: 'border:1px solid #d8c9b8;background:#fffaf5;',
+            text: '#5d5444',
+            sub: '#8b7e66'
         };
     }
     if (kind === 'matched') {
         return {
-            button: `border:1px solid transparent;background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            text: '#ffffff',
-            sub: 'rgba(255,255,255,0.9)'
+            button: `border:1px solid transparent;background:linear-gradient(135deg, ${selfChip} 0%, ${partnerChip} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
+            text: '#5d5444',
+            sub: '#6f6454'
         };
     }
     return {
-        button: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.accentStrong || palette.accent};`,
-        text: '#ffffff',
-        sub: 'rgba(255,255,255,0.88)'
+        button: `border:1px solid ${singleChip};background:${singleChip};`,
+        text: '#5d5444',
+        sub: '#6f6454'
     };
 }
 
