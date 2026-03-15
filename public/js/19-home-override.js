@@ -1002,7 +1002,7 @@ function getHomeOverviewSwitchOptions(pairing) {
     }
 
     return [
-        { mode: 'shared', label: 'ふたりの候補' },
+        { mode: 'shared', label: 'ふたりで集めた候補' },
         { mode: 'self', label: 'マイ候補' },
         { mode: 'partner', label: 'パートナー候補' }
     ];
@@ -1021,22 +1021,22 @@ function getHomeOverviewSwitchStyle(mode) {
     const singleChip = kind === 'partner' ? partnerChip : selfChip;
     if (!palette) {
         return {
-            button: 'border:1px solid #d8c9b8;background:#fffaf5;',
-            text: '#5d5444',
-            sub: '#8b7e66'
+            button: 'border:1px solid #b9965b;background:#b9965b;',
+            text: '#ffffff',
+            sub: 'rgba(255,255,255,0.92)'
         };
     }
     if (kind === 'matched') {
         return {
             button: `border:1px solid transparent;background:linear-gradient(135deg, ${selfChip} 0%, ${partnerChip} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            text: '#5d5444',
-            sub: '#6f6454'
+            text: '#ffffff',
+            sub: 'rgba(255,255,255,0.92)'
         };
     }
     return {
         button: `border:1px solid ${singleChip};background:${singleChip};`,
-        text: '#5d5444',
-        sub: '#6f6454'
+        text: '#ffffff',
+        sub: 'rgba(255,255,255,0.92)'
     };
 }
 
