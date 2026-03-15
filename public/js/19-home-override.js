@@ -942,28 +942,72 @@ function getHomeOverviewSwitchOptions(pairing) {
     ];
 }
 
+function getHomeOverviewSwitchStyle(mode) {
+    const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    if (!palette) {
+        return {
+            button: 'border:1px solid #eadfce;background:#fffaf5;box-shadow:0 12px 24px rgba(185,150,91,0.12);',
+            text: '#5d5444',
+            sub: '#8b7e66'
+        };
+    }
+    if (kind === 'matched') {
+        return {
+            button: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+            text: '#5d5444',
+            sub: '#846d78'
+        };
+    }
+    return {
+        button: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 28px ${palette.shadow};`,
+        text: '#5d5444',
+        sub: palette.text || '#8b7e66'
+    };
+}
+
+function cycleHomeOverviewMode() {
+    const pairing = getPairingHomeSummary();
+    const options = getHomeOverviewSwitchOptions(pairing);
+    if (options.length <= 1) return;
+
+    const currentMode = getHomeOverviewMode(pairing);
+    const currentIndex = options.findIndex(option => option.mode === currentMode);
+    const nextOption = options[(currentIndex + 1 + options.length) % options.length] || options[0];
+    setHomeOverviewMode(nextOption.mode);
+}
+
 function renderHomeOverviewSwitch(pairing) {
     const mount = document.getElementById('home-overview-switch');
     if (!mount) return;
 
     const options = getHomeOverviewSwitchOptions(pairing);
     const activeMode = getHomeOverviewMode(pairing);
+    const activeOption = options.find(option => option.mode === activeMode) || options[0];
+    const activeIndex = options.findIndex(option => option.mode === activeOption.mode);
+    const nextOption = options[(activeIndex + 1 + options.length) % options.length] || activeOption;
+    const switchStyle = getHomeOverviewSwitchStyle(activeOption.mode);
+    const canCycle = options.length > 1;
     mount.innerHTML = `
-        <div class="flex flex-col gap-1">
-            ${options.map((option) => {
-                const tone = getHomeOverviewTone(option.mode);
-                const active = option.mode === activeMode;
-                return `
-                    <button
-                        type="button"
-                        onclick="event.stopPropagation(); setHomeOverviewMode('${option.mode}')"
-                        class="w-full rounded-full px-2 py-1.5 text-[8px] font-black leading-[1.2] whitespace-normal shadow-sm active:scale-95 transition-transform md:px-2.5 md:py-1.5 md:text-[10px] ${active ? 'shadow-sm' : ''}"
-                        style="${active ? tone.button : tone.ghost}">
-                        ${option.label}
-                    </button>
-                `;
-            }).join('')}
-        </div>
+        <button
+            type="button"
+            ${canCycle ? 'onclick="event.stopPropagation(); cycleHomeOverviewMode()"' : ''}
+            class="w-full rounded-[1.15rem] px-2.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.35rem] md:px-3 md:py-2.5"
+            style="${switchStyle.button}">
+            <div class="text-[7px] font-black leading-none md:text-[8px]" style="color:${switchStyle.sub};">
+                ${canCycle ? '候補を切替' : '候補'}
+            </div>
+            <div class="mt-1 text-[10px] font-black leading-tight md:text-[11px]" style="color:${switchStyle.text};">
+                ${activeOption.label}
+            </div>
+            ${canCycle ? `
+                <div class="mt-1 text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
+                    タップで${nextOption.label}
+                </div>
+            ` : ''}
+        </button>
     `;
 }
 
@@ -988,38 +1032,36 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     };
     const insights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const wizard = getWizardHomeState();
+    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
     const ownLikedItems = insights?.getOwnLiked
         ? insights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
             ? liked.filter(item => !item?.fromPartner)
             : []);
     const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
-    const matchedLikedItems = insights?.getMatchedLikedItems ? insights.getMatchedLikedItems() : [];
-    const sharedReadingCount = Number(counts?.matched?.reading ?? pairing?.matchedReadingCount ?? 0);
-    const sharedKanjiCount = Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount ?? 0);
-    const sharedSavedCount = Number(counts?.matched?.saved ?? pairing?.matchedNameCount ?? 0);
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
     const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? 0);
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? readingStockCount ?? 0);
     const ownKanjiCount = Number(counts?.own?.kanji ?? likedCount ?? 0);
     const ownSavedCount = Number(counts?.own?.saved ?? savedCount ?? 0);
-    const sharedBuildCount = getHomeBuildPatternCount(matchedLikedItems);
+    const aggregateBuildCount = getHomeBuildPatternCount();
     const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItems);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems);
 
     if (mode === 'shared') {
+        const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         return {
             mode,
-            readingStockCount: sharedReadingCount,
-            likedCount: sharedKanjiCount,
-            savedCount: sharedSavedCount,
-            buildCount: sharedBuildCount,
+            readingStockCount: aggregateCounts.readingStockCount,
+            likedCount: aggregateCounts.likedCount,
+            savedCount: aggregateCounts.savedCount,
+            buildCount: aggregateBuildCount,
             actions: {
-                reading: sharedReadingCount > 0 ? 'matched-reading' : 'reading',
-                kanji: sharedKanjiCount > 0 ? 'matched-liked' : (sharedReadingCount > 0 ? 'matched-reading' : 'stock'),
-                build: sharedBuildCount > 0 ? 'build' : (sharedReadingCount > 0 ? 'matched-reading' : sharedKanjiCount > 0 ? 'matched-liked' : 'reading'),
-                save: sharedSavedCount > 0 ? 'matched-saved' : (sharedBuildCount > 0 ? 'build' : (sharedReadingCount > 0 ? 'matched-reading' : 'saved'))
+                reading: aggregateCounts.readingStockCount > 0 ? 'stock-reading' : 'sound',
+                kanji: aggregateCounts.likedCount > 0 ? 'stock' : aggregateFallbackAction,
+                build: aggregateBuildCount > 0 ? 'build' : aggregateFallbackAction,
+                save: aggregateCounts.savedCount > 0 ? 'saved' : (aggregateBuildCount > 0 ? 'build' : aggregateFallbackAction)
             },
             actionLabels: {
                 reading: '読みを見る＞',
@@ -1455,6 +1497,7 @@ function renderHomeProfileV2() {
 }
 
 window.renderHomeProfile = renderHomeProfile;
+window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
 
 try {
