@@ -84,7 +84,16 @@ function normalizeSingleKanjiStock() {
 
     liked = cleaned;
     try {
-        localStorage.setItem('meimay_liked', JSON.stringify(cleaned));
+        const serialized = JSON.stringify(cleaned);
+        localStorage.setItem('naming_app_liked_chars', serialized);
+        localStorage.setItem('meimay_liked', serialized);
+        localStorage.setItem('meimay_liked_meta_v1', JSON.stringify({
+            count: cleaned.length,
+            savedAt: new Date().toISOString()
+        }));
+        if (cleaned.length > 0) {
+            localStorage.setItem('meimay_liked_backup_v1', serialized);
+        }
     } catch (error) {
         console.warn('BUILD: Failed to normalize stock', error);
     }

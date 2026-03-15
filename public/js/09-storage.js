@@ -5,6 +5,9 @@
 
 const StorageBox = {
     KEY_LIKED: 'naming_app_liked_chars',
+    KEY_LIKED_LEGACY: 'meimay_liked',
+    KEY_LIKED_BACKUP: 'meimay_liked_backup_v1',
+    KEY_LIKED_META: 'meimay_liked_meta_v1',
     KEY_SAVED: 'meimay_saved',
     KEY_SURNAME: 'naming_app_surname',
     KEY_SEGMENTS: 'naming_app_segments',
@@ -21,12 +24,80 @@ const StorageBox = {
     KEY_APP_ACCOUNT_TOKEN: 'meimay_app_account_token',
     KEY_HOME_PAIR_CARD_DISMISSED: 'meimay_home_pair_card_dismissed_v1',
 
+    _readStoredArray: function (key) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw == null) return null;
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch (e) {
+            console.warn(`STORAGE: Failed to parse ${key}`, e);
+            return null;
+        }
+    },
+
+    _persistLikedState: function (items) {
+        try {
+            const safeLiked = Array.isArray(items) ? items : [];
+            const serialized = JSON.stringify(safeLiked);
+            localStorage.setItem(this.KEY_LIKED, serialized);
+            localStorage.setItem(this.KEY_LIKED_LEGACY, serialized);
+            localStorage.setItem(this.KEY_LIKED_META, JSON.stringify({
+                count: safeLiked.length,
+                savedAt: new Date().toISOString()
+            }));
+            if (safeLiked.length > 0) {
+                localStorage.setItem(this.KEY_LIKED_BACKUP, serialized);
+            }
+            return true;
+        } catch (e) {
+            console.error("STORAGE: Save liked mirror failed", e);
+            return false;
+        }
+    },
+
+    _loadLikedState: function () {
+        const primaryRaw = localStorage.getItem(this.KEY_LIKED);
+        const primary = this._readStoredArray(this.KEY_LIKED);
+        const legacy = this._readStoredArray(this.KEY_LIKED_LEGACY);
+        const backup = this._readStoredArray(this.KEY_LIKED_BACKUP);
+
+        let meta = null;
+        try {
+            meta = JSON.parse(localStorage.getItem(this.KEY_LIKED_META) || 'null');
+        } catch (e) {
+            meta = null;
+        }
+
+        const confirmedEmptyPrimary = Array.isArray(primary) && primary.length === 0 && meta?.count === 0;
+
+        if (Array.isArray(primary) && primary.length > 0) {
+            return { items: primary, source: 'primary' };
+        }
+        if (!confirmedEmptyPrimary && Array.isArray(legacy) && legacy.length > 0) {
+            return { items: legacy, source: 'legacy' };
+        }
+        if (!confirmedEmptyPrimary && Array.isArray(backup) && backup.length > 0) {
+            return { items: backup, source: 'backup' };
+        }
+        if (Array.isArray(primary)) {
+            return { items: primary, source: 'primary' };
+        }
+        if (Array.isArray(legacy)) {
+            return { items: legacy, source: 'legacy' };
+        }
+        if (Array.isArray(backup) && primaryRaw == null) {
+            return { items: backup, source: 'backup' };
+        }
+        return { items: [], source: 'empty' };
+    },
+
     /**
      * 全状態を保存
      */
     saveAll: function () {
         try {
-            localStorage.setItem(this.KEY_LIKED, JSON.stringify(liked));
+            this._persistLikedState(liked);
             localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
             localStorage.setItem(this.KEY_SURNAME, JSON.stringify({
                 str: surnameStr,
@@ -61,8 +132,14 @@ const StorageBox = {
     loadAll: function () {
         try {
             // いいねした漢字
-            const l = localStorage.getItem(this.KEY_LIKED);
-            if (l) liked = JSON.parse(l);
+            const likedState = this._loadLikedState();
+            liked = Array.isArray(likedState.items) ? likedState.items : [];
+            const legacyLikedMissing = localStorage.getItem(this.KEY_LIKED_LEGACY) == null;
+            const likedMetaMissing = localStorage.getItem(this.KEY_LIKED_META) == null;
+            const likedBackupMissing = liked.length > 0 && localStorage.getItem(this.KEY_LIKED_BACKUP) == null;
+            if (likedState.source !== 'primary' || legacyLikedMissing || likedMetaMissing || likedBackupMissing) {
+                this._persistLikedState(liked);
+            }
 
             // 保存済み名前
             const s = localStorage.getItem(this.KEY_SAVED);
@@ -130,6 +207,7 @@ const StorageBox = {
             }
 
             console.log("STORAGE: State restored successfully");
+            console.log(`  - Liked source: ${likedState.source}`);
             console.log(`  - Liked: ${liked.length} items`);
             console.log(`  - Saved: ${savedNames.length} names`);
             console.log(`  - Surname: ${surnameStr || '(none)'}`);
@@ -146,13 +224,7 @@ const StorageBox = {
      * 特定データの保存
      */
     saveLiked: function () {
-        try {
-            localStorage.setItem(this.KEY_LIKED, JSON.stringify(liked));
-            return true;
-        } catch (e) {
-            console.error("STORAGE: Save liked failed", e);
-            return false;
-        }
+        return this._persistLikedState(liked);
     },
 
     saveNoped: function () {
