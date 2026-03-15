@@ -1380,7 +1380,10 @@ function renderBuildSelection() {
                 class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'reading'
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
-                ${readingBtnLabel}
+                <span class="inline-flex items-center justify-center gap-1.5">
+                    <span>${readingBtnLabel}</span>
+                    <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
+                </span>
             </button>
             <button onclick="setBuildMode('free')"
                 class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'free'
@@ -1611,9 +1614,11 @@ function toggleReadingDropdown() {
 
     const dropdown = document.getElementById('reading-dropdown');
     if (!dropdown) return;
+    const caret = document.getElementById('reading-mode-caret');
 
     if (!dropdown.classList.contains('hidden')) {
         dropdown.classList.add('hidden');
+        if (caret) caret.textContent = '▼';
         return;
     }
 
@@ -1647,6 +1652,7 @@ function toggleReadingDropdown() {
         }).join('');
     }
     dropdown.classList.remove('hidden');
+    if (caret) caret.textContent = '▲';
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
@@ -1655,6 +1661,7 @@ function toggleReadingDropdown() {
         document.addEventListener('click', function closeDD(e) {
             if (!dropdown.contains(e.target)) {
                 dropdown.classList.add('hidden');
+                if (caret) caret.textContent = '▼';
                 document.removeEventListener('click', closeDD);
             }
         });
@@ -1665,6 +1672,8 @@ window.toggleReadingDropdown = toggleReadingDropdown;
 function selectReadingForBuild(reading) {
     const dropdown = document.getElementById('reading-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
+    const caret = document.getElementById('reading-mode-caret');
+    if (caret) caret.textContent = '▼';
     excludedKanjiFromBuild = []; // 読みを変更した際も除外リストをリセット
     if (typeof openBuildFromReading === 'function') {
         openBuildFromReading(reading);
