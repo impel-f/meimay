@@ -871,15 +871,36 @@ function getBuildPieceSurfaceStyle(item, isSelected) {
     };
 }
 
+function getCardSuperFlags(item) {
+    return {
+        self: !!item?.ownSuper || (!!item?.isSuper && !item?.fromPartner && !item?.partnerSuper),
+        partner: !!item?.partnerSuper || (!!item?.isSuper && !!item?.fromPartner && !item?.ownSuper)
+    };
+}
+
 function renderStockSuperStars(item) {
+    const superFlags = getCardSuperFlags(item);
     if (typeof window.renderMeimaySuperStars !== 'function') {
-        return item?.isSuper ? '<div class="stock-stars">★</div>' : '';
+        return superFlags.self || superFlags.partner ? '<div class="stock-stars">★</div>' : '';
     }
     return window.renderMeimaySuperStars({
-        self: !!item?.ownSuper,
-        partner: !!item?.partnerSuper,
+        self: superFlags.self,
+        partner: superFlags.partner,
         className: 'stock-stars',
-        style: 'position:absolute;top:-9px;left:50%;right:auto;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);'
+        style: 'position:absolute;top:4px;left:50%;right:auto;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);pointer-events:none;'
+    });
+}
+
+function renderBuildSuperStars(item) {
+    const superFlags = getCardSuperFlags(item);
+    if (typeof window.renderMeimaySuperStars !== 'function') {
+        return superFlags.self || superFlags.partner ? '<div class="build-piece-star">★</div>' : '';
+    }
+    return window.renderMeimaySuperStars({
+        self: superFlags.self,
+        partner: superFlags.partner,
+        className: 'build-piece-star',
+        style: 'position:absolute;top:4px;left:50%;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);pointer-events:none;'
     });
 }
 
@@ -1489,12 +1510,6 @@ function renderBuildSelection() {
                     fortuneIndicator = `<div class="text-lg mt-1" > ${badges[itemIdx]}</div> `;
                 }
 
-                const partnerBadge = item.partnerAlsoPicked
-                    ? getPartnerChipHTML({ partnerAlsoPicked: true })
-                    : item.fromPartner
-                        ? getPartnerChipHTML({ fromPartner: true })
-                        : '';
-
                 // 画数が未設定の場合はmasterから補完
                 const strokes = item['画数'] !== undefined ? item['画数']
                     : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '--';
@@ -1502,10 +1517,9 @@ function renderBuildSelection() {
                 const strokesStyleAttr = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
 
                 btn.innerHTML = `
-                    ${item.isSuper ? '<div class="build-piece-star">★</div>' : ''}
+                    ${renderBuildSuperStars(item)}
                     <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}"${kanjiStyleAttr}>${item['漢字']}</div>
                     <div class="text-[10px] font-bold"${strokesStyleAttr}>${strokes}画</div>
-                    ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
                     ${fortuneIndicator}
 `;
                 scrollBox.appendChild(btn);
@@ -1666,13 +1680,16 @@ function renderBuildFreeMode(container) {
     // ストックから重複なし全漢字を取得（スーパーライク優先）
     const seen = new Set();
     const allKanji = [];
-    (liked || []).forEach(item => {
+    const freeModeSource = typeof getMergedLikedCandidates === 'function'
+        ? getMergedLikedCandidates()
+        : (liked || []);
+    freeModeSource.forEach(item => {
         if (item.isSuper && !seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
             seen.add(item['漢字']);
             allKanji.push(item);
         }
     });
-    (liked || []).forEach(item => {
+    freeModeSource.forEach(item => {
         if (!seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
             seen.add(item['漢字']);
             allKanji.push(item);
@@ -1713,14 +1730,22 @@ function renderBuildFreeMode(container) {
                 : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '--';
             const isSelected = selected === k;
             const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
+            const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
+            const buttonStyles = [];
+            if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
+            if (isSelected && (typeof getGradientFromTags === 'function')) {
+                buttonStyles.push(`border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;`);
+            }
+            const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
+            const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                     oncontextmenu="event.preventDefault(); openKanjiActionMenu('${k}', ${slotIdx}, true)"
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
-                    style="${isSelected && (typeof getGradientFromTags === 'function') ? `border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;` : ''}">
-                    ${item.isSuper ? '<div class="build-piece-star">★</div>' : ''}
-                    <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}">${k}</div>
-                    <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
+                    style="${buttonStyles.join('')}">
+                    ${renderBuildSuperStars(item)}
+                    <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
+                    <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}画</div>
                 </button>`;
         }).join('')}
         </div>`;

@@ -366,7 +366,7 @@ body {
 
 .stock-stars {
     position: absolute;
-    top: -9px;
+    top: 4px;
     left: 50%;
     right: auto;
     display: inline-flex;
@@ -613,7 +613,7 @@ body {
 
 .build-piece-star {
     position: absolute;
-    top: -10px;
+    top: 4px;
     left: 50%;
     display: inline-flex;
     align-items: center;
@@ -630,6 +630,7 @@ body {
     font-weight: 900;
     transform: translateX(-50%);
     z-index: 3;
+    pointer-events: none;
 }
 
 /* ============================================================
