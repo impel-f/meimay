@@ -470,35 +470,6 @@ function ensureHomeStageTrack() {
     return stageTrack;
 }
 
-function ensureHomeSummaryPanel() {
-    const statusLine = document.getElementById('home-status-line');
-    const stageAnchor = document.getElementById('home-stage-track-anchor');
-    const legacyActions = document.getElementById('home-legacy-actions');
-    if (!statusLine || !stageAnchor || !legacyActions) return null;
-
-    let panel = document.getElementById('home-summary-panel');
-    if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'home-summary-panel';
-        panel.className = 'mt-3 rounded-[24px] px-3 py-3';
-    }
-
-    const host = statusLine.parentElement;
-    if (host && panel.parentElement !== host) {
-        host.insertBefore(panel, statusLine);
-    }
-
-    if (statusLine.parentElement !== panel) panel.appendChild(statusLine);
-    if (stageAnchor.parentElement !== panel) panel.appendChild(stageAnchor);
-    if (legacyActions.parentElement !== panel) panel.appendChild(legacyActions);
-
-    statusLine.classList.remove('mt-2');
-    stageAnchor.classList.add('mt-4');
-    legacyActions.classList.add('mt-3');
-
-    return panel;
-}
-
 function getHomeStageTrackTone(mode) {
     const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
@@ -645,7 +616,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
-    const summaryPanel = ensureHomeSummaryPanel();
+    const summaryPanel = document.getElementById('home-summary-panel');
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
         summaryPanel.style.cssText = tone.panel;
@@ -1228,7 +1199,7 @@ function renderHomeProfile() {
         screen.style.paddingRight = '12px';
     }
 
-    const summaryPanel = ensureHomeSummaryPanel();
+    const summaryPanel = document.getElementById('home-summary-panel');
     if (summaryPanel) summaryPanel.classList.remove('hidden');
 
     renderHomeOverviewSwitch(pairing);
