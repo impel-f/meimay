@@ -161,12 +161,14 @@ function getHomePairSummaryText(pairing) {
     return `${pairing.partnerDisplayName || pairing.partnerLabel || 'パートナー'}と連携中`;
 }
 
-function getHomeBuildPatternCount() {
-    const candidatePool = typeof getMergedLikedCandidates === 'function'
-        ? getMergedLikedCandidates()
-        : ((typeof liked !== 'undefined' && Array.isArray(liked))
-            ? liked.filter(item => !item?.fromPartner)
-            : []);
+function getHomeBuildPatternCount(candidatePoolOverride) {
+    const candidatePool = Array.isArray(candidatePoolOverride)
+        ? candidatePoolOverride
+        : typeof getMergedLikedCandidates === 'function'
+            ? getMergedLikedCandidates()
+            : ((typeof liked !== 'undefined' && Array.isArray(liked))
+                ? liked.filter(item => !item?.fromPartner)
+                : []);
     const readingGroups = new Map();
 
     candidatePool.forEach((item) => {
@@ -461,20 +463,107 @@ function ensureHomeStageTrack() {
     if (!stageTrack) {
         stageTrack = document.createElement('div');
         stageTrack.id = 'home-stage-track';
-        stageTrack.className = 'rounded-2xl border border-[#eee4d6] bg-[#fffaf5] px-3 py-3';
         anchor.appendChild(stageTrack);
     }
+    stageTrack.className = 'rounded-[22px] border border-[#eee4d6] bg-[#fffaf6] px-2.5 py-2.5 md:px-3 md:py-3';
 
     return stageTrack;
 }
 
-function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
+function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
+    const buildPatternCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const actionLabels = options.actionLabels || {};
+
+    if (stepKey === 'reading') {
+        return {
+            countNumber: String(readingStockCount),
+            countUnit: '件',
+            actionText: actionLabels.reading || (readingStockCount > 0 ? '読みを見る＞' : '読みを探す＞')
+        };
+    }
+    if (stepKey === 'kanji') {
+        return {
+            countNumber: String(likedCount),
+            countUnit: '字',
+            actionText: actionLabels.kanji || (likedCount > 0 ? '漢字を見る＞' : '漢字を探す＞')
+        };
+    }
+    if (stepKey === 'build') {
+        return {
+            countNumber: String(buildPatternCount),
+            countUnit: '通り',
+            actionText: actionLabels.build || '組み立てる＞',
+            compact: true
+        };
+    }
+    return {
+        countNumber: String(savedCount),
+        countUnit: '件',
+        actionText: actionLabels.save || '候補を見る＞'
+    };
+}
+
+function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options = {}) {
+    const buildPatternCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const steps = [
+        {
+            key: 'reading',
+            label: '読み',
+            done: readingStockCount >= 1
+        },
+        {
+            key: 'kanji',
+            label: '漢字',
+            done: likedCount >= 2
+        },
+        {
+            key: 'build',
+            label: 'ビルド',
+            done: buildPatternCount >= 1
+        },
+        {
+            key: 'save',
+            label: '保存',
+            done: savedCount >= 1
+        }
+    ];
+    const activeKey =
+        savedCount >= 1 ? 'save' :
+        buildPatternCount >= 1 ? 'build' :
+        likedCount >= 2 ? 'kanji' :
+        'reading';
+    const stageTitle =
+        activeKey === 'save' ? '保存候補を見比べる段階です' :
+        activeKey === 'build' ? '名前を組み立てる段階です' :
+        activeKey === 'kanji' ? '漢字材料を集める段階です' :
+        '読み候補を探す段階です';
+
+    return {
+        stageTitle,
+        activeKey,
+        steps: steps.map((step) => ({
+            ...step,
+            active: step.key === activeKey,
+            metric: getHomeStageTrackMetric(step.key, likedCount, readingStockCount, savedCount, {
+                ...options,
+                buildCount: buildPatternCount
+            }),
+            action: options.actions?.[step.key] || getHomeStageAction(step.key, likedCount, readingStockCount, savedCount)
+        }))
+    };
+}
+
+function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
 
-    const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-4 gap-1.5">
+        <div class="grid grid-cols-4 gap-1 md:gap-1.5">
             ${timeline.steps.map((step) => {
                 const cardClass = step.done
                     ? 'bg-[#fff8ee] border-[#ecdcb7]'
@@ -490,16 +579,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[98px] rounded-[1.45rem] border px-1 py-2 text-center active:scale-[0.98] transition-transform md:min-h-[158px] md:rounded-[2rem] md:px-2.5 md:py-4 ${cardClass}">
+                    class="min-h-[86px] rounded-[1.3rem] border px-1 py-1.5 text-center active:scale-[0.98] transition-transform md:min-h-[146px] md:rounded-[1.85rem] md:px-2 md:py-3.5 ${cardClass}">
                     <div class="flex h-full flex-col items-center">
-                        <div class="flex items-center justify-center gap-1 text-[9px] font-black text-[#5d5444] leading-tight text-center md:gap-1.5 md:text-[13px]">
-                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[12px] font-black leading-none md:h-7 md:w-7 md:text-[18px] ${badgeClass}">✓</span>
+                        <div class="flex items-center justify-center gap-1 text-[8px] font-black text-[#5d5444] leading-tight text-center md:gap-1.5 md:text-[12px]">
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[16px] ${badgeClass}">✓</span>
                             <span>${step.label}</span>
                         </div>
-                        <div class="mt-2 whitespace-nowrap text-[17px] font-black leading-none text-[#4f4639] md:mt-4 md:text-[26px]">
-                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[10px] text-[#8b7e66] md:ml-1 md:text-[16px]">${step.metric.countUnit}</span>
+                        <div class="mt-1.5 whitespace-nowrap text-[15px] font-black leading-none text-[#4f4639] md:mt-3 md:text-[24px]">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] text-[#8b7e66] md:ml-1 md:text-[14px]">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-1 text-[8px] font-black text-[#8b7e66] text-center whitespace-nowrap md:mt-auto md:pt-4 md:text-[12px]">${step.metric.actionText}</div>
+                        <div class="mt-0.5 text-[7px] font-black text-[#8b7e66] text-center whitespace-nowrap md:mt-auto md:pt-3 md:text-[11px]">${step.metric.actionText}</div>
                     </div>
                 </button>
             `;
@@ -790,8 +879,10 @@ function openHomeInsightsModal() {
     document.body.appendChild(modal);
 }
 
-function getHomeStatusLine(likedCount, readingStockCount, savedCount) {
-    const buildPatternCount = getHomeBuildPatternCount();
+function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount = null) {
+    const buildPatternCount = Number.isFinite(Number(buildCount))
+        ? Number(buildCount)
+        : getHomeBuildPatternCount();
     if (savedCount > 0) {
         return '保存した候補を見比べながら、絞り込んでいるところです。';
     }
@@ -839,6 +930,144 @@ function updateHomeAggregateStageCounts(aggregateCounts) {
     });
 }
 
+function getHomeOverviewSwitchOptions(pairing) {
+    if (!pairing?.hasPartner) {
+        return [{ mode: 'self', label: 'マイ候補' }];
+    }
+
+    return [
+        { mode: 'shared', label: 'ふたりの候補' },
+        { mode: 'self', label: 'マイ候補' },
+        { mode: 'partner', label: 'パートナー候補' }
+    ];
+}
+
+function renderHomeOverviewSwitch(pairing) {
+    const mount = document.getElementById('home-overview-switch');
+    if (!mount) return;
+
+    const options = getHomeOverviewSwitchOptions(pairing);
+    const activeMode = getHomeOverviewMode(pairing);
+    mount.innerHTML = `
+        <div class="flex flex-col gap-1">
+            ${options.map((option) => {
+                const tone = getHomeOverviewTone(option.mode);
+                const active = option.mode === activeMode;
+                return `
+                    <button
+                        type="button"
+                        onclick="event.stopPropagation(); setHomeOverviewMode('${option.mode}')"
+                        class="w-full rounded-full px-2 py-1.5 text-[8px] font-black leading-[1.2] whitespace-normal shadow-sm active:scale-95 transition-transform md:px-2.5 md:py-1.5 md:text-[10px] ${active ? 'shadow-sm' : ''}"
+                        style="${active ? tone.button : tone.ghost}">
+                        ${option.label}
+                    </button>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing) {
+    const mode = getHomeOverviewMode(pairing);
+    const counts = pairing?.counts || {
+        own: {
+            reading: readingStockCount,
+            kanji: likedCount,
+            saved: savedCount
+        },
+        partner: {
+            reading: 0,
+            kanji: 0,
+            saved: 0
+        },
+        matched: {
+            reading: pairing?.matchedReadingCount || 0,
+            kanji: pairing?.matchedKanjiCount || 0,
+            saved: pairing?.matchedNameCount || 0
+        }
+    };
+    const insights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const wizard = getWizardHomeState();
+    const ownLikedItems = insights?.getOwnLiked
+        ? insights.getOwnLiked()
+        : ((typeof liked !== 'undefined' && Array.isArray(liked))
+            ? liked.filter(item => !item?.fromPartner)
+            : []);
+    const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
+    const matchedLikedItems = insights?.getMatchedLikedItems ? insights.getMatchedLikedItems() : [];
+    const sharedReadingCount = Number(counts?.matched?.reading ?? pairing?.matchedReadingCount ?? 0);
+    const sharedKanjiCount = Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount ?? 0);
+    const sharedSavedCount = Number(counts?.matched?.saved ?? pairing?.matchedNameCount ?? 0);
+    const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? 0);
+    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
+    const ownReadingCount = Number(counts?.own?.reading ?? readingStockCount ?? 0);
+    const ownKanjiCount = Number(counts?.own?.kanji ?? likedCount ?? 0);
+    const ownSavedCount = Number(counts?.own?.saved ?? savedCount ?? 0);
+    const sharedBuildCount = getHomeBuildPatternCount(matchedLikedItems);
+    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItems);
+    const ownBuildCount = getHomeBuildPatternCount(ownLikedItems);
+
+    if (mode === 'shared') {
+        return {
+            mode,
+            readingStockCount: sharedReadingCount,
+            likedCount: sharedKanjiCount,
+            savedCount: sharedSavedCount,
+            buildCount: sharedBuildCount,
+            actions: {
+                reading: sharedReadingCount > 0 ? 'matched-reading' : 'reading',
+                kanji: sharedKanjiCount > 0 ? 'matched-liked' : (sharedReadingCount > 0 ? 'matched-reading' : 'stock'),
+                build: sharedBuildCount > 0 ? 'build' : (sharedReadingCount > 0 ? 'matched-reading' : sharedKanjiCount > 0 ? 'matched-liked' : 'reading'),
+                save: sharedSavedCount > 0 ? 'matched-saved' : (sharedBuildCount > 0 ? 'build' : (sharedReadingCount > 0 ? 'matched-reading' : 'saved'))
+            },
+            actionLabels: {
+                reading: '読みを見る＞',
+                kanji: '漢字を見る＞',
+                build: '組み立てる＞',
+                save: '候補を見る＞'
+            }
+        };
+    }
+
+    if (mode === 'partner') {
+        return {
+            mode,
+            readingStockCount: partnerReadingCount,
+            likedCount: partnerKanjiCount,
+            savedCount: partnerSavedCount,
+            buildCount: partnerBuildCount,
+            actions: {
+                reading: 'partner-reading',
+                kanji: 'partner-liked',
+                build: partnerBuildCount > 0 ? 'build' : (partnerReadingCount > 0 ? 'partner-reading' : partnerKanjiCount > 0 ? 'partner-liked' : 'partner-reading'),
+                save: 'partner-saved'
+            },
+            actionLabels: {
+                reading: '読みを見る＞',
+                kanji: '漢字を見る＞',
+                build: '組み立てる＞',
+                save: '候補を見る＞'
+            }
+        };
+    }
+
+    const selfFallbackAction = (ownReadingCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
+    return {
+        mode: 'self',
+        readingStockCount: ownReadingCount,
+        likedCount: ownKanjiCount,
+        savedCount: ownSavedCount,
+        buildCount: ownBuildCount,
+        actions: {
+            reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
+            kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
+            build: ownBuildCount > 0 ? 'build' : selfFallbackAction,
+            save: ownSavedCount > 0 ? 'saved' : (ownBuildCount > 0 ? 'build' : selfFallbackAction)
+        }
+    };
+}
+
 function renderHomeProfile() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
@@ -846,9 +1075,9 @@ function renderHomeProfile() {
     const readingStockCount = getOwnHomeReadingCount();
     const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
     const pairing = getPairingHomeSummary();
-    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
+    const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
 
     const screen = document.getElementById('scr-mode');
     if (screen) {
@@ -856,17 +1085,17 @@ function renderHomeProfile() {
         screen.style.paddingRight = '12px';
     }
 
-    renderHomeStageTrack(aggregateCounts.likedCount, aggregateCounts.readingStockCount, aggregateCounts.savedCount);
-    updateHomeAggregateStageCounts(aggregateCounts);
+    renderHomeOverviewSwitch(pairing);
+    renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
     const elSaved = document.getElementById('home-liked-name-count');
-    if (elSaved) elSaved.innerText = aggregateCounts.savedCount;
+    if (elSaved) elSaved.innerText = stageSnapshot.savedCount;
 
     const elKanji = document.getElementById('home-liked-kanji-count');
-    if (elKanji) elKanji.innerText = aggregateCounts.likedCount;
+    if (elKanji) elKanji.innerText = stageSnapshot.likedCount;
 
     const elReadingStock = document.getElementById('home-reading-stock-count');
-    if (elReadingStock) elReadingStock.innerText = aggregateCounts.readingStockCount;
+    if (elReadingStock) elReadingStock.innerText = stageSnapshot.readingStockCount;
 
     const nextStepTitleEl = document.getElementById('home-next-step-title');
     if (nextStepTitleEl) {
@@ -888,7 +1117,12 @@ function renderHomeProfile() {
 
     const statusLineEl = document.getElementById('home-status-line');
     if (statusLineEl) {
-        statusLineEl.innerText = getHomeStatusLine(likedCount, readingStockCount, savedCount);
+        statusLineEl.innerText = getHomeStatusLine(
+            stageSnapshot.likedCount,
+            stageSnapshot.readingStockCount,
+            stageSnapshot.savedCount,
+            stageSnapshot.buildCount
+        );
     }
 
     const overviewMount = document.getElementById('home-overview-mount');
@@ -1107,6 +1341,7 @@ function renderHomeProfileV2() {
     const readingStockCount = getOwnHomeReadingCount();
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
@@ -1143,7 +1378,12 @@ function renderHomeProfileV2() {
     const overview = getHomeOverviewModel(pairing, nextStep);
     const mode = overview.mode;
     const isShared = mode === 'shared';
-    const stage = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+    const stage = getHomeStageTrackTimeline(
+        stageSnapshot.likedCount,
+        stageSnapshot.readingStockCount,
+        stageSnapshot.savedCount,
+        stageSnapshot
+    );
 
     if (mount) {
         mount.innerHTML = `
@@ -1206,8 +1446,12 @@ function renderHomeProfileV2() {
         `;
     }
 
-    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
-    renderHomeStageTrack(aggregateCounts.likedCount, aggregateCounts.readingStockCount, aggregateCounts.savedCount);
+    renderHomeStageTrack(
+        stageSnapshot.likedCount,
+        stageSnapshot.readingStockCount,
+        stageSnapshot.savedCount,
+        stageSnapshot
+    );
 }
 
 window.renderHomeProfile = renderHomeProfile;
