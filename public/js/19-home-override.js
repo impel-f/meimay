@@ -465,9 +465,38 @@ function ensureHomeStageTrack() {
         stageTrack.id = 'home-stage-track';
         anchor.appendChild(stageTrack);
     }
-    stageTrack.className = 'rounded-[22px] px-2 py-2 md:px-2.5 md:py-2.5';
+    stageTrack.className = '';
 
     return stageTrack;
+}
+
+function ensureHomeSummaryPanel() {
+    const statusLine = document.getElementById('home-status-line');
+    const stageAnchor = document.getElementById('home-stage-track-anchor');
+    const legacyActions = document.getElementById('home-legacy-actions');
+    if (!statusLine || !stageAnchor || !legacyActions) return null;
+
+    let panel = document.getElementById('home-summary-panel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'home-summary-panel';
+        panel.className = 'mt-3 rounded-[24px] px-3 py-3';
+    }
+
+    const host = statusLine.parentElement;
+    if (host && panel.parentElement !== host) {
+        host.insertBefore(panel, statusLine);
+    }
+
+    if (statusLine.parentElement !== panel) panel.appendChild(statusLine);
+    if (stageAnchor.parentElement !== panel) panel.appendChild(stageAnchor);
+    if (legacyActions.parentElement !== panel) panel.appendChild(legacyActions);
+
+    statusLine.classList.remove('mt-2');
+    stageAnchor.classList.add('mt-4');
+    legacyActions.classList.add('mt-3');
+
+    return panel;
 }
 
 function getHomeStageTrackTone(mode) {
@@ -616,7 +645,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
-    stageTrack.style.cssText = tone.panel;
+    const summaryPanel = ensureHomeSummaryPanel();
+    if (summaryPanel) {
+        summaryPanel.classList.remove('hidden');
+        summaryPanel.style.cssText = tone.panel;
+    }
+    stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
         <div class="grid grid-cols-4 gap-1 md:gap-1.5">
             ${timeline.steps.map((step) => {
@@ -1194,6 +1228,9 @@ function renderHomeProfile() {
         screen.style.paddingRight = '12px';
     }
 
+    const summaryPanel = ensureHomeSummaryPanel();
+    if (summaryPanel) summaryPanel.classList.remove('hidden');
+
     renderHomeOverviewSwitch(pairing);
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
@@ -1451,6 +1488,7 @@ function renderHomeProfileV2() {
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
     const legacyActions = document.getElementById('home-legacy-actions');
+    const summaryPanel = document.getElementById('home-summary-panel');
     const entryDivider = document.getElementById('home-entry-divider');
     const entryGrid = document.getElementById('home-entry-grid');
     const pairCard = document.getElementById('home-pair-card');
@@ -1473,6 +1511,7 @@ function renderHomeProfileV2() {
 
     if (statusLineEl) statusLineEl.classList.add('hidden');
     if (legacyActions) legacyActions.classList.add('hidden');
+    if (summaryPanel) summaryPanel.classList.add('hidden');
     if (entryDivider) entryDivider.classList.add('hidden');
     if (entryGrid) entryGrid.classList.add('hidden');
     if (pairCard) pairCard.classList.add('hidden');
