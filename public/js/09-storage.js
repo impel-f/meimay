@@ -165,6 +165,30 @@ const StorageBox = {
                 }
             }
 
+            if (Array.isArray(savedNames) && savedNames.length > 0 && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
+                const surArr = surnameData && surnameData.length > 0
+                    ? surnameData
+                    : [{ kanji: surnameStr || '', strokes: 1 }];
+                let savedUpdated = false;
+                savedNames = savedNames.map(item => {
+                    if (item?.fortune || !Array.isArray(item?.combination) || item.combination.length === 0) return item;
+                    const givArr = item.combination
+                        .map(part => ({
+                            kanji: part?.['漢字'] || part?.kanji || '',
+                            strokes: parseInt(part?.['画数'] ?? part?.strokes, 10) || 0
+                        }))
+                        .filter(part => part.kanji);
+                    if (givArr.length === 0) return item;
+                    const fortune = FortuneLogic.calculate(surArr, givArr);
+                    if (!fortune) return item;
+                    savedUpdated = true;
+                    return { ...item, fortune };
+                });
+                if (savedUpdated) {
+                    localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
+                }
+            }
+
             // セグメント
             const seg = localStorage.getItem(this.KEY_SEGMENTS);
             if (seg) segments = JSON.parse(seg);
