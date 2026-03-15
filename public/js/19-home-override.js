@@ -648,6 +648,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             }).join('')}
         </div>
     `;
+
+    Array.from(stageTrack.querySelectorAll('button')).forEach((button, index) => {
+        const badge = button.querySelector('span');
+        if (!badge) return;
+        badge.textContent = timeline.steps[index]?.done ? '✓' : '-';
+    });
 }
 
 function closeHomePartnerHub() {
