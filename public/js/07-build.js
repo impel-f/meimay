@@ -1456,7 +1456,23 @@ function renderBuildSelection() {
 
         // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
-            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（スワイプ画面で選んでください）</div>';
+            const canOfferFlexibleRetry = typeof rule !== 'undefined' && rule === 'strict';
+            scrollBox.innerHTML = `
+                <div class="min-w-[240px] px-4 py-5 text-center">
+                    <div class="text-[#bca37f] text-sm italic">候補がありません</div>
+                    <div class="mt-2 text-[11px] leading-5 text-[#a6967a]">この文字だけ、もう一度候補を広げて選び直せます。</div>
+                    <div class="mt-4 flex flex-col gap-2">
+                        <button onclick="reselectSlot(${idx})" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-2.5 text-[12px] font-bold text-[#8b6f47] active:scale-95">
+                            NOPEも含めて選び直す
+                        </button>
+                        ${canOfferFlexibleRetry ? `
+                            <button onclick="reselectSlotWithRule(${idx}, 'lax')" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-2.5 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
+                                柔軟モードで選び直す
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
         }
 
         if (items.length > 0) {
@@ -2810,55 +2826,85 @@ function applyRankedCombination(combination) {
 }
 
 /**
+ * スロット再選択の共通処理
+ */
+function restartBuildSlotSelection(slotIdx, options = {}) {
+    const {
+        nextRule = null,
+        confirmMessage = ''
+    } = options;
+    const defaultMessage = `${slotIdx + 1} 文字目「${segments[slotIdx]}」を選び直しますか？\n現在の選択がリセットされます。`;
+    if (!confirm(confirmMessage || defaultMessage)) return;
+
+    if (nextRule) {
+        if (typeof setRule === 'function') {
+            setRule(nextRule);
+        } else {
+            rule = nextRule;
+        }
+    }
+
+    const toRemove = [];
+    const keptLiked = [];
+    liked.forEach(item => {
+        if (item.slot === slotIdx) {
+            toRemove.push(item['漢字']);
+        } else {
+            keptLiked.push(item);
+        }
+    });
+    liked = keptLiked;
+
+    toRemove.forEach(kanji => {
+        seen.delete(kanji);
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+            MeimayStats.recordKanjiUnlike(kanji);
+        }
+    });
+
+    // NOPEリストもリセット（選び直し時）
+    if (typeof noped !== 'undefined') noped.clear();
+
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveAll === 'function') {
+        StorageBox.saveAll();
+    }
+
+    currentBuildResult = {
+        fullName: "",
+        reading: "",
+        fortune: null,
+        combination: [],
+        givenName: "",
+        timestamp: null
+    };
+
+    const resultArea = document.getElementById('build-result-area');
+    if (resultArea) resultArea.innerHTML = '';
+
+    currentPos = slotIdx;
+    currentIdx = 0;
+    if (typeof loadStack === 'function') loadStack();
+    changeScreen('scr-main');
+
+    const nav = document.querySelector('.nav-bar');
+    if (nav) nav.style.display = 'flex';
+
+    console.log(`BUILD: Restarting slot ${slotIdx} with rule ${nextRule || rule}`);
+}
+
+/**
  * スロットを選び直す
  */
 function reselectSlot(slotIdx) {
-    if (confirm(`${slotIdx + 1} 文字目「${segments[slotIdx]}」を選び直しますか？\n現在の選択がリセットされます。`)) {
-        const toRemove = [];
-        const keptLiked = [];
-        liked.forEach(item => {
-            if (item.slot === slotIdx) {
-                toRemove.push(item['漢字']);
-            } else {
-                keptLiked.push(item);
-            }
-        });
-        liked = keptLiked;
+    restartBuildSlotSelection(slotIdx);
+}
 
-        toRemove.forEach(kanji => {
-            seen.delete(kanji);
-            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-                MeimayStats.recordKanjiUnlike(kanji);
-            }
-        });
-        // NOPEリストもリセット（選び直し時）
-        if (typeof noped !== 'undefined') noped.clear();
-
-        // 組み立て済み名前を削除
-        currentBuildResult = {
-            fullName: "",
-            reading: "",
-            fortune: null,
-            combination: [],
-            givenName: "",
-            timestamp: null
-        };
-
-        // ビルド結果表示をクリア
-        const resultArea = document.getElementById('build-result-area');
-        if (resultArea) resultArea.innerHTML = '';
-
-        currentPos = slotIdx;
-        currentIdx = 0;
-        if (typeof loadStack === 'function') loadStack();
-        changeScreen('scr-main');
-
-        // フッターを明示的に表示（消える問題の対策）
-        const nav = document.querySelector('.nav-bar');
-        if (nav) nav.style.display = 'flex';
-
-        console.log(`BUILD: Reselecting slot ${slotIdx}, cleared build result`);
-    }
+function reselectSlotWithRule(slotIdx, nextRule) {
+    const modeLabel = nextRule === 'strict' ? '厳格' : '柔軟';
+    restartBuildSlotSelection(slotIdx, {
+        nextRule,
+        confirmMessage: `${slotIdx + 1} 文字目「${segments[slotIdx]}」を${modeLabel}モードで選び直しますか？\nNOPEした候補も含めて、もう一度候補を出します。`
+    });
 }
 
 /**
@@ -2914,6 +2960,7 @@ window.showFortuneDetail = showFortuneDetail;
 window.closeFortuneDetail = closeFortuneDetail;
 window.showFortuneRanking = showFortuneRanking;
 window.reselectSlot = reselectSlot;
+window.reselectSlotWithRule = reselectSlotWithRule;
 window.addMoreToSlot = addMoreToSlot;
 window.clearBuildSelection = clearBuildSelection;
 window.showFortuneTerm = showFortuneTerm;
