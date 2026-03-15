@@ -461,7 +461,7 @@ function ensureHomeStageTrack() {
     if (!stageTrack) {
         stageTrack = document.createElement('div');
         stageTrack.id = 'home-stage-track';
-        stageTrack.className = 'rounded-[30px] border border-[#eadfce] bg-[#fffaf6] px-4 py-5 sm:px-6';
+        stageTrack.className = 'rounded-2xl border border-[#eee4d6] bg-[#fffaf5] px-3 py-3';
         anchor.appendChild(stageTrack);
     }
 
@@ -474,12 +474,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
 
     const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
             ${timeline.steps.map((step) => {
                 const countValue = Number(step.metric.countNumber) || 0;
                 const isReady = countValue > 0 || step.done;
                 const cardClass = isReady
-                    ? 'bg-gradient-to-b from-[#fff8e8] to-[#fffaf2] border-[#ebcf97] shadow-[0_10px_24px_rgba(188,163,127,0.12)]'
+                    ? 'bg-gradient-to-b from-[#fff8e8] to-[#fffaf2] border-[#ecd5ac] shadow-[0_12px_28px_rgba(188,163,127,0.14)]'
                     : 'bg-white border-[#eee5d8] shadow-[0_8px_20px_rgba(188,163,127,0.06)]';
                 const badgeClass = isReady
                     ? 'bg-[#c8a057] text-white'
@@ -488,16 +488,18 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[188px] rounded-[30px] border px-4 py-5 text-center active:scale-[0.98] transition-transform ${cardClass}">
-                    <div class="text-[13px] font-black tracking-wide text-[#5d5444] leading-tight text-center">${step.label}</div>
-                    <div class="mt-7 flex items-center justify-center gap-3">
-                        <span class="inline-flex h-12 w-12 items-center justify-center rounded-full text-[28px] font-black leading-none ${badgeClass}">✓</span>
-                        <span class="flex flex-col items-start leading-none text-left">
-                            <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[32px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
-                            <span class="mt-1 whitespace-nowrap text-[14px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
-                        </span>
+                    class="min-h-[208px] rounded-[38px] border px-3 py-5 text-center active:scale-[0.98] transition-transform md:min-h-[232px] md:px-4 md:py-6 ${cardClass}">
+                    <div class="flex h-full flex-col items-center">
+                        <div class="text-[13px] font-black tracking-wide text-[#5d5444] leading-tight text-center md:text-[15px]">${step.label}</div>
+                        <div class="mt-5 flex items-center justify-center gap-3 md:mt-7">
+                            <span class="inline-flex h-16 w-10 items-center justify-center rounded-full text-[30px] font-black leading-none md:h-[120px] md:w-[52px] md:text-[48px] ${badgeClass}">✓</span>
+                            <span class="flex flex-col items-start justify-center leading-none text-left">
+                                <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[30px] font-black text-[#4f4639] md:text-[38px]">${step.metric.countNumber}</span>
+                                <span class="mt-1 whitespace-nowrap text-[14px] font-black tracking-[0.02em] text-[#8b7e66] md:text-[16px]">${step.metric.countUnit}</span>
+                            </span>
+                        </div>
+                        <div class="mt-auto pt-6 text-[13px] font-black text-[#8b7e66] text-center whitespace-nowrap md:text-[16px]">${step.metric.actionText}</div>
                     </div>
-                    <div class="mt-8 text-[13px] font-black text-[#8b7e66] text-center whitespace-nowrap">${step.metric.actionText}</div>
                 </button>
             `;
             }).join('')}
