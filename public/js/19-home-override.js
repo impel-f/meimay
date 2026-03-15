@@ -474,31 +474,33 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
 
     const timeline = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+        <div class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-1.5">
             ${timeline.steps.map((step) => {
                 const countValue = Number(step.metric.countNumber) || 0;
-                const isReady = countValue > 0 || step.done;
-                const cardClass = isReady
-                    ? 'bg-gradient-to-b from-[#fff8e8] to-[#fffaf2] border-[#ecd5ac] shadow-[0_12px_28px_rgba(188,163,127,0.14)]'
-                    : 'bg-white border-[#eee5d8] shadow-[0_8px_20px_rgba(188,163,127,0.06)]';
-                const badgeClass = isReady
-                    ? 'bg-[#c8a057] text-white'
-                    : 'bg-[#efe6d7] text-[#a6967a]';
+                const cardClass = step.done
+                    ? 'bg-[#fff4df] border-[#ecd5ac]'
+                    : step.active
+                        ? 'bg-[#f7f3ff] border-[#d8c9ef]'
+                        : 'bg-white border-[#eee5d8]';
+                const badgeClass = step.done
+                    ? 'bg-[#b9965b] text-white'
+                    : step.active
+                        ? 'bg-[#b7a6da] text-white'
+                        : 'bg-[#f0e8db] text-[#8b7e66]';
                 return `
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[208px] rounded-[38px] border px-3 py-5 text-center active:scale-[0.98] transition-transform md:min-h-[232px] md:px-4 md:py-6 ${cardClass}">
+                    class="min-h-[176px] rounded-[2rem] border px-3 py-4 text-center active:scale-[0.98] transition-transform md:min-h-[196px] md:px-3 md:py-5 ${cardClass}">
                     <div class="flex h-full flex-col items-center">
-                        <div class="text-[13px] font-black tracking-wide text-[#5d5444] leading-tight text-center md:text-[15px]">${step.label}</div>
-                        <div class="mt-5 flex items-center justify-center gap-3 md:mt-7">
-                            <span class="inline-flex h-16 w-10 items-center justify-center rounded-full text-[30px] font-black leading-none md:h-[120px] md:w-[52px] md:text-[48px] ${badgeClass}">✓</span>
-                            <span class="flex flex-col items-start justify-center leading-none text-left">
-                                <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[30px] font-black text-[#4f4639] md:text-[38px]">${step.metric.countNumber}</span>
-                                <span class="mt-1 whitespace-nowrap text-[14px] font-black tracking-[0.02em] text-[#8b7e66] md:text-[16px]">${step.metric.countUnit}</span>
-                            </span>
+                        <div class="flex items-center justify-center gap-2 text-[13px] font-black tracking-wide text-[#5d5444] leading-tight text-center md:text-[15px]">
+                            <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-[20px] font-black leading-none ${badgeClass}">✓</span>
+                            <span>${step.label}</span>
                         </div>
-                        <div class="mt-auto pt-6 text-[13px] font-black text-[#8b7e66] text-center whitespace-nowrap md:text-[16px]">${step.metric.actionText}</div>
+                        <div class="mt-6 text-[28px] font-black leading-none text-[#4f4639] md:mt-7 md:text-[34px]">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-1 text-[18px] text-[#8b7e66] md:text-[22px]">${step.metric.countUnit}</span>
+                        </div>
+                        <div class="mt-auto pt-7 text-[13px] font-black text-[#8b7e66] text-center whitespace-nowrap md:text-[15px]">${step.metric.actionText}</div>
                     </div>
                 </button>
             `;
