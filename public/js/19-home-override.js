@@ -411,7 +411,7 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
         {
             key: 'kanji',
             label: '漢字',
-            done: likedCount >= 1,
+            done: likedCount >= 2,
             status: likedCount >= 2 ? '進行中' : '次の段階'
         },
         {
@@ -431,8 +431,8 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
     const activeKey =
         savedCount >= 1 ? 'save' :
         buildPatternCount >= 1 ? 'build' :
-        likedCount >= 1 ? 'kanji' :
-        readingStockCount >= 1 ? 'kanji' :
+        likedCount >= 2 ? 'kanji' :
+        readingStockCount >= 1 ? 'reading' :
         'reading';
 
     const stageTitle =
@@ -477,29 +477,29 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
         <div class="grid grid-cols-4 gap-1.5">
             ${timeline.steps.map((step) => {
                 const cardClass = step.done
-                    ? 'bg-[#fff4df] border-[#ecd5ac]'
+                    ? 'bg-[#fff8ee] border-[#ecdcb7]'
                     : step.active
-                        ? 'bg-[#f7f3ff] border-[#d8c9ef]'
+                        ? 'bg-[#fffaf6] border-[#eadfce]'
                         : 'bg-white border-[#eee5d8]';
                 const badgeClass = step.done
                     ? 'bg-[#b9965b] text-white'
                     : step.active
-                        ? 'bg-[#b7a6da] text-white'
+                        ? 'bg-[#d8cfbe] text-[#7f725d]'
                         : 'bg-[#f0e8db] text-[#8b7e66]';
                 return `
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[112px] rounded-[1.6rem] border px-1.5 py-2 text-center active:scale-[0.98] transition-transform md:min-h-[196px] md:rounded-[2rem] md:px-3 md:py-5 ${cardClass}">
+                    class="min-h-[98px] rounded-[1.45rem] border px-1 py-2 text-center active:scale-[0.98] transition-transform md:min-h-[158px] md:rounded-[2rem] md:px-2.5 md:py-4 ${cardClass}">
                     <div class="flex h-full flex-col items-center">
-                        <div class="flex items-center justify-center gap-1 text-[9px] font-black text-[#5d5444] leading-tight text-center md:gap-2 md:text-[15px]">
-                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[12px] font-black leading-none md:h-8 md:w-8 md:text-[20px] ${badgeClass}">✓</span>
+                        <div class="flex items-center justify-center gap-1 text-[9px] font-black text-[#5d5444] leading-tight text-center md:gap-1.5 md:text-[13px]">
+                            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[12px] font-black leading-none md:h-7 md:w-7 md:text-[18px] ${badgeClass}">✓</span>
                             <span>${step.label}</span>
                         </div>
-                        <div class="mt-3 whitespace-nowrap text-[18px] font-black leading-none text-[#4f4639] md:mt-7 md:text-[34px]">
-                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[11px] text-[#8b7e66] md:ml-1 md:text-[22px]">${step.metric.countUnit}</span>
+                        <div class="mt-2 whitespace-nowrap text-[17px] font-black leading-none text-[#4f4639] md:mt-4 md:text-[26px]">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[10px] text-[#8b7e66] md:ml-1 md:text-[16px]">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-auto pt-3 text-[8px] font-black text-[#8b7e66] text-center whitespace-nowrap md:pt-7 md:text-[15px]">${step.metric.actionText}</div>
+                        <div class="mt-1 text-[8px] font-black text-[#8b7e66] text-center whitespace-nowrap md:mt-auto md:pt-4 md:text-[12px]">${step.metric.actionText}</div>
                     </div>
                 </button>
             `;
@@ -856,7 +856,7 @@ function renderHomeProfile() {
         screen.style.paddingRight = '12px';
     }
 
-    renderHomeStageTrack(likedCount, readingStockCount, savedCount);
+    renderHomeStageTrack(aggregateCounts.likedCount, aggregateCounts.readingStockCount, aggregateCounts.savedCount);
     updateHomeAggregateStageCounts(aggregateCounts);
 
     const elSaved = document.getElementById('home-liked-name-count');
@@ -1206,7 +1206,8 @@ function renderHomeProfileV2() {
         `;
     }
 
-    renderHomeStageTrack(likedCount, readingStockCount, savedCount);
+    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
+    renderHomeStageTrack(aggregateCounts.likedCount, aggregateCounts.readingStockCount, aggregateCounts.savedCount);
 }
 
 window.renderHomeProfile = renderHomeProfile;
