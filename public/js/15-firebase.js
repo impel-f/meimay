@@ -997,6 +997,7 @@ MeimayPairing.syncMyData = async function () {
             baseNickname: item.baseNickname || '',
             tags: Array.isArray(item.tags) ? item.tags : [],
             gender: item.gender || 'neutral',
+            isSuper: !!item.isSuper,
             addedAt: item.addedAt || null
         }));
 
@@ -1056,6 +1057,10 @@ MeimayShare.stopListening = function () {
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
     return Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
+};
+
+MeimayPartnerInsights.getOwnReadingStock = function () {
+    return typeof getReadingStock === 'function' ? getReadingStock() : [];
 };
 
 MeimayPartnerInsights.buildReadingStockKey = function (item) {
@@ -1142,7 +1147,32 @@ MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
     return ownKeys.has(key);
 };
 
+MeimayPartnerInsights.getMatchedReadingItems = function () {
+    const partnerKeys = new Set(this.getPartnerReadingStock().map(item => this.buildReadingStockKey(item)).filter(Boolean));
+    const seenKeys = new Set();
+    return this.getOwnReadingStock().filter(item => {
+        const key = this.buildReadingStockKey(item);
+        if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+    });
+};
+
+MeimayPartnerInsights.isReadingItemMatched = function (item) {
+    const key = this.buildReadingStockKey(item);
+    if (!key) return false;
+    const partnerKeys = new Set(this.getPartnerReadingStock().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
+    return partnerKeys.has(key);
+};
+
 MeimayPartnerInsights.getSummary = function () {
+    const ownReadingItems = this.getOwnReadingStock();
+    const partnerReadingItems = this.getPartnerReadingStock();
+    const ownLikedItems = this.getOwnLiked();
+    const partnerLikedItems = this.getPartnerLiked();
+    const ownSavedItems = this.getOwnSaved();
+    const partnerSavedItems = this.getPartnerSaved();
+    const matchedReadingItems = this.getMatchedReadingItems();
     const matchedLikedItems = this.getMatchedLikedItems();
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
@@ -1156,13 +1186,132 @@ MeimayPartnerInsights.getSummary = function () {
         hasPartner: !!MeimayPairing.partnerUid,
         partnerLabel: partnerName,
         partnerDisplayName: partnerName,
+        ownReadingCount: ownReadingItems.length,
+        partnerReadingCount: partnerReadingItems.length,
+        ownKanjiCount: ownLikedItems.length,
+        partnerKanjiCount: partnerLikedItems.length,
+        ownSavedCount: ownSavedItems.length,
+        partnerSavedCount: partnerSavedItems.length,
+        matchedReadingCount: matchedReadingItems.length,
         matchedKanjiCount: matchedLikedItems.length,
         matchedNameCount: matchedSavedItems.length,
+        matchedReadingItems: matchedReadingItems,
         matchedLikedItems: matchedLikedItems,
         matchedSavedItems: matchedSavedItems,
+        matchedTotalCount: matchedReadingItems.length + matchedLikedItems.length + matchedSavedItems.length,
+        ownTotalCount: ownReadingItems.length + ownLikedItems.length + ownSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + partnerLikedItems.length + partnerSavedItems.length,
+        counts: {
+            own: {
+                reading: ownReadingItems.length,
+                kanji: ownLikedItems.length,
+                saved: ownSavedItems.length
+            },
+            partner: {
+                reading: partnerReadingItems.length,
+                kanji: partnerLikedItems.length,
+                saved: partnerSavedItems.length
+            },
+            matched: {
+                reading: matchedReadingItems.length,
+                kanji: matchedLikedItems.length,
+                saved: matchedSavedItems.length
+            }
+        },
         previewLabels: previewLabels
     };
 };
+
+function inferPartnerRole(role) {
+    if (role === 'mama') return 'papa';
+    if (role === 'papa') return 'mama';
+    return 'mama';
+}
+
+function getMeimayRolePalette(role) {
+    if (role === 'mama') {
+        return {
+            role: 'mama',
+            label: 'ママ',
+            accent: '#f2a2b8',
+            accentStrong: '#dc7f9c',
+            accentSoft: '#fde1ea',
+            surface: '#fff3f7',
+            mist: '#ffe8ef',
+            border: '#f5c7d6',
+            text: '#8e6170',
+            shadow: 'rgba(242, 162, 184, 0.18)',
+            star: '#ea89a7'
+        };
+    }
+    return {
+        role: 'papa',
+        label: 'パパ',
+        accent: '#8fbff8',
+        accentStrong: '#5f98de',
+        accentSoft: '#e3f0ff',
+        surface: '#f1f7ff',
+        mist: '#e7f3ff',
+        border: '#c6dcff',
+        text: '#59779d',
+        shadow: 'rgba(143, 191, 248, 0.18)',
+        star: '#6ea9ef'
+    };
+}
+
+function getMeimayRelationshipPalettes() {
+    const myRole = typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null;
+    const resolvedSelfRole = (myRole === 'mama' || myRole === 'papa') ? myRole : 'papa';
+    const partnerRole = MeimayShare?.partnerSnapshot?.role;
+    const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
+        ? partnerRole
+        : inferPartnerRole(resolvedSelfRole);
+    const self = getMeimayRolePalette(resolvedSelfRole);
+    const partner = getMeimayRolePalette(resolvedPartnerRole);
+
+    return {
+        self,
+        partner,
+        matched: {
+            role: 'matched',
+            label: 'ふたり',
+            accent: self.accent,
+            accentAlt: partner.accent,
+            accentSoft: `linear-gradient(135deg, ${self.accentSoft} 0%, #fffafc 46%, ${partner.accentSoft} 100%)`,
+            surface: `linear-gradient(135deg, ${self.mist} 0%, #fffdfb 44%, ${partner.mist} 100%)`,
+            border: self.border,
+            borderAlt: partner.border,
+            text: '#7d6671',
+            shadow: 'rgba(189, 166, 204, 0.18)'
+        }
+    };
+}
+
+function getMeimayOwnershipPalette(kind) {
+    const palettes = getMeimayRelationshipPalettes();
+    if (kind === 'partner') return palettes.partner;
+    if (kind === 'matched') return palettes.matched;
+    return palettes.self;
+}
+
+function renderMeimaySuperStars(options = {}) {
+    const palettes = getMeimayRelationshipPalettes();
+    const stars = [];
+    if (options.self) {
+        stars.push(`<span style="color:${palettes.self.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">★</span>`);
+    }
+    if (options.partner) {
+        stars.push(`<span style="color:${palettes.partner.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">★</span>`);
+    }
+    if (stars.length === 0) return '';
+    const className = options.className || '';
+    const inlineStyle = options.style ? ` style="${options.style}"` : '';
+    return `<div class="${className}"${inlineStyle}>${stars.join('')}</div>`;
+}
+
+window.getMeimayRelationshipPalettes = getMeimayRelationshipPalettes;
+window.getMeimayOwnershipPalette = getMeimayOwnershipPalette;
+window.renderMeimaySuperStars = renderMeimaySuperStars;
 
 function refreshPartnerAwareUI() {
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {

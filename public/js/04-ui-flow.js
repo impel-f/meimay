@@ -5796,7 +5796,8 @@ function likePartnerReadingStock(index) {
 
     addReadingToStock(item.reading, item.baseNickname || '', Array.isArray(item.tags) ? item.tags : [], {
         segments: Array.isArray(item.segments) ? item.segments : [],
-        gender: item.gender || gender || 'neutral'
+        gender: item.gender || gender || 'neutral',
+        isSuper: !!item.isSuper
     });
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
@@ -6137,6 +6138,308 @@ function renderReadingStockSection() {
 
 window.clearReadingPartnerFocus = clearReadingPartnerFocus;
 window.renderReadingStockSection = renderReadingStockSection;
+
+function getPartnerViewReadingKey(item, pairInsights) {
+    if (pairInsights?.buildReadingStockKey) return pairInsights.buildReadingStockKey(item);
+    return getReadingStockKey(item?.reading || '', Array.isArray(item?.segments) ? item.segments : []);
+}
+
+function getReadingCardToneV2(kind) {
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    if (!palette) {
+        return {
+            card: 'border:1px solid #ede5d8;background:#fff;',
+            title: '#5d5444',
+            sub: '#a6967a',
+            tagBg: '#f7f1e7',
+            tagColor: '#8b7e66',
+            action: 'background:#bca37f;color:#fff;',
+            actionGhost: 'border:1px solid #eadfce;background:#fff;color:#8b7e66;'
+        };
+    }
+    if (kind === 'matched') {
+        const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
+            ? window.getMeimayRelationshipPalettes()
+            : { self: palette, partner: palette };
+        return {
+            card: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 12px 24px ${palette.shadow};`,
+            title: '#5d5444',
+            sub: '#846d78',
+            tagBg: 'rgba(255,255,255,0.82)',
+            tagColor: '#7d6671',
+            action: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
+            actionGhost: 'border:1px solid rgba(255,255,255,0.78);background:rgba(255,255,255,0.84);color:#7d6671;'
+        };
+    }
+    return {
+        card: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 12px 24px ${palette.shadow};`,
+        title: '#5d5444',
+        sub: palette.text || '#8b7e66',
+        tagBg: 'rgba(255,255,255,0.82)',
+        tagColor: palette.text || '#8b7e66',
+        action: `background:${palette.accentStrong || palette.accent};color:#fff;`,
+        actionGhost: `border:1px solid ${palette.border};background:rgba(255,255,255,0.82);color:${palette.text || '#8b7e66'};`
+    };
+}
+
+function renderReadingCardStarsV2(selfSuper, partnerSuper) {
+    if (typeof window.renderMeimaySuperStars !== 'function') {
+        return selfSuper || partnerSuper ? '<div class="text-[12px] leading-none text-[#fbbc04]">★</div>' : '';
+    }
+    return window.renderMeimaySuperStars({
+        self: !!selfSuper,
+        partner: !!partnerSuper,
+        style: 'display:flex;gap:2px;font-size:12px;line-height:1;'
+    });
+}
+
+function renderReadingStockSectionV2() {
+    const pendingStock = getReadingStock();
+    const section = document.getElementById('reading-stock-section');
+    if (!section) return;
+
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach(h => {
+        const historyKey = getReadingStockKey(h.reading, h.segments || []);
+        readingToSegments[historyKey] = h.segments;
+        if (!readingToSegments[h.reading]) readingToSegments[h.reading] = h.segments;
+    });
+
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+
+    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const completedReadings = [...new Set(
+        ownLiked
+            .filter(item =>
+                item.sessionReading &&
+                item.sessionReading !== 'FREE' &&
+                item.sessionReading !== 'SEARCH' &&
+                item.slot >= 0 &&
+                !removedList.includes(item.sessionReading)
+            )
+            .map(item => item.sessionReading)
+    )];
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const partnerReadingByKey = new Map();
+    partnerReadings.forEach(item => {
+        const key = getPartnerViewReadingKey(item, pairInsights);
+        if (key && !partnerReadingByKey.has(key)) partnerReadingByKey.set(key, item);
+    });
+
+    const completedCards = completedReadings.map(reading => {
+        const segments = readingToSegments[reading] || [];
+        const key = getPartnerViewReadingKey({ reading, segments }, pairInsights);
+        return {
+            reading,
+            display: segments.length > 0 ? segments.join('/') : reading,
+            segments,
+            key,
+            ownItem: pendingStock.find(item => getPartnerViewReadingKey(item, pairInsights) === key) || null,
+            partnerItem: partnerReadingByKey.get(key) || null,
+            kanjiCount: ownLiked.filter(item => item.sessionReading === reading && item.slot >= 0).length
+        };
+    });
+    const completedMatchedKeys = new Set(completedCards.filter(item => item.partnerItem).map(item => item.key).filter(Boolean));
+    const matchedReadingKeys = new Set(
+        (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
+            .map(item => getPartnerViewReadingKey(item, pairInsights))
+            .filter(Boolean)
+    );
+    completedMatchedKeys.forEach(key => matchedReadingKeys.add(key));
+
+    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const partnerPendingCards = partnerReadings
+        .map((item, originalIndex) => ({ item, originalIndex }))
+        .filter(entry => {
+            const key = getPartnerViewReadingKey(entry.item, pairInsights);
+            if (!key) return !pairInsights?.isPartnerReadingApproved?.(entry.item);
+            return !matchedReadingKeys.has(key) && !pairInsights?.isPartnerReadingApproved?.(entry.item);
+        });
+
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { readingFocus: 'all' };
+    const readingFocus = ['all', 'partner', 'matched'].includes(partnerViewState.readingFocus)
+        ? partnerViewState.readingFocus
+        : 'all';
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+
+    const showOwnSections = readingFocus !== 'partner';
+    const visibleCompleted = showOwnSections
+        ? completedCards.filter(item => readingFocus !== 'matched' || matchedReadingKeys.has(item.key))
+        : [];
+    const visiblePendingOnly = showOwnSections
+        ? pendingOnly.filter(item => readingFocus !== 'matched' || matchedReadingKeys.has(getPartnerViewReadingKey(item, pairInsights)))
+        : [];
+    const visiblePartnerReadings = readingFocus === 'partner' ? partnerPendingCards : [];
+
+    const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
+    const emptyMsg = document.getElementById('reading-stock-empty');
+    if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent || readingFocus !== 'all');
+
+    if (!hasContent) {
+        if (readingFocus === 'partner' || readingFocus === 'matched') {
+            const message = readingFocus === 'matched'
+                ? 'ふたりで重なっている読み候補はまだありません'
+                : `${partnerName}から届いている読み候補はまだありません`;
+            section.innerHTML = `
+                <div class="text-center py-16 text-sm text-[#a6967a]">
+                    <div class="text-4xl mb-4 opacity-50">${readingFocus === 'matched' ? '〆' : '〰'}</div>
+                    <p>${message}</p>
+                    <button onclick="clearReadingPartnerFocus()" class="mt-4 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-4 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        通常表示に戻る
+                    </button>
+                </div>
+            `;
+        } else {
+            section.innerHTML = '';
+        }
+        return;
+    }
+
+    let html = '';
+
+    if (readingFocus === 'partner' || readingFocus === 'matched') {
+        const bannerTone = getReadingCardToneV2(readingFocus === 'matched' ? 'matched' : 'partner');
+        const bannerTitle = readingFocus === 'matched' ? 'ふたりで重なった読み' : `${partnerName}の読み候補`;
+        const bannerBody = readingFocus === 'matched'
+            ? 'お互いに気になっている読みを先に見つけて、次の絞り込みにつなげましょう。'
+            : `${partnerName}が集めた読みを見ながら、自分のストックに取り込めます。`;
+        html += `
+            <div class="rounded-2xl px-4 py-3 mb-4" style="${bannerTone.card}">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] uppercase" style="color:${bannerTone.sub}">${readingFocus === 'matched' ? 'Matched' : 'Partner'}</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${bannerTitle}</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">${bannerBody}</div>
+                    </div>
+                    <button onclick="clearReadingPartnerFocus()" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold active:scale-95" style="${bannerTone.actionGhost}">
+                        通常表示
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    if (visibleCompleted.length > 0) {
+        html += `<div class="mb-6">
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">組み合わせ中の読み</div>
+            <div class="space-y-2">`;
+
+        visibleCompleted.forEach(item => {
+            const kind = item.partnerItem ? 'matched' : 'self';
+            const tone = getReadingCardToneV2(kind);
+            const stars = renderReadingCardStarsV2(item.ownItem?.isSuper, item.partnerItem?.isSuper);
+            html += `
+                <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
+                     style="${tone.card}"
+                     onclick="openReadingStockModal('${item.reading}')">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            ${stars}
+                            <div class="text-lg font-black leading-tight" style="color:${tone.title}">${item.display}</div>
+                        </div>
+                        <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}件の漢字候補</div>
+                    </div>
+                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                        class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
+                        style="${tone.action}">
+                        ビルドへ
+                    </button>
+                </div>`;
+        });
+
+        html += `</div></div>`;
+    }
+
+    if (visiblePendingOnly.length > 0) {
+        const groups = {};
+        visiblePendingOnly.forEach(item => {
+            const key = item.baseNickname || '気になった読み';
+            if (!groups[key]) groups[key] = [];
+            groups[key].push(item);
+        });
+
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">読みストック</div>`;
+
+        Object.keys(groups).forEach(groupName => {
+            const items = groups[groupName];
+            html += `<div class="mb-3">
+                <div class="text-[10px] text-[#bca37f] mb-1">${groupName}</div>
+                <div class="grid grid-cols-2 gap-2">
+                    ${items.map(item => {
+                        const display = getReadingDisplayLabel(item);
+                        const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '読みを広げる';
+                        const key = getPartnerViewReadingKey(item, pairInsights);
+                        const partnerItem = partnerReadingByKey.get(key) || null;
+                        const kind = matchedReadingKeys.has(key) ? 'matched' : 'self';
+                        const tone = getReadingCardToneV2(kind);
+                        const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
+                        return `
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}">
+                            <div class="flex items-start justify-between gap-2">
+                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
+                                    <div class="flex items-center gap-2">
+                                        ${stars}
+                                        <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                                    </div>
+                                    <div class="text-[9px] mt-1" style="color:${tone.sub}">${sub}</div>
+                                </button>
+                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
+                            </div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] px-2 py-0.5 rounded-full" style="background:${tone.tagBg};color:${tone.tagColor}">${tag}</span>`).join('')}</div>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+    }
+
+    if (visiblePartnerReadings.length > 0) {
+        html += `<div class="mb-5">
+            <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerName}の読み候補</div>
+            <div class="grid grid-cols-2 gap-2">
+                ${visiblePartnerReadings.map(entry => {
+                    const item = entry.item;
+                    const display = getReadingDisplayLabel(item);
+                    const sub = item.baseNickname || 'パートナー候補';
+                    const tone = getReadingCardToneV2('partner');
+                    const stars = renderReadingCardStarsV2(false, item.isSuper);
+                    return `
+                        <div class="rounded-2xl p-3" style="${tone.card}">
+                            <div class="flex items-center gap-2">
+                                ${stars}
+                                <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                            </div>
+                            <div class="text-[9px] mt-1" style="color:${tone.sub}">${sub}</div>
+                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] px-2 py-0.5 rounded-full" style="background:${tone.tagBg};color:${tone.tagColor}">${tag}</span>`).join('')}</div>
+                            <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
+                                いいねして取り込む
+                            </button>
+                        </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }
+
+    section.innerHTML = html;
+}
+
+renderReadingStockSection = renderReadingStockSectionV2;
+window.renderReadingStockSection = renderReadingStockSectionV2;
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 

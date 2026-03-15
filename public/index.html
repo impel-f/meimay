@@ -261,9 +261,8 @@
         <div class="flex flex-col items-center w-full gap-3 px-4 pb-6">
 
             <div class="w-full max-w-sm home-hero-width">
-                <div onclick="openHomeInsightsModalFromEvent(event)" role="button" tabindex="0"
-                    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHomeInsightsModalFromEvent(event);}"
-                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-3 shadow-sm text-left active:scale-[0.98] transition-transform cursor-pointer">
+                <div id="home-hero-card"
+                    class="w-full relative overflow-hidden rounded-[28px] border border-[#eadfce] bg-white/90 px-4 py-3 shadow-sm text-left">
                     <div class="absolute inset-x-0 top-0 h-16 bg-gradient-to-r from-[#fbf4e7] via-[#fffaf2] to-[#f4f2fb] opacity-95"></div>
                     <div class="relative">
                         <div class="flex items-start justify-between gap-2">
@@ -284,9 +283,11 @@
 
                         <div id="home-status-line" class="mt-2 text-[11px] text-[#8b7e66] leading-relaxed">候補を集めながら、次に進む準備をしています。</div>
 
+                        <div id="home-overview-mount" class="mt-4"></div>
+
                         <div id="home-stage-track-anchor" class="mt-4"></div>
 
-                        <div class="mt-3 flex items-center gap-2">
+                        <div id="home-legacy-actions" class="mt-3 flex items-center gap-2">
                             <button type="button" onclick="openHomeInsightsModalFromEvent(event)"
                                 class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-2 text-[11px] font-bold text-[#8b7e66] shadow-sm active:scale-95 transition-transform">詳しく見る</button>
                             <button id="home-partner-inline" type="button" onclick="handleHomeInlinePartnerAction(event)"
@@ -360,14 +361,14 @@
             <button id="home-pair-restore" onclick="restoreHomePairCard()" class="hidden w-full max-w-sm home-hero-width -mt-1 text-right text-[11px] font-bold text-[#b9965b]">パートナー機能を再表示</button>
 
             <!-- ─── 名前を作る ─── -->
-            <div class="w-full max-w-sm flex items-center gap-2">
+            <div id="home-entry-divider" class="w-full max-w-sm flex items-center gap-2">
                 <div class="flex-1 h-px bg-[#e8ddd0]"></div>
                 <span class="text-[10px] font-bold text-[#bca37f] tracking-wide whitespace-nowrap">名前を作る</span>
                 <div class="flex-1 h-px bg-[#e8ddd0]"></div>
             </div>
 
             <!-- ② メイン2択ボタン（左:響き / 右:読みから） -->
-            <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
+            <div id="home-entry-grid" class="w-full max-w-sm grid grid-cols-2 gap-2.5">
 
                 <!-- LEFT: 響き・読みを探す -->
                 <button id="home-entry-sound" onclick="startMode('sound')"
@@ -1859,10 +1860,10 @@
     <script src="/js/01-core.js?v=25.11"></script>
     <script src="/js/02-engine.js?v=25.14"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-<script src="/js/04-ui-flow.js?v=25.26"></script>
+    <script src="/js/04-ui-flow.js?v=25.27"></script>
     <script src="/js/05-ui-render.js?v=25.19"></script>
     <script src="/js/06-ui-physics.js?v=25.11"></script>
-    <script src="/js/07-build.js?v=25.18"></script>
+    <script src="/js/07-build.js?v=25.19"></script>
     <script src="/js/08-origin.js?v=25.21"></script>
     <script src="/js/09-storage.js?v=25.11"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
@@ -1870,13 +1871,13 @@
     <script src="/js/12-history.js?v=25.13"></script>
     <script src="/js/13-drawer-wizard.js?v=25.11"></script>
     <script src="/js/14-admob.js?v=25.11"></script>
-    <script src="/js/15-firebase.js?v=25.11"></script>
+    <script src="/js/15-firebase.js?v=25.12"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
     <script src="/js/17-todays-kanji.js?v=25.11"></script>
     <script src="/js/18-ranking.js?v=25.11"></script>
-    <script src="/js/19-home-override.js?v=25.12"></script>
+    <script src="/js/19-home-override.js?v=25.13"></script>
 
 </body>
 

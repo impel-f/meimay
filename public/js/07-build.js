@@ -285,7 +285,7 @@ function openStock(tab, options = {}) {
 function openFreeBuild() {
     console.log('BUILD: openFreeBuild → scr-build/free-mode');
     if (!liked || liked.length === 0) {
-        if (typeof showToast === 'function') showToast('まずスワイプで漢字をストックしてください', '📦');
+        if (typeof showToast === 'function') showToast('まずスワイプで漢字をストックしてください', '??');
         return;
     }
     buildMode = 'free';
@@ -299,7 +299,7 @@ function openFreeBuild() {
 
 /**
  * ストック画面に自由ビルドセクションを描画する
- * 1文字目〜最大3文字目まで横スクロールで漢字を選べる
+ * 1文字目?最大3文字目まで横スクロールで漢字を選べる
  */
 let fbChoices = []; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
@@ -365,7 +365,7 @@ function renderFreeBuildSection() {
             <div class="mb-4">
                 <div class="flex items-center justify-between mb-2">
                     <span class="text-xs font-bold text-[#8b7e66]">${label}</span>
-                    ${selected ? `<span class="text-xs text-[#a6967a] cursor-pointer hover:text-[#f28b82]" onclick="removeFbChoice(${slotIdx})">✕ 解除</span>` : ''}
+                    ${selected ? `<span class="text-xs text-[#a6967a] cursor-pointer hover:text-[#f28b82]" onclick="removeFbChoice(${slotIdx})">? 解除</span>` : ''}
                 </div>
                 
                 <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -394,7 +394,7 @@ function renderFreeBuildSection() {
         const givenReading = getSafeFreeBuildAutoReading(fbChoices);
         fortuneHtml = `
             <div class="mt-4 border-t border-[#ede5d8] pt-4">
-                <p class="text-xs font-bold text-[#8b7e66] mb-3">🔮 運勢ランキング（${givenName}）</p>
+                <p class="text-xs font-bold text-[#8b7e66] mb-3">?? 運勢ランキング（${givenName}）</p>
                 <div id="fb-fortune-area" class="space-y-2">
                     ${renderFbFortune(fbChoices)}
                 </div>
@@ -465,7 +465,7 @@ function renderFbFortune(choices) {
         ];
 
         return ranks.map(r => {
-            const fortune = r.value?.fortune || '—';
+            const fortune = r.value?.fortune || '?';
             const color = fortune === '大吉' ? 'text-red-500' : fortune === '吉' ? 'text-[#bca37f]' : 'text-[#8b7e66]';
             return `<div class="flex justify-between items-center px-1">
                 <span class="text-xs text-[#8b7e66] font-bold">${r.label}</span>
@@ -488,7 +488,7 @@ function confirmFbBuild() {
     if (typeof openSaveScreen === 'function') {
         openSaveScreen(combination, givenName, givenReading);
     } else {
-        showToast(`${givenName} でビルドします`, '✨');
+        showToast(`${givenName} でビルドします`, '?');
     }
 }
 
@@ -684,7 +684,7 @@ function toggleReadingGroup(reading) {
     if (group && icon) {
         const isHidden = group.classList.contains('hidden');
         group.classList.toggle('hidden');
-        icon.textContent = isHidden ? '▼' : '▶';
+        icon.textContent = isHidden ? '▼' : '?';
     }
 }
 
@@ -730,6 +730,8 @@ function hydrateLikedCandidate(item, options = {}) {
         sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
         sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments : [],
         isSuper: !!item?.isSuper,
+        ownSuper: options.fromPartner ? false : !!item?.isSuper,
+        partnerSuper: options.fromPartner ? !!item?.isSuper : false,
         fromPartner: !!options.fromPartner,
         partnerAlsoPicked: !!options.partnerAlsoPicked,
         partnerName: options.partnerName || item?.partnerName || ''
@@ -758,10 +760,13 @@ function getMergedLikedCandidates() {
         if (!key) return;
         if (merged.has(key)) {
             const existing = merged.get(key);
+            const partnerSuper = existing.partnerSuper || !!item.partnerSuper || !!item.isSuper;
             merged.set(key, {
                 ...existing,
                 partnerAlsoPicked: true,
-                partnerName: item.partnerName || existing.partnerName || ''
+                partnerName: item.partnerName || existing.partnerName || '',
+                partnerSuper,
+                isSuper: !!existing.ownSuper || partnerSuper
             });
         } else {
             merged.set(key, item);
@@ -808,6 +813,49 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
 
 window.getMergedLikedCandidates = getMergedLikedCandidates;
 window.getBuildSlotCandidates = getBuildSlotCandidates;
+
+function getStockOwnershipKind(item) {
+    if (item?.partnerAlsoPicked) return 'matched';
+    if (item?.fromPartner) return 'partner';
+    return 'self';
+}
+
+function getStockCardSurfaceStyle(kind) {
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    if (!palette) {
+        return {
+            card: '',
+            kanjiColor: '#5d5444',
+            strokesColor: '#a6967a'
+        };
+    }
+    if (kind === 'matched') {
+        return {
+            card: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 14px 28px ${palette.shadow};`,
+            kanjiColor: '#5d5444',
+            strokesColor: '#8c7281'
+        };
+    }
+    return {
+        card: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 28px ${palette.shadow};`,
+        kanjiColor: '#5d5444',
+        strokesColor: palette.text || '#a6967a'
+    };
+}
+
+function renderStockSuperStars(item) {
+    if (typeof window.renderMeimaySuperStars !== 'function') {
+        return item?.isSuper ? '<div class="stock-stars">★</div>' : '';
+    }
+    return window.renderMeimaySuperStars({
+        self: !!item?.ownSuper,
+        partner: !!item?.partnerSuper,
+        className: 'stock-stars',
+        style: 'position:absolute;top:8px;right:8px;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;'
+    });
+}
 
 function renderStock() {
     const container = document.getElementById('stock-list');
@@ -918,6 +966,11 @@ function renderStock() {
             dup.fromPartner = dup.fromPartner || item.fromPartner;
             dup.partnerName = dup.partnerName || item.partnerName || '';
         }
+        if (dup) {
+            dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
+            dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
+            dup.isSuper = dup.ownSuper || dup.partnerSuper;
+        }
     });
 
     const sortedKeys = Object.keys(segGroups).sort((a, b) => {
@@ -967,27 +1020,14 @@ function renderStock() {
                 if (m) displayStrokes = m['画数'];
             }
 
-            const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['特徴'] || '') : [];
-            const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
-            if (bgGradient) {
-                card.style.border = 'none';
-                card.style.padding = '2px';
-                card.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
-                card.style.backgroundOrigin = 'border-box';
-                card.style.backgroundClip = 'content-box, border-box';
-            }
-
-            const partnerBadge = item.partnerAlsoPicked
-                ? getPartnerChipHTML({ partnerAlsoPicked: true })
-                : item.fromPartner
-                    ? getPartnerChipHTML({ fromPartner: true })
-                    : '';
+            const ownershipKind = getStockOwnershipKind(item);
+            const surfaceStyle = getStockCardSurfaceStyle(ownershipKind);
+            card.style.cssText = `${surfaceStyle.card}; padding:10px 6px;`;
 
             card.innerHTML = `
-                ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
-                <div class="stock-kanji">${item['漢字']}</div>
-                <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
-                ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
+                ${renderStockSuperStars(item)}
+                <div class="stock-kanji" style="color:${surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
+                <div class="stock-strokes" style="color:${surfaceStyle.strokesColor}">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
             `;
             cardsGrid.appendChild(card);
         });
@@ -1264,10 +1304,10 @@ function renderBuildSelection() {
     const modeBar = document.createElement('div');
     modeBar.className = 'relative w-full';
 
-    // 読みボタンのラベル：読みモードのときは「📖 はるき ▾」のように実際の読みを出す
+    // 読みボタンのラベル：読みモードのときは「?? はるき ?」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
-        ? `読み（${currentReading}）▾`
-        : `読みを選ぶ ▾`;
+        ? `読み（${currentReading}）?`
+        : `読みを選ぶ ?`;
 
     // 読みドロップダウンがヘッダーの下に潜り込むように配置
     modeBar.innerHTML = `
@@ -1414,7 +1454,7 @@ function renderBuildSelection() {
 
                 let fortuneIndicator = '';
                 if (prioritizeFortune && itemIdx < 3) {
-                    const badges = ['🥇', '🥈', '🥉'];
+                    const badges = ['??', '??', '??'];
                     fortuneIndicator = `<div class="text-lg mt-1" > ${badges[itemIdx]}</div> `;
                 }
 
@@ -1443,11 +1483,11 @@ function renderBuildSelection() {
         container.appendChild(row);
     });
 
-    // 🏆 運勢ランキングTOP10 を一番下に追加
+    // ?? 運勢ランキングTOP10 を一番下に追加
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-6 flex justify-center';
     rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
-        <div class="text-sm font-bold flex items-center gap-1"><span>🏆</span> 運勢ランキング TOP10</div>
+        <div class="text-sm font-bold flex items-center gap-1"><span>??</span> 運勢ランキング TOP10</div>
         <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
     </button>`;
     container.appendChild(rankingBtnWrapper);
@@ -1553,7 +1593,7 @@ function toggleReadingDropdown() {
             const kanjiCount = (liked || []).filter(i => i.sessionReading === reading && i.slot >= 0).length;
             return `<button onclick="selectReadingForBuild('${reading}')"
                 class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
-                <span class="text-sm font-bold text-[#5d5444]">${display}${isCurrent ? ' ✓' : ''}</span>
+                <span class="text-sm font-bold text-[#5d5444]">${display}${isCurrent ? ' ?' : ''}</span>
                 <span class="text-[10px] text-[#a6967a]">${kanjiCount}個</span>
             </button>`;
         }).join('');
@@ -1587,7 +1627,7 @@ window.selectReadingForBuild = selectReadingForBuild;
 /**
  * ビルド画面：自由組み立てモードのレンダリング
  * ストックされた漢字を読み方・FREE問わず全表示し、
- * 1〜3文字を自由に組み合わせる（スーパーライクを先頭に）
+ * 1?3文字を自由に組み合わせる（スーパーライクを先頭に）
  */
 function renderBuildFreeMode(container) {
     // ストックから重複なし全漢字を取得（スーパーライク優先）
@@ -1629,7 +1669,7 @@ function renderBuildFreeMode(container) {
                     <span class="bg-[#bca37f] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">${slotIdx + 1}</span>
                     ${label}
                 </p>
-                ${selected ? `<button onclick="removeFbChoice(${slotIdx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#f28b82] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">✕ 解除</button>` : ''}
+                ${selected ? `<button onclick="removeFbChoice(${slotIdx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#f28b82] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">? 解除</button>` : ''}
             </div>
         `;
 
@@ -1777,7 +1817,7 @@ function suggestReadingsForKanji(choices, container) {
     // UI 描画
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">🎵 読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">?? 読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
 
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
@@ -1786,7 +1826,7 @@ function suggestReadingsForKanji(choices, container) {
         const chip = document.createElement('button');
         const isActive = fbSelectedReading === r.reading;
         // 手入力したものはアイコンをつける
-        const label = r.isManual ? `✏️ ${r.reading}` : r.reading;
+        const label = r.isManual ? `?? ${r.reading}` : r.reading;
 
         chip.className = `px-3 py-1.5 text-sm font-bold rounded-full border transition-all active:scale-95
             ${isActive
@@ -1908,7 +1948,7 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
                 </div>
 
                 <button onclick="openKanjiDetailFromBuild('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
-                    <span class="text-lg">📖</span>
+                    <span class="text-lg">??</span>
                     漢字詳細を見る
                 </button>
                 
@@ -1918,11 +1958,11 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
                 </button>
 
                 <button onclick="removeFromBuildCandidates(${slotIdx}, '${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
-                    <span class="text-lg">✖</span> 候補から外す
+                    <span class="text-lg">?</span> 候補から外す
                 </button>
 
                 <button onclick="confirmStockDeletion('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#d44e4e] flex items-center justify-center gap-2 hover:border-[#d44e4e] transition-all active:scale-95">
-                    <span class="text-lg">🗑️</span> ストックから完全に削除
+                    <span class="text-lg">???</span> ストックから完全に削除
                 </button>
 
                 <button onclick="closeKanjiActionMenu()" class="mt-2 w-full py-3 text-sm font-bold text-[#a6967a] hover:text-[#5d5444] transition-all">
@@ -1949,7 +1989,7 @@ function openKanjiDetailFromBuild(kanji) {
     closeKanjiActionMenu();
 
     if (!detailItem || !detailItem['漢字']) {
-        if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '⚠️');
+        if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '??');
         return;
     }
 
@@ -1963,7 +2003,7 @@ function openKanjiDetailFromBuild(kanji) {
         return;
     }
 
-    if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '⚠️');
+    if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '??');
 }
 
 /**
@@ -2008,7 +2048,7 @@ function removeFromBuildCandidates(slotIdx, kanji) {
         updateNamePreview();
         renderBuildSelection();
     }
-    showToast(`「${kanji}」を候補一覧から除外しました`, '✖');
+    showToast(`「${kanji}」を候補一覧から除外しました`, '?');
     closeKanjiActionMenu();
 }
 
@@ -2046,7 +2086,7 @@ function removeKanjiFromStock(kanji) {
             selectedPieces = selectedPieces.map(p => (p && p['漢字'] === kanji) ? null : p);
         }
 
-        showToast(`「${kanji}」を完全に削除しました`, '🗑️');
+        showToast(`「${kanji}」を完全に削除しました`, '???');
 
         withScrollPreservation(() => {
             renderBuildSelection();
@@ -2283,7 +2323,7 @@ function showFortuneDetail() {
     const _tenRaw = { top: nSur > 0 ? surMid(0) : 0, bot: nSur > 0 ? surMid(nSur - 1) : 0 };
     const _jinRaw = { top: nSur > 0 ? surMid(nSur - 1) : 0, bot: nGiv > 0 ? givMid(0) : 0 };
     const _chiRaw = { top: nGiv > 0 ? givMid(0) : totalH, bot: nGiv > 0 ? givMid(nGiv - 1) : totalH };
-    // オフセット適用（単一文字スパン=h≤0 はそのまま）
+    // オフセット適用（単一文字スパン=h?0 はそのまま）
     const tenSpan = { top: _tenRaw.top, bot: _tenRaw.bot > _tenRaw.top ? _tenRaw.bot - OFFSET : _tenRaw.bot };
     const jinSpan = (() => {
         const t = _jinRaw.top + OFFSET, b = _jinRaw.bot - OFFSET;
@@ -2421,7 +2461,7 @@ function showFortuneDetail() {
                 </span>
             </div>
             <div class="flex gap-1.5 items-center mb-3">
-                ${['t', 'j', 'c'].map(k => `<div class="flex-grow bg-white py-2 rounded-xl border border-[#eee5d8] text-center"><div class="text-[8px] font-bold text-[#a6967a]">${k === 't' ? '天' : k === 'j' ? '人' : '地'}</div><div class="text-sm font-black text-[#5d5444]">${res.sansai[k] || '-'}</div></div>`).join('<div class="text-[#eee5d8] text-[8px]">▶</div>')}
+                ${['t', 'j', 'c'].map(k => `<div class="flex-grow bg-white py-2 rounded-xl border border-[#eee5d8] text-center"><div class="text-[8px] font-bold text-[#a6967a]">${k === 't' ? '天' : k === 'j' ? '人' : '地'}</div><div class="text-sm font-black text-[#5d5444]">${res.sansai[k] || '-'}</div></div>`).join('<div class="text-[#eee5d8] text-[8px]">?</div>')}
             </div>
             <p class="text-[11px] leading-relaxed text-[#5d5444] text-center">${res.sansai.desc || ''}</p>
 `;
@@ -2449,7 +2489,7 @@ function showFortuneDetail() {
 function showFortuneTerm(term) {
     const terms = {
         "天格": "【天格（祖先運）】\n祖先から代々受け継がれてきた姓の画数です。家系全体に流れる宿命や職業的な傾向を表しますが、あなた個人の吉凶への直接的な影響は少ないとされています。",
-        "人格": "【人格（主運）】\n姓の最後と名の最初の文字を足した画数です。「主運」とも呼ばれ、その人の内面的な性格や才能、長所・短所を表します。また、人生の中盤（20代後半〜50代）の運勢を司る、姓名判断において最も重要な核となる部分です。",
+        "人格": "【人格（主運）】\n姓の最後と名の最初の文字を足した画数です。「主運」とも呼ばれ、その人の内面的な性格や才能、長所・短所を表します。また、人生の中盤（20代後半?50代）の運勢を司る、姓名判断において最も重要な核となる部分です。",
         "地格": "【地格（初年運）】\n名前の画数の合計です。生まれ持った体質や才能、性格の基礎を表します。誕生から30歳前後までの「初年期」の運勢に強く影響し、成長過程での対人関係や愛情運にも関わります。",
         "外格": "【外格（対人運）】\n総格から人格を引いた画数で、家族や職場、友人など「外側」との関係性を示します。対人関係の傾向や、周囲からどのような援助や評価を得られるかを表し、社会的成功に影響します。",
         "総格": "【総格（総合運）】\n姓と名のすべての画数を合計したものです。人生の全体的な運勢や生涯を通じてのエネルギーを表します。特に50歳以降の「晩年期」にその影響が強く現れ、人生の最終的な幸福度や充実度を左右します。",
@@ -2463,11 +2503,11 @@ function showFortuneTerm(term) {
  */
 function renderFortuneDetails(container, res, getNum) {
     const items = [
-        { k: "天格", sub: "祖先運", d: res.ten, icon: "🏛️" },
-        { k: "人格", sub: "主運", d: res.jin, icon: "💎" },
-        { k: "地格", sub: "初年運", d: res.chi, icon: "🌱" },
-        { k: "外格", sub: "対人運", d: res.gai, icon: "🌍" },
-        { k: "総格", sub: "総合運", d: res.so, icon: "🏆" }
+        { k: "天格", sub: "祖先運", d: res.ten, icon: "???" },
+        { k: "人格", sub: "主運", d: res.jin, icon: "??" },
+        { k: "地格", sub: "初年運", d: res.chi, icon: "??" },
+        { k: "外格", sub: "対人運", d: res.gai, icon: "??" },
+        { k: "総格", sub: "総合運", d: res.so, icon: "??" }
     ];
     items.forEach(p => {
         if (!p.d) return;
@@ -2642,9 +2682,9 @@ function displayFortuneRankingModal(rankedList) {
     const descEl = document.getElementById('for-desc');
 
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
-    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
+    if (nameEl) nameEl.innerText = '?? 運勢ランキング TOP10';
     gridEl.innerHTML =
-        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : '') +
+        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">?? 運勢ランキング TOP10</div>' : '') +
         '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
     descEl.innerHTML = '';
 
@@ -2655,7 +2695,7 @@ function displayFortuneRankingModal(rankedList) {
         ranks.push(item.score === rankedList[i - 1].score ? ranks[i - 1] : ranks[i - 1] + 1);
     });
 
-    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
+    const medals = { 1: '??', 2: '??', 3: '??' };
 
     rankedList.forEach((item, index) => {
         const rank = ranks[index];
@@ -2837,7 +2877,7 @@ window.showFortuneTerm = showFortuneTerm;
 
 // ============================================================
 // STOCK TAB SWIPE GESTURE
-// 読みストック ↔ 漢字ストック をスワイプで切り替え
+// 読みストック ? 漢字ストック をスワイプで切り替え
 // ============================================================
 (function initStockSwipe() {
     let touchStartX = 0;

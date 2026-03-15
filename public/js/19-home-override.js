@@ -326,6 +326,15 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         };
     }
 
+    if ((pairing?.matchedReadingCount || 0) >= 1) {
+        return {
+            title: 'ふたりで重なった読みから進めよう',
+            detail: '同じ読みが見つかったら、そこから漢字や組み合わせを育てるのが早いです。',
+            actionLabel: '重なった読みを見る',
+            action: 'matched-reading'
+        };
+    }
+
     if ((pairing?.matchedKanjiCount || 0) >= 1) {
         return {
             title: '一致した漢字を広げる',
@@ -506,6 +515,11 @@ function runHomeAction(action) {
 
     if (action === 'matched-saved') {
         openSavedNamesWithPartnerFocus('matched');
+        return;
+    }
+
+    if (action === 'matched-reading') {
+        openStockWithPartnerFocus('reading', 'readingFocus', 'matched');
         return;
     }
 
@@ -880,6 +894,263 @@ window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.renderHomeProfile = renderHomeProfile;
+
+function getHomeOverviewMode(pairing) {
+    const defaultMode = pairing?.hasPartner ? 'shared' : 'self';
+    const allowed = pairing?.hasPartner ? ['shared', 'self', 'partner'] : ['self'];
+    if (!allowed.includes(window.MeimayHomeOverviewMode)) {
+        window.MeimayHomeOverviewMode = defaultMode;
+    }
+    return window.MeimayHomeOverviewMode;
+}
+
+function setHomeOverviewMode(mode) {
+    window.MeimayHomeOverviewMode = mode;
+    if (typeof renderHomeProfile === 'function') renderHomeProfile();
+}
+
+function getHomeOverviewTone(mode) {
+    if (typeof window.getMeimayOwnershipPalette !== 'function') {
+        return {
+            panel: 'border:1px solid #eadfce;background:#fffaf5;box-shadow:0 12px 24px rgba(185,150,91,0.12);',
+            accent: '#b9965b',
+            sub: '#8b7e66',
+            chipBg: '#fff',
+            chipText: '#5d5444',
+            button: 'background:#b9965b;color:#fff;',
+            ghost: 'border:1px solid #eadfce;background:#fff;color:#8b7e66;'
+        };
+    }
+    const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
+    const palette = window.getMeimayOwnershipPalette(kind);
+    if (kind === 'matched') {
+        const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
+            ? window.getMeimayRelationshipPalettes()
+            : { self: palette, partner: palette };
+        return {
+            panel: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 16px 32px ${palette.shadow};`,
+            accent: '#7d6671',
+            sub: '#846d78',
+            chipBg: 'rgba(255,255,255,0.82)',
+            chipText: '#6f5c67',
+            button: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
+            ghost: 'border:1px solid rgba(255,255,255,0.78);background:rgba(255,255,255,0.84);color:#7d6671;'
+        };
+    }
+    return {
+        panel: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 16px 32px ${palette.shadow};`,
+        accent: palette.text || '#8b7e66',
+        sub: palette.text || '#8b7e66',
+        chipBg: 'rgba(255,255,255,0.84)',
+        chipText: palette.text || '#5d5444',
+        button: `background:${palette.accentStrong || palette.accent};color:#fff;`,
+        ghost: `border:1px solid ${palette.border};background:rgba(255,255,255,0.84);color:${palette.text || '#8b7e66'};`
+    };
+}
+
+function getHomeOverviewModel(pairing, nextStep) {
+    const mode = getHomeOverviewMode(pairing);
+    const counts = pairing?.counts || {
+        own: {
+            reading: 0,
+            kanji: 0,
+            saved: 0
+        },
+        partner: {
+            reading: 0,
+            kanji: 0,
+            saved: 0
+        },
+        matched: {
+            reading: pairing?.matchedReadingCount || 0,
+            kanji: pairing?.matchedKanjiCount || 0,
+            saved: pairing?.matchedNameCount || 0
+        }
+    };
+    const tone = getHomeOverviewTone(mode);
+
+    if (mode === 'shared') {
+        const total = (pairing?.matchedTotalCount ?? 0);
+        return {
+            mode,
+            tone,
+            total,
+            unit: '件',
+            eyebrow: 'ふたりの一致',
+            title: total > 0 ? `いま、ふたりで重なっている候補 ${total}件` : 'まだ一致はこれからです',
+            description: total > 0
+                ? `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と重なった候補から、次の絞り込みに進めます。`
+                : `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と候補を集めるほど、一致が育っていきます。`,
+            breakdown: [
+                { label: '読み', count: counts.matched.reading || 0, action: (counts.matched.reading || 0) > 0 ? 'matched-reading' : 'reading' },
+                { label: '漢字', count: counts.matched.kanji || 0, action: (counts.matched.kanji || 0) > 0 ? 'matched-liked' : 'stock' },
+                { label: '保存', count: counts.matched.saved || 0, action: (counts.matched.saved || 0) > 0 ? 'matched-saved' : 'saved' }
+            ],
+            primaryAction: nextStep?.action || 'matched-reading',
+            primaryLabel: nextStep?.actionLabel || '次に進む',
+            secondaryAction: 'openHomeInsightsModalFromEvent(event)',
+            secondaryLabel: 'くわしく見る'
+        };
+    }
+
+    if (mode === 'partner') {
+        const total = pairing?.partnerTotalCount ?? ((counts.partner.reading || 0) + (counts.partner.kanji || 0) + (counts.partner.saved || 0));
+        return {
+            mode,
+            tone,
+            total,
+            unit: '件',
+            eyebrow: '相手の集まり',
+            title: `${pairing?.partnerDisplayName || 'パートナー'}が集めた候補`,
+            description: '相手のストックを見ながら、自分に取り込みたい候補をすぐ選べます。',
+            breakdown: [
+                { label: '読み', count: counts.partner.reading || 0, action: 'partner-reading' },
+                { label: '漢字', count: counts.partner.kanji || 0, action: 'partner-liked' },
+                { label: '保存', count: counts.partner.saved || 0, action: 'partner-saved' }
+            ],
+            primaryAction: (counts.partner.reading || 0) > 0 ? 'partner-reading' : 'partner-liked',
+            primaryLabel: '相手の候補を見る',
+            secondaryAction: 'openHomePartnerHubFromEvent(event)',
+            secondaryLabel: '連携のまとめ'
+        };
+    }
+
+    const total = pairing?.ownTotalCount ?? ((counts.own.reading || 0) + (counts.own.kanji || 0) + (counts.own.saved || 0));
+    return {
+        mode,
+        tone,
+        total,
+        unit: '件',
+        eyebrow: pairing?.hasPartner ? '自分の集まり' : 'まずはここから',
+        title: pairing?.hasPartner ? '自分が集めた候補' : '名前の材料を育てはじめよう',
+        description: pairing?.hasPartner
+            ? '自分のストック量を見ながら、次に集める材料を決められます。'
+            : '読みを見つけて、漢字を重ねて、ふたりで候補を育てていく準備です。',
+        breakdown: [
+            { label: '読み', count: counts.own.reading || 0, action: (counts.own.reading || 0) > 0 ? 'stock-reading' : 'sound' },
+            { label: '漢字', count: counts.own.kanji || 0, action: (counts.own.kanji || 0) > 0 ? 'stock' : 'reading' },
+            { label: '保存', count: counts.own.saved || 0, action: (counts.own.saved || 0) > 0 ? 'saved' : 'build' }
+        ],
+        primaryAction: nextStep?.action || 'sound',
+        primaryLabel: nextStep?.actionLabel || '次に進む',
+        secondaryAction: pairing?.hasPartner ? 'openHomeInsightsModalFromEvent(event)' : 'handleHomePairAction()',
+        secondaryLabel: pairing?.hasPartner ? 'くわしく見る' : '連携する'
+    };
+}
+
+function renderHomeProfileV2() {
+    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
+    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
+    const savedCount = savedList.length;
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const readingStockCount = readingStock.length;
+    const pairing = getPairingHomeSummary();
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const mount = document.getElementById('home-overview-mount');
+    const heroCard = document.getElementById('home-hero-card');
+    const statusLineEl = document.getElementById('home-status-line');
+    const legacyActions = document.getElementById('home-legacy-actions');
+    const entryDivider = document.getElementById('home-entry-divider');
+    const entryGrid = document.getElementById('home-entry-grid');
+    const pairCard = document.getElementById('home-pair-card');
+    const restoreBtn = document.getElementById('home-pair-restore');
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    const stageAnchor = document.getElementById('home-stage-track-anchor');
+    const screen = document.getElementById('scr-mode');
+
+    if (screen) {
+        screen.style.paddingLeft = '12px';
+        screen.style.paddingRight = '12px';
+    }
+
+    if (heroCard) {
+        heroCard.removeAttribute('onclick');
+        heroCard.removeAttribute('role');
+        heroCard.removeAttribute('tabindex');
+        heroCard.removeAttribute('onkeydown');
+    }
+
+    if (statusLineEl) statusLineEl.classList.add('hidden');
+    if (legacyActions) legacyActions.classList.add('hidden');
+    if (entryDivider) entryDivider.classList.add('hidden');
+    if (entryGrid) entryGrid.classList.add('hidden');
+    if (pairCard) pairCard.classList.add('hidden');
+    if (restoreBtn) restoreBtn.classList.add('hidden');
+    if (dismissBtn) dismissBtn.classList.add('hidden');
+    if (stageAnchor) stageAnchor.classList.remove('hidden');
+
+    const overview = getHomeOverviewModel(pairing, nextStep);
+    const mode = overview.mode;
+    const isShared = mode === 'shared';
+    const stage = getNamingMaterialTimeline(likedCount, readingStockCount, savedCount);
+
+    if (mount) {
+        mount.innerHTML = `
+            ${pairing?.hasPartner ? `
+                <div class="flex items-center gap-2 rounded-full p-1" style="background:rgba(255,255,255,0.72);border:1px solid rgba(234,223,206,0.92);">
+                    <button type="button" onclick="setHomeOverviewMode('shared')" class="flex-1 rounded-full px-3 py-2 text-[11px] font-bold transition-all ${mode === 'shared' ? 'shadow-sm' : ''}" style="${mode === 'shared' ? overview.tone.button : overview.tone.ghost}">ふたり</button>
+                    <button type="button" onclick="setHomeOverviewMode('self')" class="flex-1 rounded-full px-3 py-2 text-[11px] font-bold transition-all ${mode === 'self' ? 'shadow-sm' : ''}" style="${mode === 'self' ? getHomeOverviewTone('self').button : getHomeOverviewTone('self').ghost}">自分</button>
+                    <button type="button" onclick="setHomeOverviewMode('partner')" class="flex-1 rounded-full px-3 py-2 text-[11px] font-bold transition-all ${mode === 'partner' ? 'shadow-sm' : ''}" style="${mode === 'partner' ? getHomeOverviewTone('partner').button : getHomeOverviewTone('partner').ghost}">相手</button>
+                </div>
+            ` : ''}
+            <div class="mt-3 rounded-[24px] px-4 py-4" style="${overview.tone.panel}">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="text-[10px] font-black tracking-[0.18em] uppercase" style="color:${overview.tone.accent}">${overview.eyebrow}</div>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span class="text-[40px] font-black leading-none text-[#4f4639]">${overview.total}</span>
+                            <span class="pb-1 text-[12px] font-bold" style="color:${overview.tone.sub}">${overview.unit}</span>
+                        </div>
+                        <div class="mt-2 text-[16px] font-black leading-snug text-[#4f4639]">${overview.title}</div>
+                        <div class="mt-2 text-[11px] leading-relaxed text-[#8b7e66]">${overview.description}</div>
+                    </div>
+                    <div class="shrink-0 rounded-[20px] px-3 py-3 text-center min-w-[72px]" style="background:${isShared ? 'rgba(255,255,255,0.74)' : overview.tone.chipBg}; border:1px solid rgba(255,255,255,0.62);">
+                        <div class="text-[9px] font-black tracking-[0.16em] uppercase" style="color:${overview.tone.sub}">Stage</div>
+                        <div class="mt-2 text-[13px] font-black leading-tight text-[#4f4639]">${stage.stageTitle}</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-3 gap-2">
+                    ${overview.breakdown.map(item => `
+                        <button type="button" onclick="runHomeAction('${item.action}')" class="rounded-2xl px-3 py-3 text-left active:scale-[0.98] transition-transform" style="background:${overview.tone.chipBg}; border:1px solid rgba(255,255,255,0.65);">
+                            <div class="text-[10px] font-black tracking-wide" style="color:${overview.tone.sub}">${item.label}</div>
+                            <div class="mt-2 text-[22px] font-black leading-none text-[#4f4639]">${item.count}</div>
+                        </button>
+                    `).join('')}
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
+                    <div class="mt-1 text-sm font-black text-[#4f4639]">${nextStep?.title || '次に進める候補を育てよう'}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${nextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <button type="button" onclick="runHomeAction('${overview.primaryAction}')" class="flex-1 rounded-full px-4 py-3 text-[12px] font-bold shadow-sm active:scale-95" style="${overview.tone.button}">
+                            ${overview.primaryLabel}
+                        </button>
+                        <button type="button" onclick="${overview.secondaryAction}" class="shrink-0 rounded-full px-4 py-3 text-[11px] font-bold active:scale-95" style="${overview.tone.ghost}">
+                            ${overview.secondaryLabel}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 flex items-center justify-between px-1">
+                <div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Progress</div>
+                    <div class="mt-1 text-sm font-bold text-[#4f4639]">いまどの段階か</div>
+                </div>
+                <button type="button" onclick="openHomeInsightsModalFromEvent(event)" class="rounded-full px-3 py-2 text-[11px] font-bold active:scale-95" style="${overview.tone.ghost}">
+                    進み具合を見る
+                </button>
+            </div>
+        `;
+    }
+
+    renderHomeStageTrack(likedCount, readingStockCount, savedCount);
+}
+
+renderHomeProfile = renderHomeProfileV2;
+window.renderHomeProfile = renderHomeProfileV2;
+window.setHomeOverviewMode = setHomeOverviewMode;
 
 try {
     if (typeof renderHomeProfile === 'function') {
