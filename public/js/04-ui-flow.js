@@ -6164,7 +6164,7 @@ function getReadingCardToneV2(kind) {
             ? window.getMeimayRelationshipPalettes()
             : { self: palette, partner: palette };
         return {
-            card: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 12px 24px ${palette.shadow};`,
+            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 12px 24px ${palette.shadow};`,
             title: '#5d5444',
             sub: '#846d78',
             tagBg: 'rgba(255,255,255,0.82)',

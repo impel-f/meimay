@@ -975,7 +975,7 @@ function getHomeOverviewTone(mode) {
             ? window.getMeimayRelationshipPalettes()
             : { self: palette, partner: palette };
         return {
-            panel: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 16px 32px ${palette.shadow};`,
+            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 16px 32px ${palette.shadow};`,
             accent: '#7d6671',
             sub: '#846d78',
             chipBg: 'rgba(255,255,255,0.82)',

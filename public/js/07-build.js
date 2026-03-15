@@ -833,7 +833,7 @@ function getStockCardSurfaceStyle(kind) {
     }
     if (kind === 'matched') {
         return {
-            card: `border:1px solid transparent;background:${palette.surface};border-image:linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) 1;box-shadow:0 14px 28px ${palette.shadow};`,
+            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
             kanjiColor: '#5d5444',
             strokesColor: '#8c7281'
         };
