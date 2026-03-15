@@ -1006,24 +1006,27 @@ function getHomeOverviewSwitchStyle(mode) {
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
         ? window.getMeimayOwnershipPalette(kind)
         : null;
+    const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
+        ? window.getMeimayRelationshipPalettes()
+        : { self: palette, partner: palette };
     if (!palette) {
         return {
-            button: 'border:1px solid #eadfce;background:#fffaf5;',
-            text: '#5d5444',
-            sub: '#8b7e66'
+            button: 'border:1px solid #b9965b;background:#b9965b;',
+            text: '#ffffff',
+            sub: 'rgba(255,255,255,0.88)'
         };
     }
     if (kind === 'matched') {
         return {
-            button: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            text: '#5d5444',
-            sub: '#846d78'
+            button: `border:1px solid transparent;background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
+            text: '#ffffff',
+            sub: 'rgba(255,255,255,0.9)'
         };
     }
     return {
-        button: `border:1px solid ${palette.border};background:${palette.surface};`,
-        text: '#5d5444',
-        sub: palette.text || '#8b7e66'
+        button: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.accentStrong || palette.accent};`,
+        text: '#ffffff',
+        sub: 'rgba(255,255,255,0.88)'
     };
 }
 
