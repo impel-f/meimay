@@ -495,9 +495,9 @@ function getHomeStageTrackTone(mode) {
 
     if (kind === 'matched') {
         return {
-            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 16px 28px ${palette.shadow};`,
+            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             cardDone: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            cardActive: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 10px 18px ${palette.shadow};`,
+            cardActive: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             cardIdle: 'border:1px solid rgba(255,255,255,0.86);background:rgba(255,255,255,0.88);',
             badgeDone: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
             badgeActive: 'background:rgba(255,255,255,0.92);color:#7d6671;border:1px solid rgba(255,255,255,0.86);',
@@ -508,9 +508,9 @@ function getHomeStageTrackTone(mode) {
     }
 
     return {
-        panel: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 24px ${palette.shadow};`,
+        panel: `border:1px solid ${palette.border};background:${palette.surface};`,
         cardDone: `border:1px solid ${palette.border};background:${palette.surface};`,
-        cardActive: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.surface};box-shadow:0 10px 18px ${palette.shadow};`,
+        cardActive: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.surface};`,
         cardIdle: `border:1px solid ${palette.border};background:rgba(255,255,255,0.9);`,
         badgeDone: `background:${palette.accentStrong || palette.accent};color:#fff;`,
         badgeActive: `background:${palette.accentSoft || palette.mist || '#fff7ef'};color:${palette.text || '#8b7e66'};`,
@@ -1002,20 +1002,20 @@ function getHomeOverviewSwitchStyle(mode) {
         : null;
     if (!palette) {
         return {
-            button: 'border:1px solid #eadfce;background:#fffaf5;box-shadow:0 12px 24px rgba(185,150,91,0.12);',
+            button: 'border:1px solid #eadfce;background:#fffaf5;',
             text: '#5d5444',
             sub: '#8b7e66'
         };
     }
     if (kind === 'matched') {
         return {
-            button: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 14px 28px ${palette.shadow};`,
+            button: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             text: '#5d5444',
             sub: '#846d78'
         };
     }
     return {
-        button: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 28px ${palette.shadow};`,
+        button: `border:1px solid ${palette.border};background:${palette.surface};`,
         text: '#5d5444',
         sub: palette.text || '#8b7e66'
     };
@@ -1241,18 +1241,14 @@ function renderHomeProfile() {
 
     const soundEntry = document.getElementById('home-entry-sound');
     if (soundEntry) {
-        soundEntry.style.boxShadow = recommendedEntry === 'sound'
-            ? '0 14px 28px rgba(185,150,91,0.16)'
-            : '';
+        soundEntry.style.boxShadow = '';
         soundEntry.style.borderWidth = recommendedEntry === 'sound' ? '3px' : '2px';
         soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : '#c4caf2';
     }
 
     const readingEntry = document.getElementById('home-entry-reading');
     if (readingEntry) {
-        readingEntry.style.boxShadow = recommendedEntry === 'reading'
-            ? '0 14px 28px rgba(185,150,91,0.16)'
-            : '';
+        readingEntry.style.boxShadow = '';
         readingEntry.style.borderWidth = recommendedEntry === 'reading' ? '3px' : '2px';
         readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : '#c4caf2';
     }
@@ -1298,7 +1294,7 @@ function setHomeOverviewMode(mode) {
 function getHomeOverviewTone(mode) {
     if (typeof window.getMeimayOwnershipPalette !== 'function') {
         return {
-            panel: 'border:1px solid #eadfce;background:#fffaf5;box-shadow:0 12px 24px rgba(185,150,91,0.12);',
+            panel: 'border:1px solid #eadfce;background:#fffaf5;',
             accent: '#b9965b',
             sub: '#8b7e66',
             chipBg: '#fff',
@@ -1314,7 +1310,7 @@ function getHomeOverviewTone(mode) {
             ? window.getMeimayRelationshipPalettes()
             : { self: palette, partner: palette };
         return {
-            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 16px 32px ${palette.shadow};`,
+            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
             accent: '#7d6671',
             sub: '#846d78',
             chipBg: 'rgba(255,255,255,0.82)',
@@ -1324,7 +1320,7 @@ function getHomeOverviewTone(mode) {
         };
     }
     return {
-        panel: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 16px 32px ${palette.shadow};`,
+        panel: `border:1px solid ${palette.border};background:${palette.surface};`,
         accent: palette.text || '#8b7e66',
         sub: palette.text || '#8b7e66',
         chipBg: 'rgba(255,255,255,0.84)',
