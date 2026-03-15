@@ -4991,9 +4991,9 @@ function renderReadingSwipeCard(item) {
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full mt-2">
             <div class="mx-auto max-w-[286px] rounded-[26px] border px-4 py-3 shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
-                style="background:rgba(255,255,255,0.92);border-color:rgba(255,255,255,0.98);">
-                <p class="text-[10px] text-[#8b7e66] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#4f4639] font-bold text-base px-2">
+                style="background:#ffffff;border-color:#ffffff;">
+                <p class="text-[10px] text-[#6b6254] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#3f382f] font-bold text-base px-2">
                     ${getSampleKanjiHtml(item)}
                 </div>
             </div>
@@ -5034,8 +5034,8 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
             </div>
             ${renderReadingTagBadges(item.tags || [])}
             <div class="flex gap-2 mb-4">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span class="inline-flex items-center justify-center text-[15px] leading-none">♡</span><span>LIKE</span></button>
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span class="inline-flex items-center justify-center text-[15px] leading-none">⭐</span><span>SUPER</span></button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> LIKE</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> SUPER</button>
             </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
