@@ -1746,12 +1746,28 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
 }
 
 function persistGeneratedSavedName(saveData) {
+    const enrichedSaveData = { ...saveData };
+    if (!enrichedSaveData.fortune && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
+        const combination = Array.isArray(enrichedSaveData.combination) ? enrichedSaveData.combination : [];
+        const givArr = combination
+            .map(part => ({
+                kanji: part?.['漢字'] || part?.kanji || '',
+                strokes: parseInt(part?.['画数'] ?? part?.strokes, 10) || 0
+            }))
+            .filter(part => part.kanji);
+        const surArr = Array.isArray(surnameData) && surnameData.length > 0
+            ? surnameData
+            : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+        if (givArr.length > 0) {
+            enrichedSaveData.fortune = FortuneLogic.calculate(surArr, givArr);
+        }
+    }
     const existing = typeof getSavedNames === 'function' ? getSavedNames() : (savedNames || []);
     const updated = [
-        saveData,
-        ...existing.filter(item => !(item.fullName === saveData.fullName &&
+        enrichedSaveData,
+        ...existing.filter(item => !(item.fullName === enrichedSaveData.fullName &&
             JSON.stringify((item.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || '')) ===
-            JSON.stringify((saveData.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || ''))))
+            JSON.stringify((enrichedSaveData.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || ''))))
     ].slice(0, 50);
 
     if (typeof savedNames !== 'undefined') savedNames = updated;
@@ -3725,6 +3741,32 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     return entry;
 }
 
+function syncReadingStockFromLiked(items = liked) {
+    const likedItems = Array.isArray(items) ? items : [];
+    const blockedReadings = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
+    likedItems.forEach(item => {
+        if (!item || item.fromPartner) return;
+        const sessionReading = typeof item.sessionReading === 'string' ? item.sessionReading.trim() : '';
+        const fallbackReading = typeof item.reading === 'string'
+            ? item.reading.trim()
+            : (typeof item['読み'] === 'string' ? item['読み'].trim() : '');
+        const reading = sessionReading && !blockedReadings.has(sessionReading)
+            ? sessionReading
+            : (fallbackReading && !blockedReadings.has(fallbackReading) ? fallbackReading : '');
+        if (!reading) return;
+        addReadingToStock(
+            reading,
+            item.baseNickname || '',
+            Array.isArray(item.tags) ? item.tags : [],
+            {
+                segments: Array.isArray(item.sessionSegments) ? item.sessionSegments : [],
+                isSuper: !!item.isSuper,
+                gender: item.gender || gender || 'neutral'
+            }
+        );
+    });
+}
+
 function removeReadingFromStock(target) {
     let stock = getReadingStock();
     stock = stock.filter(item => !matchesReadingStockTarget(item, target));
@@ -4359,6 +4401,7 @@ window.executeFreeBuild = executeFreeBuild;
 window.renderFreeBuild = renderFreeBuild;
 window.getReadingStock = getReadingStock;
 window.addReadingToStock = addReadingToStock;
+window.syncReadingStockFromLiked = syncReadingStockFromLiked;
 window.startDirectKanjiSwipe = startDirectKanjiSwipe;
 window.updateDailyRemainingDisplay = updateDailyRemainingDisplay;
 window.getDailyRemainingCount = getDailyRemainingCount;

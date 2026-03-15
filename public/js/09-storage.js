@@ -97,6 +97,9 @@ const StorageBox = {
      */
     saveAll: function () {
         try {
+            if (typeof syncReadingStockFromLiked === 'function') {
+                syncReadingStockFromLiked(liked);
+            }
             this._persistLikedState(liked);
             localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
             localStorage.setItem(this.KEY_SURNAME, JSON.stringify({
@@ -224,6 +227,9 @@ const StorageBox = {
      * 特定データの保存
      */
     saveLiked: function () {
+        if (typeof syncReadingStockFromLiked === 'function') {
+            syncReadingStockFromLiked(liked);
+        }
         return this._persistLikedState(liked);
     },
 
