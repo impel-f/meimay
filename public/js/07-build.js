@@ -719,6 +719,11 @@ function buildLikedCandidateKey(item) {
     return `${reading}::${slot}::${kanji}::${segmentsKey}`;
 }
 
+function getLikedCandidateKanjiKey(item) {
+    if (!item) return '';
+    return item['漢字'] || item.kanji || '';
+}
+
 function hydrateLikedCandidate(item, options = {}) {
     const kanji = item?.['漢字'] || item?.kanji || '';
     if (!kanji) return null;
@@ -758,19 +763,46 @@ function getMergedLikedCandidates() {
         ? pairInsights.getPartnerLiked().map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
         : [];
 
+    const ownKanjiKeys = new Set(ownItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
+    const partnerKanjiKeys = new Set(partnerItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
+    const ownSuperKanjiKeys = new Set(
+        ownItems
+            .filter(item => !!item?.ownSuper || !!item?.isSuper)
+            .map(item => getLikedCandidateKanjiKey(item))
+            .filter(Boolean)
+    );
+    const partnerSuperKanjiKeys = new Set(
+        partnerItems
+            .filter(item => !!item?.partnerSuper || !!item?.isSuper)
+            .map(item => getLikedCandidateKanjiKey(item))
+            .filter(Boolean)
+    );
+
     const merged = new Map();
     ownItems.forEach((item) => {
         const key = buildLikedCandidateKey(item);
         if (!key) return;
-        merged.set(key, { ...item, fromPartner: false, partnerAlsoPicked: false });
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        const partnerAlsoPicked = partnerKanjiKeys.has(kanjiKey);
+        const partnerSuper = partnerSuperKanjiKeys.has(kanjiKey);
+        merged.set(key, {
+            ...item,
+            fromPartner: false,
+            partnerAlsoPicked,
+            partnerSuper,
+            isSuper: !!item.ownSuper || partnerSuper
+        });
     });
 
     partnerItems.forEach((item) => {
         const key = buildLikedCandidateKey(item);
         if (!key) return;
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        const ownAlsoPicked = ownKanjiKeys.has(kanjiKey);
+        const ownSuper = ownSuperKanjiKeys.has(kanjiKey);
         if (merged.has(key)) {
             const existing = merged.get(key);
-            const partnerSuper = existing.partnerSuper || !!item.partnerSuper || !!item.isSuper;
+            const partnerSuper = existing.partnerSuper || !!item.partnerSuper || !!item.isSuper || partnerSuperKanjiKeys.has(kanjiKey);
             merged.set(key, {
                 ...existing,
                 partnerAlsoPicked: true,
@@ -779,7 +811,14 @@ function getMergedLikedCandidates() {
                 isSuper: !!existing.ownSuper || partnerSuper
             });
         } else {
-            merged.set(key, item);
+            merged.set(key, {
+                ...item,
+                fromPartner: true,
+                partnerAlsoPicked: ownAlsoPicked,
+                ownSuper,
+                partnerSuper: !!item.partnerSuper || !!item.isSuper,
+                isSuper: ownSuper || !!item.partnerSuper || !!item.isSuper
+            });
         }
     });
 

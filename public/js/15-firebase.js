@@ -591,13 +591,9 @@ const MeimayPartnerInsights = {
     },
 
     buildLikedMatchKey: function (item) {
-        if (!item || !item['漢字']) return '';
-        const sessionReading = item.sessionReading || '';
-        const slot = typeof item.slot === 'number' ? item.slot : -1;
-        if (slot < 0 || ['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(sessionReading)) {
-            return `free::${item['漢字']}`;
-        }
-        return `${sessionReading}::${slot}::${item['漢字']}`;
+        const kanji = item?.['漢字'] || item?.kanji || '';
+        if (!kanji) return '';
+        return `kanji::${kanji}`;
     },
 
     buildSavedMatchKey: function (item) {
@@ -638,6 +634,13 @@ const MeimayPartnerInsights = {
             seenKeys.add(key);
             return true;
         });
+    },
+
+    isLikedItemMatched: function (item) {
+        const key = this.buildLikedMatchKey(item);
+        if (!key) return false;
+        const partnerKeys = new Set(this.getPartnerLiked().map(entry => this.buildLikedMatchKey(entry)).filter(Boolean));
+        return partnerKeys.has(key);
     },
 
     getMatchedSavedItems: function () {
