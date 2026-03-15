@@ -640,6 +640,17 @@ function closeEncounteredReadingActionModal() {
     modal.innerHTML = '';
 }
 
+function getEncounteredReadingHistoryIndex(reading) {
+    if (!reading || typeof getReadingHistory !== 'function') return -1;
+
+    const normalizedReading = normalizeEncounteredReadingText(reading);
+    return getReadingHistory().findIndex((entry) => {
+        if (!entry || !entry.reading) return false;
+        if (entry.reading === reading) return true;
+        return normalizedReading && normalizeEncounteredReadingText(entry.reading) === normalizedReading;
+    });
+}
+
 function openEncounteredReadingActionModal(key) {
     const library = typeof getEncounteredLibrary === 'function'
         ? getEncounteredLibrary()
@@ -672,6 +683,62 @@ function openEncounteredReadingActionModal(key) {
                     </button>
                     <button onclick="closeEncounteredReadingActionModal()" class="w-full py-3 text-xs font-bold text-[#a6967a] active:scale-95">
                         戻る
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.classList.add('active');
+}
+
+function openEncounteredReadingActionSheet(key) {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
+    if (!item || !item.reading) return;
+
+    const normalizedReading = normalizeEncounteredReadingText(item.reading);
+    if (!normalizedReading) return;
+
+    const historyIndex = getEncounteredReadingHistoryIndex(item.reading);
+    const canResumeHistory = historyIndex >= 0 && typeof loadReadingHistory === 'function';
+    const modal = document.getElementById('modal-encountered-reading-actions');
+    if (!modal) return;
+
+    currentEncounteredReadingActionKey = item.key || item.reading;
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeEncounteredReadingActionModal();
+    };
+
+    const primaryActionHtml = canResumeHistory
+        ? `
+                    <button onclick="resumeEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl bg-[#bca37f] text-white text-sm font-black shadow-sm active:scale-95">
+                        前回の条件で再開
+                    </button>
+                    <button onclick="searchEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl border-2 border-[#d4c5af] bg-white text-[#5d5444] text-sm font-black active:scale-95">
+                        読みを再検索
+                    </button>
+        `
+        : `
+                    <button onclick="searchEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl bg-[#bca37f] text-white text-sm font-black shadow-sm active:scale-95">
+                        読みを再検索
+                    </button>
+        `;
+
+    modal.innerHTML = `
+        <div class="modal-sheet w-11/12 max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeEncounteredReadingActionModal()">×</button>
+            <h3 class="modal-title">「${escapeEncounteredHtml(normalizedReading)}」をどうしますか？</h3>
+            <div class="modal-body">
+                <div class="space-y-3">
+${primaryActionHtml}
+                    <button onclick="stockEncounteredReadingFromModal()" class="w-full py-4 rounded-2xl border-2 border-[#d4c5af] bg-white text-[#5d5444] text-sm font-black active:scale-95">
+                        読みストックにためる
+                    </button>
+                    <button onclick="closeEncounteredReadingActionModal()" class="w-full py-3 text-xs font-bold text-[#a6967a] active:scale-95">
+                        閉じる
                     </button>
                 </div>
             </div>
@@ -792,7 +859,28 @@ function stockEncounteredReadingFromModal() {
 }
 
 function useEncounteredReading(key) {
-    openEncounteredReadingActionModal(key);
+    openEncounteredReadingActionSheet(key);
+}
+
+function resumeEncounteredReadingFromModal() {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const key = currentEncounteredReadingActionKey;
+    const item = (library.readings || []).find(entry => (entry.key || entry.reading) === key);
+    if (!item || !item.reading) return;
+
+    const historyIndex = getEncounteredReadingHistoryIndex(item.reading);
+    closeEncounteredReadingActionModal();
+
+    if (historyIndex >= 0 && typeof loadReadingHistory === 'function') {
+        loadReadingHistory(historyIndex);
+        return;
+    }
+
+    if (typeof openBuildFromReading === 'function') {
+        openBuildFromReading(item.reading);
+    }
 }
 
 function searchEncounteredReadingFromModal() {
@@ -1333,9 +1421,10 @@ window.openEncounteredKanjiDetail = openEncounteredKanjiDetail;
 window.likeEncounteredKanji = likeEncounteredKanji;
 window.stockEncounteredReading = stockEncounteredReading;
 window.useEncounteredReading = useEncounteredReading;
-window.openEncounteredReadingActionModal = openEncounteredReadingActionModal;
+window.openEncounteredReadingActionModal = openEncounteredReadingActionSheet;
 window.closeEncounteredReadingActionModal = closeEncounteredReadingActionModal;
 window.stockEncounteredReadingFromModal = stockEncounteredReadingFromModal;
+window.resumeEncounteredReadingFromModal = resumeEncounteredReadingFromModal;
 window.searchEncounteredReadingFromModal = searchEncounteredReadingFromModal;
 window.showSavedNameDetail = showSavedNameDetail;
 window.closeSavedNameDetail = closeSavedNameDetail;

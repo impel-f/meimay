@@ -185,7 +185,8 @@ function drawerNavigate(target) {
                 if (typeof openBuild === 'function') openBuild();
                 break;
             case 'history':
-                if (typeof openReadingHistory === 'function') openReadingHistory();
+                if (typeof openEncounteredLibrary === 'function') openEncounteredLibrary('reading');
+                else if (typeof openReadingHistory === 'function') openReadingHistory();
                 break;
             case 'encountered':
                 if (typeof openEncounteredLibrary === 'function') openEncounteredLibrary();
