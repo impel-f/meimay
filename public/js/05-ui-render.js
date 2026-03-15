@@ -415,7 +415,7 @@ async function showKanjiDetail(data) {
 
 
     // ストック状態チェック
-    const isLiked = liked.some(l => l['漢字'] === data['漢字']);
+    const isLiked = liked.some(l => l['漢字'] === data['漢字'] && !l?.fromPartner);
 
     // ヘッダー内のストックボタンエリアを更新
     const stockBtnsEl = document.getElementById('modal-stock-btns');
@@ -594,7 +594,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         // ストックから削除 (重複登録されている可能性を考慮し、同じ漢字をすべて削除)
         let removedCount = 0;
         for (let i = liked.length - 1; i >= 0; i--) {
-            if (liked[i]['漢字'] === data['漢字']) {
+            if (liked[i]['漢字'] === data['漢字'] && !liked[i]?.fromPartner) {
                 liked.splice(i, 1);
                 removedCount++;
             }
@@ -642,8 +642,11 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             sessionReading: sessionReading,
             slot: slot,
             kanji_reading: readingToSave,
-            isSuper: !!isSuper
+            isSuper: !!isSuper,
+            fromPartner: false,
+            partnerAlsoPicked: false
         };
+        delete likeData.partnerName;
         if (sessionSegments) {
             likeData.sessionSegments = sessionSegments;
         }
@@ -658,6 +661,11 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         const scrSearch = document.getElementById('scr-kanji-search');
         if (scrSearch && scrSearch.classList.contains('active') && typeof executeKanjiSearch === 'function') {
             executeKanjiSearch();
+        }
+
+        const scrStock = document.getElementById('scr-stock');
+        if (scrStock && scrStock.classList.contains('active') && typeof renderStock === 'function') {
+            renderStock();
         }
 
         alert(isSuper ? '★スーパーライクでストックに追加しました！' : '♥ライクでストックに追加しました！');
