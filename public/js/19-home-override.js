@@ -481,7 +481,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount) {
                                 ? 'bg-[#b7a6da] text-white'
                                 : 'bg-[#f0e8db] text-[#8b7e66]'}">${step.done ? '✓' : '・'}</span>
                         <span class="flex flex-col items-center leading-none overflow-visible">
-                            <span class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
+                            <span data-home-stage-count="${step.key}" class="whitespace-nowrap text-[14px] font-black text-[#4f4639]">${step.metric.countNumber}</span>
                             <span class="mt-0.5 whitespace-nowrap text-[8px] font-black tracking-[0.02em] text-[#8b7e66]">${step.metric.countUnit}</span>
                         </span>
                     </div>
@@ -689,6 +689,7 @@ function openHomeInsightsModal() {
     const savedCount = Array.isArray(savedList) ? savedList.length : 0;
     const buildPatternCount = getHomeBuildPatternCount();
     const pairing = getPairingHomeSummary();
+    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) || {
         title: '次に進める候補があります',
         detail: 'いま足りない材料から順に案内します。',
@@ -707,6 +708,12 @@ function openHomeInsightsModal() {
         { label: 'ビルド', count: buildPatternCount, action: buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound'), suffix: 'パターン' },
         { label: '保存', count: savedCount, action: savedCount > 0 ? 'saved' : (buildPatternCount > 0 ? 'build' : (readingStockCount > 0 ? 'reading' : 'sound')), suffix: '件' }
     ];
+
+    if (Array.isArray(cards)) {
+        if (cards[0]) cards[0].count = aggregateCounts.readingStockCount;
+        if (cards[1]) cards[1].count = aggregateCounts.likedCount;
+        if (cards[3]) cards[3].count = aggregateCounts.savedCount;
+    }
 
     const cardHtml = cards.map(card => {
         const safeCount = Number.isFinite(Number(card.count)) ? Number(card.count) : 0;
@@ -784,6 +791,38 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount) {
     return 'まずは読み候補を集めて、方向を決めていきましょう。';
 }
 
+function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
+    const counts = pairing?.counts || {};
+    const partnerReadingCount = Number.isFinite(Number(counts?.partner?.reading ?? pairing?.partnerReadingCount))
+        ? Number(counts?.partner?.reading ?? pairing?.partnerReadingCount)
+        : 0;
+    const partnerKanjiCount = Number.isFinite(Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount))
+        ? Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
+        : 0;
+    const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
+        ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
+        : 0;
+
+    return {
+        readingStockCount: readingStockCount + partnerReadingCount,
+        likedCount: likedCount + partnerKanjiCount,
+        savedCount: savedCount + partnerSavedCount
+    };
+}
+
+function updateHomeAggregateStageCounts(aggregateCounts) {
+    const countMap = {
+        reading: aggregateCounts.readingStockCount,
+        kanji: aggregateCounts.likedCount,
+        save: aggregateCounts.savedCount
+    };
+
+    Object.entries(countMap).forEach(([stepKey, count]) => {
+        const el = document.querySelector(`[data-home-stage-count="${stepKey}"]`);
+        if (el) el.innerText = String(count);
+    });
+}
+
 function renderHomeProfile() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
@@ -792,6 +831,7 @@ function renderHomeProfile() {
     const readingStockCount = readingStock.length;
     const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
     const pairing = getPairingHomeSummary();
+    const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
 
@@ -802,15 +842,16 @@ function renderHomeProfile() {
     }
 
     renderHomeStageTrack(likedCount, readingStockCount, savedCount);
+    updateHomeAggregateStageCounts(aggregateCounts);
 
     const elSaved = document.getElementById('home-liked-name-count');
-    if (elSaved) elSaved.innerText = savedCount;
+    if (elSaved) elSaved.innerText = aggregateCounts.savedCount;
 
     const elKanji = document.getElementById('home-liked-kanji-count');
-    if (elKanji) elKanji.innerText = likedCount;
+    if (elKanji) elKanji.innerText = aggregateCounts.likedCount;
 
     const elReadingStock = document.getElementById('home-reading-stock-count');
-    if (elReadingStock) elReadingStock.innerText = readingStockCount;
+    if (elReadingStock) elReadingStock.innerText = aggregateCounts.readingStockCount;
 
     const nextStepTitleEl = document.getElementById('home-next-step-title');
     if (nextStepTitleEl) {
@@ -833,6 +874,12 @@ function renderHomeProfile() {
     const statusLineEl = document.getElementById('home-status-line');
     if (statusLineEl) {
         statusLineEl.innerText = getHomeStatusLine(likedCount, readingStockCount, savedCount);
+    }
+
+    const overviewMount = document.getElementById('home-overview-mount');
+    if (overviewMount) {
+        overviewMount.innerHTML = '';
+        overviewMount.classList.add('hidden');
     }
 
 
@@ -1148,8 +1195,7 @@ function renderHomeProfileV2() {
     renderHomeStageTrack(likedCount, readingStockCount, savedCount);
 }
 
-renderHomeProfile = renderHomeProfileV2;
-window.renderHomeProfile = renderHomeProfileV2;
+window.renderHomeProfile = renderHomeProfile;
 window.setHomeOverviewMode = setHomeOverviewMode;
 
 try {
