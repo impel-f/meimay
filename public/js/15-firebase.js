@@ -1235,12 +1235,12 @@ function getMeimayRolePalette(role) {
             label: 'ママ',
             accent: '#f2a2b8',
             accentStrong: '#dc7f9c',
-            accentSoft: '#fde1ea',
-            surface: 'linear-gradient(135deg, #ffe4ee 0%, #fde1ea 34%, #ffffff 100%)',
-            mist: '#ffe8ef',
-            border: '#f5c7d6',
+            accentSoft: '#fef0f5',
+            surface: '#fff8fb',
+            mist: '#fff5f8',
+            border: '#f7dbe5',
             text: '#8e6170',
-            shadow: 'rgba(242, 162, 184, 0.18)',
+            shadow: 'rgba(242, 162, 184, 0.14)',
             star: '#ea89a7'
         };
     }
@@ -1249,12 +1249,12 @@ function getMeimayRolePalette(role) {
         label: 'パパ',
         accent: '#8fbff8',
         accentStrong: '#5f98de',
-        accentSoft: '#e3f0ff',
-        surface: 'linear-gradient(135deg, #e4f1ff 0%, #e3f0ff 34%, #ffffff 100%)',
-        mist: '#e7f3ff',
-        border: '#c6dcff',
+        accentSoft: '#eff7ff',
+        surface: '#f8fbff',
+        mist: '#f3f8ff',
+        border: '#d9e8ff',
         text: '#59779d',
-        shadow: 'rgba(143, 191, 248, 0.18)',
+        shadow: 'rgba(143, 191, 248, 0.14)',
         star: '#6ea9ef'
     };
 }
@@ -1266,8 +1266,16 @@ function getMeimayRelationshipPalettes() {
     const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
         ? partnerRole
         : inferPartnerRole(resolvedSelfRole);
-    const self = getMeimayRolePalette(resolvedSelfRole);
-    const partner = getMeimayRolePalette(resolvedPartnerRole);
+    const selfBase = getMeimayRolePalette(resolvedSelfRole);
+    const partnerBase = getMeimayRolePalette(resolvedPartnerRole);
+    const self = {
+        ...selfBase,
+        surface: `linear-gradient(to bottom right, ${selfBase.mist} 0%, ${selfBase.accentSoft} 28%, #ffffff 100%)`
+    };
+    const partner = {
+        ...partnerBase,
+        surface: `linear-gradient(to top left, ${partnerBase.mist} 0%, ${partnerBase.accentSoft} 28%, #ffffff 100%)`
+    };
 
     return {
         self,

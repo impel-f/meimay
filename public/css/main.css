@@ -365,10 +365,6 @@ body {
 }
 
 .stock-stars {
-    position: absolute;
-    top: 4px;
-    left: 50%;
-    right: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -383,8 +379,7 @@ body {
     border-radius: 0;
     box-shadow: none;
     pointer-events: none;
-    transform: translateX(-50%);
-    z-index: 3;
+    margin-top: 4px;
 }
 
 .stock-kanji {
@@ -586,8 +581,6 @@ body {
 }
 
 .build-piece-btn.selected {
-    background: white !important;
-    border: 2.5px solid var(--gold) !important;
     box-shadow: var(--shadow-md);
     transform: translateY(-8px);
 }
@@ -612,9 +605,6 @@ body {
 }
 
 .build-piece-star {
-    position: absolute;
-    top: 4px;
-    left: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -628,9 +618,8 @@ body {
     font-size: 11px;
     line-height: 1;
     font-weight: 900;
-    transform: translateX(-50%);
-    z-index: 3;
     pointer-events: none;
+    margin-top: 4px;
 }
 
 /* ============================================================

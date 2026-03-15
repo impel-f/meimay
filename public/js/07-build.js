@@ -847,9 +847,8 @@ function getStockCardSurfaceStyle(kind) {
 }
 
 function getBuildPieceSurfaceStyle(item, isSelected) {
-    if (isSelected) return null;
+    if (!isSelected) return null;
     const kind = getStockOwnershipKind(item);
-    if (kind === 'self') return null;
 
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
         ? window.getMeimayOwnershipPalette(kind)
@@ -887,7 +886,7 @@ function renderStockSuperStars(item) {
         self: superFlags.self,
         partner: superFlags.partner,
         className: 'stock-stars',
-        style: 'position:absolute;top:4px;left:50%;right:auto;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);pointer-events:none;'
+        style: 'display:flex;justify-content:center;gap:2px;font-size:13px;line-height:1;margin-top:4px;pointer-events:none;'
     });
 }
 
@@ -900,7 +899,7 @@ function renderBuildSuperStars(item) {
         self: superFlags.self,
         partner: superFlags.partner,
         className: 'build-piece-star',
-        style: 'position:absolute;top:4px;left:50%;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);pointer-events:none;'
+        style: 'display:flex;justify-content:center;gap:2px;font-size:13px;line-height:1;margin-top:4px;pointer-events:none;'
     });
 }
 
@@ -1073,9 +1072,9 @@ function renderStock() {
             card.style.cssText = `${surfaceStyle.card}; padding:10px 6px;`;
 
             card.innerHTML = `
-                ${renderStockSuperStars(item)}
                 <div class="stock-kanji" style="color:${surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
                 <div class="stock-strokes" style="color:${surfaceStyle.strokesColor}">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
+                ${renderStockSuperStars(item)}
             `;
             cardsGrid.appendChild(card);
         });
@@ -1479,17 +1478,6 @@ function renderBuildSelection() {
                 if (surfaceStyle?.button) {
                     btn.style.cssText += surfaceStyle.button;
                 }
-                
-                // タグ色の取得と適用（選択時のみ枠線に適用、角丸維持）
-                const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
-                const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
-                if (isSelected && bgGradient) {
-                    btn.style.border = 'none';
-                    btn.style.padding = '2px';
-                    btn.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
-                    btn.style.backgroundOrigin = 'border-box';
-                    btn.style.backgroundClip = 'content-box, border-box';
-                }
 
                 btn.setAttribute('data-slot', idx);
                 btn.setAttribute('data-kanji', item['漢字']);
@@ -1517,9 +1505,9 @@ function renderBuildSelection() {
                 const strokesStyleAttr = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
 
                 btn.innerHTML = `
-                    ${renderBuildSuperStars(item)}
                     <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}"${kanjiStyleAttr}>${item['漢字']}</div>
                     <div class="text-[10px] font-bold"${strokesStyleAttr}>${strokes}画</div>
+                    ${renderBuildSuperStars(item)}
                     ${fortuneIndicator}
 `;
                 scrollBox.appendChild(btn);
@@ -1733,9 +1721,6 @@ function renderBuildFreeMode(container) {
             const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
             const buttonStyles = [];
             if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
-            if (isSelected && (typeof getGradientFromTags === 'function')) {
-                buttonStyles.push(`border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;`);
-            }
             const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
             const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
@@ -1743,9 +1728,9 @@ function renderBuildFreeMode(container) {
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                     style="${buttonStyles.join('')}">
-                    ${renderBuildSuperStars(item)}
                     <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
                     <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}画</div>
+                    ${renderBuildSuperStars(item)}
                 </button>`;
         }).join('')}
         </div>`;
