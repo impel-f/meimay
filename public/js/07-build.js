@@ -1456,23 +1456,7 @@ function renderBuildSelection() {
 
         // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
-            const canOfferFlexibleRetry = typeof rule !== 'undefined' && rule === 'strict';
-            scrollBox.innerHTML = `
-                <div class="min-w-[240px] px-4 py-5 text-center">
-                    <div class="text-[#bca37f] text-sm italic">候補がありません</div>
-                    <div class="mt-2 text-[11px] leading-5 text-[#a6967a]">この文字だけ、もう一度候補を広げて選び直せます。</div>
-                    <div class="mt-4 flex flex-col gap-2">
-                        <button onclick="reselectSlot(${idx})" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-2.5 text-[12px] font-bold text-[#8b6f47] active:scale-95">
-                            NOPEも含めて選び直す
-                        </button>
-                        ${canOfferFlexibleRetry ? `
-                            <button onclick="reselectSlotWithRule(${idx}, 'lax')" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-2.5 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
-                                柔軟モードで選び直す
-                            </button>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
+            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（追加する から探し直してください）</div>';
         }
 
         if (items.length > 0) {

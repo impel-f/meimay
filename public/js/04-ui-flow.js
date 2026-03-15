@@ -5166,8 +5166,8 @@ function executeKanjiSearch() {
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return null;
 
-        // Nopeした漢字は除外
-        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
+        // 直接検索のときは NOPE 済みでも候補を確認できるようにする
+        if (!query && !rawQuery && typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
 
         let tier = 99; // 1: Exact, 2: Stem(Flex), 3: Prefix(Flex), 4: OtherMatch
         const matchKanji = k['漢字'] === rawQuery;
