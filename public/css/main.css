@@ -347,10 +347,11 @@ body {
     align-items: center;
     justify-content: center;
     aspect-ratio: 1 / 1.15;
+    overflow: visible;
 }
 
 .stock-card.has-stock-stars {
-    padding-top: 18px;
+    overflow: visible;
 }
 
 /* 漢字を4列に収まるサイズへ */
@@ -365,8 +366,9 @@ body {
 
 .stock-stars {
     position: absolute;
-    top: 5px;
-    right: 5px;
+    top: -9px;
+    left: 50%;
+    right: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -379,8 +381,10 @@ body {
     font-weight: 900;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 999px;
-    box-shadow: 0 1px 4px rgba(188, 163, 127, 0.14);
+    box-shadow: 0 6px 14px rgba(188, 163, 127, 0.18);
     pointer-events: none;
+    transform: translateX(-50%);
+    z-index: 3;
 }
 
 .stock-kanji {
@@ -573,6 +577,7 @@ body {
     background: rgba(255, 255, 255, 0.4);
     flex-shrink: 0;
     cursor: pointer;
+    overflow: visible;
 }
 
 .build-piece-btn:hover {
@@ -604,6 +609,27 @@ body {
 .build-piece-btn.selected .build-kanji-text {
     color: var(--main);
     transform: scale(1.08);
+}
+
+.build-piece-star {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 2px 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 6px 14px rgba(138, 180, 248, 0.25);
+    color: #8ab4f8;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 900;
+    transform: translateX(-50%);
+    z-index: 3;
 }
 
 /* ============================================================

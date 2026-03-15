@@ -879,7 +879,7 @@ function renderStockSuperStars(item) {
         self: !!item?.ownSuper,
         partner: !!item?.partnerSuper,
         className: 'stock-stars',
-        style: 'position:absolute;top:8px;right:8px;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;'
+        style: 'position:absolute;top:-9px;left:50%;right:auto;display:flex;gap:2px;font-size:13px;line-height:1;z-index:3;transform:translateX(-50%);'
     });
 }
 
@@ -1502,7 +1502,7 @@ function renderBuildSelection() {
                 const strokesStyleAttr = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
 
                 btn.innerHTML = `
-                    ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
+                    ${item.isSuper ? '<div class="build-piece-star">★</div>' : ''}
                     <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}"${kanjiStyleAttr}>${item['漢字']}</div>
                     <div class="text-[10px] font-bold"${strokesStyleAttr}>${strokes}画</div>
                     ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
@@ -1718,7 +1718,7 @@ function renderBuildFreeMode(container) {
                     data-slot="${slotIdx}" data-kanji="${k}"
                     class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                     style="${isSelected && (typeof getGradientFromTags === 'function') ? `border: none; padding: 2px; background-image: linear-gradient(white, white), ${getGradientFromTags((typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [])}; background-origin: border-box; background-clip: content-box, border-box;` : ''}">
-                    ${item.isSuper ? '<div class="absolute top-1 right-1 text-[#8ab4f8] text-[10px] leading-none font-bold">★</div>' : ''}
+                    ${item.isSuper ? '<div class="build-piece-star">★</div>' : ''}
                     <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}">${k}</div>
                     <div class="text-[10px] text-[#a6967a] font-bold mt-1">${strokes}画</div>
                 </button>`;
