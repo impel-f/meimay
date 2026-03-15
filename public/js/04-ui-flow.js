@@ -6149,6 +6149,13 @@ function getPartnerViewReadingKey(item, pairInsights) {
     return getReadingStockKey(item?.reading || '', Array.isArray(item?.segments) ? item.segments : []);
 }
 
+function getPartnerViewNormalizedReading(value, pairInsights) {
+    if (pairInsights?.normalizeReading) return pairInsights.normalizeReading(value);
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+}
+
 function getReadingCardToneV2(kind) {
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
         ? window.getMeimayOwnershipPalette(kind)
@@ -6233,21 +6240,26 @@ function renderReadingStockSectionV2() {
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
     const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
     const partnerReadingByKey = new Map();
+    const partnerReadingByReading = new Map();
     partnerReadingCollection.forEach(item => {
         const key = getPartnerViewReadingKey(item, pairInsights);
         if (key && !partnerReadingByKey.has(key)) partnerReadingByKey.set(key, item);
+        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+        if (normalizedReading && !partnerReadingByReading.has(normalizedReading)) partnerReadingByReading.set(normalizedReading, item);
     });
 
     const completedCards = completedReadings.map(reading => {
         const segments = readingToSegments[reading] || [];
         const key = getPartnerViewReadingKey({ reading, segments }, pairInsights);
+        const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
         return {
             reading,
             display: segments.length > 0 ? segments.join('/') : reading,
             segments,
             key,
+            normalizedReading,
             ownItem: pendingStock.find(item => getPartnerViewReadingKey(item, pairInsights) === key) || null,
-            partnerItem: partnerReadingByKey.get(key) || null,
+            partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
             kanjiCount: ownLiked.filter(item => item.sessionReading === reading && item.slot >= 0).length
         };
     });
@@ -6257,7 +6269,22 @@ function renderReadingStockSectionV2() {
             .map(item => getPartnerViewReadingKey(item, pairInsights))
             .filter(Boolean)
     );
+    const matchedReadingValues = new Set(
+        (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
+            .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
+            .filter(Boolean)
+    );
     completedMatchedKeys.forEach(key => matchedReadingKeys.add(key));
+    completedCards.forEach(item => {
+        if (item.partnerItem && item.normalizedReading) matchedReadingValues.add(item.normalizedReading);
+    });
+
+    const isReadingMatchedForView = (item) => {
+        const key = getPartnerViewReadingKey(item, pairInsights);
+        if (key && matchedReadingKeys.has(key)) return true;
+        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+        return normalizedReading ? matchedReadingValues.has(normalizedReading) : false;
+    };
 
     const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
     const partnerPendingCards = partnerReadings
@@ -6282,10 +6309,10 @@ function renderReadingStockSectionV2() {
 
     const showOwnSections = readingFocus !== 'partner';
     const visibleCompleted = showOwnSections
-        ? completedCards.filter(item => readingFocus !== 'matched' || matchedReadingKeys.has(item.key))
+        ? completedCards.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
         : [];
     const visiblePendingOnly = showOwnSections
-        ? pendingOnly.filter(item => readingFocus !== 'matched' || matchedReadingKeys.has(getPartnerViewReadingKey(item, pairInsights)))
+        ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
         : [];
     const visiblePartnerReadings = readingFocus === 'partner' ? partnerPendingCards : [];
 
@@ -6388,8 +6415,8 @@ function renderReadingStockSectionV2() {
                         const display = getReadingDisplayLabel(item);
                         const sub = item.segments && item.segments.length > 0 ? `元の読み ${item.reading}` : '読みを広げる';
                         const key = getPartnerViewReadingKey(item, pairInsights);
-                        const partnerItem = partnerReadingByKey.get(key) || null;
-                        const kind = matchedReadingKeys.has(key) ? 'matched' : 'self';
+                        const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
+                        const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
                         const tone = getReadingCardToneV2(kind);
                         const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
@@ -6404,7 +6431,6 @@ function renderReadingStockSectionV2() {
                                 </button>
                                 <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                             </div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] px-2 py-0.5 rounded-full" style="background:${tone.tagBg};color:${tone.tagColor}">${tag}</span>`).join('')}</div>
                         </div>`;
                     }).join('')}
                 </div>
@@ -6431,7 +6457,6 @@ function renderReadingStockSectionV2() {
                                 <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                             </div>
                             <div class="text-[9px] mt-1" style="color:${tone.sub}">${sub}</div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${(item.tags || []).slice(0, 2).map(tag => `<span class="text-[9px] px-2 py-0.5 rounded-full" style="background:${tone.tagBg};color:${tone.tagColor}">${tag}</span>`).join('')}</div>
                             <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
                                 いいねして取り込む
                             </button>
