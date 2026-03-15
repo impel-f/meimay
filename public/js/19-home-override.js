@@ -465,9 +465,59 @@ function ensureHomeStageTrack() {
         stageTrack.id = 'home-stage-track';
         anchor.appendChild(stageTrack);
     }
-    stageTrack.className = 'rounded-[22px] border border-[#eee4d6] bg-[#fffaf6] px-2.5 py-2.5 md:px-3 md:py-3';
+    stageTrack.className = 'rounded-[22px] px-2 py-2 md:px-2.5 md:py-2.5';
 
     return stageTrack;
+}
+
+function getHomeStageTrackTone(mode) {
+    const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
+        ? window.getMeimayRelationshipPalettes()
+        : { self: palette, partner: palette };
+
+    if (!palette) {
+        return {
+            panel: 'border:1px solid #eee4d6;background:#fffaf6;',
+            cardDone: 'border:1px solid #ecdcb7;background:#fff8ee;',
+            cardActive: 'border:1px solid #eadfce;background:#fffaf6;',
+            cardIdle: 'border:1px solid #eee5d8;background:#ffffff;',
+            badgeDone: 'background:#b9965b;color:#fff;',
+            badgeActive: 'background:#d8cfbe;color:#7f725d;',
+            badgeIdle: 'background:#f0e8db;color:#8b7e66;',
+            text: '#5d5444',
+            sub: '#8b7e66'
+        };
+    }
+
+    if (kind === 'matched') {
+        return {
+            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 16px 28px ${palette.shadow};`,
+            cardDone: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
+            cardActive: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;box-shadow:0 10px 18px ${palette.shadow};`,
+            cardIdle: 'border:1px solid rgba(255,255,255,0.86);background:rgba(255,255,255,0.88);',
+            badgeDone: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
+            badgeActive: 'background:rgba(255,255,255,0.92);color:#7d6671;border:1px solid rgba(255,255,255,0.86);',
+            badgeIdle: 'background:rgba(255,255,255,0.82);color:#846d78;',
+            text: '#5d5444',
+            sub: '#846d78'
+        };
+    }
+
+    return {
+        panel: `border:1px solid ${palette.border};background:${palette.surface};box-shadow:0 14px 24px ${palette.shadow};`,
+        cardDone: `border:1px solid ${palette.border};background:${palette.surface};`,
+        cardActive: `border:1px solid ${palette.accentStrong || palette.border};background:${palette.surface};box-shadow:0 10px 18px ${palette.shadow};`,
+        cardIdle: `border:1px solid ${palette.border};background:rgba(255,255,255,0.9);`,
+        badgeDone: `background:${palette.accentStrong || palette.accent};color:#fff;`,
+        badgeActive: `background:${palette.accentSoft || palette.mist || '#fff7ef'};color:${palette.text || '#8b7e66'};`,
+        badgeIdle: `background:rgba(255,255,255,0.86);color:${palette.text || '#8b7e66'};`,
+        text: '#5d5444',
+        sub: palette.text || '#8b7e66'
+    };
 }
 
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
@@ -562,33 +612,36 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     if (!stageTrack) return;
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
+    const tone = getHomeStageTrackTone(options.mode);
+    stageTrack.style.cssText = tone.panel;
     stageTrack.innerHTML = `
         <div class="grid grid-cols-4 gap-1 md:gap-1.5">
             ${timeline.steps.map((step) => {
-                const cardClass = step.done
-                    ? 'bg-[#fff8ee] border-[#ecdcb7]'
+                const cardStyle = step.done
+                    ? tone.cardDone
                     : step.active
-                        ? 'bg-[#fffaf6] border-[#eadfce]'
-                        : 'bg-white border-[#eee5d8]';
-                const badgeClass = step.done
-                    ? 'bg-[#b9965b] text-white'
+                        ? tone.cardActive
+                        : tone.cardIdle;
+                const badgeStyle = step.done
+                    ? tone.badgeDone
                     : step.active
-                        ? 'bg-[#d8cfbe] text-[#7f725d]'
-                        : 'bg-[#f0e8db] text-[#8b7e66]';
+                        ? tone.badgeActive
+                        : tone.badgeIdle;
                 return `
                 <button
                     type="button"
                     onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[86px] rounded-[1.3rem] border px-1 py-1.5 text-center active:scale-[0.98] transition-transform md:min-h-[146px] md:rounded-[1.85rem] md:px-2 md:py-3.5 ${cardClass}">
-                    <div class="flex h-full flex-col items-center">
-                        <div class="flex items-center justify-center gap-1 text-[8px] font-black text-[#5d5444] leading-tight text-center md:gap-1.5 md:text-[12px]">
-                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[16px] ${badgeClass}">✓</span>
+                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
+                    style="${cardStyle}">
+                    <div class="flex h-full flex-col items-center justify-start">
+                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">✓</span>
                             <span>${step.label}</span>
                         </div>
-                        <div class="mt-1.5 whitespace-nowrap text-[15px] font-black leading-none text-[#4f4639] md:mt-3 md:text-[24px]">
-                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] text-[#8b7e66] md:ml-1 md:text-[14px]">${step.metric.countUnit}</span>
+                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-0.5 text-[7px] font-black text-[#8b7e66] text-center whitespace-nowrap md:mt-auto md:pt-3 md:text-[11px]">${step.metric.actionText}</div>
+                        <div class="mt-0.5 text-[7px] font-black text-center whitespace-nowrap leading-none md:mt-1 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
                     </div>
                 </button>
             `;
@@ -986,25 +1039,20 @@ function renderHomeOverviewSwitch(pairing) {
     const options = getHomeOverviewSwitchOptions(pairing);
     const activeMode = getHomeOverviewMode(pairing);
     const activeOption = options.find(option => option.mode === activeMode) || options[0];
-    const activeIndex = options.findIndex(option => option.mode === activeOption.mode);
-    const nextOption = options[(activeIndex + 1 + options.length) % options.length] || activeOption;
     const switchStyle = getHomeOverviewSwitchStyle(activeOption.mode);
     const canCycle = options.length > 1;
     mount.innerHTML = `
         <button
             type="button"
             ${canCycle ? 'onclick="event.stopPropagation(); cycleHomeOverviewMode()"' : ''}
-            class="w-full rounded-[1.15rem] px-2.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.35rem] md:px-3 md:py-2.5"
+            class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="text-[7px] font-black leading-none md:text-[8px]" style="color:${switchStyle.sub};">
-                ${canCycle ? '候補を切替' : '候補'}
-            </div>
-            <div class="mt-1 text-[10px] font-black leading-tight md:text-[11px]" style="color:${switchStyle.text};">
+            <div class="text-[9px] font-black leading-tight md:text-[10px]" style="color:${switchStyle.text};">
                 ${activeOption.label}
             </div>
             ${canCycle ? `
                 <div class="mt-1 text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
-                    タップで${nextOption.label}
+                    タップで切り替え
                 </div>
             ` : ''}
         </button>
