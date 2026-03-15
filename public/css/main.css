@@ -349,6 +349,10 @@ body {
     aspect-ratio: 1 / 1.15;
 }
 
+.stock-card.has-stock-stars {
+    padding-top: 18px;
+}
+
 /* 漢字を4列に収まるサイズへ */
 .stock-kanji {
     font-size: 24px !important;
@@ -361,12 +365,21 @@ body {
 
 .stock-stars {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: 5px;
+    right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 16px;
+    padding: 2px 4px;
     font-size: 10px;
     line-height: 1;
     color: var(--super);
     font-weight: 900;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(188, 163, 127, 0.14);
     pointer-events: none;
 }
 
