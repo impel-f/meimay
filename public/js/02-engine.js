@@ -445,6 +445,8 @@ function loadStack() {
     }
 
     const target = toHira(segments[currentPos]);
+    const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
+    window._includeNopedForSlot = null;
     // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で漢字マッチング
     const targetSokuon = target.replace(/っ$/, 'つ');
     console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${targetSokuon !== target ? ` (→ "${targetSokuon}")` : ''}`);
@@ -591,7 +593,7 @@ function loadStack() {
         }
 
         // NOPEした漢字は出さない（最初から選び直し時にリセット）
-        if (typeof noped !== 'undefined' && noped.has(k['漢字'])) {
+        if (!includeNopedForThisLoad && typeof noped !== 'undefined' && noped.has(k['漢字'])) {
             return false;
         }
 

@@ -130,24 +130,22 @@ function render() {
 
         // addMoreToSlot から来た場合 / 最後の文字スロットの場合 → ビルドへ
         const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
-        const canOfferFlexibleRetry = window._addMoreFromBuild && typeof rule !== 'undefined' && rule === 'strict';
+        const canOfferFlexibleRetry = typeof rule !== 'undefined' && rule === 'strict';
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-[320px]">
                     <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
                     <p class="text-sm text-[#a6967a] mb-6">設定を変更するか、<br>次の文字に進んでください</p>
-                    ${window._addMoreFromBuild ? `
-                        <div class="mb-4 flex flex-col gap-2">
-                            <button onclick="reselectSlot(${currentPos})" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-3 text-[12px] font-bold text-[#8b6f47] active:scale-95">
-                                NOPEも含めて選び直す
+                    <div class="mb-4 flex flex-col gap-2">
+                        <button onclick="retrySwipeEmptyState({ includeNoped: true })" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-3 text-[12px] font-bold text-[#8b6f47] active:scale-95">
+                            NOPEした候補も出す
+                        </button>
+                        ${canOfferFlexibleRetry ? `
+                            <button onclick="retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-3 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
+                                柔軟モードでも探す
                             </button>
-                            ${canOfferFlexibleRetry ? `
-                                <button onclick="reselectSlotWithRule(${currentPos}, 'lax')" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-3 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
-                                    柔軟モードで選び直す
-                                </button>
-                            ` : ''}
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
                     ${goToBuild ?
                 '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>' :
                 '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>'
@@ -321,6 +319,35 @@ function proceedToNextSlot() {
         changeScreen('scr-main');
     }
 }
+
+function retrySwipeEmptyState(options = {}) {
+    const {
+        includeNoped = false,
+        nextRule = null
+    } = options;
+
+    if (nextRule) {
+        if (typeof setRule === 'function') {
+            setRule(nextRule);
+        } else {
+            rule = nextRule;
+        }
+    }
+
+    window._includeNopedForSlot = includeNoped ? currentPos : null;
+    currentIdx = 0;
+    swipes = 0;
+
+    if (typeof loadStack === 'function') {
+        loadStack();
+    }
+
+    changeScreen('scr-main');
+    if (typeof updateSwipeMainState === 'function') {
+        updateSwipeMainState();
+    }
+}
+window.retrySwipeEmptyState = retrySwipeEmptyState;
 
 /**
  * 漢字詳細モーダルを表示（インデックス版）
