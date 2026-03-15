@@ -314,6 +314,17 @@ function getPairingHomeSummary() {
     };
 }
 
+function getOwnHomeReadingCount() {
+    const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights)
+        ? window.MeimayPartnerInsights
+        : null;
+    if (pairInsights?.getOwnReadingCollection) {
+        return pairInsights.getOwnReadingCollection().length;
+    }
+    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    return Array.isArray(readingStock) ? readingStock.length : 0;
+}
+
 function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     const wizard = getWizardHomeState();
 
@@ -685,7 +696,7 @@ function openHomeInsightsModal() {
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const likedCount = (typeof liked !== 'undefined' && Array.isArray(liked)) ? liked.length : 0;
     const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
-    const readingStockCount = Array.isArray(readingStock) ? readingStock.length : 0;
+    const readingStockCount = getOwnHomeReadingCount();
     const savedCount = Array.isArray(savedList) ? savedList.length : 0;
     const buildPatternCount = getHomeBuildPatternCount();
     const pairing = getPairingHomeSummary();
@@ -827,8 +838,7 @@ function renderHomeProfile() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const savedCount = savedList.length;
-    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
-    const readingStockCount = readingStock.length;
+    const readingStockCount = getOwnHomeReadingCount();
     const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
     const pairing = getPairingHomeSummary();
     const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
@@ -1089,8 +1099,7 @@ function renderHomeProfileV2() {
     const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
     const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
     const savedCount = savedList.length;
-    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
-    const readingStockCount = readingStock.length;
+    const readingStockCount = getOwnHomeReadingCount();
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const mount = document.getElementById('home-overview-mount');

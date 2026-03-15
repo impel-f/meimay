@@ -1073,6 +1073,68 @@ MeimayPartnerInsights.buildReadingStockKey = function (item) {
     return `${reading}::${segments.join('/')}`;
 };
 
+MeimayPartnerInsights.buildLikedReadingKey = function (item) {
+    const reading = item?.sessionReading || item?.reading || '';
+    if (!reading || ['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(reading)) return '';
+    const segments = Array.isArray(item?.sessionSegments) ? item.sessionSegments : (Array.isArray(item?.segments) ? item.segments : []);
+    return this.buildReadingStockKey({ reading, segments });
+};
+
+MeimayPartnerInsights.buildReadingCollection = function (readingItems = [], likedItems = [], options = {}) {
+    const merged = new Map();
+    const fromPartner = options.fromPartner === true;
+
+    const upsert = (item, key) => {
+        if (!key) return;
+        const existing = merged.get(key);
+        const normalized = {
+            ...item,
+            id: item?.id || key,
+            reading: item?.reading || item?.sessionReading || '',
+            segments: Array.isArray(item?.segments) ? item.segments : (Array.isArray(item?.sessionSegments) ? item.sessionSegments : []),
+            tags: Array.isArray(item?.tags) ? item.tags : [],
+            baseNickname: item?.baseNickname || '',
+            isSuper: !!item?.isSuper,
+            fromPartner: fromPartner || !!item?.fromPartner,
+            isDerivedFromLiked: !!item?.isDerivedFromLiked
+        };
+        if (!existing) {
+            merged.set(key, normalized);
+            return;
+        }
+        if ((!existing.segments || existing.segments.length === 0) && normalized.segments.length > 0) {
+            existing.segments = normalized.segments;
+        }
+        if (!existing.baseNickname && normalized.baseNickname) {
+            existing.baseNickname = normalized.baseNickname;
+        }
+        if ((!existing.tags || existing.tags.length === 0) && normalized.tags.length > 0) {
+            existing.tags = normalized.tags;
+        }
+        existing.isSuper = existing.isSuper || normalized.isSuper;
+        existing.fromPartner = existing.fromPartner || normalized.fromPartner;
+        existing.isDerivedFromLiked = existing.isDerivedFromLiked || normalized.isDerivedFromLiked;
+    };
+
+    readingItems.forEach(item => {
+        upsert(item, this.buildReadingStockKey(item));
+    });
+
+    likedItems.forEach(item => {
+        const key = this.buildLikedReadingKey(item);
+        if (!key) return;
+        upsert({
+            reading: item?.sessionReading || '',
+            segments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
+            isSuper: !!item?.isSuper,
+            isDerivedFromLiked: true,
+            fromPartner
+        }, key);
+    });
+
+    return Array.from(merged.values());
+};
+
 MeimayPartnerInsights.getPartnerDisplayName = function () {
     const snapshot = MeimayShare.partnerSnapshot || {};
     const explicitName = String(snapshot.displayName || '').trim();
@@ -1146,14 +1208,22 @@ MeimayPartnerInsights.isPartnerSavedApproved = function (item) {
 MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
     const key = this.buildReadingStockKey(item);
     if (!key) return false;
-    const ownKeys = new Set((typeof getReadingStock === 'function' ? getReadingStock() : []).map(entry => this.buildReadingStockKey(entry)));
+    const ownKeys = new Set(this.getOwnReadingCollection().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
     return ownKeys.has(key);
 };
 
+MeimayPartnerInsights.getOwnReadingCollection = function () {
+    return this.buildReadingCollection(this.getOwnReadingStock(), this.getOwnLiked(), { fromPartner: false });
+};
+
+MeimayPartnerInsights.getPartnerReadingCollection = function () {
+    return this.buildReadingCollection(this.getPartnerReadingStock(), this.getPartnerLiked(), { fromPartner: true });
+};
+
 MeimayPartnerInsights.getMatchedReadingItems = function () {
-    const partnerKeys = new Set(this.getPartnerReadingStock().map(item => this.buildReadingStockKey(item)).filter(Boolean));
+    const partnerKeys = new Set(this.getPartnerReadingCollection().map(item => this.buildReadingStockKey(item)).filter(Boolean));
     const seenKeys = new Set();
-    return this.getOwnReadingStock().filter(item => {
+    return this.getOwnReadingCollection().filter(item => {
         const key = this.buildReadingStockKey(item);
         if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
         seenKeys.add(key);
@@ -1164,13 +1234,13 @@ MeimayPartnerInsights.getMatchedReadingItems = function () {
 MeimayPartnerInsights.isReadingItemMatched = function (item) {
     const key = this.buildReadingStockKey(item);
     if (!key) return false;
-    const partnerKeys = new Set(this.getPartnerReadingStock().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
+    const partnerKeys = new Set(this.getPartnerReadingCollection().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
     return partnerKeys.has(key);
 };
 
 MeimayPartnerInsights.getSummary = function () {
-    const ownReadingItems = this.getOwnReadingStock();
-    const partnerReadingItems = this.getPartnerReadingStock();
+    const ownReadingItems = this.getOwnReadingCollection();
+    const partnerReadingItems = this.getPartnerReadingCollection();
     const ownLikedItems = this.getOwnLiked();
     const partnerLikedItems = this.getPartnerLiked();
     const ownSavedItems = this.getOwnSaved();

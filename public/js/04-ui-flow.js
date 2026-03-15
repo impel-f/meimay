@@ -6231,8 +6231,9 @@ function renderReadingStockSectionV2() {
 
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
     const partnerReadingByKey = new Map();
-    partnerReadings.forEach(item => {
+    partnerReadingCollection.forEach(item => {
         const key = getPartnerViewReadingKey(item, pairInsights);
         if (key && !partnerReadingByKey.has(key)) partnerReadingByKey.set(key, item);
     });
