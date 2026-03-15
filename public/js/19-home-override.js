@@ -653,7 +653,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-0.5 text-[7px] font-black text-center whitespace-nowrap leading-none md:mt-1 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
+                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
