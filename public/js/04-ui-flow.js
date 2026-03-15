@@ -4990,9 +4990,10 @@ function renderReadingSwipeCard(item) {
         ${renderReadingTagBadges(item.tags)}
         <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
         <div class="w-full mt-2">
-            <div class="mx-auto max-w-[286px] rounded-[26px] border border-white/75 px-4 py-3">
-                <p class="text-[10px] text-[#fffdf8] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#fffdf8] font-bold text-base px-2">
+            <div class="mx-auto max-w-[286px] rounded-[26px] border px-4 py-3 shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
+                style="background:rgba(255,255,255,0.92);border-color:rgba(255,255,255,0.98);">
+                <p class="text-[10px] text-[#8b7e66] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
+                <div class="flex justify-center flex-wrap gap-2 text-[#4f4639] font-bold text-base px-2">
                     ${getSampleKanjiHtml(item)}
                 </div>
             </div>
