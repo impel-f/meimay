@@ -87,6 +87,14 @@ function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
 
 function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
     if (!part || !Array.isArray(master) || master.length === 0) return false;
+
+    if (typeof getCuratedReadingSegmentCandidates === 'function') {
+        const curatedCandidates = getCuratedReadingSegmentCandidates(part);
+        if (Array.isArray(curatedCandidates)) {
+            return curatedCandidates.length > 0;
+        }
+    }
+
     const target = toHira(part);
     const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
     const targetSokuon = target.replace(/っ$/, 'つ');

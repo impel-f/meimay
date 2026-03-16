@@ -26,6 +26,10 @@ let savedNames = [];
 let yomiSearchData = [];
 let readingsData = []; // 追加: 読み(タグ付き)詳細データ
 let compoundReadingsData = []; // まとめ読み候補データ
+let readingSegmentRules = {
+    approvedSegments: {},
+    disabledSegments: []
+};
 let currentBuildResult = {
     fullName: "",
     reading: "",
@@ -34,6 +38,68 @@ let currentBuildResult = {
     givenName: "",
     timestamp: null
 };
+
+function normalizeReadingSegmentRuleKey(value) {
+    return toHira(String(value || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, '');
+}
+
+function setReadingSegmentRules(nextRules) {
+    const approvedSegments = {};
+    const rawApproved = nextRules && typeof nextRules.approvedSegments === 'object'
+        ? nextRules.approvedSegments
+        : {};
+
+    Object.entries(rawApproved).forEach(([segment, candidates]) => {
+        const normalizedSegment = normalizeReadingSegmentRuleKey(segment);
+        if (!normalizedSegment) return;
+        const normalizedCandidates = Array.isArray(candidates)
+            ? candidates.map(value => String(value || '').trim()).filter(Boolean)
+            : [];
+        if (normalizedCandidates.length > 0) {
+            approvedSegments[normalizedSegment] = normalizedCandidates;
+        }
+    });
+
+    const disabledSet = new Set(
+        Array.isArray(nextRules?.disabledSegments)
+            ? nextRules.disabledSegments
+                .map(normalizeReadingSegmentRuleKey)
+                .filter(Boolean)
+            : []
+    );
+
+    Object.keys(approvedSegments).forEach((segment) => disabledSet.delete(segment));
+
+    readingSegmentRules = {
+        approvedSegments,
+        disabledSegments: [...disabledSet]
+    };
+
+    console.log(
+        `CORE: Loaded curated reading segment rules (${Object.keys(approvedSegments).length} approved, ${disabledSet.size} disabled)`
+    );
+}
+
+function hasCuratedReadingSegmentRules() {
+    return Object.keys(readingSegmentRules.approvedSegments || {}).length > 0 ||
+        (readingSegmentRules.disabledSegments || []).length > 0;
+}
+
+function getCuratedReadingSegmentCandidates(segment) {
+    const normalizedSegment = normalizeReadingSegmentRuleKey(segment);
+    if (!normalizedSegment) return null;
+
+    const approvedSegments = readingSegmentRules.approvedSegments || {};
+    if (Object.prototype.hasOwnProperty.call(approvedSegments, normalizedSegment)) {
+        return approvedSegments[normalizedSegment];
+    }
+
+    if ((readingSegmentRules.disabledSegments || []).includes(normalizedSegment)) {
+        return [];
+    }
+
+    return hasCuratedReadingSegmentRules() ? [] : null;
+}
 
 /**
  * アプリ初期化
@@ -136,6 +202,17 @@ window.onload = () => {
                     console.log(`CORE: Loaded ${compoundReadingsData.length} compound reading entries`);
                 })
                 .catch(err => console.warn("CORE: Failed to load compound reading data", err));
+
+            fetch('/data/reading_segment_rules.json')
+                .then(res => {
+                    if (res.ok) return res.json();
+                    return null;
+                })
+                .then(ruleData => {
+                    if (!ruleData) return;
+                    setReadingSegmentRules(ruleData);
+                })
+                .catch(err => console.warn("CORE: Failed to load reading segment rules", err));
         })
         .catch(err => {
             console.error("CORE: データ読み込みエラー:", err);

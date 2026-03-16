@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "npx serve public",
     "build": "echo 'No build step required'",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "build:reading-segment-review": "node scripts/build_reading_segment_review.js",
+    "build:caution-kanji-list": "node scripts/build_caution_kanji_list.js",
+    "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

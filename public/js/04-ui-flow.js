@@ -4468,6 +4468,51 @@ function getStrictReadingMatch(item, segment, options = {}) {
     return null;
 }
 
+function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neutral') {
+    if (typeof getCuratedReadingSegmentCandidates !== 'function') return null;
+
+    const curatedCandidates = getCuratedReadingSegmentCandidates(segment);
+    if (!Array.isArray(curatedCandidates)) return null;
+
+    const items = [];
+    const seen = new Set();
+
+    curatedCandidates.forEach((kanji, index) => {
+        const normalizedKanji = String(kanji || '').trim();
+        if (!normalizedKanji || seen.has(normalizedKanji)) return;
+        seen.add(normalizedKanji);
+
+        const masterItem = Array.isArray(master)
+            ? master.find((item) => String(item['漢字'] || '').trim() === normalizedKanji)
+            : null;
+
+        if (masterItem && typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem, targetGender)) {
+            return;
+        }
+
+        items.push({
+            ...(masterItem || {
+                '漢字': normalizedKanji,
+                '画数': 0,
+                '音': '',
+                '訓': '',
+                '伝統名のり': '',
+                'おすすめ度': 0,
+                '男のおすすめ度': 0,
+                '女のおすすめ度': 0,
+                '不適切フラグ': 0,
+                '分類': ''
+            }),
+            _readingMatchTier: 1,
+            _recommendationScore: 100000 - (index * 1000),
+            _genderPriority: 1,
+            _curatedOrder: index
+        });
+    });
+
+    return items;
+}
+
 function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = gender || 'neutral', options = {}) {
     const target = toHira(segment || '');
     if (!target || !master || master.length === 0) return [];
@@ -4476,6 +4521,12 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
     const cacheKey = `strict::${target}::${targetGender}::${segmentIndex}`;
     if (readingKanjiCache.has(cacheKey)) {
         return readingKanjiCache.get(cacheKey).slice(0, limit);
+    }
+
+    const curatedItems = getCuratedSegmentCandidateItems(target, targetGender);
+    if (Array.isArray(curatedItems)) {
+        readingKanjiCache.set(cacheKey, curatedItems.slice(0, 20));
+        return curatedItems.slice(0, limit);
     }
 
     const unique = [];
