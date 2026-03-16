@@ -178,6 +178,9 @@ function drawerNavigate(target) {
             case 'home':
                 changeScreen('scr-mode');
                 break;
+            case 'direct-swipe':
+                if (typeof startDirectKanjiSwipe === 'function') startDirectKanjiSwipe();
+                break;
             case 'stock':
                 if (typeof openStock === 'function') openStock();
                 break;
@@ -196,6 +199,9 @@ function drawerNavigate(target) {
                 break;
             case 'search':
                 if (typeof openKanjiSearch === 'function') openKanjiSearch();
+                break;
+            case 'ranking':
+                if (typeof openRanking === 'function') openRanking();
                 break;
             case 'diagnosis':
                 startMode('diagnosis');
@@ -259,6 +265,69 @@ function updateDrawerProfile() {
     if (surnameDisplay) {
         surnameDisplay.innerText = data.surname ? `@${data.surname}` : '@苗字未設定';
     }
+}
+
+function renderDrawerMenu() {
+    const nav = document.querySelector('#side-drawer nav');
+    if (!nav) return;
+
+    const sections = [
+        {
+            title: 'メイン',
+            items: [
+                { id: 'drawer-home', target: 'home', icon: '🏠', label: 'ホーム' },
+                { id: 'drawer-mode-sound', target: 'mode-sound', icon: '🪄', label: '響き・読みを探す' },
+                { id: 'drawer-mode-reading', target: 'mode-reading', icon: '🔤', label: '読みから漢字を探す' },
+                { id: 'drawer-direct-swipe', target: 'direct-swipe', icon: '👆', label: '直感スワイプ' }
+            ]
+        },
+        {
+            title: '保存・整理',
+            items: [
+                { id: 'drawer-stock', target: 'stock', icon: '🗂️', label: 'ストック' },
+                { id: 'drawer-build', target: 'build', icon: '🛠️', label: 'ビルド' },
+                { id: 'drawer-saved', target: 'saved', icon: '💾', label: '保存済み' },
+                { id: 'drawer-encountered', target: 'encountered', icon: '📁', label: '出会った候補' }
+            ]
+        },
+        {
+            title: 'ツール',
+            items: [
+                { id: 'drawer-search', target: 'search', icon: '🔎', label: '漢字検索' },
+                { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' },
+                { id: 'drawer-diagnosis', target: 'diagnosis', icon: '🔮', label: '姓名判断' }
+            ]
+        },
+        {
+            title: '設定・情報',
+            items: [
+                { id: 'drawer-settings', target: 'settings', icon: '⚙️', label: '設定' },
+                { id: 'drawer-legal-terms', target: 'legal-terms', icon: '📘', label: '利用規約' },
+                { id: 'drawer-legal-privacy', target: 'legal-privacy', icon: '🔒', label: 'プライバシーポリシー' }
+            ]
+        }
+    ];
+
+    nav.innerHTML = sections.map((section, sectionIndex) => {
+        const headerHtml = `
+            <div class="px-6 py-2">
+                <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">${section.title}</p>
+            </div>
+        `;
+
+        const itemsHtml = section.items.map((item) => `
+            <button onclick="drawerNavigate('${item.target}')" class="drawer-menu-item" id="${item.id}">
+                <span class="drawer-icon">${item.icon}</span>
+                <span>${item.label}</span>
+            </button>
+        `).join('');
+
+        const dividerHtml = sectionIndex < sections.length - 1
+            ? '<div class="h-px bg-[#eee5d8] mx-6 my-3"></div>'
+            : '';
+
+        return `${headerHtml}${itemsHtml}${dividerHtml}`;
+    }).join('');
 }
 
 // ==========================================
@@ -326,6 +395,8 @@ function updateTopBarTitle(screenId) {
 // ==========================================
 
 function initDrawerWizard() {
+    renderDrawerMenu();
+
     // Check if wizard has been completed
     if (!WizardData.isCompleted()) {
         // Show wizard as first screen

@@ -5280,8 +5280,6 @@ function executeKanjiSearch() {
         return;
     }
 
-    const querySeion = typeof toSeion === 'function' ? toSeion(query) : query;
-
     let results = master.map(k => {
         // 不適切フラグチェック
         const flag = k['不適切フラグ'];
@@ -5299,7 +5297,7 @@ function executeKanjiSearch() {
             const kunFull = getFullReadings(k['訓'] || '');
             const noriFull = getFullReadings(k['伝統名のり'] || '');
             const allFull = [...onFull, ...kunFull, ...noriFull];
-            const isExact = allFull.some(r => r === query || r === querySeion);
+            const isExact = allFull.some(r => r === query);
 
             if (isExact || matchKanji) {
                 tier = 1;
@@ -5307,13 +5305,13 @@ function executeKanjiSearch() {
                 // 2. 語幹一致 (Tier 2) - 柔軟モードのみ
                 const onVariants = getReadingVariants(k['音'] || '');
                 const kunVariants = getReadingVariants(k['訓'] || '');
-                const isStem = [...onVariants, ...kunVariants].some(r => r === query || r === querySeion);
+                const isStem = [...onVariants, ...kunVariants].some(r => r === query);
                 
                 if (isStem) {
                     tier = 2;
                 } else {
                     // 3. 前方一致 (Tier 3) - 柔軟モードのみ
-                    const isPrefix = [...onVariants, ...kunVariants].some(r => r.startsWith(query) || r.startsWith(querySeion));
+                    const isPrefix = [...onVariants, ...kunVariants].some(r => r.startsWith(query));
                     if (isPrefix) tier = 3;
                 }
             }

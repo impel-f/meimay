@@ -1146,16 +1146,16 @@ body.has-ad-banner #universal-footer {
 #scr-mode {
     padding-left: 12px !important;
     padding-right: 12px !important;
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
-    overflow-y: hidden !important;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
 }
 
 #scr-mode > .home-screen-shell {
     padding-left: 0 !important;
     padding-right: 0 !important;
     padding-bottom: 0 !important;
-    min-height: calc(100dvh - 60px - 96px - env(safe-area-inset-bottom, 0px));
-    justify-content: space-between;
+    min-height: auto;
+    justify-content: flex-start;
     gap: 8px !important;
 }
 
@@ -1208,11 +1208,11 @@ body.has-ad-banner #universal-footer {
 @media (max-height: 760px) {
     #scr-mode {
         padding-top: 56px !important;
-        padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
     #scr-mode > .home-screen-shell {
-        min-height: calc(100dvh - 56px - 88px - env(safe-area-inset-bottom, 0px));
+        min-height: auto;
         gap: 6px !important;
     }
 
@@ -1233,12 +1233,6 @@ body.has-ad-banner #universal-footer {
 
     #scr-mode .home-tool-card {
         min-height: 58px;
-    }
-
-    #scr-mode .home-card-subtext,
-    #scr-mode #home-partner-match-subtitle,
-    #scr-mode #home-match-footnote {
-        display: none !important;
     }
 }
 
