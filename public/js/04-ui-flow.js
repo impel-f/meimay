@@ -316,7 +316,35 @@ function renderSoundEntryScreen() {
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響き・読みを探す</h2>
 
-            <div id="sound-entry-input-slot" class="mt-0 min-h-[156px] mb-3">
+            <div class="space-y-2.5 text-left mb-3">
+                <button
+                    id="sound-entry-choice-browse"
+                    onclick="selectSoundEntryMode('browse')"
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-browse" class="dot-selector active"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
+                        </div>
+                    </div>
+                </button>
+
+                <button
+                    id="sound-entry-choice-input"
+                    onclick="selectSoundEntryMode('input')"
+                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
+                    <div class="flex items-center gap-3">
+                        <div id="sound-entry-dot-input" class="dot-selector"></div>
+                        <div>
+                            <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
+                            <p class="mt-1 text-[10px] text-[#a6967a] whitespace-nowrap">例: 「はる」から始まる名前を探す</p>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <div id="sound-entry-input-slot" class="mt-0 min-h-[156px] mb-4">
                 <div id="sound-entry-input-placeholder" class="w-full min-h-[156px] rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[10px] leading-relaxed text-[#bca37f] flex items-center justify-center">
                     音を指定する場合は、ここに入力欄が出ます
                 </div>
@@ -344,34 +372,6 @@ function renderSoundEntryScreen() {
                         </label>
                     </div>
                 </div>
-            </div>
-
-            <div class="space-y-2.5 text-left mb-4">
-                <button
-                    id="sound-entry-choice-input"
-                    onclick="selectSoundEntryMode('input')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div class="flex items-center gap-3">
-                        <div id="sound-entry-dot-input" class="dot-selector"></div>
-                        <div>
-                            <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
-                            <p class="mt-1 text-[10px] text-[#a6967a] whitespace-nowrap">例: 「はる」から始まる名前を探す</p>
-                        </div>
-                    </div>
-                </button>
-
-                <button
-                    id="sound-entry-choice-browse"
-                    onclick="selectSoundEntryMode('browse')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div class="flex items-center gap-3">
-                        <div id="sound-entry-dot-browse" class="dot-selector active"></div>
-                        <div>
-                            <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
-                            <p class="mt-1 text-[10px] text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
-                        </div>
-                    </div>
-                </button>
             </div>
             <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 w-full">響きを見て探す</button>
             <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
