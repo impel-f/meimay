@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-    <link rel="stylesheet" href="/css/main.css?v=25.17">
+    <link rel="stylesheet" href="/css/main.css?v=25.18">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.11">
 
     <!-- Google AdSense -->
@@ -75,7 +75,7 @@
                 <p class="text-[10px] font-bold text-[#a6967a] tracking-widest uppercase mb-2">インスピレーション</p>
             </div>
             <button onclick="closeDrawer(); startDirectKanjiSwipe();" class="drawer-menu-item">
-                <span class="drawer-icon">✨</span>
+                <span class="drawer-icon">👆</span>
                 <span>直感スワイプ</span>
             </button>
 
@@ -102,7 +102,7 @@
 
             <!-- 候補・設定 -->
             <button onclick="drawerNavigate('encountered')" class="drawer-menu-item">
-                <span class="drawer-icon">🗂️</span>
+                <span class="drawer-icon">📁</span>
                 <span>出会った候補</span>
             </button>
             <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
@@ -258,7 +258,7 @@
          MAIN HOME SCREEN (restructured)
          ============================================================ -->
     <div id="scr-mode" class="screen bg-[#fdfaf5]">
-        <div class="flex flex-col items-center w-full gap-3 px-4 pb-6">
+        <div class="home-screen-shell flex flex-col items-center w-full gap-3 px-4 pb-6">
 
             <div class="w-full max-w-sm home-hero-width">
                 <div id="home-hero-card" onclick="openHomeInsightsModalFromEvent(event)" role="button" tabindex="0"
@@ -356,26 +356,22 @@
             <button id="home-pair-restore" onclick="restoreHomePairCard()" class="hidden w-full max-w-sm home-hero-width -mt-1 text-right text-[11px] font-bold text-[#b9965b]">パートナー機能を再表示</button>
 
             <!-- ─── 名前を作る ─── -->
-            <div id="home-entry-divider" class="w-full max-w-sm flex items-center gap-2">
-                <div class="flex-1 h-px bg-[#e8ddd0]"></div>
-                <span class="text-[10px] font-bold text-[#bca37f] tracking-wide whitespace-nowrap">名前を作る</span>
-                <div class="flex-1 h-px bg-[#e8ddd0]"></div>
-            </div>
+            <div id="home-entry-divider" class="home-section-spacer w-full max-w-sm" aria-hidden="true"></div>
 
             <!-- ② メイン2択ボタン（左:響き / 右:読みから） -->
-            <div id="home-entry-grid" class="w-full max-w-sm grid grid-cols-2 gap-2.5">
+            <div id="home-entry-grid" class="w-full max-w-sm grid grid-cols-2 gap-2 home-entry-grid-compact">
 
                 <!-- LEFT: 響き・読みを探す -->
                 <button id="home-entry-sound" onclick="startMode('sound')"
-                    class="relative bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 12px 8px 11px; border-color: #c4caf2;">
+                    class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                    style="padding: 10px 8px 9px; border-color: #c4caf2;">
                     <span id="home-entry-sound-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
                     <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響き・読みを探す</div>
 
                     <!-- ビジュアル: 3枚ベージュ統一 ミニスワイプカード ファン状 -->
-                    <div class="relative w-full flex items-center justify-center" style="height: 76px;">
+                    <div class="relative w-full flex items-center justify-center" style="height: 62px;">
                         <!-- みなと (後ろ左) -->
                         <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
                             style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
@@ -394,20 +390,20 @@
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="text-[9px] text-[#8b8fb5] leading-snug text-center mt-1">響きやイメージから<br>新しい読みを探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-1">響きやイメージから<br>新しい読みを探す</div>
                 </button>
 
                 <!-- RIGHT: 読みから漢字を探す -->
                 <button id="home-entry-reading" onclick="startMode('reading')"
-                    class="relative bg-white rounded-2xl border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 12px 8px 11px; border-color: #c4caf2;">
+                    class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
+                    style="padding: 10px 8px 9px; border-color: #c4caf2;">
                     <span id="home-entry-reading-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
                     <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">読みから漢字を探す</div>
 
                     <!-- ビジュアル: 蒼・葵・碧 ファン状カード（実タグ色・漢字のみ） -->
-                    <div class="relative w-full flex items-center justify-center" style="height: 76px;">
+                    <div class="relative w-full flex items-center justify-center" style="height: 62px;">
                         <!-- 蒼(#天空) 後ろ左 -->
                         <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
                             style="width:50px; height:58px; background:#DBEAFE; border:1.5px solid #BFDBFE; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
@@ -426,43 +422,34 @@
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="text-[9px] text-[#8b9eb5] leading-snug text-center mt-1">希望の読みから<br>理想の漢字を探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-1">希望の読みから<br>理想の漢字を探す</div>
                 </button>
 
             </div>
 
             <!-- ─── インスピレーション ─── -->
-            <div class="w-full max-w-sm flex items-center gap-2">
-                <div class="flex-1 h-px bg-[#e8ddd0]"></div>
-                <span class="text-[10px] font-bold text-[#bca37f] tracking-wide whitespace-nowrap">インスピレーション</span>
-                <div class="flex-1 h-px bg-[#e8ddd0]"></div>
-            </div>
+            <div class="home-section-spacer w-full max-w-sm" aria-hidden="true"></div>
 
             <!-- ③ 直感スワイプ / 出会った候補 -->
-            <div class="w-full max-w-sm grid grid-cols-2 gap-2.5">
+            <div class="w-full max-w-sm grid grid-cols-2 gap-2 home-utility-grid">
                 <button id="home-direct-kanji-btn" onclick="startDirectKanjiSwipe()"
-                    class="flex items-center gap-3 px-3 py-3 bg-[#fdf7ef] rounded-2xl border border-[#d4c5af] active:scale-[0.97] transition-transform text-left"
-                    style="box-shadow: 0 2px 10px rgba(139,126,102,0.10);">
-                    <div class="relative flex-shrink-0" style="width:40px; height:46px;">
-                        <div class="absolute" style="width:30px; height:38px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(-8deg) translate(-3px,4px); z-index:1;"></div>
-                        <div class="absolute" style="width:30px; height:38px; border-radius:8px; background:#f5ede0; border:1px solid #ddd0be; transform:rotate(7deg) translate(9px,4px); z-index:1;"></div>
-                        <div class="absolute flex items-center justify-center" style="width:34px; height:42px; border-radius:9px; background:linear-gradient(145deg,#ece9f5,#ddd5ef); border:1.5px solid #c8bde8; left:3px; top:2px; z-index:2;">
-                            <span class="text-base font-bold text-[#5d5444]">直</span>
-                        </div>
+                    class="home-utility-card flex items-center gap-3 px-3 py-3 bg-white rounded-[20px] border border-[#e4d8c6] active:scale-[0.97] transition-transform text-left shadow-sm">
+                    <div class="home-utility-icon relative flex-shrink-0 w-11 h-11 rounded-2xl bg-[#f6eee1] border border-[#e7d7bf] flex items-center justify-center">
+                        <span class="text-[20px] leading-none">👆</span>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="text-[12px] font-black text-[#5d5444] leading-tight">直感スワイプ</div>
-                        <div class="mt-1 text-[9px] text-[#8b7e66] leading-snug">漢字との一期一会</div>
+                        <div class="home-card-subtext mt-1 text-[9px] text-[#8b7e66] leading-snug">漢字との一期一会</div>
                     </div>
                 </button>
                 <button id="home-encountered-btn" onclick="openEncounteredLibrary('kanji')"
-                    class="flex items-center gap-3 px-3 py-3 bg-white/85 rounded-2xl border border-[#d9dff6] active:scale-[0.97] transition-transform text-left">
-                    <div class="relative flex-shrink-0 w-10 h-10 rounded-2xl bg-[#eef3ff] border border-[#d5dff8] flex items-center justify-center">
-                        <span class="text-[17px] font-black text-[#5d5444]">候</span>
+                    class="home-utility-card flex items-center gap-3 px-3 py-3 bg-white rounded-[20px] border border-[#e4d8c6] active:scale-[0.97] transition-transform text-left shadow-sm">
+                    <div class="home-utility-icon relative flex-shrink-0 w-11 h-11 rounded-2xl bg-[#f6eee1] border border-[#e7d7bf] flex items-center justify-center">
+                        <span class="text-[19px] leading-none">📁</span>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="text-[12px] font-black text-[#5d5444] leading-tight">出会った候補</div>
-                        <div class="mt-1 text-[9px] text-[#8b7e66] leading-snug">見返してストックへ</div>
+                        <div class="home-card-subtext mt-1 text-[9px] text-[#8b7e66] leading-snug">見返してストックへ</div>
                     </div>
                 </button>
             </div>
@@ -475,19 +462,19 @@
             </div>
 
             <!-- ④ 3ツール（漢字検索 / ランキング / 姓名判断） -->
-            <div class="w-full max-w-sm grid grid-cols-3 gap-2">
+            <div class="w-full max-w-sm grid grid-cols-3 gap-2 home-tool-grid">
                 <button onclick="openKanjiSearch()"
-                    class="bg-white/70 rounded-2xl py-3 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
+                    class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
                     <span class="text-xl">🔎</span>
                     <span class="text-[10px] font-bold text-[#5d5444]">漢字検索</span>
                 </button>
                 <button onclick="openRanking()"
-                    class="bg-white/70 rounded-2xl py-3 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
+                    class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
                     <span class="text-xl">👑</span>
                     <span class="text-[10px] font-bold text-[#5d5444]">ランキング</span>
                 </button>
                 <button onclick="startMode('diagnosis')"
-                    class="bg-white/70 rounded-2xl py-3 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
+                    class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
                     <span class="text-xl">🔮</span>
                     <span class="text-[10px] font-bold text-[#5d5444]">姓名判断</span>
                 </button>

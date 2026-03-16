@@ -1146,11 +1146,17 @@ body.has-ad-banner #universal-footer {
 #scr-mode {
     padding-left: 12px !important;
     padding-right: 12px !important;
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: hidden !important;
 }
 
-#scr-mode > div {
+#scr-mode > .home-screen-shell {
     padding-left: 0 !important;
     padding-right: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: calc(100dvh - 60px - 96px - env(safe-area-inset-bottom, 0px));
+    justify-content: space-between;
+    gap: 8px !important;
 }
 
 #scr-mode .max-w-sm {
@@ -1161,10 +1167,87 @@ body.has-ad-banner #universal-footer {
     max-width: min(100%, 420px) !important;
 }
 
+#scr-mode .home-section-spacer {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(232, 221, 208, 0), rgba(232, 221, 208, 0.98) 18%, rgba(232, 221, 208, 0.98) 82%, rgba(232, 221, 208, 0));
+}
+
+#scr-mode #home-entry-grid,
+#scr-mode .home-utility-grid,
+#scr-mode .home-tool-grid {
+    gap: 8px !important;
+}
+
+#scr-mode #home-entry-sound,
+#scr-mode #home-entry-reading {
+    min-height: 156px;
+}
+
+#scr-mode .home-utility-card {
+    min-height: 76px;
+}
+
+#scr-mode .home-tool-card {
+    min-height: 66px;
+}
+
+#scr-mode #home-pair-card {
+    padding: 12px 14px !important;
+}
+
+#scr-mode #home-pair-code-row,
+#scr-mode #home-pair-action-row,
+#scr-mode #home-pair-stats-row {
+    margin-top: 10px !important;
+}
+
+#scr-mode #home-match-footnote {
+    margin-top: 6px !important;
+}
+
+@media (max-height: 760px) {
+    #scr-mode {
+        padding-top: 56px !important;
+        padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    #scr-mode > .home-screen-shell {
+        min-height: calc(100dvh - 56px - 88px - env(safe-area-inset-bottom, 0px));
+        gap: 6px !important;
+    }
+
+    #scr-mode #home-pair-card {
+        padding: 10px 12px !important;
+    }
+
+    #scr-mode #home-entry-sound,
+    #scr-mode #home-entry-reading {
+        min-height: 144px;
+    }
+
+    #scr-mode .home-utility-card {
+        min-height: 68px;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+
+    #scr-mode .home-tool-card {
+        min-height: 58px;
+    }
+
+    #scr-mode .home-card-subtext,
+    #scr-mode #home-partner-match-subtitle,
+    #scr-mode #home-match-footnote {
+        display: none !important;
+    }
+}
+
 @media (min-width: 768px) {
     #scr-mode {
         padding-left: 20px !important;
         padding-right: 20px !important;
+        padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
+        overflow-y: auto !important;
     }
 
     #scr-mode .home-hero-width {
@@ -1173,5 +1256,10 @@ body.has-ad-banner #universal-footer {
 
     #scr-mode .max-w-sm {
         max-width: min(100%, 430px) !important;
+    }
+
+    #scr-mode > .home-screen-shell {
+        min-height: auto;
+        gap: 12px !important;
     }
 }
