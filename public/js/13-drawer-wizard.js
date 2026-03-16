@@ -284,10 +284,10 @@ function renderDrawerMenu() {
         {
             title: '保存・整理',
             items: [
-                { id: 'drawer-stock', target: 'stock', icon: '🗂️', label: 'ストック' },
+                { id: 'drawer-stock', target: 'stock', icon: '📋', label: 'ストック' },
                 { id: 'drawer-build', target: 'build', icon: '🛠️', label: 'ビルド' },
                 { id: 'drawer-saved', target: 'saved', icon: '💾', label: '保存済み' },
-                { id: 'drawer-encountered', target: 'encountered', icon: '📁', label: '出会った候補' }
+                { id: 'drawer-encountered', target: 'encountered', icon: '🗂️', label: '出会った候補' }
             ]
         },
         {

@@ -102,7 +102,7 @@
 
             <!-- 候補・設定 -->
             <button onclick="drawerNavigate('encountered')" class="drawer-menu-item">
-                <span class="drawer-icon">📁</span>
+                <span class="drawer-icon">🗂️</span>
                 <span>出会った候補</span>
             </button>
             <button onclick="drawerNavigate('settings')" class="drawer-menu-item">
@@ -364,7 +364,7 @@
                 <!-- LEFT: 響き・読みを探す -->
                 <button id="home-entry-sound" onclick="startMode('sound')"
                     class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 10px 8px 9px; border-color: #c4caf2;">
+                    style="padding: 10px 8px 11px; border-color: #c4caf2;">
                     <span id="home-entry-sound-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
@@ -390,39 +390,39 @@
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-1">響きやイメージから<br>新しい読みを探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-2">響きやイメージから<br>新しい読みを探す</div>
                 </button>
 
                 <!-- RIGHT: 読みから漢字を探す -->
                 <button id="home-entry-reading" onclick="startMode('reading')"
                     class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 10px 8px 9px; border-color: #c4caf2;">
+                    style="padding: 10px 8px 11px; border-color: #c4caf2;">
                     <span id="home-entry-reading-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
                     <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">読みから漢字を探す</div>
 
-                    <!-- ビジュアル: 環・寛・漢 ファン状カード（実タグ色・漢字のみ） -->
+                    <!-- ビジュアル: 環・歓・漢 ファン状カード（実タグ色・漢字のみ） -->
                     <div class="relative w-full flex items-center justify-center" style="height: 62px;">
                         <!-- 環(#調和) 後ろ左 -->
                         <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:rgba(232, 245, 233, 0.7); border:1.5px solid rgba(102, 187, 106, 0.25); transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
-                            <span class="font-black" style="font-size:22px; color:#4caf50;">環</span>
+                            style="width:50px; height:58px; background:#E8F5E9; border:1.5px solid #A5D6A7; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
+                            <span class="font-black" style="font-size:22px; color:#2f261c;">環</span>
                         </div>
-                        <!-- 寛(#慈愛) 中央 -->
+                        <!-- 歓(#幸福) 中央 -->
                         <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:rgba(255, 240, 240, 0.7); border:1.5px solid rgba(255, 107, 107, 0.25); transform:rotate(1deg); z-index:2;">
-                            <span class="font-black" style="font-size:22px; color:#e05252;">寛</span>
+                            style="width:50px; height:58px; background:#FFFDE7; border:1.5px solid #F6D96B; transform:rotate(1deg); z-index:2;">
+                            <span class="font-black" style="font-size:22px; color:#2f261c;">歓</span>
                         </div>
                         <!-- 漢(#勇壮) 前右 -->
                         <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:rgba(255, 235, 238, 0.7); border:1.5px solid rgba(211, 47, 47, 0.25); transform:rotate(6deg) translate(24px,-4px); z-index:3;">
-                            <span class="font-black" style="font-size:22px; color:#c62828;">漢</span>
+                            style="width:50px; height:58px; background:#FFEBEE; border:1.5px solid #EF9A9A; transform:rotate(6deg) translate(24px,-4px); z-index:3;">
+                            <span class="font-black" style="font-size:22px; color:#2f261c;">漢</span>
                         </div>
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-1">希望の読みから<br>理想の漢字を探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-2">希望の読みから<br>理想の漢字を探す</div>
                 </button>
 
             </div>
@@ -445,7 +445,7 @@
                 <button id="home-encountered-btn" onclick="openEncounteredLibrary('kanji')"
                     class="home-utility-card flex items-center gap-3 px-3 py-3 bg-white rounded-[20px] border border-[#e4d8c6] active:scale-[0.97] transition-transform text-left shadow-sm">
                     <div class="home-utility-icon relative flex-shrink-0 w-11 h-11 rounded-2xl bg-[#f6eee1] border border-[#e7d7bf] flex items-center justify-center">
-                        <span class="text-[19px] leading-none">📁</span>
+                        <span class="text-[19px] leading-none">🗂️</span>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="text-[12px] font-black text-[#5d5444] leading-tight">出会った候補</div>
