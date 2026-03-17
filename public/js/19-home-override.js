@@ -1222,20 +1222,25 @@ function renderHomeProfile() {
 
     const nextStepTitleEl = document.getElementById('home-next-step-title');
     if (nextStepTitleEl) {
-        nextStepTitleEl.innerText = '';
-        nextStepTitleEl.classList.add('hidden');
+        nextStepTitleEl.innerText = nextStep.title || '次に進める候補があります';
+        nextStepTitleEl.classList.remove('hidden');
     }
 
     const nextStepDetailEl = document.getElementById('home-next-step-detail');
     if (nextStepDetailEl) {
-        nextStepDetailEl.innerText = '';
-        nextStepDetailEl.classList.add('hidden');
+        nextStepDetailEl.innerText = nextStep.detail || 'いま足りない材料から順に案内します。';
+        nextStepDetailEl.classList.remove('hidden');
     }
 
     const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
     if (nextStepActionLabelEl) {
-        nextStepActionLabelEl.innerText = nextStep.actionLabel;
-        nextStepActionLabelEl.classList.add('hidden');
+        nextStepActionLabelEl.innerText = nextStep.actionLabel || '開く';
+        nextStepActionLabelEl.classList.remove('hidden');
+    }
+
+    const nextStepCardEl = document.getElementById('home-next-step-card');
+    if (nextStepCardEl) {
+        nextStepCardEl.classList.remove('hidden');
     }
 
     const statusLineEl = document.getElementById('home-status-line');
@@ -1258,18 +1263,12 @@ function renderHomeProfile() {
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
     const partnerInlineTitle = document.getElementById('home-partner-inline-title');
-    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
     if (partnerInlineTitle) {
         let title = 'パートナー：未連携';
         if (pairing.hasPartner) {
             title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
         }
         partnerInlineTitle.innerText = title;
-    }
-    if (partnerInlineSubtitle) {
-        partnerInlineSubtitle.innerText = pairing.hasPartner
-            ? '候補を共有しながら進められます'
-            : '連携すると二人で名前をさがせます';
     }
 
     const soundBadge = document.getElementById('home-entry-sound-badge');

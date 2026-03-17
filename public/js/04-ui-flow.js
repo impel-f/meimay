@@ -3325,40 +3325,40 @@ function setRule(r) {
     if (bLax) bLax.classList.toggle('active', r === 'lax');
 
     if (strictItem) {
-        strictItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] flex items-center gap-3 cursor-pointer ${r === 'strict' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        strictItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] cursor-pointer ${r === 'strict' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
 
     if (laxItem) {
-        laxItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] flex items-center gap-3 cursor-pointer ${r === 'lax' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        laxItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] cursor-pointer ${r === 'lax' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
 }
 
 const RULE_INFO_MODAL_CONTENT = {
     strict: {
         title: '厳格モード（読み一致）',
-        summary: '自然な読み方を優先して、読みがきれいに合う候補だけを見たいときに向いています。',
+        summary: '辞書や名のりにある読みだけを使って、自然な読み方の候補に絞るモードです。',
         sections: [
             {
-                title: 'こんなときにおすすめ',
-                body: '読み候補がかなり固まっていて、まずはノイズの少ない候補だけ見たいときに使いやすいです。'
+                title: '意味',
+                body: '漢字ごとの音読み・訓読み・名のりとして実際に登録されている読みだけを候補に使います。'
             },
             {
                 title: '例',
-                body: 'たとえば「まさひろ」なら、「まさ / ひろ」のように自然につながる分け方を優先します。決め打ちで探したいときに向いています。'
+                body: 'たとえば「星」なら、「ほし」「せい」は候補に入りますが、「ほ」「せ」のように途中で切った読み方は候補に入れません。'
             }
         ]
     },
     lax: {
         title: '柔軟モード（ぶった切り）',
-        summary: '拾える候補を広げて、意外な漢字や分け方も見たいときに向いています。',
+        summary: '辞書や名のりにある読みをもとにしつつ、途中で切った読み方まで広げて候補を出すモードです。',
         sections: [
             {
-                title: 'こんなときにおすすめ',
-                body: '候補を広めに見たいときや、思いついていなかった組み合わせまで見てみたいときに便利です。'
+                title: '意味',
+                body: '通常の読みだけでなく、その一部を切り出した読み方も候補に含めます。候補を広めに見たいとき向きです。'
             },
             {
                 title: '例',
-                body: 'たとえば「まさひろ」なら、「ま / さ / ひろ」のような細かい分け方や一部一致も候補に含めます。候補を増やしたいときはこちらです。'
+                body: 'たとえば「星」なら、「ほし」「せい」に加えて、「ほ」「せ」のようなぶった切り読みも候補に含めます。'
             }
         ]
     }

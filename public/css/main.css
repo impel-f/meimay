@@ -1004,7 +1004,7 @@ body.hide-top-bar #top-bar {
 
 .wiz-reading-choice {
     justify-content: space-between;
-    gap: 14px;
+    gap: 10px;
     align-items: center;
     text-align: left;
 }
@@ -1016,15 +1016,15 @@ body.hide-top-bar #top-bar {
 
 .wiz-mini-preview {
     position: relative;
-    width: 98px;
-    height: 72px;
+    width: 88px;
+    height: 68px;
     flex-shrink: 0;
 }
 
 .wiz-mini-card {
     position: absolute;
-    width: 44px;
-    height: 54px;
+    width: 40px;
+    height: 50px;
     border: 1.5px solid #d4c5af;
     border-radius: 14px;
     display: flex;
@@ -1045,7 +1045,7 @@ body.hide-top-bar #top-bar {
 }
 
 .wiz-mini-card-center {
-    left: 27px;
+    left: 24px;
     top: 9px;
     z-index: 2;
 }
@@ -1058,13 +1058,13 @@ body.hide-top-bar #top-bar {
 }
 
 .rule-help-btn {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
     border-radius: 9999px;
     border: 1px solid #e4d8c6;
-    background: #fffaf5;
+    background: #ffffff;
     color: #8b7e66;
-    font-size: 14px;
+    font-size: 11px;
     font-weight: 900;
     line-height: 1;
     display: inline-flex;
@@ -1076,6 +1076,10 @@ body.hide-top-bar #top-bar {
 
 .rule-help-btn:active {
     transform: scale(0.95);
+}
+
+#home-next-step-card {
+    box-shadow: 0 10px 24px rgba(185, 150, 91, 0.12);
 }
 
 .rule-info-section {
