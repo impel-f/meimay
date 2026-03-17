@@ -481,6 +481,7 @@ function getHomeStageTrackTone(mode) {
     const cardDone = 'border:1px solid rgba(226,214,196,0.94);background:rgba(255,255,255,0.76);';
     const cardActive = 'border:1px solid rgba(226,214,196,0.9);background:rgba(255,255,255,0.68);';
     const cardIdle = 'border:1px solid rgba(234,223,206,0.84);background:rgba(255,255,255,0.56);';
+    const cardRecommended = 'border:2px solid #b9965b;background:#fff8ec;box-shadow:0 10px 22px rgba(185,150,91,0.16);';
 
     if (!palette) {
         return {
@@ -488,9 +489,11 @@ function getHomeStageTrackTone(mode) {
             cardDone,
             cardActive,
             cardIdle,
+            cardRecommended,
             badgeDone: 'background:#b9965b;color:#fff;',
             badgeActive: 'background:#d8cfbe;color:#7f725d;',
             badgeIdle: 'background:#f0e8db;color:#8b7e66;',
+            badgeRecommended: 'background:#b9965b;color:#fff;',
             text: '#5d5444',
             sub: '#8b7e66'
         };
@@ -502,9 +505,11 @@ function getHomeStageTrackTone(mode) {
             cardDone,
             cardActive,
             cardIdle,
+            cardRecommended,
             badgeDone: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
             badgeActive: 'background:rgba(255,255,255,0.92);color:#7d6671;border:1px solid rgba(255,255,255,0.86);',
             badgeIdle: 'background:rgba(255,255,255,0.82);color:#846d78;',
+            badgeRecommended: 'background:#b9965b;color:#fff;',
             text: '#5d5444',
             sub: '#846d78'
         };
@@ -515,12 +520,28 @@ function getHomeStageTrackTone(mode) {
         cardDone,
         cardActive,
         cardIdle,
+        cardRecommended,
         badgeDone: `background:${palette.accentStrong || palette.accent};color:#fff;`,
         badgeActive: `background:${palette.accentSoft || palette.mist || '#fff7ef'};color:${palette.text || '#8b7e66'};`,
         badgeIdle: `background:rgba(255,255,255,0.86);color:${palette.text || '#8b7e66'};`,
+        badgeRecommended: 'background:#b9965b;color:#fff;',
         text: '#5d5444',
         sub: palette.text || '#8b7e66'
     };
+}
+
+function getHomeRecommendedStageKey(action) {
+    if (action === 'sound' || action === 'reading' || action === 'stock-reading' || action === 'matched-reading' || action === 'partner-reading') {
+        return 'reading';
+    }
+    if (action === 'stock' || action === 'matched-liked' || action === 'partner-liked') {
+        return 'kanji';
+    }
+    if (action === 'build') return 'build';
+    if (action === 'saved' || action === 'matched-saved' || action === 'partner-saved') {
+        return 'save';
+    }
+    return '';
 }
 
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
@@ -601,6 +622,7 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
         steps: steps.map((step) => ({
             ...step,
             active: step.key === activeKey,
+            recommended: step.key === options.recommendedKey,
             metric: getHomeStageTrackMetric(step.key, likedCount, readingStockCount, savedCount, {
                 ...options,
                 buildCount: buildPatternCount
@@ -629,12 +651,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     stageTrack.innerHTML = `
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${timeline.steps.map((step, index) => {
-                const cardStyle = step.done
+                const cardStyle = step.recommended
+                    ? tone.cardRecommended
+                    : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
-                const badgeStyle = step.done
+                const badgeStyle = step.recommended
+                    ? tone.badgeRecommended
+                    : step.done
                     ? tone.badgeDone
                     : step.active
                         ? tone.badgeActive
@@ -1196,6 +1222,7 @@ function renderHomeProfile() {
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -1266,34 +1293,26 @@ function renderHomeProfile() {
         partnerInlineTitle.innerText = title;
     }
 
-    const highlightEntry = nextStep?.action === 'reading'
-        ? 'reading'
-        : nextStep?.action === 'sound'
-            ? 'sound'
-            : recommendedEntry;
-
     const soundBadge = document.getElementById('home-entry-sound-badge');
-    if (soundBadge) soundBadge.classList.toggle('hidden', highlightEntry !== 'sound');
+    if (soundBadge) soundBadge.classList.add('hidden');
 
     const readingBadge = document.getElementById('home-entry-reading-badge');
-    if (readingBadge) readingBadge.classList.toggle('hidden', highlightEntry !== 'reading');
+    if (readingBadge) readingBadge.classList.add('hidden');
 
     const soundEntry = document.getElementById('home-entry-sound');
     if (soundEntry) {
-        const isHighlighted = highlightEntry === 'sound';
-        soundEntry.style.boxShadow = isHighlighted ? '0 12px 28px rgba(185, 150, 91, 0.22)' : '';
-        soundEntry.style.borderWidth = isHighlighted ? '3px' : '2px';
-        soundEntry.style.borderColor = isHighlighted ? '#b9965b' : '#c4caf2';
-        soundEntry.style.background = isHighlighted ? '#fff9ef' : '#ffffff';
+        soundEntry.style.boxShadow = '';
+        soundEntry.style.borderWidth = recommendedEntry === 'sound' ? '3px' : '2px';
+        soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : '#c4caf2';
+        soundEntry.style.background = '#ffffff';
     }
 
     const readingEntry = document.getElementById('home-entry-reading');
     if (readingEntry) {
-        const isHighlighted = highlightEntry === 'reading';
-        readingEntry.style.boxShadow = isHighlighted ? '0 12px 28px rgba(185, 150, 91, 0.22)' : '';
-        readingEntry.style.borderWidth = isHighlighted ? '3px' : '2px';
-        readingEntry.style.borderColor = isHighlighted ? '#b9965b' : '#c4caf2';
-        readingEntry.style.background = isHighlighted ? '#fff9ef' : '#ffffff';
+        readingEntry.style.boxShadow = '';
+        readingEntry.style.borderWidth = recommendedEntry === 'reading' ? '3px' : '2px';
+        readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : '#c4caf2';
+        readingEntry.style.background = '#ffffff';
     }
 
     const pairCard = document.getElementById('home-pair-card');
