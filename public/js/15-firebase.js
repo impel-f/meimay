@@ -167,8 +167,9 @@ const MeimayPairing = {
     createRoom: async function () {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { showToast('しばらくお待ちください…', '⏳'); return null; }
-        const role = this._selectedCreateRole;
-        if (!role) { showToast('ママ / パパを選んでください', '⚠️'); return null; }
+        const role = this._selectedCreateRole || getPreferredPairingRole();
+        if (!role) { showToast('先に設定でママ / パパを選んでください', '⚠️'); return null; }
+        if (this._selectedCreateRole !== role) this.selectCreateRole(role);
 
         // 6文字ランダムコード
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -208,8 +209,9 @@ const MeimayPairing = {
     joinRoom: async function (code) {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { showToast('しばらくお待ちください…', '⏳'); return { success: false }; }
-        const role = this._selectedJoinRole;
-        if (!role) { showToast('ママ / パパを選んでください', '⚠️'); return { success: false }; }
+        const role = this._selectedJoinRole || getPreferredPairingRole();
+        if (!role) { showToast('先に設定でママ / パパを選んでください', '⚠️'); return { success: false }; }
+        if (this._selectedJoinRole !== role) this.selectJoinRole(role);
         if (!code || code.trim().length < 4) { showToast('コードを入力してください', '⚠️'); return { success: false }; }
 
         const upperCode = code.trim().toUpperCase();
@@ -689,9 +691,62 @@ window.MeimayPartnerInsights = MeimayPartnerInsights;
 // ============================================================
 // PAIRING UI HELPERS
 // ============================================================
+function getPreferredPairingRole() {
+    const currentRole = typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null;
+    if (currentRole === 'mama' || currentRole === 'papa') return currentRole;
+
+    const savedRole = localStorage.getItem('meimay_my_role');
+    if (savedRole === 'mama' || savedRole === 'papa') return savedRole;
+
+    if (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function') {
+        const wizard = WizardData.get();
+        const wizardRole = wizard?.role;
+        if (wizardRole === 'mama' || wizardRole === 'papa') return wizardRole;
+    }
+
+    return '';
+}
+
+function getPreferredPairingRoleLabel() {
+    const role = getPreferredPairingRole();
+    if (role === 'mama') return 'ママ';
+    if (role === 'papa') return 'パパ';
+    return '';
+}
+
+function syncPairingRoleSelectionFromProfile() {
+    const preferredRole = getPreferredPairingRole();
+    const preferredRoleLabel = getPreferredPairingRoleLabel();
+
+    const createLabel = document.getElementById('pairing-create-role-label');
+    if (createLabel) {
+        createLabel.textContent = preferredRoleLabel
+            ? `現在の設定: ${preferredRoleLabel}`
+            : '設定でママ / パパを選ぶと連携できます';
+    }
+
+    const joinLabel = document.getElementById('pairing-join-role-label');
+    if (joinLabel) {
+        joinLabel.textContent = preferredRoleLabel
+            ? `現在の設定: ${preferredRoleLabel}`
+            : '設定でママ / パパを選ぶと参加できます';
+    }
+
+    if (!preferredRole || typeof MeimayPairing === 'undefined') return;
+
+    if (MeimayPairing._selectedCreateRole !== preferredRole) {
+        MeimayPairing.selectCreateRole(preferredRole);
+    }
+
+    if (MeimayPairing._selectedJoinRole !== preferredRole) {
+        MeimayPairing.selectJoinRole(preferredRole);
+    }
+}
+
 function updatePairingUI() {
     const inRoom = !!MeimayPairing.roomCode;
     const hasPartner = !!MeimayPairing.partnerUid;
+    syncPairingRoleSelectionFromProfile();
 
     const pairingNotLinked = document.getElementById('pairing-not-linked');
     const pairingLinked = document.getElementById('pairing-linked');

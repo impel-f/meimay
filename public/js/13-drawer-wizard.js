@@ -107,14 +107,14 @@ function wizFinish(mode) {
     // Save wizard data
     const username = document.getElementById('wiz-username');
     const surname = document.getElementById('wiz-surname');
-    const dueDate = document.getElementById('wiz-due-date');
+    const existingData = WizardData.get() || {};
 
     const data = {
         completed: true,
         username: username ? username.value.trim() : '',
-        role: wizRole,
+        role: wizRole || existingData.role || '',
         surname: surname ? surname.value.trim() : '',
-        dueDate: dueDate ? dueDate.value : '',
+        dueDate: existingData.dueDate || '',
         hasReadingCandidate: wizHasReadingCandidate === true,
         gender: wizGender,
         completedAt: new Date().toISOString()
@@ -133,12 +133,12 @@ function wizFinish(mode) {
 
     // Update drawer profile
     updateDrawerProfile();
+    if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
+    if (typeof renderHomeProfile === 'function') renderHomeProfile();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
-    // Set flag so Firebase auth state change knows where to route next
-    window.isWizardLoginFlow = true;
-
-    // Navigate to Login/Signup screen instead of Home
-    changeScreen('scr-login');
+    // Navigate directly to Home
+    changeScreen('scr-mode');
 }
 
 window.selectWizReadingCandidate = selectWizReadingCandidate;

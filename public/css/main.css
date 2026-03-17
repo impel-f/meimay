@@ -1002,6 +1002,103 @@ body.hide-top-bar #top-bar {
     transform: scale(0.98);
 }
 
+.wiz-reading-choice {
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    text-align: left;
+}
+
+.wiz-reading-choice-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.wiz-mini-preview {
+    position: relative;
+    width: 98px;
+    height: 72px;
+    flex-shrink: 0;
+}
+
+.wiz-mini-card {
+    position: absolute;
+    width: 44px;
+    height: 54px;
+    border: 1.5px solid #d4c5af;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.14);
+    color: #5d5444;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+}
+
+.wiz-mini-card-back {
+    left: 0;
+    bottom: 8px;
+    transform: rotate(-8deg);
+    z-index: 1;
+}
+
+.wiz-mini-card-center {
+    left: 27px;
+    top: 9px;
+    z-index: 2;
+}
+
+.wiz-mini-card-front {
+    right: 0;
+    bottom: 7px;
+    transform: rotate(8deg);
+    z-index: 3;
+}
+
+.rule-help-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    border: 1px solid #e4d8c6;
+    background: #fffaf5;
+    color: #8b7e66;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.rule-help-btn:active {
+    transform: scale(0.95);
+}
+
+.rule-info-section {
+    border: 1px solid #eee5d8;
+    background: #fffaf5;
+    border-radius: 20px;
+    padding: 14px 16px;
+}
+
+.rule-info-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: #8b7e66;
+    letter-spacing: 0.04em;
+}
+
+.rule-info-section-body {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #5d5444;
+}
+
 /* ============================================================
    BOTTOM SAFE ZONE
    ============================================================

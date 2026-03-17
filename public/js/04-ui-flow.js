@@ -3325,12 +3325,62 @@ function setRule(r) {
     if (bLax) bLax.classList.toggle('active', r === 'lax');
 
     if (strictItem) {
-        strictItem.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${r === 'strict' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        strictItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] flex items-center gap-3 cursor-pointer ${r === 'strict' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
 
     if (laxItem) {
-        laxItem.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${r === 'lax' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        laxItem.className = `rule-item w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] flex items-center gap-3 cursor-pointer ${r === 'lax' ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
     }
+}
+
+const RULE_INFO_MODAL_CONTENT = {
+    strict: {
+        title: '厳格モード（読み一致）',
+        summary: '自然な読み方を優先して、読みがきれいに合う候補だけを見たいときに向いています。',
+        sections: [
+            {
+                title: 'こんなときにおすすめ',
+                body: '読み候補がかなり固まっていて、まずはノイズの少ない候補だけ見たいときに使いやすいです。'
+            },
+            {
+                title: '例',
+                body: 'たとえば「まさひろ」なら、「まさ / ひろ」のように自然につながる分け方を優先します。決め打ちで探したいときに向いています。'
+            }
+        ]
+    },
+    lax: {
+        title: '柔軟モード（ぶった切り）',
+        summary: '拾える候補を広げて、意外な漢字や分け方も見たいときに向いています。',
+        sections: [
+            {
+                title: 'こんなときにおすすめ',
+                body: '候補を広めに見たいときや、思いついていなかった組み合わせまで見てみたいときに便利です。'
+            },
+            {
+                title: '例',
+                body: 'たとえば「まさひろ」なら、「ま / さ / ひろ」のような細かい分け方や一部一致も候補に含めます。候補を増やしたいときはこちらです。'
+            }
+        ]
+    }
+};
+
+function openRuleInfoModal(mode) {
+    const content = RULE_INFO_MODAL_CONTENT[mode] || RULE_INFO_MODAL_CONTENT.strict;
+    const modal = document.getElementById('modal-rule-info');
+    const title = document.getElementById('rule-info-title');
+    const summary = document.getElementById('rule-info-summary');
+    const body = document.getElementById('rule-info-body');
+    if (!modal || !title || !summary || !body) return;
+
+    title.innerText = content.title;
+    summary.innerText = content.summary;
+    body.innerHTML = content.sections.map(section => `
+        <div class="rule-info-section">
+            <div class="rule-info-section-title">${section.title}</div>
+            <div class="rule-info-section-body">${section.body}</div>
+        </div>
+    `).join('');
+    modal.classList.add('active');
 }
 
 // ==========================================
@@ -3528,10 +3578,7 @@ function startSwiping() {
     function beginSwiping() {
         if (typeof loadStack === 'function') loadStack();
         changeScreen('scr-main');
-        // 初回のみ少し遅れてチュートリアル表示（slot0の場合のみ）
-        if (currentPos === 0) {
-            setTimeout(() => showTutorial(), 500);
-        }
+        // 初回チュートリアルは非表示
     }
 
     // 最初のスロット（slot 0）の引き継ぎチェックから開始
@@ -3548,18 +3595,7 @@ let tutorialInterval;
 let tutorialStep = 1; // 1: Swipe, 2: Detail, 3: Build
 
 function showTutorial() {
-    // 既に表示済みならスキップ (デバッグ用に一時的に無効化する場合はここをコメントアウト)
-    if (localStorage.getItem('meimay_tutorial_shown_v2')) return;
-
-    const modal = document.getElementById('modal-tutorial');
-    if (modal) {
-        modal.classList.add('active');
-        localStorage.setItem('meimay_tutorial_shown_v2', 'true'); // バージョン変えて再表示させる
-
-        // ステップ1から開始
-        tutorialStep = 1;
-        updateTutorialScene();
-    }
+    localStorage.setItem('meimay_tutorial_shown_v2', 'true');
 }
 
 function nextTutorialStep() {
@@ -4402,6 +4438,7 @@ window.runDiagnosis = runDiagnosis;
 window.startSwiping = startSwiping;
 window.setGender = setGender;
 window.setRule = setRule;
+window.openRuleInfoModal = openRuleInfoModal;
 window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.closeTutorial = closeTutorial;

@@ -286,8 +286,8 @@ function getPairingHomeSummary() {
             ...summary,
             shortText: '未連携',
             title: 'パートナー連携はまだ未設定です',
-            subtitle: '必要になったタイミングで始められます。',
-            footnote: 'あとからいつでもルームを作れます。',
+            subtitle: '連携すると二人で名前をさがせます。',
+            footnote: '必要になったらあとから始められます。',
             actionLabel: '連携する',
             canOpenHub: false
         };
@@ -1258,12 +1258,18 @@ function renderHomeProfile() {
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
     const partnerInlineTitle = document.getElementById('home-partner-inline-title');
+    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
     if (partnerInlineTitle) {
         let title = 'パートナー：未連携';
         if (pairing.hasPartner) {
             title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
         }
         partnerInlineTitle.innerText = title;
+    }
+    if (partnerInlineSubtitle) {
+        partnerInlineSubtitle.innerText = pairing.hasPartner
+            ? '候補を共有しながら進められます'
+            : '連携すると二人で名前をさがせます';
     }
 
     const soundBadge = document.getElementById('home-entry-sound-badge');
