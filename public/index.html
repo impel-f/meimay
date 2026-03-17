@@ -531,16 +531,18 @@
             </div>
 
             <div class="rule-box text-left space-y-4 mb-4 px-4 py-4">
+                <div class="flex justify-end">
+                    <button type="button" class="rule-help-btn" onclick="openRuleInfoModal()"
+                        aria-label="厳格モードと柔軟モードの違いを開く">?</button>
+                </div>
                 <div id="rule-strict-item"
                     class="rule-item w-full rounded-2xl border border-[#b9965b] bg-[#fffbef] px-4 py-3 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
                     onclick="setRule('strict')">
                     <div class="flex items-center gap-3">
                         <div id="btn-strict" class="dot-selector active"></div>
                         <div class="min-w-0 flex-1">
-                            <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
                                 <span class="text-sm font-bold text-[#5d5444] whitespace-nowrap">厳格モード（読み一致）</span>
-                                <button type="button" class="rule-help-btn" onclick="event.stopPropagation(); openRuleInfoModal('strict')"
-                                    aria-label="厳格モードの説明を開く">?</button>
                             </div>
                             <p class="text-[10px] text-[#a6967a] mt-1">辞書や名のりにある読みだけで探します</p>
                         </div>
@@ -552,10 +554,8 @@
                     <div class="flex items-center gap-3">
                         <div id="btn-lax" class="dot-selector"></div>
                         <div class="min-w-0 flex-1">
-                            <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
                                 <span class="text-sm font-bold text-[#5d5444] whitespace-nowrap">柔軟モード（ぶった切り）</span>
-                                <button type="button" class="rule-help-btn" onclick="event.stopPropagation(); openRuleInfoModal('lax')"
-                                    aria-label="柔軟モードの説明を開く">?</button>
                             </div>
                             <p class="text-[10px] text-[#a6967a] mt-1">「ほ」「せ」など途中で切る読みも候補に含めます</p>
                         </div>

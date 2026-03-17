@@ -3334,38 +3334,22 @@ function setRule(r) {
 }
 
 const RULE_INFO_MODAL_CONTENT = {
-    strict: {
-        title: '厳格モード（読み一致）',
-        summary: '辞書や名のりにある読みだけを使って、自然な読み方の候補に絞るモードです。',
-        sections: [
-            {
-                title: '意味',
-                body: '漢字ごとの音読み・訓読み・名のりとして実際に登録されている読みだけを候補に使います。'
-            },
-            {
-                title: '例',
-                body: 'たとえば「星」なら、「ほし」「せい」は候補に入りますが、「ほ」「せ」のように途中で切った読み方は候補に入れません。'
-            }
-        ]
-    },
-    lax: {
-        title: '柔軟モード（ぶった切り）',
-        summary: '辞書や名のりにある読みをもとにしつつ、途中で切った読み方まで広げて候補を出すモードです。',
-        sections: [
-            {
-                title: '意味',
-                body: '通常の読みだけでなく、その一部を切り出した読み方も候補に含めます。候補を広めに見たいとき向きです。'
-            },
-            {
-                title: '例',
-                body: 'たとえば「星」なら、「ほし」「せい」に加えて、「ほ」「せ」のようなぶった切り読みも候補に含めます。'
-            }
-        ]
-    }
+    title: '厳格モードと柔軟モード',
+    summary: 'どちらも同じ候補探索ですが、読む範囲をどこまで広げるかが違います。',
+    sections: [
+        {
+            title: '厳格モード',
+            body: '辞書や名のりにある読みだけを候補に使います。たとえば「星」なら、「ほし」「せい」は候補に入りますが、「ほ」「せ」のような途中で切った読み方は使いません。'
+        },
+        {
+            title: '柔軟モード',
+            body: '辞書や名のりにある読みをもとにしつつ、その一部を切り出した読み方まで候補に含めます。たとえば「星」なら、「ほし」「せい」に加えて、「ほ」「せ」も候補に入ります。'
+        }
+    ]
 };
 
-function openRuleInfoModal(mode) {
-    const content = RULE_INFO_MODAL_CONTENT[mode] || RULE_INFO_MODAL_CONTENT.strict;
+function openRuleInfoModal() {
+    const content = RULE_INFO_MODAL_CONTENT;
     const modal = document.getElementById('modal-rule-info');
     const title = document.getElementById('rule-info-title');
     const summary = document.getElementById('rule-info-summary');
