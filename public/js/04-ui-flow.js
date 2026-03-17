@@ -525,7 +525,7 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
         ...base,
         ...payload,
         key,
-        encounterOrigin: base.encounterOrigin || (options.incrementSeen ? 'swipe' : payload.encounterOrigin || ''),
+        encounterOrigin: base.encounterOrigin || payload.encounterOrigin || (options.incrementSeen ? 'swipe' : ''),
         seenCount: base.seenCount + (options.incrementSeen ? 1 : 0),
         likeCount: base.likeCount + (options.incrementLike ? 1 : 0),
         nopeCount: base.nopeCount + (options.incrementNope ? 1 : 0),

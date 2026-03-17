@@ -307,6 +307,18 @@ function calcSegments() {
         return;
     }
 
+    if (typeof updateEncounteredLibraryEntry === 'function') {
+        updateEncounteredLibraryEntry('reading', nameReading, {
+            reading: nameReading,
+            mode: 'direct-input',
+            tags: [],
+            examples: [],
+            encounterOrigin: 'direct-input'
+        }, {
+            incrementSeen: true
+        });
+    }
+
     // オプションコンテナ取得
     const optionsContainer = document.getElementById('seg-options');
     if (!optionsContainer) {

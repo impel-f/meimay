@@ -531,10 +531,10 @@ function getHomeStageTrackTone(mode) {
 }
 
 function getHomeRecommendedStageKey(action) {
-    if (action === 'sound' || action === 'reading' || action === 'stock-reading' || action === 'matched-reading' || action === 'partner-reading') {
+    if (action === 'sound' || action === 'stock-reading' || action === 'matched-reading' || action === 'partner-reading') {
         return 'reading';
     }
-    if (action === 'stock' || action === 'matched-liked' || action === 'partner-liked') {
+    if (action === 'reading' || action === 'stock' || action === 'matched-liked' || action === 'partner-liked') {
         return 'kanji';
     }
     if (action === 'build') return 'build';
@@ -1285,12 +1285,17 @@ function renderHomeProfile() {
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
     const partnerInlineTitle = document.getElementById('home-partner-inline-title');
+    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
     if (partnerInlineTitle) {
         let title = 'パートナー：未連携';
         if (pairing.hasPartner) {
             title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
         }
         partnerInlineTitle.innerText = title;
+    }
+    if (partnerInlineSubtitle) {
+        partnerInlineSubtitle.classList.toggle('hidden', !!pairing.hasPartner);
+        partnerInlineSubtitle.innerText = '連携すると二人で名前をさがせます';
     }
 
     const soundBadge = document.getElementById('home-entry-sound-badge');
@@ -1490,6 +1495,7 @@ function renderHomeProfileV2() {
     const pairing = getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');

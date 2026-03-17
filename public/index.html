@@ -306,6 +306,7 @@
                             <button id="home-partner-inline" type="button" onclick="handleHomeInlinePartnerAction(event)"
                                 class="min-w-0 flex-1 rounded-full border border-[#eee4d6] bg-[#fffaf5] px-3 py-2 text-center text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
                                 <span id="home-partner-inline-title" class="block truncate text-center">パートナー：未連携</span>
+                                <span id="home-partner-inline-subtitle" class="mt-0.5 block text-center text-[9px] font-medium leading-snug text-[#a6967a]">連携すると二人で名前をさがせます</span>
                             </button>
                             <button id="home-next-step-action-label" onclick="handleHomeNextStepAction(event)" class="hidden shrink-0 px-4 py-2 rounded-full bg-[#b9965b] text-white text-[11px] font-bold active:scale-95 transition-transform">響き・読みを探す</button>
                         </div>
@@ -528,7 +529,7 @@
                     <div id="btn-strict" class="dot-selector active"></div>
                     <div>
                         <span class="text-sm font-bold text-[#5d5444]">厳格モード（読み一致）</span>
-                        <p class="text-[10px] text-[#a6967a] mt-1">読みが完全一致する漢字のみ表示</p>
+                        <p class="text-[10px] text-[#a6967a] mt-1">辞書や名のりにある読みだけで探します</p>
                     </div>
                 </div>
                 <div class="rule-item flex items-center gap-3 cursor-pointer" onclick="setRule('lax')">
