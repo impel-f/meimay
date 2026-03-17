@@ -3333,40 +3333,6 @@ function setRule(r) {
     }
 }
 
-const RULE_INFO_MODAL_CONTENT = {
-    title: '厳格モードと柔軟モード',
-    summary: 'どちらも同じ候補探索ですが、読む範囲をどこまで広げるかが違います。',
-    sections: [
-        {
-            title: '厳格モード',
-            body: '辞書や名のりにある読みだけを候補に使います。たとえば「星」なら、「ほし」「せい」は候補に入りますが、「ほ」「せ」のような途中で切った読み方は使いません。'
-        },
-        {
-            title: '柔軟モード',
-            body: '辞書や名のりにある読みをもとにしつつ、その一部を切り出した読み方まで候補に含めます。たとえば「星」なら、「ほし」「せい」に加えて、「ほ」「せ」も候補に入ります。'
-        }
-    ]
-};
-
-function openRuleInfoModal() {
-    const content = RULE_INFO_MODAL_CONTENT;
-    const modal = document.getElementById('modal-rule-info');
-    const title = document.getElementById('rule-info-title');
-    const summary = document.getElementById('rule-info-summary');
-    const body = document.getElementById('rule-info-body');
-    if (!modal || !title || !summary || !body) return;
-
-    title.innerText = content.title;
-    summary.innerText = content.summary;
-    body.innerHTML = content.sections.map(section => `
-        <div class="rule-info-section">
-            <div class="rule-info-section-title">${section.title}</div>
-            <div class="rule-info-section-body">${section.body}</div>
-        </div>
-    `).join('');
-    modal.classList.add('active');
-}
-
 // ==========================================
 // 読み方引き継ぎフロー
 // ==========================================
@@ -4422,7 +4388,6 @@ window.runDiagnosis = runDiagnosis;
 window.startSwiping = startSwiping;
 window.setGender = setGender;
 window.setRule = setRule;
-window.openRuleInfoModal = openRuleInfoModal;
 window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.closeTutorial = closeTutorial;

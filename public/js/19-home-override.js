@@ -1222,25 +1222,20 @@ function renderHomeProfile() {
 
     const nextStepTitleEl = document.getElementById('home-next-step-title');
     if (nextStepTitleEl) {
-        nextStepTitleEl.innerText = nextStep.title || '次に進める候補があります';
-        nextStepTitleEl.classList.remove('hidden');
+        nextStepTitleEl.innerText = '';
+        nextStepTitleEl.classList.add('hidden');
     }
 
     const nextStepDetailEl = document.getElementById('home-next-step-detail');
     if (nextStepDetailEl) {
-        nextStepDetailEl.innerText = nextStep.detail || 'いま足りない材料から順に案内します。';
-        nextStepDetailEl.classList.remove('hidden');
+        nextStepDetailEl.innerText = '';
+        nextStepDetailEl.classList.add('hidden');
     }
 
     const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
     if (nextStepActionLabelEl) {
         nextStepActionLabelEl.innerText = nextStep.actionLabel || '開く';
-        nextStepActionLabelEl.classList.remove('hidden');
-    }
-
-    const nextStepCardEl = document.getElementById('home-next-step-card');
-    if (nextStepCardEl) {
-        nextStepCardEl.classList.remove('hidden');
+        nextStepActionLabelEl.classList.add('hidden');
     }
 
     const statusLineEl = document.getElementById('home-status-line');
@@ -1271,24 +1266,34 @@ function renderHomeProfile() {
         partnerInlineTitle.innerText = title;
     }
 
+    const highlightEntry = nextStep?.action === 'reading'
+        ? 'reading'
+        : nextStep?.action === 'sound'
+            ? 'sound'
+            : recommendedEntry;
+
     const soundBadge = document.getElementById('home-entry-sound-badge');
-    if (soundBadge) soundBadge.classList.add('hidden');
+    if (soundBadge) soundBadge.classList.toggle('hidden', highlightEntry !== 'sound');
 
     const readingBadge = document.getElementById('home-entry-reading-badge');
-    if (readingBadge) readingBadge.classList.add('hidden');
+    if (readingBadge) readingBadge.classList.toggle('hidden', highlightEntry !== 'reading');
 
     const soundEntry = document.getElementById('home-entry-sound');
     if (soundEntry) {
-        soundEntry.style.boxShadow = '';
-        soundEntry.style.borderWidth = recommendedEntry === 'sound' ? '3px' : '2px';
-        soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : '#c4caf2';
+        const isHighlighted = highlightEntry === 'sound';
+        soundEntry.style.boxShadow = isHighlighted ? '0 12px 28px rgba(185, 150, 91, 0.22)' : '';
+        soundEntry.style.borderWidth = isHighlighted ? '3px' : '2px';
+        soundEntry.style.borderColor = isHighlighted ? '#b9965b' : '#c4caf2';
+        soundEntry.style.background = isHighlighted ? '#fff9ef' : '#ffffff';
     }
 
     const readingEntry = document.getElementById('home-entry-reading');
     if (readingEntry) {
-        readingEntry.style.boxShadow = '';
-        readingEntry.style.borderWidth = recommendedEntry === 'reading' ? '3px' : '2px';
-        readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : '#c4caf2';
+        const isHighlighted = highlightEntry === 'reading';
+        readingEntry.style.boxShadow = isHighlighted ? '0 12px 28px rgba(185, 150, 91, 0.22)' : '';
+        readingEntry.style.borderWidth = isHighlighted ? '3px' : '2px';
+        readingEntry.style.borderColor = isHighlighted ? '#b9965b' : '#c4caf2';
+        readingEntry.style.background = isHighlighted ? '#fff9ef' : '#ffffff';
     }
 
     const pairCard = document.getElementById('home-pair-card');

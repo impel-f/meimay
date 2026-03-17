@@ -1057,52 +1057,6 @@ body.hide-top-bar #top-bar {
     z-index: 3;
 }
 
-.rule-help-btn {
-    width: 22px;
-    height: 22px;
-    border-radius: 9999px;
-    border: 1px solid #e4d8c6;
-    background: #ffffff;
-    color: #8b7e66;
-    font-size: 11px;
-    font-weight: 900;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.rule-help-btn:active {
-    transform: scale(0.95);
-}
-
-#home-next-step-card {
-    box-shadow: 0 10px 24px rgba(185, 150, 91, 0.12);
-}
-
-.rule-info-section {
-    border: 1px solid #eee5d8;
-    background: #fffaf5;
-    border-radius: 20px;
-    padding: 14px 16px;
-}
-
-.rule-info-section-title {
-    font-size: 11px;
-    font-weight: 800;
-    color: #8b7e66;
-    letter-spacing: 0.04em;
-}
-
-.rule-info-section-body {
-    margin-top: 6px;
-    font-size: 13px;
-    line-height: 1.7;
-    color: #5d5444;
-}
-
 /* ============================================================
    BOTTOM SAFE ZONE
    ============================================================
