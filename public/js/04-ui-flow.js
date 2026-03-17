@@ -2137,6 +2137,19 @@ function generateAdanaNames(genderMode) {
 /**
  * 人気名前リスト生成 (タグスコアリングで動的ソート)
  */
+function isReadingGenderAllowed(entryGender, targetGender = gender || 'neutral') {
+    if (!targetGender || targetGender === 'neutral') return true;
+    if (!entryGender || entryGender === 'neutral') return true;
+    return entryGender === targetGender;
+}
+
+function getReadingGenderBonus(entryGender, targetGender = gender || 'neutral') {
+    if (!targetGender || targetGender === 'neutral') return 0;
+    if (entryGender === targetGender) return 220;
+    if (!entryGender || entryGender === 'neutral') return 80;
+    return -9999;
+}
+
 function generatePopularNames(gender) {
     if (!readingsData || readingsData.length === 0) {
         console.warn("UI_FLOW: readingsData is empty. Trying fallback to yomiSearchData?");
@@ -2159,8 +2172,9 @@ function generatePopularNames(gender) {
     // まずスコアを計算して、Mapで保持させる
     let scoredList = readingsData
         .filter(item => !(typeof noped !== 'undefined' && noped.has(item.reading)))
+        .filter(item => isReadingGenderAllowed(item.gender, gender))
         .map(item => {
-            let score = 0;
+            let score = getReadingGenderBonus(item.gender, gender);
             if (item.tags && item.tags.length > 0) {
                 item.tags.forEach(t => {
                     if (userTags[t]) score += userTags[t];
@@ -2184,6 +2198,7 @@ function generatePopularNames(gender) {
                 rawCount: item.count,
                 popular: item.isPopular,
                 tags: item.tags || [],
+                gender: item.gender || 'neutral',
                 score: score
             };
         });
