@@ -374,7 +374,7 @@ function clean(str) {
  */
 function toHira(str) {
     if (!str) return "";
-    return str.toString().replace(/[ァ-ヶ]/g, m =>
+    return str.toString().replace(/[\u30a1-\u30f6]/g, m =>
         String.fromCharCode(m.charCodeAt(0) - 0x60)
     );
 }
