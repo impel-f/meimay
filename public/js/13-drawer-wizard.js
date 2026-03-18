@@ -72,12 +72,16 @@ function wizNext(currentStep) {
     if (currentStep === 2) {
         // Surname is optional
         const surname = document.getElementById('wiz-surname');
+        const surnameReadingInput = document.getElementById('wiz-surname-reading');
         if (surname && surname.value.trim()) {
             surnameStr = surname.value.trim();
             const input = document.getElementById('in-surname');
             if (input) input.value = surnameStr;
-            if (typeof updateSurnameData === 'function') updateSurnameData();
         }
+        surnameReading = surnameReadingInput && surnameReadingInput.value.trim()
+            ? toHira(surnameReadingInput.value.trim())
+            : '';
+        if (typeof updateSurnameData === 'function') updateSurnameData();
     }
     if (currentStep === 3 && !wizGender) {
         wizGender = 'neutral';
@@ -114,6 +118,7 @@ function wizFinish(mode) {
     // Save wizard data
     const username = document.getElementById('wiz-username');
     const surname = document.getElementById('wiz-surname');
+    const surnameReadingInput = document.getElementById('wiz-surname-reading');
     const existingData = WizardData.get() || {};
 
     const data = {
@@ -121,6 +126,9 @@ function wizFinish(mode) {
         username: username ? username.value.trim() : '',
         role: wizRole || existingData.role || '',
         surname: surname ? surname.value.trim() : '',
+        surnameReading: surnameReadingInput && surnameReadingInput.value.trim()
+            ? toHira(surnameReadingInput.value.trim())
+            : (existingData.surnameReading || ''),
         dueDate: existingData.dueDate || '',
         hasReadingCandidate: wizHasReadingCandidate === true,
         gender: wizGender || existingData.gender || 'neutral',
@@ -134,8 +142,9 @@ function wizFinish(mode) {
         surnameStr = data.surname;
         const surnameInput = document.getElementById('in-surname');
         if (surnameInput) surnameInput.value = surnameStr;
-        if (typeof updateSurnameData === 'function') updateSurnameData();
     }
+    surnameReading = data.surnameReading || '';
+    if (typeof updateSurnameData === 'function') updateSurnameData();
     gender = data.gender;
 
     // Update drawer profile
