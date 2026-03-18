@@ -34,7 +34,7 @@ const WizardData = {
 };
 
 let wizRole = '';
-let wizGender = 'neutral';
+let wizGender = '';
 let wizHasReadingCandidate = null;
 
 // ==========================================
@@ -51,8 +51,9 @@ function selectWizRole(role) {
 
 function selectWizGender(gender) {
     wizGender = gender;
-
-    wizFinish(null);
+    document.querySelectorAll('[data-gender]').forEach(btn => {
+        btn.classList.toggle('selected', btn.getAttribute('data-gender') === gender);
+    });
 }
 
 function selectWizReadingCandidate(hasCandidate) {
@@ -78,7 +79,13 @@ function wizNext(currentStep) {
             if (typeof updateSurnameData === 'function') updateSurnameData();
         }
     }
-    if (currentStep === 3 && wizHasReadingCandidate === null) {
+    if (currentStep === 3 && !wizGender) {
+        wizGender = 'neutral';
+        document.querySelectorAll('[data-gender]').forEach(btn => {
+            btn.classList.toggle('selected', btn.getAttribute('data-gender') === 'neutral');
+        });
+    }
+    if (currentStep === 4 && wizHasReadingCandidate === null) {
         wizHasReadingCandidate = false;
     }
 
@@ -116,7 +123,7 @@ function wizFinish(mode) {
         surname: surname ? surname.value.trim() : '',
         dueDate: existingData.dueDate || '',
         hasReadingCandidate: wizHasReadingCandidate === true,
-        gender: wizGender,
+        gender: wizGender || existingData.gender || 'neutral',
         completedAt: new Date().toISOString()
     };
 
@@ -137,11 +144,25 @@ function wizFinish(mode) {
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
-    // Navigate directly to Home
+    const nextMode = mode || (data.hasReadingCandidate ? 'reading' : 'sound');
+    if (nextMode === 'reading' || nextMode === 'sound' || nextMode === 'nickname' || nextMode === 'free') {
+        startMode(nextMode);
+        return;
+    }
+
     changeScreen('scr-mode');
 }
 
+function wizStartNaming() {
+    if (wizHasReadingCandidate === null) {
+        wizHasReadingCandidate = false;
+    }
+    wizFinish(wizHasReadingCandidate ? 'reading' : 'sound');
+}
+
 window.selectWizReadingCandidate = selectWizReadingCandidate;
+window.selectWizGender = selectWizGender;
+window.wizStartNaming = wizStartNaming;
 
 // ==========================================
 // DRAWER FUNCTIONS
