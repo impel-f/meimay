@@ -1030,7 +1030,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
 
             const finalBaseSections = extractKanjiDetailSectionMap(baseText);
-            const finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
+            let finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
             finalIdiomsCount = countRepresentativeIdiomCandidates(finalIdiomsSection);
 
             if (finalIdiomsCount < 3) {
