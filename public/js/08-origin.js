@@ -465,15 +465,23 @@ function isLikelyRepresentativeIdiomWord(word) {
     return true;
 }
 
-function parseRepresentativeIdiomLines(content) {
-    const normalizedText = sanitizeKanjiAiText(content)
+function normalizeRepresentativeIdiomSectionText(content) {
+    return sanitizeKanjiAiText(content)
+        .replace(/\r\n?/g, '\n')
         .replace(/[・•●◇◆]/g, '\n')
         .replace(/[;；]/g, '\n')
-        .replace(/([^\n])(?=[^（）\n]{1,24}（[^（）\n]{1,24}）[:：])/g, '$1\n');
+        .replace(/[、,\/／]\s*(?=[^（）\n]{1,20}(?:（[^（）\n]{1,20}）)?[:：])/g, '\n')
+        .replace(/([^\n])(?=[^（）\n]{1,20}(?:（[^（）\n]{1,20}）)?[:：])/g, '$1\n');
+}
+
+function parseRepresentativeIdiomLines(content) {
+    const normalizedText = normalizeRepresentativeIdiomSectionText(content);
 
     return normalizedText
         .split('\n')
-        .map((line) => sanitizeKanjiAiText(line).replace(/^[・\-•●]+/, ''))
+        .map((line) => sanitizeKanjiAiText(line)
+            .replace(/^[・\-•●◇◆\d]+[.)、．]?\s*/, '')
+            .trim())
         .filter(Boolean)
         .map((line) => {
             const match = line.match(/^(.+?)（(.+?)）[:：]\s*(.+)$/);
@@ -574,9 +582,13 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         if (title === '代表的な熟語') {
             const aiLines = parseRepresentativeIdiomLines(aiSection);
             const datasetLines = parseRepresentativeIdiomLines(datasetSection);
-            const combinedLines = Array.from(new Set([...aiLines, ...datasetLines])).slice(0, 5);
-            const uniqueLines = combinedLines;
-            const content = uniqueLines.join('\n');
+            const content = aiLines.length > 0
+                ? aiLines.slice(0, 5).join('\n')
+                : sanitizeKanjiAiText(aiSection)
+                    ? sanitizeKanjiAiText(aiSection)
+                    : datasetLines.length > 0
+                    ? datasetLines.slice(0, 5).join('\n')
+                    : '';
             if (content) blocks.push(`【${title}】\n${content}`);
             continue;
         }
@@ -622,7 +634,15 @@ function normalizeKanjiDetailTitle(title) {
 }
 
 function formatRepresentativeIdiomContent(content) {
-    return parseRepresentativeIdiomLines(content).join('\n');
+    const parsed = parseRepresentativeIdiomLines(content);
+    if (parsed.length > 0) return parsed.join('\n');
+    return sanitizeKanjiAiText(content)
+        .split('\n')
+        .map((line) => line
+            .replace(/^[・\-•●◇◆\d]+[.)、．]?\s*/, '')
+            .trim())
+        .filter(Boolean)
+        .join('\n');
 }
 
 function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
@@ -645,7 +665,7 @@ ${groundedHint?.promptContext
 字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。
 
 【代表的な熟語】
-この漢字を使った実在する二字熟語を3〜5個、読みと意味付きで挙げてください。1行に1個ずつ書き、最低3個は必ず出してください。1個だけで終わらせないでください。
+この漢字を使った実在する二字熟語を3〜5個、読みと意味付きで挙げてください。1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
 
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
@@ -655,7 +675,7 @@ ${groundedHint?.promptContext
 ・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・四字熟語、故事成語、ことわざは書かないでください。
-・代表的な熟語は1行に1個ずつ、最低3個になるようにしてください。1個だけで終わらせないでください。
+・代表的な熟語は1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個になるようにしてください。1個だけで終わらせないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
@@ -706,6 +726,7 @@ ${currentIdioms || 'なし'}
 ・足りない部分だけを直してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。
 ・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。最低3個は必ず出してください。
+・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざは書かないでください。
 ・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
 `.trim();
@@ -813,14 +834,16 @@ async function generateKanjiDetail(kanji, currentReading) {
                     const cachedMeaningSection = cachedSections.get('意味の深掘り') || '';
                     const cachedIdiomsSection = cachedSections.get('代表的な熟語') || '';
                     const cachedIdioms = parseRepresentativeIdiomLines(cachedIdiomsSection);
-                    if (!isMeaningSectionTooShallow(cachedMeaningSection) && cachedIdioms.length >= 3) {
+                    const hasIdiomsContent = sanitizeKanjiAiText(cachedIdiomsSection).length > 0;
+                    if (!isMeaningSectionTooShallow(cachedMeaningSection) && (cachedIdioms.length >= 1 || hasIdiomsContent)) {
                         baseText = mergedCachedText;
                         cacheHit = true;
                     } else {
                         console.warn('AI_KANJI_DETAIL: cached explanation rejected', {
                             kanji,
                             meaningLength: cachedMeaningSection.length,
-                            idiomCount: cachedIdioms.length
+                            idiomCount: cachedIdioms.length,
+                            hasIdiomsContent
                         });
                     }
                 }
