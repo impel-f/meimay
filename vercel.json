@@ -21,6 +21,12 @@
   "functions": {
     "api/gemini.js": {
       "maxDuration": 120
+    },
+    "api/kanji-cache.js": {
+      "maxDuration": 120
+    },
+    "api/stats.js": {
+      "maxDuration": 120
     }
   }
 }

@@ -466,7 +466,12 @@ function isLikelyRepresentativeIdiomWord(word) {
 }
 
 function parseRepresentativeIdiomLines(content) {
-    return sanitizeKanjiAiText(content)
+    const normalizedText = sanitizeKanjiAiText(content)
+        .replace(/[・•●◇◆]/g, '\n')
+        .replace(/[;；]/g, '\n')
+        .replace(/([^\n])(?=[^（）\n]{1,24}（[^（）\n]{1,24}）[:：])/g, '$1\n');
+
+    return normalizedText
         .split('\n')
         .map((line) => sanitizeKanjiAiText(line).replace(/^[・\-•●]+/, ''))
         .filter(Boolean)
@@ -569,8 +574,8 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         if (title === '代表的な熟語') {
             const aiLines = parseRepresentativeIdiomLines(aiSection);
             const datasetLines = parseRepresentativeIdiomLines(datasetSection);
-            const combinedLines = aiLines.length > 0 ? aiLines : datasetLines;
-            const uniqueLines = Array.from(new Set(combinedLines)).slice(0, 5);
+            const combinedLines = Array.from(new Set([...aiLines, ...datasetLines])).slice(0, 5);
+            const uniqueLines = combinedLines;
             const content = uniqueLines.join('\n');
             if (content) blocks.push(`【${title}】\n${content}`);
             continue;
@@ -640,7 +645,7 @@ ${groundedHint?.promptContext
 字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。
 
 【代表的な熟語】
-この漢字を使った実在する二字熟語を3〜5個、読みと意味付きで挙げてください。最低3個は必ず出してください。
+この漢字を使った実在する二字熟語を3〜5個、読みと意味付きで挙げてください。1行に1個ずつ書き、最低3個は必ず出してください。1個だけで終わらせないでください。
 
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
@@ -650,7 +655,7 @@ ${groundedHint?.promptContext
 ・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・四字熟語、故事成語、ことわざは書かないでください。
-・代表的な熟語は1個だけで終わらせないでください。最低3個になるようにしてください。
+・代表的な熟語は1行に1個ずつ、最低3個になるようにしてください。1個だけで終わらせないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
@@ -677,6 +682,8 @@ function isMeaningSectionTooShallow(text) {
     if (!normalized) return true;
     if (normalized.length < 35) return true;
     if (/を表す字です。?$/.test(normalized)) return true;
+    if (/^「?.{1,2}」?を表す字です。/.test(normalized)) return true;
+    if (/名前に使うときも、その意味を素直な願いとして重ねやすい漢字です。?$/.test(normalized)) return true;
     if (/^アプリ内辞書では/.test(normalized)) return true;
     return false;
 }
@@ -698,7 +705,7 @@ ${currentIdioms || 'なし'}
 【お願い】
 ・足りない部分だけを直してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。
-・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで書いてください。最低3個は必ず出してください。
+・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。最低3個は必ず出してください。
 ・四字熟語、故事成語、ことわざは書かないでください。
 ・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
 `.trim();
@@ -801,8 +808,21 @@ async function generateKanjiDetail(kanji, currentReading) {
                 const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
                 const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
                 if (cachedText) {
-                    baseText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
-                    cacheHit = true;
+                    const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
+                    const cachedSections = extractKanjiDetailSectionMap(mergedCachedText);
+                    const cachedMeaningSection = cachedSections.get('意味の深掘り') || '';
+                    const cachedIdiomsSection = cachedSections.get('代表的な熟語') || '';
+                    const cachedIdioms = parseRepresentativeIdiomLines(cachedIdiomsSection);
+                    if (!isMeaningSectionTooShallow(cachedMeaningSection) && cachedIdioms.length >= 3) {
+                        baseText = mergedCachedText;
+                        cacheHit = true;
+                    } else {
+                        console.warn('AI_KANJI_DETAIL: cached explanation rejected', {
+                            kanji,
+                            meaningLength: cachedMeaningSection.length,
+                            idiomCount: cachedIdioms.length
+                        });
+                    }
                 }
             } catch (cacheError) {
                 console.warn('AI_KANJI_DETAIL: base cache read failed', cacheError);
