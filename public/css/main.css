@@ -51,18 +51,6 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-#scr-mode,
-#scr-stock,
-#scr-build,
-#scr-encountered,
-#scr-kanji-search,
-#scr-ranking,
-#scr-settings,
-#scr-saved,
-#scr-login {
-    background: var(--profile-page);
-}
-
 /* ============================================================
    SCREEN MANAGEMENT
    ============================================================ */
@@ -96,7 +84,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: var(--profile-page);
+    background: #fdfaf5;
     margin-left: -1rem;
     margin-right: -1rem;
     padding: 1rem 1rem 0;

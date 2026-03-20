@@ -512,13 +512,13 @@ function updateDrawerProfile() {
     const settingsButton = document.getElementById('drawer-settings-button');
     const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
 
-    if (drawer && palette) {
-        drawer.style.background = `linear-gradient(180deg, ${palette.mist} 0%, #fffefb 22%, ${palette.page} 100%)`;
+    if (drawer) {
+        drawer.style.background = '';
     }
 
-    if (sideProfile && palette) {
-        sideProfile.style.background = `linear-gradient(180deg, ${palette.surface} 0%, rgba(255,255,255,0.94) 82%)`;
-        sideProfile.style.borderColor = palette.border;
+    if (sideProfile) {
+        sideProfile.style.background = '';
+        sideProfile.style.borderColor = '';
     }
 
     if (data.username && username) {
@@ -552,10 +552,20 @@ function updateDrawerProfile() {
     }
 }
 
+function openDrawerProfileAppearance() {
+    closeDrawer();
+    setTimeout(() => {
+        if (typeof openProfileAppearanceModal === 'function') {
+            openProfileAppearanceModal();
+        }
+    }, 320);
+}
+
 // Expose functions
 window.openDrawer = openDrawer;
 window.closeDrawer = closeDrawer;
 window.drawerNavigate = drawerNavigate;
+window.openDrawerProfileAppearance = openDrawerProfileAppearance;
 window.selectWizRole = selectWizRole;
 window.selectWizGender = selectWizGender;
 window.wizNext = wizNext;

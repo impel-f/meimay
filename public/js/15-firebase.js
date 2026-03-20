@@ -1064,6 +1064,7 @@ MeimayPairing.syncMyData = async function () {
             .collection('data').doc(user.uid).set({
                 role: this.myRole,
                 displayName: String(wizard.username || '').trim(),
+                themeId: typeof getProfileThemeId === 'function' ? getProfileThemeId(wizard.role) : (wizard.themeId || null),
                 liked: minifiedLiked,
                 savedNames: minifiedSaved,
                 readingStock: minifiedReadingStock,
@@ -1076,7 +1077,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -1094,7 +1095,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                 readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
                 role: data.role || null,
-                displayName: String(data.displayName || '').trim()
+                displayName: String(data.displayName || '').trim(),
+                themeId: String(data.themeId || '').trim()
             };
 
             if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
@@ -1110,8 +1112,33 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+};
+
+MeimayShare.syncProfileAppearance = async function () {
+    const user = MeimayAuth.getCurrentUser();
+    if (!user || !this.roomCode) return;
+
+    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
+    const nextRole = this.myRole || wizard.role || null;
+    const nextThemeId = typeof getProfileThemeId === 'function'
+        ? getProfileThemeId(wizard.role)
+        : String(wizard.themeId || '').trim();
+
+    try {
+        await firebaseDb.collection('rooms').doc(this.roomCode)
+            .collection('data').doc(user.uid).set({
+                role: nextRole,
+                displayName: String(wizard.username || '').trim(),
+                themeId: nextThemeId,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+    } catch (e) {
+        console.warn('SHARE: Sync profile appearance failed', e);
+    }
 };
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
@@ -1398,7 +1425,9 @@ function getMeimayRelationshipPalettes() {
     const selfBase = typeof window.getActiveProfilePalette === 'function'
         ? window.getActiveProfilePalette(resolvedSelfRole)
         : getMeimayRolePalette(resolvedSelfRole);
-    const partnerBase = getMeimayRolePalette(resolvedPartnerRole);
+    const partnerBase = typeof window.getActiveProfilePalette === 'function'
+        ? window.getActiveProfilePalette(resolvedPartnerRole, MeimayShare?.partnerSnapshot?.themeId)
+        : getMeimayRolePalette(resolvedPartnerRole);
     const getMatchedSurface = (base) => base?.mist || base?.surface || '#fffaf5';
     const getMatchedAccent = (base) => base?.accentSoft || base?.accent || '#fff1e1';
     const getMatchedBorder = (base) => base?.border || '#eadfce';

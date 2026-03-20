@@ -30,8 +30,8 @@ let showInappropriateKanji = false; // 不適切フラグがある漢字を表�
 
 const PROFILE_THEME_OPTIONS = [
     {
-        id: 'sky',
-        label: 'そら',
+        id: 'sora',
+        label: '空',
         accent: '#8fbff8',
         accentStrong: '#5f98de',
         accentSoft: '#eff7ff',
@@ -45,8 +45,8 @@ const PROFILE_THEME_OPTIONS = [
         dot: '#d8e8ff'
     },
     {
-        id: 'blush',
-        label: 'もも',
+        id: 'sakura',
+        label: '桜',
         accent: '#f2a2b8',
         accentStrong: '#dc7f9c',
         accentSoft: '#fef0f5',
@@ -60,64 +60,64 @@ const PROFILE_THEME_OPTIONS = [
         dot: '#f8dce7'
     },
     {
-        id: 'mint',
-        label: 'みんと',
-        accent: '#8fd8c0',
-        accentStrong: '#63b59a',
-        accentSoft: '#eefaf5',
-        surface: '#f7fffb',
-        mist: '#effbf6',
-        border: '#d4eee3',
-        text: '#5f8f80',
-        shadow: 'rgba(143, 216, 192, 0.18)',
-        star: '#63c3a3',
-        page: '#f7fffc',
-        dot: '#d9efe6'
+        id: 'wakakusa',
+        label: '若草',
+        accent: '#9fd36e',
+        accentStrong: '#7fb247',
+        accentSoft: '#f5fbe8',
+        surface: '#fbfff6',
+        mist: '#f7fceb',
+        border: '#dcebc3',
+        text: '#70864b',
+        shadow: 'rgba(159, 211, 110, 0.18)',
+        star: '#8abb52',
+        page: '#fbfff7',
+        dot: '#e2efcf'
     },
     {
-        id: 'amber',
-        label: 'こはく',
-        accent: '#f4c28f',
-        accentStrong: '#d99b58',
-        accentSoft: '#fff5e8',
-        surface: '#fffbf5',
-        mist: '#fff7ef',
-        border: '#f0dec8',
-        text: '#9a7452',
-        shadow: 'rgba(244, 194, 143, 0.18)',
-        star: '#e0a463',
-        page: '#fffbf6',
-        dot: '#f1e0ca'
+        id: 'yamabuki',
+        label: '山吹',
+        accent: '#f4c25f',
+        accentStrong: '#da9e1f',
+        accentSoft: '#fff6da',
+        surface: '#fffdf5',
+        mist: '#fff9ea',
+        border: '#f1dfaa',
+        text: '#92722c',
+        shadow: 'rgba(244, 194, 95, 0.18)',
+        star: '#e2ad33',
+        page: '#fffcf4',
+        dot: '#f5e7ba'
     },
     {
-        id: 'lavender',
-        label: 'らべんだー',
-        accent: '#b8a8f1',
-        accentStrong: '#8d79d4',
-        accentSoft: '#f5f0ff',
-        surface: '#fcf9ff',
-        mist: '#f8f4ff',
-        border: '#e2d9ff',
-        text: '#75669a',
-        shadow: 'rgba(184, 168, 241, 0.18)',
-        star: '#9d87e5',
+        id: 'fuji',
+        label: '藤',
+        accent: '#b9a2e8',
+        accentStrong: '#8c74c9',
+        accentSoft: '#f4efff',
+        surface: '#fcfaff',
+        mist: '#f7f4ff',
+        border: '#ded3f5',
+        text: '#74639c',
+        shadow: 'rgba(185, 162, 232, 0.18)',
+        star: '#9a7fe0',
         page: '#fbf9ff',
         dot: '#e6ddff'
     },
     {
-        id: 'sand',
-        label: 'きなり',
-        accent: '#d0b38e',
-        accentStrong: '#b28e65',
-        accentSoft: '#fbf6ee',
-        surface: '#fffdf8',
-        mist: '#fdf9f2',
-        border: '#e8dccb',
-        text: '#877058',
-        shadow: 'rgba(208, 179, 142, 0.18)',
-        star: '#c19d72',
-        page: '#fdfaf5',
-        dot: '#eadfce'
+        id: 'anzu',
+        label: '杏',
+        accent: '#f0b07d',
+        accentStrong: '#d98a54',
+        accentSoft: '#fff1e6',
+        surface: '#fffaf5',
+        mist: '#fff5ee',
+        border: '#efd5c1',
+        text: '#97684c',
+        shadow: 'rgba(240, 176, 125, 0.18)',
+        star: '#e59a64',
+        page: '#fffaf6',
+        dot: '#f4dfcf'
     }
 ];
 
@@ -148,16 +148,51 @@ function getResolvedProfileRole(preferredRole) {
 }
 
 function getDefaultProfileThemeId(role) {
-    if (role === 'mama') return 'blush';
-    if (role === 'papa') return 'sky';
-    return 'sand';
+    if (role === 'mama') return 'sakura';
+    if (role === 'papa') return 'sora';
+    return 'anzu';
 }
 
 function getProfileThemeOption(themeId, role) {
+    const legacyThemeIds = {
+        blush: 'sakura',
+        sky: 'sora',
+        mint: 'wakakusa',
+        amber: 'yamabuki',
+        lavender: 'fuji',
+        sand: 'anzu'
+    };
+    const resolvedThemeId = legacyThemeIds[themeId] || themeId;
     const fallbackId = getDefaultProfileThemeId(getResolvedProfileRole(role));
-    return PROFILE_THEME_OPTIONS.find(option => option.id === themeId)
+    return PROFILE_THEME_OPTIONS.find(option => option.id === resolvedThemeId)
         || PROFILE_THEME_OPTIONS.find(option => option.id === fallbackId)
         || PROFILE_THEME_OPTIONS[0];
+}
+
+function getPartnerReservedThemeInfo() {
+    const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
+    if (!hasPartner || typeof MeimayShare === 'undefined') {
+        return { themeId: '', partnerName: '', themeLabel: '' };
+    }
+
+    const snapshot = MeimayShare.partnerSnapshot || {};
+    const themeId = String(snapshot.themeId || '').trim();
+    const partnerName = (typeof window.MeimayPartnerInsights !== 'undefined' && typeof window.MeimayPartnerInsights.getPartnerDisplayName === 'function')
+        ? window.MeimayPartnerInsights.getPartnerDisplayName()
+        : (String(snapshot.displayName || '').trim() || (snapshot.role === 'mama' ? 'ママ' : snapshot.role === 'papa' ? 'パパ' : 'パートナー'));
+    const themeLabel = themeId ? getProfileThemeOption(themeId, snapshot.role).label : '';
+    return { themeId, partnerName, themeLabel };
+}
+
+function getAvailableProfileThemeId(requestedThemeId, role, blockedThemeId) {
+    const requested = getProfileThemeOption(requestedThemeId, role).id;
+    if (!blockedThemeId || requested !== blockedThemeId) return requested;
+
+    const preferred = getDefaultProfileThemeId(role);
+    if (preferred !== blockedThemeId) return preferred;
+
+    const fallback = PROFILE_THEME_OPTIONS.find(option => option.id !== blockedThemeId);
+    return fallback ? fallback.id : requested;
 }
 
 function getProfileThemeId(role) {
@@ -226,13 +261,21 @@ function saveProfileAppearance(nextValues = {}) {
     if (typeof WizardData === 'undefined') return;
 
     const data = WizardData.get() || {};
+    const reservedTheme = getPartnerReservedThemeInfo();
     if (Object.prototype.hasOwnProperty.call(nextValues, 'nickname')) {
         data.username = String(nextValues.nickname || '').trim();
     }
     if (Object.prototype.hasOwnProperty.call(nextValues, 'themeId')) {
-        data.themeId = nextValues.themeId || getDefaultProfileThemeId(getResolvedProfileRole(data.role));
+        data.themeId = getAvailableProfileThemeId(
+            nextValues.themeId || getDefaultProfileThemeId(getResolvedProfileRole(data.role)),
+            getResolvedProfileRole(data.role),
+            reservedTheme.themeId
+        );
     }
     WizardData.save(data);
+    if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+        MeimayShare.syncProfileAppearance();
+    }
     syncProfileAppearance({ rerenderSettings: !!nextValues.rerenderSettings });
 }
 
@@ -582,18 +625,21 @@ function openProfileAppearanceModal() {
         ? (WizardData.get() || {})
         : {};
     const role = getResolvedProfileRole(wizard.role);
-    const currentThemeId = getProfileThemeId(role);
+    const reservedTheme = getPartnerReservedThemeInfo();
+    const currentThemeId = getAvailableProfileThemeId(getProfileThemeId(role), role, reservedTheme.themeId);
     const currentName = String(wizard.username || '').trim();
     const themeButtons = PROFILE_THEME_OPTIONS.map((option) => {
         const isSelected = option.id === currentThemeId;
+        const isReserved = reservedTheme.themeId === option.id;
         return `
             <button type="button"
-                class="profile-theme-option${isSelected ? ' selected' : ''}"
+                class="profile-theme-option${isSelected ? ' selected' : ''}${isReserved ? ' disabled' : ''}"
                 data-theme-id="${option.id}"
-                onclick="selectProfileThemeOption('${option.id}', event)">
+                ${isReserved ? 'disabled' : `onclick="selectProfileThemeOption('${option.id}', event)"`}>
                 <span class="profile-theme-swatch"
                     style="background:linear-gradient(135deg, ${option.accent} 0%, ${option.accentStrong} 100%);box-shadow:0 8px 18px ${option.shadow};"></span>
                 <span class="profile-theme-name">${option.label}</span>
+                ${isReserved ? `<span class="profile-theme-meta">${escapeProfileHtml(reservedTheme.partnerName)}が使用中</span>` : ''}
             </button>
         `;
     }).join('');
@@ -618,7 +664,7 @@ function openProfileAppearanceModal() {
                     <div class="mt-5">
                         <div class="profile-appearance-label">テーマカラー</div>
                         <div class="profile-theme-grid">${themeButtons}</div>
-                        <p class="profile-theme-note">${role === 'mama' ? '初期設定は桃色です。' : role === 'papa' ? '初期設定は青色です。' : '初期設定はきなり色です。'}</p>
+                        ${reservedTheme.themeId ? `<p class="profile-theme-note">パートナーが選んでいる色は選べません。</p>` : ''}
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -634,6 +680,9 @@ function openProfileAppearanceModal() {
 }
 
 function selectProfileThemeOption(themeId, event) {
+    const targetButton = event?.currentTarget || event?.target?.closest?.('.profile-theme-option');
+    if (targetButton?.disabled || targetButton?.classList?.contains('disabled')) return;
+
     window.profileAppearanceThemeId = themeId;
     document.querySelectorAll('.profile-theme-option').forEach((button) => {
         button.classList.toggle('selected', button.dataset.themeId === themeId);
