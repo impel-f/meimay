@@ -573,6 +573,7 @@ const MeimayShare = {
 };
 
 function refreshPartnerAwareUI() {
+    if (typeof applyProfileTheme === 'function') applyProfileTheme();
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
         renderHomeProfile();
     }
@@ -1394,11 +1395,13 @@ function getMeimayRelationshipPalettes() {
     const resolvedPartnerRole = (partnerRole === 'mama' || partnerRole === 'papa')
         ? partnerRole
         : inferPartnerRole(resolvedSelfRole);
-    const getRoleMatchedSurface = (role) => role === 'mama' ? '#ffe8ef' : '#e7f3ff';
-    const getRoleMatchedAccent = (role) => role === 'mama' ? '#fde1ea' : '#e3f0ff';
-    const getRoleMatchedBorder = (role) => role === 'mama' ? '#f5c7d6' : '#c6dcff';
-    const selfBase = getMeimayRolePalette(resolvedSelfRole);
+    const selfBase = typeof window.getActiveProfilePalette === 'function'
+        ? window.getActiveProfilePalette(resolvedSelfRole)
+        : getMeimayRolePalette(resolvedSelfRole);
     const partnerBase = getMeimayRolePalette(resolvedPartnerRole);
+    const getMatchedSurface = (base) => base?.mist || base?.surface || '#fffaf5';
+    const getMatchedAccent = (base) => base?.accentSoft || base?.accent || '#fff1e1';
+    const getMatchedBorder = (base) => base?.border || '#eadfce';
     const self = {
         ...selfBase,
         surface: `linear-gradient(to bottom right, ${selfBase.mist} 0%, ${selfBase.accentSoft} 28%, #ffffff 100%)`
@@ -1416,10 +1419,10 @@ function getMeimayRelationshipPalettes() {
             label: 'ふたり',
             accent: self.accent,
             accentAlt: partner.accent,
-            accentSoft: `linear-gradient(135deg, ${getRoleMatchedAccent(resolvedSelfRole)} 0%, #fffafc 46%, ${getRoleMatchedAccent(resolvedPartnerRole)} 100%)`,
-            surface: `linear-gradient(135deg, ${getRoleMatchedSurface(resolvedSelfRole)} 0%, #fffdfb 44%, ${getRoleMatchedSurface(resolvedPartnerRole)} 100%)`,
-            border: getRoleMatchedBorder(resolvedSelfRole),
-            borderAlt: getRoleMatchedBorder(resolvedPartnerRole),
+            accentSoft: `linear-gradient(135deg, ${getMatchedAccent(selfBase)} 0%, #fffafc 46%, ${getMatchedAccent(partnerBase)} 100%)`,
+            surface: `linear-gradient(135deg, ${getMatchedSurface(selfBase)} 0%, #fffdfb 44%, ${getMatchedSurface(partnerBase)} 100%)`,
+            border: getMatchedBorder(selfBase),
+            borderAlt: getMatchedBorder(partnerBase),
             text: '#7d6671',
             shadow: 'rgba(189, 166, 204, 0.18)'
         }
@@ -1453,6 +1456,7 @@ window.getMeimayOwnershipPalette = getMeimayOwnershipPalette;
 window.renderMeimaySuperStars = renderMeimaySuperStars;
 
 function refreshPartnerAwareUI() {
+    if (typeof applyProfileTheme === 'function') applyProfileTheme();
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
         renderHomeProfile();
     }

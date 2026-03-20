@@ -1027,7 +1027,8 @@ function updateHomeAggregateStageCounts(aggregateCounts) {
     });
 }
 
-function getHomeOverviewChipColor(role) {
+function getHomeOverviewChipColor(role, palette) {
+    if (palette?.accent) return palette.accent;
     return role === 'mama' ? '#F2A9C2' : '#AFCBFF';
 }
 
@@ -1051,8 +1052,8 @@ function getHomeOverviewSwitchStyle(mode) {
     const pairPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
         ? window.getMeimayRelationshipPalettes()
         : { self: palette, partner: palette };
-    const selfChip = getHomeOverviewChipColor(pairPalettes?.self?.role);
-    const partnerChip = getHomeOverviewChipColor(pairPalettes?.partner?.role);
+    const selfChip = getHomeOverviewChipColor(pairPalettes?.self?.role, pairPalettes?.self);
+    const partnerChip = getHomeOverviewChipColor(pairPalettes?.partner?.role, pairPalettes?.partner);
     const singleChip = kind === 'partner' ? partnerChip : selfChip;
     if (!palette) {
         return {
@@ -1305,10 +1306,14 @@ function renderHomeProfile() {
     if (readingBadge) readingBadge.classList.add('hidden');
 
     const soundEntry = document.getElementById('home-entry-sound');
+    const selfPalette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette('self')
+        : null;
+    const homeEntryBorder = selfPalette?.border || '#c4caf2';
     if (soundEntry) {
         soundEntry.style.boxShadow = '';
         soundEntry.style.borderWidth = recommendedEntry === 'sound' ? '3px' : '2px';
-        soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : '#c4caf2';
+        soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : homeEntryBorder;
         soundEntry.style.background = '#ffffff';
     }
 
@@ -1316,7 +1321,7 @@ function renderHomeProfile() {
     if (readingEntry) {
         readingEntry.style.boxShadow = '';
         readingEntry.style.borderWidth = recommendedEntry === 'reading' ? '3px' : '2px';
-        readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : '#c4caf2';
+        readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : homeEntryBorder;
         readingEntry.style.background = '#ffffff';
     }
 

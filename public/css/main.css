@@ -13,6 +13,16 @@
     --like: #81c995;
     --super: #8ab4f8;
     --alert: #e53e3e;
+    --profile-accent: #8fbff8;
+    --profile-accent-strong: #5f98de;
+    --profile-accent-soft: #eff7ff;
+    --profile-surface: #f8fbff;
+    --profile-surface-alt: #f3f8ff;
+    --profile-border: #d9e8ff;
+    --profile-text: #59779d;
+    --profile-shadow: rgba(143, 191, 248, 0.18);
+    --profile-page: #f7fbff;
+    --profile-dot: #d8e8ff;
     --shadow-sm: 0 4px 12px rgba(93, 84, 68, 0.05);
     --shadow-md: 0 12px 24px rgba(93, 84, 68, 0.08);
     --shadow-lg: 0 20px 45px rgba(93, 84, 68, 0.12);
@@ -39,6 +49,18 @@ body {
     user-select: none;
     -webkit-user-select: none;
     -webkit-font-smoothing: antialiased;
+}
+
+#scr-mode,
+#scr-stock,
+#scr-build,
+#scr-encountered,
+#scr-kanji-search,
+#scr-ranking,
+#scr-settings,
+#scr-saved,
+#scr-login {
+    background: var(--profile-page);
 }
 
 /* ============================================================
@@ -74,7 +96,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: #fdfaf5;
+    background: var(--profile-page);
     margin-left: -1rem;
     margin-right: -1rem;
     padding: 1rem 1rem 0;
@@ -392,6 +414,37 @@ body {
 
 .stock-strokes {
     line-height: 1;
+}
+
+#stock-tabs {
+    border-color: var(--profile-border) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 10px 24px var(--profile-shadow);
+}
+
+.partner-share-btn {
+    background: var(--profile-accent-strong) !important;
+    box-shadow: 0 10px 20px var(--profile-shadow);
+}
+
+.partner-share-btn:hover {
+    background: var(--profile-accent) !important;
+}
+
+#reading-stock-picker > button,
+#reading-stock-picker-list {
+    border-color: var(--profile-border) !important;
+}
+
+#reading-stock-picker > button {
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: var(--profile-text) !important;
+    box-shadow: 0 8px 18px var(--profile-shadow);
+}
+
+#reading-stock-picker-list {
+    background: #ffffff !important;
+    box-shadow: 0 16px 30px var(--profile-shadow);
 }
 
 .stock-kanji {
@@ -901,6 +954,29 @@ button {
 
 .drawer-menu-item:active {
     background: rgba(188, 163, 127, 0.1);
+}
+
+#side-profile {
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+#drawer-avatar {
+    background: linear-gradient(135deg, var(--profile-accent) 0%, var(--profile-accent-strong) 100%);
+    box-shadow: 0 12px 24px var(--profile-shadow);
+}
+
+#drawer-avatar:focus-visible {
+    outline: 3px solid var(--profile-border);
+    outline-offset: 3px;
+}
+
+#drawer-settings-button {
+    border-color: var(--profile-border);
+    color: var(--profile-text);
+}
+
+#drawer-settings-button:hover {
+    background: var(--profile-accent-soft);
 }
 
 .drawer-icon {

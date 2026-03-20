@@ -93,6 +93,69 @@
     position: relative;
 }
 
+.profile-appearance-sheet {
+    width: min(100%, 440px);
+}
+
+.profile-appearance-label {
+    display: block;
+    margin-bottom: 10px;
+    color: #8b7e66;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: center;
+}
+
+.profile-theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.profile-theme-option {
+    border: 1.5px solid #eadfce;
+    border-radius: 18px;
+    background: #fff;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-theme-option:active {
+    transform: scale(0.97);
+}
+
+.profile-theme-option.selected {
+    border-color: var(--profile-accent-strong);
+    box-shadow: 0 10px 22px var(--profile-shadow);
+}
+
+.profile-theme-swatch {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    display: block;
+}
+
+.profile-theme-name {
+    color: #5d5444;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.profile-theme-note {
+    margin-top: 12px;
+    color: #a6967a;
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: center;
+}
+
 /* 閉じるボタン（×） */
 .modal-close-x {
     position: absolute;
@@ -368,6 +431,10 @@
     
     .modal-input-large {
         font-size: 28px;
+    }
+
+    .profile-theme-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     
     .current-reading-value {

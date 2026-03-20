@@ -40,12 +40,15 @@
         class="fixed top-0 left-0 h-full w-72 bg-[#fdfaf5] z-[10002] shadow-2xl transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
         <!-- Profile -->
         <div id="side-profile" class="pt-12 pb-4 px-6 border-b border-[#eee5d8]">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-[#bca37f] to-[#8b7e66] flex items-center justify-center text-white text-2xl font-black mb-3"
-                id="drawer-avatar">P</div>
+            <button type="button"
+                class="w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl font-black mb-3 transition-transform active:scale-95"
+                id="drawer-avatar"
+                onclick="openProfileAppearanceModal()"
+                aria-label="プロフィールを編集">P</button>
             <div class="text-lg font-black text-[#5d5444]" id="drawer-username">ゲスト</div>
             <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@苗字未設定</div>
             <!-- 設定ボタン -->
-            <button onclick="drawerNavigate('settings')"
+            <button onclick="drawerNavigate('settings')" id="drawer-settings-button"
                 class="mt-3 w-full py-2 border border-[#d4c5af] text-[#8b7e66] rounded-full text-xs font-bold hover:bg-[#f8f5ef] transition-all flex items-center justify-center gap-1.5">
                 <span>⚙️</span>
                 <span>設定・パートナー連携</span>

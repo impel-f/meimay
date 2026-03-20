@@ -500,6 +500,58 @@ if (_originalChangeScreen) {
     };
 }
 
+function updateDrawerProfile() {
+    const data = WizardData.get();
+    if (!data) return;
+
+    const avatar = document.getElementById('drawer-avatar');
+    const username = document.getElementById('drawer-username');
+    const surnameDisplay = document.getElementById('drawer-surname-display');
+    const sideProfile = document.getElementById('side-profile');
+    const drawer = document.getElementById('side-drawer');
+    const settingsButton = document.getElementById('drawer-settings-button');
+    const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
+
+    if (drawer && palette) {
+        drawer.style.background = `linear-gradient(180deg, ${palette.mist} 0%, #fffefb 22%, ${palette.page} 100%)`;
+    }
+
+    if (sideProfile && palette) {
+        sideProfile.style.background = `linear-gradient(180deg, ${palette.surface} 0%, rgba(255,255,255,0.94) 82%)`;
+        sideProfile.style.borderColor = palette.border;
+    }
+
+    if (data.username && username) {
+        username.innerText = data.username;
+        if (avatar) {
+            avatar.innerText = data.username.charAt(0).toUpperCase();
+        }
+    }
+
+    if (data.role && avatar && !data.username) {
+        const roleEmoji = { papa: '👨', mama: '👩', other: '🙂' };
+        avatar.innerText = roleEmoji[data.role] || 'P';
+    }
+
+    if (surnameDisplay) {
+        surnameDisplay.innerText = data.surname ? `@${data.surname}` : '@未設定';
+        if (palette) surnameDisplay.style.color = palette.text;
+    }
+
+    if (avatar && palette) {
+        avatar.style.background = `linear-gradient(135deg, ${palette.accent} 0%, ${palette.accentStrong} 100%)`;
+        avatar.style.boxShadow = `0 12px 24px ${palette.shadow}`;
+        avatar.style.color = '#ffffff';
+        avatar.style.border = 'none';
+    }
+
+    if (settingsButton && palette) {
+        settingsButton.style.borderColor = palette.border;
+        settingsButton.style.color = palette.text;
+        settingsButton.style.background = 'rgba(255,255,255,0.84)';
+    }
+}
+
 // Expose functions
 window.openDrawer = openDrawer;
 window.closeDrawer = closeDrawer;

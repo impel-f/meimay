@@ -28,6 +28,214 @@ let selectedImageTags = ['none'];
 let shareMode = 'auto'; // 'auto' or 'manual'
 let showInappropriateKanji = false; // 不適切フラグがある漢字を表示するかどうか
 
+const PROFILE_THEME_OPTIONS = [
+    {
+        id: 'sky',
+        label: 'そら',
+        accent: '#8fbff8',
+        accentStrong: '#5f98de',
+        accentSoft: '#eff7ff',
+        surface: '#f8fbff',
+        mist: '#f3f8ff',
+        border: '#d9e8ff',
+        text: '#59779d',
+        shadow: 'rgba(143, 191, 248, 0.18)',
+        star: '#6ea9ef',
+        page: '#f7fbff',
+        dot: '#d8e8ff'
+    },
+    {
+        id: 'blush',
+        label: 'もも',
+        accent: '#f2a2b8',
+        accentStrong: '#dc7f9c',
+        accentSoft: '#fef0f5',
+        surface: '#fff8fb',
+        mist: '#fff5f8',
+        border: '#f7dbe5',
+        text: '#8e6170',
+        shadow: 'rgba(242, 162, 184, 0.18)',
+        star: '#ea89a7',
+        page: '#fff9fb',
+        dot: '#f8dce7'
+    },
+    {
+        id: 'mint',
+        label: 'みんと',
+        accent: '#8fd8c0',
+        accentStrong: '#63b59a',
+        accentSoft: '#eefaf5',
+        surface: '#f7fffb',
+        mist: '#effbf6',
+        border: '#d4eee3',
+        text: '#5f8f80',
+        shadow: 'rgba(143, 216, 192, 0.18)',
+        star: '#63c3a3',
+        page: '#f7fffc',
+        dot: '#d9efe6'
+    },
+    {
+        id: 'amber',
+        label: 'こはく',
+        accent: '#f4c28f',
+        accentStrong: '#d99b58',
+        accentSoft: '#fff5e8',
+        surface: '#fffbf5',
+        mist: '#fff7ef',
+        border: '#f0dec8',
+        text: '#9a7452',
+        shadow: 'rgba(244, 194, 143, 0.18)',
+        star: '#e0a463',
+        page: '#fffbf6',
+        dot: '#f1e0ca'
+    },
+    {
+        id: 'lavender',
+        label: 'らべんだー',
+        accent: '#b8a8f1',
+        accentStrong: '#8d79d4',
+        accentSoft: '#f5f0ff',
+        surface: '#fcf9ff',
+        mist: '#f8f4ff',
+        border: '#e2d9ff',
+        text: '#75669a',
+        shadow: 'rgba(184, 168, 241, 0.18)',
+        star: '#9d87e5',
+        page: '#fbf9ff',
+        dot: '#e6ddff'
+    },
+    {
+        id: 'sand',
+        label: 'きなり',
+        accent: '#d0b38e',
+        accentStrong: '#b28e65',
+        accentSoft: '#fbf6ee',
+        surface: '#fffdf8',
+        mist: '#fdf9f2',
+        border: '#e8dccb',
+        text: '#877058',
+        shadow: 'rgba(208, 179, 142, 0.18)',
+        star: '#c19d72',
+        page: '#fdfaf5',
+        dot: '#eadfce'
+    }
+];
+
+function escapeProfileHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getResolvedProfileRole(preferredRole) {
+    if (preferredRole === 'mama' || preferredRole === 'papa') return preferredRole;
+
+    const pairingRole = typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : '';
+    if (pairingRole === 'mama' || pairingRole === 'papa') return pairingRole;
+
+    const savedRole = localStorage.getItem('meimay_my_role');
+    if (savedRole === 'mama' || savedRole === 'papa') return savedRole;
+
+    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
+    if (wizard.role === 'mama' || wizard.role === 'papa') return wizard.role;
+
+    return 'other';
+}
+
+function getDefaultProfileThemeId(role) {
+    if (role === 'mama') return 'blush';
+    if (role === 'papa') return 'sky';
+    return 'sand';
+}
+
+function getProfileThemeOption(themeId, role) {
+    const fallbackId = getDefaultProfileThemeId(getResolvedProfileRole(role));
+    return PROFILE_THEME_OPTIONS.find(option => option.id === themeId)
+        || PROFILE_THEME_OPTIONS.find(option => option.id === fallbackId)
+        || PROFILE_THEME_OPTIONS[0];
+}
+
+function getProfileThemeId(role) {
+    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
+    return wizard.themeId || getDefaultProfileThemeId(getResolvedProfileRole(role || wizard.role));
+}
+
+function getActiveProfilePalette(role, themeId) {
+    const resolvedRole = getResolvedProfileRole(role);
+    const option = getProfileThemeOption(themeId || getProfileThemeId(resolvedRole), resolvedRole);
+    return {
+        role: resolvedRole,
+        label: option.label,
+        accent: option.accent,
+        accentStrong: option.accentStrong,
+        accentSoft: option.accentSoft,
+        surface: option.surface,
+        mist: option.mist,
+        border: option.border,
+        text: option.text,
+        shadow: option.shadow,
+        star: option.star,
+        page: option.page,
+        dot: option.dot
+    };
+}
+
+function applyProfileTheme(themeId) {
+    const palette = getActiveProfilePalette(null, themeId);
+    const root = document.documentElement;
+    if (!root) return palette;
+
+    root.style.setProperty('--profile-accent', palette.accent);
+    root.style.setProperty('--profile-accent-strong', palette.accentStrong);
+    root.style.setProperty('--profile-accent-soft', palette.accentSoft);
+    root.style.setProperty('--profile-surface', palette.surface);
+    root.style.setProperty('--profile-surface-alt', palette.mist);
+    root.style.setProperty('--profile-border', palette.border);
+    root.style.setProperty('--profile-text', palette.text);
+    root.style.setProperty('--profile-shadow', palette.shadow);
+    root.style.setProperty('--profile-page', palette.page);
+    root.style.setProperty('--profile-dot', palette.dot);
+
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.setAttribute('content', palette.accentStrong);
+
+    return palette;
+}
+
+function syncProfileAppearance(options = {}) {
+    applyProfileTheme();
+    if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    } else if (typeof renderHomeProfile === 'function') {
+        renderHomeProfile();
+    }
+    if (options.rerenderSettings && typeof renderSettingsScreen === 'function') {
+        renderSettingsScreen();
+    }
+}
+
+function saveProfileAppearance(nextValues = {}) {
+    if (typeof WizardData === 'undefined') return;
+
+    const data = WizardData.get() || {};
+    if (Object.prototype.hasOwnProperty.call(nextValues, 'nickname')) {
+        data.username = String(nextValues.nickname || '').trim();
+    }
+    if (Object.prototype.hasOwnProperty.call(nextValues, 'themeId')) {
+        data.themeId = nextValues.themeId || getDefaultProfileThemeId(getResolvedProfileRole(data.role));
+    }
+    WizardData.save(data);
+    syncProfileAppearance({ rerenderSettings: !!nextValues.rerenderSettings });
+}
+
 function getDueDateDisplayText(dueDate) {
     if (!dueDate) return '未設定';
 
@@ -267,13 +475,10 @@ function openNicknameInput() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const current = wizData?.username || '';
     showInputModal('ニックネームを入力', 'text', current, '例：メイ', (value) => {
-        if (typeof WizardData !== 'undefined') {
-            const data = WizardData.get() || {};
-            data.username = value;
-            WizardData.save(data);
-            if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
-        }
-        renderSettingsScreen();
+        saveProfileAppearance({
+            nickname: value,
+            rerenderSettings: true
+        });
     });
 }
 
@@ -292,9 +497,8 @@ function openRoleInput() {
             const data = WizardData.get() || {};
             data.role = value;
             WizardData.save(data);
-            if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+            syncProfileAppearance({ rerenderSettings: true });
         }
-        renderSettingsScreen();
     });
 }
 
@@ -371,6 +575,88 @@ function editShareMode() {
             display.innerText = value === 'manual' ? '都度連携（手動）' : '自動連携';
         }
     });
+}
+
+function openProfileAppearanceModal() {
+    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
+    const role = getResolvedProfileRole(wizard.role);
+    const currentThemeId = getProfileThemeId(role);
+    const currentName = String(wizard.username || '').trim();
+    const themeButtons = PROFILE_THEME_OPTIONS.map((option) => {
+        const isSelected = option.id === currentThemeId;
+        return `
+            <button type="button"
+                class="profile-theme-option${isSelected ? ' selected' : ''}"
+                data-theme-id="${option.id}"
+                onclick="selectProfileThemeOption('${option.id}', event)">
+                <span class="profile-theme-swatch"
+                    style="background:linear-gradient(135deg, ${option.accent} 0%, ${option.accentStrong} 100%);box-shadow:0 8px 18px ${option.shadow};"></span>
+                <span class="profile-theme-name">${option.label}</span>
+            </button>
+        `;
+    }).join('');
+
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="profile-appearance-modal" onclick="if(event.target.id==='profile-appearance-modal')closeProfileAppearanceModal()">
+            <div class="modal-sheet profile-appearance-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeProfileAppearanceModal()">✕</button>
+                <h3 class="modal-title">プロフィール表示</h3>
+                <p class="modal-desc">ニックネームとテーマカラーを変更できます。</p>
+                <div class="modal-body">
+                    <div>
+                        <label class="profile-appearance-label" for="profile-appearance-name">ニックネーム</label>
+                        <input type="text"
+                            id="profile-appearance-name"
+                            class="modal-input-large text-center w-full"
+                            value="${escapeProfileHtml(currentName)}"
+                            placeholder="例：けい"
+                            maxlength="10">
+                        <div class="modal-input-underline"></div>
+                    </div>
+                    <div class="mt-5">
+                        <div class="profile-appearance-label">テーマカラー</div>
+                        <div class="profile-theme-grid">${themeButtons}</div>
+                        <p class="profile-theme-note">${role === 'mama' ? '初期設定は桃色です。' : role === 'papa' ? '初期設定は青色です。' : '初期設定はきなり色です。'}</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button onclick="saveProfileAppearanceModal()" class="btn-modal-primary">保存</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modal);
+    window.profileAppearanceThemeId = currentThemeId;
+    setTimeout(() => document.getElementById('profile-appearance-name')?.focus(), 100);
+}
+
+function selectProfileThemeOption(themeId, event) {
+    window.profileAppearanceThemeId = themeId;
+    document.querySelectorAll('.profile-theme-option').forEach((button) => {
+        button.classList.toggle('selected', button.dataset.themeId === themeId);
+    });
+
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+    }
+}
+
+function saveProfileAppearanceModal() {
+    const input = document.getElementById('profile-appearance-name');
+    saveProfileAppearance({
+        nickname: input ? input.value : '',
+        themeId: window.profileAppearanceThemeId || getProfileThemeId(),
+        rerenderSettings: document.getElementById('scr-settings')?.classList.contains('active')
+    });
+    closeProfileAppearanceModal();
+    if (typeof showToast === 'function') showToast('プロフィール表示を更新しました', '✓');
+}
+
+function closeProfileAppearanceModal() {
+    document.getElementById('profile-appearance-modal')?.remove();
 }
 
 function openTransferModal() {
@@ -642,6 +928,18 @@ function loadSettings() {
 }
 
 loadSettings();
+applyProfileTheme();
+
+window.getResolvedProfileRole = getResolvedProfileRole;
+window.getDefaultProfileThemeId = getDefaultProfileThemeId;
+window.getProfileThemeId = getProfileThemeId;
+window.getActiveProfilePalette = getActiveProfilePalette;
+window.applyProfileTheme = applyProfileTheme;
+window.openProfileAppearanceModal = openProfileAppearanceModal;
+window.selectProfileThemeOption = selectProfileThemeOption;
+window.saveProfileAppearanceModal = saveProfileAppearanceModal;
+window.closeProfileAppearanceModal = closeProfileAppearanceModal;
+window.saveProfileAppearance = saveProfileAppearance;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");
 
