@@ -12,10 +12,15 @@ function isNonEmptyString(value, maxLength = 2000) {
 
 function buildErrorResponse(res, error, fallbackMessage) {
   const statusCode = Number(error?.statusCode) || 500;
-  return res.status(statusCode).json({
+  const payload = {
     error: fallbackMessage,
     details: error?.message || fallbackMessage,
-  });
+  };
+
+  if (error?.code) payload.code = error.code;
+  if (error?.cause?.message) payload.cause = error.cause.message;
+
+  return res.status(statusCode).json(payload);
 }
 
 module.exports = async (req, res) => {
@@ -39,14 +44,25 @@ module.exports = async (req, res) => {
     const db = getAdminFirestore();
 
     if (action === 'delete') {
-      const deletes = [db.collection('kanji_ai_explanations').doc(normalizedKanji).delete()];
+      const warnings = [];
+
+      await db.collection('kanji_ai_explanations').doc(normalizedKanji).delete();
+
       if (isNonEmptyString(normalizedReading, 256)) {
         const docId = encodeURIComponent(`${normalizedKanji}__${normalizedReading}`);
-        deletes.push(db.collection('kanji_ai_reading_explanations').doc(docId).delete());
+        try {
+          await db.collection('kanji_ai_reading_explanations').doc(docId).delete();
+        } catch (readingDeleteError) {
+          warnings.push(`Reading cache delete failed: ${readingDeleteError.message}`);
+          console.warn('KANJI_CACHE_DELETE: reading doc delete failed', {
+            kanji: normalizedKanji,
+            reading: normalizedReading,
+            error: readingDeleteError,
+          });
+        }
       }
 
-      await Promise.all(deletes);
-      return res.status(200).json({ ok: true });
+      return res.status(200).json(warnings.length > 0 ? { ok: true, warnings } : { ok: true });
     }
 
     try {
@@ -86,6 +102,12 @@ module.exports = async (req, res) => {
 
     return res.status(400).json({ error: 'Unsupported cache action' });
   } catch (error) {
+    console.error('KANJI_CACHE: operation failed', {
+      action,
+      kanji: normalizedKanji,
+      reading: normalizedReading,
+      error,
+    });
     return buildErrorResponse(res, error, 'Cache operation failed');
   }
 };
