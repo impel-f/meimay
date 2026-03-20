@@ -544,6 +544,11 @@ function getHomeRecommendedStageKey(action) {
     return '';
 }
 
+function getHomeSearchChoiceRecommended(readingStockCount) {
+    const wizard = getWizardHomeState();
+    return readingStockCount > 0 || wizard.hasReadingCandidate === true ? 'reading' : 'sound';
+}
+
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
     const buildPatternCount = Number.isFinite(Number(options.buildCount))
         ? Number(options.buildCount)
@@ -638,6 +643,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
+    const recommendedChoice = getHomeSearchChoiceRecommended(readingStockCount);
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
     if (heroCard) {
@@ -685,6 +691,34 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             `;
             }).join('')}
         </div>
+        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
+            <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
+            <div class="mt-3 flex flex-col gap-3 text-left">
+                <button type="button" onclick="runHomeAction('reading')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'reading' ? ' selected' : ''}">
+                    <div class="wiz-reading-choice-copy">
+                        <span class="block text-base font-bold text-[#5d5444]">読み候補がある</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>理想の漢字をさがします</span>
+                    </div>
+                    <div class="wiz-mini-preview" aria-hidden="true">
+                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
+                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
+                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
+                    </div>
+                </button>
+                <button type="button" onclick="runHomeAction('sound')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'sound' ? ' selected' : ''}">
+                    <div class="wiz-reading-choice-copy">
+                        <span class="block text-base font-bold text-[#5d5444]">まだない</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">響きから<br>読みの候補をさがします</span>
+                    </div>
+                    <div class="wiz-mini-preview" aria-hidden="true">
+                        <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
+                        <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">び</div>
+                        <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">き</div>
+                    </div>
+                </button>
+            </div>
+        </div>
     `;
 
     Array.from(stageTrack.querySelectorAll('button')).forEach((button, index) => {
@@ -694,8 +728,112 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     });
 }
 
+/*    const searchChoiceButtons = stageTrack.querySelectorAll('.wiz-reading-choice');
+    const readingChoiceCopy = searchChoiceButtons[0]?.querySelectorAll('.wiz-reading-choice-copy span');
+    if (readingChoiceCopy?.[0]) readingChoiceCopy[0].textContent = '読み候補がある';
+    if (readingChoiceCopy?.[1]) readingChoiceCopy[1].innerHTML = '希望の読みから<br>理想の漢字をさがします';
+
+    const soundChoiceCopy = searchChoiceButtons[1]?.querySelectorAll('.wiz-reading-choice-copy span');
+    if (soundChoiceCopy?.[0]) soundChoiceCopy[0].textContent = 'まだない';
+    if (soundChoiceCopy?.[1]) soundChoiceCopy[1].innerHTML = '響きから<br>読みの候補をさがします';
+}*/
+
 function closeHomePartnerHub() {
     document.getElementById('home-partner-hub-modal')?.remove();
+}
+
+function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
+    const stageTrack = ensureHomeStageTrack();
+    if (!stageTrack) return;
+
+    const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
+    const tone = getHomeStageTrackTone(options.mode);
+    const recommendedChoice = getHomeSearchChoiceRecommended(readingStockCount);
+    const heroCard = document.getElementById('home-hero-card');
+    const summaryPanel = document.getElementById('home-summary-panel');
+
+    if (heroCard) {
+        heroCard.style.cssText = tone.panel;
+    }
+    if (summaryPanel) {
+        summaryPanel.classList.remove('hidden');
+        summaryPanel.style.cssText = 'background:transparent;border:none;';
+    }
+
+    stageTrack.style.cssText = '';
+    stageTrack.innerHTML = `
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+            ${timeline.steps.map((step, index) => {
+                const cardStyle = step.recommended
+                    ? tone.cardRecommended
+                    : step.done
+                    ? tone.cardDone
+                    : step.active
+                        ? tone.cardActive
+                        : tone.cardIdle;
+                const badgeStyle = step.recommended
+                    ? tone.badgeRecommended
+                    : step.done
+                    ? tone.badgeDone
+                    : step.active
+                        ? tone.badgeActive
+                        : tone.badgeIdle;
+                return `
+                <button
+                    type="button"
+                    data-home-stage-button="true"
+                    onclick="event.stopPropagation(); runHomeAction('${step.action}')"
+                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
+                    style="${cardStyle}">
+                    <div class="flex h-full flex-col items-center justify-start">
+                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">-</span>
+                            <span>${step.label}</span>
+                        </div>
+                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
+                        </div>
+                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
+                    </div>
+                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
+            `;
+            }).join('')}
+        </div>
+        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
+            <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
+            <div class="mt-3 flex flex-col gap-3 text-left">
+                <button type="button" onclick="runHomeAction('reading')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'reading' ? ' selected' : ''}">
+                    <div class="wiz-reading-choice-copy">
+                        <span class="block text-base font-bold text-[#5d5444]">読み候補がある</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>理想の漢字をさがします</span>
+                    </div>
+                    <div class="wiz-mini-preview" aria-hidden="true">
+                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
+                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
+                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
+                    </div>
+                </button>
+                <button type="button" onclick="runHomeAction('sound')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'sound' ? ' selected' : ''}">
+                    <div class="wiz-reading-choice-copy">
+                        <span class="block text-base font-bold text-[#5d5444]">まだない</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">響きから<br>読みの候補をさがします</span>
+                    </div>
+                    <div class="wiz-mini-preview" aria-hidden="true">
+                        <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
+                        <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">び</div>
+                        <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">き</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    `;
+
+    Array.from(stageTrack.querySelectorAll('[data-home-stage-button]')).forEach((button, index) => {
+        const badge = button.querySelector('span');
+        if (!badge) return;
+        badge.textContent = timeline.steps[index]?.done ? '✓' : '-';
+    });
 }
 
 function runHomeAction(action) {
@@ -1227,6 +1365,10 @@ function renderHomeProfile() {
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
+    const entryDivider = document.getElementById('home-entry-divider');
+    const entryGrid = document.getElementById('home-entry-grid');
+    const utilityGrid = document.getElementById('home-utility-grid');
+    const toolGrid = document.getElementById('home-tool-grid');
     if (screen) {
         screen.style.paddingLeft = '12px';
         screen.style.paddingRight = '12px';
@@ -1280,6 +1422,22 @@ function renderHomeProfile() {
     if (overviewMount) {
         overviewMount.innerHTML = '';
         overviewMount.classList.add('hidden');
+    }
+
+    if (entryDivider) entryDivider.classList.add('hidden');
+    if (entryGrid) entryGrid.classList.add('hidden');
+    if (utilityGrid) utilityGrid.classList.add('hidden');
+    if (toolGrid) {
+        toolGrid.classList.remove('hidden');
+        const toolButtons = toolGrid.querySelectorAll('button');
+        const encounteredButton = toolButtons[2];
+        if (encounteredButton) {
+            encounteredButton.setAttribute('onclick', "openEncounteredLibrary('kanji')");
+            encounteredButton.innerHTML = `
+                <span class="text-xl">🗂️</span>
+                <span class="text-[10px] font-bold text-[#5d5444]">出会った候補</span>
+            `;
+        }
     }
 
 

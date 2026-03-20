@@ -458,7 +458,7 @@
             <div class="home-section-spacer w-full max-w-sm" aria-hidden="true"></div>
 
             <!-- ③ 直感スワイプ / 出会った候補 -->
-            <div class="w-full max-w-sm grid grid-cols-2 gap-2 home-utility-grid">
+            <div id="home-utility-grid" class="w-full max-w-sm grid grid-cols-2 gap-2 home-utility-grid">
                 <button id="home-direct-kanji-btn" onclick="startDirectKanjiSwipe()"
                     class="home-utility-card flex items-center gap-3 px-3 py-3 bg-white rounded-[20px] border border-[#e4d8c6] active:scale-[0.97] transition-transform text-left shadow-sm">
                     <div class="home-utility-icon relative flex-shrink-0 w-11 h-11 rounded-2xl bg-[#f6eee1] border border-[#e7d7bf] flex items-center justify-center">
@@ -489,7 +489,7 @@
             </div>
 
             <!-- ④ 3ツール（漢字検索 / ランキング / 姓名判断） -->
-            <div class="w-full max-w-sm grid grid-cols-3 gap-2 home-tool-grid">
+            <div id="home-tool-grid" class="w-full max-w-sm grid grid-cols-3 gap-2 home-tool-grid">
                 <button onclick="openKanjiSearch()"
                     class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
                     <span class="text-xl">🔎</span>

@@ -64,6 +64,22 @@ function selectWizReadingCandidate(hasCandidate) {
     });
 }
 
+function syncWizardReadingChoiceCopy() {
+    const yesCopy = document.querySelector('[data-reading-candidate="yes"] .wiz-reading-choice-copy');
+    if (yesCopy) {
+        const spans = yesCopy.querySelectorAll('span');
+        if (spans[0]) spans[0].textContent = '読み候補がある';
+        if (spans[1]) spans[1].innerHTML = '希望の読みから<br>理想の漢字をさがします';
+    }
+
+    const noCopy = document.querySelector('[data-reading-candidate="no"] .wiz-reading-choice-copy');
+    if (noCopy) {
+        const spans = noCopy.querySelectorAll('span');
+        if (spans[0]) spans[0].textContent = 'まだない';
+        if (spans[1]) spans[1].innerHTML = '響きから<br>読みの候補をさがします';
+    }
+}
+
 function wizNext(currentStep) {
     // Validation
     if (currentStep === 1) {
@@ -435,6 +451,7 @@ function updateTopBarTitle(screenId) {
 // ==========================================
 
 function initDrawerWizard() {
+    syncWizardReadingChoiceCopy();
     renderDrawerMenu();
 
     // Check if wizard has been completed
