@@ -469,10 +469,14 @@ function isLikelyRepresentativeIdiomWord(word) {
 function normalizeRepresentativeIdiomSectionText(content) {
     return sanitizeKanjiAiText(content)
         .replace(/\r\n?/g, '\n')
-        .replace(/[・•●◇◆]/g, '\n')
+        .replace(/[•●◇◆]/g, '\n')
         .replace(/[;；]/g, '\n')
-        .replace(/[、,\/／]\s*(?=[^（）\n]{1,20}(?:（[^（）\n]{1,20}）)?[:：])/g, '\n')
-        .replace(/([^\n])(?=[^（）\n]{1,20}(?:（[^（）\n]{1,20}）)?[:：])/g, '$1\n');
+        // 「・漢字（読み）：」パターン: 行中にある・の前で改行（行頭の・は行頭のまま）
+        .replace(/([^\n])・(?=[\u4E00-\u9FFF\u3400-\u4DBF])/g, '$1\n・')
+        // 句点の後に新しい熟語パターンが続く場合に改行を挿入
+        .replace(/([。！？!?])(?=\s*[\u4E00-\u9FFF\u3400-\u4DBF]{1,4}（)/g, '$1\n')
+        // 読点・カンマ・スラッシュの後に熟語パターンが続く場合に改行を挿入
+        .replace(/[、,\/／]\s*(?=[\u4E00-\u9FFF\u3400-\u4DBF]{1,4}（)/g, '\n');
 }
 
 function parseRepresentativeIdiomLines(content) {
