@@ -361,6 +361,7 @@ function sanitizeKanjiAiText(text) {
     return String(text || '')
         .replace(/\r\n/g, '\n')
         .replace(/\*/g, '')
+        .replace(/アプリ内辞書では/g, '')
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
@@ -409,6 +410,44 @@ function getKanjiDetailDatasetSectionText(datasetEntry, title) {
     if (!datasetEntry || !Array.isArray(datasetEntry.sections)) return '';
     const section = datasetEntry.sections.find((item) => normalizeKanjiDetailTitle(item?.title) === title);
     return sanitizeKanjiAiText(section?.text || '');
+}
+
+function isLikelyRepresentativeIdiomWord(word) {
+    const normalized = sanitizeKanjiAiText(word).replace(/[・\s]/g, '');
+    if (!normalized) return false;
+
+    const characters = Array.from(normalized);
+    if (characters.length < 2 || characters.length > 6) return false;
+    if (/[。、！？]/.test(normalized)) return false;
+
+    return true;
+}
+
+function parseRepresentativeIdiomLines(content) {
+    return sanitizeKanjiAiText(content)
+        .split('\n')
+        .map((line) => sanitizeKanjiAiText(line).replace(/^[・\-•●]+/, ''))
+        .filter(Boolean)
+        .map((line) => {
+            const match = line.match(/^(.+?)（(.+?)）[:：]\s*(.+)$/);
+            if (match) {
+                const word = sanitizeKanjiAiText(match[1]);
+                const reading = sanitizeKanjiAiText(match[2]);
+                let meaning = sanitizeKanjiAiText(match[3]);
+                if (!isLikelyRepresentativeIdiomWord(word)) return '';
+                if (meaning && !/[。.!！?？]$/.test(meaning)) meaning += '。';
+                return `・${word}（${reading}）：${meaning}`;
+            }
+
+            const normalizedLine = sanitizeKanjiAiText(line);
+            const word = normalizedLine.replace(/^・/, '').split(/[（(:：]/)[0];
+            if (!isLikelyRepresentativeIdiomWord(word)) return '';
+            let displayLine = normalizedLine;
+            if (!displayLine.startsWith('・')) displayLine = `・${displayLine}`;
+            if (!/[。.!！?？]$/.test(displayLine)) displayLine += '。';
+            return displayLine;
+        })
+        .filter(Boolean);
 }
 
 function extractRequiredKeywordsFromOriginText(originText) {
@@ -485,6 +524,17 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
     for (const title of orderedTitles) {
         const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
+        if (title === '代表的な熟語') {
+            const combinedLines = [
+                ...parseRepresentativeIdiomLines(aiSection),
+                ...parseRepresentativeIdiomLines(datasetSection)
+            ];
+            const uniqueLines = Array.from(new Set(combinedLines)).slice(0, 5);
+            const content = uniqueLines.join('\n');
+            if (content) blocks.push(`【${title}】\n${content}`);
+            continue;
+        }
+
         const content = sanitizeKanjiAiText(datasetSection || aiSection);
         if (content) blocks.push(`【${title}】\n${content}`);
     }
@@ -526,25 +576,7 @@ function normalizeKanjiDetailTitle(title) {
 }
 
 function formatRepresentativeIdiomContent(content) {
-    return sanitizeKanjiAiText(content)
-        .split('\n')
-        .map((line) => sanitizeKanjiAiText(line).replace(/^[・\-•●]+/, ''))
-        .filter(Boolean)
-        .map((line) => {
-            const match = line.match(/^(.+?)（(.+?)）[:：]\s*(.+)$/);
-            if (match) {
-                const word = sanitizeKanjiAiText(match[1]);
-                const reading = sanitizeKanjiAiText(match[2]);
-                let meaning = sanitizeKanjiAiText(match[3]);
-                if (meaning && !/[。.!！?？]$/.test(meaning)) meaning += '。';
-                return `・${word}（${reading}）：${meaning}`;
-            }
-            let normalizedLine = line;
-            if (!normalizedLine.startsWith('・')) normalizedLine = `・${normalizedLine}`;
-            if (!/[。.!！?？]$/.test(normalizedLine)) normalizedLine += '。';
-            return normalizedLine;
-        })
-        .join('\n');
+    return parseRepresentativeIdiomLines(content).join('\n');
 }
 
 function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
@@ -571,6 +603,7 @@ ${groundedHint?.promptContext
 
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
+・「アプリ内辞書では」という表現は使わないでください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
 ・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
 ・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
@@ -598,29 +631,62 @@ function buildKanjiReadingPrompt(kanji, currentReading) {
 }
 
 async function resetKanjiDetailCache(kanji, currentReading) {
-    if (typeof firebaseDb === 'undefined' || !firebaseDb) {
-        alert('キャッシュをリセットできませんでした。');
-        return false;
-    }
+    const readingPayload = isSpecialKanjiAiReading(currentReading) ? '' : currentReading;
+    let resetSucceeded = false;
+    let lastError = null;
 
     try {
-        await firebaseDb.collection('kanji_ai_explanations').doc(kanji).delete();
+        const response = await fetch('/api/kanji-cache', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete',
+                kanji,
+                reading: readingPayload
+            })
+        });
+
+        if (!response.ok) {
+            let errorMsg = `Cache reset failed: ${response.status}`;
+            try {
+                const errData = await response.json();
+                if (errData.error) errorMsg += `\n${errData.error}`;
+                if (errData.details) errorMsg += `\n${errData.details}`;
+            } catch (parseError) {
+                console.warn('KANJI_DETAIL_RESET: failed to parse API error response', parseError);
+            }
+            throw new Error(errorMsg);
+        }
+
+        resetSucceeded = true;
     } catch (error) {
-        console.warn('KANJI_DETAIL_RESET: base cache delete failed', error);
+        lastError = error;
+        console.warn('KANJI_DETAIL_RESET: api cache delete failed', error);
     }
 
-    if (!isSpecialKanjiAiReading(currentReading)) {
-        const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
+    if (!resetSucceeded && typeof firebaseDb !== 'undefined' && firebaseDb) {
         try {
-            await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).delete();
+            await firebaseDb.collection('kanji_ai_explanations').doc(kanji).delete();
+            if (!isSpecialKanjiAiReading(currentReading)) {
+                const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
+                await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).delete();
+            }
+            resetSucceeded = true;
         } catch (error) {
-            console.warn('KANJI_DETAIL_RESET: reading cache delete failed', error);
+            lastError = error;
+            console.warn('KANJI_DETAIL_RESET: direct cache delete failed', error);
         }
+    }
+
+    if (!resetSucceeded) {
+        console.warn('KANJI_DETAIL_RESET: all cache delete attempts failed', lastError);
+        alert('キャッシュのリセットに失敗しました。しばらくしてからもう一度お試しください。');
+        return false;
     }
 
     const resultEl = document.getElementById('ai-kanji-result');
     if (resultEl) resultEl.innerHTML = '';
-    alert('漢字の深掘りキャッシュをリセットしました。');
+    alert('漢字の説明キャッシュをリセットしました。');
     return true;
 }
 
