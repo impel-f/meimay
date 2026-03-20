@@ -1926,10 +1926,12 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
 function renderHomeNextStagePrimaryButton(cardConfig) {
     if (cardConfig.variant === 'icon') {
         return `
-            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-center active:scale-[0.98] transition-transform shadow-sm">
-                <span class="block text-[30px] leading-none">${cardConfig.icon || '⚒️'}</span>
-                <span class="mt-2 block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
-                <span class="mt-2 block text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left active:scale-[0.98] transition-transform shadow-sm">
+                <div class="min-w-0 flex-1">
+                    <span class="block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                    <span class="mt-2 block text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+                </div>
+                <span class="shrink-0 text-[30px] leading-none" aria-hidden="true">${cardConfig.icon || '⚒️'}</span>
             </button>
         `;
     }
