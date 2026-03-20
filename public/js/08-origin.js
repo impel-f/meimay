@@ -723,11 +723,20 @@ async function resetKanjiDetailCache(kanji, currentReading) {
         if (!response.ok) {
             let errorMsg = `Cache reset failed: ${response.status}`;
             try {
-                const errData = await response.json();
-                if (errData.error) errorMsg += `\n${errData.error}`;
-                if (errData.details) errorMsg += `\n${errData.details}`;
+                const rawBody = await response.text();
+                if (rawBody) {
+                    try {
+                        const errData = JSON.parse(rawBody);
+                        if (errData.error) errorMsg += `\n${errData.error}`;
+                        if (errData.details) errorMsg += `\n${errData.details}`;
+                        if (errData.code) errorMsg += `\nCode: ${errData.code}`;
+                        if (errData.cause) errorMsg += `\nCause: ${errData.cause}`;
+                    } catch (jsonError) {
+                        errorMsg += `\n${rawBody.slice(0, 500)}`;
+                    }
+                }
             } catch (parseError) {
-                console.warn('KANJI_DETAIL_RESET: failed to parse API error response', parseError);
+                console.warn('KANJI_DETAIL_RESET: failed to read API error response', parseError);
             }
             throw new Error(errorMsg);
         }
