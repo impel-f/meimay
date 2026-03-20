@@ -1,91 +1,142 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const {
+  GoogleGenerativeAI,
+  GoogleGenerativeAIRequestInputError,
+} = require("@google/generative-ai");
+
+const MODEL_PRIORITY_GROUPS = [
+  {
+    label: "Gemini 3 Flash",
+    candidates: ["gemini-3-flash-preview", "gemini-3-flash"],
+  },
+  {
+    label: "Gemini 2.5 Flash",
+    candidates: [
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-preview-09-2025",
+      "gemini-2.5-flash-preview-04-17",
+    ],
+  },
+  {
+    label: "Gemini 3.1 Flash-Lite",
+    candidates: ["gemini-3.1-flash-lite", "gemini-3.1-flash-lite-preview"],
+  },
+  {
+    label: "Gemini 2.5 Flash-Lite",
+    candidates: [
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash-lite-preview-09-2025",
+    ],
+  },
+  {
+    label: "Gemma 3 27B",
+    candidates: ["gemma-3-27b-it"],
+  },
+  {
+    label: "Gemma 3 12B",
+    candidates: ["gemma-3-12b-it"],
+  },
+  {
+    label: "Gemma 3 4B",
+    candidates: ["gemma-3-4b-it"],
+  },
+  {
+    label: "Gemma 3 2B",
+    candidates: ["gemma-3-2b-it"],
+  },
+  {
+    label: "Gemma 3 1B",
+    candidates: ["gemma-3-1b-it"],
+  },
+];
+
+function summarizeModelError(error) {
+  if (!error || typeof error !== "object") {
+    return "Unknown error";
+  }
+
+  const status = typeof error.status === "number" ? ` status=${error.status}` : "";
+  return `${error.name || "Error"}: ${error.message || String(error)}${status}`;
+}
+
+async function generateWithFallback(genAI, prompt) {
+  const attempts = [];
+  let lastError = null;
+
+  for (const group of MODEL_PRIORITY_GROUPS) {
+    for (const modelName of group.candidates) {
+      attempts.push(modelName);
+      console.log(`API: Trying ${group.label} (${modelName})`);
+
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        if (!text || !text.trim()) {
+          throw new Error(`Empty response from ${group.label} (${modelName})`);
+        }
+
+        return {
+          text,
+          modelName,
+          attempts,
+        };
+      } catch (error) {
+        lastError = error;
+        console.warn(
+          `API: ${group.label} failed on ${modelName}: ${summarizeModelError(error)}`
+        );
+
+        if (error instanceof GoogleGenerativeAIRequestInputError) {
+          throw error;
+        }
+      }
+    }
+  }
+
+  const finalError = new Error(
+    `AI Generation Failed after ${attempts.length} model attempt(s).` +
+      (lastError ? ` Last failure: ${summarizeModelError(lastError)}` : "")
+  );
+  finalError.cause = lastError;
+  finalError.attempts = attempts;
+  throw finalError;
+}
 
 module.exports = async (req, res) => {
   // CORS Setup
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   try {
     const { prompt } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
-    if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
-
-    console.log("API: Fetching available models...");
-
-    // 1. Fetch available models first to ensure we use a valid one
-    let targetModelName = 'gemini-pro'; // Default fallback
-    let debugAvailable = [];
-
-    try {
-      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-      if (!listRes.ok) throw new Error(`List fetch failed: ${listRes.status}`);
-
-      const listData = await listRes.json();
-      if (listData.models) {
-        debugAvailable = listData.models.map(m => m.name);
-        console.log("API: Available models:", debugAvailable);
-
-        // Prefer 1.5-flash, then 1.5-pro, then pro
-        const preferred = [
-          'gemini-1.5-flash-8b',
-          'gemini-1.5-flash',
-          'gemini-1.5-pro',
-          'gemini-pro',
-          'gemini-1.0-pro'
-        ];
-
-        let found = null;
-        for (const p of preferred) {
-          // exact match or match with models/ prefix
-          const match = listData.models.find(m => m.name === `models/${p}` || m.name === p);
-          if (match) {
-            // SDK usually wants "gemini-1.5-flash" without "models/" but supports both.
-            // Let's clean it just in case.
-            targetModelName = match.name.replace('models/', '');
-            found = p;
-            break;
-          }
-        }
-
-        if (!found && listData.models.length > 0) {
-          // If no preferred model found, use the first available gemini model
-          const firstGemini = listData.models.find(m => m.name.includes('gemini'));
-          if (firstGemini) {
-            targetModelName = firstGemini.name.replace('models/', '');
-          }
-        }
-      }
-    } catch (listErr) {
-      console.warn("API: Warning - could not list models, using fallback.", listErr);
+    if (!prompt) return res.status(400).json({ error: "Prompt is required" });
+    if (!apiKey) {
+      return res.status(500).json({ error: "API key not configured" });
     }
 
-    console.log(`API: Selected Model = ${targetModelName}`);
-
-    // 2. Generate Content
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: targetModelName });
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const { text, modelName } = await generateWithFallback(genAI, prompt);
 
     return res.status(200).json({
       text,
-      debug_used_model: targetModelName
+      debug_used_model: modelName,
     });
-
   } catch (error) {
-    console.error('API Exception:', error);
+    console.error("API Exception:", error);
     return res.status(500).json({
-      error: 'AI Generation Failed',
+      error: "AI Generation Failed",
       details: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
