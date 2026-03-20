@@ -259,13 +259,18 @@ async function generateKanjiDetail(kanji, currentReading) {
             const data = await response.json();
             baseText = data.text || '';
 
-            // Firestoreにキャッシュ保存
-            if (typeof firebaseDb !== 'undefined' && baseText) {
-                await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
-                    text: baseText,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                console.log(`ORIGIN: Saved base explanation for ${kanji} to cache`);
+            // API経由でキャッシュ保存
+            if (baseText) {
+                try {
+                    await callKanjiCacheApiWithAuth({
+                        action: 'saveBase',
+                        kanji: kanji,
+                        text: baseText
+                    });
+                    console.log(`ORIGIN: Saved base explanation for ${kanji} to cache via API`);
+                } catch (e) {
+                    console.warn(`ORIGIN: Failed to save base explanation`, e);
+                }
             }
         }
 
@@ -793,6 +798,26 @@ ${currentIdioms || 'なし'}
 `.trim();
 }
 
+async function callKanjiCacheApiWithAuth(payload) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (typeof firebaseAuth !== 'undefined' && firebaseAuth && firebaseAuth.currentUser) {
+        try {
+            const token = await firebaseAuth.currentUser.getIdToken();
+            headers['Authorization'] = `Bearer ${token}`;
+        } catch (authErr) {
+            console.warn('KANJI_CACHE_API: Failed to get auth token', authErr);
+        }
+    }
+    const response = await fetch('/api/kanji-cache', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+    }
+}
+
 async function resetKanjiDetailCache(kanji, currentReading) {
     const readingPayload = isSpecialKanjiAiReading(currentReading) ? '' : currentReading;
     let lastError = null;
@@ -1056,14 +1081,15 @@ async function generateKanjiDetail(kanji, currentReading) {
 
             const shouldPersistBaseText = finalIdiomsCount >= 3;
 
-            if (typeof firebaseDb !== 'undefined' && firebaseDb && shouldPersistBaseText) {
+            if (shouldPersistBaseText) {
                 try {
-                    await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
-                        text: baseText,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
+                    await callKanjiCacheApiWithAuth({
+                        action: 'saveBase',
+                        kanji: kanji,
+                        text: baseText
+                    });
                 } catch (cacheError) {
-                    console.warn('AI_KANJI_DETAIL: base cache save failed', cacheError);
+                    console.warn('AI_KANJI_DETAIL: base cache save failed via API', cacheError);
                 }
             }
         }
@@ -1110,13 +1136,17 @@ async function generateKanjiDetail(kanji, currentReading) {
                     if (reasonText) {
                         readingText = `【「${currentReading}」の由来】\n${reasonText}`;
                         readingFreshGenerated = true;
-                        if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
-                            await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).set({
-                                kanji,
-                                reading: currentReading,
-                                text: reasonText,
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            }, { merge: true });
+                        if (readingCacheId && reasonText) {
+                            try {
+                                await callKanjiCacheApiWithAuth({
+                                    action: 'saveReading',
+                                    kanji: kanji,
+                                    reading: currentReading,
+                                    text: reasonText
+                                });
+                            } catch (readingCacheError) {
+                                console.warn('AI_KANJI_DETAIL: reading cache save failed via API', readingCacheError);
+                            }
                         }
                     }
                 }
