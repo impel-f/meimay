@@ -367,6 +367,48 @@ function sanitizeKanjiAiText(text) {
         .trim();
 }
 
+function getKanjiDetailResetKey(kanji, currentReading = '') {
+    const encodedKanji = encodeURIComponent(String(kanji || ''));
+    if (!currentReading || isSpecialKanjiAiReading(currentReading)) {
+        return `kanji_detail_reset__${encodedKanji}`;
+    }
+    return `kanji_detail_reset__${encodedKanji}__${encodeURIComponent(String(currentReading || ''))}`;
+}
+
+function markKanjiDetailReset(kanji, currentReading) {
+    try {
+        localStorage.setItem(getKanjiDetailResetKey(kanji), String(Date.now()));
+        if (!isSpecialKanjiAiReading(currentReading)) {
+            localStorage.setItem(getKanjiDetailResetKey(kanji, currentReading), String(Date.now()));
+        }
+        return true;
+    } catch (error) {
+        console.warn('KANJI_DETAIL_RESET: local mark failed', error);
+        return false;
+    }
+}
+
+function clearKanjiDetailReset(kanji, currentReading) {
+    try {
+        localStorage.removeItem(getKanjiDetailResetKey(kanji));
+        if (!isSpecialKanjiAiReading(currentReading)) {
+            localStorage.removeItem(getKanjiDetailResetKey(kanji, currentReading));
+        }
+    } catch (error) {
+        console.warn('KANJI_DETAIL_RESET: local clear failed', error);
+    }
+}
+
+function hasKanjiDetailReset(kanji, currentReading) {
+    try {
+        if (localStorage.getItem(getKanjiDetailResetKey(kanji))) return true;
+        if (!isSpecialKanjiAiReading(currentReading) && localStorage.getItem(getKanjiDetailResetKey(kanji, currentReading))) return true;
+    } catch (error) {
+        console.warn('KANJI_DETAIL_RESET: local read failed', error);
+    }
+    return false;
+}
+
 function escapeHtml(text) {
     return String(text || '')
         .replace(/&/g, '&amp;')
@@ -635,6 +677,32 @@ async function resetKanjiDetailCache(kanji, currentReading) {
     let resetSucceeded = false;
     let lastError = null;
 
+    const localResetApplied = markKanjiDetailReset(kanji, currentReading);
+
+    if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+        try {
+            await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
+                text: '',
+                updatedAt: Date.now(),
+                resetAt: Date.now()
+            }, { merge: true });
+
+            if (!isSpecialKanjiAiReading(currentReading)) {
+                const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
+                await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).set({
+                    text: '',
+                    updatedAt: Date.now(),
+                    resetAt: Date.now()
+                }, { merge: true });
+            }
+
+            resetSucceeded = true;
+        } catch (error) {
+            lastError = error;
+            console.warn('KANJI_DETAIL_RESET: soft clear failed', error);
+        }
+    }
+
     try {
         const response = await fetch('/api/kanji-cache', {
             method: 'POST',
@@ -678,7 +746,7 @@ async function resetKanjiDetailCache(kanji, currentReading) {
         }
     }
 
-    if (!resetSucceeded) {
+    if (!resetSucceeded && !localResetApplied) {
         console.warn('KANJI_DETAIL_RESET: all cache delete attempts failed', lastError);
         alert('キャッシュのリセットに失敗しました。しばらくしてからもう一度お試しください。');
         return false;
@@ -721,13 +789,16 @@ async function generateKanjiDetail(kanji, currentReading) {
     const readingCacheId = !isSpecialKanjiAiReading(currentReading)
         ? encodeURIComponent(`${kanji}__${currentReading}`)
         : '';
+    const cacheResetMarked = hasKanjiDetailReset(kanji, currentReading);
 
     let baseText = '';
     let readingText = '';
+    let baseFreshGenerated = false;
+    let readingFreshGenerated = false;
 
     try {
         let cacheHit = false;
-        if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+        if (typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
                 const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
                 const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
@@ -775,6 +846,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
             }
+            baseFreshGenerated = true;
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
                 try {
@@ -793,11 +865,11 @@ async function generateKanjiDetail(kanji, currentReading) {
                 <div class="flex items-center justify-center py-6">
                     <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
                     <span class="text-sm text-[#7a6f5a]">「${currentReading}」という読みを確認しています...</span>
-                </div>
-            `;
+            </div>
+        `;
 
             let readingCacheHit = false;
-            if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
+            if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId && !cacheResetMarked) {
                 try {
                 const readingDoc = await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get();
                 const cachedReason = sanitizeKanjiAiText(readingDoc.exists ? readingDoc.data()?.text : '');
@@ -829,6 +901,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                     const reasonText = sanitizeKanjiAiText(data2.text || '');
                     if (reasonText) {
                         readingText = `【「${currentReading}」の由来】\n${reasonText}`;
+                        readingFreshGenerated = true;
                         if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
                             await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).set({
                                 kanji,
@@ -851,6 +924,10 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
 
         renderKanjiDetailSections(resultEl, combinedText);
+
+        if (readingFreshGenerated || (baseFreshGenerated && isSpecialKanjiAiReading(currentReading))) {
+            clearKanjiDetailReset(kanji, currentReading);
+        }
     } catch (err) {
         console.error('AI_KANJI_DETAIL:', err);
         resultEl.innerHTML = `
