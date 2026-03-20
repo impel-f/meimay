@@ -727,7 +727,7 @@ ${groundedHint?.promptContext
 ・「アプリ内辞書では」という表現は使わないでください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
 ・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
-・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
+・実在を確信できるものだけを書いてください。ただし、3個に満たない場合でも、一般的で安全な実在の二字熟語を優先して3個以上になるように選んでください。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・四字熟語、故事成語、ことわざは書かないでください。
 ・代表的な熟語は1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個になるようにしてください。1個だけで終わらせないでください。
@@ -782,7 +782,7 @@ ${currentIdioms || 'なし'}
 【お願い】
 ・足りない部分だけを直してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。
-・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。
+・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざは書かないでください。
 ・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
@@ -986,9 +986,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                         }
 
                         if (needsIdiomsRepair) {
-                            for (let attempt = 0; attempt < 3; attempt++) {
-                                if (countRepresentativeIdiomCandidates(currentIdiomsSection) >= 3) break;
-
+                            if (countRepresentativeIdiomCandidates(currentIdiomsSection) < 3) {
                                 const repairController = new AbortController();
                                 const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
                                 const repairResponse = await fetch('/api/gemini', {
@@ -1008,16 +1006,16 @@ async function generateKanjiDetail(kanji, currentReading) {
                                 });
                                 clearTimeout(repairTimeoutId);
 
-                                if (!repairResponse.ok) continue;
+                                if (repairResponse.ok) {
+                                    const repairData = await repairResponse.json();
+                                    const repairSections = extractKanjiDetailSectionMap(repairData.text || '');
+                                    const repairedIdiomsText = repairSections.get('代表的な熟語') || '';
+                                    const mergedIdioms = mergeRepresentativeIdiomSectionText(currentIdiomsSection, repairedIdiomsText);
 
-                                const repairData = await repairResponse.json();
-                                const repairSections = extractKanjiDetailSectionMap(repairData.text || '');
-                                const repairedIdiomsText = repairSections.get('代表的な熟語') || '';
-                                const mergedIdioms = mergeRepresentativeIdiomSectionText(currentIdiomsSection, repairedIdiomsText);
-
-                                if (mergedIdioms) {
-                                    currentIdiomsSection = mergedIdioms;
-                                    baseText = upsertKanjiDetailSection(baseText, '代表的な熟語', mergedIdioms);
+                                    if (mergedIdioms) {
+                                        currentIdiomsSection = mergedIdioms;
+                                        baseText = upsertKanjiDetailSection(baseText, '代表的な熟語', mergedIdioms);
+                                    }
                                 }
                             }
                         }
