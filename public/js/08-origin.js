@@ -459,7 +459,8 @@ function isLikelyRepresentativeIdiomWord(word) {
     if (!normalized) return false;
 
     const characters = Array.from(normalized);
-    if (characters.length < 2 || characters.length > 6) return false;
+    if (characters.length !== 2) return false;
+    if (!characters.every((ch) => isKanjiCharacter(ch))) return false;
     if (/[。、！？]/.test(normalized)) return false;
 
     return true;
@@ -503,6 +504,44 @@ function parseRepresentativeIdiomLines(content) {
             return displayLine;
         })
         .filter(Boolean);
+}
+
+function extractRepresentativeIdiomWord(line) {
+    return sanitizeKanjiAiText(line)
+        .replace(/^[・\-•●◇◆\d０-９]+[.)、．.]\s*/, '')
+        .split(/[（(〔【:：\/／\s]/)[0]
+        .trim();
+}
+
+function collectRepresentativeIdiomFallbackLines(kanji, dataset) {
+    const targetKanji = String(kanji || '').trim();
+    if (!targetKanji) return [];
+
+    const lines = [];
+    const seenWords = new Set();
+
+    for (const entry of Object.values(dataset || {})) {
+        const sectionText = getKanjiDetailDatasetSectionText(entry, '代表的な熟語');
+        if (!sectionText) continue;
+
+        for (const rawLine of sectionText.split('\n')) {
+            const line = sanitizeKanjiAiText(rawLine);
+            if (!line) continue;
+
+            const word = extractRepresentativeIdiomWord(line);
+            const normalizedWord = sanitizeKanjiAiText(word).replace(/[・\s]/g, '');
+            if (!normalizedWord) continue;
+            if (!normalizedWord.includes(targetKanji)) continue;
+            if (!isLikelyRepresentativeIdiomWord(normalizedWord)) continue;
+            if (seenWords.has(normalizedWord)) continue;
+
+            seenWords.add(normalizedWord);
+            lines.push(line);
+            if (lines.length >= 5) return lines;
+        }
+    }
+
+    return lines;
 }
 
 function extractRequiredKeywordsFromOriginText(originText) {
@@ -658,13 +697,7 @@ function mergeRepresentativeIdiomSectionText(primaryContent, secondaryContent) {
 }
 
 function countRepresentativeIdiomCandidates(content) {
-    return normalizeRepresentativeIdiomSectionText(content)
-        .split('\n')
-        .map((line) => sanitizeKanjiAiText(line)
-            .replace(/^[・\-•●◇◆\d]+[.)、．]?\s*/, '')
-            .trim())
-        .filter(Boolean)
-        .length;
+    return parseRepresentativeIdiomLines(content).length;
 }
 
 function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
@@ -997,6 +1030,28 @@ async function generateKanjiDetail(kanji, currentReading) {
             const finalBaseSections = extractKanjiDetailSectionMap(baseText);
             const finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
             finalIdiomsCount = countRepresentativeIdiomCandidates(finalIdiomsSection);
+
+            if (finalIdiomsCount < 3) {
+                const fallbackLines = collectRepresentativeIdiomFallbackLines(kanji, kanjiDetailDataset);
+                if (fallbackLines.length) {
+                    const mergedFallbackIdioms = mergeRepresentativeIdiomSectionText(
+                        finalIdiomsSection,
+                        fallbackLines.join('\n')
+                    );
+                    const mergedFallbackCount = countRepresentativeIdiomCandidates(mergedFallbackIdioms);
+                    if (mergedFallbackCount > finalIdiomsCount) {
+                        finalIdiomsSection = mergedFallbackIdioms;
+                        finalIdiomsCount = mergedFallbackCount;
+                        baseText = upsertKanjiDetailSection(baseText, '代表的な熟語', mergedFallbackIdioms);
+                        console.warn('AI_KANJI_DETAIL: idioms topped up from dataset fallback', {
+                            kanji,
+                            fallbackCount: fallbackLines.length,
+                            idiomCount: finalIdiomsCount
+                        });
+                    }
+                }
+            }
+
             const shouldPersistBaseText = finalIdiomsCount >= 3;
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb && shouldPersistBaseText) {
