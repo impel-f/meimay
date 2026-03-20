@@ -303,7 +303,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
 
         const combinedText = baseText + (readingText ? `\n\n${readingText}` : '');
-        renderKanjiDetailText(resultEl, combinedText);
+        renderKanjiDetailSections(resultEl, combinedText);
 
     } catch (err) {
         console.error("AI_KANJI_DETAIL:", err);
@@ -758,7 +758,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             throw new Error('表示できる説明がありません。');
         }
 
-        renderKanjiDetailText(resultEl, combinedText);
+        renderKanjiDetailSections(resultEl, combinedText);
     } catch (err) {
         console.error('AI_KANJI_DETAIL:', err);
         resultEl.innerHTML = `
@@ -810,10 +810,64 @@ function renderKanjiDetailText(resultEl, aiText) {
     resultEl.innerHTML = html;
 }
 
+function renderKanjiDetailSections(resultEl, aiText) {
+    const normalizedText = sanitizeKanjiAiText(aiText);
+    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|\s*$)/gm;
+    const sections = [];
+    let match;
+
+    while ((match = sectionPattern.exec(normalizedText)) !== null) {
+        const rawTitle = sanitizeKanjiAiText(match[1]);
+        const title = normalizeKanjiDetailTitle(rawTitle) || rawTitle;
+        const content = sanitizeKanjiAiText(match[2]);
+        if (title || content) sections.push({ title, content });
+    }
+
+    const getIcon = (title) => {
+        if (title.includes('成り立ち')) return '🧬';
+        if (title.includes('由来') || title.includes('理由') || title.includes('読み')) return '🏷️';
+        if (title.includes('熟語')) return '✨';
+        return '✨';
+    };
+
+    const renderBlock = (title, content) => {
+        if (!title || !content) return '';
+        const displayContent = title.includes('熟語')
+            ? formatRepresentativeIdiomContent(content)
+            : content;
+        return `
+            <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
+                    <span>${getIcon(title)}</span>
+                    ${title}
+                </div>
+                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${displayContent}</p>
+            </div>
+        `;
+    };
+
+    if (!sections.length) {
+        resultEl.innerHTML = `
+            <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+            </div>
+        `;
+        return;
+    }
+
+    const html = sections.map(({ title, content }) => renderBlock(title, content)).filter(Boolean).join('');
+    resultEl.innerHTML = html || `
+        <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+            <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+        </div>
+    `;
+}
+
 // Global Exports
 window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
-window.renderKanjiDetailText = renderKanjiDetailText;
+window.renderKanjiDetailText = renderKanjiDetailSections;
+window.renderKanjiDetailSections = renderKanjiDetailSections;
 window.resetKanjiDetailCache = resetKanjiDetailCache;
 window.closeOriginModal = closeOriginModal;
 window.copyOriginToClipboard = copyOriginToClipboard;
