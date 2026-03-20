@@ -601,7 +601,7 @@ function cachedKanjiDetailMatchesHint(text, groundedHint) {
 
 function extractKanjiDetailSectionMap(aiText) {
     const normalizedText = sanitizeKanjiAiText(aiText);
-    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|\s*$)/gm;
+    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|(?![^]))/gm;
     const sectionMap = new Map();
     let match;
 
@@ -1189,7 +1189,7 @@ function renderKanjiDetailText(resultEl, aiText) {
 
 function renderKanjiDetailSections(resultEl, aiText) {
     const normalizedText = sanitizeKanjiAiText(aiText);
-    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|\s*$)/gm;
+    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|(?![^]))/gm;
     const sections = [];
     let match;
 
