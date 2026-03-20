@@ -462,6 +462,37 @@ function cachedKanjiDetailMatchesHint(text, groundedHint) {
     return groundedHint.requiredKeywords.every((keyword) => normalizedText.includes(keyword));
 }
 
+function extractKanjiDetailSectionMap(aiText) {
+    const normalizedText = sanitizeKanjiAiText(aiText);
+    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|\s*$)/gm;
+    const sectionMap = new Map();
+    let match;
+
+    while ((match = sectionPattern.exec(normalizedText)) !== null) {
+        const title = normalizeKanjiDetailTitle(match[1]) || sanitizeKanjiAiText(match[1]);
+        const content = sanitizeKanjiAiText(match[2]);
+        if (title && content) sectionMap.set(title, content);
+    }
+
+    return sectionMap;
+}
+
+function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
+    const sectionMap = extractKanjiDetailSectionMap(aiText);
+    const orderedTitles = ['成り立ち', '意味の深掘り', '代表的な熟語'];
+    const blocks = [];
+
+    for (const title of orderedTitles) {
+        const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
+        const aiSection = sectionMap.get(title) || '';
+        const content = sanitizeKanjiAiText(datasetSection || aiSection);
+        if (content) blocks.push(`【${title}】\n${content}`);
+    }
+
+    if (!blocks.length) return sanitizeKanjiAiText(aiText);
+    return blocks.join('\n\n');
+}
+
 function upsertKanjiDetailSection(aiText, title, content) {
     const normalizedText = sanitizeKanjiAiText(aiText);
     const normalizedContent = sanitizeKanjiAiText(content);
@@ -621,7 +652,6 @@ async function generateKanjiDetail(kanji, currentReading) {
     const kanjiDetailDataset = await loadKanjiDetailDataset();
     const datasetEntry = kanjiDetailDataset?.[kanji] || null;
     const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry);
-    const groundedOriginText = getKanjiDetailDatasetSectionText(datasetEntry, '成り立ち');
     const readingCacheId = !isSpecialKanjiAiReading(currentReading)
         ? encodeURIComponent(`${kanji}__${currentReading}`)
         : '';
@@ -635,8 +665,8 @@ async function generateKanjiDetail(kanji, currentReading) {
             try {
                 const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
                 const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
-                if (cachedText && cachedKanjiDetailMatchesHint(cachedText, groundedHint)) {
-                    baseText = cachedText;
+                if (cachedText) {
+                    baseText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
                     cacheHit = true;
                 }
             } catch (cacheError) {
@@ -675,13 +705,9 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
 
             const data = await response.json();
-            baseText = sanitizeKanjiAiText(data.text || '');
+            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry);
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
-            }
-
-            if (groundedOriginText && !cachedKanjiDetailMatchesHint(baseText, groundedHint)) {
-                baseText = upsertKanjiDetailSection(baseText, '成り立ち', groundedOriginText);
             }
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
