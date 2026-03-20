@@ -884,13 +884,28 @@ button {
    SIDE DRAWER (X/Twitter style)
    ============================================================ */
 
+#side-drawer {
+    --drawer-x: -100%;
+    transform: translate3d(var(--drawer-x), 0, 0);
+    transition: transform 300ms ease-out;
+    will-change: transform;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+}
+
 #side-drawer.open {
-    transform: translateX(0) !important;
+    --drawer-x: 0%;
+}
+
+#drawer-overlay {
+    touch-action: none;
+    pointer-events: none;
 }
 
 #drawer-overlay.open {
     display: block !important;
-    opacity: 1 !important;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .drawer-menu-item {

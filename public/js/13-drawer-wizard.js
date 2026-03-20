@@ -1,5 +1,5 @@
 /* ============================================================
-   MODULE 13: DRAWER & WIZARD (V17.0)
+   MODULE 13: DRAWER & WIZARD (V17.1)
    サイドメニュー（X風ドロワー）& 初期ウィザード
    ============================================================ */
 
@@ -199,6 +199,222 @@ window.selectWizReadingCandidate = selectWizReadingCandidate;
 window.selectWizGender = selectWizGender;
 window.wizStartNaming = wizStartNaming;
 
+const DRAWER_EDGE_SWIPE_ZONE = 24;
+const DRAWER_SWIPE_START_THRESHOLD = 10;
+const DRAWER_SWIPE_SETTLE_THRESHOLD = 72;
+const DRAWER_SWIPE_LOCK_RATIO = 1.15;
+
+const DrawerSwipeState = {
+    active: false,
+    locked: false,
+    touchId: null,
+    mode: '',
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastY: 0
+};
+
+let drawerOverlayHideTimer = null;
+
+function getDrawerElements() {
+    return {
+        drawer: document.getElementById('side-drawer'),
+        overlay: document.getElementById('drawer-overlay')
+    };
+}
+
+function getTrackedTouch(touchList, touchId) {
+    if (!touchList) return null;
+    for (let i = 0; i < touchList.length; i++) {
+        if (touchList[i].identifier === touchId) return touchList[i];
+    }
+    return null;
+}
+
+function clearDrawerOverlayHideTimer() {
+    if (drawerOverlayHideTimer !== null) {
+        clearTimeout(drawerOverlayHideTimer);
+        drawerOverlayHideTimer = null;
+    }
+}
+
+function resetDrawerSwipeStyles(drawer, overlay) {
+    if (drawer) {
+        drawer.style.transition = '';
+    }
+    if (overlay) {
+        overlay.style.transition = '';
+        overlay.style.opacity = '';
+    }
+}
+
+function updateDrawerSwipePreview(positionPx, widthPx) {
+    const { drawer, overlay } = getDrawerElements();
+    if (!drawer) return;
+
+    clearDrawerOverlayHideTimer();
+
+    const clampedPosition = Math.max(-widthPx, Math.min(0, positionPx));
+    const progress = Math.max(0, Math.min(1, 1 + (clampedPosition / widthPx)));
+
+    drawer.style.setProperty('--drawer-x', `${clampedPosition}px`);
+    drawer.style.transition = 'none';
+
+    if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('open');
+        overlay.style.transition = 'none';
+        overlay.style.opacity = String(progress);
+    }
+}
+
+function settleDrawerSwipe(shouldOpen, widthPx) {
+    const { drawer, overlay } = getDrawerElements();
+    if (!drawer) return;
+
+    clearDrawerOverlayHideTimer();
+    resetDrawerSwipeStyles(drawer, overlay);
+    drawer.style.setProperty('--drawer-x', shouldOpen ? '0px' : `${-widthPx}px`);
+
+    if (shouldOpen) {
+        drawer.classList.add('open');
+        if (overlay) {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('open');
+            overlay.style.opacity = '1';
+        }
+        updateDrawerProfile();
+    } else {
+        drawer.classList.remove('open');
+        if (overlay) {
+            overlay.classList.remove('open');
+            overlay.style.opacity = '0';
+            drawerOverlayHideTimer = setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.style.opacity = '';
+                drawerOverlayHideTimer = null;
+            }, 300);
+        }
+    }
+
+    setTimeout(() => {
+        drawer.style.removeProperty('--drawer-x');
+        drawer.style.transition = '';
+        if (overlay) {
+            overlay.style.transition = '';
+            overlay.style.opacity = '';
+        }
+    }, 300);
+}
+
+function setupDrawerSwipeGestures() {
+    if (document._drawerSwipeGesturesSetup) return;
+    document._drawerSwipeGesturesSetup = true;
+
+    document.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+
+        const touch = e.touches[0];
+        const { drawer, overlay } = getDrawerElements();
+        if (!drawer || !overlay) return;
+
+        const drawerOpen = drawer.classList.contains('open');
+        const targetInsideDrawer = drawer.contains(e.target);
+        const targetIsOverlay = e.target === overlay;
+        const startNearEdge = !drawerOpen && touch.clientX <= DRAWER_EDGE_SWIPE_ZONE;
+
+        if (!drawerOpen && !startNearEdge) {
+            DrawerSwipeState.active = false;
+            DrawerSwipeState.locked = false;
+            DrawerSwipeState.touchId = null;
+            DrawerSwipeState.mode = '';
+            return;
+        }
+
+        if (drawerOpen && !targetInsideDrawer && !targetIsOverlay) {
+            DrawerSwipeState.active = false;
+            DrawerSwipeState.locked = false;
+            DrawerSwipeState.touchId = null;
+            DrawerSwipeState.mode = '';
+            return;
+        }
+
+        DrawerSwipeState.active = true;
+        DrawerSwipeState.locked = false;
+        DrawerSwipeState.touchId = touch.identifier;
+        DrawerSwipeState.mode = drawerOpen ? 'close' : 'open';
+        DrawerSwipeState.startX = touch.clientX;
+        DrawerSwipeState.startY = touch.clientY;
+        DrawerSwipeState.lastX = touch.clientX;
+        DrawerSwipeState.lastY = touch.clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!DrawerSwipeState.active || DrawerSwipeState.touchId === null) return;
+
+        const touch = getTrackedTouch(e.touches, DrawerSwipeState.touchId);
+        if (!touch) return;
+
+        const dx = touch.clientX - DrawerSwipeState.startX;
+        const dy = touch.clientY - DrawerSwipeState.startY;
+
+        if (!DrawerSwipeState.locked) {
+            if (Math.abs(dx) < DRAWER_SWIPE_START_THRESHOLD || Math.abs(dx) < Math.abs(dy) * DRAWER_SWIPE_LOCK_RATIO) {
+                return;
+            }
+            DrawerSwipeState.locked = true;
+        }
+
+        const { drawer } = getDrawerElements();
+        if (!drawer) return;
+
+        const widthPx = drawer.getBoundingClientRect().width || 288;
+        const positionPx = DrawerSwipeState.mode === 'open'
+            ? (-widthPx + Math.max(0, dx))
+            : Math.min(0, dx);
+
+        updateDrawerSwipePreview(positionPx, widthPx);
+        DrawerSwipeState.lastX = touch.clientX;
+        DrawerSwipeState.lastY = touch.clientY;
+        e.preventDefault();
+    }, { passive: false });
+
+    const finishSwipe = () => {
+        if (!DrawerSwipeState.active) return;
+
+        const { drawer } = getDrawerElements();
+        if (!drawer) {
+            DrawerSwipeState.active = false;
+            DrawerSwipeState.locked = false;
+            DrawerSwipeState.touchId = null;
+            DrawerSwipeState.mode = '';
+            return;
+        }
+
+        const widthPx = drawer.getBoundingClientRect().width || 288;
+        const dx = DrawerSwipeState.lastX - DrawerSwipeState.startX;
+        const settleThreshold = Math.max(DRAWER_SWIPE_SETTLE_THRESHOLD, widthPx * 0.25);
+        let shouldOpen = drawer.classList.contains('open');
+
+        if (DrawerSwipeState.locked) {
+            shouldOpen = DrawerSwipeState.mode === 'open'
+                ? dx >= settleThreshold
+                : dx > -settleThreshold;
+        }
+
+        settleDrawerSwipe(shouldOpen, widthPx);
+
+        DrawerSwipeState.active = false;
+        DrawerSwipeState.locked = false;
+        DrawerSwipeState.touchId = null;
+        DrawerSwipeState.mode = '';
+    };
+
+    document.addEventListener('touchend', finishSwipe, { passive: true });
+    document.addEventListener('touchcancel', finishSwipe, { passive: true });
+}
+
 // ==========================================
 // DRAWER FUNCTIONS
 // ==========================================
@@ -206,12 +422,19 @@ window.wizStartNaming = wizStartNaming;
 function openDrawer() {
     const drawer = document.getElementById('side-drawer');
     const overlay = document.getElementById('drawer-overlay');
-    if (drawer) drawer.classList.add('open');
+    clearDrawerOverlayHideTimer();
+    if (drawer) {
+        drawer.classList.add('open');
+        drawer.style.removeProperty('--drawer-x');
+        drawer.style.transition = '';
+    }
     if (overlay) {
         overlay.classList.remove('hidden');
         // Trigger reflow for transition
         overlay.offsetHeight;
         overlay.classList.add('open');
+        overlay.style.opacity = '';
+        overlay.style.transition = '';
     }
     updateDrawerProfile();
 }
@@ -219,10 +442,20 @@ function openDrawer() {
 function closeDrawer() {
     const drawer = document.getElementById('side-drawer');
     const overlay = document.getElementById('drawer-overlay');
-    if (drawer) drawer.classList.remove('open');
+    clearDrawerOverlayHideTimer();
+    if (drawer) {
+        drawer.classList.remove('open');
+        drawer.style.removeProperty('--drawer-x');
+        drawer.style.transition = '';
+    }
     if (overlay) {
         overlay.classList.remove('open');
-        setTimeout(() => overlay.classList.add('hidden'), 300);
+        overlay.style.opacity = '';
+        overlay.style.transition = '';
+        drawerOverlayHideTimer = setTimeout(() => {
+            overlay.classList.add('hidden');
+            drawerOverlayHideTimer = null;
+        }, 300);
     }
 }
 
@@ -420,6 +653,11 @@ function updateTopBarTitle(screenId) {
     const title = document.getElementById('top-bar-title');
     if (!title) return;
 
+    if (screenId === 'scr-ranking') {
+        title.innerText = 'ランキング';
+        return;
+    }
+
     const titles = {
         'scr-mode': 'メイメー',
         'scr-wizard': 'メイメー',
@@ -453,6 +691,7 @@ function updateTopBarTitle(screenId) {
 function initDrawerWizard() {
     syncWizardReadingChoiceCopy();
     renderDrawerMenu();
+    setupDrawerSwipeGestures();
 
     // Check if wizard has been completed
     if (!WizardData.isCompleted()) {
@@ -477,27 +716,6 @@ function initDrawerWizard() {
         updateDrawerProfile();
         updateHomeGreeting();
     }
-
-    // Handle swipe gesture to open drawer (edge swipe)
-    let touchStartX = 0;
-    let touchCurrentX = 0;
-    let isEdgeSwipe = false;
-
-    document.addEventListener('touchstart', (e) => {
-        touchStartX = e.touches[0].clientX;
-        // Only trigger if starting from left edge (first 20px)
-        isEdgeSwipe = touchStartX < 20;
-    }, { passive: true });
-
-    document.addEventListener('touchmove', (e) => {
-        if (!isEdgeSwipe) return;
-        touchCurrentX = e.touches[0].clientX;
-        const diff = touchCurrentX - touchStartX;
-        if (diff > 60) {
-            openDrawer();
-            isEdgeSwipe = false;
-        }
-    }, { passive: true });
 }
 
 // Hook into changeScreen to update top bar
@@ -521,7 +739,7 @@ if (_originalChangeScreen) {
         // History button visibility
         const historyBtn = document.getElementById('btn-history-float');
         if (historyBtn) {
-            const hideScreens = ['scr-mode', 'scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal', 'scr-wizard'];
+            const hideScreens = ['scr-mode', 'scr-main', 'scr-stock', 'scr-build', 'scr-settings', 'scr-swipe-universal', 'scr-wizard', 'scr-ranking'];
             historyBtn.classList.toggle('hidden', hideScreens.includes(id));
         }
     };
@@ -608,4 +826,4 @@ if (document.readyState === 'loading') {
     setTimeout(initDrawerWizard, 100);
 }
 
-console.log("DRAWER_WIZARD: Module loaded (v17.0)");
+console.log("DRAWER_WIZARD: Module loaded (v17.1)");

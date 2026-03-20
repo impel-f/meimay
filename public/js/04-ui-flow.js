@@ -519,6 +519,86 @@ function submitSoundEntry() {
     startNicknameCandidateSwipe(cleaned);
 }
 
+function getCurrentEncounteredMonthKey(date = new Date()) {
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Tokyo',
+            year: 'numeric',
+            month: '2-digit'
+        }).formatToParts(date);
+        const year = parts.find(part => part.type === 'year')?.value;
+        const month = parts.find(part => part.type === 'month')?.value;
+        if (year && month) return `${year}_${month}`;
+    } catch (error) {
+        console.warn('ENCOUNTERED: Failed to resolve month key', error);
+    }
+
+    const offsetMs = 9 * 60 * 60 * 1000;
+    const shifted = new Date(date.getTime() + offsetMs);
+    return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function normalizeEncounteredLibraryMonthCounters(entry, currentMonthKey) {
+    if (!entry || typeof entry !== 'object') {
+        return { entry, mutated: false };
+    }
+
+    const next = { ...entry };
+    const previousMonthKey = typeof next.monthlyMonthKey === 'string' ? next.monthlyMonthKey : '';
+    const hasMonthlyState = previousMonthKey
+        || Number(next.monthlySeenCount)
+        || Number(next.monthlyLikeCount)
+        || Number(next.monthlyNopeCount);
+
+    next.seenCount = Number(next.seenCount) || 0;
+    next.likeCount = Number(next.likeCount) || 0;
+    next.nopeCount = Number(next.nopeCount) || 0;
+
+    if (previousMonthKey === currentMonthKey) {
+        next.monthlySeenCount = Number(next.monthlySeenCount) || 0;
+        next.monthlyLikeCount = Number(next.monthlyLikeCount) || 0;
+        next.monthlyNopeCount = Number(next.monthlyNopeCount) || 0;
+        next.monthlyMonthKey = currentMonthKey;
+        return { entry: next, mutated: false };
+    }
+
+    next.monthlySeenCount = 0;
+    next.monthlyLikeCount = 0;
+    next.monthlyNopeCount = 0;
+
+    if (!hasMonthlyState && next.lastSeenAt) {
+        const lastSeenAt = new Date(next.lastSeenAt);
+        if (!Number.isNaN(lastSeenAt.getTime()) && getCurrentEncounteredMonthKey(lastSeenAt) === currentMonthKey) {
+            next.monthlySeenCount = 1;
+        }
+    }
+
+    next.monthlyMonthKey = currentMonthKey;
+    return { entry: next, mutated: true };
+}
+
+function normalizeEncounteredLibrary(library) {
+    const currentMonthKey = getCurrentEncounteredMonthKey();
+    let mutated = false;
+
+    const normalizeList = (list) => {
+        if (!Array.isArray(list)) return [];
+        return list.map((item) => {
+            const normalized = normalizeEncounteredLibraryMonthCounters(item, currentMonthKey);
+            mutated = mutated || normalized.mutated;
+            return normalized.entry;
+        });
+    };
+
+    return {
+        library: {
+            kanji: normalizeList(library?.kanji),
+            readings: normalizeList(library?.readings)
+        },
+        mutated
+    };
+}
+
 function getEncounteredLibrary() {
     try {
         const raw = JSON.parse(localStorage.getItem(ENCOUNTERED_LIBRARY_KEY) || '{}');
@@ -528,11 +608,12 @@ function getEncounteredLibrary() {
         };
         const initialReadingCount = library.readings.length;
         library.readings = library.readings.filter(item => !isLegacySyntheticEncounteredReading(item));
-        if (library.readings.length !== initialReadingCount) {
-            saveEncounteredLibrary(library);
+        const normalized = normalizeEncounteredLibrary(library);
+        if (library.readings.length !== initialReadingCount || normalized.mutated) {
+            saveEncounteredLibrary(normalized.library);
         }
 
-        return library;
+        return normalized.library;
     } catch (error) {
         console.warn('ENCOUNTERED: Failed to read library', error);
         return { kanji: [], readings: [] };
@@ -558,23 +639,38 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
     const index = list.findIndex(item => item && item.key === key);
     const now = new Date().toISOString();
     const action = options.action || payload.lastAction || '';
+    const currentMonthKey = getCurrentEncounteredMonthKey();
 
     const base = index >= 0 ? list[index] : {
         key,
         seenCount: 0,
         likeCount: 0,
         nopeCount: 0,
+        monthlySeenCount: 0,
+        monthlyLikeCount: 0,
+        monthlyNopeCount: 0,
+        monthlyMonthKey: currentMonthKey,
         firstSeenAt: now
     };
+    const baseSeenCount = Number(base.seenCount) || 0;
+    const baseLikeCount = Number(base.likeCount) || 0;
+    const baseNopeCount = Number(base.nopeCount) || 0;
+    const baseMonthlySeenCount = Number(base.monthlySeenCount) || 0;
+    const baseMonthlyLikeCount = Number(base.monthlyLikeCount) || 0;
+    const baseMonthlyNopeCount = Number(base.monthlyNopeCount) || 0;
 
     const next = {
         ...base,
         ...payload,
         key,
         encounterOrigin: base.encounterOrigin || payload.encounterOrigin || (options.incrementSeen ? 'swipe' : ''),
-        seenCount: base.seenCount + (options.incrementSeen ? 1 : 0),
-        likeCount: base.likeCount + (options.incrementLike ? 1 : 0),
-        nopeCount: base.nopeCount + (options.incrementNope ? 1 : 0),
+        seenCount: baseSeenCount + (options.incrementSeen ? 1 : 0),
+        likeCount: baseLikeCount + (options.incrementLike ? 1 : 0),
+        nopeCount: baseNopeCount + (options.incrementNope ? 1 : 0),
+        monthlySeenCount: baseMonthlySeenCount + (options.incrementSeen ? 1 : 0),
+        monthlyLikeCount: baseMonthlyLikeCount + (options.incrementLike ? 1 : 0),
+        monthlyNopeCount: baseMonthlyNopeCount + (options.incrementNope ? 1 : 0),
+        monthlyMonthKey: currentMonthKey,
         lastSeenAt: now
     };
 
@@ -1636,12 +1732,7 @@ function findKanjiCandidatesForSegment(segment, limit = 3) {
     const targetSokuon = target.replace(/っ$/, 'つ');
 
     const candidates = master.filter(item => {
-        const readings = [item['音'], item['訓'], item['伝統名のり']]
-            .filter(Boolean)
-            .join(',')
-            .split(/[、,，\s/]+/)
-            .map(value => toHira((value || '').trim()))
-            .filter(Boolean);
+        const readings = getReadingBucketsForKanji(item).allReadings;
         return readings.includes(target) || readings.includes(targetSeion) || readings.includes(targetSokuon);
     });
 
@@ -1663,20 +1754,34 @@ function getReadingCombinationExamples(path, limit = 4) {
     return buildReadingCombinationCandidates(path, limit).map(candidate => candidate.givenName);
 }
 
+function getReadingBucketsForKanji(item) {
+    if (typeof getKanjiReadingBuckets === 'function') {
+        return getKanjiReadingBuckets(item);
+    }
+
+    const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
+        .split(/[、,，\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+    const minorReadings = (item?.['伝統名のり'] || '')
+        .split(/[、,，\s/]+/)
+        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .filter(Boolean);
+
+    return {
+        majorReadings,
+        minorReadings,
+        allReadings: [...majorReadings, ...minorReadings]
+    };
+}
+
 function getStrictReadingMatch(item, segment) {
     const target = toHira(segment || '');
     if (!target || !item) return null;
 
     const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
     const targetSokuon = target.replace(/\u3063$/, '\u3064');
-    const majorReadings = ((item['\u97F3'] || '') + ',' + (item['\u8A13'] || ''))
-        .split(/[\u3001,\uFF0C\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
-        .filter(Boolean);
-    const minorReadings = (item['\u4F1D\u7D71\u540D\u306E\u308A'] || '')
-        .split(/[\u3001,\uFF0C\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
-        .filter(Boolean);
+    const { majorReadings, minorReadings } = getReadingBucketsForKanji(item);
 
     if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
         return { tier: 1 };
@@ -4513,14 +4618,7 @@ function getStrictReadingMatch(item, segment, options = {}) {
     const allowVoicedFallback = options.segmentIndex > 0;
     const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
     const targetSokuon = target.replace(/\u3063$/, '\u3064');
-    const majorReadings = ((item['\u97F3'] || '') + ',' + (item['\u8A13'] || ''))
-        .split(/[\u3001,\uFF0C\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
-        .filter(Boolean);
-    const minorReadings = (item['\u4F1D\u7D71\u540D\u306E\u308A'] || '')
-        .split(/[\u3001,\uFF0C\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
-        .filter(Boolean);
+    const { majorReadings, minorReadings } = getReadingBucketsForKanji(item);
 
     if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
         return { tier: 1 };

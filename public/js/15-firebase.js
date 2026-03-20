@@ -85,6 +85,63 @@ if (firebaseAuth) {
 // 起動時に匿名認証を自動実行
 MeimayAuth.init();
 
+async function getFirebaseIdToken(timeoutMs = 4000) {
+    if (!firebaseAuth) return null;
+
+    if (!firebaseAuth.currentUser && typeof MeimayAuth !== 'undefined' && typeof MeimayAuth.init === 'function') {
+        try {
+            await MeimayAuth.init();
+        } catch (error) {
+            console.warn('FIREBASE: Anonymous auth init retry failed', error);
+        }
+    }
+
+    if (firebaseAuth.currentUser) {
+        try {
+            return await firebaseAuth.currentUser.getIdToken();
+        } catch (error) {
+            console.warn('FIREBASE: Failed to get ID token from current user', error);
+        }
+    }
+
+    try {
+        const user = await new Promise((resolve) => {
+            let settled = false;
+            let timeoutId = null;
+            let unsubscribe = null;
+
+            const finish = (nextUser) => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId) clearTimeout(timeoutId);
+                if (typeof unsubscribe === 'function') unsubscribe();
+                resolve(nextUser || null);
+            };
+
+            timeoutId = setTimeout(() => finish(firebaseAuth.currentUser || null), timeoutMs);
+            unsubscribe = firebaseAuth.onAuthStateChanged(
+                (nextUser) => finish(nextUser),
+                () => finish(firebaseAuth.currentUser || null)
+            );
+        });
+
+        return user ? await user.getIdToken() : null;
+    } catch (error) {
+        console.warn('FIREBASE: Failed to wait for auth token', error);
+        return null;
+    }
+}
+
+async function getFirebaseRequestHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = await getFirebaseIdToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+}
+
+window.getFirebaseIdToken = getFirebaseIdToken;
+window.getFirebaseRequestHeaders = getFirebaseRequestHeaders;
+
 // ============================================================
 // PAIRING - ルームコード方式パートナー連携
 // ============================================================
@@ -930,31 +987,54 @@ const MeimayStats = {
         return `${d.getUTCFullYear()}_${weekNo.toString().padStart(2, '0')}`;
     },
 
-    recordKanjiLike: async function (kanjiString) {
-        if (!kanjiString || typeof firebaseDb === 'undefined') return;
+    getCurrentMonthKey: function () {
         try {
-            const increment = firebase.firestore.FieldValue.increment(1);
-            const batch = firebaseDb.batch();
-            const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
-            batch.set(allTimeRef, { [kanjiString]: increment }, { merge: true });
-            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
-            batch.set(weeklyRef, { [kanjiString]: increment }, { merge: true });
-            await batch.commit();
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Tokyo',
+                year: 'numeric',
+                month: '2-digit'
+            }).formatToParts(new Date());
+            const year = parts.find(part => part.type === 'year')?.value;
+            const month = parts.find(part => part.type === 'month')?.value;
+            if (year && month) return `${year}_${month}`;
+        } catch (error) {
+            // Fallback below keeps ranking usable if the environment lacks Intl time zones.
+        }
+
+        const offsetMs = 9 * 60 * 60 * 1000;
+        const shifted = new Date(Date.now() + offsetMs);
+        return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+    },
+
+    recordKanjiLike: async function (kanjiString) {
+        if (!kanjiString) return;
+        try {
+            const response = await fetch('/api/stats', {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify({
+                    kanji: kanjiString,
+                    delta: 1
+                })
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
         } catch (e) {
             console.error('STATS: recordKanjiLike error', e);
         }
     },
 
     recordKanjiUnlike: async function (kanjiString) {
-        if (!kanjiString || typeof firebaseDb === 'undefined') return;
+        if (!kanjiString) return;
         try {
-            const decrement = firebase.firestore.FieldValue.increment(-1);
-            const batch = firebaseDb.batch();
-            const allTimeRef = firebaseDb.collection('statistics').doc('allTime');
-            batch.set(allTimeRef, { [kanjiString]: decrement }, { merge: true });
-            const weeklyRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
-            batch.set(weeklyRef, { [kanjiString]: decrement }, { merge: true });
-            await batch.commit();
+            const response = await fetch('/api/stats', {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify({
+                    kanji: kanjiString,
+                    delta: -1
+                })
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
         } catch (e) {
             console.error('STATS: recordKanjiUnlike error', e);
         }
@@ -963,7 +1043,9 @@ const MeimayStats = {
     fetchRankings: async function (type = 'allTime') {
         try {
             let docRef;
-            if (type === 'weekly') {
+            if (type === 'monthly') {
+                docRef = firebaseDb.collection('statistics').doc(`monthly_${this.getCurrentMonthKey()}`);
+            } else if (type === 'weekly') {
                 docRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
             } else {
                 docRef = firebaseDb.collection('statistics').doc('allTime');

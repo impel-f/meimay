@@ -14,6 +14,25 @@ function getCurrentWeekKey() {
   return `${d.getUTCFullYear()}_${weekNo.toString().padStart(2, '0')}`;
 }
 
+function getCurrentMonthKey() {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+    }).formatToParts(new Date());
+    const year = parts.find((part) => part.type === 'year')?.value;
+    const month = parts.find((part) => part.type === 'month')?.value;
+    if (year && month) return `${year}_${month}`;
+  } catch (error) {
+    // Fallback below keeps the API working even if Intl time zones are unavailable.
+  }
+
+  const offsetMs = 9 * 60 * 60 * 1000;
+  const shifted = new Date(Date.now() + offsetMs);
+  return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 function buildErrorResponse(res, error, fallbackMessage) {
   const statusCode = Number(error?.statusCode) || 500;
   return res.status(statusCode).json({
@@ -54,12 +73,17 @@ module.exports = async (req, res) => {
     const batch = db.batch();
     const allTimeRef = db.collection('statistics').doc('allTime');
     const weeklyRef = db.collection('statistics').doc(`weekly_${getCurrentWeekKey()}`);
+    const monthlyRef = db.collection('statistics').doc(`monthly_${getCurrentMonthKey()}`);
 
     batch.set(allTimeRef, {
       [normalizedKanji]: increment,
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
     batch.set(weeklyRef, {
+      [normalizedKanji]: increment,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    batch.set(monthlyRef, {
       [normalizedKanji]: increment,
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
