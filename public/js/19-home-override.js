@@ -1842,6 +1842,8 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         title: nextStep?.actionLabel || '次へ進む',
         detailHtml: (nextStep?.detail || '').replace(/\n/g, '<br>'),
         previewHtml: getHomeNextStagePreviewHtml(stageKey),
+        variant: 'card',
+        icon: '',
         alternateAction: '',
         alternateLabel: ''
     };
@@ -1903,7 +1905,44 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         break;
     }
 
+    if (action === 'sound') {
+        config.title = '響きを探す';
+    }
+    if (action === 'reading') {
+        config.title = '漢字を探す';
+    }
+    if (action === 'build') {
+        config.variant = 'icon';
+        config.icon = '⚒️';
+    }
+    if (action === 'saved' || action === 'matched-saved' || action === 'partner-saved') {
+        config.variant = 'icon';
+        config.icon = '💾';
+    }
+
     return config;
+}
+
+function renderHomeNextStagePrimaryButton(cardConfig) {
+    if (cardConfig.variant === 'icon') {
+        return `
+            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-center active:scale-[0.98] transition-transform shadow-sm">
+                <span class="block text-[30px] leading-none">${cardConfig.icon || '⚒️'}</span>
+                <span class="mt-2 block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                <span class="mt-2 block text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+            </button>
+        `;
+    }
+
+    return `
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
+            <div class="wiz-reading-choice-copy">
+                <span class="block text-[1.15rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                <span class="block mt-2 text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+            </div>
+            ${cardConfig.previewHtml}
+        </button>
+    `;
 }
 
 function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
@@ -1924,7 +1963,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const cardConfig = getHomeNextStageCardConfig(nextStep, readingStockCount);
     const secondaryLink = cardConfig.alternateAction
-        ? `<button type="button" onclick="runHomeAction('${cardConfig.alternateAction}')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">${cardConfig.alternateLabel}</button>`
+        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.alternateAction}')" class="mt-3 w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${cardConfig.alternateLabel}</button>`
         : '';
 
     stageTrack.style.cssText = '';
@@ -1967,15 +2006,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             }).join('')}
         </div>
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
-            <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
-            <button type="button" onclick="runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
-                <div class="wiz-reading-choice-copy">
-                    <span class="block text-[1.15rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
-                    <span class="block mt-2 text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
-                </div>
-                ${cardConfig.previewHtml}
-            </button>
+            <div class="text-sm font-black text-[#4f4639]">次はここから</div>
+            ${renderHomeNextStagePrimaryButton(cardConfig)}
             ${secondaryLink}
         </div>
     `;
