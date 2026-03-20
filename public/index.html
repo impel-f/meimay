@@ -1030,23 +1030,23 @@
                 <div class="flex items-center justify-between gap-3 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-xl">👑</span>
-                        <h2 class="text-xl font-black text-[#5d5444] tracking-wider">ランキング</h2>
+                        <h2 class="sr-only">ランキング</h2>
                     </div>
                     <div class="text-[10px] font-bold text-[#bca37f] tracking-[0.2em] uppercase">RANKING</div>
                 </div>
 
                 <div class="space-y-2">
-                    <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="ranking-type-tabs">
+                    <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-0.5" id="ranking-type-tabs">
                         <button onclick="switchRankingType('kanji')" id="ranking-type-kanji"
-                            class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm">漢字ランキング</button>
+                            class="flex-1 rounded-xl px-3 py-2 text-[11px] font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm">漢字</button>
                         <button onclick="switchRankingType('reading')" id="ranking-type-reading"
-                            class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a]">読みランキング</button>
+                            class="flex-1 rounded-xl px-3 py-2 text-[11px] font-bold text-center text-[#a6967a]">読み</button>
                     </div>
-                    <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="ranking-period-tabs">
+                    <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-0.5" id="ranking-period-tabs">
                         <button onclick="switchRankingPeriod('allTime')" id="ranking-period-allTime"
-                            class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm">総合ランキング</button>
+                            class="flex-1 rounded-xl px-3 py-2 text-[11px] font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm">総合</button>
                         <button onclick="switchRankingPeriod('monthly')" id="ranking-period-monthly"
-                            class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a]">今月の急上昇</button>
+                            class="flex-1 rounded-xl px-3 py-2 text-[11px] font-bold text-center text-[#a6967a]">今月</button>
                     </div>
                 </div>
             </div>
