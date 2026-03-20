@@ -1,7 +1,8 @@
 const {
   GoogleGenerativeAI,
-  GoogleGenerativeAIRequestInputError,
 } = require("@google/generative-ai");
+
+const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 
 const MODEL_PRIORITY_GROUPS = [
   {
@@ -24,6 +25,22 @@ const MODEL_PRIORITY_GROUPS = [
     label: "Gemma 3 27B",
     candidates: ["gemma-3-27b-it"],
   },
+  {
+    label: "Gemma 3 12B",
+    candidates: ["gemma-3-12b-it"],
+  },
+  {
+    label: "Gemma 3 4B",
+    candidates: ["gemma-3-4b-it"],
+  },
+  {
+    label: "Gemma 3 2B (tentative)",
+    candidates: ["gemma-3-2b-it"],
+  },
+  {
+    label: "Gemma 3 1B",
+    candidates: ["gemma-3-1b-it"],
+  },
 ];
 
 function summarizeModelError(error) {
@@ -32,7 +49,21 @@ function summarizeModelError(error) {
   }
 
   const status = typeof error.status === "number" ? ` status=${error.status}` : "";
-  return `${error.name || "Error"}: ${error.message || String(error)}${status}`;
+  const statusText =
+    typeof error.statusText === "string" && error.statusText
+      ? ` statusText=${error.statusText}`
+      : "";
+  return `${error.name || "Error"}: ${error.message || String(error)}${status}${statusText}`;
+}
+
+function buildModel(genAI, modelName) {
+  return genAI.getGenerativeModel({
+    model: modelName,
+    generationConfig: {
+      maxOutputTokens: 512,
+      temperature: 0.4,
+    },
+  });
 }
 
 async function generateWithFallback(genAI, prompt) {
@@ -41,18 +72,30 @@ async function generateWithFallback(genAI, prompt) {
 
   for (const group of MODEL_PRIORITY_GROUPS) {
     for (const modelName of group.candidates) {
-      attempts.push(modelName);
+      const startedAt = Date.now();
+      const attempt = {
+        label: group.label,
+        modelName,
+        ok: false,
+        durationMs: 0,
+      };
+      attempts.push(attempt);
       console.log(`API: Trying ${group.label} (${modelName})`);
 
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
+        const model = buildModel(genAI, modelName);
+        const result = await model.generateContent(prompt, {
+          timeout: MODEL_REQUEST_TIMEOUT_MS,
+        });
         const response = await result.response;
         const text = response.text();
 
         if (!text || !text.trim()) {
           throw new Error(`Empty response from ${group.label} (${modelName})`);
         }
+
+        attempt.ok = true;
+        attempt.durationMs = Date.now() - startedAt;
 
         return {
           text,
@@ -61,13 +104,11 @@ async function generateWithFallback(genAI, prompt) {
         };
       } catch (error) {
         lastError = error;
+        attempt.durationMs = Date.now() - startedAt;
+        attempt.error = summarizeModelError(error);
         console.warn(
           `API: ${group.label} failed on ${modelName}: ${summarizeModelError(error)}`
         );
-
-        if (error instanceof GoogleGenerativeAIRequestInputError) {
-          throw error;
-        }
       }
     }
   }
@@ -102,17 +143,19 @@ module.exports = async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const { text, modelName } = await generateWithFallback(genAI, prompt);
+    const { text, modelName, attempts } = await generateWithFallback(genAI, prompt);
 
     return res.status(200).json({
       text,
       debug_used_model: modelName,
+      debug_attempts: attempts,
     });
   } catch (error) {
     console.error("API Exception:", error);
     return res.status(500).json({
       error: "AI Generation Failed",
       details: error.message,
+      attempts: error.attempts,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }

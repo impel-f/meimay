@@ -246,7 +246,7 @@ async function generateKanjiDetail(kanji, currentReading) {
 `.trim();
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            const timeoutId = setTimeout(() => controller.abort(), 120000);
             const response = await fetch('/api/gemini', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -364,6 +364,15 @@ function sanitizeKanjiAiText(text) {
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+}
+
+function escapeHtml(text) {
+    return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 const KANJI_DETAIL_GROUNDED_HINTS = {
@@ -645,7 +654,20 @@ async function generateKanjiDetail(kanji, currentReading) {
             clearTimeout(timeoutId);
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.status}`);
+                let errorMsg = `API Error: ${response.status}`;
+                try {
+                    const errData = await response.json();
+                    if (errData.error) errorMsg += `\n${errData.error}`;
+                    if (errData.details) {
+                        errorMsg += `\n${typeof errData.details === 'string' ? errData.details : JSON.stringify(errData.details)}`;
+                    }
+                    if (Array.isArray(errData.attempts)) {
+                        errorMsg += `\nAttempts: ${errData.attempts.length}`;
+                    }
+                } catch (parseError) {
+                    console.warn('AI_KANJI_DETAIL: failed to parse error response', parseError);
+                }
+                throw new Error(errorMsg);
             }
 
             const data = await response.json();
@@ -686,7 +708,7 @@ async function generateKanjiDetail(kanji, currentReading) {
 
             if (!readingCacheHit) {
                 const controller2 = new AbortController();
-                const timeoutId2 = setTimeout(() => controller2.abort(), 30000);
+                const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
                 const response2 = await fetch('/api/gemini', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -726,6 +748,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         resultEl.innerHTML = `
             <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82] mb-2">
                 漢字の説明を取得できませんでした。時間をおいてもう一度お試しください。
+                ${err?.message ? `<div class="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed opacity-80">${escapeHtml(err.message)}</div>` : ''}
             </div>
         `;
     }

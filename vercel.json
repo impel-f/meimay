@@ -6,8 +6,21 @@
       "destination": "/api/gemini.js"
     },
     {
+      "source": "/api/kanji-cache",
+      "destination": "/api/kanji-cache.js"
+    },
+    {
+      "source": "/api/stats",
+      "destination": "/api/stats.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
-  ]
+  ],
+  "functions": {
+    "api/gemini.js": {
+      "maxDuration": 120
+    }
+  }
 }
