@@ -632,11 +632,15 @@ async function generateKanjiDetail(kanji, currentReading) {
     try {
         let cacheHit = false;
         if (typeof firebaseDb !== 'undefined' && firebaseDb) {
-            const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
-            const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
-            if (cachedText && cachedKanjiDetailMatchesHint(cachedText, groundedHint)) {
-                baseText = cachedText;
-                cacheHit = true;
+            try {
+                const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
+                const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
+                if (cachedText && cachedKanjiDetailMatchesHint(cachedText, groundedHint)) {
+                    baseText = cachedText;
+                    cacheHit = true;
+                }
+            } catch (cacheError) {
+                console.warn('AI_KANJI_DETAIL: base cache read failed', cacheError);
             }
         }
 
@@ -681,10 +685,14 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
-                await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
-                    text: baseText,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                try {
+                    await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
+                        text: baseText,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                } catch (cacheError) {
+                    console.warn('AI_KANJI_DETAIL: base cache save failed', cacheError);
+                }
             }
         }
 
@@ -698,15 +706,20 @@ async function generateKanjiDetail(kanji, currentReading) {
 
             let readingCacheHit = false;
             if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId) {
+                try {
                 const readingDoc = await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get();
                 const cachedReason = sanitizeKanjiAiText(readingDoc.exists ? readingDoc.data()?.text : '');
                 if (cachedReason) {
                     readingText = `【「${currentReading}」の由来】\n${cachedReason}`;
                     readingCacheHit = true;
                 }
+                } catch (cacheError) {
+                    console.warn('AI_KANJI_DETAIL: reading cache read failed', cacheError);
+                }
             }
 
             if (!readingCacheHit) {
+                try {
                 const controller2 = new AbortController();
                 const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
                 const response2 = await fetch('/api/gemini', {
@@ -733,6 +746,9 @@ async function generateKanjiDetail(kanji, currentReading) {
                             }, { merge: true });
                         }
                     }
+                }
+                } catch (readingError) {
+                    console.warn('AI_KANJI_DETAIL: reading generation failed', readingError);
                 }
             }
         }
