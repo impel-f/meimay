@@ -94,14 +94,45 @@
 }
 
 .profile-appearance-sheet {
-    width: min(100%, 440px);
+    width: min(100%, 420px);
+    padding: 26px 18px 18px;
+    max-height: min(84vh, 560px);
+}
+
+.profile-appearance-sheet .modal-title {
+    margin-bottom: 8px;
+}
+
+.profile-appearance-sheet .modal-body {
+    margin-bottom: 16px;
+}
+
+.profile-appearance-sheet .modal-footer {
+    gap: 0;
+}
+
+.profile-appearance-sheet .btn-modal-primary {
+    padding: 14px 16px;
+}
+
+.profile-appearance-sheet .modal-input-large {
+    font-size: 28px;
+    padding: 8px 0;
+}
+
+.profile-appearance-desc {
+    font-size: 12px;
+    margin-bottom: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .profile-appearance-label {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     color: #8b7e66;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-align: center;
@@ -110,18 +141,20 @@
 .profile-theme-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 8px;
 }
 
 .profile-theme-option {
-    border: 1.5px solid #eadfce;
-    border-radius: 18px;
+    border: 1px solid #eee6da;
+    border-radius: 16px;
     background: #fff;
-    padding: 12px 10px;
+    padding: 10px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
+    min-height: 92px;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -131,44 +164,52 @@
 
 .profile-theme-option.selected {
     border-color: var(--profile-accent-strong);
-    box-shadow: 0 10px 22px var(--profile-shadow);
+    box-shadow: 0 6px 14px var(--profile-shadow);
 }
 
 .profile-theme-option.disabled {
-    background: #faf8f5;
-    border-color: #e7dfd2;
-    opacity: 0.7;
+    background: repeating-linear-gradient(135deg, #faf7f2 0 10px, #f6f0e7 10px 20px);
+    border-color: #e2d5c6;
+    border-style: dashed;
+    opacity: 1;
     box-shadow: none;
 }
 
 .profile-theme-swatch {
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     display: block;
 }
 
+.profile-theme-option.disabled .profile-theme-swatch {
+    filter: saturate(0.72) brightness(1.03);
+}
+
 .profile-theme-name {
     color: #5d5444;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     line-height: 1.2;
 }
 
 .profile-theme-meta {
-    color: #a6967a;
-    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px dashed #d4c4b1;
+    background: rgba(255, 255, 255, 0.82);
+    color: #9b8467;
+    font-size: 9px;
     font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.2;
     text-align: center;
-}
-
-.profile-theme-note {
-    margin-top: 12px;
-    color: #a6967a;
-    font-size: 11px;
-    line-height: 1.6;
-    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* 閉じるボタン（×） */

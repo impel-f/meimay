@@ -404,37 +404,6 @@ body {
     line-height: 1;
 }
 
-#stock-tabs {
-    border-color: var(--profile-border) !important;
-    background: rgba(255, 255, 255, 0.9) !important;
-    box-shadow: 0 10px 24px var(--profile-shadow);
-}
-
-.partner-share-btn {
-    background: var(--profile-accent-strong) !important;
-    box-shadow: 0 10px 20px var(--profile-shadow);
-}
-
-.partner-share-btn:hover {
-    background: var(--profile-accent) !important;
-}
-
-#reading-stock-picker > button,
-#reading-stock-picker-list {
-    border-color: var(--profile-border) !important;
-}
-
-#reading-stock-picker > button {
-    background: rgba(255, 255, 255, 0.92) !important;
-    color: var(--profile-text) !important;
-    box-shadow: 0 8px 18px var(--profile-shadow);
-}
-
-#reading-stock-picker-list {
-    background: #ffffff !important;
-    box-shadow: 0 16px 30px var(--profile-shadow);
-}
-
 .stock-kanji {
     font-size: clamp(32px, 8vw, 44px);
     font-weight: 900;

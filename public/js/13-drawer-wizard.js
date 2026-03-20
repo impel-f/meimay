@@ -120,11 +120,12 @@ function wizFinish(mode) {
     const surname = document.getElementById('wiz-surname');
     const surnameReadingInput = document.getElementById('wiz-surname-reading');
     const existingData = WizardData.get() || {};
+    const selectedRole = wizRole || existingData.role || '';
 
     const data = {
         completed: true,
         username: username ? username.value.trim() : '',
-        role: wizRole || existingData.role || '',
+        role: selectedRole,
         surname: surname ? surname.value.trim() : '',
         surnameReading: surnameReadingInput && surnameReadingInput.value.trim()
             ? toHira(surnameReadingInput.value.trim())
@@ -132,10 +133,19 @@ function wizFinish(mode) {
         dueDate: existingData.dueDate || '',
         hasReadingCandidate: wizHasReadingCandidate === true,
         gender: wizGender || existingData.gender || 'neutral',
+        themeId: existingData.themeId || '',
+        themeCustomized: !!existingData.themeCustomized,
         completedAt: new Date().toISOString()
     };
 
+    if (typeof resolveProfileThemeForRoleChange === 'function') {
+        data.themeId = resolveProfileThemeForRoleChange(data, selectedRole, existingData.role);
+    }
+
     WizardData.save(data);
+    if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+        MeimayShare.syncProfileAppearance();
+    }
 
     // Apply to global state
     if (data.surname) {

@@ -32,92 +32,92 @@ const PROFILE_THEME_OPTIONS = [
     {
         id: 'sora',
         label: '空',
-        accent: '#8fbff8',
-        accentStrong: '#5f98de',
-        accentSoft: '#eff7ff',
-        surface: '#f8fbff',
-        mist: '#f3f8ff',
-        border: '#d9e8ff',
-        text: '#59779d',
-        shadow: 'rgba(143, 191, 248, 0.18)',
-        star: '#6ea9ef',
-        page: '#f7fbff',
-        dot: '#d8e8ff'
+        accent: '#b8d6fb',
+        accentStrong: '#8db8ec',
+        accentSoft: '#f6faff',
+        surface: '#fcfdff',
+        mist: '#f8fbff',
+        border: '#e4edf8',
+        text: '#6e86a2',
+        shadow: 'rgba(141, 184, 236, 0.12)',
+        star: '#9ec3f2',
+        page: '#fdfdff',
+        dot: '#e8f1fb'
     },
     {
         id: 'sakura',
         label: '桜',
-        accent: '#f2a2b8',
-        accentStrong: '#dc7f9c',
-        accentSoft: '#fef0f5',
-        surface: '#fff8fb',
-        mist: '#fff5f8',
-        border: '#f7dbe5',
-        text: '#8e6170',
-        shadow: 'rgba(242, 162, 184, 0.18)',
-        star: '#ea89a7',
-        page: '#fff9fb',
-        dot: '#f8dce7'
+        accent: '#f6c0d0',
+        accentStrong: '#e5a0b8',
+        accentSoft: '#fff5f8',
+        surface: '#fffdfd',
+        mist: '#fff8fa',
+        border: '#f3e2e8',
+        text: '#926d79',
+        shadow: 'rgba(229, 160, 184, 0.12)',
+        star: '#ebb0c4',
+        page: '#fffdfd',
+        dot: '#f7e8ee'
     },
     {
         id: 'wakakusa',
         label: '若草',
-        accent: '#9fd36e',
-        accentStrong: '#7fb247',
-        accentSoft: '#f5fbe8',
-        surface: '#fbfff6',
-        mist: '#f7fceb',
-        border: '#dcebc3',
-        text: '#70864b',
-        shadow: 'rgba(159, 211, 110, 0.18)',
-        star: '#8abb52',
-        page: '#fbfff7',
-        dot: '#e2efcf'
+        accent: '#c4dfab',
+        accentStrong: '#a9c985',
+        accentSoft: '#f8fcf1',
+        surface: '#fdfffb',
+        mist: '#f9fdf4',
+        border: '#e5edd8',
+        text: '#73845d',
+        shadow: 'rgba(169, 201, 133, 0.13)',
+        star: '#b7d58f',
+        page: '#fdfffc',
+        dot: '#edf5e0'
     },
     {
         id: 'yamabuki',
         label: '山吹',
-        accent: '#f4c25f',
-        accentStrong: '#da9e1f',
-        accentSoft: '#fff6da',
-        surface: '#fffdf5',
-        mist: '#fff9ea',
-        border: '#f1dfaa',
-        text: '#92722c',
-        shadow: 'rgba(244, 194, 95, 0.18)',
-        star: '#e2ad33',
-        page: '#fffcf4',
-        dot: '#f5e7ba'
+        accent: '#f9d89a',
+        accentStrong: '#e7bf6d',
+        accentSoft: '#fff9ec',
+        surface: '#fffefb',
+        mist: '#fffbf2',
+        border: '#f0e4c9',
+        text: '#927a4a',
+        shadow: 'rgba(231, 191, 109, 0.13)',
+        star: '#efcb81',
+        page: '#fffefb',
+        dot: '#f7edd3'
     },
     {
         id: 'fuji',
         label: '藤',
-        accent: '#b9a2e8',
-        accentStrong: '#8c74c9',
-        accentSoft: '#f4efff',
-        surface: '#fcfaff',
-        mist: '#f7f4ff',
-        border: '#ded3f5',
-        text: '#74639c',
-        shadow: 'rgba(185, 162, 232, 0.18)',
-        star: '#9a7fe0',
-        page: '#fbf9ff',
-        dot: '#e6ddff'
+        accent: '#d5c7ef',
+        accentStrong: '#b6a3dc',
+        accentSoft: '#f8f4ff',
+        surface: '#fefcff',
+        mist: '#faf7ff',
+        border: '#e8e0f5',
+        text: '#786c96',
+        shadow: 'rgba(182, 163, 220, 0.12)',
+        star: '#c4b4e8',
+        page: '#fefcff',
+        dot: '#efe9fb'
     },
     {
         id: 'anzu',
         label: '杏',
-        accent: '#f0b07d',
-        accentStrong: '#d98a54',
-        accentSoft: '#fff1e6',
-        surface: '#fffaf5',
-        mist: '#fff5ee',
-        border: '#efd5c1',
-        text: '#97684c',
-        shadow: 'rgba(240, 176, 125, 0.18)',
-        star: '#e59a64',
-        page: '#fffaf6',
-        dot: '#f4dfcf'
+        accent: '#f6cab0',
+        accentStrong: '#e8ad85',
+        accentSoft: '#fff6ef',
+        surface: '#fffdfb',
+        mist: '#fff8f2',
+        border: '#f0e2d7',
+        text: '#9a7761',
+        shadow: 'rgba(232, 173, 133, 0.13)',
+        star: '#efba98',
+        page: '#fffdfb',
+        dot: '#f6ece4'
     }
 ];
 
@@ -238,10 +238,27 @@ function applyProfileTheme(themeId) {
     root.style.setProperty('--profile-page', palette.page);
     root.style.setProperty('--profile-dot', palette.dot);
 
-    const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) themeMeta.setAttribute('content', palette.accentStrong);
-
     return palette;
+}
+
+function resolveProfileThemeForRoleChange(data, nextRole, previousRole) {
+    const nextResolvedRole = getResolvedProfileRole(nextRole);
+    const prevResolvedRole = getResolvedProfileRole(previousRole || data?.role);
+    const reservedTheme = getPartnerReservedThemeInfo();
+    const currentThemeId = String(data?.themeId || '').trim();
+    const shouldUseRoleDefault = !data?.themeCustomized
+        || !currentThemeId
+        || currentThemeId === getDefaultProfileThemeId(prevResolvedRole);
+
+    if (shouldUseRoleDefault) {
+        return getAvailableProfileThemeId(
+            getDefaultProfileThemeId(nextResolvedRole),
+            nextResolvedRole,
+            reservedTheme.themeId
+        );
+    }
+
+    return getAvailableProfileThemeId(currentThemeId, nextResolvedRole, reservedTheme.themeId);
 }
 
 function syncProfileAppearance(options = {}) {
@@ -271,6 +288,9 @@ function saveProfileAppearance(nextValues = {}) {
             getResolvedProfileRole(data.role),
             reservedTheme.themeId
         );
+        if (nextValues.themeTouched === true) {
+            data.themeCustomized = true;
+        }
     }
     WizardData.save(data);
     if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
@@ -538,8 +558,13 @@ function openRoleInput() {
     ], current, (value) => {
         if (typeof WizardData !== 'undefined') {
             const data = WizardData.get() || {};
+            const previousRole = data.role;
             data.role = value;
+            data.themeId = resolveProfileThemeForRoleChange(data, value, previousRole);
             WizardData.save(data);
+            if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+                MeimayShare.syncProfileAppearance();
+            }
             syncProfileAppearance({ rerenderSettings: true });
         }
     });
@@ -631,15 +656,19 @@ function openProfileAppearanceModal() {
     const themeButtons = PROFILE_THEME_OPTIONS.map((option) => {
         const isSelected = option.id === currentThemeId;
         const isReserved = reservedTheme.themeId === option.id;
+        const blockedLabel = isReserved
+            ? `${escapeProfileHtml(reservedTheme.partnerName)}が使用中`
+            : '';
         return `
             <button type="button"
                 class="profile-theme-option${isSelected ? ' selected' : ''}${isReserved ? ' disabled' : ''}"
                 data-theme-id="${option.id}"
+                aria-label="${option.label}${blockedLabel ? ` ${blockedLabel}` : ''}"
                 ${isReserved ? 'disabled' : `onclick="selectProfileThemeOption('${option.id}', event)"`}>
                 <span class="profile-theme-swatch"
                     style="background:linear-gradient(135deg, ${option.accent} 0%, ${option.accentStrong} 100%);box-shadow:0 8px 18px ${option.shadow};"></span>
                 <span class="profile-theme-name">${option.label}</span>
-                ${isReserved ? `<span class="profile-theme-meta">${escapeProfileHtml(reservedTheme.partnerName)}が使用中</span>` : ''}
+                ${isReserved ? `<span class="profile-theme-meta">${blockedLabel}</span>` : ''}
             </button>
         `;
     }).join('');
@@ -648,8 +677,8 @@ function openProfileAppearanceModal() {
         <div class="overlay active modal-overlay-dark" id="profile-appearance-modal" onclick="if(event.target.id==='profile-appearance-modal')closeProfileAppearanceModal()">
             <div class="modal-sheet profile-appearance-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeProfileAppearanceModal()">✕</button>
-                <h3 class="modal-title">プロフィール表示</h3>
-                <p class="modal-desc">ニックネームとテーマカラーを変更できます。</p>
+                <h3 class="modal-title">プロフィール</h3>
+                <p class="modal-desc profile-appearance-desc">ニックネームとテーマカラーを変更できます</p>
                 <div class="modal-body">
                     <div>
                         <label class="profile-appearance-label" for="profile-appearance-name">ニックネーム</label>
@@ -664,7 +693,6 @@ function openProfileAppearanceModal() {
                     <div class="mt-5">
                         <div class="profile-appearance-label">テーマカラー</div>
                         <div class="profile-theme-grid">${themeButtons}</div>
-                        ${reservedTheme.themeId ? `<p class="profile-theme-note">パートナーが選んでいる色は選べません。</p>` : ''}
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -676,6 +704,7 @@ function openProfileAppearanceModal() {
 
     document.body.insertAdjacentHTML('beforeend', modal);
     window.profileAppearanceThemeId = currentThemeId;
+    window.profileAppearanceThemeTouched = false;
     setTimeout(() => document.getElementById('profile-appearance-name')?.focus(), 100);
 }
 
@@ -684,6 +713,7 @@ function selectProfileThemeOption(themeId, event) {
     if (targetButton?.disabled || targetButton?.classList?.contains('disabled')) return;
 
     window.profileAppearanceThemeId = themeId;
+    window.profileAppearanceThemeTouched = true;
     document.querySelectorAll('.profile-theme-option').forEach((button) => {
         button.classList.toggle('selected', button.dataset.themeId === themeId);
     });
@@ -698,14 +728,17 @@ function saveProfileAppearanceModal() {
     saveProfileAppearance({
         nickname: input ? input.value : '',
         themeId: window.profileAppearanceThemeId || getProfileThemeId(),
+        themeTouched: window.profileAppearanceThemeTouched === true,
         rerenderSettings: document.getElementById('scr-settings')?.classList.contains('active')
     });
     closeProfileAppearanceModal();
-    if (typeof showToast === 'function') showToast('プロフィール表示を更新しました', '✓');
+    if (typeof showToast === 'function') showToast('プロフィールを更新しました', '✓');
 }
 
 function closeProfileAppearanceModal() {
     document.getElementById('profile-appearance-modal')?.remove();
+    delete window.profileAppearanceThemeId;
+    delete window.profileAppearanceThemeTouched;
 }
 
 function openTransferModal() {
@@ -984,6 +1017,7 @@ window.getDefaultProfileThemeId = getDefaultProfileThemeId;
 window.getProfileThemeId = getProfileThemeId;
 window.getActiveProfilePalette = getActiveProfilePalette;
 window.applyProfileTheme = applyProfileTheme;
+window.resolveProfileThemeForRoleChange = resolveProfileThemeForRoleChange;
 window.openProfileAppearanceModal = openProfileAppearanceModal;
 window.selectProfileThemeOption = selectProfileThemeOption;
 window.saveProfileAppearanceModal = saveProfileAppearanceModal;

@@ -532,47 +532,6 @@ function switchStockTab(tab) {
     }
 }
 
-function switchStockTab(tab) {
-    currentStockTab = tab;
-
-    const readingTab = document.getElementById('stock-tab-reading');
-    const kanjiTab = document.getElementById('stock-tab-kanji');
-    const readingPanel = document.getElementById('reading-stock-panel');
-    const kanjiPanel = document.getElementById('stock-kanji-panel');
-    const shareBtn = document.querySelector('.partner-share-btn');
-    const activeTabStyle = 'background:var(--profile-accent-soft);color:#5d5444;box-shadow:0 8px 16px var(--profile-shadow);';
-    const inactiveTabStyle = 'background:transparent;color:var(--profile-text);box-shadow:none;';
-
-    if (shareBtn) {
-        shareBtn.classList.toggle('hidden', !(typeof shareMode !== 'undefined' && shareMode === 'manual'));
-        shareBtn.style.background = 'var(--profile-accent-strong)';
-        shareBtn.style.color = '#ffffff';
-        shareBtn.style.boxShadow = '0 10px 20px var(--profile-shadow)';
-    }
-
-    [readingTab, kanjiTab].forEach(tabButton => {
-        if (!tabButton) return;
-        tabButton.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all';
-        tabButton.style.cssText = inactiveTabStyle;
-    });
-    [readingPanel, kanjiPanel].forEach(panel => panel && panel.classList.add('hidden'));
-
-    if (tab === 'reading') {
-        if (readingTab) {
-            readingTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all';
-            readingTab.style.cssText = activeTabStyle;
-        }
-        if (readingPanel) readingPanel.classList.remove('hidden');
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-    } else {
-        if (kanjiTab) {
-            kanjiTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all';
-            kanjiTab.style.cssText = activeTabStyle;
-        }
-        if (kanjiPanel) kanjiPanel.classList.remove('hidden');
-    }
-}
-
 window.switchStockTab = switchStockTab;
 
 /**
