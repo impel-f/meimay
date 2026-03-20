@@ -6,46 +6,23 @@ const {
 const MODEL_PRIORITY_GROUPS = [
   {
     label: "Gemini 3 Flash",
-    candidates: ["gemini-3-flash-preview", "gemini-3-flash"],
+    candidates: ["gemini-3-flash-preview"],
   },
   {
     label: "Gemini 2.5 Flash",
-    candidates: [
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-preview-09-2025",
-      "gemini-2.5-flash-preview-04-17",
-    ],
+    candidates: ["gemini-2.5-flash", "gemini-2.5-flash-preview-09-2025"],
   },
   {
     label: "Gemini 3.1 Flash-Lite",
-    candidates: ["gemini-3.1-flash-lite", "gemini-3.1-flash-lite-preview"],
+    candidates: ["gemini-3.1-flash-lite-preview"],
   },
   {
     label: "Gemini 2.5 Flash-Lite",
-    candidates: [
-      "gemini-2.5-flash-lite",
-      "gemini-2.5-flash-lite-preview-09-2025",
-    ],
+    candidates: ["gemini-2.5-flash-lite", "gemini-2.5-flash-lite-preview-09-2025"],
   },
   {
     label: "Gemma 3 27B",
     candidates: ["gemma-3-27b-it"],
-  },
-  {
-    label: "Gemma 3 12B",
-    candidates: ["gemma-3-12b-it"],
-  },
-  {
-    label: "Gemma 3 4B",
-    candidates: ["gemma-3-4b-it"],
-  },
-  {
-    label: "Gemma 3 2B",
-    candidates: ["gemma-3-2b-it"],
-  },
-  {
-    label: "Gemma 3 1B",
-    candidates: ["gemma-3-1b-it"],
   },
 ];
 
