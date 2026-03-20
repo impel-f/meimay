@@ -567,17 +567,16 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
-            const combinedLines = [
-                ...parseRepresentativeIdiomLines(aiSection),
-                ...parseRepresentativeIdiomLines(datasetSection)
-            ];
+            const aiLines = parseRepresentativeIdiomLines(aiSection);
+            const datasetLines = parseRepresentativeIdiomLines(datasetSection);
+            const combinedLines = aiLines.length > 0 ? aiLines : datasetLines;
             const uniqueLines = Array.from(new Set(combinedLines)).slice(0, 5);
             const content = uniqueLines.join('\n');
             if (content) blocks.push(`【${title}】\n${content}`);
             continue;
         }
 
-        const content = sanitizeKanjiAiText(datasetSection || aiSection);
+        const content = sanitizeKanjiAiText(aiSection || datasetSection);
         if (content) blocks.push(`【${title}】\n${content}`);
     }
 
@@ -638,10 +637,10 @@ ${groundedHint?.promptContext
         : '部品やつくりを確実に断定できる場合にのみ、50〜80文字で説明してください。少しでも自信がない場合は、このセクション自体を出力しないでください。'}
 
 【意味の深掘り】
-元々の意味と、名前に使われるときの前向きな意味合いを、50〜80文字で説明してください。
+字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。
 
 【代表的な熟語】
-この漢字を使った実在する二字熟語または三字熟語を3〜5個、読みと意味付きで挙げてください。
+この漢字を使った実在する二字熟語を3〜5個、読みと意味付きで挙げてください。最低3個は必ず出してください。
 
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
@@ -651,6 +650,7 @@ ${groundedHint?.promptContext
 ・実在を確信できない場合は、熟語を無理に埋めず、そのセクションを空にしてかまいません。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・四字熟語、故事成語、ことわざは書かないでください。
+・代表的な熟語は1個だけで終わらせないでください。最低3個になるようにしてください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
@@ -672,36 +672,42 @@ function buildKanjiReadingPrompt(kanji, currentReading) {
 `.trim();
 }
 
+function isMeaningSectionTooShallow(text) {
+    const normalized = sanitizeKanjiAiText(text);
+    if (!normalized) return true;
+    if (normalized.length < 35) return true;
+    if (/を表す字です。?$/.test(normalized)) return true;
+    if (/^アプリ内辞書では/.test(normalized)) return true;
+    return false;
+}
+
+function buildKanjiDetailRepairPrompt(kanji, readings, meaning, groundedHint, currentMeaning, currentIdioms) {
+    return `
+漢字「${kanji}」の説明を修正してください。
+
+【入力情報】
+読み: ${readings || '不明'}
+意味: ${meaning || '不明'}
+${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
+
+【現在の内容】
+意味の深掘り: ${currentMeaning || 'なし'}
+代表的な熟語:
+${currentIdioms || 'なし'}
+
+【お願い】
+・足りない部分だけを直してください。
+・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。
+・【代表的な熟語】は、実在する二字熟語を3〜5個、読みと意味付きで書いてください。最低3個は必ず出してください。
+・四字熟語、故事成語、ことわざは書かないでください。
+・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
+`.trim();
+}
+
 async function resetKanjiDetailCache(kanji, currentReading) {
     const readingPayload = isSpecialKanjiAiReading(currentReading) ? '' : currentReading;
-    let resetSucceeded = false;
     let lastError = null;
-
-    const localResetApplied = markKanjiDetailReset(kanji, currentReading);
-
-    if (typeof firebaseDb !== 'undefined' && firebaseDb) {
-        try {
-            await firebaseDb.collection('kanji_ai_explanations').doc(kanji).set({
-                text: '',
-                updatedAt: Date.now(),
-                resetAt: Date.now()
-            }, { merge: true });
-
-            if (!isSpecialKanjiAiReading(currentReading)) {
-                const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
-                await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).set({
-                    text: '',
-                    updatedAt: Date.now(),
-                    resetAt: Date.now()
-                }, { merge: true });
-            }
-
-            resetSucceeded = true;
-        } catch (error) {
-            lastError = error;
-            console.warn('KANJI_DETAIL_RESET: soft clear failed', error);
-        }
-    }
+    clearKanjiDetailReset(kanji, currentReading);
 
     try {
         const response = await fetch('/api/kanji-cache', {
@@ -726,36 +732,19 @@ async function resetKanjiDetailCache(kanji, currentReading) {
             throw new Error(errorMsg);
         }
 
-        resetSucceeded = true;
+        markKanjiDetailReset(kanji, currentReading);
+        const resultEl = document.getElementById('ai-kanji-result');
+        if (resultEl) resultEl.innerHTML = '';
+        alert('漢字の説明キャッシュをリセットしました。');
+        return true;
     } catch (error) {
         lastError = error;
         console.warn('KANJI_DETAIL_RESET: api cache delete failed', error);
-    }
-
-    if (!resetSucceeded && typeof firebaseDb !== 'undefined' && firebaseDb) {
-        try {
-            await firebaseDb.collection('kanji_ai_explanations').doc(kanji).delete();
-            if (!isSpecialKanjiAiReading(currentReading)) {
-                const readingCacheId = encodeURIComponent(`${kanji}__${currentReading}`);
-                await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).delete();
-            }
-            resetSucceeded = true;
-        } catch (error) {
-            lastError = error;
-            console.warn('KANJI_DETAIL_RESET: direct cache delete failed', error);
-        }
-    }
-
-    if (!resetSucceeded && !localResetApplied) {
+        clearKanjiDetailReset(kanji, currentReading);
         console.warn('KANJI_DETAIL_RESET: all cache delete attempts failed', lastError);
-        alert('キャッシュのリセットに失敗しました。しばらくしてからもう一度お試しください。');
+        alert(`キャッシュのリセットに失敗しました。\n${error?.message || ''}`.trim());
         return false;
     }
-
-    const resultEl = document.getElementById('ai-kanji-result');
-    if (resultEl) resultEl.innerHTML = '';
-    alert('漢字の説明キャッシュをリセットしました。');
-    return true;
 }
 
 async function generateKanjiDetail(kanji, currentReading) {
@@ -847,6 +836,61 @@ async function generateKanjiDetail(kanji, currentReading) {
                 throw new Error('AIから説明を取得できませんでした。');
             }
             baseFreshGenerated = true;
+
+            if (baseFreshGenerated) {
+                const generatedSections = extractKanjiDetailSectionMap(baseText);
+                const currentMeaningSection = generatedSections.get('意味の深掘り') || '';
+                const currentIdiomsSection = generatedSections.get('代表的な熟語') || '';
+                const needsMeaningRepair = isMeaningSectionTooShallow(currentMeaningSection);
+                const needsIdiomsRepair = parseRepresentativeIdiomLines(currentIdiomsSection).length < 3;
+
+                if (needsMeaningRepair || needsIdiomsRepair) {
+                    try {
+                        const repairController = new AbortController();
+                        const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
+                        const repairResponse = await fetch('/api/gemini', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                prompt: buildKanjiDetailRepairPrompt(
+                                    kanji,
+                                    readings,
+                                    meaning,
+                                    groundedHint,
+                                    currentMeaningSection,
+                                    currentIdiomsSection
+                                )
+                            }),
+                            signal: repairController.signal
+                        });
+                        clearTimeout(repairTimeoutId);
+
+                        if (repairResponse.ok) {
+                            const repairData = await repairResponse.json();
+                            const repairSections = extractKanjiDetailSectionMap(repairData.text || '');
+                            let repairedText = baseText;
+
+                            if (needsMeaningRepair) {
+                                const repairedMeaning = sanitizeKanjiAiText(repairSections.get('意味の深掘り') || '');
+                                if (repairedMeaning) {
+                                    repairedText = upsertKanjiDetailSection(repairedText, '意味の深掘り', repairedMeaning);
+                                }
+                            }
+
+                            if (needsIdiomsRepair) {
+                                const repairedIdioms = parseRepresentativeIdiomLines(repairSections.get('代表的な熟語') || '').join('\n');
+                                if (repairedIdioms) {
+                                    repairedText = upsertKanjiDetailSection(repairedText, '代表的な熟語', repairedIdioms);
+                                }
+                            }
+
+                            baseText = repairedText;
+                        }
+                    } catch (repairError) {
+                        console.warn('AI_KANJI_DETAIL: base repair failed', repairError);
+                    }
+                }
+            }
 
             if (typeof firebaseDb !== 'undefined' && firebaseDb) {
                 try {

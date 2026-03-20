@@ -35,9 +35,9 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Invalid cache request' });
   }
 
-  const db = getAdminFirestore();
-
   try {
+    const db = getAdminFirestore();
+
     if (action === 'delete') {
       const deletes = [db.collection('kanji_ai_explanations').doc(normalizedKanji).delete()];
       if (isNonEmptyString(normalizedReading, 256)) {
