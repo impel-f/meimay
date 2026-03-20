@@ -225,13 +225,6 @@
         }
     }
 
-    window.generateKanjiDetail = generatePreloadedKanjiDetail;
-    try {
-        generateKanjiDetail = generatePreloadedKanjiDetail;
-    } catch (error) {
-        console.warn('KANJI_DETAIL_DATASET: Failed to rebind generateKanjiDetail', error);
-    }
-
     window.loadKanjiDetailDataset = loadKanjiDetailDataset;
     loadKanjiDetailDataset();
 })();
