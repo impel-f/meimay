@@ -521,6 +521,9 @@ function switchStockTab(tab) {
     allTabs.forEach(t => t && (t.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a] transition-all'));
     allPanels.forEach(p => p && p.classList.add('hidden'));
 
+    if (readingTab) readingTab.textContent = '読み';
+    if (kanjiTab) kanjiTab.textContent = '漢字';
+
     if (tab === 'reading') {
         if (readingTab) readingTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (readingPanel) readingPanel.classList.remove('hidden');

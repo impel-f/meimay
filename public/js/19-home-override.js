@@ -1774,6 +1774,95 @@ function renderHomeProfileV2() {
     );
 }
 
+function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
+    const stageTrack = ensureHomeStageTrack();
+    if (!stageTrack) return;
+
+    const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
+    const tone = getHomeStageTrackTone(options.mode);
+    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, getPairingHomeSummary());
+    const heroCard = document.getElementById('home-hero-card');
+    const summaryPanel = document.getElementById('home-summary-panel');
+
+    if (heroCard) heroCard.style.cssText = tone.panel;
+    if (summaryPanel) {
+        summaryPanel.classList.remove('hidden');
+        summaryPanel.style.cssText = 'background:transparent;border:none;';
+    }
+
+    const isSearchChoice = nextStep?.action === 'sound' || nextStep?.action === 'reading';
+    const primaryAction = nextStep?.action || (getHomeSearchChoiceRecommended(readingStockCount) === 'reading' ? 'reading' : 'sound');
+    const primaryLabel = isSearchChoice
+        ? (primaryAction === 'reading' ? '読みから漢字を探す' : '響き・読みを探す')
+        : (nextStep?.actionLabel || '次へ進む');
+    const primaryDescription = isSearchChoice
+        ? (primaryAction === 'reading'
+            ? '希望の読みから理想の漢字をさがします'
+            : '響きから読みの候補をさがします')
+        : (nextStep?.detail || '');
+    const secondaryLink = isSearchChoice
+        ? (primaryAction === 'reading'
+            ? `<button type="button" onclick="runHomeAction('sound')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">読み候補がまだない場合は、響きから探す</button>`
+            : `<button type="button" onclick="runHomeAction('reading')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">読み候補がある場合は、漢字を探す</button>`)
+        : '';
+
+    stageTrack.style.cssText = '';
+    stageTrack.innerHTML = `
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+            ${timeline.steps.map((step, index) => {
+                const cardStyle = step.recommended
+                    ? tone.cardRecommended
+                    : step.done
+                    ? tone.cardDone
+                    : step.active
+                        ? tone.cardActive
+                        : tone.cardIdle;
+                const badgeStyle = step.recommended
+                    ? tone.badgeRecommended
+                    : step.done
+                    ? tone.badgeDone
+                    : step.active
+                        ? tone.badgeActive
+                        : tone.badgeIdle;
+                return `
+                <button
+                    type="button"
+                    data-home-stage-button="true"
+                    onclick="event.stopPropagation(); runHomeAction('${step.action}')"
+                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
+                    style="${cardStyle}">
+                    <div class="flex h-full flex-col items-center justify-start">
+                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">-</span>
+                            <span>${step.label}</span>
+                        </div>
+                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
+                        </div>
+                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
+                    </div>
+                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
+            `;
+            }).join('')}
+        </div>
+        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
+            <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
+            <button type="button" onclick="runHomeAction('${primaryAction}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left active:scale-[0.98] transition-transform shadow-sm" style="${tone.cardRecommended}">
+                <span class="block text-[13px] font-black text-[#4f4639]">${primaryLabel}</span>
+                <span class="mt-1 block text-[11px] leading-relaxed text-[#8b7e66]">${primaryDescription}</span>
+            </button>
+            ${secondaryLink}
+        </div>
+    `;
+
+    Array.from(stageTrack.querySelectorAll('[data-home-stage-button]')).forEach((button, index) => {
+        const badge = button.querySelector('span');
+        if (!badge) return;
+        badge.textContent = timeline.steps[index]?.done ? '✓' : '-';
+    });
+}
+
 window.renderHomeProfile = renderHomeProfile;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
