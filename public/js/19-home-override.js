@@ -332,26 +332,26 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 
     if ((pairing?.matchedNameCount || 0) >= 1) {
         return {
-            title: '一致した名前を見直す',
-            detail: 'おふたりで一致した候補が見つかっています。',
-            actionLabel: '一致した名前を見る',
+            title: '一致した候補がある',
+            detail: 'おふたりで同じ候補が見つかっています。',
+            actionLabel: '一致した候補を見る',
             action: 'matched-saved'
         };
     }
 
     if ((pairing?.matchedReadingCount || 0) >= 1) {
         return {
-            title: 'ふたりで重なった読みから進めよう',
-            detail: '同じ読みが見つかったら、そこから漢字や組み合わせを育てるのが早いです。',
-            actionLabel: '重なった読みを見る',
+            title: '一致した読みがある',
+            detail: 'ふたりで同じ読みから、次の候補を広げやすい状態です。',
+            actionLabel: '一致した読みを見る',
             action: 'matched-reading'
         };
     }
 
     if ((pairing?.matchedKanjiCount || 0) >= 1) {
         return {
-            title: '一致した漢字を広げる',
-            detail: '共通で気になった漢字から名前を組み立てられます。',
+            title: '一致した漢字がある',
+            detail: '共通で気になった漢字から名前候補を広げられます。',
             actionLabel: '一致した漢字を見る',
             action: 'matched-liked'
         };
@@ -1774,6 +1774,138 @@ function renderHomeProfileV2() {
     );
 }
 
+function getHomeNextStagePreviewHtml(stageKey) {
+    if (stageKey === 'kanji') {
+        return `
+            <div class="wiz-mini-preview" aria-hidden="true">
+                <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
+                <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
+                <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
+            </div>
+        `;
+    }
+
+    if (stageKey === 'build') {
+        return `
+            <div class="wiz-mini-preview" aria-hidden="true">
+                <div class="wiz-mini-card wiz-mini-card-back" style="background:#FFF8EF; flex-direction:column; gap:2px;">
+                    <span style="font-size:7px; font-weight:700;">ひびき</span>
+                    <span style="font-size:13px;">漢歓</span>
+                </div>
+                <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDF4; flex-direction:column; gap:2px;">
+                    <span style="font-size:7px; font-weight:700;">ひびき</span>
+                    <span style="font-size:13px;">漢環</span>
+                </div>
+                <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFF7F8; flex-direction:column; gap:2px;">
+                    <span style="font-size:7px; font-weight:700;">ひびき</span>
+                    <span style="font-size:13px;">歓漢</span>
+                </div>
+            </div>
+        `;
+    }
+
+    if (stageKey === 'save') {
+        return `
+            <div class="wiz-mini-preview" aria-hidden="true">
+                <div class="wiz-mini-card wiz-mini-card-back" style="background:#FFF8EF; flex-direction:column; gap:2px;">
+                    <span style="font-size:10px;">◎</span>
+                    <span style="font-size:12px;">漢歓</span>
+                </div>
+                <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDF4; flex-direction:column; gap:2px;">
+                    <span style="font-size:10px;">○</span>
+                    <span style="font-size:12px;">漢環</span>
+                </div>
+                <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFF7F8; flex-direction:column; gap:2px;">
+                    <span style="font-size:10px;">☆</span>
+                    <span style="font-size:12px;">歓漢</span>
+                </div>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="wiz-mini-preview" aria-hidden="true">
+            <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
+            <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">び</div>
+            <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">き</div>
+        </div>
+    `;
+}
+
+function getHomeNextStageCardConfig(nextStep, readingStockCount) {
+    const fallbackAction = getHomeSearchChoiceRecommended(readingStockCount) === 'reading' ? 'reading' : 'sound';
+    const action = nextStep?.action || fallbackAction;
+    const stageKey = action === 'sound' ? 'reading' : (getHomeRecommendedStageKey(action) || 'reading');
+    const config = {
+        action,
+        stageKey,
+        title: nextStep?.actionLabel || '次へ進む',
+        detailHtml: (nextStep?.detail || '').replace(/\n/g, '<br>'),
+        previewHtml: getHomeNextStagePreviewHtml(stageKey),
+        alternateAction: '',
+        alternateLabel: ''
+    };
+
+    switch (action) {
+    case 'sound':
+        config.title = 'まだない';
+        config.detailHtml = '響きから<br>読みの候補をさがします';
+        config.alternateAction = 'reading';
+        config.alternateLabel = '読み候補がある場合は、漢字を探す';
+        break;
+    case 'reading':
+        config.title = '読み候補がある';
+        config.detailHtml = '希望の読みから<br>理想の漢字をさがします';
+        config.alternateAction = 'sound';
+        config.alternateLabel = '読み候補がまだない場合は、響きから探す';
+        break;
+    case 'stock-reading':
+        config.title = '読み候補を見る';
+        config.detailHtml = '集めた読みから<br>次の候補をえらびます';
+        break;
+    case 'matched-reading':
+        config.title = '一致した読みがある';
+        config.detailHtml = 'ふたりで同じ読みから<br>次の候補を広げます';
+        break;
+    case 'partner-reading':
+        config.title = '相手の読みを見る';
+        config.detailHtml = '相手が集めた読みを<br>確認します';
+        break;
+    case 'stock':
+        config.title = '漢字候補を見る';
+        config.detailHtml = '集めた漢字から<br>組み合わせを広げます';
+        break;
+    case 'matched-liked':
+        config.title = '一致した漢字がある';
+        config.detailHtml = 'ふたりで同じ漢字から<br>名前候補を広げます';
+        break;
+    case 'partner-liked':
+        config.title = '相手の漢字を見る';
+        config.detailHtml = '相手が集めた漢字を<br>確認します';
+        break;
+    case 'build':
+        config.title = '名前を組み立てる';
+        config.detailHtml = '集まった読みと漢字から<br>候補をつくります';
+        break;
+    case 'saved':
+        config.title = '保存済みを見る';
+        config.detailHtml = '保存した候補を<br>見比べて絞り込みます';
+        break;
+    case 'matched-saved':
+        config.title = '一致した候補がある';
+        config.detailHtml = 'ふたりで同じ候補を<br>見比べられます';
+        break;
+    case 'partner-saved':
+        config.title = '相手の保存済みを見る';
+        config.detailHtml = '相手が保存した候補を<br>確認します';
+        break;
+    default:
+        break;
+    }
+
+    return config;
+}
+
 function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
@@ -1790,20 +1922,9 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
-    const isSearchChoice = nextStep?.action === 'sound' || nextStep?.action === 'reading';
-    const primaryAction = nextStep?.action || (getHomeSearchChoiceRecommended(readingStockCount) === 'reading' ? 'reading' : 'sound');
-    const primaryLabel = isSearchChoice
-        ? (primaryAction === 'reading' ? '読みから漢字を探す' : '響き・読みを探す')
-        : (nextStep?.actionLabel || '次へ進む');
-    const primaryDescription = isSearchChoice
-        ? (primaryAction === 'reading'
-            ? '希望の読みから理想の漢字をさがします'
-            : '響きから読みの候補をさがします')
-        : (nextStep?.detail || '');
-    const secondaryLink = isSearchChoice
-        ? (primaryAction === 'reading'
-            ? `<button type="button" onclick="runHomeAction('sound')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">読み候補がまだない場合は、響きから探す</button>`
-            : `<button type="button" onclick="runHomeAction('reading')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">読み候補がある場合は、漢字を探す</button>`)
+    const cardConfig = getHomeNextStageCardConfig(nextStep, readingStockCount);
+    const secondaryLink = cardConfig.alternateAction
+        ? `<button type="button" onclick="runHomeAction('${cardConfig.alternateAction}')" class="mt-3 text-[11px] font-bold text-[#8b7e66] underline underline-offset-4 active:scale-95">${cardConfig.alternateLabel}</button>`
         : '';
 
     stageTrack.style.cssText = '';
@@ -1848,9 +1969,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
             <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
             <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
-            <button type="button" onclick="runHomeAction('${primaryAction}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left active:scale-[0.98] transition-transform shadow-sm" style="${tone.cardRecommended}">
-                <span class="block text-[13px] font-black text-[#4f4639]">${primaryLabel}</span>
-                <span class="mt-1 block text-[11px] leading-relaxed text-[#8b7e66]">${primaryDescription}</span>
+            <button type="button" onclick="runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
+                <div class="wiz-reading-choice-copy">
+                    <span class="block text-[1.15rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                    <span class="block mt-2 text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+                </div>
+                ${cardConfig.previewHtml}
             </button>
             ${secondaryLink}
         </div>
