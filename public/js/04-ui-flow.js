@@ -4006,11 +4006,7 @@ function hideReadingFromStock(target) {
         return false;
     }
 
-    removeReadingFromStock(target);
     removedItems.forEach(item => rememberHiddenReading(item.reading));
-
-    if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
-    if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
 
     renderReadingStockSection();
     if (typeof refreshPartnerAwareUI === 'function') {

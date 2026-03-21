@@ -1225,6 +1225,11 @@ MeimayShare.syncProfileAppearance = async function () {
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
     const partnerReadings = Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
+    return Array.isArray(partnerReadings) ? partnerReadings : [];
+};
+
+MeimayPartnerInsights.getOwnReadingStock = function () {
+    const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
     let hiddenReadings = new Set();
     try {
         hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
@@ -1236,15 +1241,11 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
         return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
     };
 
-    return partnerReadings.filter(item => {
+    return ownReadings.filter(item => {
         const rawReading = String(item?.reading || '').trim();
         const normalizedReading = normalizeReading(rawReading);
         return !hiddenReadings.has(rawReading) && (!normalizedReading || !hiddenReadings.has(normalizedReading));
     });
-};
-
-MeimayPartnerInsights.getOwnReadingStock = function () {
-    return typeof getReadingStock === 'function' ? getReadingStock() : [];
 };
 
 MeimayPartnerInsights.buildReadingStockKey = function (item) {
