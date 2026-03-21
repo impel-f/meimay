@@ -6913,6 +6913,44 @@ function renderReadingStockSectionV2() {
 renderReadingStockSection = renderReadingStockSectionV2;
 window.renderReadingStockSection = renderReadingStockSectionV2;
 
+function renderReadingStockSectionVisible() {
+    renderReadingStockSectionV2();
+
+    const section = document.getElementById('reading-stock-section');
+    if (!section) return;
+
+    section.querySelectorAll('button[onclick*="openBuildFromReading("]').forEach(btn => {
+        btn.textContent = '組み立てる';
+    });
+
+    section.querySelectorAll('button[onclick*="likePartnerReadingStock("]').forEach(btn => {
+        btn.textContent = '取り込む';
+    });
+
+    section.querySelectorAll('button[onclick*="startReadingFromStock("]').forEach(btn => {
+        const card = btn.closest('[data-reading]');
+        const reading = card?.dataset?.reading || '';
+        if (!reading) return;
+
+        if (card) {
+            card.classList.add('cursor-pointer', 'active:scale-[0.98]');
+            card.onclick = () => openReadingStockModal(reading);
+        }
+
+        btn.textContent = '漢字を選ぶ';
+        btn.onclick = (event) => {
+            event.stopPropagation();
+            openReadingStockModal(reading);
+        };
+
+        const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
+        if (removeBtn) removeBtn.remove();
+    });
+}
+
+renderReadingStockSection = renderReadingStockSectionVisible;
+window.renderReadingStockSection = renderReadingStockSectionVisible;
+
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 
 function getSoundPreferenceInteractionCount() {
