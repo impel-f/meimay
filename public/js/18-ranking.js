@@ -75,28 +75,32 @@ function getPrimaryKanjiReading(kanjiData) {
 function getRankingCardTone(index) {
     const isTopThree = index < 3;
     return {
-        rankClass: isTopThree ? 'text-xl' : 'text-sm',
+        rankClass: isTopThree ? 'text-[11px]' : 'text-[10px]',
         countClass: isTopThree ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'
     };
 }
 
 function getRankingPeriodSwitchLabel(period) {
-    return period === 'monthly' ? '月間' : '総合';
+    return period === 'monthly' ? '月間ランキング' : '総合ランキング';
 }
 
 function getRankingPeriodSwitchStyle(period) {
     if (period === 'monthly') {
         return {
-            button: 'border:1px solid #bca37f;background:#fff5dc;',
+            button: 'border:1px solid #c9a86a;background:linear-gradient(135deg, #fff5d9 0%, #ffeab0 100%);',
             text: '#5d5444',
-            sub: '#8b7e66'
+            sub: '#8b7e66',
+            chipBg: '#fffaf2',
+            chipText: '#b9965b'
         };
     }
 
     return {
-        button: 'border:1px solid #eee5d8;background:#fffaf5;',
+        button: 'border:1px solid #eadfce;background:linear-gradient(135deg, #fffdf9 0%, #f6efe4 100%);',
         text: '#5d5444',
-        sub: '#a6967a'
+        sub: '#a6967a',
+        chipBg: '#fff7ec',
+        chipText: '#a6967a'
     };
 }
 
@@ -112,10 +116,17 @@ function renderRankingPeriodSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); toggleRankingPeriod()"
-            class="w-full rounded-[1.05rem] px-1.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2 md:py-2.5"
+            class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
-                ${escapeRankingHtml(label)}
+            <div class="flex items-center justify-center gap-2 whitespace-nowrap">
+                <span class="whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]" style="color:${switchStyle.text};">
+                    ${escapeRankingHtml(label)}
+                </span>
+                ${period === 'monthly' ? `
+                    <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
+                        集計期間
+                    </span>
+                ` : ''}
             </div>
             <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
                 タップで切り替え
@@ -300,7 +311,6 @@ function renderRankingEmptyState(type, period) {
 
     return `
         <div class="text-center py-20 text-[#a6967a]">
-            <div class="text-4xl mb-4 opacity-50">👑</div>
             <p class="text-sm leading-relaxed">${message}</p>
         </div>
     `;
@@ -318,29 +328,32 @@ function renderRankingKanjiCard(item, index) {
     const isStocked = Array.isArray(liked)
         && liked.some((entry) => (entry?.['漢字'] || entry?.kanji) === displayKanji);
     const tone = getRankingCardTone(index);
+    const rankLabel = `${index + 1}位`;
 
     return `
         <button type="button"
-            onclick="showRankingKanjiDetail(${JSON.stringify(displayKanji)})"
+            onclick="openRankingKanjiDetail(${JSON.stringify(displayKanji)})"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
-            <div class="flex flex-col items-center justify-center shrink-0 w-10 gap-0.5">
-                <div class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</div>
+            <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
+                <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
             </div>
-            <div class="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.55rem] font-black leading-none text-[#5d5444]">
+            <div class="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.45rem] font-black leading-none text-[#5d5444]">
                 ${escapeRankingHtml(displayKanji || '？')}
             </div>
             <div class="min-w-0 flex-1">
-                <div class="text-[15px] font-black leading-tight text-[#5d5444] tracking-tight">
+                <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-tight">
                     ${escapeRankingHtml(primaryReading || '読みなし')}
                 </div>
-                <div class="mt-0.5 text-[10px] font-bold leading-tight text-[#8b7e66] line-clamp-2">
+                <div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">
                     ${escapeRankingHtml(meaningText)}
                 </div>
             </div>
-            <div class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span
+                onclick="event.stopPropagation(); openRankingKanjiDetail(${JSON.stringify(displayKanji)})"
+                class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
                 ${isStocked ? 'ストック済み' : '詳細'}
-            </div>
+            </span>
         </button>
     `;
 }
@@ -353,23 +366,26 @@ function renderRankingReadingCard(item, index) {
     const sourceLabel = item?.sourceCount > 1
         ? `${item.sourceCount}件の表記を集約`
         : 'スワイプと直接入力を集計';
-    const openAction = item?.sourceKey ? `onclick="showRankingReadingAction(${JSON.stringify(item.sourceKey)})"` : '';
+    const openAction = item?.sourceKey ? `onclick="openRankingReadingAction(${JSON.stringify(item.sourceKey)})"` : '';
+    const rankLabel = `${index + 1}位`;
 
     return `
         <button type="button"
             ${openAction}
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
-            <div class="flex flex-col items-center justify-center shrink-0 w-10 gap-0.5">
-                <div class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</div>
+            <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
+                <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
             </div>
             <div class="min-w-0 flex-1">
-                <div class="text-[15px] font-black leading-tight text-[#5d5444] tracking-wide break-words">${escapeRankingHtml(reading || '？')}</div>
-                <div class="mt-0.5 text-[10px] font-bold leading-tight text-[#8b7e66] line-clamp-2">${escapeRankingHtml(sourceLabel)}</div>
+                <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '？')}</div>
+                <div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">${escapeRankingHtml(sourceLabel)}</div>
             </div>
-            <div class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span
+                onclick="event.stopPropagation(); openRankingReadingAction(${JSON.stringify(item?.sourceKey || reading)})"
+                class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
                 ${isStocked ? 'ストック済み' : '開く'}
-            </div>
+            </span>
         </button>
     `;
 }
@@ -388,6 +404,117 @@ function buildRankingContent(items, type, period) {
             </div>
         </div>
     `;
+}
+
+function resolveRankingKanjiData(kanjiStr) {
+    const normalizedKanji = String(kanjiStr || '').trim();
+    if (!normalizedKanji) return null;
+
+    if (Array.isArray(master)) {
+        const found = master.find((entry) => entry && entry['漢字'] === normalizedKanji);
+        if (found) return found;
+    }
+
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [] };
+    const item = (library.kanji || []).find((entry) => (entry?.key || entry?.kanji) === normalizedKanji);
+    if (item) {
+        const snapshot = item.snapshot || {};
+        return {
+            ...snapshot,
+            '漢字': item.kanji || normalizedKanji,
+            '意味': snapshot['意味'] || item.meaning || '',
+            '音': snapshot['音'] || item.kanjiReading || '',
+            '訓': snapshot['訓'] || '',
+            '分類': snapshot['分類'] || item.category || ''
+        };
+    }
+
+    return {
+        '漢字': normalizedKanji,
+        '意味': '',
+        '音': '',
+        '訓': '',
+        '分類': ''
+    };
+}
+
+function resolveRankingReadingItem(key) {
+    const normalizedReading = normalizeRankingReadingText(key);
+    if (!normalizedReading) return null;
+
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    const item = (library.readings || []).find((entry) => {
+        const entryKey = String(entry?.key || '');
+        const entryReading = String(entry?.reading || '');
+        return entryKey === key
+            || entryReading === key
+            || normalizeRankingReadingText(entryKey) === normalizedReading
+            || normalizeRankingReadingText(entryReading) === normalizedReading;
+    });
+
+    if (item) return item;
+
+    return {
+        key: normalizedReading,
+        reading: normalizedReading
+    };
+}
+
+function openRankingKanjiDetail(kanjiStr) {
+    const data = resolveRankingKanjiData(kanjiStr);
+    if (!data) return;
+
+    try {
+        if (typeof showDetailByData === 'function') {
+            showDetailByData(data);
+        } else if (typeof showKanjiDetail === 'function') {
+            showKanjiDetail(data);
+        }
+    } catch (error) {
+        console.error('RANKING: openRankingKanjiDetail failed', error);
+    }
+
+    const modal = document.getElementById('modal-kanji-detail');
+    if (!modal || modal.classList.contains('active')) return;
+
+    if (typeof showToast === 'function') {
+        showToast('漢字詳細を開けませんでした。', '👀');
+    }
+}
+
+function openRankingReadingAction(key) {
+    const item = resolveRankingReadingItem(key);
+    if (!item || !item.reading) {
+        if (typeof showToast === 'function') {
+            showToast('この読みはまだ開けません。', '👀');
+        }
+        return;
+    }
+
+    const actionKey = item.key || item.reading;
+    try {
+        if (typeof openEncounteredReadingActionSheet === 'function') {
+            openEncounteredReadingActionSheet(actionKey);
+        }
+    } catch (error) {
+        console.error('RANKING: openRankingReadingAction failed', error);
+    }
+
+    const actionModal = document.getElementById('modal-encountered-reading-actions');
+    if (actionModal && actionModal.classList.contains('active')) return;
+
+    if (typeof openReadingStockModal === 'function') {
+        openReadingStockModal(item.reading || actionKey);
+        return;
+    }
+
+    if (typeof showToast === 'function') {
+        showToast('この読みの詳細を開けませんでした。', '👀');
+    }
 }
 
 function getRankingLoadingMessage() {
@@ -438,35 +565,11 @@ async function loadRanking() {
 }
 
 function showRankingReadingAction(key) {
-    const normalizedReading = normalizeRankingReadingText(key);
-    if (!normalizedReading) return;
-
-    const library = typeof getEncounteredLibrary === 'function'
-        ? getEncounteredLibrary()
-        : { readings: [] };
-    const item = (library.readings || []).find((entry) => normalizeRankingReadingText(entry?.reading || entry?.key || '') === normalizedReading);
-    if (!item || typeof openEncounteredReadingActionSheet !== 'function') {
-        if (typeof showToast === 'function') {
-            showToast('この読みはまだ開けません。', '👀');
-        }
-        return;
-    }
-
-    openEncounteredReadingActionSheet(item.key || item.reading);
+    openRankingReadingAction(key);
 }
 
 function showRankingKanjiDetail(kanjiStr) {
-    if (typeof master !== 'undefined' && typeof showKanjiDetail === 'function') {
-        const found = master.find((entry) => entry && entry['漢字'] === kanjiStr);
-        if (found) {
-            showKanjiDetail(found);
-            return;
-        }
-    }
-
-    if (typeof showToast === 'function') {
-        showToast('この漢字の詳細を表示できません。', '👀');
-    }
+    openRankingKanjiDetail(kanjiStr);
 }
 
 function toggleRankingStock(kanjiStr, btn) {
@@ -523,6 +626,8 @@ window.switchRankingType = switchRankingType;
 window.switchRankingPeriod = switchRankingPeriod;
 window.switchRankingTab = switchRankingTab;
 window.toggleRankingStock = toggleRankingStock;
+window.openRankingKanjiDetail = openRankingKanjiDetail;
+window.openRankingReadingAction = openRankingReadingAction;
 window.showRankingKanjiDetail = showRankingKanjiDetail;
 window.showRankingReadingAction = showRankingReadingAction;
 
