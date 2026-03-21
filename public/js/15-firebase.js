@@ -629,6 +629,19 @@ const MeimayShare = {
     }
 };
 
+function refreshPartnerAwareUI() {
+    if (typeof applyProfileTheme === 'function') applyProfileTheme();
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        renderHomeProfile();
+    }
+    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
+        renderSavedScreen();
+    }
+    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
+        renderSettingsScreen();
+    }
+}
+
 const MeimayPartnerInsights = {
     normalizeReading: function (value) {
         const text = String(value || '').trim();
