@@ -1244,23 +1244,27 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
     return Array.isArray(partnerReadings) ? partnerReadings : [];
 };
 
+MeimayPartnerInsights.normalizeReading = function (value) {
+    const raw = String(value || '').trim().split('::')[0].trim();
+    if (!raw) return '';
+    return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+};
+
 MeimayPartnerInsights.getOwnReadingStock = function () {
     const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
     let hiddenReadings = new Set();
     try {
         hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
     } catch (e) { }
-
-    const normalizeReading = (value) => {
-        const raw = String(value || '').trim();
-        if (!raw) return '';
-        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
-    };
+    const hiddenReadingSet = new Set(
+        Array.from(hiddenReadings)
+            .map(value => this.normalizeReading(value))
+            .filter(Boolean)
+    );
 
     return ownReadings.filter(item => {
-        const rawReading = String(item?.reading || '').trim();
-        const normalizedReading = normalizeReading(rawReading);
-        return !hiddenReadings.has(rawReading) && (!normalizedReading || !hiddenReadings.has(normalizedReading));
+        const normalizedReading = this.normalizeReading(item?.reading);
+        return !hiddenReadingSet.has(normalizedReading);
     });
 };
 
@@ -1419,21 +1423,45 @@ MeimayPartnerInsights.getPartnerReadingCollection = function () {
 };
 
 MeimayPartnerInsights.getMatchedReadingItems = function () {
-    const partnerKeys = new Set(this.getPartnerReadingCollection().map(item => this.buildReadingStockKey(item)).filter(Boolean));
-    const seenKeys = new Set();
+    const normalizeReading = (value) => {
+        const raw = String(value || '').trim().split('::')[0].trim();
+        if (!raw) return '';
+        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    };
+
+    const partnerReadings = new Set(
+        this.getPartnerReadingCollection()
+            .map(item => normalizeReading(item?.reading))
+            .filter(Boolean)
+    );
+    const seenReadings = new Set();
+
     return this.getOwnReadingCollection().filter(item => {
-        const key = this.buildReadingStockKey(item);
-        if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
-        seenKeys.add(key);
+        const normalizedReading = normalizeReading(item?.reading);
+        if (!normalizedReading || !partnerReadings.has(normalizedReading) || seenReadings.has(normalizedReading)) {
+            return false;
+        }
+        seenReadings.add(normalizedReading);
         return true;
     });
 };
 
 MeimayPartnerInsights.isReadingItemMatched = function (item) {
-    const key = this.buildReadingStockKey(item);
-    if (!key) return false;
-    const partnerKeys = new Set(this.getPartnerReadingCollection().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
-    return partnerKeys.has(key);
+    const normalizeReading = (value) => {
+        const raw = String(value || '').trim().split('::')[0].trim();
+        if (!raw) return '';
+        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    };
+
+    const normalizedReading = normalizeReading(item?.reading);
+    if (!normalizedReading) return false;
+
+    const partnerReadings = new Set(
+        this.getPartnerReadingCollection()
+            .map(entry => normalizeReading(entry?.reading))
+            .filter(Boolean)
+    );
+    return partnerReadings.has(normalizedReading);
 };
 
 MeimayPartnerInsights.getSummary = function () {

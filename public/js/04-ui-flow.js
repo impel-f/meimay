@@ -2014,6 +2014,13 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper) {
 
     closeReadingCombinationModal();
 
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
+
     if (typeof showToast === 'function') {
         showToast(`${candidate.givenName}\u3092${asSuper ? 'SUPER\u3067' : ''}\u4FDD\u5B58\u3057\u307E\u3057\u305F`, asSuper ? '⭐' : '💾');
     }
@@ -2066,6 +2073,14 @@ function closeReadingCombinationModal() {
     readingCombinationModalOpenedAt = 0;
 }
 
+function returnToReadingStockFromCombinationModal() {
+    const target = readingCombinationModalState?.returnTarget || null;
+    closeReadingCombinationModal();
+    if (target && typeof openReadingStockModal === 'function') {
+        openReadingStockModal(target);
+    }
+}
+
 function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
     closeReadingCombinationModal();
 
@@ -2090,9 +2105,16 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     modal.innerHTML = `
         <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">✕</button>
+            ${returnTarget ? `
+            <div class="mb-4">
+                <button onclick="event.stopPropagation(); returnToReadingStockFromCombinationModal()" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    戻る
+                </button>
+            </div>
+            ` : ''}
             <div class="text-center mb-5">
                 <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
-                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${displayReading}</h3>
                 <p class="text-xs text-[#8b7e66] leading-relaxed">${surnameStr ? `\u82D7\u5B57\u306B\u5408\u308F\u305B\u308B\u3068 ${preview.visual}\u3002\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002` : '\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002'}</p>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
@@ -3825,10 +3847,15 @@ function getReadingStockKey(reading, segments = []) {
 
 function normalizeReadingStockItem(item) {
     if (typeof item === 'string') {
+        const readingParts = String(item || '').split('::');
+        const reading = (readingParts[0] || '').trim();
+        const displaySegments = readingParts.length > 1
+            ? readingParts.slice(1).join('::').split('/').map(part => part.trim()).filter(Boolean)
+            : [];
         return {
-            id: getReadingStockKey(item, []),
-            reading: item,
-            segments: [],
+            id: getReadingStockKey(reading, displaySegments),
+            reading,
+            segments: displaySegments,
             baseNickname: '',
             tags: [],
             isSuper: false,
@@ -3837,8 +3864,14 @@ function normalizeReadingStockItem(item) {
         };
     }
 
-    const reading = item && item.reading ? item.reading : '';
-    const segments = Array.isArray(item && item.segments) ? item.segments.filter(Boolean) : [];
+    const readingParts = String(item && item.reading ? item.reading : '').split('::');
+    const reading = (readingParts[0] || '').trim();
+    const inferredSegments = readingParts.length > 1
+        ? readingParts.slice(1).join('::').split('/').map(part => part.trim()).filter(Boolean)
+        : [];
+    const segments = Array.isArray(item && item.segments) && item.segments.filter(Boolean).length > 0
+        ? item.segments.filter(Boolean)
+        : inferredSegments;
     return {
         id: item && item.id ? item.id : getReadingStockKey(reading, segments),
         reading,
@@ -3852,7 +3885,10 @@ function normalizeReadingStockItem(item) {
 }
 
 function getReadingDisplayLabel(item) {
-    const reading = String(item?.reading || item?.sessionReading || '').trim();
+    const rawReading = String(item?.reading || item?.sessionReading || '').trim();
+    const readingParts = rawReading.split('::');
+    const reading = (readingParts[0] || '').trim();
+    const metaDisplay = readingParts.slice(1).join('::').trim();
     const segments = Array.isArray(item?.segments)
         ? item.segments
         : (Array.isArray(item?.sessionSegments) ? item.sessionSegments : []);
@@ -3878,11 +3914,22 @@ function getReadingDisplayLabel(item) {
         return readableSegments[0];
     }
 
-    return reading || readableSegments.join('/') || '';
+    return metaDisplay || reading || readableSegments.join('/') || '';
+}
+
+function getReadingBaseReading(value) {
+    const raw = String(typeof value === 'object' && value !== null
+        ? (value.reading || value.sessionReading || '')
+        : value || '').trim();
+    if (!raw) return '';
+    return raw.split('::')[0].trim();
 }
 
 function matchesReadingStockTarget(item, target) {
-    return item.id === target || item.reading === target;
+    const normalizedTarget = getReadingBaseReading(target);
+    if (!normalizedTarget) return false;
+    const itemReading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    return item?.id === target || item?.reading === target || itemReading === normalizedTarget;
 }
 
 function getReadingStock() {
@@ -3955,10 +4002,17 @@ function syncReadingStockFromLiked(items = liked) {
         hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
     } catch (e) { }
     const normalizeHiddenReading = (value) => {
-        const raw = String(value || '').trim();
+        const raw = String(value || '').trim().split('::')[0].trim();
         if (!raw) return '';
-        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+        return (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
+            ? window.MeimayPartnerInsights.normalizeReading(raw)
+            : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
     };
+    const hiddenReadingSet = new Set(
+        Array.from(hiddenReadings)
+            .map(value => normalizeHiddenReading(value))
+            .filter(Boolean)
+    );
     likedItems.forEach(item => {
         if (!item || item.fromPartner) return;
         const sessionReading = typeof item.sessionReading === 'string' ? item.sessionReading.trim() : '';
@@ -3970,7 +4024,7 @@ function syncReadingStockFromLiked(items = liked) {
             : (fallbackReading && !blockedReadings.has(fallbackReading) ? fallbackReading : '');
         if (!reading) return;
         const normalizedReading = normalizeHiddenReading(reading);
-        if (hiddenReadings.has(reading) || (normalizedReading && hiddenReadings.has(normalizedReading))) return;
+        if (hiddenReadingSet.has(normalizedReading)) return;
         addReadingToStock(
             reading,
             item.baseNickname || '',
@@ -4006,6 +4060,11 @@ function rememberHiddenReading(reading) {
 
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    const removedReadingSet = new Set(
+        Array.from(removedList)
+            .map(value => getReadingBaseReading(value))
+            .filter(Boolean)
+    );
     const next = new Set(Array.isArray(removedList) ? removedList.filter(Boolean) : []);
     next.add(raw);
     if (normalized) next.add(normalized);
@@ -4038,7 +4097,7 @@ function forgetHiddenReading(reading) {
 }
 
 function normalizeHiddenReadingValue(value) {
-    const raw = String(value || '').trim();
+    const raw = String(value || '').trim().split('::')[0].trim();
     if (!raw) return '';
     return (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
         ? window.MeimayPartnerInsights.normalizeReading(raw)
@@ -4097,34 +4156,41 @@ function openReadingStockModal(reading) {
     const btnRemove = document.getElementById('reading-detail-btn-remove');
     const stockItem = getReadingStock().find(item => matchesReadingStockTarget(item, reading)) || null;
     const stockTarget = stockItem?.id || reading;
+    const displayReading = getReadingDisplayLabel(stockItem || { reading });
 
-    titleEl.textContent = reading;
+    titleEl.textContent = displayReading;
 
-    const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
-    infoEl.textContent = ((stockItem && Array.isArray(stockItem.segments) && stockItem.segments.length > 0) || (!stockItem && kanjiCount > 0))
+    const kanjiCount = liked.filter(i => i.sessionReading === (stockItem?.reading || reading) && i.slot >= 0).length;
+    const hasKanjiSelections = kanjiCount > 0;
+    infoEl.textContent = hasKanjiSelections
         ? `${kanjiCount}個の漢字を選びました`
         : 'まだ漢字を選んでいません';
 
+    btnBuild.style.display = '';
+    btnAdd.style.display = '';
+    btnRemove.style.display = '';
+
     btnBuild.onclick = () => {
         closeModal('modal-reading-detail');
-        openBuildFromReading(reading);
+        openBuildFromReading(stockItem?.reading || reading);
     };
     btnAdd.onclick = () => {
         closeModal('modal-reading-detail');
-        addMoreForReading(reading);
+        addMoreForReading(stockItem?.reading || reading);
     };
     btnRemove.onclick = () => {
         closeModal('modal-reading-detail');
         removeCompletedReadingFromStock(stockTarget);
     };
 
-    if ((stockItem && Array.isArray(stockItem.segments) && stockItem.segments.length > 0) || (!stockItem && kanjiCount > 0)) {
+    if (hasKanjiSelections) {
         infoEl.textContent = `${kanjiCount}件の漢字を選んでいます`;
         btnBuild.textContent = '組み立てる';
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
-            openBuildFromReading(reading);
+            openBuildFromReading(stockItem?.reading || reading);
         };
+        btnBuild.textContent = '組み立てる';
         btnAdd.style.display = '';
         btnAdd.textContent = '漢字を追加する';
         btnRemove.style.display = '';
@@ -4134,6 +4200,11 @@ function openReadingStockModal(reading) {
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
             startReadingFromStock(stockTarget);
+        };
+        btnBuild.textContent = '漢字を選ぶ';
+        btnBuild.onclick = () => {
+            closeModal('modal-reading-detail');
+            startReadingSplitProposalFromStock(stockItem?.reading || reading);
         };
         btnAdd.style.display = 'none';
         btnRemove.style.display = '';
@@ -4317,12 +4388,24 @@ function addMoreForReading(reading) {
 }
 
 function startReadingSplitProposalFromStock(reading) {
+    const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
-    if (nameInput) nameInput.value = reading;
-    appMode = 'reading';
-    if (typeof clearCompoundBuildFlow === 'function') clearCompoundBuildFlow();
-    if (typeof calcSegments === 'function') {
-        calcSegments();
+    if (nameInput) nameInput.value = targetReading || reading;
+    const stockItem = getReadingStock().find(item => matchesReadingStockTarget(item, reading));
+    if (!stockItem) return;
+
+    console.log("STOCK: Starting split proposal from stock reading:", stockItem);
+    if (typeof openReadingCombinationModal === 'function') {
+        openReadingCombinationModal({
+            ...stockItem,
+            reading: targetReading || stockItem.reading,
+            segments: Array.isArray(stockItem.segments) ? stockItem.segments : []
+        }, stockItem.baseNickname || '', '', stockItem.id || stockItem.reading || targetReading || reading);
+        return;
+    }
+
+    if (typeof openBuildFromReading === 'function') {
+        openBuildFromReading(targetReading || stockItem.reading);
     }
 }
 window.startReadingSplitProposalFromStock = startReadingSplitProposalFromStock;
@@ -5299,6 +5382,13 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
 
     closeReadingCombinationModal();
 
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
+
     if (typeof showToast === 'function') {
         showToast(
             asSuper ? `${candidate.givenName}をSUPER保存しました` : `${candidate.givenName}を保存しました`,
@@ -5363,19 +5453,24 @@ function renderReadingSwipeCard(item) {
     `;
 }
 
-function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
+function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '', returnTarget = null) {
     closeReadingCombinationModal();
 
+    const modalReading = getReadingBaseReading(item.reading || item.sessionReading || '');
+    const displayReading = getReadingDisplayLabel(item);
+    const forceSplit = !!item.forceSplit;
     const options = getReadingSegmentOptions(
-        item.reading,
+        modalReading || item.reading,
         4,
         preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
     );
-    const preview = getReadingFullNamePreview(item.reading);
+    const preview = getReadingFullNamePreview(modalReading || item.reading);
     const tone = getReadingCardTone(item);
     readingCombinationModalState = {
-        item: { ...item, baseNickname },
-        options
+        item: { ...item, reading: modalReading || item.reading, baseNickname },
+        options,
+        returnTarget: returnTarget || null,
+        forceSplit
     };
     readingCombinationModalOpenedAt = Date.now();
 
@@ -5389,12 +5484,19 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     modal.innerHTML = `
         <div class="detail-sheet max-w-[440px] border" onclick="event.stopPropagation()" style="background:${tone.surfaceStyle};border-color:${tone.borderColor};">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
+            ${returnTarget ? `
+            <div class="mb-4">
+                <button onclick="event.stopPropagation(); returnToReadingStockFromCombinationModal()" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    戻る
+                </button>
+            </div>
+            ` : ''}
             <div class="text-center mb-5">
-                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${displayReading}</h3>
                 <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
-            <div class="flex gap-2 mb-4">
+            <div class="flex gap-2 mb-4" style="${forceSplit ? 'display:none;' : ''}">
                 <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> LIKE</button>
                 <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> SUPER</button>
             </div>
@@ -6239,27 +6341,14 @@ function likePartnerReadingStock(index) {
     const item = partnerReadings[index];
     if (!item) return;
 
-    const saved = typeof addReadingToStock === 'function'
-    ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
-        segments: Array.isArray(item.segments) ? item.segments : [],
-        isSuper: !!item.isSuper,
-            gender: item.gender || gender || 'neutral',
-            clearHidden: true
-        })
-        : null;
-
-    if (typeof showToast === 'function') {
-        showToast(`${item.reading}を取り込みました`, '❤');
-    }
-
-    if (typeof openStock === 'function') {
-        openStock('reading');
-    }
-    if (typeof renderReadingStockSection === 'function') {
-        renderReadingStockSection();
-    }
-    if (typeof refreshPartnerAwareUI === 'function') {
-        refreshPartnerAwareUI();
+    if (typeof openReadingCombinationModal === 'function') {
+        openReadingCombinationModal({
+            ...item,
+            reading: getReadingBaseReading(item.reading || ''),
+            segments: [],
+            forceSplit: true
+        }, item.baseNickname || '', '');
+        return;
     }
 }
 
@@ -6301,14 +6390,14 @@ function renderReadingStockSection() {
                 item.sessionReading !== 'FREE' &&
                 item.sessionReading !== 'SEARCH' &&
                 item.slot >= 0 &&
-                !removedList.includes(item.sessionReading)
+                !removedReadingSet.has(getReadingBaseReading(item.sessionReading))
             )
-            .map(item => item.sessionReading)
+            .map(item => getReadingBaseReading(item.sessionReading))
     )];
 
     const pendingOnly = pendingStock.filter(item =>
-        !completedReadings.includes(item.reading) &&
-        !removedList.includes(item.reading)
+        !completedReadings.includes(getReadingBaseReading(item.reading)) &&
+        !removedReadingSet.has(getReadingBaseReading(item.reading))
     );
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
@@ -6495,13 +6584,15 @@ window.clearReadingPartnerFocus = clearReadingPartnerFocus;
 window.renderReadingStockSection = renderReadingStockSection;
 
 function getPartnerViewReadingKey(item, pairInsights) {
-    if (pairInsights?.buildReadingStockKey) return pairInsights.buildReadingStockKey(item);
-    return getReadingStockKey(item?.reading || '', Array.isArray(item?.segments) ? item.segments : []);
+    const reading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const segments = Array.isArray(item?.segments) ? item.segments : [];
+    if (pairInsights?.buildReadingStockKey) return pairInsights.buildReadingStockKey({ ...item, reading, segments });
+    return getReadingStockKey(reading, segments);
 }
 
 function getPartnerViewNormalizedReading(value, pairInsights) {
-    if (pairInsights?.normalizeReading) return pairInsights.normalizeReading(value);
-    const raw = String(value || '').trim();
+    if (pairInsights?.normalizeReading) return pairInsights.normalizeReading(getReadingBaseReading(value));
+    const raw = getReadingBaseReading(value);
     if (!raw) return '';
     return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
 }
@@ -6664,17 +6755,17 @@ function renderReadingStockSectionV2() {
         const segments = readingToSegments[reading] || [];
         const key = getPartnerViewReadingKey({ reading, segments }, pairInsights);
         const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
-        return {
-            reading,
-            display: segments.length > 0 ? segments.join('/') : reading,
-            segments,
-            key,
-            normalizedReading,
-            ownItem: pendingStock.find(item => getPartnerViewReadingKey(item, pairInsights) === key) || null,
-            partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
-            kanjiCount: ownLiked.filter(item => item.sessionReading === reading && item.slot >= 0).length
-        };
-    });
+            return {
+                reading,
+                display: segments.length > 0 ? segments.join('/') : reading,
+                segments,
+                key,
+                normalizedReading,
+                ownItem: pendingStock.find(item => getPartnerViewReadingKey(item, pairInsights) === key) || null,
+                partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
+                kanjiCount: ownLiked.filter(item => getReadingBaseReading(item.sessionReading) === reading && item.slot >= 0).length
+            };
+        });
     const completedMatchedKeys = new Set(completedCards.filter(item => item.partnerItem).map(item => item.key).filter(Boolean));
     const matchedReadingKeys = new Set(
         (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
