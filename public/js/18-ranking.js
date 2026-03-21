@@ -75,19 +75,59 @@ function getPrimaryKanjiReading(kanjiData) {
 function getRankingCardTone(index) {
     const isTopThree = index < 3;
     return {
-        rankClass: isTopThree ? 'text-2xl' : 'text-lg',
+        rankClass: isTopThree ? 'text-xl' : 'text-sm',
         countClass: isTopThree ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'
     };
+}
+
+function getRankingPeriodSwitchLabel(period) {
+    return period === 'monthly' ? '月間' : '総合';
+}
+
+function getRankingPeriodSwitchStyle(period) {
+    if (period === 'monthly') {
+        return {
+            button: 'border:1px solid #bca37f;background:#fff5dc;',
+            text: '#5d5444',
+            sub: '#8b7e66'
+        };
+    }
+
+    return {
+        button: 'border:1px solid #eee5d8;background:#fffaf5;',
+        text: '#5d5444',
+        sub: '#a6967a'
+    };
+}
+
+function renderRankingPeriodSwitch() {
+    const mount = document.getElementById('ranking-period-switch');
+    if (!mount) return;
+
+    const period = normalizeRankingPeriod(currentRankingPeriod);
+    const label = getRankingPeriodSwitchLabel(period);
+    const switchStyle = getRankingPeriodSwitchStyle(period);
+
+    mount.innerHTML = `
+        <button
+            type="button"
+            onclick="event.stopPropagation(); toggleRankingPeriod()"
+            class="w-full rounded-[1.05rem] px-1.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2 md:py-2.5"
+            style="${switchStyle.button}">
+            <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
+                ${escapeRankingHtml(label)}
+            </div>
+            <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
+                タップで切り替え
+            </div>
+        </button>
+    `;
 }
 
 function updateRankingButtonState() {
     const typeButtons = [
         getRankingButton('ranking-type-kanji', 'ranking-tab-kanji'),
         getRankingButton('ranking-type-reading', 'ranking-tab-reading')
-    ];
-    const periodButtons = [
-        getRankingButton('ranking-period-allTime', 'ranking-tab-allTime'),
-        getRankingButton('ranking-period-monthly', 'ranking-tab-weekly')
     ];
 
     typeButtons.forEach((button, index) => {
@@ -98,13 +138,7 @@ function updateRankingButtonState() {
             : 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a]';
     });
 
-    periodButtons.forEach((button, index) => {
-        if (!button) return;
-        const isActive = (index === 0 && currentRankingPeriod === 'allTime') || (index === 1 && currentRankingPeriod === 'monthly');
-        button.className = isActive
-            ? 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm'
-            : 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center text-[#a6967a]';
-    });
+    renderRankingPeriodSwitch();
 }
 
 function setRankingType(type, options = {}) {
@@ -134,6 +168,11 @@ function switchRankingPeriod(period) {
 
 function switchRankingTab(tab) {
     switchRankingPeriod(tab);
+}
+
+function toggleRankingPeriod() {
+    const period = normalizeRankingPeriod(currentRankingPeriod);
+    setRankingPeriod(period === 'allTime' ? 'monthly' : 'allTime');
 }
 
 async function openRanking() {
@@ -254,7 +293,7 @@ function buildReadingRankingItems(period) {
 
 function renderRankingEmptyState(type, period) {
     const typeLabel = type === 'reading' ? '読み' : '漢字';
-    const periodLabel = period === 'monthly' ? '今月' : '総合';
+    const periodLabel = period === 'monthly' ? '月間' : '総合';
     const message = type === 'reading'
         ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>スワイプや直接入力が集まるとここに並びます。`
         : `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックが増えるとここに並びます。`;
@@ -283,15 +322,24 @@ function renderRankingKanjiCard(item, index) {
     return `
         <button type="button"
             onclick="showRankingKanjiDetail(${JSON.stringify(displayKanji)})"
-            class="bg-white rounded-3xl border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} shadow-sm p-3 min-h-[160px] flex flex-col items-center justify-between text-center transition-all active:scale-95 cursor-pointer">
-            <div class="w-full flex items-center justify-between gap-2">
-                <span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</span>
-                <span class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</span>
+            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
+            <div class="flex flex-col items-center justify-center shrink-0 w-10 gap-0.5">
+                <div class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</div>
             </div>
-            <div class="flex-1 w-full flex flex-col items-center justify-center px-1">
-                <div class="${index < 3 ? 'text-4xl' : 'text-[2.5rem]'} font-black leading-none text-[#5d5444] tracking-tight ${tone.mainClass}">${escapeRankingHtml(displayKanji || '？')}</div>
-                <div class="mt-2 text-[11px] font-bold text-[#8b7e66] leading-tight truncate w-full">${escapeRankingHtml(primaryReading || '読みなし')}</div>
-                <div class="mt-1 text-[10px] font-bold text-[#a6967a] leading-tight line-clamp-2 w-full">${escapeRankingHtml(meaningText)}</div>
+            <div class="w-11 h-11 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.55rem] font-black leading-none text-[#5d5444]">
+                ${escapeRankingHtml(displayKanji || '？')}
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[15px] font-black leading-tight text-[#5d5444] tracking-tight">
+                    ${escapeRankingHtml(primaryReading || '読みなし')}
+                </div>
+                <div class="mt-0.5 text-[10px] font-bold leading-tight text-[#8b7e66] line-clamp-2">
+                    ${escapeRankingHtml(meaningText)}
+                </div>
+            </div>
+            <div class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+                ${isStocked ? 'ストック済み' : '詳細'}
             </div>
         </button>
     `;
@@ -310,15 +358,17 @@ function renderRankingReadingCard(item, index) {
     return `
         <button type="button"
             ${openAction}
-            class="bg-white rounded-3xl border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} shadow-sm p-3 min-h-[160px] flex flex-col items-center justify-between text-center transition-all active:scale-95 cursor-pointer">
-            <div class="w-full flex items-center justify-between gap-2">
-                <span class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</span>
-                <span class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</span>
+            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
+            <div class="flex flex-col items-center justify-center shrink-0 w-10 gap-0.5">
+                <div class="inline-flex items-center justify-center rounded-full px-2 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black">${index + 1}位</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none">×${item.count}</div>
             </div>
-            <div class="flex-1 w-full flex flex-col items-center justify-center px-1">
-                <div class="${index < 3 ? 'text-2xl' : 'text-xl'} font-black leading-tight text-[#5d5444] tracking-wide break-words">${escapeRankingHtml(reading || '？')}</div>
-                <div class="mt-2 text-[10px] font-bold text-[#8b7e66] leading-tight line-clamp-2 w-full">${escapeRankingHtml(sourceLabel)}</div>
-                <div class="mt-1 text-[10px] font-bold text-[#a6967a] leading-tight">${isStocked ? 'ストック済み' : 'タップで開く'}</div>
+            <div class="min-w-0 flex-1">
+                <div class="text-[15px] font-black leading-tight text-[#5d5444] tracking-wide break-words">${escapeRankingHtml(reading || '？')}</div>
+                <div class="mt-0.5 text-[10px] font-bold leading-tight text-[#8b7e66] line-clamp-2">${escapeRankingHtml(sourceLabel)}</div>
+            </div>
+            <div class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+                ${isStocked ? 'ストック済み' : '開く'}
             </div>
         </button>
     `;
@@ -331,19 +381,9 @@ function renderRankingCards(items, type) {
 }
 
 function buildRankingContent(items, type, period) {
-    const typeLabel = type === 'reading' ? '読み' : '漢字';
-    const periodLabel = period === 'monthly' ? '今月' : '総合';
-    const subtitle = type === 'reading'
-        ? `${periodLabel}の${typeLabel}ランキング。スワイプと直接入力をまとめて集計。`
-        : `${periodLabel}の${typeLabel}ランキング。`;
-
     return `
-        <div class="space-y-3 pb-8 pt-2">
-            <div class="flex items-center justify-between gap-2 px-1">
-                <div class="text-[10px] font-black tracking-[0.2em] text-[#bca37f] uppercase">${escapeRankingHtml(typeLabel)} RANKING</div>
-                <div class="text-[10px] font-bold text-[#a6967a]">${escapeRankingHtml(subtitle)}</div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-2 pb-8 pt-2">
+            <div class="space-y-2">
                 ${renderRankingCards(items, type)}
             </div>
         </div>
