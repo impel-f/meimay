@@ -6760,7 +6760,7 @@ function renderReadingStockSectionV2() {
     const visiblePendingOnly = showOwnSections
         ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
         : [];
-    const visiblePartnerReadings = readingFocus === 'partner' ? partnerPendingCards : [];
+    const visiblePartnerReadings = partnerPendingCards;
 
     const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
@@ -6866,12 +6866,15 @@ function renderReadingStockSectionV2() {
                         const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
-                            <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center justify-between gap-2">
                                 <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="flex items-center gap-2">
                                         ${stars}
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
+                                </button>
+                                <button onclick="event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                    漢字を選ぶ
                                 </button>
                             </div>
                         </div>`;
@@ -7181,5 +7184,4 @@ function initSoundMode() {
 }
 
 window.aiReorderCandidates = aiReorderCandidates;
-
 
