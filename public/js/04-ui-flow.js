@@ -1522,9 +1522,14 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
     }
 
     const optionsByKey = new Map();
-    const basePaths = typeof getReadingSegmentPaths === 'function'
+    const strictBasePaths = typeof getReadingSegmentPaths === 'function'
         ? getReadingSegmentPaths(inputReading, 12, { strictOnly: true, allowFallback: false })
         : [];
+    const basePaths = strictBasePaths.length > 0
+        ? strictBasePaths
+        : (typeof getReadingSegmentPaths === 'function'
+            ? getReadingSegmentPaths(inputReading, 12, { strictOnly: false, allowFallback: true })
+            : []);
 
     function setOption(optionKey, option) {
         const existing = optionsByKey.get(optionKey);
@@ -1680,9 +1685,14 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 }
 function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
     const targetGender = gender || 'neutral';
-    const paths = typeof getReadingSegmentPaths === 'function'
+    const strictPaths = typeof getReadingSegmentPaths === 'function'
         ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: true, allowFallback: false })
         : [];
+    const paths = strictPaths.length > 0
+        ? strictPaths
+        : (typeof getReadingSegmentPaths === 'function'
+            ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: false, allowFallback: true })
+            : []);
 
     const seen = new Set();
     const normalOptions = paths
@@ -2009,6 +2019,13 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper) {
     if (typeof openSavedNames === 'function') {
         openSavedNames();
     }
+
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
 }
 
 function renderReadingTagBadges(tags) {
@@ -2077,6 +2094,11 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                 <p class="text-xs text-[#8b7e66] leading-relaxed">${surnameStr ? `\u82D7\u5B57\u306B\u5408\u308F\u305B\u308B\u3068 ${preview.visual}\u3002\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002` : '\u5206\u3051\u65B9\u3054\u3068\u306B\u3001\u53B3\u683C\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u5019\u88DC\u3060\u3051\u3092\u51FA\u3057\u307E\u3059\u3002'}</p>
             </div>
             ${renderReadingTagBadges(item.tags || [])}
+            <div class="mb-4 flex justify-end">
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(String(item.reading || ''))})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    この読みをストックから外す
+                </button>
+            </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
                     <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
@@ -3924,6 +3946,11 @@ function syncReadingStockFromLiked(items = liked) {
     try {
         hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
     } catch (e) { }
+    const normalizeHiddenReading = (value) => {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    };
     likedItems.forEach(item => {
         if (!item || item.fromPartner) return;
         const sessionReading = typeof item.sessionReading === 'string' ? item.sessionReading.trim() : '';
@@ -3934,7 +3961,8 @@ function syncReadingStockFromLiked(items = liked) {
             ? sessionReading
             : (fallbackReading && !blockedReadings.has(fallbackReading) ? fallbackReading : '');
         if (!reading) return;
-        if (hiddenReadings.has(reading)) return;
+        const normalizedReading = normalizeHiddenReading(reading);
+        if (hiddenReadings.has(reading) || (normalizedReading && hiddenReadings.has(normalizedReading))) return;
         addReadingToStock(
             reading,
             item.baseNickname || '',
@@ -3953,6 +3981,43 @@ function removeReadingFromStock(target) {
     stock = stock.filter(item => !matchesReadingStockTarget(item, target));
     saveReadingStock(stock);
     console.log("STOCK: Removed reading from stock:", target);
+}
+
+function rememberHiddenReading(reading) {
+    const raw = String(reading || '').trim();
+    if (!raw) return;
+
+    const normalized = (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
+        ? window.MeimayPartnerInsights.normalizeReading(raw)
+        : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    const next = new Set(Array.isArray(removedList) ? removedList.filter(Boolean) : []);
+    next.add(raw);
+    if (normalized) next.add(normalized);
+    localStorage.setItem('meimay_hidden_readings', JSON.stringify(Array.from(next)));
+}
+
+function hideReadingFromStock(target) {
+    const stock = getReadingStock();
+    const removedItems = stock.filter(item => matchesReadingStockTarget(item, target));
+    if (removedItems.length === 0) {
+        return false;
+    }
+
+    removeReadingFromStock(target);
+    removedItems.forEach(item => rememberHiddenReading(item.reading));
+
+    if (typeof StorageBox !== 'undefined') StorageBox.saveAll();
+    if (typeof MeimaySync !== 'undefined') MeimaySync.uploadData();
+
+    renderReadingStockSection();
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
+
+    return true;
 }
 
 function removeCompletedReadingFromStock(reading) {
@@ -3974,6 +4039,9 @@ function removeCompletedReadingFromStock(reading) {
 
     showToast(`「${reading}」を外しました`, '🗑️');
     renderReadingStockSection();
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
 }
 
 function openReadingStockModal(reading) {
@@ -3985,6 +4053,7 @@ function openReadingStockModal(reading) {
     const btnBuild = document.getElementById('reading-detail-btn-build');
     const btnAdd = document.getElementById('reading-detail-btn-add');
     const btnRemove = document.getElementById('reading-detail-btn-remove');
+    const stockItem = getReadingStock().find(item => matchesReadingStockTarget(item, reading)) || null;
 
     titleEl.textContent = reading;
 
@@ -4021,10 +4090,15 @@ function openReadingStockModal(reading) {
         btnBuild.textContent = '漢字を選ぶ';
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
-            startReadingFromStock(reading);
+            openReadingCombinationModal(stockItem || { reading, tags: [], baseNickname: '', gender: gender || 'neutral' }, stockItem?.baseNickname || '');
         };
         btnAdd.style.display = 'none';
-        btnRemove.style.display = 'none';
+        btnRemove.style.display = '';
+        btnRemove.textContent = 'この読みをストックから外す';
+        btnRemove.onclick = () => {
+            closeModal('modal-reading-detail');
+            removeCompletedReadingFromStock(reading);
+        };
     }
 
     modal.classList.add('active');
@@ -4225,7 +4299,7 @@ function startReadingFromStock(target) {
         return;
     }
 
-    proceedWithNicknameReading(stockItem.reading);
+    openReadingCombinationModal(stockItem, stockItem.baseNickname || '');
 }
 // ==========================================
 // 複数読み漢字選択フロー（共通prefix + suffix順次スワイプ）
@@ -5208,6 +5282,14 @@ function saveReadingOnlyFromModal(asSuper = false) {
             asSuper ? '⭐' : '💾'
         );
     }
+
+    closeReadingCombinationModal();
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
 }
 
 function renderReadingSwipeCard(item) {
@@ -6113,19 +6195,7 @@ function likePartnerReadingStock(index) {
         return;
     }
 
-    addReadingToStock(item.reading, item.baseNickname || '', Array.isArray(item.tags) ? item.tags : [], {
-        segments: Array.isArray(item.segments) ? item.segments : [],
-        gender: item.gender || gender || 'neutral',
-        isSuper: !!item.isSuper
-    });
-
-    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
-        MeimayPairing._autoSyncDebounced?.();
-    }
-
-    renderReadingStockSection();
-    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-    if (typeof showToast === 'function') showToast('読み候補をストックに追加しました', '💞');
+    openReadingCombinationModal(item, item.baseNickname || '');
 }
 
 function renderReadingStockSection() {
@@ -6892,7 +6962,7 @@ function renderReadingStockSectionV2() {
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
                                 </button>
-                                <button onclick="event.stopPropagation(); startReadingFromStock(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                <button onclick='event.stopPropagation(); openReadingCombinationModal({ reading: ${JSON.stringify(String(item.reading || ''))} }, ${JSON.stringify(item.baseNickname || '')})' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     漢字を選ぶ
                                 </button>
                             </div>
@@ -6964,7 +7034,7 @@ function renderReadingStockSectionVisible() {
         btn.textContent = '漢字を選ぶ';
         btn.onclick = (event) => {
             event.stopPropagation();
-            startReadingFromStock(reading);
+            openReadingCombinationModal({ reading }, '');
         };
 
         const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
@@ -6974,6 +7044,15 @@ function renderReadingStockSectionVisible() {
 
 renderReadingStockSection = renderReadingStockSectionVisible;
 window.renderReadingStockSection = renderReadingStockSectionVisible;
+
+function removeCompletedReadingFromStock(reading) {
+    if (!confirm(`「${reading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
+
+    if (typeof closeModal === 'function') closeModal('modal-reading-detail');
+    if (typeof closeReadingCombinationModal === 'function') closeReadingCombinationModal();
+    hideReadingFromStock(reading);
+    showToast(`「${reading}」を外しました`, '🗑️');
+}
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 

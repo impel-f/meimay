@@ -1224,7 +1224,23 @@ MeimayShare.syncProfileAppearance = async function () {
 };
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
-    return Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
+    const partnerReadings = Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
+    let hiddenReadings = new Set();
+    try {
+        hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
+    } catch (e) { }
+
+    const normalizeReading = (value) => {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    };
+
+    return partnerReadings.filter(item => {
+        const rawReading = String(item?.reading || '').trim();
+        const normalizedReading = normalizeReading(rawReading);
+        return !hiddenReadings.has(rawReading) && (!normalizedReading || !hiddenReadings.has(normalizedReading));
+    });
 };
 
 MeimayPartnerInsights.getOwnReadingStock = function () {
