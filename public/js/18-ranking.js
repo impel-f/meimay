@@ -84,6 +84,11 @@ function getRankingPeriodSwitchLabel(period) {
     return period === 'monthly' ? '月間ランキング' : '総合ランキング';
 }
 
+function getRankingMonthDisplayLabel(date = new Date()) {
+    const key = getRankingCurrentMonthKey(date);
+    return key.replace('_', '/');
+}
+
 function getRankingPeriodSwitchStyle(period) {
     if (period === 'monthly') {
         return {
@@ -111,6 +116,7 @@ function renderRankingPeriodSwitch() {
     const period = normalizeRankingPeriod(currentRankingPeriod);
     const label = getRankingPeriodSwitchLabel(period);
     const switchStyle = getRankingPeriodSwitchStyle(period);
+    const monthLabel = getRankingMonthDisplayLabel();
 
     mount.innerHTML = `
         <button
@@ -124,7 +130,7 @@ function renderRankingPeriodSwitch() {
                 </span>
                 ${period === 'monthly' ? `
                     <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
-                        集計期間
+                        集計期間 ${escapeRankingHtml(monthLabel)}
                     </span>
                 ` : ''}
             </div>
@@ -332,7 +338,8 @@ function renderRankingKanjiCard(item, index) {
 
     return `
         <button type="button"
-            onclick="openRankingKanjiDetail(${JSON.stringify(displayKanji)})"
+            data-kanji="${escapeRankingHtml(displayKanji)}"
+            onclick="openRankingKanjiDetail(this.dataset.kanji)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
@@ -349,9 +356,7 @@ function renderRankingKanjiCard(item, index) {
                     ${escapeRankingHtml(meaningText)}
                 </div>
             </div>
-            <span
-                onclick="event.stopPropagation(); openRankingKanjiDetail(${JSON.stringify(displayKanji)})"
-                class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
                 ${isStocked ? 'ストック済み' : '詳細'}
             </span>
         </button>
@@ -365,13 +370,13 @@ function renderRankingReadingCard(item, index) {
         && getReadingStock().some((entry) => normalizeRankingReadingText(entry?.reading) === reading);
     const sourceLabel = item?.sourceCount > 1
         ? `${item.sourceCount}件の表記を集約`
-        : 'スワイプと直接入力を集計';
-    const openAction = item?.sourceKey ? `onclick="openRankingReadingAction(${JSON.stringify(item.sourceKey)})"` : '';
+        : '';
     const rankLabel = `${index + 1}位`;
 
     return `
         <button type="button"
-            ${openAction}
+            data-reading="${escapeRankingHtml(item?.sourceKey || reading)}"
+            onclick="openRankingReadingAction(this.dataset.reading)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
@@ -379,11 +384,9 @@ function renderRankingReadingCard(item, index) {
             </div>
             <div class="min-w-0 flex-1">
                 <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '？')}</div>
-                <div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">${escapeRankingHtml(sourceLabel)}</div>
+                ${sourceLabel ? `<div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">${escapeRankingHtml(sourceLabel)}</div>` : ''}
             </div>
-            <span
-                onclick="event.stopPropagation(); openRankingReadingAction(${JSON.stringify(item?.sourceKey || reading)})"
-                class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
                 ${isStocked ? 'ストック済み' : '開く'}
             </span>
         </button>
