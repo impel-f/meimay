@@ -5275,6 +5275,9 @@ function renderReadingCardStarsV2(selfSuper, partnerSuper) {
 }
 
 function renderReadingStockSectionV2() {
+    if (typeof syncReadingStockFromLiked === 'function') {
+        syncReadingStockFromLiked(typeof liked !== 'undefined' ? liked : []);
+    }
     const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
     if (!section) return;
