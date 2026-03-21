@@ -343,7 +343,7 @@ function renderRankingKanjiCard(item, index) {
         <button type="button"
             data-kanji="${escapeRankingHtml(displayKanji)}"
             onclick="openRankingKanjiDetail(this.dataset.kanji)"
-            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
+            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
@@ -380,7 +380,7 @@ function renderRankingReadingCard(item, index) {
         <button type="button"
             data-reading="${escapeRankingHtml(item?.sourceKey || reading)}"
             onclick="openRankingReadingAction(this.dataset.reading)"
-            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
+            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
