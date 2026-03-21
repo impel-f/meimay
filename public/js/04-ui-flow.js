@@ -4084,7 +4084,7 @@ function openReadingStockModal(reading) {
         btnRemove.style.display = '';
     } else {
         infoEl.textContent = 'まだ漢字を選んでいません';
-        btnBuild.textContent = '漢字を選ぶ';
+        btnBuild.textContent = '保存';
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
             startReadingFromStock(stockTarget);
@@ -6191,18 +6191,16 @@ function likePartnerReadingStock(index) {
         })
         : null;
 
-    if (typeof renderReadingStockSection === 'function') {
-        renderReadingStockSection();
-    }
-    if (typeof refreshPartnerAwareUI === 'function') {
-        refreshPartnerAwareUI();
-    }
     if (typeof showToast === 'function') {
         showToast(`${item.reading}を取り込みました`, '❤');
     }
 
-    if (typeof openReadingStockModal === 'function') {
-        openReadingStockModal(saved?.id || saved?.reading || item.reading);
+    const target = saved?.id || saved?.reading || item.reading;
+    const readingValue = saved?.reading || item.reading;
+    if (typeof startReadingFromStock === 'function') {
+        startReadingFromStock(target);
+    } else if (typeof openBuildFromReading === 'function') {
+        openBuildFromReading(readingValue);
     }
 }
 
