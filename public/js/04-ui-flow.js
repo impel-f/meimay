@@ -4054,11 +4054,12 @@ function openReadingStockModal(reading) {
     const btnAdd = document.getElementById('reading-detail-btn-add');
     const btnRemove = document.getElementById('reading-detail-btn-remove');
     const stockItem = getReadingStock().find(item => matchesReadingStockTarget(item, reading)) || null;
+    const stockTarget = stockItem?.id || reading;
 
     titleEl.textContent = reading;
 
     const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
-    infoEl.textContent = kanjiCount > 0
+    infoEl.textContent = ((stockItem && Array.isArray(stockItem.segments) && stockItem.segments.length > 0) || (!stockItem && kanjiCount > 0))
         ? `${kanjiCount}個の漢字を選びました`
         : 'まだ漢字を選んでいません';
 
@@ -4072,10 +4073,10 @@ function openReadingStockModal(reading) {
     };
     btnRemove.onclick = () => {
         closeModal('modal-reading-detail');
-        removeCompletedReadingFromStock(reading);
+        removeCompletedReadingFromStock(stockTarget);
     };
 
-    if (kanjiCount > 0) {
+    if ((stockItem && Array.isArray(stockItem.segments) && stockItem.segments.length > 0) || (!stockItem && kanjiCount > 0)) {
         infoEl.textContent = `${kanjiCount}件の漢字を選んでいます`;
         btnBuild.textContent = '組み立てる';
         btnBuild.onclick = () => {
@@ -4090,14 +4091,14 @@ function openReadingStockModal(reading) {
         btnBuild.textContent = '漢字を選ぶ';
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
-            openReadingCombinationModal(stockItem || { reading, tags: [], baseNickname: '', gender: gender || 'neutral' }, stockItem?.baseNickname || '');
+            startReadingFromStock(stockTarget);
         };
         btnAdd.style.display = 'none';
         btnRemove.style.display = '';
         btnRemove.textContent = 'この読みをストックから外す';
         btnRemove.onclick = () => {
             closeModal('modal-reading-detail');
-            removeCompletedReadingFromStock(reading);
+            removeCompletedReadingFromStock(stockTarget);
         };
     }
 
@@ -4279,27 +4280,18 @@ function startReadingFromStock(target) {
     if (!stockItem) return;
 
     console.log("STOCK: Starting kanji search from stock reading:", stockItem);
-    removeReadingFromStock(stockItem.id);
+    hideReadingFromStock(stockItem.id || stockItem.reading || target);
     appMode = 'nickname';
     window._addMoreFromBuild = false;
     clearCompoundBuildFlow();
-
-    if (stockItem.segments && stockItem.segments.length > 0) {
-        segments = [...stockItem.segments];
-        currentPos = 0;
-        swipes = 0;
-        currentIdx = 0;
-        const nameInput = document.getElementById('in-name');
-        if (nameInput) nameInput.value = stockItem.reading;
-        if (typeof updateSurnameData === 'function') updateSurnameData();
-        seen.clear();
-        if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
-        if (typeof loadStack === 'function') loadStack();
-        changeScreen('scr-main');
-        return;
+    if (!Array.isArray(stockItem.segments) || stockItem.segments.length === 0) {
+        const preferred = typeof getPreferredReadingSegments === 'function'
+            ? getPreferredReadingSegments(stockItem.reading)
+            : [];
+        segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [stockItem.reading];
     }
 
-    openReadingCombinationModal(stockItem, stockItem.baseNickname || '');
+    openBuildFromReading(stockItem.reading);
 }
 // ==========================================
 // 複数読み漢字選択フロー（共通prefix + suffix順次スワイプ）
@@ -6195,7 +6187,27 @@ function likePartnerReadingStock(index) {
         return;
     }
 
-    openReadingCombinationModal(item, item.baseNickname || '');
+    const saved = typeof addReadingToStock === 'function'
+        ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
+            segments: [],
+            isSuper: !!item.isSuper,
+            gender: item.gender || gender || 'neutral'
+        })
+        : null;
+
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
+    if (typeof showToast === 'function') {
+        showToast(`${item.reading}を取り込みました`, '❤');
+    }
+
+    if (typeof openReadingStockModal === 'function') {
+        openReadingStockModal(saved?.id || saved?.reading || item.reading);
+    }
 }
 
 function renderReadingStockSection() {
@@ -6366,9 +6378,9 @@ function renderReadingStockSection() {
         btn.textContent = '取り込む';
     });
 
-    section.querySelectorAll('button[onclick*="startReadingFromStock("]').forEach(btn => {
+    section.querySelectorAll('button[onclick*="openReadingCombinationModal("]').forEach(btn => {
         const card = btn.closest('[data-reading]');
-        const reading = card?.dataset?.reading || '';
+        const reading = card?.dataset?.stockId || card?.dataset?.reading || '';
         if (!reading) return;
 
         if (card) {
@@ -6954,9 +6966,9 @@ function renderReadingStockSectionV2() {
                         const tone = getReadingCardToneV2(kind);
                         const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})">
                             <div class="flex items-center justify-between gap-2">
-                                <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
+                                <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="flex items-center gap-2">
                                         ${stars}
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
@@ -7021,9 +7033,9 @@ function renderReadingStockSectionVisible() {
         btn.textContent = '取り込む';
     });
 
-    section.querySelectorAll('button[onclick*="startReadingFromStock("]').forEach(btn => {
+    section.querySelectorAll('button[onclick*="openReadingCombinationModal("]').forEach(btn => {
         const card = btn.closest('[data-reading]');
-        const reading = card?.dataset?.reading || '';
+        const reading = card?.dataset?.stockId || card?.dataset?.reading || '';
         if (!reading) return;
 
         if (card) {
@@ -7034,7 +7046,7 @@ function renderReadingStockSectionVisible() {
         btn.textContent = '漢字を選ぶ';
         btn.onclick = (event) => {
             event.stopPropagation();
-            openReadingCombinationModal({ reading }, '');
+            startReadingFromStock(reading);
         };
 
         const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
