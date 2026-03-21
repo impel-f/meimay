@@ -6139,9 +6139,11 @@ function renderReadingStockSection() {
             .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
             .filter(Boolean)
     );
-    const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
+    const partnerPendingCards = partnerReadings
+        .map((item, originalIndex) => ({ item, originalIndex }))
+        .filter(entry => !pairInsights?.isPartnerReadingApproved?.(entry.item));
 
-    const hasContent = completedReadings.length > 0 || pendingOnly.length > 0 || pendingPartnerReadings.length > 0;
+    const hasContent = completedReadings.length > 0 || pendingOnly.length > 0 || partnerPendingCards.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
     if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent);
 
@@ -6218,7 +6220,7 @@ function renderReadingStockSection() {
         html += `</div>`;
     }
 
-    if (pendingPartnerReadings.length > 0) {
+    if (partnerPendingCards.length > 0) {
         const partnerLabel = typeof getPartnerRoleLabel === 'function'
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー';
@@ -6226,7 +6228,8 @@ function renderReadingStockSection() {
         html += `<div class="mb-5">
             <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerLabel}の読み候補</div>
             <div class="space-y-2">
-                ${pendingPartnerReadings.map((item, index) => {
+                ${partnerPendingCards.map(entry => {
+                    const item = entry.item;
                     const display = getReadingDisplayLabel(item);
                     const tone = getReadingCardToneV2('partner');
                     const stars = renderReadingCardStarsV2(false, item.isSuper);
@@ -6238,7 +6241,7 @@ function renderReadingStockSection() {
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                 </div>
                             </div>
-                            <button onclick="likePartnerReadingStock(${index})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
+                            <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
                                 いいねして追加
                             </button>
                         </div>`;
@@ -6305,7 +6308,9 @@ function renderReadingStockSection() {
             .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
             .filter(Boolean)
     );
-    const pendingPartnerReadings = partnerReadings.filter(item => !pairInsights?.isPartnerReadingApproved?.(item));
+    const partnerPendingCards = partnerReadings
+        .map((item, originalIndex) => ({ item, originalIndex }))
+        .filter(entry => !pairInsights?.isPartnerReadingApproved?.(entry.item));
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
         : { readingFocus: 'all' };
@@ -6319,7 +6324,7 @@ function renderReadingStockSection() {
     const showOwnSections = readingFocus !== 'partner';
     const visibleCompleted = showOwnSections ? completedReadings : [];
     const visiblePendingOnly = showOwnSections ? pendingOnly : [];
-    const visiblePartnerReadings = pendingPartnerReadings;
+    const visiblePartnerReadings = partnerPendingCards;
 
     const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
@@ -6443,7 +6448,8 @@ function renderReadingStockSection() {
         html += `<div class="mb-5">
             <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerName}の読み候補</div>
             <div class="space-y-2">
-                ${visiblePartnerReadings.map((item, index) => {
+                ${visiblePartnerReadings.map(entry => {
+                    const item = entry.item;
                     const display = getReadingDisplayLabel(item);
                     const tone = getReadingCardToneV2('partner');
                     const stars = renderReadingCardStarsV2(false, item.isSuper);
@@ -6455,7 +6461,7 @@ function renderReadingStockSection() {
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                 </div>
                             </div>
-                            <button onclick="likePartnerReadingStock(${index})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
+                            <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
                                 いいねして取り込む
                             </button>
                         </div>`;
