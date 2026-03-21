@@ -6889,14 +6889,14 @@ function renderReadingStockSectionV2() {
     if (visiblePartnerReadings.length > 0) {
         html += `<div class="mb-5">
             <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerName}の読み候補</div>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-2">
                 ${visiblePartnerReadings.map(entry => {
                     const item = entry.item;
                     const display = getReadingDisplayLabel(item);
                     const tone = getReadingCardToneV2('partner');
                     const stars = renderReadingCardStarsV2(false, item.isSuper);
                     return `
-                        <div class="rounded-2xl p-3 flex items-center gap-3" style="${tone.card}">
+                        <div class="w-full rounded-2xl p-3 flex items-center gap-3" style="${tone.card}">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
                                     ${stars}
@@ -7184,4 +7184,3 @@ function initSoundMode() {
 }
 
 window.aiReorderCandidates = aiReorderCandidates;
-
