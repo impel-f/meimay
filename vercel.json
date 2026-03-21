@@ -14,6 +14,10 @@
       "destination": "/api/stats.js"
     },
     {
+      "source": "/js/04-ui-flow-stockfix.js",
+      "destination": "/public/js/04-ui-flow.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
