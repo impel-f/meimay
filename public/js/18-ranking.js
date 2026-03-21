@@ -86,7 +86,10 @@ function getRankingPeriodSwitchLabel(period) {
 
 function getRankingMonthDisplayLabel(date = new Date()) {
     const key = getRankingCurrentMonthKey(date);
-    return key.replace('_', '/');
+    const [year, month] = key.split('_');
+    if (!year || !month) return key.replace('_', '/');
+    const lastDay = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+    return `${year}/${month}/01-${year}/${month}/${String(lastDay).padStart(2, '0')}`;
 }
 
 function getRankingPeriodSwitchStyle(period) {
@@ -498,25 +501,30 @@ function openRankingReadingAction(key) {
         return;
     }
 
-    const actionKey = item.key || item.reading;
     try {
-        if (typeof openEncounteredReadingActionSheet === 'function') {
-            openEncounteredReadingActionSheet(actionKey);
+        if (typeof openReadingCombinationModal === 'function') {
+            openReadingCombinationModal(
+                {
+                    ...item,
+                    reading: item.reading,
+                    tags: Array.isArray(item.tags)
+                        ? item.tags
+                        : Array.isArray(item.sourceTags)
+                            ? item.sourceTags
+                            : [],
+                    gender: item.gender || 'neutral'
+                },
+                item.baseNickname || '',
+                item.preferredLabel || ''
+            );
+            return;
         }
     } catch (error) {
         console.error('RANKING: openRankingReadingAction failed', error);
     }
 
-    const actionModal = document.getElementById('modal-encountered-reading-actions');
-    if (actionModal && actionModal.classList.contains('active')) return;
-
-    if (typeof openReadingStockModal === 'function') {
-        openReadingStockModal(item.reading || actionKey);
-        return;
-    }
-
     if (typeof showToast === 'function') {
-        showToast('この読みの詳細を開けませんでした。', '👀');
+        showToast('読み候補画面を開けませんでした');
     }
 }
 
