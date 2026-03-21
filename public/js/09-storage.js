@@ -1,5 +1,5 @@
 /* ============================================================
-   MODULE 09: STORAGE (V13.0)
+   MODULE 09: STORAGE (V13.1)
    LocalStorage永続化
    ============================================================ */
 
@@ -231,6 +231,11 @@ const StorageBox = {
                     liked: Array.isArray(parsedSoundPref?.liked) ? parsedSoundPref.liked : [],
                     noped: Array.isArray(parsedSoundPref?.noped) ? parsedSoundPref.noped : []
                 };
+            }
+
+            // いいねだけ残っている旧データから読みストックを復元する
+            if (Array.isArray(liked) && liked.length > 0 && typeof syncReadingStockFromLiked === 'function') {
+                syncReadingStockFromLiked(liked);
             }
 
             console.log("STORAGE: State restored successfully");
