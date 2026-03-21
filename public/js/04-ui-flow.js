@@ -4270,6 +4270,17 @@ function addMoreForReading(reading) {
     changeScreen('scr-main');
 }
 
+function startReadingSplitProposalFromStock(reading) {
+    const nameInput = document.getElementById('in-name');
+    if (nameInput) nameInput.value = reading;
+    appMode = 'reading';
+    if (typeof clearCompoundBuildFlow === 'function') clearCompoundBuildFlow();
+    if (typeof calcSegments === 'function') {
+        calcSegments();
+    }
+}
+window.startReadingSplitProposalFromStock = startReadingSplitProposalFromStock;
+
 function startReadingFromStock(target) {
     const stock = getReadingStock();
     const stockItem = stock.find(item => matchesReadingStockTarget(item, target));
@@ -6195,12 +6206,8 @@ function likePartnerReadingStock(index) {
         showToast(`${item.reading}を取り込みました`, '❤');
     }
 
-    const target = saved?.id || saved?.reading || item.reading;
-    const readingValue = saved?.reading || item.reading;
-    if (typeof startReadingFromStock === 'function') {
-        startReadingFromStock(target);
-    } else if (typeof openBuildFromReading === 'function') {
-        openBuildFromReading(readingValue);
+    if (typeof openStock === 'function') {
+        openStock('reading');
     }
 }
 
@@ -7040,7 +7047,11 @@ function renderReadingStockSectionVisible() {
         btn.textContent = '漢字を選ぶ';
         btn.onclick = (event) => {
             event.stopPropagation();
-            startReadingFromStock(reading);
+            if (typeof startReadingSplitProposalFromStock === 'function') {
+                startReadingSplitProposalFromStock(reading);
+            } else {
+                startReadingFromStock(reading);
+            }
         };
 
         const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
