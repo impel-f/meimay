@@ -3982,7 +3982,9 @@ function openReadingStockModal(reading) {
     titleEl.textContent = reading;
 
     const kanjiCount = liked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
-    infoEl.textContent = `${kanjiCount}個の漢字を選びました`;
+    infoEl.textContent = kanjiCount > 0
+        ? `${kanjiCount}個の漢字を選びました`
+        : 'まだ漢字を選んでいません';
 
     btnBuild.onclick = () => {
         closeModal('modal-reading-detail');
@@ -4060,7 +4062,7 @@ function renderReadingStockSection() {
                     <div class="flex gap-2">
                         <button onclick="event.stopPropagation(); closeModal('modal-reading-detail'); openBuildFromReading('${reading}')"
                             class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
-                            ビルドへ →
+                            漢字を選ぶ
                         </button>
                     </div>
                 </div>`;
@@ -4078,7 +4080,7 @@ function renderReadingStockSection() {
         });
 
         html += `<div class="mb-5">
-            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">未選択の読み</div>`;
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">漢字を選んでいない読み</div>`;
 
         Object.keys(groups).forEach(groupName => {
             const items = groups[groupName];
@@ -4091,14 +4093,15 @@ function renderReadingStockSection() {
                             ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-[#fff1d8] text-[#b9965b] text-[9px] font-black">SUPER</span>'
                             : '';
                         return `
-                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 hover:border-[#bca37f] transition-all">
-                            <div class="flex items-start justify-between gap-2">
-                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
-                                    <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
-                                </button>
-                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-[#d4c5af] text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
+                        <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
+                             onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-lg font-black text-[#5d5444] leading-tight">${display}</div>
+                                <div class="text-[9px] text-[#a6967a]">${item.baseNickname || ''}</div>
+                                <div class="mt-2 flex items-center gap-2 flex-wrap">${badge}</div>
                             </div>
-                            <div class="mt-2 flex items-center gap-2 flex-wrap">${badge}</div>
+                            <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">漢字を選ぶ</button>
+                            <button onclick='event.stopPropagation(); removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="shrink-0 text-[#d4c5af] text-sm p-2 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]">✕</button>
                         </div>`;
                     }).join('')}
                 </div>
@@ -5242,15 +5245,13 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                 ` : options.map((option, index) => {
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => `
-                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] px-3 py-2.5">
-                                <div class="min-w-0 text-center">
-                                    <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
-                                    <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
-                                </div>
-                                <div class="flex mt-3">
-                                    <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
-                                </div>
+                        <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
+                                <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                             </div>
+                            <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">漢字を選ぶ</button>
+                        </div>
                         `).join('')
                         : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
                     return `
@@ -6167,10 +6168,10 @@ function renderReadingStockSection() {
                         <div class="text-lg font-black text-[#5d5444]">${display}</div>
                         <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
-                        class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
-                        ビルドへ
-                    </button>
+                        <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
+                            class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
+                            漢字を選ぶ
+                        </button>
                 </div>`;
         });
 
@@ -6186,28 +6187,28 @@ function renderReadingStockSection() {
         });
 
         html += `<div class="mb-5">
-            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">自分の読みストック</div>`;
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">漢字を選んでいない読み</div>`;
 
         Object.keys(groups).forEach(groupName => {
             const items = groups[groupName];
             html += `<div class="mb-3">
                 <div class="text-[10px] text-[#bca37f] mb-1">${groupName}</div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="space-y-2">
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
                         const tone = getReadingCardToneV2('self');
                         const stars = renderReadingCardStarsV2(item.isSuper, false);
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}">
-                            <div class="flex items-start justify-between gap-2">
-                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
-                                    <div class="flex items-center gap-2">
-                                        ${stars}
-                                        <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
-                                    </div>
-                                </button>
-                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
+                        <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer" style="${tone.card}" onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    ${stars}
+                                    <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                                </div>
+                                <div class="text-[9px] mt-1" style="color:${tone.sub}">${item.baseNickname || ''}</div>
                             </div>
+                            <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">漢字を選ぶ</button>
+                            <button onclick='event.stopPropagation(); removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="shrink-0 text-sm p-2 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                         </div>`;
                     }).join('')}
                 </div>
@@ -6224,18 +6225,20 @@ function renderReadingStockSection() {
 
         html += `<div class="mb-5">
             <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerLabel}の読み候補</div>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-2">
                 ${pendingPartnerReadings.map((item, index) => {
                     const display = getReadingDisplayLabel(item);
                     const tone = getReadingCardToneV2('partner');
                     const stars = renderReadingCardStarsV2(false, item.isSuper);
                     return `
-                        <div class="rounded-2xl p-3" style="${tone.card}">
-                            <div class="flex items-center gap-2">
-                                ${stars}
-                                <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                        <div class="rounded-2xl p-3 flex items-center gap-3" style="${tone.card}">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    ${stars}
+                                    <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
+                                </div>
                             </div>
-                            <button onclick="likePartnerReadingStock(${index})" class="mt-3 w-full py-2 rounded-xl text-[11px] font-bold shadow-sm active:scale-95" style="${tone.action}">
+                            <button onclick="likePartnerReadingStock(${index})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
                                 いいねして追加
                             </button>
                         </div>`;
