@@ -386,7 +386,7 @@ function renderRankingReadingCard(item, index) {
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
             </div>
             <div class="min-w-0 flex-1">
-                <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '？')}</div>
+                <div class="truncate whitespace-nowrap text-[16px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '？')}</div>
                 ${sourceLabel ? `<div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">${escapeRankingHtml(sourceLabel)}</div>` : ''}
             </div>
             <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
