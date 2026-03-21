@@ -5377,13 +5377,66 @@ function renderReadingStockSectionV2() {
             : 'パートナー');
 
     const showOwnSections = readingFocus !== 'partner';
-    const visibleCompleted = showOwnSections
+    let visibleCompleted = showOwnSections
         ? completedCards.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
         : [];
-    const visiblePendingOnly = showOwnSections
+    let visiblePendingOnly = showOwnSections
         ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
         : [];
     const visiblePartnerReadings = partnerPendingCards;
+
+    const hiddenReadingSet = new Set(
+        Array.from(removedList)
+            .map(value => normalizeHiddenReadingValue(value))
+            .filter(Boolean)
+    );
+    const isReadingHidden = (value) => {
+        const normalized = normalizeHiddenReadingValue(value);
+        return normalized ? hiddenReadingSet.has(normalized) : false;
+    };
+    const ownCollectionFallback = pairInsights?.getOwnReadingCollection ? pairInsights.getOwnReadingCollection() : pendingStock;
+    const visibleOwnCollection = Array.isArray(ownCollectionFallback)
+        ? ownCollectionFallback.filter(item => !isReadingHidden(item?.reading))
+        : [];
+    const completedReadingValues = new Set(
+        completedReadings
+            .map(reading => getPartnerViewNormalizedReading(reading, pairInsights))
+            .filter(Boolean)
+    );
+
+    if (visibleCompleted.length === 0 && visiblePendingOnly.length === 0 && visibleOwnCollection.length > 0) {
+        const fallbackCompleted = [];
+        const fallbackPending = [];
+        const seenKeys = new Set();
+
+        visibleOwnCollection.forEach(item => {
+            const key = getPartnerViewReadingKey(item, pairInsights);
+            if (key && seenKeys.has(key)) return;
+            if (key) seenKeys.add(key);
+
+            const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+            const card = {
+                reading: getReadingBaseReading(item?.reading || ''),
+                display: getReadingDisplayLabel(item),
+                segments: Array.isArray(item?.segments) ? item.segments : [],
+                key,
+                normalizedReading,
+                ownItem: item,
+                isSuper: !!item?.isSuper,
+                partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
+                kanjiCount: ownLiked.filter(l => getReadingBaseReading(l.sessionReading) === getReadingBaseReading(item?.reading) && l.slot >= 0).length
+            };
+
+            if (normalizedReading && completedReadingValues.has(normalizedReading)) {
+                fallbackCompleted.push(card);
+            } else {
+                fallbackPending.push(card);
+            }
+        });
+
+        visibleCompleted = fallbackCompleted;
+        visiblePendingOnly = fallbackPending;
+    }
 
     const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
