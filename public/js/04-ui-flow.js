@@ -875,7 +875,8 @@ function initSoundMode() {
                 addReadingToStock(item.reading, '', item.tags || [], {
                     segments: getPreferredReadingSegments(item.reading),
                     isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral'
+                    gender: item.gender || gender || 'neutral',
+                    clearHidden: true
                 });
             }
         },
@@ -1949,7 +1950,8 @@ function saveReadingCandidateToStock(option, candidate, asSuper) {
         {
             segments: sessionSegments,
             isSuper: !!asSuper,
-            gender: readingCombinationModalState.item.gender || gender || 'neutral'
+            gender: readingCombinationModalState.item.gender || gender || 'neutral',
+            clearHidden: true
         }
     );
 
@@ -2197,7 +2199,7 @@ function initAdanaMode() {
                     subtitle: `「${nicknameBaseReading}」をベースにした候補`,
                     onLike: (item) => {
                         if (typeof addReadingToStock === 'function') {
-                            addReadingToStock(item.reading, nicknameBaseReading, item.tags || []);
+                            addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], { clearHidden: true });
                         }
                     },
                     renderCard: (item) => {
@@ -2556,7 +2558,7 @@ function processNickname() {
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || []);
+                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], { clearHidden: true });
             }
         },
         renderCard: (item) => {
@@ -2615,7 +2617,7 @@ function showNicknameReadingSelectionWithStock(items) {
             list.classList.add('hidden');
             // 選ばれなかったものをストックに追加
             const others = items.filter(i => i.reading !== item.reading);
-            others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || []));
+            others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || [], { clearHidden: true }));
             if (others.length > 0) {
                 showToast(`${others.length}件の読みをストックに保存しました`);
             }
@@ -3935,6 +3937,9 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
 
     stock.push(entry);
     saveReadingStock(stock);
+    if (options.clearHidden) {
+        forgetHiddenReading(reading);
+    }
     console.log("STOCK: Added reading to stock:", entry);
     return entry;
 }
@@ -3987,9 +3992,7 @@ function rememberHiddenReading(reading) {
     const raw = String(reading || '').trim();
     if (!raw) return;
 
-    const normalized = (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
-        ? window.MeimayPartnerInsights.normalizeReading(raw)
-        : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    const normalized = normalizeHiddenReadingValue(raw);
 
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
@@ -3997,6 +4000,39 @@ function rememberHiddenReading(reading) {
     next.add(raw);
     if (normalized) next.add(normalized);
     localStorage.setItem('meimay_hidden_readings', JSON.stringify(Array.from(next)));
+}
+
+function forgetHiddenReading(reading) {
+    const raw = String(reading || '').trim();
+    if (!raw) return false;
+
+    const normalized = normalizeHiddenReadingValue(raw);
+
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    if (!Array.isArray(removedList) || removedList.length === 0) return false;
+
+    const next = removedList.filter(item => {
+        const value = String(item || '').trim();
+        if (!value) return false;
+        const normalizedValue = normalizeHiddenReadingValue(value);
+        return value !== raw &&
+            value !== normalized &&
+            normalizedValue !== raw &&
+            normalizedValue !== normalized;
+    });
+
+    if (next.length === removedList.length) return false;
+    localStorage.setItem('meimay_hidden_readings', JSON.stringify(next));
+    return true;
+}
+
+function normalizeHiddenReadingValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
+        ? window.MeimayPartnerInsights.normalizeReading(raw)
+        : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
 }
 
 function hideReadingFromStock(target) {
@@ -5187,7 +5223,8 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
         {
             segments: sessionSegments,
             isSuper: !!asSuper,
-            gender: readingCombinationModalState.item.gender || gender || 'neutral'
+            gender: readingCombinationModalState.item.gender || gender || 'neutral',
+            clearHidden: true
         }
     );
 
@@ -5272,7 +5309,8 @@ function saveReadingOnlyFromModal(asSuper = false) {
         {
             segments: Array.isArray(preferred) ? preferred : [],
             isSuper: !!asSuper,
-            gender: item.gender || gender || 'neutral'
+            gender: item.gender || gender || 'neutral',
+            clearHidden: true
         }
     );
     if (typeof showToast === 'function') {
@@ -6195,7 +6233,8 @@ function likePartnerReadingStock(index) {
     ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
         segments: Array.isArray(item.segments) ? item.segments : [],
         isSuper: !!item.isSuper,
-            gender: item.gender || gender || 'neutral'
+            gender: item.gender || gender || 'neutral',
+            clearHidden: true
         })
         : null;
 
@@ -6955,7 +6994,8 @@ function startNicknameCandidateSwipe(baseReading) {
                 addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
                     segments: getPreferredReadingSegments(item.reading),
                     isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral'
+                    gender: item.gender || gender || 'neutral',
+                    clearHidden: true
                 });
             }
         },
@@ -7055,7 +7095,8 @@ function initSoundMode() {
                 addReadingToStock(item.reading, '', item.tags || [], {
                     segments: getPreferredReadingSegments(item.reading),
                     isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral'
+                    gender: item.gender || gender || 'neutral',
+                    clearHidden: true
                 });
             }
         },
