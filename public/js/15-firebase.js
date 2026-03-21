@@ -902,6 +902,22 @@ async function handleEnterCode() {
                 return result;
             };
 
+            if (typeof saveReadingStock === 'function') {
+                const originalSaveReadingStock = saveReadingStock.bind(window);
+                saveReadingStock = function (stock) {
+                    const result = originalSaveReadingStock(stock);
+                    if (MeimayPairing.roomCode) {
+                        MeimayPairing._autoSyncDebounced?.();
+                    }
+                    return result;
+                };
+            }
+
+            if (MeimayPairing.roomCode) {
+                // Flush any stock restored before the sync hook attached.
+                MeimayPairing._autoSyncDebounced?.();
+            }
+
             clearInterval(waitForStorageBox);
             console.log("FIREBASE: Storage sync hooks attached");
         }
