@@ -3920,6 +3920,10 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
 function syncReadingStockFromLiked(items = liked) {
     const likedItems = Array.isArray(items) ? items : [];
     const blockedReadings = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
+    let hiddenReadings = new Set();
+    try {
+        hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
+    } catch (e) { }
     likedItems.forEach(item => {
         if (!item || item.fromPartner) return;
         const sessionReading = typeof item.sessionReading === 'string' ? item.sessionReading.trim() : '';
@@ -3930,6 +3934,7 @@ function syncReadingStockFromLiked(items = liked) {
             ? sessionReading
             : (fallbackReading && !blockedReadings.has(fallbackReading) ? fallbackReading : '');
         if (!reading) return;
+        if (hiddenReadings.has(reading)) return;
         addReadingToStock(
             reading,
             item.baseNickname || '',
@@ -3951,8 +3956,10 @@ function removeReadingFromStock(target) {
 }
 
 function removeCompletedReadingFromStock(reading) {
-    if (!confirm(`「${reading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
+    if (!confirm(`「${reading}」をストックリストから外しますか？
+（選んだ漢字は削除されません）`)) return;
 
+    closeModal('modal-reading-detail');
     removeReadingFromStock(reading);
 
     let removedList = [];
@@ -4052,7 +4059,10 @@ function renderReadingStockSection() {
             .map(item => item.sessionReading)
     )];
 
-    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pendingOnly = pendingStock.filter(item =>
+        !completedReadings.includes(item.reading) &&
+        !removedList.includes(item.reading)
+    );
 
     const hasContent = completedReadings.length > 0 || pendingOnly.length > 0;
     const emptyMsg = document.getElementById('reading-stock-empty');
@@ -6148,7 +6158,10 @@ function renderReadingStockSection() {
             .map(item => item.sessionReading)
     )];
 
-    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pendingOnly = pendingStock.filter(item =>
+        !completedReadings.includes(item.reading) &&
+        !removedList.includes(item.reading)
+    );
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
     const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
@@ -6346,7 +6359,10 @@ function renderReadingStockSection() {
             .map(item => item.sessionReading)
     )];
 
-    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pendingOnly = pendingStock.filter(item =>
+        !completedReadings.includes(item.reading) &&
+        !removedList.includes(item.reading)
+    );
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
     const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
@@ -6732,7 +6748,10 @@ function renderReadingStockSectionV2() {
         return normalizedReading ? matchedReadingValues.has(normalizedReading) : false;
     };
 
-    const pendingOnly = pendingStock.filter(item => !completedReadings.includes(item.reading));
+    const pendingOnly = pendingStock.filter(item =>
+        !completedReadings.includes(item.reading) &&
+        !removedList.includes(item.reading)
+    );
     const partnerPendingCards = partnerReadings
         .map((item, originalIndex) => ({ item, originalIndex }))
         .filter(entry => {
@@ -6812,7 +6831,7 @@ function renderReadingStockSectionV2() {
 
     if (visibleCompleted.length > 0) {
         html += `<div class="mb-6">
-            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">組み合わせ中の読み</div>
+            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字の候補がある読み</div>
             <div class="space-y-2">`;
 
         visibleCompleted.forEach(item => {
@@ -6830,7 +6849,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}件の漢字候補</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openReadingStockModal('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -6873,7 +6892,7 @@ function renderReadingStockSectionV2() {
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
                                 </button>
-                                <button onclick="event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                <button onclick="event.stopPropagation(); startReadingFromStock(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     漢字を選ぶ
                                 </button>
                             </div>
@@ -6945,7 +6964,7 @@ function renderReadingStockSectionVisible() {
         btn.textContent = '漢字を選ぶ';
         btn.onclick = (event) => {
             event.stopPropagation();
-            openReadingStockModal(reading);
+            startReadingFromStock(reading);
         };
 
         const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
