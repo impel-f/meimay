@@ -6255,6 +6255,12 @@ function likePartnerReadingStock(index) {
     if (typeof openStock === 'function') {
         openStock('reading');
     }
+    if (typeof renderReadingStockSection === 'function') {
+        renderReadingStockSection();
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
 }
 
 
@@ -6318,7 +6324,11 @@ function renderReadingStockSection() {
             .filter(Boolean)
     );
     const partnerPendingCards = partnerReadings
-        .map((item, originalIndex) => ({ item, originalIndex }));
+        .map((item, originalIndex) => ({ item, originalIndex }))
+        .filter(({ item }) => {
+            const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
+            return normalizedReading ? !matchedReadingValues.has(normalizedReading) : true;
+        });
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
         : { readingFocus: 'all' };
@@ -6693,7 +6703,8 @@ function renderReadingStockSectionV2() {
         !removedList.includes(item.reading)
     );
     const partnerPendingCards = partnerReadings
-        .map((item, originalIndex) => ({ item, originalIndex }));
+        .map((item, originalIndex) => ({ item, originalIndex }))
+        .filter(({ item }) => !isReadingMatchedForView(item));
 
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
