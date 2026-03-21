@@ -6196,7 +6196,7 @@ function likePartnerReadingStock(index) {
 
     const saved = typeof addReadingToStock === 'function'
         ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
-            segments: [],
+            segments: Array.isArray(item.segments) ? item.segments : [],
             isSuper: !!item.isSuper,
             gender: item.gender || gender || 'neutral'
         })
@@ -6211,194 +6211,6 @@ function likePartnerReadingStock(index) {
     }
 }
 
-function renderReadingStockSection() {
-    if (typeof renderReadingStockSectionVisible === 'function') return renderReadingStockSectionVisible();
-    const pendingStock = getReadingStock();
-    const section = document.getElementById('reading-stock-section');
-    if (!section) return;
-
-    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const readingToSegments = {};
-    history.forEach(h => {
-        const historyKey = getReadingStockKey(h.reading, h.segments || []);
-        readingToSegments[historyKey] = h.segments;
-        if (!readingToSegments[h.reading]) readingToSegments[h.reading] = h.segments;
-    });
-
-    let removedList = [];
-    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
-
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
-    const completedReadings = [...new Set(
-        ownLiked
-            .filter(item =>
-                item.sessionReading &&
-                item.sessionReading !== 'FREE' &&
-                item.sessionReading !== 'SEARCH' &&
-                item.slot >= 0 &&
-                !removedList.includes(item.sessionReading)
-            )
-            .map(item => item.sessionReading)
-    )];
-
-    const pendingOnly = pendingStock.filter(item =>
-        !completedReadings.includes(item.reading) &&
-        !removedList.includes(item.reading)
-    );
-    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
-    const partnerReadingCollection = pairInsights?.getPartnerReadingCollection ? pairInsights.getPartnerReadingCollection() : partnerReadings;
-    const partnerReadingByReading = new Map();
-    partnerReadingCollection.forEach(item => {
-        const normalizedReading = getPartnerViewNormalizedReading(item?.reading, pairInsights);
-        if (normalizedReading && !partnerReadingByReading.has(normalizedReading)) partnerReadingByReading.set(normalizedReading, item);
-    });
-    const matchedReadingValues = new Set(
-        (pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : [])
-            .map(item => getPartnerViewNormalizedReading(item?.reading, pairInsights))
-            .filter(Boolean)
-    );
-    const partnerPendingCards = partnerReadings
-        .map((item, originalIndex) => ({ item, originalIndex }))
-        .filter(entry => !pairInsights?.isPartnerReadingApproved?.(entry.item));
-
-    const hasContent = completedReadings.length > 0 || pendingOnly.length > 0 || partnerPendingCards.length > 0;
-    const emptyMsg = document.getElementById('reading-stock-empty');
-    if (emptyMsg) emptyMsg.classList.toggle('hidden', hasContent);
-
-    if (!hasContent) {
-        section.innerHTML = '';
-        return;
-    }
-
-    let html = '';
-
-    if (completedReadings.length > 0) {
-        html += `<div class="mb-6">
-            <div class="text-xs font-black text-[#bca37f] mb-3 tracking-wider uppercase">漢字を選んだ読み</div>
-            <div class="space-y-2">`;
-
-        completedReadings.forEach(reading => {
-            const kanjiCount = ownLiked.filter(i => i.sessionReading === reading && i.slot >= 0).length;
-            const segs = readingToSegments[reading];
-            const display = segs ? segs.join('/') : reading;
-            html += `
-                <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
-                     onclick="openReadingStockModal('${reading}')">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-lg font-black text-[#5d5444]">${display}</div>
-                        <div class="text-[9px] text-[#a6967a]">${kanjiCount}個の漢字</div>
-                    </div>
-                        <button onclick="event.stopPropagation(); openBuildFromReading('${reading}')"
-                            class="text-xs font-bold text-white bg-[#bca37f] px-4 py-2 rounded-full whitespace-nowrap hover:bg-[#a8906c] transition-all active:scale-95 shadow-sm">
-                            漢字を選ぶ
-                        </button>
-                </div>`;
-        });
-
-        html += `</div></div>`;
-    }
-
-    if (pendingOnly.length > 0) {
-        const groups = {};
-        pendingOnly.forEach(item => {
-            const key = item.baseNickname || '響き・読み';
-            if (!groups[key]) groups[key] = [];
-            groups[key].push(item);
-        });
-
-        html += `<div class="mb-5">
-            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">漢字を選んでいない読み</div>`;
-
-        Object.keys(groups).forEach(groupName => {
-            const items = groups[groupName];
-            html += `<div class="mb-3">
-                <div class="text-[10px] text-[#bca37f] mb-1">${groupName}</div>
-                <div class="space-y-2">
-                    ${items.map(item => {
-                        const display = getReadingDisplayLabel(item);
-                        const tone = getReadingCardToneV2('self');
-                        const stars = renderReadingCardStarsV2(item.isSuper, false);
-                        return `
-                        <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer" style="${tone.card}" onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    ${stars}
-                                    <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
-                                </div>
-                                <div class="text-[9px] mt-1" style="color:${tone.sub}">${item.baseNickname || ''}</div>
-                            </div>
-                            <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.reading || ''))})" class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">漢字を選ぶ</button>
-                            <button onclick='event.stopPropagation(); removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="shrink-0 text-sm p-2 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
-                        </div>`;
-                    }).join('')}
-                </div>
-            </div>`;
-        });
-
-        html += `</div>`;
-    }
-
-    if (partnerPendingCards.length > 0) {
-        const partnerLabel = typeof getPartnerRoleLabel === 'function'
-            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
-            : 'パートナー';
-
-        html += `<div class="mb-5">
-            <div class="text-xs font-black text-[#dd7d73] mb-3 tracking-wider uppercase">${partnerLabel}の読み候補</div>
-            <div class="space-y-2">
-                ${partnerPendingCards.map(entry => {
-                    const item = entry.item;
-                    const display = getReadingDisplayLabel(item);
-                    const tone = getReadingCardToneV2('partner');
-                    const stars = renderReadingCardStarsV2(false, item.isSuper);
-                    return `
-                        <div class="rounded-2xl p-3 flex items-center gap-3" style="${tone.card}">
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    ${stars}
-                                    <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
-                                </div>
-                            </div>
-                            <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
-                                取り込む
-                            </button>
-                        </div>`;
-                }).join('')}
-            </div>
-        </div>`;
-    }
-
-    section.innerHTML = html;
-
-    section.querySelectorAll('button[onclick*="openBuildFromReading("]').forEach(btn => {
-        btn.textContent = '組み立てる';
-    });
-
-    section.querySelectorAll('button[onclick*="likePartnerReadingStock("]').forEach(btn => {
-        btn.textContent = '取り込む';
-    });
-
-    section.querySelectorAll('button[onclick*="openReadingCombinationModal("]').forEach(btn => {
-        const card = btn.closest('[data-reading]');
-        const reading = card?.dataset?.stockId || card?.dataset?.reading || '';
-        if (!reading) return;
-
-        if (card) {
-            card.classList.add('cursor-pointer', 'active:scale-[0.98]');
-            card.onclick = () => openReadingStockModal(reading);
-        }
-
-        btn.textContent = '漢字を選ぶ';
-        btn.onclick = (event) => {
-            event.stopPropagation();
-            openReadingStockModal(reading);
-        };
-
-        const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
-        if (removeBtn) removeBtn.remove();
-    });
-}
 
 window.likePartnerReadingStock = likePartnerReadingStock;
 window.renderReadingStockSection = renderReadingStockSection;
@@ -6975,7 +6787,7 @@ function renderReadingStockSectionV2() {
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
                                 </button>
-                                <button onclick='event.stopPropagation(); openReadingCombinationModal({ reading: ${JSON.stringify(String(item.reading || ''))} }, ${JSON.stringify(item.baseNickname || '')})' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                <button onclick='event.stopPropagation(); if(typeof startReadingSplitProposalFromStock === "function") startReadingSplitProposalFromStock(${JSON.stringify(String(item.reading || ""))}); else startReadingFromStock(${JSON.stringify(String(item.reading || ""))})' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     漢字を選ぶ
                                 </button>
                             </div>
@@ -7022,41 +6834,6 @@ window.renderReadingStockSection = renderReadingStockSectionV2;
 
 function renderReadingStockSectionVisible() {
     renderReadingStockSectionV2();
-
-    const section = document.getElementById('reading-stock-section');
-    if (!section) return;
-
-    section.querySelectorAll('button[onclick*="openBuildFromReading("]').forEach(btn => {
-        btn.textContent = '組み立てる';
-    });
-
-    section.querySelectorAll('button[onclick*="likePartnerReadingStock("]').forEach(btn => {
-        btn.textContent = '取り込む';
-    });
-
-    section.querySelectorAll('button[onclick*="openReadingCombinationModal("]').forEach(btn => {
-        const card = btn.closest('[data-reading]');
-        const reading = card?.dataset?.stockId || card?.dataset?.reading || '';
-        if (!reading) return;
-
-        if (card) {
-            card.classList.add('cursor-pointer', 'active:scale-[0.98]');
-            card.onclick = () => openReadingStockModal(reading);
-        }
-
-        btn.textContent = '漢字を選ぶ';
-        btn.onclick = (event) => {
-            event.stopPropagation();
-            if (typeof startReadingSplitProposalFromStock === 'function') {
-                startReadingSplitProposalFromStock(reading);
-            } else {
-                startReadingFromStock(reading);
-            }
-        };
-
-        const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
-        if (removeBtn) removeBtn.remove();
-    });
 }
 
 renderReadingStockSection = renderReadingStockSectionVisible;
