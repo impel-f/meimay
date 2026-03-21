@@ -4024,6 +4024,7 @@ function openReadingStockModal(reading) {
 }
 
 function renderReadingStockSection() {
+    if (typeof renderReadingStockSectionVisible === 'function') return renderReadingStockSectionVisible();
     const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
     if (!section) return;
@@ -6118,6 +6119,7 @@ function likePartnerReadingStock(index) {
 }
 
 function renderReadingStockSection() {
+    if (typeof renderReadingStockSectionVisible === 'function') return renderReadingStockSectionVisible();
     const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
     if (!section) return;
@@ -6315,6 +6317,7 @@ function clearReadingPartnerFocus() {
 }
 
 function renderReadingStockSection() {
+    if (typeof renderReadingStockSectionVisible === 'function') return renderReadingStockSectionVisible();
     const pendingStock = getReadingStock();
     const section = document.getElementById('reading-stock-section');
     if (!section) return;
