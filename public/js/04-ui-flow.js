@@ -3999,6 +3999,27 @@ function openReadingStockModal(reading) {
         removeCompletedReadingFromStock(reading);
     };
 
+    if (kanjiCount > 0) {
+        infoEl.textContent = `${kanjiCount}件の漢字を選んでいます`;
+        btnBuild.textContent = '組み立てる';
+        btnBuild.onclick = () => {
+            closeModal('modal-reading-detail');
+            openBuildFromReading(reading);
+        };
+        btnAdd.style.display = '';
+        btnAdd.textContent = '漢字を追加する';
+        btnRemove.style.display = '';
+    } else {
+        infoEl.textContent = 'まだ漢字を選んでいません';
+        btnBuild.textContent = '漢字を選ぶ';
+        btnBuild.onclick = () => {
+            closeModal('modal-reading-detail');
+            startReadingFromStock(reading);
+        };
+        btnAdd.style.display = 'none';
+        btnRemove.style.display = 'none';
+    }
+
     modal.classList.add('active');
 }
 
@@ -6251,6 +6272,34 @@ function renderReadingStockSection() {
     }
 
     section.innerHTML = html;
+
+    section.querySelectorAll('button[onclick*="openBuildFromReading("]').forEach(btn => {
+        btn.textContent = '組み立てる';
+    });
+
+    section.querySelectorAll('button[onclick*="likePartnerReadingStock("]').forEach(btn => {
+        btn.textContent = '取り込む';
+    });
+
+    section.querySelectorAll('button[onclick*="startReadingFromStock("]').forEach(btn => {
+        const card = btn.closest('[data-reading]');
+        const reading = card?.dataset?.reading || '';
+        if (!reading) return;
+
+        if (card) {
+            card.classList.add('cursor-pointer', 'active:scale-[0.98]');
+            card.onclick = () => openReadingStockModal(reading);
+        }
+
+        btn.textContent = '漢字を選ぶ';
+        btn.onclick = (event) => {
+            event.stopPropagation();
+            openReadingStockModal(reading);
+        };
+
+        const removeBtn = card?.querySelector('button[onclick*="removeReadingFromStock("]');
+        if (removeBtn) removeBtn.remove();
+    });
 }
 
 window.likePartnerReadingStock = likePartnerReadingStock;
@@ -6813,7 +6862,7 @@ function renderReadingStockSectionV2() {
                         const tone = getReadingCardToneV2(kind);
                         const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}">
                             <div class="flex items-start justify-between gap-2">
                                 <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="flex items-center gap-2">
