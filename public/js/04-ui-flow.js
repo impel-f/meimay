@@ -3921,6 +3921,9 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         if (options.gender) existing.gender = options.gender;
         existing.isSuper = existing.isSuper || !!options.isSuper;
         saveReadingStock(stock);
+        if (options.clearHidden) {
+            forgetHiddenReading(reading);
+        }
         return existing;
     }
 
@@ -3982,10 +3985,17 @@ function syncReadingStockFromLiked(items = liked) {
 }
 
 function removeReadingFromStock(target) {
-    let stock = getReadingStock();
-    stock = stock.filter(item => !matchesReadingStockTarget(item, target));
-    saveReadingStock(stock);
+    const stock = getReadingStock();
+    const removedItems = stock.filter(item => matchesReadingStockTarget(item, target));
+    const nextStock = stock.filter(item => !matchesReadingStockTarget(item, target));
+
+    if (nextStock.length === stock.length) {
+        return [];
+    }
+
+    saveReadingStock(nextStock);
     console.log("STOCK: Removed reading from stock:", target);
+    return removedItems;
 }
 
 function rememberHiddenReading(reading) {
@@ -6874,7 +6884,18 @@ function removeCompletedReadingFromStock(reading) {
 
     if (typeof closeModal === 'function') closeModal('modal-reading-detail');
     if (typeof closeReadingCombinationModal === 'function') closeReadingCombinationModal();
-    hideReadingFromStock(reading);
+    const removedItems = typeof removeReadingFromStock === 'function'
+        ? removeReadingFromStock(reading)
+        : [];
+    if (Array.isArray(removedItems) && removedItems.length > 0) {
+        removedItems.forEach(item => rememberHiddenReading(item.reading));
+    } else {
+        rememberHiddenReading(reading);
+    }
+    renderReadingStockSection();
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
     showToast(`「${reading}」を外しました`, '🗑️');
 }
 
