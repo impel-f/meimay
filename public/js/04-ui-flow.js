@@ -6263,7 +6263,7 @@ function renderReadingStockSection() {
                                 </div>
                             </div>
                             <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
-                                いいねして追加
+                                取り込む
                             </button>
                         </div>`;
                 }).join('')}
@@ -6511,7 +6511,7 @@ function renderReadingStockSection() {
                                 </div>
                             </div>
                             <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
-                                いいねして取り込む
+                                取り込む
                             </button>
                         </div>`;
                 }).join('')}
@@ -6827,10 +6827,10 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}件の漢字候補</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openReadingStockModal('${item.reading}')"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
-                        漢字を選ぶ
+                        組み立てる
                     </button>
                 </div>`;
         });
@@ -6862,15 +6862,14 @@ function renderReadingStockSectionV2() {
                         const tone = getReadingCardToneV2(kind);
                         const stars = renderReadingCardStarsV2(item.isSuper, partnerItem?.isSuper);
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.reading || ''))})">
                             <div class="flex items-start justify-between gap-2">
-                                <button onclick='startReadingFromStock(${JSON.stringify(item.id)})' class="flex-1 text-left active:scale-95 transition-transform">
+                                <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="flex items-center gap-2">
                                         ${stars}
                                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">${display}</div>
                                     </div>
                                 </button>
-                                <button onclick='removeReadingFromStock(${JSON.stringify(item.id)});renderReadingStockSection()' class="text-sm ml-1 p-1 rounded-full hover:bg-[#fef2f2] hover:text-[#f28b82]" style="color:${tone.sub}">✕</button>
                             </div>
                         </div>`;
                     }).join('')}
@@ -6899,7 +6898,7 @@ function renderReadingStockSectionV2() {
                                 </div>
                             </div>
                             <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
-                                いいねして取り込む
+                                取り込む
                             </button>
                         </div>`;
                 }).join('')}
