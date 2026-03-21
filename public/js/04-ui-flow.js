@@ -6189,15 +6189,12 @@ function likePartnerReadingStock(index) {
     if (index < 0 || index >= partnerReadings.length) return;
 
     const item = partnerReadings[index];
-    if (!item || pairInsights?.isPartnerReadingApproved?.(item)) {
-        if (typeof showToast === 'function') showToast('この読み候補は取り込み済みです', '💛');
-        return;
-    }
+    if (!item) return;
 
     const saved = typeof addReadingToStock === 'function'
-        ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
-            segments: Array.isArray(item.segments) ? item.segments : [],
-            isSuper: !!item.isSuper,
+    ? addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
+        segments: Array.isArray(item.segments) ? item.segments : [],
+        isSuper: !!item.isSuper,
             gender: item.gender || gender || 'neutral'
         })
         : null;
@@ -6272,8 +6269,7 @@ function renderReadingStockSection() {
             .filter(Boolean)
     );
     const partnerPendingCards = partnerReadings
-        .map((item, originalIndex) => ({ item, originalIndex }))
-        .filter(entry => !pairInsights?.isPartnerReadingApproved?.(entry.item));
+        .map((item, originalIndex) => ({ item, originalIndex }));
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
         : { readingFocus: 'all' };
@@ -6648,12 +6644,7 @@ function renderReadingStockSectionV2() {
         !removedList.includes(item.reading)
     );
     const partnerPendingCards = partnerReadings
-        .map((item, originalIndex) => ({ item, originalIndex }))
-        .filter(entry => {
-            const key = getPartnerViewReadingKey(entry.item, pairInsights);
-            if (!key) return !pairInsights?.isPartnerReadingApproved?.(entry.item);
-            return !matchedReadingKeys.has(key) && !pairInsights?.isPartnerReadingApproved?.(entry.item);
-        });
+        .map((item, originalIndex) => ({ item, originalIndex }));
 
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
