@@ -228,41 +228,108 @@ function startMode(mode) {
  * 読み入力画面: ストックがあればプルダウンを表示
  */
 function initReadingStockPicker() {
-    const stock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
     const pickerWrap = document.getElementById('reading-stock-picker');
     const label = document.getElementById('reading-stock-picker-label');
     const arrow = document.getElementById('reading-stock-picker-arrow');
     const list = document.getElementById('reading-stock-picker-list');
     if (!pickerWrap || !list) return;
 
-    if (stock.length === 0) {
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const normalizeReadingKey = (item) => getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const isPartnerSource = (item) => !!(item && (
+        item.source === 'partner-reading' ||
+        item.fromPartner === true ||
+        item.partnerSuper === true
+    ));
+    const readHiddenSet = () => {
+        let removedList = [];
+        try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+        return new Set(
+            Array.isArray(removedList)
+                ? removedList.map(value => getReadingBaseReading(value)).filter(Boolean)
+                : []
+        );
+    };
+    const dedupeAndSort = (items) => {
+        const seen = new Set();
+        return sortReadingStockMatches(Array.isArray(items) ? items : []).filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            if (!readingKey || seen.has(readingKey)) return false;
+            seen.add(readingKey);
+            return true;
+        });
+    };
+    const renderButton = (item, badgeText = '') => {
+        const readingLabel = getReadingDisplayLabel(item, { allowSegments: true }) || item?.reading || item?.sessionReading || '';
+        const safeReading = escapeHtml(readingLabel);
+        const encodedReading = encodeURIComponent(item?.reading || item?.sessionReading || readingLabel || '');
+        const safeBadge = badgeText ? `<span class="inline-flex shrink-0 items-center rounded-full border border-[#e4d6c2] bg-[#faf4ea] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#9b7f5b]">${escapeHtml(badgeText)}</span>` : '';
+        return `
+            <button onclick="selectReadingFromStock(decodeURIComponent('${encodedReading}'))"
+                class="w-full text-left px-4 py-3.5 text-sm text-[#5d5444] font-bold hover:bg-[#fdf7ef] border-b border-[#f5ede0] last:border-0 transition-colors">
+                <div class="flex items-center gap-2">
+                    <span class="min-w-0 flex-1 truncate">${safeReading}</span>
+                    ${safeBadge}
+                </div>
+            </button>
+        `;
+    };
+
+    const ownStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const hiddenReadingSet = readHiddenSet();
+    const visibleOwnStock = dedupeAndSort(
+        ownStock.filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            return readingKey && !hiddenReadingSet.has(readingKey);
+        })
+    );
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerRawStock = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const visibleOwnReadingSet = new Set(visibleOwnStock.map(item => normalizeReadingKey(item)).filter(Boolean));
+    const visiblePartnerStock = dedupeAndSort(
+        partnerRawStock.filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            return readingKey && !visibleOwnReadingSet.has(readingKey);
+        })
+    );
+
+    const totalCount = visibleOwnStock.length + visiblePartnerStock.length;
+    if (totalCount === 0) {
         pickerWrap.classList.add('hidden');
         list.classList.add('hidden');
         return;
     }
     pickerWrap.classList.remove('hidden');
     if (label) {
-        label.textContent = `📖 ストックから選ぶ（${stock.length}件）`;
+        label.textContent = visiblePartnerStock.length > 0
+            ? `📖 ストックから選ぶ（自分 ${visibleOwnStock.length}件 / パートナー ${visiblePartnerStock.length}件）`
+            : `📖 ストックから選ぶ（${visibleOwnStock.length}件）`;
     }
     if (arrow) {
         arrow.textContent = list.classList.contains('hidden') ? '▼' : '▲';
     }
-    list.innerHTML = stock.map((entry) => {
-        const reading = typeof entry === 'object' ? entry.reading : entry;
-        const safeReading = String(reading ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-        const encodedReading = encodeURIComponent(reading);
+    const renderSection = (title, items, forceBadge = '') => {
+        if (!Array.isArray(items) || items.length === 0) return '';
         return `
-            <button onclick="selectReadingFromStock(decodeURIComponent('${encodedReading}'))"
-                class="w-full text-left px-4 py-3.5 text-sm text-[#5d5444] font-bold hover:bg-[#fdf7ef] border-b border-[#f5ede0] last:border-0 transition-colors">
-                ${safeReading}
-            </button>
+            <div class="mb-4 last:mb-0">
+                <div class="text-xs font-black text-[#bca37f] mb-2 tracking-wider uppercase">${escapeHtml(title)}</div>
+                <div class="space-y-1">
+                    ${items.map(item => renderButton(item, forceBadge || (isPartnerSource(item) ? 'パートナー' : ''))).join('')}
+                </div>
+            </div>
         `;
-    }).join('');
+    };
+
+    list.innerHTML = [
+        renderSection('自分のストック', visibleOwnStock),
+        renderSection('パートナーのストック', visiblePartnerStock, 'パートナー')
+    ].filter(Boolean).join('');
 }
 
 function selectReadingFromStock(reading) {

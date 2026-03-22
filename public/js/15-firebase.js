@@ -148,6 +148,276 @@ async function getFirebaseRequestHeaders() {
 window.getFirebaseIdToken = getFirebaseIdToken;
 window.getFirebaseRequestHeaders = getFirebaseRequestHeaders;
 
+const MeimayFirestorePayload = {
+    _normalizeString(value) {
+        return String(value == null ? '' : value).trim();
+    },
+
+    _normalizeReading(value) {
+        const raw = this._normalizeString(value).split('::')[0].trim();
+        if (!raw) return '';
+        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    },
+
+    _normalizeList(value) {
+        if (!Array.isArray(value)) return [];
+        return [...new Set(value.map((item) => this._normalizeString(item)).filter(Boolean))];
+    },
+
+    _normalizeExamples(value) {
+        if (Array.isArray(value)) {
+            return value.map((item) => this._normalizeString(item)).filter(Boolean);
+        }
+        const text = this._normalizeString(value);
+        return text ? [text] : [];
+    },
+
+    _findKanjiMaster(kanji) {
+        const target = this._normalizeString(kanji);
+        if (!target || typeof master === 'undefined' || !Array.isArray(master)) return null;
+        return master.find((entry) => this._normalizeString(entry?.['貍｢蟄・'] || entry?.kanji) === target) || null;
+    },
+
+    _findReadingSource(reading) {
+        const target = this._normalizeReading(reading);
+        if (!target || typeof readingsData === 'undefined' || !Array.isArray(readingsData)) return null;
+        return readingsData.find((entry) => {
+            const entryReading = this._normalizeReading(entry?.reading);
+            const entryAdana = this._normalizeReading(entry?.adana);
+            return entryReading === target || entryAdana === target;
+        }) || null;
+    },
+
+    minifyLikedItem(item) {
+        const kanji = this._normalizeString(item?.['貍｢蟄・'] || item?.kanji);
+        if (!kanji) return null;
+        return {
+            '貍｢蟄・': kanji,
+            slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
+            sessionReading: this._normalizeString(item?.sessionReading),
+            sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments.slice(0, 12) : [],
+            sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments.slice(0, 12) : [],
+            kanji_reading: this._normalizeString(item?.kanji_reading),
+            isSuper: !!item?.isSuper,
+            gender: this._normalizeString(item?.gender || item?.settings?.gender || 'neutral') || 'neutral',
+            timestamp: item?.timestamp || item?.addedAt || item?.likedAt || null
+        };
+    },
+
+    hydrateLikedItem(item, options = {}) {
+        const kanji = this._normalizeString(item?.['貍｢蟄・'] || item?.kanji);
+        if (!kanji) return null;
+        const masterItem = this._findKanjiMaster(kanji);
+        return {
+            ...(masterItem || {}),
+            ...(item || {}),
+            '貍｢蟄・': kanji,
+            '逕ｻ謨ｰ': item?.['逕ｻ謨ｰ'] ?? item?.strokes ?? masterItem?.['逕ｻ謨ｰ'] ?? 1,
+            '蛻・｡・': item?.['蛻・｡・'] ?? item?.category ?? masterItem?.['蛻・｡・'] ?? '',
+            kanji_reading: this._normalizeString(item?.kanji_reading || masterItem?.kanji_reading),
+            slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
+            sessionReading: this._normalizeString(item?.sessionReading),
+            sessionSegments: Array.isArray(item?.sessionSegments) ? [...item.sessionSegments] : [],
+            sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : [],
+            isSuper: !!item?.isSuper,
+            ownSuper: options.fromPartner ? false : !!item?.ownSuper || !!item?.isSuper,
+            partnerSuper: options.fromPartner ? !!item?.partnerSuper || !!item?.isSuper : !!item?.partnerSuper,
+            fromPartner: !!options.fromPartner,
+            partnerAlsoPicked: !!options.partnerAlsoPicked,
+            partnerName: options.partnerName || item?.partnerName || '',
+            gender: this._normalizeString(item?.gender || masterItem?.gender || 'neutral') || 'neutral',
+            timestamp: item?.timestamp || item?.addedAt || item?.likedAt || null
+        };
+    },
+
+    minifySavedItem(item) {
+        const combination = Array.isArray(item?.combination) ? item.combination : [];
+        const combinationKeys = Array.isArray(item?.combinationKeys) && item.combinationKeys.length > 0
+            ? item.combinationKeys.map((key) => this._normalizeString(key)).filter(Boolean)
+            : combination.map((part) => this._normalizeString(part?.['貍｢蟄・'] || part?.kanji)).filter(Boolean);
+
+        return {
+            fullName: this._normalizeString(item?.fullName),
+            reading: this._normalizeString(item?.reading),
+            givenName: this._normalizeString(item?.givenName),
+            combinationKeys,
+            message: this._normalizeString(item?.message),
+            origin: this._normalizeString(item?.origin),
+            savedAt: item?.savedAt || item?.timestamp || null,
+            approvedFromPartner: item?.approvedFromPartner === true,
+            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey)
+        };
+    },
+
+    hydrateSavedItem(item) {
+        const combinationKeys = Array.isArray(item?.combinationKeys) && item.combinationKeys.length > 0
+            ? item.combinationKeys.map((key) => this._normalizeString(key)).filter(Boolean)
+            : (Array.isArray(item?.combination)
+                ? item.combination.map((part) => this._normalizeString(part?.['貍｢蟄・'] || part?.kanji)).filter(Boolean)
+                : []);
+        const combination = Array.isArray(item?.combination) && item.combination.length > 0
+            ? item.combination.map((part) => ({ ...(part || {}) }))
+            : combinationKeys.map((key) => this._findKanjiMaster(key) || { '貍｢蟄・': key, '逕ｻ謨ｰ': 1 });
+
+        let fortune = item?.fortune || null;
+        try {
+            if (!fortune && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
+                const surArr = typeof surnameData !== 'undefined' && Array.isArray(surnameData) && surnameData.length > 0
+                    ? surnameData
+                    : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+                const givArr = combination.map((part) => ({
+                    kanji: part?.['貍｢蟄・'] || part?.kanji || '',
+                    strokes: parseInt(part?.['逕ｻ謨ｰ'] ?? part?.strokes ?? 0, 10) || 0
+                })).filter((part) => part.kanji);
+                if (givArr.length > 0) {
+                    fortune = FortuneLogic.calculate(surArr, givArr);
+                }
+            }
+        } catch (error) { }
+
+        return {
+            ...(item || {}),
+            fullName: this._normalizeString(item?.fullName),
+            reading: this._normalizeString(item?.reading),
+            givenName: this._normalizeString(item?.givenName),
+            combination,
+            combinationKeys,
+            message: this._normalizeString(item?.message),
+            origin: this._normalizeString(item?.origin),
+            savedAt: item?.savedAt || item?.timestamp || null,
+            fortune,
+            approvedFromPartner: item?.approvedFromPartner === true,
+            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey)
+        };
+    },
+
+    minifyReadingStockItem(item) {
+        const reading = this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const segments = Array.isArray(item?.segments) ? item.segments.filter(Boolean).map((segment) => this._normalizeString(segment)).filter(Boolean) : [];
+        return {
+            id: this._normalizeString(item?.id || (typeof getReadingStockKey === 'function' ? getReadingStockKey(reading, segments) : '')),
+            reading,
+            segments,
+            baseNickname: this._normalizeString(item?.baseNickname),
+            gender: this._normalizeString(item?.gender || 'neutral') || 'neutral',
+            isSuper: !!item?.isSuper,
+            ownSuper: !!item?.ownSuper,
+            partnerSuper: !!item?.partnerSuper,
+            source: this._normalizeString(item?.source),
+            readingPromoted: !!(item?.readingPromoted || item?.promotedReading || item?.promoted || item?.source === 'reading-combination'),
+            addedAt: item?.addedAt || item?.timestamp || null,
+            statsTracked: item?.statsTracked !== false
+        };
+    },
+
+    hydrateReadingStockItem(item) {
+        const reading = this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const segments = Array.isArray(item?.segments) ? item.segments.filter(Boolean).map((segment) => this._normalizeString(segment)).filter(Boolean) : [];
+        const source = this._findReadingSource(reading);
+        const tags = this._normalizeList(item?.tags).length > 0 ? this._normalizeList(item.tags) : this._normalizeList(source?.tags);
+        const examples = this._normalizeExamples(item?.examples).length > 0 ? this._normalizeExamples(item.examples) : this._normalizeExamples(source?.examples);
+        const baseNickname = this._normalizeString(item?.baseNickname || item?.preferredLabel || source?.adana || source?.reading);
+        const preferredLabel = this._normalizeString(item?.preferredLabel || source?.adana || baseNickname || reading);
+
+        return {
+            ...(item || {}),
+            id: this._normalizeString(item?.id || (typeof getReadingStockKey === 'function' ? getReadingStockKey(reading, segments) : reading)),
+            reading,
+            segments,
+            baseNickname,
+            preferredLabel,
+            tags,
+            examples,
+            gender: this._normalizeString(item?.gender || source?.gender || 'neutral') || 'neutral',
+            isSuper: !!item?.isSuper,
+            ownSuper: item?.ownSuper !== undefined ? !!item.ownSuper : !!item?.isSuper,
+            partnerSuper: item?.partnerSuper !== undefined ? !!item.partnerSuper : false,
+            source: this._normalizeString(item?.source),
+            readingPromoted: !!(item?.readingPromoted || item?.promotedReading || item?.promoted || item?.source === 'reading-combination' || segments.length > 0),
+            addedAt: item?.addedAt || item?.timestamp || null,
+            statsTracked: item?.statsTracked !== false
+        };
+    },
+
+    minifyEncounteredReading(item) {
+        const reading = this._normalizeString(item?.reading || item?.key);
+        const key = this._normalizeString(item?.key || reading);
+        if (!key || !reading) return null;
+        return {
+            key,
+            reading,
+            seenCount: Number(item?.seenCount) || 0,
+            likeCount: Number(item?.likeCount) || 0,
+            nopeCount: Number(item?.nopeCount) || 0,
+            monthlySeenCount: Number(item?.monthlySeenCount) || 0,
+            monthlyLikeCount: Number(item?.monthlyLikeCount) || 0,
+            monthlyNopeCount: Number(item?.monthlyNopeCount) || 0,
+            monthlyMonthKey: this._normalizeString(item?.monthlyMonthKey),
+            firstSeenAt: this._normalizeString(item?.firstSeenAt || item?.lastSeenAt),
+            lastSeenAt: this._normalizeString(item?.lastSeenAt),
+            lastAction: this._normalizeString(item?.lastAction),
+            gender: this._normalizeString(item?.gender || 'neutral') || 'neutral',
+            mode: this._normalizeString(item?.mode),
+            encounterOrigin: this._normalizeString(item?.encounterOrigin),
+            baseNickname: this._normalizeString(item?.baseNickname)
+        };
+    },
+
+    hydrateEncounteredReading(item) {
+        const reading = this._normalizeString(item?.reading || item?.key);
+        const key = this._normalizeString(item?.key || reading);
+        if (!key || !reading) return null;
+        const source = this._findReadingSource(reading);
+        const tags = this._normalizeList(item?.tags).length > 0 ? this._normalizeList(item.tags) : this._normalizeList(source?.tags);
+        const examples = this._normalizeExamples(item?.examples).length > 0 ? this._normalizeExamples(item.examples) : this._normalizeExamples(source?.examples);
+        const baseNickname = this._normalizeString(item?.baseNickname || item?.preferredLabel || source?.adana || '');
+        const preferredLabel = this._normalizeString(item?.preferredLabel || source?.adana || baseNickname || reading);
+
+        return {
+            ...(item || {}),
+            key,
+            reading,
+            seenCount: Number(item?.seenCount) || 0,
+            likeCount: Number(item?.likeCount) || 0,
+            nopeCount: Number(item?.nopeCount) || 0,
+            monthlySeenCount: Number(item?.monthlySeenCount) || 0,
+            monthlyLikeCount: Number(item?.monthlyLikeCount) || 0,
+            monthlyNopeCount: Number(item?.monthlyNopeCount) || 0,
+            monthlyMonthKey: this._normalizeString(item?.monthlyMonthKey),
+            firstSeenAt: this._normalizeString(item?.firstSeenAt || item?.lastSeenAt),
+            lastSeenAt: this._normalizeString(item?.lastSeenAt || item?.firstSeenAt),
+            lastAction: this._normalizeString(item?.lastAction),
+            gender: this._normalizeString(item?.gender || source?.gender || 'neutral') || 'neutral',
+            mode: this._normalizeString(item?.mode),
+            encounterOrigin: this._normalizeString(item?.encounterOrigin),
+            baseNickname,
+            preferredLabel,
+            tags,
+            examples
+        };
+    },
+
+    projectSections(sections = {}) {
+        return {
+            liked: (Array.isArray(sections?.liked) ? sections.liked : []).map((item) => this.minifyLikedItem(item)).filter(Boolean),
+            savedNames: (Array.isArray(sections?.savedNames) ? sections.savedNames : []).map((item) => this.minifySavedItem(item)).filter(Boolean),
+            readingStock: (Array.isArray(sections?.readingStock) ? sections.readingStock : []).map((item) => this.minifyReadingStockItem(item)).filter(Boolean),
+            encounteredReadings: (Array.isArray(sections?.encounteredReadings) ? sections.encounteredReadings : []).map((item) => this.minifyEncounteredReading(item)).filter(Boolean)
+        };
+    },
+
+    hydrateSections(sections = {}) {
+        return {
+            liked: (Array.isArray(sections?.liked) ? sections.liked : []).map((item) => this.hydrateLikedItem(item)).filter(Boolean),
+            savedNames: (Array.isArray(sections?.savedNames) ? sections.savedNames : []).map((item) => this.hydrateSavedItem(item)).filter(Boolean),
+            readingStock: (Array.isArray(sections?.readingStock) ? sections.readingStock : []).map((item) => this.hydrateReadingStockItem(item)).filter(Boolean),
+            encounteredReadings: (Array.isArray(sections?.encounteredReadings) ? sections.encounteredReadings : []).map((item) => this.hydrateEncounteredReading(item)).filter(Boolean)
+        };
+    }
+};
+
+window.MeimayFirestorePayload = MeimayFirestorePayload;
+
 // ============================================================
 // PAIRING - 繝ｫ繝ｼ繝繧ｳ繝ｼ繝画婿蠑上ヱ繝ｼ繝医リ繝ｼ騾｣謳ｺ
 // ============================================================
@@ -356,29 +626,16 @@ const MeimayPairing = {
         if (!user || !this.roomCode) return;
 
         try {
-            const minifiedLiked = (typeof liked !== 'undefined' ? liked : []).map(l => ({
-                '貍｢蟄・': l['貍｢蟄・'],
-                slot: l.slot,
-                sessionReading: l.sessionReading,
-                sessionSegments: l.sessionSegments || null,
-                isSuper: l.isSuper || false
-            }));
-
-            const savedData = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-            const minifiedSaved = savedData.map(s => ({
-                fullName: s.fullName,
-                reading: s.reading || '',
-                givenName: s.givenName || '',
-                combinationKeys: s.combination ? s.combination.map(k => k['貍｢蟄・']) : [],
-                message: s.message || '',
-                savedAt: s.savedAt || s.timestamp
-            }));
+            const projectedSections = MeimayFirestorePayload.projectSections({
+                liked: typeof liked !== 'undefined' ? liked : [],
+                savedNames: JSON.parse(localStorage.getItem('meimay_saved') || '[]')
+            });
 
             await firebaseDb.collection('rooms').doc(this.roomCode)
                 .collection('data').doc(user.uid).set({
                     role: this.myRole,
-                    liked: minifiedLiked,
-                    savedNames: minifiedSaved,
+                    liked: projectedSections.liked,
+                    savedNames: projectedSections.savedNames,
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
@@ -2130,61 +2387,18 @@ MeimayPairing.syncMyData = async function () {
             ? (WizardData.get() || {})
             : {};
         const ownLiked = getRoomSyncLikedItems();
-        const minifiedLiked = ownLiked.map(l => ({
-            '貍｢蟄・': l['貍｢蟄・'],
-            slot: l.slot,
-            sessionReading: l.sessionReading,
-            sessionSegments: l.sessionSegments || null,
-            isSuper: l.isSuper || false,
-            gender: l.gender || l.settings?.gender || 'neutral'
-        }));
-
         const savedData = JSON.parse(localStorage.getItem('meimay_saved') || '[]')
             .filter(item => !item?.fromPartner);
-        const minifiedSaved = savedData.map(s => ({
-            fullName: s.fullName,
-            reading: s.reading || '',
-            givenName: s.givenName || '',
-            combinationKeys: s.combination ? s.combination.map(k => k['貍｢蟄・'] || k.kanji || '') : [],
-            message: s.message || '',
-            savedAt: s.savedAt || s.timestamp,
-            approvedFromPartner: s.approvedFromPartner === true,
-            approvedPartnerSavedKey: s.approvedPartnerSavedKey || ''
-        }));
-
-        const minifiedReadingStock = (typeof getReadingStock === 'function' ? getReadingStock() : []).map(item => ({
-            id: item.id,
-            reading: item.reading,
-            segments: Array.isArray(item.segments) ? item.segments : [],
-            baseNickname: item.baseNickname || '',
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            gender: item.gender || 'neutral',
-            isSuper: !!item.isSuper,
-            addedAt: item.addedAt || null,
-            statsTracked: item.statsTracked !== false
-        }));
-
+        const readingStockSource = typeof getReadingStock === 'function' ? getReadingStock() : [];
         const encounteredLibrary = typeof getEncounteredLibrary === 'function'
             ? getEncounteredLibrary()
             : { readings: [] };
-        const minifiedEncounteredReadings = (Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : [])
-            .slice(0, 300)
-            .map(item => ({
-                key: String(item?.key || item?.reading || '').trim(),
-                reading: String(item?.reading || '').trim(),
-                seenCount: Number(item?.seenCount) || 0,
-                monthlySeenCount: Number(item?.monthlySeenCount) || 0,
-                monthlyMonthKey: String(item?.monthlyMonthKey || '').trim(),
-                lastSeenAt: String(item?.lastSeenAt || '').trim(),
-                tags: Array.isArray(item?.tags) ? item.tags.slice(0, 5) : [],
-                examples: Array.isArray(item?.examples) ? item.examples.slice(0, 3) : [],
-                baseNickname: String(item?.baseNickname || '').trim(),
-                preferredLabel: String(item?.preferredLabel || '').trim(),
-                gender: String(item?.gender || 'neutral').trim() || 'neutral',
-                mode: String(item?.mode || '').trim(),
-                encounterOrigin: String(item?.encounterOrigin || '').trim()
-            }))
-            .filter(item => item.key && item.reading);
+        const projectedSections = MeimayFirestorePayload.projectSections({
+            liked: Array.isArray(ownLiked) ? ownLiked : [],
+            savedNames: savedData,
+            readingStock: Array.isArray(readingStockSource) ? readingStockSource : [],
+            encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
+        });
 
         await firebaseDb.collection('rooms').doc(this.roomCode)
             .collection('data').doc(user.uid).set({
@@ -2193,10 +2407,10 @@ MeimayPairing.syncMyData = async function () {
                 username: String(wizard.username || '').trim(),
                 nickname: String(wizard.username || '').trim(),
                 themeId: typeof getProfileThemeId === 'function' ? getProfileThemeId(wizard.role) : (wizard.themeId || null),
-                liked: minifiedLiked,
-                savedNames: minifiedSaved,
-                readingStock: minifiedReadingStock,
-                encounteredReadings: minifiedEncounteredReadings,
+                liked: projectedSections.liked,
+                savedNames: projectedSections.savedNames,
+                readingStock: projectedSections.readingStock,
+                encounteredReadings: projectedSections.encounteredReadings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -2218,12 +2432,18 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (!doc.exists) return;
             const data = doc.data() || {};
             cleanupLegacyPartnerLocalData();
-
-            this.partnerSnapshot = {
+            const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: Array.isArray(data.liked) ? data.liked : [],
                 savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                 readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
-                encounteredReadings: Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [],
+                encounteredReadings: Array.isArray(data.encounteredReadings) ? data.encounteredReadings : []
+            });
+
+            this.partnerSnapshot = {
+                liked: hydratedSections.liked,
+                savedNames: hydratedSections.savedNames,
+                readingStock: hydratedSections.readingStock,
+                encounteredReadings: hydratedSections.encounteredReadings,
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 username: String(data.username || '').trim(),
@@ -2916,10 +3136,11 @@ const MeimayUserBackup = {
 
     _fingerprint: function (sections) {
         try {
+            const projectedSections = MeimayFirestorePayload.projectSections(sections);
             return JSON.stringify({
-                liked: sections?.liked || [],
-                savedNames: sections?.savedNames || [],
-                readingStock: sections?.readingStock || []
+                liked: projectedSections.liked || [],
+                savedNames: projectedSections.savedNames || [],
+                readingStock: projectedSections.readingStock || []
             });
         } catch (error) {
             return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}`;
@@ -2927,22 +3148,23 @@ const MeimayUserBackup = {
     },
 
     _buildRemotePatch: function (sections) {
+        const projectedSections = MeimayFirestorePayload.projectSections(sections);
         const backup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
-            likedCount: Array.isArray(sections?.liked) ? sections.liked.length : 0,
-            savedNamesCount: Array.isArray(sections?.savedNames) ? sections.savedNames.length : 0,
-            readingStockCount: Array.isArray(sections?.readingStock) ? sections.readingStock.length : 0
+            likedCount: Array.isArray(projectedSections.liked) ? projectedSections.liked.length : 0,
+            savedNamesCount: Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames.length : 0,
+            readingStockCount: Array.isArray(projectedSections.readingStock) ? projectedSections.readingStock.length : 0
         };
 
-        if (Array.isArray(sections?.liked) && sections.liked.length > 0) {
-            backup.liked = this._safeClone(sections.liked);
+        if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
+            backup.liked = this._safeClone(projectedSections.liked);
         }
-        if (Array.isArray(sections?.savedNames) && sections.savedNames.length > 0) {
-            backup.savedNames = this._safeClone(sections.savedNames);
+        if (Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0) {
+            backup.savedNames = this._safeClone(projectedSections.savedNames);
         }
-        if (Array.isArray(sections?.readingStock) && sections.readingStock.length > 0) {
-            backup.readingStock = this._safeClone(this._normalizeReadingStockList(sections.readingStock));
+        if (Array.isArray(projectedSections.readingStock) && projectedSections.readingStock.length > 0) {
+            backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
 
         return {
@@ -2953,9 +3175,10 @@ const MeimayUserBackup = {
     },
 
     _applySectionsToLocal: function (sections) {
-        const likedItems = Array.isArray(sections?.liked) ? sections.liked : [];
-        const savedItems = Array.isArray(sections?.savedNames) ? sections.savedNames : [];
-        const readingStockItems = this._normalizeReadingStockList(Array.isArray(sections?.readingStock) ? sections.readingStock : []);
+        const hydratedSections = MeimayFirestorePayload.hydrateSections(sections);
+        const likedItems = Array.isArray(hydratedSections?.liked) ? hydratedSections.liked : [];
+        const savedItems = Array.isArray(hydratedSections?.savedNames) ? hydratedSections.savedNames : [];
+        const readingStockItems = this._normalizeReadingStockList(Array.isArray(hydratedSections?.readingStock) ? hydratedSections.readingStock : []);
 
         this._restoreInFlight = true;
         try {
