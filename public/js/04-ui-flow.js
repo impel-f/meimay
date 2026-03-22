@@ -6182,8 +6182,10 @@ function likePartnerReadingStock(index) {
 
     addReadingToStock(reading, item.baseNickname || '', item.tags || [], {
         segments: [],
-        isSuper: !!item.isSuper,
+        isSuper: false,
+        partnerSuper: !!item.isSuper,
         gender: item.gender || gender || 'neutral',
+        source: 'partner-reading',
         clearHidden: true
     });
 
@@ -8822,8 +8824,10 @@ function likePartnerReadingStock(index) {
 
     addReadingToStock(reading, item.baseNickname || '', item.tags || [], {
         segments: [],
-        isSuper: !!item.isSuper,
+        isSuper: false,
+        partnerSuper: !!item.isSuper,
         gender: item.gender || gender || 'neutral',
+        source: 'partner-reading',
         clearHidden: true
     });
 
@@ -9002,7 +9006,7 @@ function renderReadingStockSectionV2() {
                             ${renderReadingTitleWithStarsV2(
                                 item.display,
                                 item.ownItem?.isSuper || item.ownItem?.ownSuper,
-                                item.partnerItem?.isSuper
+                                false
                             )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
@@ -9348,8 +9352,10 @@ function likePartnerReadingStock(index) {
 
     addReadingToStock(reading, item.baseNickname || '', item.tags || [], {
         segments: [],
-        isSuper: !!item.isSuper,
+        isSuper: false,
+        partnerSuper: !!item.isSuper,
         gender: item.gender || gender || 'neutral',
+        source: 'partner-reading',
         clearHidden: true
     });
 
@@ -9536,7 +9542,7 @@ function renderReadingStockSectionV2() {
                             ${renderReadingTitleWithStarsV2(
                                 item.display,
                                 item.ownItem?.isSuper || item.ownItem?.ownSuper,
-                                item.partnerItem?.isSuper
+                                false
                             )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
@@ -9592,7 +9598,7 @@ function renderReadingStockSectionV2() {
                                         ${renderReadingTitleWithStarsV2(
                                             display,
                                             item.isSuper || item.ownSuper,
-                                            partnerItem?.isSuper
+                                            false
                                         )}
                                     </div>
                                 </button>
