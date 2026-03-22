@@ -160,6 +160,23 @@ function getRankingPeriodSwitchLabel(period) {
     return period === 'monthly' ? '月間ランキング' : '総合ランキング';
 }
 
+function getRankingGenderLabel(value) {
+    const normalized = normalizeRankingGender(value);
+    if (normalized === 'male') return '男の子';
+    if (normalized === 'female') return '女の子';
+    return 'すべて';
+}
+
+function cycleRankingGender() {
+    const current = normalizeRankingGender(currentRankingGender);
+    const next = current === 'male'
+        ? 'female'
+        : current === 'female'
+            ? 'all'
+            : 'male';
+    setRankingGender(next);
+}
+
 function getRankingMonthDisplayLabel(date = new Date()) {
     const key = getRankingCurrentMonthKey(date);
     const [year, month] = key.split('_');
@@ -203,15 +220,21 @@ function renderRankingPeriodSwitch() {
             onclick="event.stopPropagation(); toggleRankingPeriod()"
             class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="flex items-center justify-center gap-2 whitespace-nowrap">
-                <span class="whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]" style="color:${switchStyle.text};">
-                    ${escapeRankingHtml(label)}
-                </span>
-                ${period === 'monthly' ? `
-                    <span class="whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
-                        集計期間 ${escapeRankingHtml(monthLabel)}
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0 text-left">
+                    <span class="block whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]" style="color:${switchStyle.text};">
+                        ${escapeRankingHtml(label)}
                     </span>
-                ` : ''}
+                    ${period === 'monthly' ? `
+                        <span class="mt-0.5 block whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
+                            集計期間 ${escapeRankingHtml(monthLabel)}
+                        </span>
+                    ` : ''}
+                </div>
+                <span class="shrink-0 inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
+                    切替
+                    <span class="text-[8px] leading-none">▼</span>
+                </span>
             </div>
             <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
                 タップで切り替え
@@ -225,6 +248,7 @@ function renderRankingGenderSwitch() {
     if (!mount) return;
 
     const selectedGender = normalizeRankingGender(currentRankingGender);
+    const selectedGenderLabel = getRankingGenderLabel(selectedGender);
     const options = [
         { value: 'male', label: '男の子' },
         { value: 'female', label: '女の子' },
@@ -232,23 +256,46 @@ function renderRankingGenderSwitch() {
     ];
 
     mount.innerHTML = `
-        <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-0.5">
-            ${options.map((option) => {
-                const isActive = selectedGender === option.value;
-                const buttonClass = isActive
-                    ? 'flex-1 rounded-xl px-2 py-2 text-center bg-[#fffbeb] text-[#5d5444] shadow-sm'
-                    : 'flex-1 rounded-xl px-2 py-2 text-center text-[#a6967a]';
-                return `
-                    <button
-                        type="button"
-                        onclick="event.stopPropagation(); switchRankingGender('${option.value}')"
-                        class="${buttonClass} active:scale-95 transition-transform">
-                        <span class="whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]">
-                            ${escapeRankingHtml(option.label)}
+        <div class="rounded-[1.2rem] border border-[#eee5d8] bg-white p-2">
+            <button
+                type="button"
+                onclick="event.stopPropagation(); cycleRankingGender()"
+                class="w-full rounded-[1rem] px-3 py-2.5 text-left active:scale-95 transition-transform"
+                style="border:1px solid #f0e8db;background:linear-gradient(135deg, #fffdf8 0%, #f6efe4 100%);">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="min-w-0 text-left">
+                        <span class="block whitespace-nowrap text-[10px] font-black leading-none" style="color:#5d5444;">性別</span>
+                        <span class="mt-0.5 block whitespace-nowrap text-[10px] font-bold leading-none" style="color:#8b7e66;">
+                            ${escapeRankingHtml(selectedGenderLabel)}
                         </span>
-                    </button>
-                `;
-            }).join('')}
+                    </div>
+                    <span class="shrink-0 inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:#fff7ec;color:#a6967a;">
+                        タップで切替
+                        <span class="text-[8px] leading-none">▼</span>
+                    </span>
+                </div>
+                <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight" style="color:#a6967a;">
+                    男の子・女の子・すべてを順番に切り替え
+                </div>
+            </button>
+            <div class="mt-2 flex rounded-2xl border border-[#eee5d8] bg-[#fffdfa] p-0.5">
+                ${options.map((option) => {
+                    const isActive = selectedGender === option.value;
+                    const buttonClass = isActive
+                        ? 'flex-1 rounded-xl px-2 py-2 text-center bg-[#fffbeb] text-[#5d5444] shadow-sm'
+                        : 'flex-1 rounded-xl px-2 py-2 text-center text-[#a6967a]';
+                    return `
+                        <button
+                            type="button"
+                            onclick="event.stopPropagation(); switchRankingGender('${option.value}')"
+                            class="${buttonClass} active:scale-95 transition-transform">
+                            <span class="whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]">
+                                ${escapeRankingHtml(option.label)}
+                            </span>
+                        </button>
+                    `;
+                }).join('')}
+            </div>
         </div>
     `;
 }
@@ -755,6 +802,7 @@ window.switchRankingType = switchRankingType;
 window.switchRankingPeriod = switchRankingPeriod;
 window.switchRankingTab = switchRankingTab;
 window.switchRankingGender = switchRankingGender;
+window.cycleRankingGender = cycleRankingGender;
 window.toggleRankingStock = toggleRankingStock;
 window.openRankingKanjiDetail = openRankingKanjiDetail;
 window.openRankingReadingAction = openRankingReadingAction;
