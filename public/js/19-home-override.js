@@ -2480,13 +2480,23 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         };
     });
 
-    const primaryButton = `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.primaryAction}')" class="flex-1 rounded-[20px] border border-[#eadfce] bg-[#b9965b] px-4 py-3 text-[12px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform">
-            ${focusCopy.primaryLabel}
-        </button>
-    `;
+    const actionCardConfig = {
+        action: focusCopy.primaryAction,
+        title: focusCopy.primaryLabel,
+        detailHtml: selectedTabKey === 'reading'
+            ? '好きな響きから<br>読み候補を探します'
+            : selectedTabKey === 'kanji'
+                ? '希望の読みから<br>合う漢字を探します'
+                : selectedTabKey === 'build'
+                    ? '集めた読みと漢字から<br>名前候補を作ります'
+                    : '保存した候補を見返して<br>残したい名前を整理します',
+        previewHtml: getHomeNextStagePreviewHtml(selectedTabKey === 'reading' ? 'reading' : selectedTabKey),
+        variant: 'card',
+        icon: ''
+    };
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig);
     const secondaryButton = focusCopy.secondaryAction
-        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="flex-1 rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
+        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
         : '';
 
     stageTrack.style.cssText = '';
@@ -2540,10 +2550,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
             <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
             <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
-                <div class="flex gap-2">
-                    ${primaryButton}
-                    ${secondaryButton}
-                </div>
+                ${primaryCard}
+                ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
             </div>
         </div>
     `;
