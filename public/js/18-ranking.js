@@ -340,14 +340,14 @@ function renderRankingPeriodSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); toggleRankingPeriod()"
-            class="w-full h-full min-h-[4.9rem] rounded-[1.05rem] px-2.5 py-2 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3 md:py-2.5"
+            class="w-full h-full min-h-[4rem] rounded-[1.05rem] px-3 py-1.5 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-1.5"
             style="${switchStyle.button}">
-            <div class="flex h-full items-stretch gap-2.5">
-                <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <span class="block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
+            <div class="flex h-full items-center justify-between gap-2">
+                <div class="min-w-0 flex-1 flex flex-col items-center justify-center text-center leading-none">
+                    <span class="block whitespace-nowrap text-[12px] font-black leading-none md:text-[13px]" style="color:${switchStyle.value};">
                         ${escapeRankingHtml(label)}
                     </span>
-                    <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none" style="color:${switchStyle.sub};">
+                    <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none md:text-[9px]" style="color:${switchStyle.sub};">
                         期間：${escapeRankingHtml(period === 'monthly' ? monthLabel : 'すべて')}
                     </span>
                 </div>
@@ -371,14 +371,14 @@ function renderRankingGenderSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); cycleRankingGender()"
-            class="w-full h-full min-h-[4.9rem] rounded-[1.05rem] px-2.5 py-2 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3 md:py-2.5"
+            class="w-full h-full min-h-[4rem] rounded-[1.05rem] px-3 py-1.5 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-1.5"
             style="${switchStyle.button}">
-            <div class="flex h-full items-stretch gap-2.5">
-                <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <span class="block whitespace-nowrap text-[9px] font-black leading-none tracking-[0.16em]" style="color:${switchStyle.label};">
+            <div class="flex h-full items-center justify-between gap-2">
+                <div class="min-w-0 flex-1 flex flex-col items-center justify-center text-center leading-none">
+                    <span class="block whitespace-nowrap text-[8px] font-black leading-none tracking-[0.16em] md:text-[9px]" style="color:${switchStyle.label};">
                         性別
                     </span>
-                    <span class="mt-0.5 block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
+                    <span class="mt-0.5 block whitespace-nowrap text-[12px] font-black leading-none md:text-[13px]" style="color:${switchStyle.value};">
                         ${escapeRankingHtml(selectedGenderLabel)}
                     </span>
                 </div>
@@ -868,10 +868,10 @@ async function toggleRankingStock(kanjiStr, btn) {
             btn.className = 'px-3 py-1.5 bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0';
         }
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            await MeimayStats.recordKanjiUnlike(normalizedKanji, found?.gender || gender || 'neutral');
-            if (typeof updateRankingCardState === 'function') {
-                updateRankingCardState('kanji', normalizedKanji, -removedCount, false);
-            }
+            await MeimayStats.recordKanjiUnlike(normalizedKanji, {
+                gender: found?.gender || gender || 'neutral',
+                delta: -removedCount
+            });
         }
     } else {
         if (found) {
@@ -881,10 +881,10 @@ async function toggleRankingStock(kanjiStr, btn) {
                 btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0';
             }
             if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
-                await MeimayStats.recordKanjiLike(normalizedKanji, found.gender || gender || 'neutral');
-                if (typeof updateRankingCardState === 'function') {
-                    updateRankingCardState('kanji', normalizedKanji, 1, true);
-                }
+                await MeimayStats.recordKanjiLike(normalizedKanji, {
+                    gender: found.gender || gender || 'neutral',
+                    delta: 1
+                });
             }
         }
     }

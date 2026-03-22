@@ -2671,9 +2671,6 @@ function refreshPartnerAwareUI() {
     if (document.getElementById('scr-build')?.classList.contains('active')) {
         if (typeof renderBuildSelection === 'function') renderBuildSelection();
     }
-    if (document.getElementById('scr-ranking')?.classList.contains('active')) {
-        if (typeof loadRanking === 'function') loadRanking();
-    }
 }
 
 window.refreshPartnerAwareUI = refreshPartnerAwareUI;
