@@ -3997,7 +3997,9 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         existing.isSuper = existing.isSuper || !!options.isSuper;
         if (shouldTrackStats && existing.statsTracked === false) {
             existing.statsTracked = true;
-            syncReadingStockRankingStats(reading, 1, 'all');
+            syncReadingStockRankingStats(reading, 1, 'all', {
+                gender: existing.gender || options.gender || gender || 'neutral'
+            });
         }
         saveReadingStock(stock);
         if (options.clearHidden) {
@@ -4024,7 +4026,9 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         forgetHiddenReading(reading);
     }
     if (shouldTrackStats) {
-        syncReadingStockRankingStats(reading, 1, 'all');
+        syncReadingStockRankingStats(reading, 1, 'all', {
+            gender: entry.gender || options.gender || gender || 'neutral'
+        });
     }
     console.log("STOCK: Added reading to stock:", entry);
     return entry;
@@ -4086,10 +4090,22 @@ function removeReadingFromStock(target) {
     saveReadingStock(nextStock);
     if (typeof MeimayStats !== 'undefined' && typeof MeimayStats.recordReadingUnlike === 'function') {
         const normalizedReading = getReadingBaseReading(target);
-        const trackedRemovedCount = removedItems.filter(item => item && item.statsTracked !== false).length;
-        if (normalizedReading && trackedRemovedCount > 0) {
-            MeimayStats.recordReadingUnlike(normalizedReading, -trackedRemovedCount, 'all').catch((error) => {
-                console.warn('STATS: reading unlike sync failed', error);
+        const trackedRemovedByGender = new Map();
+        removedItems.forEach((item) => {
+            if (!item || item.statsTracked === false) return;
+            const itemGender = String(item.gender || gender || 'neutral').trim().toLowerCase();
+            const normalizedGender = itemGender === 'male' || itemGender === 'female' || itemGender === 'neutral'
+                ? itemGender
+                : (gender || 'neutral');
+            trackedRemovedByGender.set(normalizedGender, (trackedRemovedByGender.get(normalizedGender) || 0) + 1);
+        });
+        if (normalizedReading && trackedRemovedByGender.size > 0) {
+            trackedRemovedByGender.forEach((count, itemGender) => {
+                MeimayStats.recordReadingUnlike(normalizedReading, -count, 'all', {
+                    gender: itemGender
+                }).catch((error) => {
+                    console.warn('STATS: reading unlike sync failed', error);
+                });
             });
         }
     }
@@ -4097,7 +4113,7 @@ function removeReadingFromStock(target) {
     return removedItems;
 }
 
-function syncReadingStockRankingStats(reading, delta = 1, period = 'all') {
+function syncReadingStockRankingStats(reading, delta = 1, period = 'all', genderOrOptions = null) {
     if (typeof MeimayStats === 'undefined') return;
 
     const normalizedReading = getReadingBaseReading(reading);
@@ -4111,7 +4127,7 @@ function syncReadingStockRankingStats(reading, delta = 1, period = 'all') {
         : MeimayStats.recordReadingUnlike;
     if (typeof method !== 'function') return;
 
-    method.call(MeimayStats, normalizedReading, normalizedDelta, period).catch((error) => {
+    method.call(MeimayStats, normalizedReading, normalizedDelta, period, genderOrOptions).catch((error) => {
         console.warn('STATS: reading stock sync failed', error);
     });
 }
@@ -5902,7 +5918,7 @@ function toggleSearchStock(k, btn) {
         const heart = btn.querySelector('.absolute');
         if (heart) heart.remove();
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(k['漢字']);
+            MeimayStats.recordKanjiUnlike(k['漢字'], k.gender || gender || 'neutral');
         }
     } else {
         const item = { ...k, slot: -1, sessionReading: 'SEARCH' };
@@ -5912,7 +5928,7 @@ function toggleSearchStock(k, btn) {
         if (!btn.querySelector('.absolute')) {
             btn.insertAdjacentHTML('beforeend', '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>');
         }
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(k['漢字']);
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(k['漢字'], k.gender || gender || 'neutral');
     }
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 }
@@ -6199,13 +6215,13 @@ function stockAISuggestion(kanji, btn) {
         btn.closest('.flex').classList.remove('border-[#bca37f]', 'bg-[#fffbeb]');
         btn.closest('.flex').classList.add('border-[#eee5d8]');
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(kanji);
+            MeimayStats.recordKanjiUnlike(kanji, found?.gender || gender || 'neutral');
         }
     } else {
         const found = master.find(m => m['漢字'] === kanji);
         if (found) {
             liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
-            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji);
+            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji, found.gender || gender || 'neutral');
         }
         btn.innerText = '解除';
         btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-full text-xs font-bold transition-all active:scale-95';

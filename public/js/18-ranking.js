@@ -3,6 +3,47 @@
 let currentRankingType = 'kanji';
 let currentRankingPeriod = 'allTime';
 let currentRankingTab = 'allTime'; // Legacy alias kept in sync with the active period.
+const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
+
+function normalizeRankingGender(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (raw === 'male' || raw === 'female' || raw === 'all') {
+        return raw;
+    }
+    if (raw === 'neutral') {
+        return 'all';
+    }
+    return 'all';
+}
+
+function getDefaultRankingGender() {
+    const currentGender = typeof gender !== 'undefined' ? gender : 'all';
+    const normalized = normalizeRankingGender(currentGender);
+    return normalized === 'male' || normalized === 'female' ? normalized : 'all';
+}
+
+function loadRankingGenderPreference() {
+    try {
+        const stored = localStorage.getItem(RANKING_GENDER_STORAGE_KEY);
+        if (stored) {
+            return normalizeRankingGender(stored);
+        }
+    } catch (error) {
+        // Ignore storage failures and fall back to the current naming setting.
+    }
+
+    return getDefaultRankingGender();
+}
+
+function saveRankingGenderPreference(value) {
+    try {
+        localStorage.setItem(RANKING_GENDER_STORAGE_KEY, normalizeRankingGender(value));
+    } catch (error) {
+        // Non-fatal.
+    }
+}
+
+let currentRankingGender = loadRankingGenderPreference();
 
 let rankingTouchStartX = 0;
 let rankingTouchStartY = 0;
@@ -179,6 +220,39 @@ function renderRankingPeriodSwitch() {
     `;
 }
 
+function renderRankingGenderSwitch() {
+    const mount = document.getElementById('ranking-gender-switch');
+    if (!mount) return;
+
+    const selectedGender = normalizeRankingGender(currentRankingGender);
+    const options = [
+        { value: 'male', label: '男の子' },
+        { value: 'female', label: '女の子' },
+        { value: 'all', label: 'すべて' }
+    ];
+
+    mount.innerHTML = `
+        <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-0.5">
+            ${options.map((option) => {
+                const isActive = selectedGender === option.value;
+                const buttonClass = isActive
+                    ? 'flex-1 rounded-xl px-2 py-2 text-center bg-[#fffbeb] text-[#5d5444] shadow-sm'
+                    : 'flex-1 rounded-xl px-2 py-2 text-center text-[#a6967a]';
+                return `
+                    <button
+                        type="button"
+                        onclick="event.stopPropagation(); switchRankingGender('${option.value}')"
+                        class="${buttonClass} active:scale-95 transition-transform">
+                        <span class="whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]">
+                            ${escapeRankingHtml(option.label)}
+                        </span>
+                    </button>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
 function updateRankingButtonState() {
     const typeButtons = [
         getRankingButton('ranking-type-kanji', 'ranking-tab-kanji'),
@@ -194,6 +268,7 @@ function updateRankingButtonState() {
     });
 
     renderRankingPeriodSwitch();
+    renderRankingGenderSwitch();
 }
 
 function setRankingType(type, options = {}) {
@@ -213,6 +288,15 @@ function setRankingPeriod(period, options = {}) {
     }
 }
 
+function setRankingGender(value, options = {}) {
+    currentRankingGender = normalizeRankingGender(value);
+    saveRankingGenderPreference(currentRankingGender);
+    updateRankingButtonState();
+    if (options.load !== false) {
+        loadRanking();
+    }
+}
+
 function switchRankingType(type) {
     setRankingType(type);
 }
@@ -225,12 +309,17 @@ function switchRankingTab(tab) {
     switchRankingPeriod(tab);
 }
 
+function switchRankingGender(value) {
+    setRankingGender(value);
+}
+
 function toggleRankingPeriod() {
     const period = normalizeRankingPeriod(currentRankingPeriod);
     setRankingPeriod(period === 'allTime' ? 'monthly' : 'allTime');
 }
 
 async function openRanking() {
+    currentRankingGender = loadRankingGenderPreference();
     if (typeof changeScreen === 'function') {
         changeScreen('scr-ranking');
     }
@@ -533,9 +622,11 @@ async function loadRanking() {
 
     const type = normalizeRankingType(currentRankingType);
     const period = normalizeRankingPeriod(currentRankingPeriod);
+    const genderFilter = normalizeRankingGender(currentRankingGender);
     currentRankingType = type;
     currentRankingPeriod = period;
     currentRankingTab = period;
+    currentRankingGender = genderFilter;
     updateRankingButtonState();
 
     listContainer.innerHTML = getRankingLoadingMessage();
@@ -546,14 +637,43 @@ async function loadRanking() {
     }
 
     try {
+        const seedTasks = [];
+        if (typeof MeimayStats !== 'undefined') {
+            const getSeedFlag = (key) => {
+                try {
+                    return localStorage.getItem(key) === '1';
+                } catch (error) {
+                    return false;
+                }
+            };
+            if (type === 'kanji' && typeof MeimayStats.seedKanjiStatsFromLocalLikes === 'function') {
+                const kanjiSeeded = getSeedFlag('meimay_kanji_gender_stats_seeded_v2');
+                if (!kanjiSeeded) {
+                    seedTasks.push(MeimayStats.seedKanjiStatsFromLocalLikes());
+                }
+            }
+            if (type === 'reading' && typeof MeimayStats.seedEncounteredReadingStatsByGender === 'function') {
+                const readingSeeded = getSeedFlag('meimay_reading_gender_stats_seeded_v2');
+                if (!readingSeeded) {
+                    seedTasks.push(MeimayStats.seedEncounteredReadingStatsByGender());
+                }
+            }
+            if (type === 'reading' && typeof MeimayStats.seedEncounteredReadingStats === 'function') {
+                const readingGlobalSeeded = getSeedFlag('meimay_reading_stats_seeded_v3');
+                if (!readingGlobalSeeded) {
+                    seedTasks.push(MeimayStats.seedEncounteredReadingStats());
+                }
+            }
+        }
+        if (seedTasks.length > 0) {
+            await Promise.allSettled(seedTasks);
+        }
+
         let items = [];
         if (type === 'kanji') {
-            items = await MeimayStats.fetchRankings(period);
+            items = await MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
         } else {
-            if (typeof MeimayStats.seedEncounteredReadingStats === 'function') {
-                await MeimayStats.seedEncounteredReadingStats();
-            }
-            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'all');
+            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'all', genderFilter);
             items = buildReadingRankingItems(readingRanking);
         }
 
@@ -601,7 +721,7 @@ async function toggleRankingStock(kanjiStr, btn) {
             card.classList.add('border-[#ede5d8]');
         }
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            await MeimayStats.recordKanjiUnlike(kanjiStr);
+            await MeimayStats.recordKanjiUnlike(kanjiStr, found?.gender || gender || 'neutral');
         }
     } else {
         const found = typeof master !== 'undefined' ? master.find((entry) => entry && entry['漢字'] === kanjiStr) : null;
@@ -616,7 +736,7 @@ async function toggleRankingStock(kanjiStr, btn) {
                 card.classList.remove('border-[#ede5d8]');
             }
             if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
-                await MeimayStats.recordKanjiLike(kanjiStr);
+                await MeimayStats.recordKanjiLike(kanjiStr, found.gender || gender || 'neutral');
             }
         }
     }
@@ -634,6 +754,7 @@ window.openRanking = openRanking;
 window.switchRankingType = switchRankingType;
 window.switchRankingPeriod = switchRankingPeriod;
 window.switchRankingTab = switchRankingTab;
+window.switchRankingGender = switchRankingGender;
 window.toggleRankingStock = toggleRankingStock;
 window.openRankingKanjiDetail = openRankingKanjiDetail;
 window.openRankingReadingAction = openRankingReadingAction;

@@ -278,7 +278,9 @@ function addToReadingHistory() {
 
     localStorage.setItem('meimay_reading_history', JSON.stringify(filtered));
     if (typeof MeimayStats !== 'undefined' && MeimayStats.recordReadingEncounter) {
-        MeimayStats.recordReadingEncounter(reading).catch((error) => {
+        MeimayStats.recordReadingEncounter(reading, 1, 'all', {
+            gender: historyData.settings.gender || gender || 'neutral'
+        }).catch((error) => {
             console.warn('HISTORY: reading stats sync failed', error);
         });
     }

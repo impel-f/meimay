@@ -54,18 +54,57 @@ function normalizeStatsMetric(metric) {
   return 'all';
 }
 
-function getStatsCollectionNames(kind, metric = 'all') {
-  const normalizedKind = normalizeStatsKind(kind);
-  if (normalizedKind !== 'reading') return ['statistics'];
-
-  const normalizedMetric = normalizeStatsMetric(metric);
-  if (normalizedMetric === 'like') return ['reading_like_statistics'];
-  if (normalizedMetric === 'direct') return ['reading_statistics'];
-  return ['reading_statistics', 'reading_like_statistics'];
+function normalizeStatsGender(gender) {
+  const raw = String(gender || '').trim().toLowerCase();
+  if (raw === 'male' || raw === 'female' || raw === 'neutral' || raw === 'all') {
+    return raw;
+  }
+  return 'all';
 }
 
-function getStatsCollectionName(kind, metric = 'all') {
-  return getStatsCollectionNames(kind, metric)[0];
+function normalizeStatsScope(scope) {
+  const raw = String(scope || '').trim().toLowerCase();
+  if (raw === 'global' || raw === 'gender' || raw === 'all') {
+    return raw;
+  }
+  return 'all';
+}
+
+function getStatsGenderTargets(gender) {
+  const normalizedGender = normalizeStatsGender(gender);
+  if (normalizedGender === 'male' || normalizedGender === 'female') {
+    return [normalizedGender];
+  }
+  if (normalizedGender === 'neutral') {
+    return ['male', 'female'];
+  }
+  return [];
+}
+
+function getStatsCollectionNames(kind, metric = 'all', gender = 'all', scope = 'all') {
+  const normalizedKind = normalizeStatsKind(kind);
+  const normalizedMetric = normalizeStatsMetric(metric);
+  const normalizedScope = normalizeStatsScope(scope);
+
+  const baseCollections = normalizedKind !== 'reading'
+    ? ['statistics']
+    : normalizedMetric === 'like'
+      ? ['reading_like_statistics']
+      : normalizedMetric === 'direct'
+        ? ['reading_statistics']
+        : ['reading_statistics', 'reading_like_statistics'];
+
+  const genderTargets = getStatsGenderTargets(gender);
+  if (genderTargets.length === 0) return baseCollections;
+  const genderCollections = baseCollections.flatMap((collection) => genderTargets.map((target) => `${collection}_${target}`));
+
+  if (normalizedScope === 'global') return baseCollections;
+  if (normalizedScope === 'gender') return genderCollections;
+  return [...baseCollections, ...genderCollections];
+}
+
+function getStatsCollectionName(kind, metric = 'all', gender = 'all') {
+  return getStatsCollectionNames(kind, metric, gender, 'gender')[0];
 }
 
 function getStatsDocId(period) {
@@ -125,6 +164,36 @@ function getRequestedMetric(req) {
   if (querySource) return querySource;
 
   return '';
+}
+
+function getRequestedGender(req) {
+  const bodyGender = typeof req?.body?.gender === 'string' ? req.body.gender : '';
+  if (bodyGender) return bodyGender;
+
+  const queryGender = typeof req?.query?.gender === 'string' ? req.query.gender : '';
+  if (queryGender) return queryGender;
+
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    return url.searchParams.get('gender') || '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function getRequestedScope(req) {
+  const bodyScope = typeof req?.body?.scope === 'string' ? req.body.scope : '';
+  if (bodyScope) return bodyScope;
+
+  const queryScope = typeof req?.query?.scope === 'string' ? req.query.scope : '';
+  if (queryScope) return queryScope;
+
+  try {
+    const url = new URL(req.url, 'http://localhost');
+    return url.searchParams.get('scope') || '';
+  } catch (error) {
+    return '';
+  }
 }
 
 function getRequestedUpdatePeriod(req) {
@@ -204,9 +273,9 @@ function normalizeStatsValue(kind, value) {
   return raw;
 }
 
-async function fetchRankingItems(kind, period, metric = 'all') {
+async function fetchRankingItems(kind, period, metric = 'all', gender = 'all') {
   const db = getAdminFirestore();
-  const collections = getStatsCollectionNames(kind, metric);
+  const collections = getStatsCollectionNames(kind, metric, gender, 'gender');
   const totals = new Map();
 
   await Promise.all(collections.map(async (collection) => {
@@ -254,8 +323,9 @@ module.exports = async (req, res) => {
       const kind = normalizeStatsKind(getRequestedKind(req));
       const period = normalizeStatsPeriod(getRequestedPeriod(req));
       const metric = getRequestedMetric(req);
-      const items = await fetchRankingItems(kind, period, metric);
-      return res.status(200).json({ ok: true, kind, period, items });
+      const gender = normalizeStatsGender(getRequestedGender(req));
+      const items = await fetchRankingItems(kind, period, metric, gender);
+      return res.status(200).json({ ok: true, kind, period, gender, items });
     } catch (error) {
       return buildErrorResponse(res, error, 'Statistics read failed');
     }
@@ -276,12 +346,14 @@ module.exports = async (req, res) => {
   const normalizedKind = normalizeStatsKind(kind);
   const normalizedUpdatePeriod = normalizeStatsUpdatePeriod(getRequestedUpdatePeriod(req));
   const normalizedMetric = normalizeStatsMetric(getRequestedMetric(req));
+  const normalizedGender = normalizeStatsGender(getRequestedGender(req));
+  const normalizedScope = normalizeStatsScope(getRequestedScope(req));
 
   if (bootstrapRequested) {
     try {
       const db = getAdminFirestore();
       const batch = db.batch();
-      const collections = getStatsCollectionNames(normalizedKind, normalizedMetric);
+      const collections = getStatsCollectionNames(normalizedKind, normalizedMetric, normalizedGender, normalizedScope);
       const updatePeriods = getStatsWritePeriods(normalizedUpdatePeriod);
 
       collections.forEach((collection) => {
@@ -295,7 +367,15 @@ module.exports = async (req, res) => {
       });
 
       await batch.commit();
-      return res.status(200).json({ ok: true, kind: normalizedKind, metric: normalizedMetric, period: normalizedUpdatePeriod, bootstrap: true });
+      return res.status(200).json({
+        ok: true,
+        kind: normalizedKind,
+        metric: normalizedMetric,
+        gender: normalizedGender,
+        scope: normalizedScope,
+        period: normalizedUpdatePeriod,
+        bootstrap: true
+      });
     } catch (error) {
       return buildErrorResponse(res, error, 'Statistics bootstrap failed');
     }
@@ -316,20 +396,28 @@ module.exports = async (req, res) => {
 
   try {
     const batch = db.batch();
-    const collection = getStatsCollectionName(normalizedKind, normalizedMetric);
+    const collections = getStatsCollectionNames(normalizedKind, normalizedMetric, normalizedGender, normalizedScope);
     const updatePeriods = getStatsWritePeriods(normalizedUpdatePeriod);
 
-    updatePeriods.forEach((period) => {
-      const docId = period === 'allTime' ? 'allTime' : getStatsDocId(period);
-      const ref = db.collection(collection).doc(docId);
-      batch.set(ref, {
-        [normalizedValue]: increment,
-        updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
+    collections.forEach((collection) => {
+      updatePeriods.forEach((period) => {
+        const docId = period === 'allTime' ? 'allTime' : getStatsDocId(period);
+        const ref = db.collection(collection).doc(docId);
+        batch.set(ref, {
+          [normalizedValue]: increment,
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      });
     });
 
     await batch.commit();
-    return res.status(200).json({ ok: true, kind: normalizedKind, period: normalizedUpdatePeriod });
+    return res.status(200).json({
+      ok: true,
+      kind: normalizedKind,
+      gender: normalizedGender,
+      scope: normalizedScope,
+      period: normalizedUpdatePeriod
+    });
   } catch (error) {
     return buildErrorResponse(res, error, 'Statistics update failed');
   }

@@ -483,7 +483,13 @@ window.addEventListener('beforeunload', () => {
  */
 function shareData() {
     const data = {
-        liked: liked.map(l => ({ '漢字': l['漢字'], '画数': l['画数'], slot: l.slot, sessionReading: l.sessionReading })),
+        liked: liked.map(l => ({
+            '漢字': l['漢字'],
+            '画数': l['画数'],
+            slot: l.slot,
+            sessionReading: l.sessionReading,
+            gender: l.gender || 'neutral'
+        })),
         savedNames: (getSavedNames ? getSavedNames() : savedNames).map(s => ({
             fullName: s.fullName,
             reading: s.reading || '',
@@ -567,7 +573,12 @@ function receiveSharedData() {
                 if (full) {
                     const exists = liked.some(l => l['漢字'] === item['漢字'] && l.slot === item.slot);
                     if (!exists) {
-                        liked.push({ ...full, slot: item.slot || -1, sessionReading: item.sessionReading || 'SHARED' });
+                        liked.push({
+                            ...full,
+                            slot: item.slot || -1,
+                            sessionReading: item.sessionReading || 'SHARED',
+                            gender: item.gender || full.gender || 'neutral'
+                        });
                     }
                 }
             });

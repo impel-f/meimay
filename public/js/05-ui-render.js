@@ -694,7 +694,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         }
 
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(data['漢字']);
+            MeimayStats.recordKanjiUnlike(data['漢字'], data.gender || gender || 'neutral');
         }
 
         if (removedCount > 0) {
@@ -738,7 +738,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         liked.push(likeData);
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
         if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
-            MeimayStats.recordKanjiLike(data['漢字']);
+            MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');
         }
 
         // 漢字検索画面が表示中なら結果を即座に更新（❤アイコン反映）

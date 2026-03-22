@@ -1611,7 +1611,7 @@ function deleteStockGroup(reading) {
     liked = liked.filter(item => item.sessionReading !== reading);
 
     if (removedItems.length > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-        removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字']));
+        removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字'], item.gender || gender || 'neutral'));
     }
 
     if (liked.length < initialCount) {
@@ -2184,6 +2184,7 @@ function confirmStockDeletion(kanji) {
 function removeKanjiFromStock(kanji) {
     if (!liked) return;
 
+    const removedItems = liked.filter(item => item['漢字'] === kanji);
     const initialCount = liked.length;
     liked = liked.filter(item => item['漢字'] !== kanji);
 
@@ -2193,7 +2194,9 @@ function removeKanjiFromStock(kanji) {
         }
 
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(kanji);
+            removedItems.forEach(item => {
+                MeimayStats.recordKanjiUnlike(kanji, item.gender || gender || 'neutral');
+            });
         }
 
         fbChoices = fbChoices.map(c => c === kanji ? null : c);
@@ -2914,17 +2917,17 @@ function restartBuildSlotSelection(slotIdx, options = {}) {
     const keptLiked = [];
     liked.forEach(item => {
         if (item.slot === slotIdx) {
-            toRemove.push(item['漢字']);
+            toRemove.push(item);
         } else {
             keptLiked.push(item);
         }
     });
     liked = keptLiked;
 
-    toRemove.forEach(kanji => {
-        seen.delete(kanji);
+    toRemove.forEach(item => {
+        seen.delete(item['漢字']);
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(kanji);
+            MeimayStats.recordKanjiUnlike(item['漢字'], item.gender || gender || 'neutral');
         }
     });
 
@@ -3101,4 +3104,3 @@ window.showFortuneTerm = showFortuneTerm;
 })();
 
 console.log("BUILD: Module loaded");
-
