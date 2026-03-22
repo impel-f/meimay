@@ -60,7 +60,7 @@ function buildModel(genAI, modelName) {
   return genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
-      maxOutputTokens: 1536,
+maxOutputTokens: 2048,
       temperature: 0.2,
     },
   });

@@ -2156,11 +2156,21 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
-    const primaryButton = `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.primaryAction}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-[#b9965b] px-4 py-3 text-[12px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform">
-            ${focusCopy.primaryLabel}
-        </button>
-    `;
+    const actionCardConfig = {
+        action: focusCopy.primaryAction,
+        title: focusCopy.primaryLabel,
+        detailHtml: focusKey === 'reading'
+            ? '好きな響きから<br>読み候補を探します'
+            : focusKey === 'kanji'
+                ? '希望の読みから<br>合う漢字を探します'
+                : focusKey === 'build'
+                    ? '集めた読みと漢字から<br>名前候補を作ります'
+                    : '保存した候補を見返して<br>残したい名前を整理します',
+        previewHtml: getHomeNextStagePreviewHtml(focusKey === 'reading' ? 'reading' : focusKey),
+        variant: 'card',
+        icon: ''
+    };
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig);
     const secondaryDetailHtml = focusKey === 'reading'
         ? '今ある読みのストックを見返します'
         : focusKey === 'kanji'
@@ -2207,17 +2217,17 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     data-home-stage-button="true"
                     onclick="event.stopPropagation(); selectHomeStageTab('${step.key}')"
                     aria-pressed="${step.selected ? 'true' : 'false'}"
-                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
+                    class="mx-auto w-full max-w-[86px] min-h-[66px] rounded-[1rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:max-w-[112px] md:min-h-[104px] md:rounded-[1.35rem] md:px-1 md:py-1.5"
                     style="${cardStyle}">
                     <div class="flex h-full flex-col items-center justify-start">
-                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
-                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">${step.selected ? '●' : (step.done ? '✓' : '-')}</span>
+                        <div class="flex items-center justify-center gap-0.5 text-[7px] font-black leading-tight text-center md:gap-1 md:text-[10px]" style="color:${tone.text};">
+                            <span class="inline-flex h-[16px] w-[16px] items-center justify-center rounded-full text-[10px] font-black leading-none md:h-5 md:w-5 md:text-[13px]" style="${badgeStyle}">${step.selected ? '●' : (step.done ? '✓' : '-')}</span>
                             <span>${step.label}</span>
                         </div>
-                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
-                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
+                        <div class="mt-0.5 whitespace-nowrap text-[13px] font-black leading-none md:mt-1.5 md:text-[19px]" style="color:${tone.text};">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                         </div>
-                        ${step.selected ? `<div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">選択中</div>` : ''}
+                        ${step.selected ? `<div class="mt-auto pt-1 text-[6px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[8px]" style="color:${tone.sub};">選択中</div>` : ''}
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
@@ -2225,8 +2235,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
             <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">今の状況</div>
-                <div class="mt-2 text-[15px] font-black leading-snug text-[#4f4639]">${focusCopy.mainText}</div>
+                <div class="text-[13px] font-black tracking-[0.18em] text-[#b9965b]">今の状況</div>
+                <div class="mt-2 whitespace-pre-line text-[11px] font-normal leading-relaxed text-[#4f4639]">${focusCopy.mainText}</div>
                 <div class="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-[11px] font-bold text-[#5d5444]">
                     ${focusCopy.chips.map((chip) => `
                         <span class="inline-flex items-center gap-1 whitespace-nowrap">
@@ -2239,9 +2249,9 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
             <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
+                <div class="text-[13px] font-black tracking-[0.18em] text-[#b9965b]">この段階でできること</div>
                 <div class="mt-2">
-                ${primaryButton}
+                ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
                 </div>
             </div>
