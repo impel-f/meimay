@@ -320,13 +320,13 @@ function renderSearchMethodChooserScreen() {
     screen.innerHTML = `
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">名前のさがし方</h2>
-            <p class="text-xs text-[#a6967a] text-center mb-8">読み候補があるか教えてください</p>
+            <p class="text-xs text-[#a6967a] text-center mb-8">さがし方を選んでください</p>
 
             <div class="flex flex-col gap-3 text-left mb-4">
                 <button onclick="startMode('reading')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">読み候補がある</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>理想の漢字をさがします</span>
+                        <span class="block text-base font-bold text-[#5d5444]">読みから漢字を探す</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>合う漢字を探します</span>
                     </div>
                     <div class="wiz-mini-preview" aria-hidden="true">
                         <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
@@ -337,8 +337,8 @@ function renderSearchMethodChooserScreen() {
 
                 <button onclick="startMode('sound')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">まだない</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">響きから<br>読みの候補をさがします</span>
+                        <span class="block text-base font-bold text-[#5d5444]">響きを探す</span>
+                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">好きな響きから<br>読み候補を探します</span>
                     </div>
                     <div class="wiz-mini-preview" aria-hidden="true">
                         <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
@@ -347,8 +347,6 @@ function renderSearchMethodChooserScreen() {
                     </div>
                 </button>
             </div>
-
-            <p class="text-[11px] leading-relaxed text-[#a6967a] mb-4">あとから自由に選択できます</p>
             <button onclick="changeScreen('scr-mode')" class="text-sm text-[#bca37f] hover:underline">戻る</button>
         </div>
     `;
