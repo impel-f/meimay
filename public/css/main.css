@@ -390,14 +390,10 @@ body {
     box-shadow: none;
     pointer-events: none;
     position: absolute;
-    left: 50%;
-    bottom: 6px;
-    transform: translateX(-50%);
+    left: 8px;
+    bottom: 8px;
+    transform: none;
     margin-top: 0;
-}
-
-.stock-card.has-stock-stars .stock-strokes {
-    margin-bottom: 14px;
 }
 
 .stock-strokes {
@@ -641,6 +637,27 @@ body {
     font-weight: 900;
     pointer-events: none;
     margin-top: 4px;
+}
+
+.reading-title-with-stars {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    padding-bottom: 0.55em;
+    line-height: 1.05;
+}
+
+.reading-title-text {
+    display: block;
+}
+
+.reading-title-star-badge {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    transform: translate(-18%, 62%);
+    pointer-events: none;
+    line-height: 1;
 }
 
 /* ============================================================
