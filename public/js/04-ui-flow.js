@@ -325,7 +325,7 @@ function renderSearchMethodChooserScreen() {
             <div class="flex flex-col gap-3 text-left mb-4">
                 <button onclick="startMode('reading')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">読みから漢字を探す</span>
+                        <span class="block text-base font-bold text-[#5d5444]">漢字をさがす</span>
                         <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>合う漢字を探します</span>
                     </div>
                     <div class="wiz-mini-preview" aria-hidden="true">
@@ -337,7 +337,7 @@ function renderSearchMethodChooserScreen() {
 
                 <button onclick="startMode('sound')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">響きを探す</span>
+                        <span class="block text-base font-bold text-[#5d5444]">響きをさがす</span>
                         <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">好きな響きから<br>読み候補を探します</span>
                     </div>
                     <div class="wiz-mini-preview" aria-hidden="true">
@@ -358,7 +358,7 @@ function renderSoundEntryScreen() {
 
     screen.innerHTML = `
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響き・読みを探す</h2>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
 
             <div class="space-y-2.5 text-left mb-3">
                 <button

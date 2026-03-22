@@ -64,11 +64,11 @@
             </div>
             <button onclick="drawerNavigate('mode-sound')" class="drawer-menu-item" id="drawer-mode-sound">
                 <span class="drawer-icon">🎵</span>
-                <span>響き・読みを探す</span>
+                <span>響きをさがす</span>
             </button>
             <button onclick="drawerNavigate('mode-reading')" class="drawer-menu-item" id="drawer-mode-reading">
                 <span class="drawer-icon">🔤</span>
-                <span>読みから漢字を探す</span>
+                <span>漢字をさがす</span>
             </button>
 
             <div class="h-px bg-[#eee5d8] mx-6 my-3"></div>
@@ -395,7 +395,7 @@
                     <span id="home-entry-sound-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
-                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響き・読みを探す</div>
+                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響きをさがす</div>
 
                     <!-- ビジュアル: 3枚ベージュ統一 ミニスワイプカード ファン状 -->
                     <div class="relative w-full flex items-center justify-center" style="height: 62px;">
@@ -417,7 +417,7 @@
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-2">響きやイメージから<br>新しい読みを探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-2">好きな響きから<br>読み候補を探す</div>
                 </button>
 
                 <!-- RIGHT: 読みから漢字を探す -->
@@ -427,7 +427,7 @@
                     <span id="home-entry-reading-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
 
                     <!-- タイトル (上・中央) -->
-                    <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">読みから漢字を探す</div>
+                    <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">漢字をさがす</div>
 
                     <!-- ビジュアル: 環・歓・漢 ファン状カード（実タグ色・漢字のみ） -->
                     <div class="relative w-full flex items-center justify-center" style="height: 62px;">
@@ -449,7 +449,7 @@
                     </div>
 
                     <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-2">希望の読みから<br>理想の漢字を探す</div>
+                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-2">希望の読みから<br>合う漢字を探す</div>
                 </button>
 
             </div>
@@ -516,7 +516,7 @@
 
     <div id="scr-input-reading" class="screen">
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">読みから漢字を探す</h2>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">漢字をさがす</h2>
             <p class="label-mini mb-2">名前の読み（ひらがな）</p>
             <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2" style="font-size:1.7rem; padding:10px 0;">
 
@@ -554,7 +554,7 @@
 
     <div id="scr-input-sound-entry" class="screen">
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響き・読みを探す</h2>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
 
             <div class="space-y-2.5 text-left mb-3">
                 <button
@@ -1884,7 +1884,7 @@
     <script src="/js/01-core.js?v=25.11"></script>
     <script src="/js/02-engine.js?v=25.15"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-    <script src="/js/04-ui-flow.js?v=25.74"></script>
+    <script src="/js/04-ui-flow.js?v=25.75"></script>
     <script src="/js/05-ui-render.js?v=25.20"></script>
     <script src="/js/06-ui-physics.js?v=25.13"></script>
     <script src="/js/07-build.js?v=25.23"></script>
@@ -1901,7 +1901,7 @@
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
     <script src="/js/17-todays-kanji.js?v=25.11"></script>
     <script src="/js/18-ranking.js?v=25.30"></script>
-    <script src="/js/19-home-override.js?v=25.32"></script>
+<script src="/js/19-home-override.js?v=25.33"></script>
 
 </body>
 

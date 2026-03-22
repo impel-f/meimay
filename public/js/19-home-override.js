@@ -361,7 +361,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         return {
             title: '読み候補があるので漢字を探せます',
             detail: '候補の読みを起点に、名前に使いたい漢字を集めます。',
-            actionLabel: '読みから漢字を探す',
+            actionLabel: '漢字をさがす',
             action: 'reading'
         };
     }
@@ -370,7 +370,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         return {
             title: '読み候補を集める',
             detail: 'まずは響きやイメージから、気になる読みを見つけましょう。',
-            actionLabel: '響き・読みを探す',
+            actionLabel: '響きをさがす',
             action: 'sound'
         };
     }
@@ -379,7 +379,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         return {
             title: '漢字材料を集める',
             detail: '読み候補があるので、次は漢字を広げる段階です。',
-            actionLabel: '読みから漢字を探す',
+            actionLabel: '漢字をさがす',
             action: 'reading'
         };
     }
@@ -547,6 +547,44 @@ function getHomeRecommendedStageKey(action) {
 function getHomeSearchChoiceRecommended(readingStockCount) {
     const wizard = getWizardHomeState();
     return readingStockCount > 0 || wizard.hasReadingCandidate === true ? 'reading' : 'sound';
+}
+
+function getHomeStageFocus(defaultKey = 'reading') {
+    const allowed = new Set(['reading', 'kanji', 'build', 'save']);
+    if (!allowed.has(window.MeimayHomeStageFocus)) {
+        window.MeimayHomeStageFocus = allowed.has(defaultKey) ? defaultKey : 'reading';
+    }
+    return window.MeimayHomeStageFocus;
+}
+
+function selectHomeStageTab(stageKey) {
+    const allowed = new Set(['reading', 'kanji', 'build', 'save']);
+    if (!allowed.has(stageKey)) return;
+    window.MeimayHomeStageFocus = stageKey;
+    if (typeof renderHomeProfile === 'function') renderHomeProfile();
+}
+
+function getHomeStageFocusAction(stageKey, likedCount, readingStockCount, savedCount, pairing) {
+    const wizard = getWizardHomeState();
+    const hasReadingCandidate = readingStockCount > 0 || wizard.hasReadingCandidate === true;
+
+    if (stageKey === 'reading') {
+        return hasReadingCandidate ? 'reading' : 'sound';
+    }
+
+    if (stageKey === 'kanji') {
+        return likedCount > 0 ? 'build' : (hasReadingCandidate ? 'reading' : 'sound');
+    }
+
+    if (stageKey === 'build') {
+        return savedCount > 0 ? 'saved' : (likedCount > 0 ? 'build' : (hasReadingCandidate ? 'reading' : 'sound'));
+    }
+
+    if (stageKey === 'save') {
+        return savedCount > 0 ? 'saved' : (likedCount > 0 ? 'build' : (hasReadingCandidate ? 'reading' : 'sound'));
+    }
+
+    return getHomeNextStep(likedCount, readingStockCount, savedCount, pairing)?.action || 'sound';
 }
 
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
@@ -1850,16 +1888,16 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
 
     switch (action) {
     case 'sound':
-        config.title = 'まだない';
-        config.detailHtml = '響きから<br>読みの候補をさがします';
+        config.title = '響きをさがす';
+        config.detailHtml = '好きな響きから<br>読み候補を探します';
         config.alternateAction = 'reading';
-        config.alternateLabel = '読み候補がある場合は、漢字を探す';
+        config.alternateLabel = '漢字をさがす';
         break;
     case 'reading':
-        config.title = '読み候補がある';
-        config.detailHtml = '希望の読みから<br>理想の漢字をさがします';
+        config.title = '漢字をさがす';
+        config.detailHtml = '希望の読みから<br>合う漢字を探します';
         config.alternateAction = 'sound';
-        config.alternateLabel = '読み候補がまだない場合は、響きから探す';
+        config.alternateLabel = '響きをさがす';
         break;
     case 'stock-reading':
         config.title = '読み候補を見る';
@@ -1906,10 +1944,10 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
     }
 
     if (action === 'sound') {
-        config.title = '響きを探す';
+        config.title = '響きをさがす';
     }
     if (action === 'reading') {
-        config.title = '漢字を探す';
+        config.title = '漢字をさがす';
     }
     if (action === 'build') {
         config.variant = 'icon';
@@ -1953,7 +1991,10 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
-    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, getPairingHomeSummary());
+    const pairing = getPairingHomeSummary();
+    const focusKey = getHomeStageFocus(timeline.activeKey);
+    const focusAction = getHomeStageFocusAction(focusKey, likedCount, readingStockCount, savedCount, pairing);
+    const cardConfig = getHomeNextStageCardConfig({ action: focusAction }, readingStockCount);
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
 
@@ -1963,23 +2004,38 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
-    const cardConfig = getHomeNextStageCardConfig(nextStep, readingStockCount);
     const secondaryLink = cardConfig.alternateAction
         ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.alternateAction}')" class="mt-3 w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${cardConfig.alternateLabel}</button>`
         : '';
 
+    const displayedSteps = timeline.steps.map((step) => {
+        const selected = step.key === focusKey;
+        return {
+            ...step,
+            selected,
+            metric: {
+                ...step.metric,
+                actionText: selected ? '表示中' : 'タップで切替'
+            }
+        };
+    });
+
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
-            ${timeline.steps.map((step, index) => {
-                const cardStyle = step.recommended
+            ${displayedSteps.map((step, index) => {
+                const cardStyle = step.selected
+                    ? tone.cardRecommended
+                    : step.recommended
                     ? tone.cardRecommended
                     : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
-                const badgeStyle = step.recommended
+                const badgeStyle = step.selected
+                    ? tone.badgeRecommended
+                    : step.recommended
                     ? tone.badgeRecommended
                     : step.done
                     ? tone.badgeDone
@@ -1990,7 +2046,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                 <button
                     type="button"
                     data-home-stage-button="true"
-                    onclick="event.stopPropagation(); runHomeAction('${step.action}')"
+                    onclick="event.stopPropagation(); selectHomeStageTab('${step.key}')"
+                    aria-pressed="${step.selected ? 'true' : 'false'}"
                     class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
                     style="${cardStyle}">
                     <div class="flex h-full flex-col items-center justify-start">
@@ -2008,7 +2065,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             }).join('')}
         </div>
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-sm font-black text-[#4f4639]">次はここから</div>
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
             ${renderHomeNextStagePrimaryButton(cardConfig)}
             ${secondaryLink}
         </div>
@@ -2017,11 +2074,13 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     Array.from(stageTrack.querySelectorAll('[data-home-stage-button]')).forEach((button, index) => {
         const badge = button.querySelector('span');
         if (!badge) return;
-        badge.textContent = timeline.steps[index]?.done ? '✓' : '-';
+        const step = displayedSteps[index];
+        badge.textContent = step?.done ? '✓' : '-';
     });
 }
 
 window.renderHomeProfile = renderHomeProfile;
+window.selectHomeStageTab = selectHomeStageTab;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
 
