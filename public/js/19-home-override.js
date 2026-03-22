@@ -2238,6 +2238,317 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     });
 }
 
+function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const matchedReadingCount = Number.isFinite(Number(pairing?.matchedReadingCount))
+        ? Number(pairing.matchedReadingCount)
+        : 0;
+    const matchedSavedCount = Number.isFinite(Number(pairing?.matchedNameCount))
+        ? Number(pairing.matchedNameCount)
+        : 0;
+    const unresolvedReadingCount = Number.isFinite(Number(options.unresolvedReadingCount))
+        ? Number(options.unresolvedReadingCount)
+        : getHomeUnresolvedReadingCount(options.readingStock);
+
+    const copy = {
+        mainText: '',
+        statusLines: [],
+        chips: [],
+        primaryAction: 'sound',
+        primaryLabel: '響きをさがす',
+        secondaryAction: '',
+        secondaryLabel: ''
+    };
+
+    if (stageKey === 'reading') {
+        copy.primaryAction = 'sound';
+        copy.primaryLabel = '響きをさがす';
+        if (readingStockCount > 0) {
+            copy.secondaryAction = 'stock-reading';
+            copy.secondaryLabel = 'ストックした読みを見る';
+        }
+        if (readingStockCount === 0) {
+            copy.statusLines = [
+                'まだ読み候補はありません。',
+                'まずは響きから、気になる読みを探していきましょう。'
+            ];
+        } else if (readingStockCount <= 3) {
+            copy.statusLines = [
+                `読み候補を ${readingStockCount}件 ストックしています。`,
+                '今ある候補を見返しながら、さらに読みを広げられます。'
+            ];
+        } else if (readingStockCount <= 9) {
+            copy.statusLines = [
+                '読み候補が集まってきています。',
+                '見比べながら、さらに方向を広げられます。'
+            ];
+        } else {
+            copy.statusLines = [
+                '読み候補はしっかり集まっています。',
+                '今ある候補を見返しながら、さらに読みを探すこともできます。'
+            ];
+        }
+        copy.chips = [
+            { label: '読み', value: readingStockCount, unit: '件' }
+        ];
+        if (matchedReadingCount > 0) {
+            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
+        }
+        copy.mainText = copy.statusLines.join('\n');
+        return copy;
+    }
+
+    if (stageKey === 'kanji') {
+        copy.primaryAction = 'reading';
+        copy.primaryLabel = '漢字をさがす';
+        if (likedCount > 0) {
+            copy.secondaryAction = 'stock';
+            copy.secondaryLabel = 'ストックした漢字を見る';
+        }
+        if (likedCount === 0) {
+            copy.statusLines = [
+                'まだ漢字候補はありません。',
+                '気になる読みに合う漢字を集めていきましょう。'
+            ];
+        } else if (likedCount <= 4) {
+            copy.statusLines = [
+                '漢字候補を集め始めています。',
+                '読みに合う漢字を増やしながら、候補を広げられます。'
+            ];
+        } else if (likedCount <= 14) {
+            if (unresolvedReadingCount > 0) {
+                copy.statusLines = [
+                    '漢字候補が集まってきています。',
+                    'まだ漢字を選んでいない読みから進めるのがおすすめです。'
+                ];
+            } else {
+                copy.statusLines = [
+                    '漢字候補が集まってきています。',
+                    '集めた漢字を見返しながら、さらに候補を広げられます。'
+                ];
+            }
+        } else if (unresolvedReadingCount > 0) {
+            copy.statusLines = [
+                '漢字候補はしっかり集まっています。',
+                'まだ漢字を選んでいない読みがあれば、そこから候補を広げられます。'
+            ];
+        } else {
+            copy.statusLines = [
+                '漢字候補はしっかり集まっています。',
+                '今ある候補を見返しながら、組み立てに進めます。'
+            ];
+        }
+        copy.chips = [
+            { label: '漢字', value: likedCount, unit: '字' }
+        ];
+        if (unresolvedReadingCount > 0) {
+            copy.chips.push({ label: '未選択', value: unresolvedReadingCount, unit: '件' });
+        }
+        if (matchedReadingCount > 0) {
+            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
+        }
+        copy.mainText = copy.statusLines.join('\n');
+        return copy;
+    }
+
+    if (stageKey === 'build') {
+        copy.primaryAction = 'build';
+        copy.primaryLabel = '名前を組み立てる';
+        if (buildCount === 0) {
+            copy.statusLines = [
+                'まだ名前は組み立てていません。',
+                '集めた読みと漢字から、候補を作り始められます。'
+            ];
+        } else if (buildCount <= 2) {
+            copy.statusLines = [
+                '組み立てを始めています。',
+                '今ある組み合わせを見ながら、さらに候補を広げられます。'
+            ];
+        } else if (buildCount <= 5) {
+            copy.statusLines = [
+                '候補ができてきています。',
+                '比較しながら、気になる組み合わせをさらに試せます。'
+            ];
+        } else {
+            copy.statusLines = [
+                '組み立て候補はしっかりできています。',
+                '今ある候補を見比べながら、方向性を整えられます。'
+            ];
+        }
+        copy.chips = [
+            { label: '読み', value: readingStockCount, unit: '件' },
+            { label: '漢字', value: likedCount, unit: '字' },
+            { label: 'ビルド', value: buildCount, unit: '通り' }
+        ];
+        if (buildCount > 0 && matchedReadingCount > 0) {
+            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
+        }
+        copy.mainText = copy.statusLines.join('\n');
+        return copy;
+    }
+
+    copy.primaryAction = 'saved';
+    copy.primaryLabel = '保存した名前を見る';
+    copy.chips = [
+        { label: '保存', value: savedCount, unit: '件' }
+    ];
+    if (savedCount === 0) {
+        copy.statusLines = [
+            'まだ保存した名前はありません。',
+            '組み立てた候補の中から、残したい名前を選んでいきましょう。'
+        ];
+    } else if (matchedSavedCount > 0) {
+        if (savedCount === 1) {
+            copy.statusLines = [
+                '保存した候補の中に、ふたりで一致した名前があります。',
+                'この候補を基準にしながら、方向性を固めていけます。'
+            ];
+        } else if (savedCount <= 3) {
+            copy.statusLines = [
+                '保存した候補が集まってきています。',
+                'ふたりで一致した候補も見比べながら、方向性を絞れます。'
+            ];
+        } else {
+            copy.statusLines = [
+                '保存した候補はしっかり集まっています。',
+                'ふたりで一致した候補を軸に、残したい名前を整理できます。'
+            ];
+        }
+    } else if (savedCount === 1) {
+        copy.statusLines = [
+            '保存した候補ができています。',
+            'この候補を基準にしながら、さらに見比べていけます。'
+        ];
+    } else if (savedCount <= 3) {
+        copy.statusLines = [
+            '保存した候補が集まってきています。',
+            '見比べながら、方向性を絞り込んでいけます。'
+        ];
+    } else {
+        copy.statusLines = [
+            '保存した候補はしっかり集まっています。',
+            '今ある候補を見比べながら、残したい名前を整理できます。'
+        ];
+    }
+    if (matchedSavedCount > 0) {
+        copy.chips.push({ label: '候補一致', value: matchedSavedCount, unit: '件' });
+    }
+    copy.mainText = copy.statusLines.join('\n');
+    return copy;
+}
+
+function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
+    const stageTrack = ensureHomeStageTrack();
+    if (!stageTrack) return;
+
+    const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
+    const tone = getHomeStageTrackTone(options.mode);
+    const pairing = getPairingHomeSummary();
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const readingStock = Array.isArray(options.readingStock)
+        ? options.readingStock
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
+    const selectedTabKey = getHomeStageFocus(options.recommendedKey || timeline.activeKey);
+    const focusCopy = getHomeStagePanelCopy(selectedTabKey, likedCount, readingStockCount, savedCount, pairing, {
+        buildCount,
+        readingStock
+    });
+    const heroCard = document.getElementById('home-hero-card');
+    const summaryPanel = document.getElementById('home-summary-panel');
+    const statusLine = document.getElementById('home-status-line');
+
+    if (heroCard) heroCard.style.cssText = tone.panel;
+    if (summaryPanel) {
+        summaryPanel.classList.remove('hidden');
+        summaryPanel.style.cssText = 'background:transparent;border:none;';
+    }
+    if (statusLine) statusLine.classList.add('hidden');
+
+    const displayedSteps = timeline.steps.map((step) => {
+        const selected = step.key === selectedTabKey;
+        return {
+            ...step,
+            selected,
+            metric: {
+                ...step.metric,
+                actionText: selected ? '選択中' : 'タップで切り替え'
+            }
+        };
+    });
+
+    const primaryButton = `
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.primaryAction}')" class="flex-1 rounded-[20px] border border-[#eadfce] bg-[#b9965b] px-4 py-3 text-[12px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform">
+            ${focusCopy.primaryLabel}
+        </button>
+    `;
+    const secondaryButton = focusCopy.secondaryAction
+        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="flex-1 rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
+        : '';
+
+    stageTrack.style.cssText = '';
+    stageTrack.innerHTML = `
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+            ${displayedSteps.map((step, index) => {
+                const cardStyle = step.selected
+                    ? tone.cardRecommended
+                    : tone.cardIdle;
+                const badgeStyle = step.selected
+                    ? tone.badgeRecommended
+                    : step.done
+                    ? tone.badgeDone
+                    : tone.badgeIdle;
+                return `
+                <button
+                    type="button"
+                    data-home-stage-button="true"
+                    onclick="event.stopPropagation(); selectHomeStageTab('${step.key}')"
+                    aria-pressed="${step.selected ? 'true' : 'false'}"
+                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
+                    style="${cardStyle}">
+                    <div class="flex h-full flex-col items-center justify-start">
+                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">${step.selected ? '●' : (step.done ? '✓' : '－')}</span>
+                            <span>${step.label}</span>
+                        </div>
+                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
+                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
+                        </div>
+                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
+                    </div>
+                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
+            `;
+            }).join('')}
+        </div>
+        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
+            <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">今の状況</div>
+            <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
+                <div class="mt-2 whitespace-pre-line text-[12px] font-normal leading-relaxed text-[#4f4639]">${focusCopy.statusLines.join('\n')}</div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    ${focusCopy.chips.map((chip) => `
+                        <span class="inline-flex items-center gap-1 rounded-full border border-[#eadfce] bg-[#fffaf5] px-3 py-1 text-[11px] font-bold text-[#5d5444]">
+                            <span class="text-[#b9965b]">${chip.label}</span>
+                            <span>${chip.value}${chip.unit}</span>
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
+            <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
+                <div class="flex gap-2">
+                    ${primaryButton}
+                    ${secondaryButton}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 window.renderHomeProfile = renderHomeProfile;
 window.selectHomeStageTab = selectHomeStageTab;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
