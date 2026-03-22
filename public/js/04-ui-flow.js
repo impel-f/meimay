@@ -620,13 +620,23 @@ function getEncounteredLibrary() {
     }
 }
 
-function saveEncounteredLibrary(library) {
+function saveEncounteredLibrary(library, options = {}) {
     try {
         const safeLibrary = {
             kanji: Array.isArray(library?.kanji) ? library.kanji.slice(0, 300) : [],
             readings: Array.isArray(library?.readings) ? library.readings.slice(0, 300) : []
         };
         localStorage.setItem(ENCOUNTERED_LIBRARY_KEY, JSON.stringify(safeLibrary));
+
+        if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
+            MeimayPairing._autoSyncDebounced();
+        }
+
+        if (document.getElementById('scr-ranking')?.classList.contains('active') && typeof loadRanking === 'function') {
+            loadRanking().catch((error) => {
+                console.warn('ENCOUNTERED: ranking refresh failed', error);
+            });
+        }
     } catch (error) {
         console.warn('ENCOUNTERED: Failed to save library', error);
     }
@@ -684,6 +694,7 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
     }
 
     saveEncounteredLibrary(library);
+
 }
 
 function recordEncounteredSwipeItem(item, action) {
@@ -2221,7 +2232,10 @@ function initAdanaMode() {
                     subtitle: `「${nicknameBaseReading}」をベースにした候補`,
                     onLike: (item) => {
                         if (typeof addReadingToStock === 'function') {
-                            addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], { clearHidden: true });
+                            addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
+                                clearHidden: true,
+                                statsTracked: true
+                            });
                         }
                     },
                     renderCard: (item) => {
@@ -2580,7 +2594,10 @@ function processNickname() {
         subtitle: `「${nicknameBaseReading}」をベースにした候補`,
         onLike: (item) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], { clearHidden: true });
+                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
+                    clearHidden: true,
+                    statsTracked: true
+                });
             }
         },
         renderCard: (item) => {
@@ -2639,7 +2656,10 @@ function showNicknameReadingSelectionWithStock(items) {
             list.classList.add('hidden');
             // 選ばれなかったものをストックに追加
             const others = items.filter(i => i.reading !== item.reading);
-            others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || [], { clearHidden: true }));
+            others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || [], {
+                clearHidden: true,
+                trackStats: false
+            }));
             if (others.length > 0) {
                 showToast(`${others.length}件の読みをストックに保存しました`);
             }
@@ -3860,18 +3880,24 @@ function normalizeReadingStockItem(item) {
             tags: [],
             isSuper: false,
             gender: gender || 'neutral',
-            addedAt: new Date().toISOString()
+            addedAt: new Date().toISOString(),
+            statsTracked: displaySegments.length > 0
         };
     }
 
     const readingParts = String(item && item.reading ? item.reading : '').split('::');
-    const reading = (readingParts[0] || '').trim();
+        const reading = (readingParts[0] || '').trim();
     const inferredSegments = readingParts.length > 1
         ? readingParts.slice(1).join('::').split('/').map(part => part.trim()).filter(Boolean)
         : [];
     const segments = Array.isArray(item && item.segments) && item.segments.filter(Boolean).length > 0
         ? item.segments.filter(Boolean)
         : inferredSegments;
+    const hasReadableSegments = Array.isArray(segments) && segments.length > 0;
+    const hasExplicitStatsFlag = item && typeof item.statsTracked === 'boolean';
+    const statsTracked = hasExplicitStatsFlag
+        ? (item.statsTracked === false ? hasReadableSegments : true)
+        : (hasReadableSegments || !String(item && item.baseNickname ? item.baseNickname : '').trim());
     return {
         id: item && item.id ? item.id : getReadingStockKey(reading, segments),
         reading,
@@ -3880,7 +3906,8 @@ function normalizeReadingStockItem(item) {
         tags: Array.isArray(item && item.tags) ? [...new Set(item.tags.filter(Boolean))] : [],
         isSuper: !!(item && item.isSuper),
         gender: item && item.gender ? item.gender : (gender || 'neutral'),
-        addedAt: item && item.addedAt ? item.addedAt : new Date().toISOString()
+        addedAt: item && item.addedAt ? item.addedAt : new Date().toISOString(),
+        statsTracked
     };
 }
 
@@ -3952,6 +3979,7 @@ function saveReadingStock(stock) {
 
 function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const stock = getReadingStock();
+    const shouldTrackStats = options.trackStats !== false;
     const normalizedTags = Array.isArray(tags)
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
         : [];
@@ -3967,6 +3995,10 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         if (normalizedSegments.length > 0) existing.segments = normalizedSegments;
         if (options.gender) existing.gender = options.gender;
         existing.isSuper = existing.isSuper || !!options.isSuper;
+        if (shouldTrackStats && existing.statsTracked === false) {
+            existing.statsTracked = true;
+            syncReadingStockRankingStats(reading, 1, 'all');
+        }
         saveReadingStock(stock);
         if (options.clearHidden) {
             forgetHiddenReading(reading);
@@ -3982,13 +4014,17 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         tags: normalizedTags,
         isSuper: !!options.isSuper,
         gender: options.gender || gender || 'neutral',
-        addedAt: new Date().toISOString()
+        addedAt: new Date().toISOString(),
+        statsTracked: shouldTrackStats
     });
 
     stock.push(entry);
     saveReadingStock(stock);
     if (options.clearHidden) {
         forgetHiddenReading(reading);
+    }
+    if (shouldTrackStats) {
+        syncReadingStockRankingStats(reading, 1, 'all');
     }
     console.log("STOCK: Added reading to stock:", entry);
     return entry;
@@ -4048,8 +4084,36 @@ function removeReadingFromStock(target) {
     }
 
     saveReadingStock(nextStock);
+    if (typeof MeimayStats !== 'undefined' && typeof MeimayStats.recordReadingUnlike === 'function') {
+        const normalizedReading = getReadingBaseReading(target);
+        const trackedRemovedCount = removedItems.filter(item => item && item.statsTracked !== false).length;
+        if (normalizedReading && trackedRemovedCount > 0) {
+            MeimayStats.recordReadingUnlike(normalizedReading, -trackedRemovedCount, 'all').catch((error) => {
+                console.warn('STATS: reading unlike sync failed', error);
+            });
+        }
+    }
     console.log("STOCK: Removed reading from stock:", target);
     return removedItems;
+}
+
+function syncReadingStockRankingStats(reading, delta = 1, period = 'all') {
+    if (typeof MeimayStats === 'undefined') return;
+
+    const normalizedReading = getReadingBaseReading(reading);
+    if (!normalizedReading) return;
+
+    const normalizedDelta = Number(delta);
+    if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return;
+
+    const method = normalizedDelta > 0
+        ? MeimayStats.recordReadingLike
+        : MeimayStats.recordReadingUnlike;
+    if (typeof method !== 'function') return;
+
+    method.call(MeimayStats, normalizedReading, normalizedDelta, period).catch((error) => {
+        console.warn('STATS: reading stock sync failed', error);
+    });
 }
 
 function rememberHiddenReading(reading) {

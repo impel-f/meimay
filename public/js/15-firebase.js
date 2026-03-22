@@ -1206,7 +1206,6 @@ const MeimayStats = {
     seedEncounteredReadingStats: async function () {
         const seededFlagKey = 'meimay_reading_stats_seeded_v3';
         if (this._readingStatsSeedPromise) return this._readingStatsSeedPromise;
-        if (localStorage.getItem(seededFlagKey) === '1') return true;
 
         const run = async () => {
             if (typeof this.bootstrapReadingStatsCollections === 'function') {
@@ -1422,7 +1421,47 @@ const MeimayStats = {
         }
 
         if (normalizedKind === 'reading') {
-            return [];
+            try {
+                const collections = normalizedMetric === 'like'
+                    ? ['reading_like_statistics']
+                    : normalizedMetric === 'direct'
+                        ? ['reading_statistics']
+                        : ['reading_statistics', 'reading_like_statistics'];
+                const totals = new Map();
+
+                const docId = normalizedType === 'monthly'
+                    ? `monthly_${this.getCurrentMonthKey()}`
+                    : normalizedType === 'weekly'
+                        ? `weekly_${this.getCurrentWeekKey()}`
+                        : 'allTime';
+
+                await Promise.all(collections.map(async (collection) => {
+                    const doc = await firebaseDb.collection(collection).doc(docId).get();
+                    if (!doc.exists) return;
+                    const data = doc.data() || {};
+                    Object.keys(data)
+                        .filter((key) => key !== 'updatedAt')
+                        .forEach((key) => {
+                            const count = Number(data[key]) || 0;
+                            const reading = normalizeStatsReadingText(key);
+                            if (!reading || count <= 0) return;
+                            const current = totals.get(reading) || { reading, count: 0 };
+                            current.count += count;
+                            totals.set(reading, current);
+                        });
+                }));
+
+                return Array.from(totals.values())
+                    .filter((item) => item.count > 0)
+                    .sort((a, b) => {
+                        if (b.count !== a.count) return b.count - a.count;
+                        return a.reading.localeCompare(b.reading, 'ja');
+                    })
+                    .slice(0, 100);
+            } catch (e) {
+                console.error(`STATS: fetchRankings(${normalizedKind}:${type}) reading fallback error`, e);
+                return [];
+            }
         }
 
         try {

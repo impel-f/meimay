@@ -1,4 +1,4 @@
-/* 18-ranking.js: Ranking screen logic */
+﻿/* 18-ranking.js: Ranking screen logic */
 
 let currentRankingType = 'kanji';
 let currentRankingPeriod = 'allTime';
@@ -63,6 +63,41 @@ function normalizeRankingPeriod(period) {
 
 function normalizeRankingType(type) {
     return type === 'reading' ? 'reading' : 'kanji';
+}
+
+function getRankingEncounteredReadingItems() {
+    if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getEncounteredReadingsForRanking === 'function') {
+        return MeimayPartnerInsights.getEncounteredReadingsForRanking();
+    }
+
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { kanji: [], readings: [] };
+    return Array.isArray(library.readings) ? library.readings : [];
+}
+
+function isRankingKanjiStocked(kanjiStr) {
+    const normalizedKanji = String(kanjiStr || '').trim();
+    if (!normalizedKanji) return false;
+
+    const ownLiked = Array.isArray(liked) ? liked : [];
+    const partnerLiked = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerLiked === 'function'
+        ? MeimayPartnerInsights.getPartnerLiked()
+        : [];
+
+    return [...ownLiked, ...partnerLiked].some((entry) => (entry?.['漢字'] || entry?.kanji) === normalizedKanji);
+}
+
+function isRankingReadingStocked(reading) {
+    const normalizedReading = normalizeRankingReadingText(reading);
+    if (!normalizedReading) return false;
+
+    const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    const partnerReadings = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerReadingStock === 'function'
+        ? MeimayPartnerInsights.getPartnerReadingStock()
+        : [];
+
+    return [...ownReadings, ...partnerReadings].some((entry) => normalizeRankingReadingText(entry?.reading) === normalizedReading);
 }
 
 function getPrimaryKanjiReading(kanjiData) {
@@ -246,60 +281,24 @@ function getMonthlyReadingCount(entry, currentMonthKey) {
     return 0;
 }
 
-function buildReadingRankingItems(period) {
-    const library = typeof getEncounteredLibrary === 'function'
-        ? getEncounteredLibrary()
-        : { kanji: [], readings: [] };
-    const currentMonthKey = getRankingCurrentMonthKey();
+function buildReadingRankingItems(rankingItems = []) {
     const groups = new Map();
 
-    (library.readings || []).forEach((entry) => {
+    (Array.isArray(rankingItems) ? rankingItems : []).forEach((entry) => {
         const normalizedReading = normalizeRankingReadingText(entry?.reading || entry?.key || '');
-        if (!normalizedReading) return;
+        const count = Number(entry?.count) || 0;
+        if (!normalizedReading || count <= 0) return;
 
-        const count = period === 'monthly'
-            ? getMonthlyReadingCount(entry, currentMonthKey)
-            : Number(entry?.seenCount) || 0;
-
-        if (count <= 0) return;
-
-        const rawKey = String(entry?.key || entry?.reading || normalizedReading);
-        const sourceSeenCount = Number(entry?.seenCount) || 0;
-        const sourceLastSeenAt = entry?.lastSeenAt ? new Date(entry.lastSeenAt).getTime() || 0 : 0;
-        const sourceOrigin = entry?.encounterOrigin || '';
-        const sourceTags = Array.isArray(entry?.tags) ? entry.tags.slice(0, 3) : [];
         const existing = groups.get(normalizedReading);
-
-        if (!existing) {
+        if (!existing || count > existing.count) {
             groups.set(normalizedReading, {
                 key: normalizedReading,
                 displayReading: normalizedReading,
                 count,
-                sourceKey: rawKey,
-                sourceReading: String(entry?.reading || normalizedReading),
-                sourceSeenCount,
-                sourceLastSeenAt,
-                sourceOrigin,
-                sourceTags,
+                sourceKey: normalizedReading,
+                sourceReading: normalizedReading,
                 sourceCount: 1
             });
-            return;
-        }
-
-        existing.count += count;
-        existing.sourceCount += 1;
-
-        const shouldReplaceSource =
-            sourceSeenCount > existing.sourceSeenCount
-            || (sourceSeenCount === existing.sourceSeenCount && sourceLastSeenAt > existing.sourceLastSeenAt);
-
-        if (shouldReplaceSource) {
-            existing.sourceKey = rawKey;
-            existing.sourceReading = String(entry?.reading || normalizedReading);
-            existing.sourceSeenCount = sourceSeenCount;
-            existing.sourceLastSeenAt = sourceLastSeenAt;
-            existing.sourceOrigin = sourceOrigin;
-            existing.sourceTags = sourceTags;
         }
     });
 
@@ -315,7 +314,7 @@ function renderRankingEmptyState(type, period) {
     const typeLabel = type === 'reading' ? '読み' : '漢字';
     const periodLabel = period === 'monthly' ? '月間' : '総合';
     const message = type === 'reading'
-        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>スワイプや直接入力が集まるとここに並びます。`
+        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックや直接入力が集まるとここに並びます。`
         : `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックが増えるとここに並びます。`;
 
     return `
@@ -333,9 +332,8 @@ function renderRankingKanjiCard(item, index) {
     const displayKanji = kanjiData?.['漢字'] || kanjiKey;
     const primaryReading = getPrimaryKanjiReading(kanjiData);
     const meaning = String(kanjiData?.['意味'] || '').trim();
-    const meaningText = meaning ? (meaning.length > 18 ? `${meaning.slice(0, 18)}…` : meaning) : 'タップで詳細';
-    const isStocked = Array.isArray(liked)
-        && liked.some((entry) => (entry?.['漢字'] || entry?.kanji) === displayKanji);
+    const meaningText = meaning ? (meaning.length > 18 ? `${meaning.slice(0, 18)}…` : meaning) : 'データあり';
+    const isStocked = isRankingKanjiStocked(displayKanji);
     const tone = getRankingCardTone(index);
     const rankLabel = `${index + 1}位`;
 
@@ -346,10 +344,10 @@ function renderRankingKanjiCard(item, index) {
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">${item.count}件</div>
             </div>
             <div class="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.45rem] font-black leading-none text-[#5d5444]">
-                ${escapeRankingHtml(displayKanji || '？')}
+                ${escapeRankingHtml(displayKanji || '・')}
             </div>
             <div class="min-w-0 flex-1">
                 <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-tight">
@@ -369,11 +367,7 @@ function renderRankingKanjiCard(item, index) {
 function renderRankingReadingCard(item, index) {
     const reading = String(item?.displayReading || item?.key || '');
     const tone = getRankingCardTone(index);
-    const isStocked = typeof getReadingStock === 'function'
-        && getReadingStock().some((entry) => normalizeRankingReadingText(entry?.reading) === reading);
-    const sourceLabel = item?.sourceCount > 1
-        ? `${item.sourceCount}件の表記を集約`
-        : '';
+    const isStocked = isRankingReadingStocked(reading);
     const rankLabel = `${index + 1}位`;
 
     return `
@@ -383,11 +377,10 @@ function renderRankingReadingCard(item, index) {
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">♥${item.count}</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">${item.count}件</div>
             </div>
             <div class="min-w-0 flex-1">
-                <div class="truncate whitespace-nowrap text-[16px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '？')}</div>
-                ${sourceLabel ? `<div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">${escapeRankingHtml(sourceLabel)}</div>` : ''}
+                <div class="truncate whitespace-nowrap text-[16px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '読みなし')}</div>
             </div>
             <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
                 ${isStocked ? 'ストック済み' : '開く'}
@@ -450,10 +443,7 @@ function resolveRankingReadingItem(key) {
     const normalizedReading = normalizeRankingReadingText(key);
     if (!normalizedReading) return null;
 
-    const library = typeof getEncounteredLibrary === 'function'
-        ? getEncounteredLibrary()
-        : { readings: [] };
-    const item = (library.readings || []).find((entry) => {
+    const item = getRankingEncounteredReadingItems().find((entry) => {
         const entryKey = String(entry?.key || '');
         const entryReading = String(entry?.reading || '');
         return entryKey === key
@@ -560,7 +550,11 @@ async function loadRanking() {
         if (type === 'kanji') {
             items = await MeimayStats.fetchRankings(period);
         } else {
-            items = buildReadingRankingItems(period);
+            if (typeof MeimayStats.seedEncounteredReadingStats === 'function') {
+                await MeimayStats.seedEncounteredReadingStats();
+            }
+            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'all');
+            items = buildReadingRankingItems(readingRanking);
         }
 
         if (!Array.isArray(items) || items.length === 0) {
@@ -583,7 +577,7 @@ function showRankingKanjiDetail(kanjiStr) {
     openRankingKanjiDetail(kanjiStr);
 }
 
-function toggleRankingStock(kanjiStr, btn) {
+async function toggleRankingStock(kanjiStr, btn) {
     if (typeof liked === 'undefined') return;
 
     const isStocked = liked.some((entry) => (entry?.['漢字'] || entry?.kanji) === kanjiStr);
@@ -607,7 +601,7 @@ function toggleRankingStock(kanjiStr, btn) {
             card.classList.add('border-[#ede5d8]');
         }
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            MeimayStats.recordKanjiUnlike(kanjiStr);
+            await MeimayStats.recordKanjiUnlike(kanjiStr);
         }
     } else {
         const found = typeof master !== 'undefined' ? master.find((entry) => entry && entry['漢字'] === kanjiStr) : null;
@@ -622,13 +616,17 @@ function toggleRankingStock(kanjiStr, btn) {
                 card.classList.remove('border-[#ede5d8]');
             }
             if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
-                MeimayStats.recordKanjiLike(kanjiStr);
+                await MeimayStats.recordKanjiLike(kanjiStr);
             }
         }
     }
 
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
+    }
+
+    if (document.getElementById('scr-ranking')?.classList.contains('active') && typeof loadRanking === 'function') {
+        await loadRanking();
     }
 }
 
