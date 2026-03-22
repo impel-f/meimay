@@ -344,11 +344,11 @@ function renderRankingPeriodSwitch() {
             style="${switchStyle.button}">
             <div class="flex h-full items-center justify-between gap-2">
                 <div class="min-w-0 flex-1 flex flex-col items-center justify-center text-center leading-none">
-                    <span class="block whitespace-nowrap text-[12px] font-black leading-none md:text-[13px]" style="color:${switchStyle.value};">
-                        ${escapeRankingHtml(label)}
-                    </span>
                     <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none md:text-[9px]" style="color:${switchStyle.sub};">
                         期間：${escapeRankingHtml(period === 'monthly' ? monthLabel : 'すべて')}
+                    </span>
+                    <span class="mt-0.5 block whitespace-nowrap text-[12px] font-black leading-none md:text-[13px]" style="color:${switchStyle.value};">
+                        ${escapeRankingHtml(label)}
                     </span>
                 </div>
                 <div class="flex items-center justify-center self-stretch">
