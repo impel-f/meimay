@@ -2236,8 +2236,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
             <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">今の状況</div>
-                <div class="mt-2 text-[15px] font-black leading-snug text-[#4f4639]">${focusCopy.mainText}</div>
+                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">今の状況</div>
+                <div class="mt-2 text-[13px] font-normal leading-relaxed text-[#4f4639]">${focusCopy.mainText}</div>
                 <div class="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-[11px] font-bold text-[#5d5444]">
                     ${visibleChips.map((chip) => `
                         <span class="inline-flex items-center gap-1 whitespace-nowrap">
