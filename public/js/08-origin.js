@@ -628,20 +628,17 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
-            const aiLines = parseRepresentativeIdiomLines(aiSection);
-            const datasetLines = parseRepresentativeIdiomLines(datasetSection);
-            const content = aiLines.length > 0
-                ? aiLines.slice(0, 5).join('\n')
-                : sanitizeKanjiAiText(aiSection)
-                    ? sanitizeKanjiAiText(aiSection)
-                    : datasetLines.length > 0
-                    ? datasetLines.slice(0, 5).join('\n')
-                    : '';
+            const mergedIdioms = mergeRepresentativeIdiomSectionText(aiSection, datasetSection);
+            const content = mergedIdioms || sanitizeKanjiAiText(aiSection) || sanitizeKanjiAiText(datasetSection);
             if (content) blocks.push(`【${title}】\n${content}`);
             continue;
         }
 
-        const content = sanitizeKanjiAiText(aiSection || datasetSection);
+        const content = title === '成り立ち'
+            ? (isLikelyTruncatedSection(aiSection) && sanitizeKanjiAiText(datasetSection)
+                ? sanitizeKanjiAiText(datasetSection)
+                : sanitizeKanjiAiText(aiSection || datasetSection))
+            : sanitizeKanjiAiText(aiSection || datasetSection);
         if (content) blocks.push(`【${title}】\n${content}`);
     }
 
@@ -679,6 +676,15 @@ function normalizeKanjiDetailTitle(title) {
     const normalized = sanitizeKanjiAiText(title);
     if (normalized === '入力情報' || normalized === '基本情報') return '';
     return normalized;
+}
+
+function isLikelyTruncatedSection(text) {
+    const normalized = sanitizeKanjiAiText(text);
+    if (!normalized) return true;
+    if (normalized.length < 35) return true;
+    if (/[、,・\/／:：]$/.test(normalized)) return true;
+    if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 60) return true;
+    return false;
 }
 
 function formatRepresentativeIdiomContent(content) {

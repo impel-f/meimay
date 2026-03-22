@@ -2121,6 +2121,19 @@ function renderHomeNextStagePrimaryButton(cardConfig) {
     `;
 }
 
+function renderHomeSecondaryActionButton(cardConfig, detailHtml) {
+    if (!cardConfig) return '';
+    return `
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left shadow-sm active:scale-[0.98] transition-transform">
+            <div class="min-w-0 flex-1">
+                <span class="block text-[1rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                <span class="mt-1 block text-[11px] leading-[1.65] text-[#8b7e66]">${detailHtml}</span>
+            </div>
+            <span class="shrink-0 text-[20px] leading-none text-[#b9965b]" aria-hidden="true">›</span>
+        </button>
+    `;
+}
+
 function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
@@ -2153,19 +2166,25 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             ${focusCopy.primaryLabel}
         </button>
     `;
+    const secondaryDetailHtml = focusKey === 'reading'
+        ? '今ある読みのストックを見返します'
+        : focusKey === 'kanji'
+            ? '今ある漢字のストックを見返します'
+            : focusKey === 'build'
+                ? 'いまの組み立て候補を見返します'
+                : '保存した候補を見返します';
     const secondaryButton = focusCopy.secondaryAction
-        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
+        ? renderHomeSecondaryActionButton({
+            action: focusCopy.secondaryAction,
+            title: focusCopy.secondaryLabel
+        }, secondaryDetailHtml)
         : '';
 
     const displayedSteps = timeline.steps.map((step) => {
         const selected = step.key === focusKey;
         return {
             ...step,
-            selected,
-            metric: {
-                ...step.metric,
-                actionText: selected ? '表示中' : 'タップで切替'
-            }
+            selected
         };
     });
 
@@ -2203,28 +2222,32 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.selected ? '表示中' : 'タップで切替'}</div>
+                        ${step.selected ? `<div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">選択中</div>` : ''}
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
             }).join('')}
         </div>
-        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
-            <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
-                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b] uppercase">今の状況</div>
+        <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
+            <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+                <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">今の状況</div>
                 <div class="mt-2 text-[15px] font-black leading-snug text-[#4f4639]">${focusCopy.mainText}</div>
-                <div class="mt-3 flex flex-wrap gap-2">
+                <div class="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-[11px] font-bold text-[#5d5444]">
                     ${focusCopy.chips.map((chip) => `
-                        <span class="inline-flex items-center gap-1 rounded-full border border-[#eadfce] bg-[#fffaf5] px-3 py-1 text-[11px] font-bold text-[#5d5444]">
+                        <span class="inline-flex items-center gap-1 whitespace-nowrap">
                             <span class="text-[#b9965b]">${chip.label}</span>
                             <span>${chip.value}${chip.unit}</span>
                         </span>
                     `).join('')}
                 </div>
-                <div class="mt-4 flex flex-col gap-2">
-                    ${primaryButton}
-                    ${secondaryButton}
+            </div>
+        </div>
+        <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
+            <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+                <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
+                <div class="mt-2">
+                ${primaryButton}
+                ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
                 </div>
             </div>
         </div>
