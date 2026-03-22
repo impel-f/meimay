@@ -278,6 +278,63 @@ function isKanjiGenderMismatch(k, targetGender = gender || 'neutral') {
     // 性別は並び順の優先度としてだけ使い、候補の除外には使わない。
     return false;
 }
+function fitSegmentOptionButton(button) {
+    if (!button) return;
+    const labelEl = button.querySelector('[data-segment-label]');
+    if (!labelEl) return;
+
+    const pieceEls = Array.from(labelEl.querySelectorAll('[data-segment-piece]'));
+    const separatorEls = Array.from(labelEl.querySelectorAll('[data-segment-separator]'));
+    const countEl = button.querySelector('[data-segment-count]');
+
+    const presets = [
+        { buttonGap: 10, buttonPadX: 16, fontSize: 16, piecePadX: 8, slashPadX: 4, countPadX: 12, countFontSize: 10 },
+        { buttonGap: 8, buttonPadX: 14, fontSize: 15, piecePadX: 6, slashPadX: 3, countPadX: 11, countFontSize: 10 },
+        { buttonGap: 6, buttonPadX: 12, fontSize: 14, piecePadX: 5, slashPadX: 2, countPadX: 10, countFontSize: 10 },
+        { buttonGap: 5, buttonPadX: 11, fontSize: 13, piecePadX: 4, slashPadX: 1, countPadX: 9, countFontSize: 9 },
+        { buttonGap: 4, buttonPadX: 10, fontSize: 12, piecePadX: 3, slashPadX: 0, countPadX: 8, countFontSize: 9 },
+        { buttonGap: 3, buttonPadX: 8, fontSize: 11, piecePadX: 2, slashPadX: 0, countPadX: 7, countFontSize: 9 },
+        { buttonGap: 2, buttonPadX: 7, fontSize: 10, piecePadX: 1, slashPadX: 0, countPadX: 6, countFontSize: 8 }
+    ];
+
+    const applyPreset = (preset) => {
+        button.style.gap = `${preset.buttonGap}px`;
+        button.style.paddingLeft = `${preset.buttonPadX}px`;
+        button.style.paddingRight = `${preset.buttonPadX}px`;
+
+        labelEl.style.fontSize = `${preset.fontSize}px`;
+        labelEl.style.letterSpacing = preset.fontSize <= 11 ? '-0.02em' : '0';
+
+        pieceEls.forEach((piece) => {
+            piece.style.paddingLeft = `${preset.piecePadX}px`;
+            piece.style.paddingRight = `${preset.piecePadX}px`;
+        });
+
+        separatorEls.forEach((separator) => {
+            separator.style.paddingLeft = `${preset.slashPadX}px`;
+            separator.style.paddingRight = `${preset.slashPadX}px`;
+        });
+
+        if (countEl) {
+            countEl.style.paddingLeft = `${preset.countPadX}px`;
+            countEl.style.paddingRight = `${preset.countPadX}px`;
+            countEl.style.fontSize = `${preset.countFontSize}px`;
+        }
+    };
+
+    const fits = () => labelEl.scrollWidth <= labelEl.clientWidth;
+
+    for (const preset of presets) {
+        applyPreset(preset);
+        if (fits()) return;
+    }
+
+    labelEl.style.letterSpacing = '-0.04em';
+    if (countEl) {
+        countEl.style.paddingLeft = '5px';
+        countEl.style.paddingRight = '5px';
+    }
+}
 function calcSegments() {
     console.log("ENGINE: calcSegments() called");
 
@@ -365,13 +422,15 @@ function calcSegments() {
             btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
             const countLabel = `${path.length}文字名`;
 
-            const displayParts = path.map(p =>
-                `<span class="px-2">${p}</span>`
-            ).join('<span class="text-[#d4c5af] text-sm px-2 opacity-40 group-hover:opacity-100 transition-opacity">/</span>');
+            const displayParts = path.map((p, index) => {
+                const piece = `<span data-segment-piece class="shrink-0 inline-flex items-center whitespace-nowrap px-2">${p}</span>`;
+                if (index === path.length - 1) return piece;
+                return `${piece}<span data-segment-separator class="shrink-0 inline-flex items-center whitespace-nowrap px-2 text-sm text-[#d4c5af] opacity-40 group-hover:opacity-100 transition-opacity">/</span>`;
+            }).join('');
 
             btn.innerHTML = `
-                <span class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${countLabel}</span>
-                <div class="min-w-0 flex-1 flex items-center flex-nowrap gap-x-2 text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight whitespace-nowrap">
+                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${countLabel}</span>
+                <div data-segment-label class="min-w-0 flex-1 flex items-center flex-nowrap whitespace-nowrap overflow-hidden text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight">
                     ${displayParts}
                 </div>
             `;
@@ -384,6 +443,16 @@ function calcSegments() {
             normalSection.appendChild(btn);
         });
         optionsContainer.appendChild(normalSection);
+        normalSection.querySelectorAll('[data-segment-label]').forEach((label) => {
+            const button = label.closest('button');
+            fitSegmentOptionButton(button);
+        });
+        requestAnimationFrame(() => {
+            normalSection.querySelectorAll('[data-segment-label]').forEach((label) => {
+                const button = label.closest('button');
+                fitSegmentOptionButton(button);
+            });
+        });
     } else {
         const emptyState = document.createElement('div');
         emptyState.className = 'mb-5 rounded-[28px] border border-dashed border-[#eadfce] bg-[#fffaf4] px-5 py-5 text-center text-[0.9rem] font-bold text-[#a6967a]';
