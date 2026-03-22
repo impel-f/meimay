@@ -76,6 +76,7 @@ if (firebaseAuth) {
             }
             // 保存済みルームがあれば再接続
             await MeimayPairing.resumeRoom();
+            seedReadingStatsFromLocalHistory();
         } else {
             console.log("FIREBASE: No user");
         }
@@ -85,7 +86,7 @@ if (firebaseAuth) {
 // 起動時に匿名認証を自動実行
 MeimayAuth.init();
 
-async function getFirebaseIdToken(timeoutMs = 4000) {
+async function getFirebaseIdToken(timeoutMs = 8000) {
     if (!firebaseAuth) return null;
 
     if (!firebaseAuth.currentUser && typeof MeimayAuth !== 'undefined' && typeof MeimayAuth.init === 'function') {
@@ -994,6 +995,24 @@ window.showToast = showToast;
 // ============================================================
 // STATS - 人気ランキング用集計モジュール（変更なし）
 // ============================================================
+function normalizeStatsReadingText(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+
+    const partnerNormalizer = typeof MeimayPartnerInsights !== 'undefined'
+        && typeof MeimayPartnerInsights.normalizeReading === 'function'
+        ? MeimayPartnerInsights.normalizeReading.bind(MeimayPartnerInsights)
+        : null;
+
+    const normalized = partnerNormalizer
+        ? partnerNormalizer(raw)
+        : raw
+            .replace(/[ァ-ヶ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
+            .replace(/[^ぁ-んー]/g, '');
+
+    return String(normalized || '').trim();
+}
+
 const MeimayStats = {
     getCurrentWeekKey: function () {
         const d = new Date();
@@ -1034,8 +1053,10 @@ const MeimayStats = {
                 })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            return true;
         } catch (e) {
             console.error('STATS: recordKanjiLike error', e);
+            return false;
         }
     },
 
@@ -1051,17 +1072,364 @@ const MeimayStats = {
                 })
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            return true;
         } catch (e) {
             console.error('STATS: recordKanjiUnlike error', e);
+            return false;
         }
     },
 
-    fetchRankings: async function (type = 'allTime') {
+    recordReadingEncounter: async function (readingString, delta = 1, period = 'all') {
+        const normalizedReading = normalizeStatsReadingText(readingString);
+        if (!normalizedReading) return false;
+        const normalizedDelta = Number(delta);
+        const normalizedPeriod = period === 'allTime' || period === 'monthly' || period === 'weekly' ? period : 'all';
+        if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return false;
+
+        try {
+            const body = {
+                kind: 'reading',
+                reading: normalizedReading,
+                delta: normalizedDelta,
+                metric: 'direct'
+            };
+            if (normalizedPeriod !== 'all') {
+                body.period = normalizedPeriod;
+            }
+
+            const response = await fetch('/api/stats', {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            return true;
+        } catch (e) {
+            console.error('STATS: recordReadingEncounter error', e);
+            return false;
+        }
+    },
+
+    recordReadingLike: async function (readingString, delta = 1, period = 'all') {
+        const normalizedReading = normalizeStatsReadingText(readingString);
+        if (!normalizedReading) return false;
+        const normalizedDelta = Number(delta);
+        const normalizedPeriod = period === 'allTime' || period === 'monthly' || period === 'weekly' ? period : 'all';
+        if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return false;
+
+        try {
+            const body = {
+                kind: 'reading',
+                reading: normalizedReading,
+                delta: normalizedDelta,
+                metric: 'like'
+            };
+            if (normalizedPeriod !== 'all') {
+                body.period = normalizedPeriod;
+            }
+
+            const response = await fetch('/api/stats', {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            return true;
+        } catch (e) {
+            console.error('STATS: recordReadingLike error', e);
+            return false;
+        }
+    },
+
+    recordReadingUnlike: async function (readingString, delta = -1, period = 'all') {
+        const normalizedReading = normalizeStatsReadingText(readingString);
+        if (!normalizedReading) return false;
+        const normalizedDelta = Number(delta);
+        const normalizedPeriod = period === 'allTime' || period === 'monthly' || period === 'weekly' ? period : 'all';
+        if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return false;
+
+        try {
+            const body = {
+                kind: 'reading',
+                reading: normalizedReading,
+                delta: normalizedDelta,
+                metric: 'like'
+            };
+            if (normalizedPeriod !== 'all') {
+                body.period = normalizedPeriod;
+            }
+
+            const response = await fetch('/api/stats', {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            return true;
+        } catch (e) {
+            console.error('STATS: recordReadingUnlike error', e);
+            return false;
+        }
+    },
+
+    bootstrapReadingStatsCollections: async function () {
+        if (this._readingStatsBootstrapPromise) return this._readingStatsBootstrapPromise;
+
+        const run = async () => {
+            try {
+                const response = await fetch('/api/stats', {
+                    method: 'POST',
+                    headers: await getFirebaseRequestHeaders(),
+                    body: JSON.stringify({
+                        kind: 'reading',
+                        metric: 'all',
+                        period: 'all',
+                        bootstrap: true
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                return true;
+            } catch (e) {
+                console.warn('STATS: bootstrap reading collections failed', e);
+                return false;
+            }
+        };
+
+        this._readingStatsBootstrapPromise = run().finally(() => {
+            this._readingStatsBootstrapPromise = null;
+        });
+
+        return this._readingStatsBootstrapPromise;
+    },
+
+    seedEncounteredReadingStats: async function () {
+        const seededFlagKey = 'meimay_reading_stats_seeded_v3';
+        if (this._readingStatsSeedPromise) return this._readingStatsSeedPromise;
+        if (localStorage.getItem(seededFlagKey) === '1') return true;
+
+        const run = async () => {
+            if (typeof this.bootstrapReadingStatsCollections === 'function') {
+                await this.bootstrapReadingStatsCollections();
+            }
+
+            const currentMonthKey = this.getCurrentMonthKey();
+            const getMonthKeyFromDate = (date) => {
+                try {
+                    const parts = new Intl.DateTimeFormat('en-CA', {
+                        timeZone: 'Asia/Tokyo',
+                        year: 'numeric',
+                        month: '2-digit'
+                    }).formatToParts(date);
+                    const year = parts.find(part => part.type === 'year')?.value;
+                    const month = parts.find(part => part.type === 'month')?.value;
+                    if (year && month) return `${year}_${month}`;
+                } catch (error) {
+                    // Fallback below keeps seeding working even in older runtimes.
+                }
+
+                const offsetMs = 9 * 60 * 60 * 1000;
+                const shifted = new Date(date.getTime() + offsetMs);
+                return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+            };
+
+            const directTotals = new Map();
+            const likeTotals = new Map();
+
+            const bumpTotals = (map, reading, allDelta = 0, monthlyDelta = 0) => {
+                if (!reading) return;
+                const current = map.get(reading) || { allTime: 0, monthly: 0 };
+                current.allTime += Math.max(0, Number(allDelta) || 0);
+                current.monthly += Math.max(0, Number(monthlyDelta) || 0);
+                map.set(reading, current);
+            };
+
+            const readingHistory = typeof getReadingHistory === 'function'
+                ? getReadingHistory()
+                : [];
+            readingHistory.forEach((entry) => {
+                const reading = normalizeStatsReadingText(entry?.reading || '');
+                if (!reading) return;
+
+                const searchedAt = entry?.searchedAt ? new Date(entry.searchedAt) : null;
+                const monthly = searchedAt && !Number.isNaN(searchedAt.getTime()) && getMonthKeyFromDate(searchedAt) === currentMonthKey
+                    ? 1
+                    : 0;
+                bumpTotals(directTotals, reading, 1, monthly);
+            });
+
+            const readingStock = typeof getReadingStock === 'function'
+                ? getReadingStock()
+                : [];
+            readingStock.forEach((entry) => {
+                if (entry && entry.statsTracked === false) return;
+                const reading = normalizeStatsReadingText(entry?.reading || entry?.key || '');
+                if (!reading) return;
+
+                const addedAt = entry?.addedAt ? new Date(entry.addedAt) : null;
+                const monthly = addedAt && !Number.isNaN(addedAt.getTime()) && getMonthKeyFromDate(addedAt) === currentMonthKey
+                    ? 1
+                    : 0;
+                bumpTotals(likeTotals, reading, 1, monthly);
+            });
+
+            if (directTotals.size === 0 && likeTotals.size === 0) {
+                localStorage.setItem(seededFlagKey, '1');
+                return true;
+            }
+
+            const [serverAllTimeItems, serverMonthlyItems] = await Promise.all([
+                this.fetchRankings('allTime', 'reading', 'direct'),
+                this.fetchRankings('monthly', 'reading', 'direct')
+            ]);
+
+            const [serverLikeAllTimeItems, serverLikeMonthlyItems] = await Promise.all([
+                this.fetchRankings('allTime', 'reading', 'like'),
+                this.fetchRankings('monthly', 'reading', 'like')
+            ]);
+
+            const serverAllTime = new Map();
+            const serverMonthly = new Map();
+            const serverLikeAllTime = new Map();
+            const serverLikeMonthly = new Map();
+
+            (Array.isArray(serverAllTimeItems) ? serverAllTimeItems : []).forEach((item) => {
+                const reading = normalizeStatsReadingText(item?.reading || item?.key || '');
+                const count = Number(item?.count) || 0;
+                if (reading && count > 0) {
+                    serverAllTime.set(reading, count);
+                }
+            });
+
+            (Array.isArray(serverMonthlyItems) ? serverMonthlyItems : []).forEach((item) => {
+                const reading = normalizeStatsReadingText(item?.reading || item?.key || '');
+                const count = Number(item?.count) || 0;
+                if (reading && count > 0) {
+                    serverMonthly.set(reading, count);
+                }
+            });
+
+            (Array.isArray(serverLikeAllTimeItems) ? serverLikeAllTimeItems : []).forEach((item) => {
+                const reading = normalizeStatsReadingText(item?.reading || item?.key || '');
+                const count = Number(item?.count) || 0;
+                if (reading && count > 0) {
+                    serverLikeAllTime.set(reading, count);
+                }
+            });
+
+            (Array.isArray(serverLikeMonthlyItems) ? serverLikeMonthlyItems : []).forEach((item) => {
+                const reading = normalizeStatsReadingText(item?.reading || item?.key || '');
+                const count = Number(item?.count) || 0;
+                if (reading && count > 0) {
+                    serverLikeMonthly.set(reading, count);
+                }
+            });
+
+            const tasks = [];
+            directTotals.forEach((counts, reading) => {
+                const serverAllTimeCount = Number(serverAllTime.get(reading)) || 0;
+                const serverMonthlyCount = Number(serverMonthly.get(reading)) || 0;
+                const allTimeDelta = Math.max(0, (Number(counts.allTime) || 0) - serverAllTimeCount);
+                const monthlyDelta = Math.max(0, (Number(counts.monthly) || 0) - serverMonthlyCount);
+
+                if (allTimeDelta > 0) {
+                    tasks.push(this.recordReadingEncounter(reading, allTimeDelta, 'allTime'));
+                }
+                if (monthlyDelta > 0) {
+                    tasks.push(this.recordReadingEncounter(reading, monthlyDelta, 'monthly'));
+                }
+            });
+
+            likeTotals.forEach((counts, reading) => {
+                const serverAllTimeCount = Number(serverLikeAllTime.get(reading)) || 0;
+                const serverMonthlyCount = Number(serverLikeMonthly.get(reading)) || 0;
+                const allTimeDelta = Math.max(0, (Number(counts.allTime) || 0) - serverAllTimeCount);
+                const monthlyDelta = Math.max(0, (Number(counts.monthly) || 0) - serverMonthlyCount);
+
+                if (allTimeDelta > 0) {
+                    tasks.push(this.recordReadingLike(reading, allTimeDelta, 'allTime'));
+                }
+                if (monthlyDelta > 0) {
+                    tasks.push(this.recordReadingLike(reading, monthlyDelta, 'monthly'));
+                }
+            });
+
+            if (tasks.length === 0) {
+                localStorage.setItem(seededFlagKey, '1');
+                return true;
+            }
+
+            const results = await Promise.all(tasks);
+            const hasSuccess = results.some(Boolean);
+            if (hasSuccess) {
+                localStorage.setItem(seededFlagKey, '1');
+            }
+            return hasSuccess;
+        };
+
+        this._readingStatsSeedPromise = run().finally(() => {
+            this._readingStatsSeedPromise = null;
+        });
+
+        return this._readingStatsSeedPromise;
+    },
+
+    fetchRankings: async function (type = 'allTime', kind = 'kanji', metric = 'all') {
+        const normalizedType = type === 'monthly' || type === 'weekly' ? type : 'allTime';
+        const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+        const normalizedMetric = normalizedKind === 'reading'
+            ? (metric === 'direct' || metric === 'like' ? metric : 'all')
+            : 'all';
+
+        try {
+            const query = new URLSearchParams({
+                period: normalizedType,
+                kind: normalizedKind,
+            });
+            if (normalizedKind === 'reading' && normalizedMetric !== 'all') {
+                query.set('metric', normalizedMetric);
+            }
+
+            const response = await fetch(`/api/stats?${query.toString()}`, {
+                cache: 'no-store'
+            });
+
+            if (response.ok) {
+                const payload = await response.json();
+                const apiItems = Array.isArray(payload?.items) ? payload.items : [];
+                if (apiItems.length > 0) {
+                    return apiItems
+                        .map((item) => {
+                            const key = normalizedKind === 'reading'
+                                ? String(item?.reading || item?.key || '').trim()
+                                : String(item?.kanji || item?.key || '').trim();
+                            return normalizedKind === 'reading'
+                                ? { reading: key, count: Number(item?.count) || 0 }
+                                : { kanji: key, count: Number(item?.count) || 0 };
+                        })
+                        .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
+                        .sort((a, b) => {
+                            if (b.count !== a.count) return b.count - a.count;
+                            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+                            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+                            return aKey.localeCompare(bKey, 'ja');
+                        })
+                        .slice(0, 100);
+                }
+            }
+        } catch (apiError) {
+            console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) API fallback`, apiError);
+        }
+
+        if (normalizedKind === 'reading') {
+            return [];
+        }
+
         try {
             let docRef;
-            if (type === 'monthly') {
+            if (normalizedType === 'monthly') {
                 docRef = firebaseDb.collection('statistics').doc(`monthly_${this.getCurrentMonthKey()}`);
-            } else if (type === 'weekly') {
+            } else if (normalizedType === 'weekly') {
                 docRef = firebaseDb.collection('statistics').doc(`weekly_${this.getCurrentWeekKey()}`);
             } else {
                 docRef = firebaseDb.collection('statistics').doc('allTime');
@@ -1071,12 +1439,19 @@ const MeimayStats = {
             const data = doc.data();
             return Object.keys(data)
                 .filter(k => k !== 'updatedAt')
-                .map(key => ({ kanji: key, count: data[key] }))
+                .map(key => normalizedKind === 'reading'
+                    ? { reading: key, count: data[key] }
+                    : { kanji: key, count: data[key] })
                 .filter(item => item.count > 0)
-                .sort((a, b) => b.count - a.count)
+                .sort((a, b) => {
+                    if (b.count !== a.count) return b.count - a.count;
+                    const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+                    const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+                    return String(aKey || '').localeCompare(String(bKey || ''), 'ja');
+                })
                 .slice(0, 100);
         } catch (e) {
-            console.error(`STATS: fetchRankings(${type}) error`, e);
+            console.error(`STATS: fetchRankings(${normalizedKind}:${type}) error`, e);
             return [];
         }
     }
@@ -1084,7 +1459,37 @@ const MeimayStats = {
 
 window.MeimayStats = MeimayStats;
 
-console.log("FIREBASE: Module loaded (v22.0 - anonymous + room pairing)");
+function seedReadingStatsFromLocalHistory() {
+    try {
+        if (typeof MeimayStats !== 'undefined' && typeof MeimayStats.bootstrapReadingStatsCollections === 'function') {
+            MeimayStats.bootstrapReadingStatsCollections().catch((error) => {
+                console.warn('STATS: reading bootstrap failed', error);
+            });
+        }
+
+        if (typeof MeimayStats === 'undefined' || typeof MeimayStats.seedEncounteredReadingStats !== 'function') return;
+
+        MeimayStats.seedEncounteredReadingStats().catch((error) => {
+            console.warn('STATS: startup reading seed failed', error);
+        });
+    } catch (error) {
+        console.warn('STATS: startup reading seed skipped', error);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    const runStartupReadingSeed = () => {
+        setTimeout(seedReadingStatsFromLocalHistory, 0);
+    };
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        runStartupReadingSeed();
+    } else {
+        window.addEventListener('load', runStartupReadingSeed, { once: true });
+    }
+}
+
+console.log("FIREBASE: Module loaded (v22.1 - anonymous + room pairing + reading seed)");
 
 function getPartnerRoleLabel(role) {
     if (role === 'mama') return 'ママ';
@@ -1155,8 +1560,31 @@ MeimayPairing.syncMyData = async function () {
             tags: Array.isArray(item.tags) ? item.tags : [],
             gender: item.gender || 'neutral',
             isSuper: !!item.isSuper,
-            addedAt: item.addedAt || null
+            addedAt: item.addedAt || null,
+            statsTracked: item.statsTracked !== false
         }));
+
+        const encounteredLibrary = typeof getEncounteredLibrary === 'function'
+            ? getEncounteredLibrary()
+            : { readings: [] };
+        const minifiedEncounteredReadings = (Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : [])
+            .slice(0, 300)
+            .map(item => ({
+                key: String(item?.key || item?.reading || '').trim(),
+                reading: String(item?.reading || '').trim(),
+                seenCount: Number(item?.seenCount) || 0,
+                monthlySeenCount: Number(item?.monthlySeenCount) || 0,
+                monthlyMonthKey: String(item?.monthlyMonthKey || '').trim(),
+                lastSeenAt: String(item?.lastSeenAt || '').trim(),
+                tags: Array.isArray(item?.tags) ? item.tags.slice(0, 5) : [],
+                examples: Array.isArray(item?.examples) ? item.examples.slice(0, 3) : [],
+                baseNickname: String(item?.baseNickname || '').trim(),
+                preferredLabel: String(item?.preferredLabel || '').trim(),
+                gender: String(item?.gender || 'neutral').trim() || 'neutral',
+                mode: String(item?.mode || '').trim(),
+                encounterOrigin: String(item?.encounterOrigin || '').trim()
+            }))
+            .filter(item => item.key && item.reading);
 
         await firebaseDb.collection('rooms').doc(this.roomCode)
             .collection('data').doc(user.uid).set({
@@ -1166,6 +1594,7 @@ MeimayPairing.syncMyData = async function () {
                 liked: minifiedLiked,
                 savedNames: minifiedSaved,
                 readingStock: minifiedReadingStock,
+                encounteredReadings: minifiedEncounteredReadings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -1175,7 +1604,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '', themeId: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -1192,6 +1621,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 liked: Array.isArray(data.liked) ? data.liked : [],
                 savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                 readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
+                encounteredReadings: Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [],
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 themeId: String(data.themeId || '').trim()
@@ -1210,7 +1640,7 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], role: null, displayName: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 };
 
@@ -1268,6 +1698,25 @@ MeimayPartnerInsights.getOwnReadingStock = function () {
     });
 };
 
+MeimayPartnerInsights.getOwnEncounteredReadings = function () {
+    const library = typeof getEncounteredLibrary === 'function'
+        ? getEncounteredLibrary()
+        : { readings: [] };
+    return Array.isArray(library.readings) ? library.readings : [];
+};
+
+MeimayPartnerInsights.getPartnerEncounteredReadings = function () {
+    const readings = MeimayShare?.partnerSnapshot?.encounteredReadings;
+    return Array.isArray(readings) ? readings : [];
+};
+
+MeimayPartnerInsights.getEncounteredReadingsForRanking = function () {
+    const ownReadings = this.getOwnEncounteredReadings();
+    const partnerReadings = this.getPartnerEncounteredReadings();
+    if (partnerReadings.length === 0) return ownReadings;
+    return [...ownReadings, ...partnerReadings];
+};
+
 MeimayPartnerInsights.buildReadingStockKey = function (item) {
     const reading = item?.reading || '';
     const segments = Array.isArray(item?.segments) ? item.segments : [];
@@ -1298,7 +1747,8 @@ MeimayPartnerInsights.buildReadingCollection = function (readingItems = [], like
             baseNickname: item?.baseNickname || '',
             isSuper: !!item?.isSuper,
             fromPartner: fromPartner || !!item?.fromPartner,
-            isDerivedFromLiked: !!item?.isDerivedFromLiked
+            isDerivedFromLiked: !!item?.isDerivedFromLiked,
+            statsTracked: item?.statsTracked !== false
         };
         if (!existing) {
             merged.set(key, normalized);
@@ -1316,6 +1766,7 @@ MeimayPartnerInsights.buildReadingCollection = function (readingItems = [], like
         existing.isSuper = existing.isSuper || normalized.isSuper;
         existing.fromPartner = existing.fromPartner || normalized.fromPartner;
         existing.isDerivedFromLiked = existing.isDerivedFromLiked || normalized.isDerivedFromLiked;
+        existing.statsTracked = existing.statsTracked !== false && normalized.statsTracked !== false;
     };
 
     readingItems.forEach(item => {
@@ -1330,7 +1781,8 @@ MeimayPartnerInsights.buildReadingCollection = function (readingItems = [], like
             segments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
             isSuper: !!item?.isSuper,
             isDerivedFromLiked: true,
-            fromPartner
+            fromPartner,
+            statsTracked: true
         }, key);
     });
 
@@ -1644,6 +2096,9 @@ function refreshPartnerAwareUI() {
     }
     if (document.getElementById('scr-build')?.classList.contains('active')) {
         if (typeof renderBuildSelection === 'function') renderBuildSelection();
+    }
+    if (document.getElementById('scr-ranking')?.classList.contains('active')) {
+        if (typeof loadRanking === 'function') loadRanking();
     }
 }
 
