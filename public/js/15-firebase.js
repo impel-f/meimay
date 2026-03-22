@@ -260,7 +260,7 @@ const MeimayPairing = {
             return code;
         } catch (e) {
             console.error('PAIRING: Create room failed', e);
-            showToast('ルームを作成しました', '\u2713');
+            showToast('ルームの作成に失敗しました', '\u26a0');
             return null;
         }
     },
@@ -279,16 +279,16 @@ const MeimayPairing = {
         try {
             const roomDoc = await firebaseDb.collection('rooms').doc(upperCode).get();
             if (!roomDoc.exists) {
-                return { success: false, error: '繧ｳ繝ｼ繝峨′隕九▽縺九ｊ縺ｾ縺帙ｓ' };
+                return { success: false, error: 'コードが見つかりません' };
             }
 
             const data = roomDoc.data();
 
             if (data.memberAUid === user.uid) {
-                return { success: false, error: '閾ｪ蛻・・繝ｫ繝ｼ繝繧ｳ繝ｼ繝峨〒縺・' };
+                return { success: false, error: '自分のルームです' };
             }
             if (data.memberBUid && data.memberBUid !== user.uid) {
-                return { success: false, error: '縺薙・繝ｫ繝ｼ繝縺ｯ貅蜩｡縺ｧ縺・' };
+                return { success: false, error: 'このルームは満員です' };
             }
 
             // memberB縺ｨ縺励※蜿ょ刈
@@ -317,7 +317,7 @@ const MeimayPairing = {
             return { success: true };
         } catch (e) {
             console.error('PAIRING: Join room failed', e);
-            return { success: false, error: '蜿ょ刈縺ｫ螟ｱ謨励＠縺ｾ縺励◆' };
+            return { success: false, error: '参加に失敗しました' };
         }
     },
 
@@ -785,6 +785,24 @@ function formatPartnerStatusName(name) {
     if (value.endsWith('さん')) return value;
     return value + 'さん';
 }
+function getWizardNickname() {
+    if (typeof WizardData === 'undefined' || typeof WizardData.get !== 'function') return '';
+    const wizard = WizardData.get() || {};
+    return String(wizard.username || '').trim();
+}
+
+function formatPairingParticipantLabel(name, role, fallbackLabel = '') {
+    const roleLabel = role === 'mama' ? 'ママ' : role === 'papa' ? 'パパ' : '';
+    const value = String(name || '').trim();
+    if (!value) return roleLabel || fallbackLabel;
+    if (value === 'ママ' || value === 'パパ' || value === 'パートナー') {
+        return roleLabel && value !== roleLabel ? `${value}(${roleLabel})` : value;
+    }
+    if (value.endsWith('さん')) {
+        return roleLabel ? `${value}(${roleLabel})` : value;
+    }
+    return roleLabel ? `${value}さん(${roleLabel})` : `${value}さん`;
+}
 function syncPairingRoleSelectionFromProfile() {
     const preferredRole = getPreferredPairingRole();
     const preferredRoleLabel = getPreferredPairingRoleLabel();
@@ -829,13 +847,15 @@ function updatePairingUI() {
         if (codeEl) codeEl.textContent = MeimayPairing.roomCode;
 
         const myRoleEl = document.getElementById('pairing-my-role');
-        if (myRoleEl) myRoleEl.textContent = MeimayPairing.myRole === 'mama' ? 'ママ' : 'パパ';
+        if (myRoleEl) myRoleEl.textContent = formatPairingParticipantLabel(getWizardNickname(), MeimayPairing.myRole, 'あなた');
 
         const partnerStatusEl = document.getElementById('pairing-partner-status');
         if (partnerStatusEl) {
             if (hasPartner) {
-                const partnerLabel = MeimayPairing.partnerRole === 'mama' ? 'ママ' : 'パパ';
-                partnerStatusEl.textContent = partnerLabel + 'と連携中';
+                const partnerDisplayName = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerDisplayName === 'function'
+                    ? MeimayPartnerInsights.getPartnerDisplayName()
+                    : (MeimayPairing.partnerDisplayName || MeimayPairing.partnerLabel || 'パートナー');
+                partnerStatusEl.textContent = formatPairingParticipantLabel(partnerDisplayName, MeimayPairing.partnerRole, 'パートナー') + 'と連携中';
                 partnerStatusEl.className = 'text-sm font-bold text-[#5d5444]';
             } else {
                 partnerStatusEl.textContent = 'パートナー未連携';
@@ -849,6 +869,7 @@ function updatePairingUI() {
 
     const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
     const drawerPartnerStatusLabel = document.getElementById('drawer-partner-status-label');
+    const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
     if (drawerPartnerStatusButton && drawerPartnerStatusLabel) {
         if (inRoom && hasPartner) {
             const partnerDisplayName = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerDisplayName === 'function'
@@ -862,6 +883,9 @@ function updatePairingUI() {
         } else {
             drawerPartnerStatusButton.classList.add('hidden');
         }
+    }
+    if (drawerPairingBadge) {
+        drawerPairingBadge.classList.toggle('hidden', !(inRoom && hasPartner));
     }
 
     refreshPartnerAwareUI();
@@ -2634,10 +2658,10 @@ function renderMeimaySuperStars(options = {}) {
     const palettes = getMeimayRelationshipPalettes();
     const stars = [];
     if (options.self) {
-        stars.push(`<span style="color:${palettes.self.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">笘</span>`);
+        stars.push(`<span style="color:${palettes.self.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">\u2605</span>`);
     }
     if (options.partner) {
-        stars.push(`<span style="color:${palettes.partner.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">笘</span>`);
+        stars.push(`<span style="color:${palettes.partner.star}; text-shadow:0 1px 0 rgba(255,255,255,0.72)">\u2605</span>`);
     }
     if (stars.length === 0) return '';
     const className = options.className || '';
