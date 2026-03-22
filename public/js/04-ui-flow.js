@@ -4303,7 +4303,8 @@ function hideReadingFromStock(target) {
 }
 
 function removeCompletedReadingFromStock(reading) {
-    if (!confirm(`「${reading}」をストックリストから外しますか？
+    const displayReading = getReadingBaseReading(reading) || String(reading || '').trim();
+    if (!confirm(`「${displayReading}」をストックリストから外しますか？
 （選んだ漢字は削除されません）`)) return;
 
     closeModal('modal-reading-detail');
@@ -8384,7 +8385,8 @@ renderReadingStockSection = renderReadingStockSectionVisible;
 window.renderReadingStockSection = renderReadingStockSectionVisible;
 
 function removeCompletedReadingFromStock(reading) {
-    if (!confirm(`「${reading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
+    const displayReading = getReadingBaseReading(reading) || String(reading || '').trim();
+    if (!confirm(`「${displayReading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
 
     if (typeof closeModal === 'function') closeModal('modal-reading-detail');
     if (typeof closeReadingCombinationModal === 'function') closeReadingCombinationModal();
@@ -8400,7 +8402,7 @@ function removeCompletedReadingFromStock(reading) {
     if (typeof refreshPartnerAwareUI === 'function') {
         refreshPartnerAwareUI();
     }
-    showToast(`「${reading}」を外しました`, '🗑️');
+    showToast(`「${displayReading}」を外しました`, '🗑️');
 }
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
