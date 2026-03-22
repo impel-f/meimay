@@ -1,8 +1,7 @@
 ﻿/* 18-ranking.js: Ranking screen logic */
 
 let currentRankingType = 'kanji';
-let currentRankingPeriod = 'allTime';
-let currentRankingTab = 'allTime'; // Legacy alias kept in sync with the active period.
+const RANKING_PERIOD_STORAGE_KEY = 'meimay_ranking_period_v1';
 const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
 
 function normalizeRankingGender(value) {
@@ -43,6 +42,29 @@ function saveRankingGenderPreference(value) {
     }
 }
 
+function loadRankingPeriodPreference() {
+    try {
+        const stored = localStorage.getItem(RANKING_PERIOD_STORAGE_KEY);
+        if (stored) {
+            return normalizeRankingPeriod(stored);
+        }
+    } catch (error) {
+        // Ignore storage failures and fall back to the default period.
+    }
+
+    return 'allTime';
+}
+
+function saveRankingPeriodPreference(value) {
+    try {
+        localStorage.setItem(RANKING_PERIOD_STORAGE_KEY, normalizeRankingPeriod(value));
+    } catch (error) {
+        // Non-fatal.
+    }
+}
+
+let currentRankingPeriod = loadRankingPeriodPreference();
+let currentRankingTab = currentRankingPeriod; // Legacy alias kept in sync with the active period.
 let currentRankingGender = loadRankingGenderPreference();
 
 let rankingTouchStartX = 0;
@@ -181,27 +203,67 @@ function getRankingMonthDisplayLabel(date = new Date()) {
     const key = getRankingCurrentMonthKey(date);
     const [year, month] = key.split('_');
     if (!year || !month) return key.replace('_', '/');
-    const lastDay = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
-    return `${year}/${month}/01-${year}/${month}/${String(lastDay).padStart(2, '0')}`;
+    return `${year}/${month}`;
 }
 
 function getRankingPeriodSwitchStyle(period) {
     if (period === 'monthly') {
         return {
-            button: 'border:1px solid #c9a86a;background:linear-gradient(135deg, #fff5d9 0%, #ffeab0 100%);',
-            text: '#5d5444',
-            sub: '#8b7e66',
-            chipBg: '#fffaf2',
-            chipText: '#b9965b'
+            button: 'border:1px solid #ead39a;background:linear-gradient(135deg, #fff8e8 0%, #fff1d5 100%);',
+            label: '#9a8556',
+            value: '#8a6a2f',
+            sub: '#b3945f',
+            arrowBg: '#fffaf2',
+            arrowBorder: '#ecd6a4',
+            arrowText: '#8a6a2f'
         };
     }
 
     return {
-        button: 'border:1px solid #eadfce;background:linear-gradient(135deg, #fffdf9 0%, #f6efe4 100%);',
-        text: '#5d5444',
+        button: 'border:1px solid #e6d8c2;background:linear-gradient(135deg, #fffdf8 0%, #f5eedd 100%);',
+        label: '#9a8b78',
+        value: '#7e684a',
         sub: '#a6967a',
-        chipBg: '#fff7ec',
-        chipText: '#a6967a'
+        arrowBg: '#fffaf5',
+        arrowBorder: '#eadfce',
+        arrowText: '#7e684a'
+    };
+}
+
+function getRankingGenderSwitchStyle(value) {
+    const normalized = normalizeRankingGender(value);
+    if (normalized === 'male') {
+        return {
+            button: 'border:1px solid #d9e4f5;background:linear-gradient(135deg, #f8fbff 0%, #eef5ff 100%);',
+            label: '#7b8fa6',
+            value: '#5f7696',
+            sub: '#8fa1b8',
+            arrowBg: '#f7fbff',
+            arrowBorder: '#d9e4f5',
+            arrowText: '#5f7696'
+        };
+    }
+
+    if (normalized === 'female') {
+        return {
+            button: 'border:1px solid #ead8df;background:linear-gradient(135deg, #fff9fb 0%, #fff1f5 100%);',
+            label: '#a8848f',
+            value: '#9a6a78',
+            sub: '#bc98a3',
+            arrowBg: '#fff8fb',
+            arrowBorder: '#ead8df',
+            arrowText: '#9a6a78'
+        };
+    }
+
+    return {
+        button: 'border:1px solid #e6ddd0;background:linear-gradient(135deg, #fffdf8 0%, #f7f1e7 100%);',
+        label: '#9a8b78',
+        value: '#8b7758',
+        sub: '#a6967a',
+        arrowBg: '#fffaf3',
+        arrowBorder: '#e8dcc8',
+        arrowText: '#8b7758'
     };
 }
 
@@ -218,25 +280,25 @@ function renderRankingPeriodSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); toggleRankingPeriod()"
-            class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
+            class="w-full h-full min-h-[5.1rem] rounded-[1.05rem] px-3 py-2.5 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="flex items-center justify-between gap-2">
-                <div class="min-w-0 text-left">
-                    <span class="block whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]" style="color:${switchStyle.text};">
+            <div class="flex h-full items-stretch gap-3">
+                <div class="min-w-0 flex-1 flex flex-col justify-center">
+                    <span class="block whitespace-nowrap text-[9px] font-black leading-none tracking-[0.16em]" style="color:${switchStyle.label};">
+                        期間
+                    </span>
+                    <span class="mt-0.5 block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
                         ${escapeRankingHtml(label)}
                     </span>
                     ${period === 'monthly' ? `
-                        <span class="mt-0.5 block whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
-                            集計期間 ${escapeRankingHtml(monthLabel)}
+                        <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none" style="color:${switchStyle.sub};">
+                            ${escapeRankingHtml(monthLabel)}
                         </span>
                     ` : ''}
                 </div>
-                <span class="shrink-0 inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:${switchStyle.chipBg};color:${switchStyle.chipText};">
-                    ▼
-                </span>
-            </div>
-            <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
-                タップで切り替え
+                <div class="flex items-center justify-center self-stretch">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border text-[8px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
+                </div>
             </div>
         </button>
     `;
@@ -248,28 +310,26 @@ function renderRankingGenderSwitch() {
 
     const selectedGender = normalizeRankingGender(currentRankingGender);
     const selectedGenderLabel = getRankingGenderLabel(selectedGender);
+    const switchStyle = getRankingGenderSwitchStyle(selectedGender);
 
     mount.innerHTML = `
         <button
             type="button"
             onclick="event.stopPropagation(); cycleRankingGender()"
-            class="w-full rounded-[1.05rem] px-2 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2.5 md:py-2.5"
-            style="border:1px solid #eee5d8;background:linear-gradient(135deg, #fffdf9 0%, #f6efe4 100%);">
-            <div class="flex items-center justify-between gap-2">
-                <div class="min-w-0 text-left">
-                    <span class="block whitespace-nowrap text-[10px] font-black leading-none md:text-[11px]" style="color:#5d5444;">
+            class="w-full h-full min-h-[5.1rem] rounded-[1.05rem] px-3 py-2.5 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-2.5"
+            style="${switchStyle.button}">
+            <div class="flex h-full items-stretch gap-3">
+                <div class="min-w-0 flex-1 flex flex-col justify-center">
+                    <span class="block whitespace-nowrap text-[9px] font-black leading-none tracking-[0.16em]" style="color:${switchStyle.label};">
                         性別
                     </span>
-                    <span class="mt-0.5 block whitespace-nowrap text-[10px] font-bold leading-none md:text-[11px]" style="color:#8b7e66;">
+                    <span class="mt-0.5 block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
                         ${escapeRankingHtml(selectedGenderLabel)}
                     </span>
                 </div>
-                <span class="shrink-0 inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[7px] font-black leading-none tracking-[0.14em]" style="background:#fff7ec;color:#a6967a;">
-                    ▼
-                </span>
-            </div>
-            <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:#a6967a;">
-                タップで切り替え
+                <div class="flex items-center justify-center self-stretch">
+                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border text-[8px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
+                </div>
             </div>
         </button>
     `;
@@ -304,6 +364,7 @@ function setRankingType(type, options = {}) {
 function setRankingPeriod(period, options = {}) {
     currentRankingPeriod = normalizeRankingPeriod(period);
     currentRankingTab = currentRankingPeriod;
+    saveRankingPeriodPreference(currentRankingPeriod);
     updateRankingButtonState();
     if (options.load !== false) {
         loadRanking();
@@ -341,6 +402,8 @@ function toggleRankingPeriod() {
 }
 
 async function openRanking() {
+    currentRankingPeriod = loadRankingPeriodPreference();
+    currentRankingTab = currentRankingPeriod;
     currentRankingGender = loadRankingGenderPreference();
     if (typeof changeScreen === 'function') {
         changeScreen('scr-ranking');
