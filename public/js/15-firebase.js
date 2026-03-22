@@ -877,6 +877,7 @@ function updatePairingUI() {
     const drawerPartnerStatusLabel = document.getElementById('drawer-partner-status-label');
     const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
     if (drawerPartnerStatusButton && drawerPartnerStatusLabel) {
+        drawerPartnerStatusButton.classList.remove('hidden');
         if (inRoom && hasPartner) {
             const partnerDisplayName = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerDisplayName === 'function'
                 ? MeimayPartnerInsights.getPartnerDisplayName()
@@ -885,9 +886,8 @@ function updatePairingUI() {
             drawerPartnerStatusLabel.textContent = partnerStatusName
                 ? 'パートナー：' + partnerStatusName + 'と連携中'
                 : 'パートナー：連携中';
-            drawerPartnerStatusButton.classList.remove('hidden');
         } else {
-            drawerPartnerStatusButton.classList.add('hidden');
+            drawerPartnerStatusLabel.textContent = 'パートナー：未連携';
         }
     }
     if (drawerPairingBadge) {
