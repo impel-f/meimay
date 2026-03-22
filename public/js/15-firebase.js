@@ -794,7 +794,10 @@ function getWizardNickname() {
 function formatPairingParticipantLabel(name, role, fallbackLabel = '') {
     const roleLabel = role === 'mama' ? 'ママ' : role === 'papa' ? 'パパ' : '';
     const value = String(name || '').trim();
-    if (!value) return roleLabel || fallbackLabel;
+    if (!value) {
+        if (fallbackLabel === 'あなた' && roleLabel) return `${fallbackLabel}(${roleLabel})`;
+        return roleLabel || fallbackLabel;
+    }
     if (value === 'ママ' || value === 'パパ' || value === 'パートナー') {
         return roleLabel && value !== roleLabel ? `${value}(${roleLabel})` : value;
     }
