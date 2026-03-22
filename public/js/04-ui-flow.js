@@ -296,10 +296,15 @@ function initReadingStockPicker() {
         partnerRawStock.filter(item => {
             const readingKey = normalizeReadingKey(item);
             return readingKey && !visibleOwnReadingSet.has(readingKey);
-        })
+        }).map(item => ({ ...item, _pickerSourceLabel: 'パートナー' }))
     );
 
-    const totalCount = visibleOwnStock.length + visiblePartnerStock.length;
+    const combinedCandidates = dedupeAndSort([
+        ...visibleOwnStock.map(item => ({ ...item, _pickerSourceLabel: '' })),
+        ...visiblePartnerStock
+    ]);
+
+    const totalCount = combinedCandidates.length;
     if (totalCount === 0) {
         pickerWrap.classList.add('hidden');
         list.classList.add('hidden');
@@ -307,29 +312,12 @@ function initReadingStockPicker() {
     }
     pickerWrap.classList.remove('hidden');
     if (label) {
-        label.textContent = visiblePartnerStock.length > 0
-            ? `📖 ストックから選ぶ（自分 ${visibleOwnStock.length}件 / パートナー ${visiblePartnerStock.length}件）`
-            : `📖 ストックから選ぶ（${visibleOwnStock.length}件）`;
+        label.textContent = `📖 ストックから選ぶ（${totalCount}件）`;
     }
     if (arrow) {
         arrow.textContent = list.classList.contains('hidden') ? '▼' : '▲';
     }
-    const renderSection = (title, items, forceBadge = '') => {
-        if (!Array.isArray(items) || items.length === 0) return '';
-        return `
-            <div class="mb-4 last:mb-0">
-                <div class="text-xs font-black text-[#bca37f] mb-2 tracking-wider uppercase">${escapeHtml(title)}</div>
-                <div class="space-y-1">
-                    ${items.map(item => renderButton(item, forceBadge || (isPartnerSource(item) ? 'パートナー' : ''))).join('')}
-                </div>
-            </div>
-        `;
-    };
-
-    list.innerHTML = [
-        renderSection('自分のストック', visibleOwnStock),
-        renderSection('パートナーのストック', visiblePartnerStock, 'パートナー')
-    ].filter(Boolean).join('');
+    list.innerHTML = combinedCandidates.map(item => renderButton(item, item._pickerSourceLabel || (isPartnerSource(item) ? 'パートナー' : ''))).join('');
 }
 
 function selectReadingFromStock(reading) {
