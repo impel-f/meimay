@@ -187,6 +187,7 @@ const MeimayPairing = {
             }
             this._listenRoom();
             updatePairingUI();
+            await this.syncMyData();
             console.log(`PAIRING: Resumed room ${code} as ${slot} (${role})`);
         } catch (e) {
             console.error('PAIRING: Resume failed', e);
@@ -935,6 +936,31 @@ MeimayPairing._autoSyncDebounced = (function () {
     };
 })();
 
+let roomSyncSuspendInFlight = false;
+function flushRoomSyncOnSuspend() {
+    if (roomSyncSuspendInFlight) return;
+    if (!MeimayPairing || !MeimayPairing.roomCode || typeof MeimayPairing.syncMyData !== 'function') return;
+
+    roomSyncSuspendInFlight = true;
+    Promise.resolve(MeimayPairing.syncMyData())
+        .catch((error) => {
+            console.warn('PAIRING: Suspend sync failed', error);
+        })
+        .finally(() => {
+            roomSyncSuspendInFlight = false;
+        });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', flushRoomSyncOnSuspend);
+    window.addEventListener('beforeunload', flushRoomSyncOnSuspend);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            flushRoomSyncOnSuspend();
+        }
+    });
+}
+
 // ============================================================
 // TOAST NOTIFICATION
 // ============================================================
@@ -1561,6 +1587,49 @@ function cleanupLegacyPartnerLocalData() {
     }
 }
 
+function getRoomSyncLikedItems() {
+    const filterOwnItems = (items) => (Array.isArray(items) ? items.filter(item => !item?.fromPartner) : []);
+
+    try {
+        const memoryLiked = filterOwnItems(typeof liked !== 'undefined' ? liked : []);
+        if (memoryLiked.length > 0) {
+            return memoryLiked;
+        }
+
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
+            const state = StorageBox._loadLikedState();
+            const items = filterOwnItems(state?.items);
+            if (items.length > 0 || Array.isArray(state?.items)) {
+                return items;
+            }
+        }
+    } catch (e) {
+        console.warn('PAIRING: Failed to read liked state from StorageBox', e);
+    }
+
+    try {
+        const keys = [
+            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED ? StorageBox.KEY_LIKED : 'naming_app_liked_chars',
+            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_LEGACY ? StorageBox.KEY_LIKED_LEGACY : 'meimay_liked',
+            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_BACKUP ? StorageBox.KEY_LIKED_BACKUP : 'meimay_liked_backup_v1'
+        ];
+
+        for (const key of keys) {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            const items = filterOwnItems(parsed);
+            if (items.length > 0 || Array.isArray(parsed)) {
+                return items;
+            }
+        }
+    } catch (e) {
+        console.warn('PAIRING: Failed to read liked state from localStorage', e);
+    }
+
+    return [];
+}
+
 MeimayPairing.syncMyData = async function () {
     const user = MeimayAuth.getCurrentUser();
     if (!user || !this.roomCode) return;
@@ -1569,7 +1638,7 @@ MeimayPairing.syncMyData = async function () {
         const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
             ? (WizardData.get() || {})
             : {};
-        const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+        const ownLiked = getRoomSyncLikedItems();
         const minifiedLiked = ownLiked.map(l => ({
             '漢字': l['漢字'],
             slot: l.slot,
