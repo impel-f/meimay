@@ -3884,6 +3884,9 @@ function normalizeReadingStockItem(item) {
             baseNickname: '',
             tags: [],
             isSuper: false,
+            ownSuper: false,
+            partnerSuper: false,
+            source: '',
             gender: gender || 'neutral',
             addedAt: new Date().toISOString(),
             statsTracked: displaySegments.length > 0,
@@ -3906,6 +3909,10 @@ function normalizeReadingStockItem(item) {
         item.source === 'reading-combination'
     ));
     const segments = readingPromoted ? rawSegments : [];
+    const source = item && item.source ? String(item.source) : '';
+    const partnerSuper = !!(item && (item.partnerSuper || (source === 'partner-reading' && !!item.isSuper && !item.ownSuper)));
+    const isSuper = !!(item && item.isSuper) && (source !== 'partner-reading' || !!item.ownSuper);
+    const ownSuper = !!(item && (item.ownSuper || isSuper));
     const hasReadableSegments = Array.isArray(segments) && segments.length > 0;
     const hasExplicitStatsFlag = item && typeof item.statsTracked === 'boolean';
     const statsTracked = hasExplicitStatsFlag
@@ -3917,7 +3924,10 @@ function normalizeReadingStockItem(item) {
         segments,
         baseNickname: item && item.baseNickname ? item.baseNickname : '',
         tags: Array.isArray(item && item.tags) ? [...new Set(item.tags.filter(Boolean))] : [],
-        isSuper: !!(item && item.isSuper),
+        isSuper,
+        ownSuper,
+        partnerSuper,
+        source,
         gender: item && item.gender ? item.gender : (gender || 'neutral'),
         addedAt: item && item.addedAt ? item.addedAt : new Date().toISOString(),
         statsTracked,
@@ -4072,6 +4082,8 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         existing.id = getReadingStockKey(reading, existing.readingPromoted ? existing.segments : []);
         if (options.gender) existing.gender = options.gender;
         existing.isSuper = existing.isSuper || !!options.isSuper;
+        existing.ownSuper = existing.ownSuper || existing.isSuper;
+        existing.partnerSuper = existing.partnerSuper || !!options.partnerSuper;
         if (options.source) existing.source = options.source;
         if (shouldTrackStats && existing.statsTracked === false) {
             existing.statsTracked = true;
@@ -4093,6 +4105,8 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         baseNickname: baseNickname || nicknameBaseReading || '',
         tags: normalizedTags,
         isSuper: !!options.isSuper,
+        ownSuper: !!options.isSuper,
+        partnerSuper: !!options.partnerSuper,
         gender: options.gender || gender || 'neutral',
         addedAt: new Date().toISOString(),
         statsTracked: shouldTrackStats,
@@ -5559,9 +5573,11 @@ function likePartnerReadingStock(index) {
 
     addReadingToStock(reading, item.baseNickname || '', item.tags || [], {
         segments: [],
-        isSuper: !!item.isSuper,
+        isSuper: false,
+        partnerSuper: !!item.isSuper,
         gender: item.gender || gender || 'neutral',
-        clearHidden: true
+        clearHidden: true,
+        source: 'partner-reading'
     });
 
     if (typeof showToast === 'function') {
@@ -5660,7 +5676,7 @@ function renderReadingStockSectionV2() {
             partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
             kanjiCount
         };
-    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.partnerItem?.isSuper)));
+    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.ownItem?.ownSuper || entry.ownItem?.partnerSuper || entry.partnerItem?.isSuper)));
 
     const completedMatchedKeys = new Set(completedCards.filter(item => item.partnerItem).map(item => item.key).filter(Boolean));
     const matchedReadingKeys = new Set(
@@ -5768,7 +5784,7 @@ function renderReadingStockSectionV2() {
             <div class="space-y-2">`;
 
         visibleCompleted.forEach(item => {
-            const kind = item.partnerItem ? 'matched' : 'self';
+            const kind = (item.partnerItem || item.ownItem?.partnerSuper) ? 'matched' : 'self';
             const tone = getReadingCardToneV2(kind);
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
@@ -5776,7 +5792,11 @@ function renderReadingStockSectionV2() {
                      onclick="openReadingStockModal('${item.reading}')">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
-                            ${renderReadingTitleWithStarsV2(item.display, item.ownItem?.isSuper, item.partnerItem?.isSuper)}
+                            ${renderReadingTitleWithStarsV2(
+                                item.display,
+                                item.ownItem?.isSuper || item.ownItem?.ownSuper,
+                                item.ownItem?.partnerSuper || item.partnerItem?.isSuper
+                            )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
@@ -6262,7 +6282,7 @@ function renderReadingStockSectionV2() {
             partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
             kanjiCount
         };
-    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.partnerItem?.isSuper)));
+    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.ownItem?.ownSuper || entry.ownItem?.partnerSuper || entry.partnerItem?.isSuper)));
 
     const completedMatchedKeys = new Set(completedCards.filter(item => item.partnerItem).map(item => item.key).filter(Boolean));
     const matchedReadingKeys = new Set(
@@ -8883,7 +8903,7 @@ function renderReadingStockSectionV2() {
             partnerItem: partnerReadingByKey.get(key) || partnerReadingByReading.get(normalizedReading) || null,
             kanjiCount
         };
-    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.partnerItem?.isSuper)));
+    }).sort((a, b) => compareCardEntries(a, b, entry => !!(entry.ownItem?.isSuper || entry.ownItem?.ownSuper || entry.ownItem?.partnerSuper || entry.partnerItem?.isSuper)));
 
     const completedMatchedKeys = new Set(completedCards.filter(item => item.partnerItem).map(item => item.key).filter(Boolean));
     const matchedReadingKeys = new Set((pairInsights?.getMatchedReadingItems ? pairInsights.getMatchedReadingItems() : []).map(item => getPartnerViewReadingKey(item, pairInsights)).filter(Boolean));
@@ -8965,7 +8985,7 @@ function renderReadingStockSectionV2() {
             <div class="space-y-2">`;
 
         visibleCompleted.forEach(item => {
-            const kind = item.partnerItem ? 'matched' : 'self';
+            const kind = (item.partnerItem || item.ownItem?.partnerSuper) ? 'matched' : 'self';
             const tone = getReadingCardToneV2(kind);
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
@@ -8973,7 +8993,11 @@ function renderReadingStockSectionV2() {
                      onclick="openReadingStockModal('${item.reading}')">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
-                            ${renderReadingTitleWithStarsV2(item.display, item.ownItem?.isSuper, item.partnerItem?.isSuper)}
+                            ${renderReadingTitleWithStarsV2(
+                                item.display,
+                                item.ownItem?.isSuper || item.ownItem?.ownSuper,
+                                item.ownItem?.partnerSuper || item.partnerItem?.isSuper
+                            )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
@@ -9495,7 +9519,7 @@ function renderReadingStockSectionV2() {
             <div class="space-y-2">`;
 
         visibleCompleted.forEach(item => {
-            const kind = item.partnerItem ? 'matched' : 'self';
+            const kind = (item.partnerItem || item.ownItem?.partnerSuper) ? 'matched' : 'self';
             const tone = getReadingCardToneV2(kind);
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
@@ -9503,7 +9527,11 @@ function renderReadingStockSectionV2() {
                      onclick="openReadingStockModal('${item.reading}')">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
-                            ${renderReadingTitleWithStarsV2(item.display, item.ownItem?.isSuper, item.partnerItem?.isSuper)}
+                            ${renderReadingTitleWithStarsV2(
+                                item.display,
+                                item.ownItem?.isSuper || item.ownItem?.ownSuper,
+                                item.ownItem?.partnerSuper || item.partnerItem?.isSuper
+                            )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
@@ -9546,7 +9574,7 @@ function renderReadingStockSectionV2() {
                         const display = getReadingDisplayLabel(item, isPromoted ? { allowSegments: true } : { forceRaw: true });
                         const key = getPartnerViewReadingKey(item, pairInsights);
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
-                        const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
+                        const kind = (isReadingMatchedForView(item) || item.partnerSuper) ? 'matched' : 'self';
                         const tone = getReadingCardToneV2(kind);
                         const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
@@ -9555,7 +9583,11 @@ function renderReadingStockSectionV2() {
                             <div class="flex items-center justify-between gap-2">
                                 <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">
-                                        ${renderReadingTitleWithStarsV2(display, item.isSuper, partnerItem?.isSuper)}
+                                        ${renderReadingTitleWithStarsV2(
+                                            display,
+                                            item.isSuper || item.ownSuper,
+                                            item.partnerSuper || partnerItem?.isSuper
+                                        )}
                                     </div>
                                 </button>
                                 <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
