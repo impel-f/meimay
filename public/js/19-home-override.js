@@ -1417,11 +1417,6 @@ function renderHomeOverviewSwitch(pairing) {
             <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
                 ${activeOption.label}
             </div>
-            ${canCycle ? `
-                <div class="mt-1 whitespace-nowrap text-[7px] font-bold leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
-                    タップで切り替え
-                </div>
-            ` : ''}
         </button>
     `;
 }
@@ -2462,7 +2457,7 @@ function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCou
     return copy;
 }
 
-function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
+function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
 
@@ -2498,7 +2493,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             selected,
             metric: {
                 ...step.metric,
-                actionText: selected ? '選択中' : 'タップで切り替え'
+                actionText: selected ? '選択中' : ''
             }
         };
     });
