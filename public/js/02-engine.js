@@ -362,7 +362,7 @@ function calcSegments() {
     if (uniquePaths.length > 0) {
         uniquePaths.forEach((path, idx) => {
             const btn = document.createElement('button');
-            btn.className = "w-[92%] mx-auto py-4 px-5 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-3 group text-left";
+            btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
             const countLabel = `${path.length}文字名`;
 
             const displayParts = path.map(p =>
@@ -371,7 +371,7 @@ function calcSegments() {
 
             btn.innerHTML = `
                 <span class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${countLabel}</span>
-                <div class="min-w-0 flex-1 flex items-center flex-wrap gap-x-3 gap-y-2 text-xl leading-tight">
+                <div class="min-w-0 flex-1 flex items-center flex-nowrap gap-x-2 text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight whitespace-nowrap">
                     ${displayParts}
                 </div>
             `;
