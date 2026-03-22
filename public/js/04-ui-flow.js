@@ -5508,6 +5508,10 @@ function startReadingSplitProposalFromStock(reading) {
     const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
     if (nameInput) nameInput.value = targetReading || reading;
+    if (typeof calcSegments === 'function') {
+        calcSegments();
+        return;
+    }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
 
@@ -6102,6 +6106,10 @@ function startReadingSplitProposalFromStock(reading) {
     const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
     if (nameInput) nameInput.value = targetReading || reading;
+    if (typeof calcSegments === 'function') {
+        calcSegments();
+        return;
+    }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
 
@@ -8739,6 +8747,11 @@ function startReadingSplitProposalFromStock(reading) {
     const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
     if (nameInput) nameInput.value = targetReading || reading;
+    if (typeof calcSegments === 'function') {
+        calcSegments();
+        return;
+    }
+
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
 
@@ -9258,6 +9271,10 @@ function startReadingSplitProposalFromStock(reading) {
     const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
     if (nameInput) nameInput.value = targetReading || reading;
+    if (typeof calcSegments === 'function') {
+        calcSegments();
+        return;
+    }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
 
@@ -9273,7 +9290,6 @@ function startReadingSplitProposalFromStock(reading) {
 
     if (typeof openBuildFromReading === 'function') openBuildFromReading(targetReading || stockItem.reading);
 }
-
 function startReadingFromStock(target) {
     const stockItem = findReadingStockItem(target);
     if (!stockItem) return;
@@ -9656,3 +9672,4 @@ window.renderReadingCardStarsV2 = renderReadingCardStarsV2;
 window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
+
