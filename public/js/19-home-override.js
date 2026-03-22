@@ -1414,8 +1414,13 @@ function renderHomeOverviewSwitch(pairing) {
             ${canCycle ? 'onclick="event.stopPropagation(); cycleHomeOverviewMode()"' : ''}
             class="w-full rounded-[1.05rem] px-1.5 py-2 text-center active:scale-95 transition-transform md:rounded-[1.2rem] md:px-2 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
-                ${activeOption.label}
+            <div class="flex flex-col items-center justify-center">
+                <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
+                    ${activeOption.label}
+                </div>
+                <div class="${canCycle ? '' : 'hidden'} mt-0.5 whitespace-nowrap text-[7px] font-medium leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
+                    タップで切り替え
+                </div>
             </div>
         </button>
     `;
