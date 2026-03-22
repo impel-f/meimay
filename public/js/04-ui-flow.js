@@ -317,7 +317,22 @@ function initReadingStockPicker() {
     if (arrow) {
         arrow.textContent = list.classList.contains('hidden') ? '▼' : '▲';
     }
-    list.innerHTML = combinedCandidates.map(item => renderButton(item, item._pickerSourceLabel || (isPartnerSource(item) ? 'パートナー' : ''))).join('');
+    const renderSection = (title, items, forceBadge = '') => {
+        if (!Array.isArray(items) || items.length === 0) return '';
+        return `
+            <div class="mb-4 last:mb-0">
+                <div class="text-xs font-black text-[#bca37f] mb-2 tracking-wider uppercase">${escapeHtml(title)}</div>
+                <div class="space-y-1">
+                    ${items.map(item => renderButton(item, forceBadge || item._pickerSourceLabel || (isPartnerSource(item) ? 'パートナー' : ''))).join('')}
+                </div>
+            </div>
+        `;
+    };
+
+    list.innerHTML = [
+        renderSection('自分のストック', visibleOwnStock),
+        renderSection('パートナーのストック', visiblePartnerStock, 'パートナー')
+    ].filter(Boolean).join('');
 }
 
 function selectReadingFromStock(reading) {
