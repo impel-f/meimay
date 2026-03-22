@@ -632,11 +632,6 @@ function saveEncounteredLibrary(library, options = {}) {
             MeimayPairing._autoSyncDebounced();
         }
 
-        if (document.getElementById('scr-ranking')?.classList.contains('active') && typeof loadRanking === 'function') {
-            loadRanking().catch((error) => {
-                console.warn('ENCOUNTERED: ranking refresh failed', error);
-            });
-        }
     } catch (error) {
         console.warn('ENCOUNTERED: Failed to save library', error);
     }

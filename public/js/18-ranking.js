@@ -139,28 +139,37 @@ function getRankingEncounteredReadingItems() {
     return Array.isArray(library.readings) ? library.readings : [];
 }
 
+function getRankingOwnLikedEntries() {
+    if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getOwnLiked === 'function') {
+        return MeimayPartnerInsights.getOwnLiked();
+    }
+
+    return Array.isArray(liked) ? liked.filter((entry) => !entry?.fromPartner) : [];
+}
+
+function getRankingOwnReadingStockEntries() {
+    if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getOwnReadingStock === 'function') {
+        return MeimayPartnerInsights.getOwnReadingStock();
+    }
+
+    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    return Array.isArray(stock) ? stock.filter((entry) => !entry?.fromPartner) : [];
+}
+
 function isRankingKanjiStocked(kanjiStr) {
     const normalizedKanji = String(kanjiStr || '').trim();
     if (!normalizedKanji) return false;
 
-    const ownLiked = Array.isArray(liked) ? liked : [];
-    const partnerLiked = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerLiked === 'function'
-        ? MeimayPartnerInsights.getPartnerLiked()
-        : [];
-
-    return [...ownLiked, ...partnerLiked].some((entry) => (entry?.['漢字'] || entry?.kanji) === normalizedKanji);
+    const ownLiked = getRankingOwnLikedEntries();
+    return Array.isArray(ownLiked) && ownLiked.some((entry) => (entry?.['漢字'] || entry?.kanji) === normalizedKanji);
 }
 
 function isRankingReadingStocked(reading) {
     const normalizedReading = normalizeRankingReadingText(reading);
     if (!normalizedReading) return false;
 
-    const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    const partnerReadings = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerReadingStock === 'function'
-        ? MeimayPartnerInsights.getPartnerReadingStock()
-        : [];
-
-    return [...ownReadings, ...partnerReadings].some((entry) => normalizeRankingReadingText(entry?.reading) === normalizedReading);
+    const ownReadings = getRankingOwnReadingStockEntries();
+    return Array.isArray(ownReadings) && ownReadings.some((entry) => normalizeRankingReadingText(entry?.reading) === normalizedReading);
 }
 
 function getPrimaryKanjiReading(kanjiData) {
@@ -178,8 +187,59 @@ function getRankingCardTone(index) {
     };
 }
 
+function updateRankingCardState(kind, key, delta = 0, stocked = null) {
+    const listContainer = document.getElementById('ranking-list-container');
+    if (!listContainer) return false;
+
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedKey = normalizedKind === 'reading'
+        ? normalizeRankingReadingText(key)
+        : String(key || '').trim();
+    if (!normalizedKey) return false;
+
+    const cards = Array.from(listContainer.querySelectorAll('[data-ranking-kind]'));
+    const card = cards.find((el) => {
+        const elKind = el.dataset.rankingKind === 'reading' ? 'reading' : 'kanji';
+        if (elKind !== normalizedKind) return false;
+        const elKey = el.dataset.rankingKey || '';
+        return normalizedKind === 'reading'
+            ? normalizeRankingReadingText(elKey) === normalizedKey
+            : String(elKey).trim() === normalizedKey;
+    });
+    if (!card) return false;
+
+    const countEl = card.querySelector('[data-ranking-count-display]');
+    const statusEl = card.querySelector('[data-ranking-status-label]');
+    const currentCount = Number(card.dataset.rankingCount) || 0;
+    const nextCount = Math.max(0, currentCount + Number(delta || 0));
+    card.dataset.rankingCount = String(nextCount);
+    if (countEl) {
+        countEl.textContent = `❤${nextCount}`;
+    }
+
+    if (stocked === null) {
+        return true;
+    }
+
+    const stockedText = normalizedKind === 'reading'
+        ? (stocked ? 'ストック済み' : '開く')
+        : (stocked ? 'ストック済み' : '詳細');
+    const stockedBgClass = 'bg-[#fff4db] text-[#b9965b]';
+    const notStockedBgClass = 'bg-[#f8f5ef] text-[#8b7e66]';
+
+    card.classList.toggle('border-[#bca37f]', !!stocked);
+    card.classList.toggle('ring-1', !!stocked);
+    card.classList.toggle('ring-[#bca37f]/20', !!stocked);
+    card.classList.toggle('border-[#ede5d8]', !stocked);
+    if (statusEl) {
+        statusEl.textContent = stockedText;
+        statusEl.className = `shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${stocked ? stockedBgClass : notStockedBgClass}`;
+    }
+    return true;
+}
+
 function getRankingPeriodSwitchLabel(period) {
-    return period === 'monthly' ? '月間ランキング' : '総合ランキング';
+    return period === 'monthly' ? '📅月間順位' : '👑総合順位';
 }
 
 function getRankingGenderLabel(value) {
@@ -280,24 +340,19 @@ function renderRankingPeriodSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); toggleRankingPeriod()"
-            class="w-full h-full min-h-[5.1rem] rounded-[1.05rem] px-3 py-2.5 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-2.5"
+            class="w-full h-full min-h-[4.9rem] rounded-[1.05rem] px-2.5 py-2 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="flex h-full items-stretch gap-3">
+            <div class="flex h-full items-stretch gap-2.5">
                 <div class="min-w-0 flex-1 flex flex-col justify-center">
-                    <span class="block whitespace-nowrap text-[9px] font-black leading-none tracking-[0.16em]" style="color:${switchStyle.label};">
-                        期間
-                    </span>
-                    <span class="mt-0.5 block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
+                    <span class="block whitespace-nowrap text-[11px] font-black leading-none md:text-[12px]" style="color:${switchStyle.value};">
                         ${escapeRankingHtml(label)}
                     </span>
-                    ${period === 'monthly' ? `
-                        <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none" style="color:${switchStyle.sub};">
-                            ${escapeRankingHtml(monthLabel)}
-                        </span>
-                    ` : ''}
+                    <span class="mt-0.5 block whitespace-nowrap text-[8px] font-bold leading-none" style="color:${switchStyle.sub};">
+                        期間：${escapeRankingHtml(period === 'monthly' ? monthLabel : 'すべて')}
+                    </span>
                 </div>
                 <div class="flex items-center justify-center self-stretch">
-                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border text-[8px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
                 </div>
             </div>
         </button>
@@ -316,9 +371,9 @@ function renderRankingGenderSwitch() {
         <button
             type="button"
             onclick="event.stopPropagation(); cycleRankingGender()"
-            class="w-full h-full min-h-[5.1rem] rounded-[1.05rem] px-3 py-2.5 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3.5 md:py-2.5"
+            class="w-full h-full min-h-[4.9rem] rounded-[1.05rem] px-2.5 py-2 text-left active:scale-95 transition-transform md:rounded-[1.2rem] md:px-3 md:py-2.5"
             style="${switchStyle.button}">
-            <div class="flex h-full items-stretch gap-3">
+            <div class="flex h-full items-stretch gap-2.5">
                 <div class="min-w-0 flex-1 flex flex-col justify-center">
                     <span class="block whitespace-nowrap text-[9px] font-black leading-none tracking-[0.16em]" style="color:${switchStyle.label};">
                         性別
@@ -328,7 +383,7 @@ function renderRankingGenderSwitch() {
                     </span>
                 </div>
                 <div class="flex items-center justify-center self-stretch">
-                    <span class="inline-flex h-7 w-7 items-center justify-center rounded-full border text-[8px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full border text-[7px] font-black leading-none" style="background:${switchStyle.arrowBg};border-color:${switchStyle.arrowBorder};color:${switchStyle.arrowText};">▼</span>
                 </div>
             </div>
         </button>
@@ -514,11 +569,14 @@ function renderRankingKanjiCard(item, index) {
     return `
         <button type="button"
             data-kanji="${escapeRankingHtml(displayKanji)}"
+            data-ranking-kind="kanji"
+            data-ranking-key="${escapeRankingHtml(displayKanji)}"
+            data-ranking-count="${item.count}"
             onclick="openRankingKanjiDetail(this.dataset.kanji)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">${item.count}件</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
             </div>
             <div class="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.45rem] font-black leading-none text-[#5d5444]">
                 ${escapeRankingHtml(displayKanji || '・')}
@@ -531,7 +589,7 @@ function renderRankingKanjiCard(item, index) {
                     ${escapeRankingHtml(meaningText)}
                 </div>
             </div>
-            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}" data-ranking-status-label>
                 ${isStocked ? 'ストック済み' : '詳細'}
             </span>
         </button>
@@ -547,16 +605,19 @@ function renderRankingReadingCard(item, index) {
     return `
         <button type="button"
             data-reading="${escapeRankingHtml(item?.sourceKey || reading)}"
+            data-ranking-kind="reading"
+            data-ranking-key="${escapeRankingHtml(item?.sourceKey || reading)}"
+            data-ranking-count="${item.count}"
             onclick="openRankingReadingAction(this.dataset.reading)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap">${item.count}件</div>
+                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
             </div>
             <div class="min-w-0 flex-1">
                 <div class="truncate whitespace-nowrap text-[16px] font-black leading-tight text-[#5d5444] tracking-wide">${escapeRankingHtml(reading || '読みなし')}</div>
             </div>
-            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}">
+            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}" data-ranking-status-label>
                 ${isStocked ? 'ストック済み' : '開く'}
             </span>
         </button>
@@ -785,13 +846,18 @@ function showRankingKanjiDetail(kanjiStr) {
 async function toggleRankingStock(kanjiStr, btn) {
     if (typeof liked === 'undefined') return;
 
-    const isStocked = liked.some((entry) => (entry?.['漢字'] || entry?.kanji) === kanjiStr);
-    const card = btn?.closest('.bg-white');
+    const normalizedKanji = String(kanjiStr || '').trim();
+    if (!normalizedKanji) return;
+
+    const found = typeof master !== 'undefined' ? master.find((entry) => entry && entry['漢字'] === normalizedKanji) : null;
+    const ownLiked = getRankingOwnLikedEntries();
+    const isStocked = ownLiked.some((entry) => (entry?.['漢字'] || entry?.kanji) === normalizedKanji);
 
     if (isStocked) {
         let removedCount = 0;
         for (let i = liked.length - 1; i >= 0; i--) {
-            if ((liked[i]?.['漢字'] || liked[i]?.kanji) === kanjiStr) {
+            if (liked[i]?.fromPartner) continue;
+            if ((liked[i]?.['漢字'] || liked[i]?.kanji) === normalizedKanji) {
                 liked.splice(i, 1);
                 removedCount++;
             }
@@ -801,37 +867,30 @@ async function toggleRankingStock(kanjiStr, btn) {
             btn.innerText = 'ストック';
             btn.className = 'px-3 py-1.5 bg-gradient-to-br from-[#d4c5af] to-[#bca37f] text-white shadow-sm rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0';
         }
-        if (card) {
-            card.classList.remove('border-[#bca37f]', 'ring-1', 'ring-[#bca37f]/20');
-            card.classList.add('border-[#ede5d8]');
-        }
         if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            await MeimayStats.recordKanjiUnlike(kanjiStr, found?.gender || gender || 'neutral');
+            await MeimayStats.recordKanjiUnlike(normalizedKanji, found?.gender || gender || 'neutral');
+            if (typeof updateRankingCardState === 'function') {
+                updateRankingCardState('kanji', normalizedKanji, -removedCount, false);
+            }
         }
     } else {
-        const found = typeof master !== 'undefined' ? master.find((entry) => entry && entry['漢字'] === kanjiStr) : null;
         if (found) {
-            liked.push({ ...found, slot: -1, sessionReading: 'RANKING' });
+            liked.push({ ...found, slot: -1, sessionReading: 'RANKING', fromPartner: false });
             if (btn) {
                 btn.innerText = '解除';
                 btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0';
             }
-            if (card) {
-                card.classList.add('border-[#bca37f]', 'ring-1', 'ring-[#bca37f]/20');
-                card.classList.remove('border-[#ede5d8]');
-            }
             if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
-                await MeimayStats.recordKanjiLike(kanjiStr, found.gender || gender || 'neutral');
+                await MeimayStats.recordKanjiLike(normalizedKanji, found.gender || gender || 'neutral');
+                if (typeof updateRankingCardState === 'function') {
+                    updateRankingCardState('kanji', normalizedKanji, 1, true);
+                }
             }
         }
     }
 
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
-    }
-
-    if (document.getElementById('scr-ranking')?.classList.contains('active') && typeof loadRanking === 'function') {
-        await loadRanking();
     }
 }
 
@@ -841,6 +900,7 @@ window.switchRankingPeriod = switchRankingPeriod;
 window.switchRankingTab = switchRankingTab;
 window.switchRankingGender = switchRankingGender;
 window.cycleRankingGender = cycleRankingGender;
+window.updateRankingCardState = updateRankingCardState;
 window.toggleRankingStock = toggleRankingStock;
 window.openRankingKanjiDetail = openRankingKanjiDetail;
 window.openRankingReadingAction = openRankingReadingAction;

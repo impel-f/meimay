@@ -1118,6 +1118,12 @@ function buildStatsRequestBody(baseBody = {}, genderOrOptions = null, defaultSco
     return body;
 }
 
+function notifyRankingCardState(kind, key, delta = 0, stocked = null) {
+    if (typeof window === 'undefined') return false;
+    if (typeof window.updateRankingCardState !== 'function') return false;
+    return window.updateRankingCardState(kind, key, delta, stocked);
+}
+
 const MeimayStats = {
     getCurrentWeekKey: function () {
         const d = new Date();
@@ -1171,6 +1177,7 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
             return true;
         } catch (e) {
             console.error('STATS: recordKanjiLike error', e);
@@ -1203,6 +1210,7 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
             return true;
         } catch (e) {
             console.error('STATS: recordKanjiUnlike error', e);
@@ -1234,6 +1242,7 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('reading', normalizedReading, normalizedDelta, null);
             return true;
         } catch (e) {
             console.error('STATS: recordReadingEncounter error', e);
@@ -1265,6 +1274,7 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
             return true;
         } catch (e) {
             console.error('STATS: recordReadingLike error', e);
@@ -1296,6 +1306,7 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
             return true;
         } catch (e) {
             console.error('STATS: recordReadingUnlike error', e);
