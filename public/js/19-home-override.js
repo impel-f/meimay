@@ -2604,3 +2604,218 @@ try {
         renderHomeProfile();
     }
 } catch (e) { }
+
+function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
+    const readingCount = Math.max(0, Number(readingStockCount) || 0);
+    const kanjiCount = Math.max(0, Number(likedCount) || 0);
+    const savedTotal = Math.max(0, Number(savedCount) || 0);
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Math.max(0, Number(options.buildCount))
+        : Math.max(0, Number(getHomeBuildPatternCount()) || 0);
+    const unresolvedReadingCountRaw = Number.isFinite(Number(options.unresolvedReadingCount))
+        ? Number(options.unresolvedReadingCount)
+        : getHomeUnresolvedReadingCount(options.readingStock);
+    const unresolvedReadingCount = readingCount === 0
+        ? 0
+        : Math.max(0, Math.min(readingCount, Number(unresolvedReadingCountRaw) || 0));
+
+    const readingZeroLines = [
+        'まだ読み候補はありません。',
+        'まずは気になる響きから、読みを探していきましょう。'
+    ];
+
+    const copy = {
+        stageLabel: '',
+        mainText: '',
+        statusLines: [],
+        chips: [],
+        primaryAction: 'sound',
+        primaryLabel: '響きをさがす',
+        secondaryAction: '',
+        secondaryLabel: ''
+    };
+
+    const setCopy = (stageLabel, primaryAction, primaryLabel, statusLines, chips, secondaryAction = '', secondaryLabel = '') => {
+        copy.stageLabel = stageLabel;
+        copy.primaryAction = primaryAction;
+        copy.primaryLabel = primaryLabel;
+        copy.secondaryAction = secondaryAction;
+        copy.secondaryLabel = secondaryLabel;
+        copy.statusLines = statusLines;
+        copy.chips = chips;
+        copy.mainText = statusLines.join('');
+        return copy;
+    };
+
+    if (stageKey === 'reading') {
+        const statusLines = readingCount === 0
+            ? readingZeroLines
+            : readingCount <= 9
+                ? [
+                    '読み候補が集まってきています。',
+                    '今ある候補を見返しながら、さらに読みを広げていきましょう。'
+                ]
+                : [
+                    '読み候補はしっかり集まっています。',
+                    '今ある候補を見返しながら、方向性を整えていきましょう。'
+                ];
+
+        return setCopy(
+            '読み',
+            'sound',
+            '響きをさがす',
+            statusLines,
+            [
+                { label: '読み', value: readingCount, unit: '件' }
+            ],
+            readingCount > 0 ? 'stock-reading' : '',
+            'ストックした読みを見る'
+        );
+    }
+
+    if (stageKey === 'kanji') {
+        const statusLines = (() => {
+            if (readingCount === 0 && kanjiCount === 0) {
+                return readingZeroLines;
+            }
+            if (readingCount === 0 && kanjiCount > 0) {
+                return [
+                    'まだ読み候補はありません。',
+                    '集めた漢字を活かすために、まずは読みを探していきましょう。'
+                ];
+            }
+            if (readingCount > 0 && kanjiCount === 0 && unresolvedReadingCount > 0) {
+                return [
+                    'まだ漢字候補はありません。',
+                    `漢字がまだ決まっていない読みが${unresolvedReadingCount}件あるので、そこから候補を広げていきましょう。`
+                ];
+            }
+            if (readingCount > 0 && kanjiCount > 0 && unresolvedReadingCount > 0) {
+                return [
+                    '漢字候補が集まってきています。',
+                    `漢字がまだ決まっていない読みが${unresolvedReadingCount}件あるので、そこから候補を広げていきましょう。`
+                ];
+            }
+            if (readingCount > 0 && unresolvedReadingCount === 0 && kanjiCount > 0) {
+                return [
+                    '漢字候補はしっかり集まっています。',
+                    '今ある候補を見返しながら、組み立てに進めます。'
+                ];
+            }
+            if (readingCount > 0 && unresolvedReadingCount === 0 && kanjiCount === 0) {
+                return [
+                    'まだ漢字候補はありません。',
+                    '気になる読みに合う漢字を集めていきましょう。'
+                ];
+            }
+            return readingZeroLines;
+        })();
+
+        return setCopy(
+            '漢字',
+            'reading',
+            '漢字をさがす',
+            statusLines,
+            [
+                { label: '漢字', value: kanjiCount, unit: '字' },
+                { label: '未選択', value: unresolvedReadingCount, unit: '件' }
+            ],
+            kanjiCount > 0 ? 'stock' : '',
+            'ストックした漢字を見る'
+        );
+    }
+
+    if (stageKey === 'build') {
+        const statusLines = (() => {
+            if (buildCount >= 6) {
+                return [
+                    '組み立て候補はしっかりできています。',
+                    '今ある候補を見比べながら、方向性を整えていきましょう。'
+                ];
+            }
+            if (buildCount >= 1) {
+                return [
+                    '候補ができてきています。',
+                    '今ある組み合わせを見比べながら、さらに候補を広げていきましょう。'
+                ];
+            }
+            if (readingCount > 0 && kanjiCount > 0) {
+                return [
+                    'まだ名前は組み立てていません。',
+                    '集めた読みと漢字から、名前候補を作り始められます。'
+                ];
+            }
+            if (readingCount > 0 && kanjiCount === 0) {
+                return [
+                    'まだ漢字候補はありません。',
+                    '先に読みに合う漢字を集めてから、組み立てに進んでいきましょう。'
+                ];
+            }
+            return readingZeroLines;
+        })();
+
+        return setCopy(
+            'ビルド',
+            'build',
+            '名前を組み立てる',
+            statusLines,
+            [
+                { label: '読み', value: readingCount, unit: '件' },
+                { label: '漢字', value: kanjiCount, unit: '字' },
+                { label: 'ビルド', value: buildCount, unit: '通り' }
+            ]
+        );
+    }
+
+    const statusLines = (() => {
+        if (savedTotal >= 4) {
+            return [
+                '保存した候補はしっかり集まっています。',
+                '今ある候補を見返しながら、残したい名前を整理していきましょう。'
+            ];
+        }
+        if (savedTotal >= 1) {
+            return [
+                '保存した候補が集まってきています。',
+                '見比べながら、方向性を絞り込んでいきましょう。'
+            ];
+        }
+        if (buildCount > 0) {
+            return [
+                'まだ保存した名前はありません。',
+                '組み立てた候補の中から、残したい名前を選んでいきましょう。'
+            ];
+        }
+        if (readingCount > 0 && kanjiCount > 0) {
+            return [
+                'まだ名前は組み立てていません。',
+                'まずは候補を組み立ててから、保存する名前を選んでいきましょう。'
+            ];
+        }
+        if (readingCount > 0 && kanjiCount === 0) {
+            return [
+                'まだ漢字候補はありません。',
+                '先に読みに合う漢字を集めて、候補作りを進めていきましょう。'
+            ];
+        }
+        return readingZeroLines;
+    })();
+
+    return setCopy(
+        '保存',
+        'saved',
+        '保存した名前を見る',
+        statusLines,
+        [
+            { label: '保存', value: savedTotal, unit: '件' }
+        ]
+    );
+}
+
+function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
+    return buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options);
+}
+
+function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
+    return buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options);
+}
