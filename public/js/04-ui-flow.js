@@ -6831,6 +6831,9 @@ function renderReadingSwipeCard(item) {
     );
     const preview = getReadingFullNamePreview(modalReading || item.reading);
     const tone = getReadingCardTone(item);
+    const headerLabel = forceSplit ? '分け方の提案' : 'KANJI CANDIDATES';
+    const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
+    const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
     readingCombinationModalState = {
         item: { ...item, reading: modalReading || item.reading, baseNickname },
         options,
@@ -6857,8 +6860,10 @@ function renderReadingSwipeCard(item) {
             </div>
             ` : ''}
             <div class="text-center mb-5">
-                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${displayReading}</h3>
-                <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
+                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">${headerLabel}</div>
+                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${headerTitle}</h3>
+                <div class="text-[12px] font-bold text-[#8b7e66]">${headerSubtitle}</div>
+                ${forceSplit ? '<div class="mt-2 text-[11px] text-[#a6967a]">候補を選ぶと、その分け方でストックに入ります。</div>' : ''}
             </div>
             ${renderReadingTagBadges(item.tags || [])}
             <div class="flex gap-2 mb-4" style="${forceSplit ? 'display:none;' : ''}">
@@ -6868,14 +6873,14 @@ function renderReadingSwipeCard(item) {
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
                     <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
-                        この読みでは候補がまだ見つかりませんでした。
+                        ${forceSplit ? 'この読みでは分け方の候補がまだ見つかりませんでした。' : 'この読みでは候補がまだ見つかりませんでした。'}
                     </div>
                 ` : options.map((option, index) => {
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => `
                         <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
                             <div class="min-w-0 flex-1">
-                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${preview.ruby}</div>
+                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${forceSplit ? 'この分け方から出せる候補' : preview.ruby}</div>
                                 <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                             </div>
                             <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">漢字を選ぶ</button>
@@ -9370,10 +9375,10 @@ function renderReadingStockSectionV2() {
 
     const completedCards = completedReadings.map(reading => {
         const kanjiCount = ownLiked.filter(item => getReadingBaseReading(item.sessionReading) === reading && item.slot >= 0).length;
-        const key = getPartnerViewReadingKey({ reading, segments: readingToSegments[reading] || [] }, pairInsights);
-        const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
         const ownItem = findReadingStockItem(reading);
-        const segmentSource = Array.isArray(ownItem?.segments) && ownItem.segments.length > 0 ? ownItem.segments : (readingToSegments[reading] || []);
+        const segmentSource = Array.isArray(ownItem?.segments) ? ownItem.segments.filter(Boolean) : [];
+        const key = getPartnerViewReadingKey({ reading, segments: segmentSource }, pairInsights);
+        const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
         return {
             reading,
             display: segmentSource.length > 0 ? segmentSource.join('/') : reading,
@@ -9402,10 +9407,18 @@ function renderReadingStockSectionV2() {
     };
 
     const pendingOnly = displayPendingStock.filter(item => !completedReadingSet.has(getReadingBaseReading(item.reading || item.sessionReading || '')));
-    const partnerPendingCards = partnerReadings
+    const partnerPendingCards = [];
+    const seenPartnerPendingReadings = new Set();
+    partnerReadings
         .map((item, originalIndex) => ({ item, originalIndex }))
         .filter(({ item }) => !isReadingMatchedForView(item))
-        .sort((a, b) => compareCardEntries(a.item, b.item, entry => !!(entry.isSuper || entry.ownSuper || entry.partnerSuper)));
+        .sort((a, b) => compareCardEntries(a.item, b.item, entry => !!(entry.isSuper || entry.ownSuper || entry.partnerSuper)))
+        .forEach(entry => {
+            const readingKey = getReadingBaseReading(entry.item?.reading || entry.item?.sessionReading || '');
+            if (!readingKey || seenPartnerPendingReadings.has(readingKey)) return;
+            seenPartnerPendingReadings.add(readingKey);
+            partnerPendingCards.push(entry);
+        });
 
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function' ? window.getMeimayPartnerViewState() : { readingFocus: 'all' };
     const readingFocus = ['all', 'partner', 'matched'].includes(partnerViewState.readingFocus) ? partnerViewState.readingFocus : 'all';
@@ -9492,7 +9505,7 @@ function renderReadingStockSectionV2() {
     if (visiblePendingOnly.length > 0) {
         const groups = {};
         visiblePendingOnly.forEach(item => {
-            const key = item.baseNickname || '未分割の読み';
+            const key = item.baseNickname || '漢字を選んでいない読み';
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
         });
@@ -9505,7 +9518,7 @@ function renderReadingStockSectionV2() {
         });
 
         html += `<div class="mb-5">
-            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">未分割の読み</div>`;
+            <div class="text-xs font-black text-[#a6967a] mb-3 tracking-wider uppercase">漢字を選んでいない読み</div>`;
 
         groupEntries.forEach(([groupName, items]) => {
             const sortedItems = [...items].sort((a, b) => compareCardEntries(a, b, entry => isReadingStockStarred(entry)));
