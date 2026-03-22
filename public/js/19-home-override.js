@@ -587,6 +587,142 @@ function getHomeStageFocusAction(stageKey, likedCount, readingStockCount, savedC
     return getHomeNextStep(likedCount, readingStockCount, savedCount, pairing)?.action || 'sound';
 }
 
+function getHomeUnresolvedReadingCount(readingStock = null) {
+    const stock = Array.isArray(readingStock)
+        ? readingStock
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
+    return stock.reduce((count, item) => count + (isReadingStockPromoted(item) ? 0 : 1), 0);
+}
+
+function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const matchedReadingCount = Number.isFinite(Number(pairing?.matchedReadingCount))
+        ? Number(pairing.matchedReadingCount)
+        : 0;
+    const matchedSavedCount = Number.isFinite(Number(pairing?.matchedNameCount))
+        ? Number(pairing.matchedNameCount)
+        : 0;
+    const unresolvedReadingCount = Number.isFinite(Number(options.unresolvedReadingCount))
+        ? Number(options.unresolvedReadingCount)
+        : getHomeUnresolvedReadingCount(options.readingStock);
+
+    const copy = {
+        stageLabel: '',
+        mainText: '',
+        chips: [],
+        primaryAction: 'sound',
+        primaryLabel: '響きをさがす',
+        secondaryAction: '',
+        secondaryLabel: ''
+    };
+
+    if (stageKey === 'reading') {
+        copy.stageLabel = '読み';
+        copy.primaryAction = 'sound';
+        copy.primaryLabel = '響きをさがす';
+        if (readingStockCount > 0) {
+            copy.secondaryAction = 'stock-reading';
+            copy.secondaryLabel = 'ストックした読みを見る';
+        }
+        copy.chips = [
+            { label: 'ストック', value: readingStockCount, unit: '件' },
+            { label: '一致', value: matchedReadingCount, unit: '件' }
+        ];
+        if (readingStockCount === 0) {
+            copy.mainText = 'まだ読み候補はありません。まずは響きから、気になる読みを探していきましょう。';
+        } else if (readingStockCount <= 3) {
+            copy.mainText = `読み候補を ${readingStockCount}件 ストックしています。今ある候補を見返しながら、さらに読みを探すこともできます。`;
+        } else if (readingStockCount <= 9) {
+            copy.mainText = `読み候補が ${readingStockCount}件 集まっています。方向性を見比べながら、さらに候補を広げられます。`;
+        } else {
+            copy.mainText = `読み候補が十分に集まっています。今ある ${readingStockCount}件 を見返しつつ、さらに読みを探すこともできます。`;
+        }
+        if (matchedReadingCount > 0) {
+            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あります。`;
+        }
+        return copy;
+    }
+
+    if (stageKey === 'kanji') {
+        copy.stageLabel = '漢字';
+        copy.primaryAction = 'reading';
+        copy.primaryLabel = '漢字をさがす';
+        if (likedCount > 0) {
+            copy.secondaryAction = 'stock';
+            copy.secondaryLabel = 'ストックした漢字を見る';
+        }
+        copy.chips = [
+            { label: 'ストック', value: likedCount, unit: '字' },
+            { label: '未選択', value: unresolvedReadingCount, unit: '件' },
+            { label: '一致', value: matchedReadingCount, unit: '件' }
+        ];
+        if (likedCount === 0) {
+            copy.mainText = 'まだ漢字候補はありません。気になる読みに合う漢字を集めていきましょう。';
+        } else if (likedCount <= 4) {
+            copy.mainText = `漢字を ${likedCount}字 ストックしています。読みの候補に合う漢字を、ここから少しずつ増やしていけます。`;
+        } else if (likedCount <= 9) {
+            copy.mainText = `漢字候補が ${likedCount}字 集まっています。読みごとの違いを見ながら、候補の幅を広げられます。`;
+        } else {
+            copy.mainText = `漢字候補が十分に集まっています。今ある ${likedCount}字 を見返しながら、まだ漢字を選んでいない読みも進められます。`;
+        }
+        if (unresolvedReadingCount > 0) {
+            copy.mainText += ` まだ漢字を選んでいない読みが ${unresolvedReadingCount}件 あります。`;
+        }
+        if (matchedReadingCount > 0) {
+            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あり、共通の方向から漢字を広げられます。`;
+        }
+        return copy;
+    }
+
+    if (stageKey === 'build') {
+        copy.stageLabel = 'ビルド';
+        copy.primaryAction = 'build';
+        copy.primaryLabel = '名前を組み立てる';
+        copy.chips = [
+            { label: '読み', value: readingStockCount, unit: '件' },
+            { label: '漢字', value: likedCount, unit: '字' },
+            { label: 'ビルド', value: buildCount, unit: '通り' },
+            { label: '一致', value: matchedReadingCount, unit: '件' }
+        ];
+        if (buildCount === 0) {
+            copy.mainText = 'まだ名前は組み立てていません。集めた読みと漢字から、名前候補を作り始められます。';
+        } else if (buildCount <= 2) {
+            copy.mainText = `${buildCount}通り を組み立てています。候補を見ながら、さらに組み合わせを試していけます。`;
+        } else if (buildCount <= 5) {
+            copy.mainText = `${buildCount}通り の候補ができています。比較しながら、気になる組み合わせをさらに広げられます。`;
+        } else {
+            copy.mainText = `組み立て候補が十分にできています。今ある ${buildCount}通り を見比べながら、方向性を整えられます。`;
+        }
+        if (matchedReadingCount > 0) {
+            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あり、共通の方向から広げられます。`;
+        }
+        return copy;
+    }
+
+    copy.stageLabel = '保存';
+    copy.primaryAction = 'saved';
+    copy.primaryLabel = '保存した名前を見る';
+    copy.chips = [
+        { label: '保存', value: savedCount, unit: '件' },
+        { label: '一致', value: matchedSavedCount, unit: '件' }
+    ];
+    if (savedCount === 0) {
+        copy.mainText = 'まだ保存した名前はありません。組み立てた候補の中から、残したい名前を選んでいきましょう。';
+    } else if (savedCount === 1) {
+        copy.mainText = '名前候補を 1件 保存しています。ここを基準にしながら、次の候補を見比べていけます。';
+    } else if (savedCount <= 3) {
+        copy.mainText = `名前候補を ${savedCount}件 保存しています。見比べながら、方向性を絞り込んでいけます。`;
+    } else {
+        copy.mainText = `保存した候補がしっかり集まっています。今ある ${savedCount}件 を見比べながら、残したい名前を整理できます。`;
+    }
+    if (matchedSavedCount > 0) {
+        copy.mainText += ` パートナーと一致した候補が ${matchedSavedCount}件 あります。`;
+    }
+    return copy;
+}
+
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
     const buildPatternCount = Number.isFinite(Number(options.buildCount))
         ? Number(options.buildCount)
@@ -1992,9 +2128,17 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
     const pairing = getPairingHomeSummary();
-    const focusKey = getHomeStageFocus(timeline.activeKey);
-    const focusAction = getHomeStageFocusAction(focusKey, likedCount, readingStockCount, savedCount, pairing);
-    const cardConfig = getHomeNextStageCardConfig({ action: focusAction }, readingStockCount);
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : getHomeBuildPatternCount();
+    const readingStock = Array.isArray(options.readingStock)
+        ? options.readingStock
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
+    const focusKey = getHomeStageFocus(options.recommendedKey || timeline.activeKey);
+    const focusCopy = getHomeStageFocusCopy(focusKey, likedCount, readingStockCount, savedCount, pairing, {
+        buildCount,
+        readingStock
+    });
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
 
@@ -2004,8 +2148,13 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
-    const secondaryLink = cardConfig.alternateAction
-        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.alternateAction}')" class="mt-3 w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${cardConfig.alternateLabel}</button>`
+    const primaryButton = `
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.primaryAction}')" class="mt-3 w-full rounded-[20px] border border-[#eadfce] bg-[#b9965b] px-4 py-3 text-[12px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform">
+            ${focusCopy.primaryLabel}
+        </button>
+    `;
+    const secondaryButton = focusCopy.secondaryAction
+        ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
         : '';
 
     const displayedSteps = timeline.steps.map((step) => {
@@ -2026,16 +2175,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             ${displayedSteps.map((step, index) => {
                 const cardStyle = step.selected
                     ? tone.cardRecommended
-                    : step.recommended
-                    ? tone.cardRecommended
                     : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
                 const badgeStyle = step.selected
-                    ? tone.badgeRecommended
-                    : step.recommended
                     ? tone.badgeRecommended
                     : step.done
                     ? tone.badgeDone
@@ -2052,13 +2197,13 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     style="${cardStyle}">
                     <div class="flex h-full flex-col items-center justify-start">
                         <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
-                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">-</span>
+                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">${step.selected ? '●' : (step.done ? '✓' : '-')}</span>
                             <span>${step.label}</span>
                         </div>
                         <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                         </div>
-                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
+                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.selected ? '表示中' : 'タップで切替'}</div>
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
@@ -2066,8 +2211,22 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
             <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
-            ${renderHomeNextStagePrimaryButton(cardConfig)}
-            ${secondaryLink}
+            <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
+                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b] uppercase">今の状況</div>
+                <div class="mt-2 text-[15px] font-black leading-snug text-[#4f4639]">${focusCopy.mainText}</div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    ${focusCopy.chips.map((chip) => `
+                        <span class="inline-flex items-center gap-1 rounded-full border border-[#eadfce] bg-[#fffaf5] px-3 py-1 text-[11px] font-bold text-[#5d5444]">
+                            <span class="text-[#b9965b]">${chip.label}</span>
+                            <span>${chip.value}${chip.unit}</span>
+                        </span>
+                    `).join('')}
+                </div>
+                <div class="mt-4 flex flex-col gap-2">
+                    ${primaryButton}
+                    ${secondaryButton}
+                </div>
+            </div>
         </div>
     `;
 
@@ -2075,7 +2234,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         const badge = button.querySelector('span');
         if (!badge) return;
         const step = displayedSteps[index];
-        badge.textContent = step?.done ? '✓' : '-';
+        badge.textContent = step?.selected ? '●' : (step?.done ? '✓' : '-');
     });
 }
 
