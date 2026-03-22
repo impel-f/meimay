@@ -179,7 +179,7 @@ function getPartnerReservedThemeInfo() {
     const themeId = String(snapshot.themeId || '').trim();
     const partnerName = (typeof window.MeimayPartnerInsights !== 'undefined' && typeof window.MeimayPartnerInsights.getPartnerDisplayName === 'function')
         ? window.MeimayPartnerInsights.getPartnerDisplayName()
-        : (String(snapshot.displayName || '').trim() || (snapshot.role === 'mama' ? 'ママ' : snapshot.role === 'papa' ? 'パパ' : 'パートナー'));
+        : (String(snapshot.displayName || snapshot.username || snapshot.nickname || '').trim() || (snapshot.role === 'mama' ? 'ママ' : snapshot.role === 'papa' ? 'パパ' : 'パートナー'));
     const themeLabel = themeId ? getProfileThemeOption(themeId, snapshot.role).label : '';
     return { themeId, partnerName, themeLabel };
 }

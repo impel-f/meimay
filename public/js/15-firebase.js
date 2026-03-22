@@ -56,6 +56,9 @@ const MeimayAuth = {
         if (!trimmed) { alert('ニックネームを入力してください'); return; }
         wizData.username = trimmed;
         WizardData.save(wizData);
+        if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+            MeimayShare.syncProfileAppearance();
+        }
         if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
         if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
         showToast('ニックネームを更新しました', '\u2728');
@@ -2187,6 +2190,8 @@ MeimayPairing.syncMyData = async function () {
             .collection('data').doc(user.uid).set({
                 role: this.myRole,
                 displayName: String(wizard.username || '').trim(),
+                username: String(wizard.username || '').trim(),
+                nickname: String(wizard.username || '').trim(),
                 themeId: typeof getProfileThemeId === 'function' ? getProfileThemeId(wizard.role) : (wizard.themeId || null),
                 liked: minifiedLiked,
                 savedNames: minifiedSaved,
@@ -2201,7 +2206,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', themeId: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -2221,6 +2226,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 encounteredReadings: Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [],
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
+                username: String(data.username || '').trim(),
+                nickname: String(data.nickname || '').trim(),
                 themeId: String(data.themeId || '').trim()
             };
 
@@ -2237,7 +2244,7 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 };
 
@@ -2258,6 +2265,8 @@ MeimayShare.syncProfileAppearance = async function () {
             .collection('data').doc(user.uid).set({
                 role: nextRole,
                 displayName: String(wizard.username || '').trim(),
+                username: String(wizard.username || '').trim(),
+                nickname: String(wizard.username || '').trim(),
                 themeId: nextThemeId,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
@@ -2386,12 +2395,59 @@ MeimayPartnerInsights.buildReadingCollection = function (readingItems = [], like
     return Array.from(merged.values());
 };
 
+function isGenericPartnerDisplayName(value) {
+    const text = String(value || '').trim();
+    if (!text) return true;
+    return ['パートナー', 'ママ', 'パパ', '連携中', '未連携', '未設定', 'あなた'].includes(text);
+}
+
+function inferPartnerDisplayNameFromSnapshot(snapshot = {}) {
+    const directCandidates = [
+        snapshot.displayName,
+        snapshot.username,
+        snapshot.nickname,
+        snapshot.partnerName
+    ];
+
+    for (const candidate of directCandidates) {
+        const text = String(candidate || '').trim();
+        if (text && !isGenericPartnerDisplayName(text)) return text;
+    }
+
+    const tally = new Map();
+    const addCandidate = (candidate) => {
+        const text = String(candidate || '').trim();
+        if (!text || isGenericPartnerDisplayName(text)) return;
+        tally.set(text, (tally.get(text) || 0) + 1);
+    };
+
+    const readingStock = Array.isArray(snapshot.readingStock) ? snapshot.readingStock : [];
+    readingStock.forEach(item => {
+        addCandidate(item?.baseNickname);
+        addCandidate(item?.preferredLabel);
+        addCandidate(item?.displayName);
+    });
+
+    const encounteredReadings = Array.isArray(snapshot.encounteredReadings) ? snapshot.encounteredReadings : [];
+    encounteredReadings.forEach(item => {
+        addCandidate(item?.baseNickname);
+        addCandidate(item?.preferredLabel);
+    });
+
+    if (tally.size > 0) {
+        return Array.from(tally.entries())
+            .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
+    }
+
+    return '';
+}
+
 MeimayPartnerInsights.getPartnerDisplayName = function () {
     const snapshot = MeimayShare.partnerSnapshot || {};
-    const explicitName = String(snapshot.displayName || '').trim();
-    if (explicitName) return explicitName;
+    const inferredName = inferPartnerDisplayNameFromSnapshot(snapshot);
+    if (inferredName) return inferredName;
     if (typeof getPartnerRoleLabel === 'function') return getPartnerRoleLabel(snapshot.role);
-    return snapshot.role === 'mama' ? '繝槭・' : snapshot.role === 'papa' ? '繝代ヱ' : '繝代・繝医リ繝ｼ';
+    return snapshot.role === 'mama' ? 'ママ' : snapshot.role === 'papa' ? 'パパ' : 'パートナー';
 };
 
 MeimayPartnerInsights.getOwnApprovedSavedKeys = function () {
