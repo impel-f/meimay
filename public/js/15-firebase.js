@@ -2231,7 +2231,11 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 themeId: String(data.themeId || '').trim()
             };
 
-            if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+            if (typeof updatePairingUI === 'function') {
+                updatePairingUI();
+            } else if (typeof refreshPartnerAwareUI === 'function') {
+                refreshPartnerAwareUI();
+            }
         }, (e) => {
             console.warn('SHARE: Listen partner data error', e);
         });
