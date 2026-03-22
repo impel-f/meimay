@@ -643,7 +643,6 @@ body {
     position: relative;
     display: inline-block;
     vertical-align: middle;
-    padding-bottom: 0.55em;
     line-height: 1.05;
 }
 
@@ -654,8 +653,8 @@ body {
 .reading-title-star-badge {
     position: absolute;
     left: 0;
-    bottom: 0;
-    transform: translate(-18%, 62%);
+    bottom: -0.05em;
+    transform: translate(-18%, 78%);
     pointer-events: none;
     line-height: 1;
 }
