@@ -50,15 +50,15 @@ const MeimayAuth = {
     editNickname: function () {
         const wizData = WizardData.get() || {};
         const oldName = wizData.username || '';
-        const newName = prompt('譁ｰ縺励＞繝九ャ繧ｯ繝阪・繝繧貞・蜉帙＠縺ｦ縺上□縺輔＞', oldName);
+        const newName = prompt('新しいニックネームを入力してください', oldName);
         if (newName === null) return;
         const trimmed = newName.trim();
-        if (!trimmed) { alert('繝九ャ繧ｯ繝阪・繝繧貞・蜉帙＠縺ｦ縺上□縺輔＞'); return; }
+        if (!trimmed) { alert('ニックネームを入力してください'); return; }
         wizData.username = trimmed;
         WizardData.save(wizData);
         if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
         if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
-        showToast('繝九ャ繧ｯ繝阪・繝繧呈峩譁ｰ縺励∪縺励◆', '笨ｨ');
+        showToast('ニックネームを更新しました', '\u2728');
     }
 };
 
@@ -226,9 +226,9 @@ const MeimayPairing = {
     // 繝ｫ繝ｼ繝繧呈眠隕丈ｽ懈・
     createRoom: async function () {
         const user = MeimayAuth.getCurrentUser();
-        if (!user) { showToast('縺励・繧峨￥縺雁ｾ・■縺上□縺輔＞窶ｦ', '竢ｳ'); return null; }
+        if (!user) { showToast('サインインを待っています。', '\u23f3'); return null; }
         const role = this._selectedCreateRole || getPreferredPairingRole();
-        if (!role) { showToast('蜈医↓險ｭ螳壹〒繝槭・ / 繝代ヱ繧帝∈繧薙〒縺上□縺輔＞', '笞・・'); return null; }
+        if (!role) { showToast('先に設定でママ / パパを選んでください', '\u26a0'); return null; }
         if (this._selectedCreateRole !== role) this.selectCreateRole(role);
 
         // 6譁・ｭ励Λ繝ｳ繝繝繧ｳ繝ｼ繝・
@@ -260,7 +260,7 @@ const MeimayPairing = {
             return code;
         } catch (e) {
             console.error('PAIRING: Create room failed', e);
-            showToast('繝ｫ繝ｼ繝菴懈・縺ｫ螟ｱ謨励＠縺ｾ縺励◆', '笶・');
+            showToast('ルームを作成しました', '\u2713');
             return null;
         }
     },
@@ -268,11 +268,11 @@ const MeimayPairing = {
     // 繧ｳ繝ｼ繝峨ｒ蜈･蜉帙＠縺ｦ繝ｫ繝ｼ繝縺ｫ蜿ょ刈
     joinRoom: async function (code) {
         const user = MeimayAuth.getCurrentUser();
-        if (!user) { showToast('縺励・繧峨￥縺雁ｾ・■縺上□縺輔＞窶ｦ', '竢ｳ'); return { success: false }; }
+        if (!user) { showToast('サインインを待っています。', '\u23f3'); return { success: false }; }
         const role = this._selectedJoinRole || getPreferredPairingRole();
-        if (!role) { showToast('蜈医↓險ｭ螳壹〒繝槭・ / 繝代ヱ繧帝∈繧薙〒縺上□縺輔＞', '笞・・'); return { success: false }; }
+        if (!role) { showToast('先に設定でママ / パパを選んでください', '\u26a0'); return { success: false }; }
         if (this._selectedJoinRole !== role) this.selectJoinRole(role);
-        if (!code || code.trim().length < 4) { showToast('繧ｳ繝ｼ繝峨ｒ蜈･蜉帙＠縺ｦ縺上□縺輔＞', '笞・・'); return { success: false }; }
+        if (!code || code.trim().length < 4) { showToast('コードを入力してください', '\u26a0'); return { success: false }; }
 
         const upperCode = code.trim().toUpperCase();
 
@@ -388,19 +388,19 @@ const MeimayPairing = {
     // Web Share API 縺ｧ繝ｫ繝ｼ繝繧ｳ繝ｼ繝峨ｒ蜈ｱ譛・
     shareCode: function () {
         if (!this.roomCode) return;
-        const partnerRoleLabel = this.myRole === 'mama' ? '繝代ヱ' : '繝槭・';
-        const text = `繝｡繧､繝｡繝ｼ縺ｧ襍､縺｡繧・ｓ縺ｮ蜷榊燕繧剃ｸ邱偵↓驕ｸ縺ｼ縺・ｼ―n${partnerRoleLabel}縺ｯ縺薙・繧ｳ繝ｼ繝峨ｒ蜈･蜉帙＠縺ｦ縺ｭ存\n\n繝ｫ繝ｼ繝繧ｳ繝ｼ繝・ ${this.roomCode}`;
+        const partnerRoleLabel = this.myRole === 'mama' ? 'パパ' : 'ママ';
+        const text = `メイメイで名前づけのコードを共有します。\n${partnerRoleLabel}はこのコードを入力してください。\n\nルームコード: ${this.roomCode}`;
 
         if (navigator.share) {
             navigator.share({
-                title: '繝｡繧､繝｡繝ｼ - 縺・▲縺励ｇ縺ｫ蜷榊燕繧帝∈縺ｼ縺・',
+                title: 'メイメイ - 名前づけのコードを共有',
                 text: text
             }).catch(() => {});
         } else {
             navigator.clipboard?.writeText(this.roomCode).then(() => {
-                showToast('繧ｳ繝ｼ繝峨ｒ繧ｳ繝斐・縺励∪縺励◆', '搭');
+                showToast('コードをコピーしました', '\u2713');
             }).catch(() => {
-                showToast(`繧ｳ繝ｼ繝・ ${this.roomCode}`, '搭');
+                showToast(`コード: ${this.roomCode}`, '\u2713');
             });
         }
     },
@@ -423,7 +423,7 @@ const MeimayPairing = {
                     this.partnerRole = partnerRole;
                     MeimayShare.listenPartnerData(partnerUid);
                     updatePairingUI();
-                     showToast('繝代・繝医リ繝ｼ縺悟盾蜉縺励∪縺励◆・・', '酎');
+                     showToast('パートナーが連携しました', '\u2713');
                     console.log(`PAIRING: Partner joined (${partnerRole})`);
                 } else if (!partnerUid && this.partnerUid) {
                     // 繝代・繝医リ繝ｼ縺碁螳､縺励◆
@@ -431,7 +431,7 @@ const MeimayPairing = {
                     this.partnerRole = null;
                     MeimayShare.stopListening();
                     updatePairingUI();
-                    showToast('繝代・繝医リ繝ｼ縺碁螳､縺励∪縺励◆', '窓');
+                    showToast('パートナーとの連携が解除されました', '\u2713');
                     console.log('PAIRING: Partner left');
                 }
             }, (e) => {
@@ -485,20 +485,20 @@ const MeimayShare = {
                     savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                     role: data.role || null
                 };
-                const partnerLabel = data.role === 'mama' ? '繝槭・' : '繝代ヱ';
+                const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
                 if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
                 if (data.liked && data.liked.length > 0) {
                     const added = this.mergeSharedLiked(data.liked, partnerLabel);
                     if (added > 0) {
-                        showToast(`${partnerLabel}縺ｮ繧ｹ繝医ャ繧ｯ ${added}莉ｶ 縺悟ｱ翫″縺ｾ縺励◆・～`, '踏');
+                        showToast(`${partnerLabel}のストック ${added}件を取り込みました`, '\u2713');
                     }
                 }
 
                 if (data.savedNames && data.savedNames.length > 0) {
                     const added = this.mergeSharedSaved(data.savedNames, partnerLabel);
                     if (added > 0) {
-                        showToast(`${partnerLabel}縺ｮ菫晏ｭ伜錐蜑・${added}莉ｶ 縺悟ｱ翫″縺ｾ縺励◆・～`, '踏');
+                        showToast(`${partnerLabel}の保存候補 ${added}件を取り込みました`, '\u2713');
                     }
                 }
             }, (e) => {
@@ -520,21 +520,21 @@ const MeimayShare = {
     // 繧ｹ繝医ャ繧ｯ貍｢蟄励ｒ繝ｫ繝ｼ繝縺ｫ蜈ｱ譛会ｼ・ 閾ｪ蛻・・繝・・繧ｿ繧偵Ν繝ｼ繝縺ｫ蜷梧悄・・
     shareLiked: async function (silent = false) {
         if (!MeimayPairing.roomCode) {
-            if (!silent) showToast('繝代・繝医リ繝ｼ縺ｨ騾｣謳ｺ縺励※縺上□縺輔＞', '笞・・');
+            if (!silent) showToast('パートナーと連携してください', '\u26a0');
             return;
         }
         await MeimayPairing.syncMyData();
-        if (!silent) showToast('繧ｹ繝医ャ繧ｯ繧貞・譛峨＠縺ｾ縺励◆・・', '豆');
+        if (!silent) showToast('ストックを共有しました', '\u2713');
     },
 
     // 菫晏ｭ伜錐蜑阪ｒ繝ｫ繝ｼ繝縺ｫ蜈ｱ譛・
     shareSavedNames: async function (silent = false) {
         if (!MeimayPairing.roomCode) {
-            if (!silent) showToast('繝代・繝医リ繝ｼ縺ｨ騾｣謳ｺ縺励※縺上□縺輔＞', '笞・・');
+            if (!silent) showToast('パートナーと連携してください', '\u26a0');
             return;
         }
         await MeimayPairing.syncMyData();
-        if (!silent) showToast('菫晏ｭ伜錐蜑阪ｒ蜈ｱ譛峨＠縺ｾ縺励◆・・', '豆');
+        if (!silent) showToast('保存候補を共有しました', '\u2713');
     },
 
     // 蜿嶺ｿ｡繧ｹ繝医ャ繧ｯ繧偵Ο繝ｼ繧ｫ繝ｫ縺ｫ繝槭・繧ｸ
@@ -773,11 +773,18 @@ function getPreferredPairingRole() {
 
 function getPreferredPairingRoleLabel() {
     const role = getPreferredPairingRole();
-    if (role === 'mama') return '繝槭・';
-    if (role === 'papa') return '繝代ヱ';
+    if (role === 'mama') return 'ママ';
+    if (role === 'papa') return 'パパ';
     return '';
 }
 
+function formatPartnerStatusName(name) {
+    const value = String(name || '').trim();
+    if (!value) return '';
+    if (value === 'ママ' || value === 'パパ' || value === 'パートナー') return value;
+    if (value.endsWith('さん')) return value;
+    return value + 'さん';
+}
 function syncPairingRoleSelectionFromProfile() {
     const preferredRole = getPreferredPairingRole();
     const preferredRoleLabel = getPreferredPairingRoleLabel();
@@ -785,15 +792,15 @@ function syncPairingRoleSelectionFromProfile() {
     const createLabel = document.getElementById('pairing-create-role-label');
     if (createLabel) {
         createLabel.textContent = preferredRoleLabel
-            ? `迴ｾ蝨ｨ縺ｮ險ｭ螳・ ${preferredRoleLabel}`
-            : '險ｭ螳壹〒繝槭・ / 繝代ヱ繧帝∈縺ｶ縺ｨ騾｣謳ｺ縺ｧ縺阪∪縺・';
+            ? '現在の設定: ' + preferredRoleLabel
+            : '設定でママ / パパを選ぶと連携しやすくなります';
     }
 
     const joinLabel = document.getElementById('pairing-join-role-label');
     if (joinLabel) {
         joinLabel.textContent = preferredRoleLabel
-            ? `迴ｾ蝨ｨ縺ｮ險ｭ螳・ ${preferredRoleLabel}`
-            : '險ｭ螳壹〒繝槭・ / 繝代ヱ繧帝∈縺ｶ縺ｨ蜿ょ刈縺ｧ縺阪∪縺・';
+            ? '現在の設定: ' + preferredRoleLabel
+            : '設定でママ / パパを選ぶと参加しやすくなります';
     }
 
     if (!preferredRole || typeof MeimayPairing === 'undefined') return;
@@ -806,7 +813,6 @@ function syncPairingRoleSelectionFromProfile() {
         MeimayPairing.selectJoinRole(preferredRole);
     }
 }
-
 function updatePairingUI() {
     const inRoom = !!MeimayPairing.roomCode;
     const hasPartner = !!MeimayPairing.partnerUid;
@@ -819,23 +825,20 @@ function updatePairingUI() {
         if (pairingNotLinked) pairingNotLinked.classList.add('hidden');
         if (pairingLinked) pairingLinked.classList.remove('hidden');
 
-        // 繧ｳ繝ｼ繝芽｡ｨ遉ｺ
         const codeEl = document.getElementById('pairing-code-display-linked');
         if (codeEl) codeEl.textContent = MeimayPairing.roomCode;
 
-        // 閾ｪ蛻・・繝ｭ繝ｼ繝ｫ陦ｨ遉ｺ
         const myRoleEl = document.getElementById('pairing-my-role');
-        if (myRoleEl) myRoleEl.textContent = MeimayPairing.myRole === 'mama' ? '繝槭・' : '繝代ヱ';
+        if (myRoleEl) myRoleEl.textContent = MeimayPairing.myRole === 'mama' ? 'ママ' : 'パパ';
 
-        // 繝代・繝医リ繝ｼ迥ｶ諷玖｡ｨ遉ｺ
         const partnerStatusEl = document.getElementById('pairing-partner-status');
         if (partnerStatusEl) {
             if (hasPartner) {
-                const partnerLabel = MeimayPairing.partnerRole === 'mama' ? '繝槭・' : '繝代ヱ';
-                partnerStatusEl.textContent = `${partnerLabel}縺ｨ騾｣謳ｺ荳ｭ 酎`;
+                const partnerLabel = MeimayPairing.partnerRole === 'mama' ? 'ママ' : 'パパ';
+                partnerStatusEl.textContent = partnerLabel + 'と連携中';
                 partnerStatusEl.className = 'text-sm font-bold text-[#5d5444]';
             } else {
-                partnerStatusEl.textContent = '繝代・繝医リ繝ｼ蠕・ｩ滉ｸｭ窶ｦ';
+                partnerStatusEl.textContent = 'パートナー未連携';
                 partnerStatusEl.className = 'text-sm font-bold text-[#a6967a]';
             }
         }
@@ -844,47 +847,45 @@ function updatePairingUI() {
         if (pairingLinked) pairingLinked.classList.add('hidden');
     }
 
-    // 蜈ｱ譛峨・繧ｿ繝ｳ・医せ繝医ャ繧ｯ/菫晏ｭ倡判髱｢・・
-    const shareButtons = document.querySelectorAll('.partner-share-btn');
-    shareButtons.forEach(btn => {
-        btn.classList.add('hidden');
-    });
-
-    // 繝峨Ο繝ｯ繝ｼ縺ｮ繝代・繝医リ繝ｼ騾｣謳ｺ繝舌ャ繧ｸ
-    const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
-    if (drawerPairingBadge) {
-        drawerPairingBadge.classList.toggle('hidden', !inRoom);
+    const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
+    const drawerPartnerStatusLabel = document.getElementById('drawer-partner-status-label');
+    if (drawerPartnerStatusButton && drawerPartnerStatusLabel) {
+        if (inRoom && hasPartner) {
+            const partnerDisplayName = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getPartnerDisplayName === 'function'
+                ? MeimayPartnerInsights.getPartnerDisplayName()
+                : (MeimayPairing.partnerDisplayName || MeimayPairing.partnerLabel || 'パートナー');
+            const partnerStatusName = formatPartnerStatusName(partnerDisplayName);
+            drawerPartnerStatusLabel.textContent = partnerStatusName
+                ? 'パートナー：' + partnerStatusName + 'と連携中'
+                : 'パートナー：連携中';
+            drawerPartnerStatusButton.classList.remove('hidden');
+        } else {
+            drawerPartnerStatusButton.classList.add('hidden');
+        }
     }
 
     refreshPartnerAwareUI();
 }
-
-// 繝ｫ繝ｼ繝菴懈・繝懊ち繝ｳ
 async function handleGenerateCode() {
     const btn = document.getElementById('btn-generate-code');
     if (btn) btn.disabled = true;
     const code = await MeimayPairing.createRoom();
     if (btn) btn.disabled = false;
     if (code) {
-        showToast('繝ｫ繝ｼ繝繧剃ｽ懈・縺励∪縺励◆・・', '脂');
+        showToast('ルームを作成しました', '\u2713');
     }
 }
-
-// 繧ｳ繝ｼ繝牙・蜉帙＠縺ｦ蜿ょ刈繝懊ち繝ｳ
 async function handleEnterCode() {
     const input = document.getElementById('pairing-code-input');
     const code = input?.value?.trim();
     const result = await MeimayPairing.joinRoom(code);
     if (result.success) {
-        showToast('繝代・繝医リ繝ｼ縺ｨ騾｣謳ｺ縺励∪縺励◆・・', '酎');
+        showToast('パートナーと連携しました', '\u2713');
         if (input) input.value = '';
     } else if (result.error) {
-        showToast(result.error, '笞・・');
+        showToast(result.error, '!');
     }
 }
-
-// ============================================================
-// STORAGE HOOK 窶・菫晏ｭ俶凾縺ｫ繝ｫ繝ｼ繝縺ｸ閾ｪ蜍募酔譛・// ============================================================
 (function hookStorageSync() {
     const waitForStorageBox = setInterval(() => {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveAll) {
@@ -965,7 +966,7 @@ if (typeof window !== 'undefined') {
 // ============================================================
 // TOAST NOTIFICATION
 // ============================================================
-function showToast(message, icon = '討', onAction = null) {
+function showToast(message, icon = '\u2728', onAction = null) {
     const existing = document.getElementById('meimay-toast');
     if (existing) existing.remove();
 
@@ -2018,11 +2019,10 @@ if (typeof window !== 'undefined') {
 console.log("FIREBASE: Module loaded (v22.1 - anonymous + room pairing + reading seed)");
 
 function getPartnerRoleLabel(role) {
-    if (role === 'mama') return '繝槭・';
-    if (role === 'papa') return '繝代ヱ';
-    return '繝代・繝医リ繝ｼ';
+    if (role === 'mama') return 'ママ';
+    if (role === 'papa') return 'パパ';
+    return 'パートナー';
 }
-
 function cleanupLegacyPartnerLocalData() {
     try {
         if (typeof liked !== 'undefined' && Array.isArray(liked)) {

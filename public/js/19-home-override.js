@@ -1928,9 +1928,7 @@ function renderHomeProfileV2() {
                     <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Progress</div>
                     <div class="mt-1 text-sm font-bold text-[#4f4639]">いまどの段階か</div>
                 </div>
-                <button type="button" onclick="openHomeInsightsModalFromEvent(event)" class="rounded-full px-3 py-2 text-[11px] font-bold active:scale-95" style="${overview.tone.ghost}">
-                    進み具合を見る
-                </button>
+
             </div>
         `;
     }
@@ -2242,13 +2240,13 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
             <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">今の状況</div>
+                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
                 <div class="mt-2 whitespace-pre-line text-[13px] font-normal leading-relaxed text-[#4f4639]">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
             </div>
         </div>
         <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
             <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">この段階でできること</div>
+                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">💡この段階でできること</div>
                 <div class="mt-2">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
@@ -2561,7 +2559,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
             }).join('')}
         </div>
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">今の状況</div>
+            <div class="text-[10px] font-medium tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
             <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
                 <div class="mt-2 whitespace-pre-line text-[12px] font-normal leading-relaxed text-[#4f4639]">${focusCopy.statusLines.join('\n')}</div>
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -2575,7 +2573,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
             </div>
         </div>
         <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">この段階でできること</div>
+            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">💡この段階でできること</div>
             <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
