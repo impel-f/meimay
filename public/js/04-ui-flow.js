@@ -9009,7 +9009,14 @@ function renderReadingStockSectionV2() {
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : (typeof getPartnerRoleLabel === 'function' ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role) : 'パートナー');
 
     const showOwnSections = readingFocus !== 'partner';
-    const visibleCompleted = showOwnSections ? completedCards.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
+    const visibleCompleted = showOwnSections
+        ? completedCards
+            .filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
+            .map(item => ({
+                ...item,
+                innerMatchCount: isReadingMatchedForView(item) ? 1 : 0
+            }))
+        : [];
     const visiblePendingOnly = showOwnSections ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
     const visiblePartnerReadings = partnerPendingCards;
 
@@ -9614,6 +9621,7 @@ function renderReadingStockSectionV2() {
                             )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
+                        ${item.innerMatchCount > 0 ? `<div class="mt-0.5 text-[9px]" style="color:${tone.sub}">（内一致:${item.innerMatchCount}件）</div>` : ''}
                     </div>
                     <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
