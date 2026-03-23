@@ -1480,10 +1480,23 @@ body.has-ad-banner #universal-footer {
     position: relative;
 }
 
+#scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    min-height: 1.9em;
+    padding: 0.12rem 0.8rem 0.14rem;
+    border-radius: 9999px;
+    background: rgba(255, 248, 236, 0.94);
+    border: 1px solid rgba(189, 163, 127, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
 #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:first-child {
     position: absolute;
-    left: 6px;
-    top: 56%;
+    left: 8px;
+    top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
     z-index: 1;
@@ -1491,7 +1504,7 @@ body.has-ad-banner #universal-footer {
 
 #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
     display: inline-block;
-    font-size: 1.5em;
+    font-size: 1.56em;
     line-height: 0.9;
     letter-spacing: -0.01em;
 }
@@ -1536,7 +1549,7 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.48em;
+        font-size: 1.52em;
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
@@ -1566,7 +1579,7 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.52em;
+        font-size: 1.58em;
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
