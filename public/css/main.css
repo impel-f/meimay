@@ -1476,46 +1476,11 @@ body.has-ad-banner #universal-footer {
     margin-top: 6px !important;
 }
 
-#scr-mode #home-stage-track [data-home-stage-button] {
-    position: relative;
-}
-
-#scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 100%;
-    min-height: 1.9em;
-    padding: 0.12rem 0.8rem 0.14rem;
-    border-radius: 9999px;
-    background: rgba(255, 248, 236, 0.94);
-    border: 1px solid rgba(189, 163, 127, 0.18);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
-}
-
-#scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:first-child {
-    position: absolute;
-    left: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    z-index: 1;
-}
-
 #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
     display: inline-block;
-    font-size: 1.56em;
-    line-height: 0.9;
+    font-size: 1.22em;
+    line-height: 0.95;
     letter-spacing: -0.01em;
-}
-
-#scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
-    font-size: 18px;
-    line-height: 1;
-}
-
-#scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) > span:last-child {
-    font-size: 0.6em;
 }
 
 @media (max-height: 760px) {
@@ -1549,11 +1514,7 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.52em;
-    }
-
-    #scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
-        font-size: 17px;
+        font-size: 1.18em;
     }
 }
 
@@ -1579,10 +1540,6 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.58em;
-    }
-
-    #scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
-        font-size: 25px;
+        font-size: 1.24em;
     }
 }
