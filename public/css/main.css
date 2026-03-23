@@ -1476,6 +1476,17 @@ body.has-ad-banner #universal-footer {
     margin-top: 6px !important;
 }
 
+#scr-mode #home-stage-track [data-home-stage-count="reading"] {
+    display: inline-block;
+    font-size: 1.18em;
+    line-height: 0.95;
+}
+
+#scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
+    font-size: 0.64em;
+    line-height: 1;
+}
+
 @media (max-height: 760px) {
     #scr-mode {
         padding-top: 56px !important;
@@ -1505,6 +1516,14 @@ body.has-ad-banner #universal-footer {
     #scr-mode .home-tool-card {
         min-height: 58px;
     }
+
+    #scr-mode #home-stage-track [data-home-stage-count="reading"] {
+        font-size: 1.16em;
+    }
+
+    #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
+        font-size: 0.63em;
+    }
 }
 
 @media (min-width: 768px) {
@@ -1526,5 +1545,13 @@ body.has-ad-banner #universal-footer {
     #scr-mode > .home-screen-shell {
         min-height: auto;
         gap: 12px !important;
+    }
+
+    #scr-mode #home-stage-track [data-home-stage-count="reading"] {
+        font-size: 1.2em;
+    }
+
+    #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
+        font-size: 0.62em;
     }
 }
