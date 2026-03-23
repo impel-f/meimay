@@ -1175,6 +1175,157 @@ body.has-ad-banner #universal-footer {
 }
 
 /* ============================================================
+   NAMING FLOW SURFACES
+   ============================================================ */
+
+#wiz-step-4,
+#scr-input-reading > .glass-card,
+#scr-input-sound-entry > .glass-card,
+#scr-gender > .glass-card,
+#scr-vibe > .glass-card,
+#scr-input-nickname > .glass-card,
+#scr-diagnosis-input > .glass-card,
+#scr-segment > .glass-card,
+#scr-surname-settings > .glass-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 252, 247, 0.95) 100%) !important;
+    border: 1px solid rgba(212, 197, 175, 0.28) !important;
+    box-shadow: none !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    overflow: hidden;
+    position: relative;
+    border-radius: 34px !important;
+}
+
+#wiz-step-4::before,
+#scr-input-reading > .glass-card::before,
+#scr-input-sound-entry > .glass-card::before,
+#scr-gender > .glass-card::before,
+#scr-vibe > .glass-card::before,
+#scr-input-nickname > .glass-card::before,
+#scr-diagnosis-input > .glass-card::before,
+#scr-segment > .glass-card::before,
+#scr-surname-settings > .glass-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    height: 10px;
+    background: linear-gradient(90deg, rgba(212, 197, 175, 0), rgba(188, 163, 127, 0.16), rgba(212, 197, 175, 0));
+    pointer-events: none;
+}
+
+#wiz-step-4 {
+    width: min(100%, 430px);
+    margin: 4px auto 0;
+    padding: 30px 24px 28px;
+    border-radius: 36px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+#wiz-step-4 .wiz-reading-choice {
+    background: rgba(255, 255, 255, 0.58);
+    border: 1.5px solid rgba(212, 197, 175, 0.34);
+    border-radius: 24px;
+    box-shadow: none;
+    padding: 18px 18px 18px 20px;
+}
+
+#wiz-step-4 .wiz-reading-choice.selected {
+    border-color: rgba(188, 163, 127, 0.8);
+    background: rgba(255, 249, 236, 0.98);
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
+}
+
+.wiz-role-btn,
+.wiz-gender-btn {
+    background: rgba(255, 255, 255, 0.58);
+    border: 1.5px solid rgba(212, 197, 175, 0.34);
+    border-radius: 20px;
+    box-shadow: none;
+}
+
+.wiz-role-btn.selected,
+.wiz-gender-btn.selected {
+    border-color: rgba(188, 163, 127, 0.82);
+    background: rgba(255, 249, 236, 0.98);
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
+}
+
+#scr-input-reading .rule-box {
+    background: transparent;
+    border-radius: 0;
+    padding: 0 !important;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+}
+
+#scr-input-reading .rule-box.space-y-4 > * + * {
+    margin-top: 0 !important;
+}
+
+#scr-input-reading .rule-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(212, 197, 175, 0.18);
+}
+
+#scr-input-reading .rule-item:last-child {
+    border-bottom: none;
+}
+
+#scr-input-sound-entry button[id^="sound-entry-choice-"] {
+    background: rgba(255, 255, 255, 0.58) !important;
+    border: 1.5px solid rgba(212, 197, 175, 0.34) !important;
+    border-radius: 24px !important;
+    box-shadow: none !important;
+}
+
+#scr-input-sound-entry button[id^="sound-entry-choice-"][class*="b9965b"],
+#scr-input-sound-entry button[id^="sound-entry-choice-"][class*="fffbef"] {
+    border-color: rgba(188, 163, 127, 0.82) !important;
+    background: rgba(255, 249, 236, 0.98) !important;
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset !important;
+}
+
+#scr-input-sound-entry button[id^="sound-entry-choice-"]:active {
+    transform: scale(0.99);
+}
+
+#scr-input-sound-entry .sound-entry-pos-label {
+    background: rgba(255, 255, 255, 0.58) !important;
+    border: 1.5px solid rgba(212, 197, 175, 0.34) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+}
+
+#scr-input-sound-entry .sound-entry-pos-label:has(input:checked) {
+    border-color: rgba(188, 163, 127, 0.82) !important;
+    background: rgba(255, 249, 236, 0.98) !important;
+    color: #8b6c34 !important;
+}
+
+#scr-input-sound-entry #sound-entry-input-panel-static,
+#scr-input-sound-entry #sound-entry-input-panel {
+    background: rgba(255, 255, 255, 0.46);
+    border: 1px dashed rgba(212, 197, 175, 0.42);
+    box-shadow: none;
+}
+
+#scr-input-sound-entry #sound-entry-input-placeholder-static {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+#scr-segment .wiz-gender-btn {
+    padding: 18px 20px;
+    border-radius: 24px;
+}
+
+/* ============================================================
    STOCK TAB SWIPE ANIMATIONS
    ============================================================ */
 @keyframes slideOutLeft {
