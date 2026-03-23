@@ -317,17 +317,42 @@ function getPairingHomeSummary() {
 }
 
 function getOwnHomeReadingCount() {
-    if (typeof window.getReadingStockPickerUniqueCount === 'function') {
-        return window.getReadingStockPickerUniqueCount();
-    }
+    return getHomeOwnershipSummary().ownReadingCount;
+}
+
+function getHomeOwnershipSummary() {
     const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights)
         ? window.MeimayPartnerInsights
         : null;
-    if (pairInsights?.getOwnReadingCollection) {
-        return pairInsights.getOwnReadingCollection().length;
-    }
-    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
-    return Array.isArray(readingStock) ? readingStock.length : 0;
+    const ownLikedItems = pairInsights?.getOwnLiked
+        ? pairInsights.getOwnLiked()
+        : ((typeof liked !== 'undefined' && Array.isArray(liked))
+            ? liked.filter(item => !item?.fromPartner)
+            : []);
+    const ownSavedItems = pairInsights?.getOwnSaved
+        ? pairInsights.getOwnSaved()
+        : (() => {
+            const savedSource = typeof getSavedNames === 'function'
+                ? getSavedNames()
+                : (typeof savedNames !== 'undefined' && Array.isArray(savedNames) ? savedNames : []);
+            return Array.isArray(savedSource)
+                ? savedSource.filter(item => !item?.fromPartner)
+                : [];
+        })();
+    const ownReadingItems = pairInsights?.getOwnReadingCollection
+        ? pairInsights.getOwnReadingCollection()
+        : ((typeof getReadingStock === 'function')
+            ? getReadingStock().filter(item => !item?.fromPartner)
+            : []);
+    return {
+        pairInsights,
+        ownLikedItems,
+        ownSavedItems,
+        ownReadingItems,
+        ownLikedCount: ownLikedItems.length,
+        ownSavedCount: ownSavedItems.length,
+        ownReadingCount: ownReadingItems.length
+    };
 }
 
 function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
@@ -1199,13 +1224,13 @@ function openHomeInsightsModalFromEvent(event) {
 function openHomeInsightsModal() {
     if (typeof closeHomeInsightsModal === 'function') closeHomeInsightsModal();
 
-    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
-    const likedCount = (typeof liked !== 'undefined' && Array.isArray(liked)) ? liked.length : 0;
-    const readingStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
-    const readingStockCount = getOwnHomeReadingCount();
-    const savedCount = Array.isArray(savedList) ? savedList.length : 0;
+    const homeOwnership = getHomeOwnershipSummary();
+    const pairing = homeOwnership.pairing;
+    const likedCount = homeOwnership.ownLikedCount;
+    const readingStock = homeOwnership.ownReadingItems;
+    const readingStockCount = homeOwnership.ownReadingCount;
+    const savedCount = homeOwnership.ownSavedCount;
     const buildPatternCount = getHomeBuildPatternCount();
-    const pairing = getPairingHomeSummary();
     const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) || {
         title: '次に進める候補があります',
@@ -1312,6 +1337,18 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
 
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
     const counts = pairing?.counts || {};
+    const ownReadingCount = Number.isFinite(Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount))
+        ? Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount)
+        : 0;
+    const ownKanjiCount = Number.isFinite(Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount))
+        ? Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount)
+        : 0;
+    const ownSavedCount = Number.isFinite(Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount))
+        ? Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount)
+        : 0;
+    const partnerReadingCount = Number.isFinite(Number(counts?.partner?.reading ?? pairing?.partnerReadingCount))
+        ? Number(counts?.partner?.reading ?? pairing?.partnerReadingCount)
+        : 0;
     const partnerKanjiCount = Number.isFinite(Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount))
         ? Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
         : 0;
@@ -1320,11 +1357,9 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
         : 0;
 
     return {
-        // 読みは入力ストック側で自分+パートナーのユニーク数に揃えているので、
-        // ここでさらに相手分を足さない。
-        readingStockCount,
-        likedCount: likedCount + partnerKanjiCount,
-        savedCount: savedCount + partnerSavedCount
+        readingStockCount: ownReadingCount + partnerReadingCount,
+        likedCount: ownKanjiCount + partnerKanjiCount,
+        savedCount: ownSavedCount + partnerSavedCount
     };
 }
 
@@ -1456,15 +1491,14 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             ? liked.filter(item => !item?.fromPartner)
             : []);
     const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
-    const partnerLikedItemsRaw = insights?.getPartnerLikedRaw ? insights.getPartnerLikedRaw() : partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItemsRaw.length ?? 0);
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItems.length ?? 0);
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
-    const ownReadingCount = Number(counts?.own?.reading ?? readingStockCount ?? 0);
-    const ownKanjiCount = Number(counts?.own?.kanji ?? likedCount ?? 0);
-    const ownSavedCount = Number(counts?.own?.saved ?? savedCount ?? 0);
+    const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount ?? 0);
+    const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount ?? 0);
+    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
     const aggregateBuildCount = getHomeBuildPatternCount();
-    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsRaw);
+    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItems);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems);
 
     if (mode === 'shared') {
@@ -1529,12 +1563,14 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
 }
 
 function renderHomeProfile() {
-    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
-    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
-    const savedCount = savedList.length;
-    const readingStockCount = getOwnHomeReadingCount();
-    const preference = typeof getHomePreferenceSummary === 'function' ? getHomePreferenceSummary(liked) : { shortText: 'まだ傾向なし' };
-    const pairing = getPairingHomeSummary();
+    const homeOwnership = getHomeOwnershipSummary();
+    const likedCount = homeOwnership.ownLikedCount;
+    const savedCount = homeOwnership.ownSavedCount;
+    const readingStockCount = homeOwnership.ownReadingCount;
+    const preference = typeof getHomePreferenceSummary === 'function'
+        ? getHomePreferenceSummary(homeOwnership.ownLikedItems)
+        : { shortText: 'まだ傾向なし' };
+    const pairing = homeOwnership.pairing;
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
@@ -1828,11 +1864,11 @@ function getHomeOverviewModel(pairing, nextStep) {
 }
 
 function renderHomeProfileV2() {
-    const likedCount = (typeof liked !== 'undefined' && liked) ? liked.length : 0;
-    const savedList = (typeof getSavedNames === 'function') ? getSavedNames() : (window.savedNames || []);
-    const savedCount = savedList.length;
-    const readingStockCount = getOwnHomeReadingCount();
-    const pairing = getPairingHomeSummary();
+    const homeOwnership = getHomeOwnershipSummary();
+    const likedCount = homeOwnership.ownLikedCount;
+    const savedCount = homeOwnership.ownSavedCount;
+    const readingStockCount = homeOwnership.ownReadingCount;
+    const pairing = homeOwnership.pairing;
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
     stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);

@@ -2968,7 +2968,7 @@ MeimayPartnerInsights.getSummary = function () {
         ownReadingCount: ownReadingItems.length,
         partnerReadingCount: partnerReadingItems.length,
         ownKanjiCount: ownLikedItems.length,
-        partnerKanjiCount: partnerLikedItemsRaw.length,
+        partnerKanjiCount: partnerLikedItems.length,
         ownSavedCount: ownSavedItems.length,
         partnerSavedCount: partnerSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
@@ -2979,7 +2979,7 @@ MeimayPartnerInsights.getSummary = function () {
         matchedSavedItems: matchedSavedItems,
         matchedTotalCount: matchedReadingItems.length + matchedLikedItems.length + matchedSavedItems.length,
         ownTotalCount: ownReadingItems.length + ownLikedItems.length + ownSavedItems.length,
-        partnerTotalCount: partnerReadingItems.length + partnerLikedItemsRaw.length + partnerSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + partnerLikedItems.length + partnerSavedItems.length,
         counts: {
             own: {
                 reading: ownReadingItems.length,
@@ -2988,7 +2988,7 @@ MeimayPartnerInsights.getSummary = function () {
             },
             partner: {
                 reading: partnerReadingItems.length,
-                kanji: partnerLikedItemsRaw.length,
+                kanji: partnerLikedItems.length,
                 saved: partnerSavedItems.length
             },
             matched: {
