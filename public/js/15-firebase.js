@@ -517,7 +517,14 @@ const MeimayPairing = {
                 this._clearLocal();
                 return;
             }
-            const data = doc.data();
+            const data = doc.data() || {};
+            const currentUid = MeimayAuth.getCurrentUser()?.uid || firebaseAuth?.currentUser?.uid || '';
+            this.mySlot = resolveRoomSlotFromDoc(data, currentUid, this.mySlot || slot);
+            this.partnerSlot = this.mySlot === 'memberA' ? 'memberB' : 'memberA';
+            this.myRole = data[`${this.mySlot}Role`] || role;
+            localStorage.setItem('meimay_room_slot', this.mySlot);
+            localStorage.setItem('meimay_my_role', this.myRole || role);
+
             const partnerUid = data[`${this.partnerSlot}Uid`];
             const partnerRole = data[`${this.partnerSlot}Role`];
             if (partnerUid) {
@@ -741,9 +748,25 @@ const MeimayPairing = {
         this._roomUnsub = firebaseDb.collection('rooms').doc(this.roomCode)
             .onSnapshot((doc) => {
                 if (!doc.exists) return;
-                const data = doc.data();
-                const partnerUid = data[`${this.partnerSlot}Uid`];
-                const partnerRole = data[`${this.partnerSlot}Role`];
+                const data = doc.data() || {};
+                const currentUid = MeimayAuth.getCurrentUser()?.uid || firebaseAuth?.currentUser?.uid || '';
+                const storedMySlot = this.mySlot || (this.partnerSlot === 'memberA' ? 'memberB' : 'memberA');
+                const nextMySlot = resolveRoomSlotFromDoc(data, currentUid, storedMySlot);
+                const nextPartnerSlot = nextMySlot === 'memberA' ? 'memberB' : 'memberA';
+                const nextMyRole = data[`${nextMySlot}Role`] || this.myRole || null;
+                const partnerUid = data[`${nextPartnerSlot}Uid`];
+                const partnerRole = data[`${nextPartnerSlot}Role`];
+
+                if (nextMySlot !== this.mySlot) {
+                    this.mySlot = nextMySlot;
+                    this.partnerSlot = nextPartnerSlot;
+                    localStorage.setItem('meimay_room_slot', nextMySlot);
+                }
+                this.partnerSlot = nextPartnerSlot;
+                if (nextMyRole && nextMyRole !== this.myRole) {
+                    this.myRole = nextMyRole;
+                    localStorage.setItem('meimay_my_role', nextMyRole);
+                }
 
                 if (partnerUid && partnerUid !== this.partnerUid) {
                     // 繝代・繝医リ繝ｼ縺悟盾蜉縺励◆
@@ -2402,6 +2425,17 @@ function getPartnerRoleLabel(role) {
     if (role === 'papa') return 'パパ';
     return 'パートナー';
 }
+
+function resolveRoomSlotFromDoc(data = {}, currentUid = '', fallbackSlot = '') {
+    const storedSlot = fallbackSlot === 'memberA' || fallbackSlot === 'memberB' ? fallbackSlot : '';
+    if (currentUid && data.memberAUid === currentUid) return 'memberA';
+    if (currentUid && data.memberBUid === currentUid) return 'memberB';
+    if (storedSlot) return storedSlot;
+    if (data.memberAUid && !data.memberBUid) return 'memberA';
+    if (data.memberBUid && !data.memberAUid) return 'memberB';
+    return 'memberA';
+}
+
 function cleanupLegacyPartnerLocalData() {
     try {
         if (typeof liked !== 'undefined' && Array.isArray(liked)) {
@@ -2522,15 +2556,45 @@ MeimayShare.listenPartnerData = function (partnerUid) {
 
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
-        .onSnapshot((doc) => {
+        .onSnapshot(async (doc) => {
             if (!doc.exists) return;
+            if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.data() || {};
             cleanupLegacyPartnerLocalData();
+            let likedSource = Array.isArray(data.liked) ? data.liked : [];
+            let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
+            let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
+            let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
+
+            if (partnerUid && (!likedSource.length || !savedNamesSource.length || !readingStockSource.length)) {
+                try {
+                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
+                    if (partnerUserDoc.exists) {
+                        const partnerUserData = partnerUserDoc.data() || {};
+                        const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        if (!likedSource.length && Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0) {
+                            likedSource = partnerBackup.liked;
+                        }
+                        if (!savedNamesSource.length && Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0) {
+                            savedNamesSource = partnerBackup.savedNames;
+                        }
+                        if (!readingStockSource.length && Array.isArray(partnerBackup.readingStock) && partnerBackup.readingStock.length > 0) {
+                            readingStockSource = partnerBackup.readingStock;
+                        }
+                        if (!encounteredSource.length && Array.isArray(partnerBackup.encounteredReadings) && partnerBackup.encounteredReadings.length > 0) {
+                            encounteredSource = partnerBackup.encounteredReadings;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('SHARE: Partner backup fallback failed', error);
+                }
+            }
+
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
-                liked: Array.isArray(data.liked) ? data.liked : [],
-                savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
-                readingStock: Array.isArray(data.readingStock) ? data.readingStock : [],
-                encounteredReadings: Array.isArray(data.encounteredReadings) ? data.encounteredReadings : []
+                liked: likedSource,
+                savedNames: savedNamesSource,
+                readingStock: readingStockSource,
+                encounteredReadings: encounteredSource
             });
 
             this.partnerSnapshot = {
