@@ -2161,7 +2161,15 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
 
-    if (heroCard) heroCard.style.cssText = tone.panel;
+    if (heroCard) {
+        heroCard.removeAttribute('onclick');
+        heroCard.removeAttribute('role');
+        heroCard.removeAttribute('tabindex');
+        heroCard.removeAttribute('onkeydown');
+        heroCard.classList.remove('cursor-pointer', 'active:scale-[0.98]');
+        heroCard.classList.add('cursor-default');
+        heroCard.style.cssText = tone.panel;
+    }
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
         summaryPanel.style.cssText = 'background:transparent;border:none;';
@@ -2491,7 +2499,15 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
     const summaryPanel = document.getElementById('home-summary-panel');
     const statusLine = document.getElementById('home-status-line');
 
-    if (heroCard) heroCard.style.cssText = tone.panel;
+    if (heroCard) {
+        heroCard.removeAttribute('onclick');
+        heroCard.removeAttribute('role');
+        heroCard.removeAttribute('tabindex');
+        heroCard.removeAttribute('onkeydown');
+        heroCard.classList.remove('cursor-pointer', 'active:scale-[0.98]');
+        heroCard.classList.add('cursor-default');
+        heroCard.style.cssText = tone.panel;
+    }
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
         summaryPanel.style.cssText = 'background:transparent;border:none;';

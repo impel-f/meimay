@@ -9660,12 +9660,15 @@ function renderReadingStockSectionV2() {
                     ${sortedItems.map(item => {
                         const isPromoted = !!item.readingPromoted;
                         const display = getReadingDisplayLabel(item, isPromoted ? { allowSegments: true } : { forceRaw: true });
+                        const readingKey = getReadingBaseReading(item.reading || item.sessionReading || '');
+                        const kanjiCount = ownLiked.filter(entry => getReadingBaseReading(entry.sessionReading) === readingKey && entry.slot >= 0).length;
                         const key = getPartnerViewReadingKey(item, pairInsights);
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
                         const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
                         const tone = getReadingCardToneV2(kind);
                         const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
+                        const innerMatchCount = partnerItem ? 1 : 0;
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})">
                             <div class="flex items-center justify-between gap-2">
@@ -9677,6 +9680,8 @@ function renderReadingStockSectionV2() {
                                             false
                                         )}
                                     </div>
+                                    <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字候補</div>
+                                    ${innerMatchCount > 0 ? `<div class="mt-0.5 text-[9px]" style="color:${tone.sub}">（内一致:${innerMatchCount}件）</div>` : ''}
                                 </button>
                                 <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     ${actionLabel}
