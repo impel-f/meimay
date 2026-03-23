@@ -1178,7 +1178,6 @@ body.has-ad-banner #universal-footer {
    NAMING FLOW SURFACES
    ============================================================ */
 
-#wiz-step-4,
 #scr-input-reading > .glass-card,
 #scr-input-sound-entry > .glass-card,
 #scr-gender > .glass-card,
@@ -1197,7 +1196,6 @@ body.has-ad-banner #universal-footer {
     border-radius: 34px !important;
 }
 
-#wiz-step-4::before,
 #scr-input-reading > .glass-card::before,
 #scr-input-sound-entry > .glass-card::before,
 #scr-gender > .glass-card::before,
@@ -1217,12 +1215,19 @@ body.has-ad-banner #universal-footer {
 }
 
 #wiz-step-4 {
-    width: min(100%, 430px);
-    margin: 4px auto 0;
-    padding: 30px 24px 28px;
-    border-radius: 36px !important;
+    width: 100%;
+    margin: 0;
+    padding: 0 24px;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    overflow: visible;
+    position: static;
+    border-radius: 0 !important;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 18px;
 }
 
@@ -1263,7 +1268,7 @@ body.has-ad-banner #universal-footer {
 
     #wiz-step-4 {
         margin-top: 0;
-        padding: 22px 18px 18px;
+        padding: 0 16px 18px;
         gap: 14px;
     }
 
