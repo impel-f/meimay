@@ -274,6 +274,23 @@ function getReadingStockPickerUniqueCount() {
 
 window.getReadingStockPickerUniqueCount = getReadingStockPickerUniqueCount;
 
+function getVisibleOwnLikedReadingsForUI() {
+    const ownLiked = typeof liked !== 'undefined' ? liked : [];
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    const removedReadingSet = new Set(
+        Array.isArray(removedList)
+            ? removedList.map(item => getReadingBaseReading(item)).filter(Boolean)
+            : []
+    );
+
+    return ownLiked.filter(item => {
+        if (!item || item?.fromPartner) return false;
+        const readingKey = getReadingBaseReading(item.sessionReading || item.reading || '');
+        return !readingKey || !removedReadingSet.has(readingKey);
+    });
+}
+
 /**
  * 読み入力画面: ストックがあればプルダウンを表示
  */
@@ -5731,7 +5748,7 @@ function renderReadingStockSectionV2() {
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
     const removedReadingSet = new Set(removedList.map(item => getReadingBaseReading(item)).filter(Boolean));
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item =>
@@ -6339,7 +6356,7 @@ function renderReadingStockSectionV2() {
             .filter(Boolean)
     );
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item =>
@@ -7905,7 +7922,7 @@ function renderReadingStockSection() {
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item =>
@@ -8249,7 +8266,7 @@ function renderReadingStockSectionV2() {
     let removedList = [];
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item =>
@@ -8971,7 +8988,7 @@ function renderReadingStockSectionV2() {
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
     const removedReadingSet = new Set(removedList.map(item => getReadingBaseReading(item)).filter(Boolean));
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item => item.sessionReading && item.sessionReading !== 'FREE' && item.sessionReading !== 'SEARCH' && item.slot >= 0 && !removedReadingSet.has(getReadingBaseReading(item.sessionReading)))
@@ -9502,7 +9519,7 @@ function renderReadingStockSectionV2() {
     try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
     const removedReadingSet = new Set(removedList.map(item => getReadingBaseReading(item)).filter(Boolean));
 
-    const ownLiked = (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner);
+    const ownLiked = getVisibleOwnLikedReadingsForUI();
     const completedReadings = [...new Set(
         ownLiked
             .filter(item => item.sessionReading && item.sessionReading !== 'FREE' && item.sessionReading !== 'SEARCH' && item.slot >= 0 && !removedReadingSet.has(getReadingBaseReading(item.sessionReading)))

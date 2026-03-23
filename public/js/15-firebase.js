@@ -191,6 +191,29 @@ async function getFirebaseRequestHeaders() {
 window.getFirebaseIdToken = getFirebaseIdToken;
 window.getFirebaseRequestHeaders = getFirebaseRequestHeaders;
 
+function normalizeHiddenReadingKey(value) {
+    const raw = String(value == null ? '' : value).trim().split('::')[0].trim();
+    if (!raw) return '';
+    return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+}
+
+function readNormalizedHiddenReadings() {
+    try {
+        const raw = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]');
+        return Array.isArray(raw)
+            ? [...new Set(raw.map((value) => normalizeHiddenReadingKey(value)).filter(Boolean))]
+            : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+function readNormalizedHiddenReadingsFromSnapshot(values) {
+    return Array.isArray(values)
+        ? [...new Set(values.map((value) => normalizeHiddenReadingKey(value)).filter(Boolean))]
+        : [];
+}
+
 const MeimayFirestorePayload = {
     _normalizeString(value) {
         return String(value == null ? '' : value).trim();
@@ -669,6 +692,7 @@ const MeimayPairing = {
         if (!user || !this.roomCode) return;
 
         try {
+            const hiddenReadings = readNormalizedHiddenReadings();
             const projectedSections = MeimayFirestorePayload.projectSections({
                 liked: typeof liked !== 'undefined' ? liked : [],
                 savedNames: JSON.parse(localStorage.getItem('meimay_saved') || '[]')
@@ -676,11 +700,12 @@ const MeimayPairing = {
 
             await firebaseDb.collection('rooms').doc(this.roomCode)
                 .collection('data').doc(user.uid).set({
-                    role: this.myRole,
-                    liked: projectedSections.liked,
-                    savedNames: projectedSections.savedNames,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                role: this.myRole,
+                liked: projectedSections.liked,
+                savedNames: projectedSections.savedNames,
+                hiddenReadings,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
             console.log('PAIRING: Synced my data to room');
         } catch (e) {
@@ -771,7 +796,7 @@ const MeimayPairing = {
 // SHARE - 繝ｫ繝ｼ繝邨檎罰縺ｮ繝・・繧ｿ蜈ｱ譛・// ============================================================
 const MeimayShare = {
     _partnerUnsub: null,
-    partnerSnapshot: { liked: [], savedNames: [], role: null },
+    partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
 
     // 繝代・繝医リ繝ｼ縺ｮ繝・・繧ｿ繧偵Μ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡
     listenPartnerData: function (partnerUid) {
@@ -786,6 +811,7 @@ const MeimayShare = {
                 this.partnerSnapshot = {
                     liked: Array.isArray(data.liked) ? data.liked : [],
                     savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
+                    hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
                     role: data.role || null
                 };
                 const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
@@ -816,7 +842,7 @@ const MeimayShare = {
             this._partnerUnsub();
             this._partnerUnsub = null;
         }
-        this.partnerSnapshot = { liked: [], savedNames: [], role: null };
+        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
 
@@ -843,8 +869,11 @@ const MeimayShare = {
     // 蜿嶺ｿ｡繧ｹ繝医ャ繧ｯ繧偵Ο繝ｼ繧ｫ繝ｫ縺ｫ繝槭・繧ｸ
     mergeSharedLiked: function (items, partnerName) {
         if (typeof liked === 'undefined') return 0;
+        const hiddenSet = new Set(readNormalizedHiddenReadingsFromSnapshot(MeimayShare.partnerSnapshot?.hiddenReadings || []));
         let added = 0;
         items.forEach(item => {
+            const readingKey = normalizeHiddenReadingKey(item?.sessionReading || item?.reading || '');
+            if (readingKey && hiddenSet.has(readingKey)) return;
             const exists = liked.some(l =>
                 l['貍｢蟄・'] === item['貍｢蟄・'] &&
                 l.slot === item.slot &&
@@ -975,12 +1004,28 @@ const MeimayPartnerInsights = {
         return `${fullName}::${combinationKey}::${reading}`;
     },
 
+    getOwnHiddenReadingSet: function () {
+        return new Set(readNormalizedHiddenReadings());
+    },
+
+    getPartnerHiddenReadingSet: function () {
+        return new Set(readNormalizedHiddenReadingsFromSnapshot(MeimayShare.partnerSnapshot?.hiddenReadings || []));
+    },
+
+    _isHiddenReadingItem: function (item, hiddenSet) {
+        const reading = this.normalizeReading(item?.sessionReading || item?.reading || '');
+        return !!reading && hiddenSet.has(reading);
+    },
+
     getOwnLiked: function () {
-        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item.fromPartner);
+        const hiddenSet = this.getOwnHiddenReadingSet();
+        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet));
     },
 
     getPartnerLiked: function () {
-        return Array.isArray(MeimayShare.partnerSnapshot?.liked) ? MeimayShare.partnerSnapshot.liked : [];
+        const hiddenSet = this.getPartnerHiddenReadingSet();
+        const partnerLiked = Array.isArray(MeimayShare.partnerSnapshot?.liked) ? MeimayShare.partnerSnapshot.liked : [];
+        return partnerLiked.filter(item => !this._isHiddenReadingItem(item, hiddenSet));
     },
 
     getOwnSaved: function () {
@@ -2442,6 +2487,7 @@ MeimayPairing.syncMyData = async function () {
             readingStock: Array.isArray(readingStockSource) ? readingStockSource : [],
             encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
         });
+        const hiddenReadings = readNormalizedHiddenReadings();
 
         await firebaseDb.collection('rooms').doc(this.roomCode)
             .collection('data').doc(user.uid).set({
@@ -2454,6 +2500,7 @@ MeimayPairing.syncMyData = async function () {
                 savedNames: projectedSections.savedNames,
                 readingStock: projectedSections.readingStock,
                 encounteredReadings: projectedSections.encounteredReadings,
+                hiddenReadings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -2463,7 +2510,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -2487,6 +2534,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 savedNames: hydratedSections.savedNames,
                 readingStock: hydratedSections.readingStock,
                 encounteredReadings: hydratedSections.encounteredReadings,
+                hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 username: String(data.username || '').trim(),
@@ -2511,7 +2559,7 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 };
 
@@ -2544,7 +2592,10 @@ MeimayShare.syncProfileAppearance = async function () {
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
     const partnerReadings = Array.isArray(MeimayShare.partnerSnapshot?.readingStock) ? MeimayShare.partnerSnapshot.readingStock : [];
-    return Array.isArray(partnerReadings) ? partnerReadings : [];
+    const hiddenSet = this.getPartnerHiddenReadingSet();
+    return Array.isArray(partnerReadings)
+        ? partnerReadings.filter(item => !this._isHiddenReadingItem(item, hiddenSet))
+        : [];
 };
 
 MeimayPartnerInsights.normalizeReading = function (value) {
@@ -2555,20 +2606,8 @@ MeimayPartnerInsights.normalizeReading = function (value) {
 
 MeimayPartnerInsights.getOwnReadingStock = function () {
     const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    let hiddenReadings = new Set();
-    try {
-        hiddenReadings = new Set(JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'));
-    } catch (e) { }
-    const hiddenReadingSet = new Set(
-        Array.from(hiddenReadings)
-            .map(value => this.normalizeReading(value))
-            .filter(Boolean)
-    );
-
-    return ownReadings.filter(item => {
-        const normalizedReading = this.normalizeReading(item?.reading);
-        return !hiddenReadingSet.has(normalizedReading);
-    });
+    const hiddenReadingSet = this.getOwnHiddenReadingSet();
+    return ownReadings.filter(item => !this._isHiddenReadingItem(item, hiddenReadingSet));
 };
 
 MeimayPartnerInsights.getOwnEncounteredReadings = function () {
