@@ -1476,17 +1476,6 @@ body.has-ad-banner #universal-footer {
     margin-top: 6px !important;
 }
 
-#scr-mode #home-stage-track [data-home-stage-count="reading"] {
-    display: inline-block;
-    font-size: 1.18em;
-    line-height: 0.95;
-}
-
-#scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
-    font-size: 0.64em;
-    line-height: 1;
-}
-
 #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
     display: inline-block;
     font-size: 1.22em;
@@ -1524,14 +1513,6 @@ body.has-ad-banner #universal-footer {
         min-height: 58px;
     }
 
-    #scr-mode #home-stage-track [data-home-stage-count="reading"] {
-        font-size: 1.16em;
-    }
-
-    #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
-        font-size: 0.63em;
-    }
-
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
         font-size: 1.18em;
     }
@@ -1556,14 +1537,6 @@ body.has-ad-banner #universal-footer {
     #scr-mode > .home-screen-shell {
         min-height: auto;
         gap: 12px !important;
-    }
-
-    #scr-mode #home-stage-track [data-home-stage-count="reading"] {
-        font-size: 1.2em;
-    }
-
-    #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
-        font-size: 0.62em;
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
