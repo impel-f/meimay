@@ -1312,9 +1312,6 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
 
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
     const counts = pairing?.counts || {};
-    const partnerReadingCount = Number.isFinite(Number(counts?.partner?.reading ?? pairing?.partnerReadingCount))
-        ? Number(counts?.partner?.reading ?? pairing?.partnerReadingCount)
-        : 0;
     const partnerKanjiCount = Number.isFinite(Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount))
         ? Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
         : 0;
@@ -1323,7 +1320,9 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
         : 0;
 
     return {
-        readingStockCount: readingStockCount + partnerReadingCount,
+        // 読みは入力ストック側で自分+パートナーのユニーク数に揃えているので、
+        // ここでさらに相手分を足さない。
+        readingStockCount,
         likedCount: likedCount + partnerKanjiCount,
         savedCount: savedCount + partnerSavedCount
     };
@@ -2248,7 +2247,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         </div>
                         <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
-                            ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:${tone.sub};">（内一致:${matchedReadingCount}件）</div>` : ''}
+                            ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:#111111;">（内一致:${matchedReadingCount}件）</div>` : ''}
                         </div>
                         ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">選択中</div>` : ''}
                     </div>
