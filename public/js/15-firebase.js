@@ -496,6 +496,7 @@ const MeimayPairing = {
     _selectedCreateRole: null,  // 繝ｫ繝ｼ繝菴懈・譎ゅ↓驕ｸ繧薙□繝ｭ繝ｼ繝ｫ
     _selectedJoinRole: null,    // 蜿ょ刈譎ゅ↓驕ｸ繧薙□繝ｭ繝ｼ繝ｫ
     _roomUnsub: null,
+    _isLeavingRoom: false,
 
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
@@ -522,6 +523,7 @@ const MeimayPairing = {
             this.mySlot = resolveRoomSlotFromDoc(data, currentUid, this.mySlot || slot);
             this.partnerSlot = this.mySlot === 'memberA' ? 'memberB' : 'memberA';
             this.myRole = data[`${this.mySlot}Role`] || role;
+            this._isLeavingRoom = false;
             localStorage.setItem('meimay_room_slot', this.mySlot);
             localStorage.setItem('meimay_my_role', this.myRole || role);
 
@@ -593,6 +595,7 @@ const MeimayPairing = {
             this.mySlot = 'memberA';
             this.myRole = role;
             this.partnerSlot = 'memberB';
+            this._isLeavingRoom = false;
 
             localStorage.setItem('meimay_room_code', code);
             localStorage.setItem('meimay_room_slot', 'memberA');
@@ -649,6 +652,7 @@ const MeimayPairing = {
             this.partnerSlot = 'memberA';
             this.partnerUid = data.memberAUid;
             this.partnerRole = data.memberARole;
+            this._isLeavingRoom = false;
 
             localStorage.setItem('meimay_room_code', upperCode);
             localStorage.setItem('meimay_room_slot', 'memberB');
@@ -670,33 +674,50 @@ const MeimayPairing = {
     // 繝ｫ繝ｼ繝繧帝蜃ｺ・磯｣謳ｺ隗｣髯､・・
     leaveRoom: async function () {
         if (!this.roomCode) return;
+        this._isLeavingRoom = true;
         const user = MeimayAuth.getCurrentUser();
+        const roomRef = firebaseDb.collection('rooms').doc(this.roomCode);
 
         try {
-            // 閾ｪ蛻・・繝・・繧ｿ繝峨く繝･繝｡繝ｳ繝医ｒ蜑企勁
+            const roomDoc = await roomRef.get();
+            const roomData = roomDoc.exists ? (roomDoc.data() || {}) : {};
+
             if (user) {
-                await firebaseDb.collection('rooms').doc(this.roomCode)
-                    .collection('data').doc(user.uid).delete();
+                await roomRef.collection('data').doc(user.uid).delete();
             }
-            // 繝ｫ繝ｼ繝繝峨く繝･繝｡繝ｳ繝医°繧芽・蛻・・諠・ｱ繧貞炎髯､
+
+            const currentUid = user?.uid || firebaseAuth?.currentUser?.uid || '';
+            let slotToClear = '';
+            if (currentUid && roomData.memberAUid === currentUid) {
+                slotToClear = 'memberA';
+            } else if (currentUid && roomData.memberBUid === currentUid) {
+                slotToClear = 'memberB';
+            } else if (this.mySlot === 'memberA' || this.mySlot === 'memberB') {
+                slotToClear = this.mySlot;
+            } else {
+                slotToClear = resolveRoomSlotFromDoc(roomData, currentUid, 'memberA');
+            }
+
             const update = {};
-            update[`${this.mySlot}Uid`] = null;
-            update[`${this.mySlot}Role`] = null;
-            await firebaseDb.collection('rooms').doc(this.roomCode).update(update);
+            update[`${slotToClear}Uid`] = null;
+            update[`${slotToClear}Role`] = null;
+            await roomRef.set(update, { merge: true });
         } catch (e) {
             console.error('PAIRING: Leave room failed', e);
+        } finally {
+            this._stopListening();
+            cleanupLegacyPartnerLocalData();
+            this._clearLocal();
+            this._isLeavingRoom = false;
+            updatePairingUI();
+            console.log('PAIRING: Left room');
         }
-
-        this._stopListening();
-        this._clearLocal();
-        updatePairingUI();
-        console.log('PAIRING: Left room');
     },
 
     // 閾ｪ蛻・・繝・・繧ｿ繧偵Ν繝ｼ繝縺ｫ繧｢繝・・繝ｭ繝ｼ繝会ｼ亥酔譛滂ｼ・
     syncMyData: async function () {
         const user = MeimayAuth.getCurrentUser();
-        if (!user || !this.roomCode) return;
+        if (!user || !this.roomCode || this._isLeavingRoom) return;
 
         try {
             const hiddenReadings = readNormalizedHiddenReadings();

@@ -9,7 +9,41 @@ let selectedVibes = new Set();
 let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 let soundEntryMode = 'browse';
+let readingStockSoundFilter = null;
 // gender is defined in 01-core.js
+
+function normalizeReadingStockSoundValue(value) {
+    const raw = String(value || '').trim().split('::')[0].trim();
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return hira.replace(/\s+/g, '');
+}
+
+function setReadingStockSoundFilter(reading, position = 'prefix') {
+    const normalizedReading = normalizeReadingStockSoundValue(reading);
+    readingStockSoundFilter = normalizedReading ? {
+        reading: normalizedReading,
+        position: position === 'suffix' ? 'suffix' : 'prefix'
+    } : null;
+    if (typeof window !== 'undefined') {
+        window.MeimayReadingStockSoundFilter = readingStockSoundFilter;
+    }
+    return readingStockSoundFilter;
+}
+
+function clearReadingStockSoundFilter() {
+    readingStockSoundFilter = null;
+    if (typeof window !== 'undefined') {
+        window.MeimayReadingStockSoundFilter = null;
+    }
+}
+
+function getReadingStockSoundFilter() {
+    if (readingStockSoundFilter) return readingStockSoundFilter;
+    if (typeof window !== 'undefined' && window.MeimayReadingStockSoundFilter) {
+        return window.MeimayReadingStockSoundFilter;
+    }
+    return null;
+}
 
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
@@ -294,16 +328,7 @@ function getVisibleOwnLikedReadingsForUI() {
 function getReadingStockGroupKey(item) {
     const reading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
     const baseNickname = getReadingBaseReading(item?.baseNickname || '');
-    if (!baseNickname) return reading || '';
-    if (!reading) return baseNickname;
-
-    const normalize = (value) => (typeof toHira === 'function' ? toHira(String(value || '')) : String(value || '')).replace(/\s+/g, '');
-    const normalizedBase = normalize(baseNickname);
-    const normalizedReading = normalize(reading);
-    if (normalizedBase && normalizedReading && normalizedReading.startsWith(normalizedBase)) {
-        return baseNickname;
-    }
-    return reading || baseNickname;
+    return baseNickname || reading || '';
 }
 
 /**
@@ -455,6 +480,7 @@ function initSoundModeEntry() {
     console.log('UI_FLOW: initSoundModeEntry');
     soundModeEntryOrigin = false;
     soundEntryMode = 'browse';
+    clearReadingStockSoundFilter();
     changeScreen('scr-input-sound-entry');
     renderSoundEntryScreen();
     updateSoundEntryModeUI();
@@ -577,6 +603,9 @@ function renderSoundEntryScreen() {
 
 function selectSoundEntryMode(mode) {
     soundEntryMode = mode === 'input' ? 'input' : 'browse';
+    if (soundEntryMode !== 'input') {
+        clearReadingStockSoundFilter();
+    }
     updateSoundEntryModeUI();
 }
 
@@ -649,6 +678,7 @@ function submitSoundEntry() {
     if (soundEntryMode !== 'input') {
         appMode = 'sound';
         soundModeEntryOrigin = true;
+        clearReadingStockSoundFilter();
         initSoundMode();
         return;
     }
@@ -664,6 +694,7 @@ function submitSoundEntry() {
 
     const selectedPosition = document.querySelector('input[name="sound-entry-position"]:checked');
     nicknamePosition = selectedPosition?.value === 'suffix' ? 'suffix' : 'prefix';
+    setReadingStockSoundFilter(cleaned, nicknamePosition);
     appMode = 'nickname';
     soundModeEntryOrigin = true;
     startNicknameCandidateSwipe(cleaned);
@@ -9617,6 +9648,19 @@ function renderReadingStockSectionV2() {
     };
 
     const pendingOnly = displayPendingStock.filter(item => !completedReadingSet.has(getReadingBaseReading(item.reading || item.sessionReading || '')));
+    const soundFilter = getReadingStockSoundFilter();
+    const normalizedSoundFilter = normalizeReadingStockSoundValue(soundFilter?.reading || '');
+    const matchesSoundFilter = (item) => {
+        if (!normalizedSoundFilter) return true;
+        const itemBase = normalizeReadingStockSoundValue(item?.baseNickname || '');
+        const itemReading = normalizeReadingStockSoundValue(item?.reading || item?.sessionReading || '');
+        if (!itemBase && !itemReading) return false;
+        if (soundFilter?.position === 'suffix') {
+            return itemBase.endsWith(normalizedSoundFilter) || itemReading.endsWith(normalizedSoundFilter);
+        }
+        return itemBase.startsWith(normalizedSoundFilter) || itemReading.startsWith(normalizedSoundFilter);
+    };
+    const pendingOnlyBySound = pendingOnly.filter(matchesSoundFilter);
     const partnerPendingCards = [];
     const seenPartnerPendingReadings = new Set();
     partnerReadings
@@ -9636,7 +9680,7 @@ function renderReadingStockSectionV2() {
 
     const showOwnSections = readingFocus !== 'partner';
     const visibleCompleted = showOwnSections ? completedCards.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
-    const visiblePendingOnly = showOwnSections ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
+    const visiblePendingOnly = showOwnSections ? pendingOnlyBySound.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
     const visiblePartnerReadings = partnerPendingCards;
 
     const hasContent = visibleCompleted.length > 0 || visiblePendingOnly.length > 0 || visiblePartnerReadings.length > 0;
@@ -9842,6 +9886,7 @@ function startNicknameCandidateSwipe(baseReading) {
 }
 
 function initSoundMode() {
+    clearReadingStockSoundFilter();
     const popularNames = generatePopularNames(gender).map(item => ({
         ...item,
         gender: item.gender || gender || 'neutral'
