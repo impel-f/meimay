@@ -1255,6 +1255,32 @@ body.has-ad-banner #universal-footer {
     box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
 }
 
+@media (max-width: 640px) {
+    #scr-wizard > div {
+        padding-top: 18px;
+        padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #wiz-step-4 {
+        margin-top: 0;
+        padding: 22px 18px 18px;
+        gap: 14px;
+    }
+
+    #wiz-step-4 .wiz-reading-choice {
+        padding: 14px 14px 14px 16px;
+    }
+
+    #wiz-step-4 .wiz-mini-preview {
+        width: 80px;
+        height: 64px;
+    }
+
+    #wiz-step-4 > button {
+        margin-bottom: 0;
+    }
+}
+
 #scr-input-reading .rule-box {
     background: transparent;
     border-radius: 0;
