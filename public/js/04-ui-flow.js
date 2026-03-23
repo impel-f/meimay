@@ -224,6 +224,56 @@ function startMode(mode) {
     }
 }
 
+function getReadingStockPickerUniqueCount() {
+    const normalizeReadingKey = (item) => getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const readHiddenSet = () => {
+        let removedList = [];
+        try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+        return new Set(
+            Array.isArray(removedList)
+                ? removedList.map(value => getReadingBaseReading(value)).filter(Boolean)
+                : []
+        );
+    };
+    const dedupeAndSort = (items) => {
+        const seen = new Set();
+        return sortReadingStockMatches(Array.isArray(items) ? items : []).filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            if (!readingKey || seen.has(readingKey)) return false;
+            seen.add(readingKey);
+            return true;
+        });
+    };
+
+    const ownStock = (typeof getReadingStock === 'function') ? getReadingStock() : [];
+    const hiddenReadingSet = readHiddenSet();
+    const visibleOwnStock = dedupeAndSort(
+        ownStock.filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            return readingKey && !hiddenReadingSet.has(readingKey);
+        })
+    );
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerRawStock = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const visibleOwnReadingSet = new Set(visibleOwnStock.map(item => normalizeReadingKey(item)).filter(Boolean));
+    const visiblePartnerStock = dedupeAndSort(
+        partnerRawStock.filter(item => {
+            const readingKey = normalizeReadingKey(item);
+            return readingKey && !visibleOwnReadingSet.has(readingKey);
+        }).map(item => ({ ...item, _pickerSourceLabel: 'パートナー' }))
+    );
+
+    const combinedCandidates = dedupeAndSort([
+        ...visibleOwnStock.map(item => ({ ...item, _pickerSourceLabel: '' })),
+        ...visiblePartnerStock
+    ]);
+
+    return combinedCandidates.length;
+}
+
+window.getReadingStockPickerUniqueCount = getReadingStockPickerUniqueCount;
+
 /**
  * 読み入力画面: ストックがあればプルダウンを表示
  */
@@ -9012,10 +9062,6 @@ function renderReadingStockSectionV2() {
     const visibleCompleted = showOwnSections
         ? completedCards
             .filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item))
-            .map(item => ({
-                ...item,
-                innerMatchCount: isReadingMatchedForView(item) ? 1 : 0
-            }))
         : [];
     const visiblePendingOnly = showOwnSections ? pendingOnly.filter(item => readingFocus !== 'matched' || isReadingMatchedForView(item)) : [];
     const visiblePartnerReadings = partnerPendingCards;
@@ -9621,7 +9667,6 @@ function renderReadingStockSectionV2() {
                             )}
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
-                        ${item.innerMatchCount > 0 ? `<div class="mt-0.5 text-[9px]" style="color:${tone.sub}">（内一致:${item.innerMatchCount}件）</div>` : ''}
                     </div>
                     <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
@@ -9668,7 +9713,6 @@ function renderReadingStockSectionV2() {
                         const tone = getReadingCardToneV2(kind);
                         const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
-                        const innerMatchCount = partnerItem ? 1 : 0;
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})">
                             <div class="flex items-center justify-between gap-2">
@@ -9681,7 +9725,6 @@ function renderReadingStockSectionV2() {
                                         )}
                                     </div>
                                     <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字候補</div>
-                                    ${innerMatchCount > 0 ? `<div class="mt-0.5 text-[9px]" style="color:${tone.sub}">（内一致:${innerMatchCount}件）</div>` : ''}
                                 </button>
                                 <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     ${actionLabel}

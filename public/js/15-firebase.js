@@ -25,6 +25,36 @@ try {
     console.error("FIREBASE: Init failed", e);
 }
 
+async function waitForFirebaseAuthReady(timeoutMs = 8000) {
+    if (!firebaseAuth) return null;
+    if (firebaseAuth.currentUser) return firebaseAuth.currentUser;
+
+    try {
+        return await new Promise((resolve) => {
+            let settled = false;
+            let timeoutId = null;
+            let unsubscribe = null;
+
+            const finish = (nextUser) => {
+                if (settled) return;
+                settled = true;
+                if (timeoutId) clearTimeout(timeoutId);
+                if (typeof unsubscribe === 'function') unsubscribe();
+                resolve(nextUser || null);
+            };
+
+            timeoutId = setTimeout(() => finish(firebaseAuth.currentUser || null), timeoutMs);
+            unsubscribe = firebaseAuth.onAuthStateChanged(
+                (nextUser) => finish(nextUser),
+                () => finish(firebaseAuth.currentUser || null)
+            );
+        });
+    } catch (error) {
+        console.warn('FIREBASE: Failed to wait for auth state', error);
+        return firebaseAuth.currentUser || null;
+    }
+}
+
 // ============================================================
 // AUTH - 蛹ｿ蜷崎ｪ崎ｨｼ・医Θ繝ｼ繧ｶ繝ｼ縺ｫ縺ｯ隕九∴縺ｪ縺・・蜍募・逅・ｼ・// ============================================================
 const MeimayAuth = {
@@ -32,14 +62,27 @@ const MeimayAuth = {
 
     // 襍ｷ蜍墓凾縺ｫ閾ｪ蜍募他縺ｳ蜃ｺ縺暦ｼ医Θ繝ｼ繧ｶ繝ｼ謫堺ｽ應ｸ崎ｦ・ｼ・
     init: async function () {
-        if (firebaseAuth && !firebaseAuth.currentUser) {
+        if (!firebaseAuth) return null;
+
+        const readyUser = await waitForFirebaseAuthReady();
+        if (readyUser) {
+            this.currentUser = readyUser;
+            return readyUser;
+        }
+
+        if (!firebaseAuth.currentUser) {
             try {
-                await firebaseAuth.signInAnonymously();
+                const credential = await firebaseAuth.signInAnonymously();
                 console.log("FIREBASE: Anonymous sign-in success");
+                this.currentUser = firebaseAuth.currentUser || credential?.user || null;
             } catch (e) {
                 console.error("FIREBASE: Anonymous sign-in failed", e);
             }
+        } else {
+            this.currentUser = firebaseAuth.currentUser;
         }
+
+        return this.currentUser || firebaseAuth.currentUser || null;
     },
 
     getCurrentUser: function () {
