@@ -582,7 +582,7 @@ function renderDrawerMenu() {
         {
             title: 'ツール',
             items: [
-                { id: 'drawer-search', target: 'search', icon: '🔎', label: '漢字検索' },
+                { id: 'drawer-search', target: 'search', icon: '📖', label: '漢字検索' },
                 { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' },
                 { id: 'drawer-diagnosis', target: 'diagnosis', icon: '🔮', label: '姓名判断' }
             ]
