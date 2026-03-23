@@ -1221,7 +1221,6 @@ body.has-ad-banner #universal-footer {
     margin: 4px auto 0;
     padding: 30px 24px 28px;
     border-radius: 36px !important;
-    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 18px;
