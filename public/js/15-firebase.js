@@ -3209,10 +3209,14 @@ const MeimayUserBackup = {
     },
 
     _hasData: function (sections) {
+        const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
+            ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
+            : localStorage.getItem('meimay_liked_cleared_at');
         return !!(sections && (
             (Array.isArray(sections.liked) && sections.liked.length > 0) ||
             (Array.isArray(sections.savedNames) && sections.savedNames.length > 0) ||
-            (Array.isArray(sections.readingStock) && sections.readingStock.length > 0)
+            (Array.isArray(sections.readingStock) && sections.readingStock.length > 0) ||
+            !!likedClearFlag
         ));
     },
 
@@ -3231,6 +3235,9 @@ const MeimayUserBackup = {
 
     _buildRemotePatch: function (sections) {
         const projectedSections = MeimayFirestorePayload.projectSections(sections);
+        const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
+            ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
+            : localStorage.getItem('meimay_liked_cleared_at');
         const backup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
@@ -3241,6 +3248,8 @@ const MeimayUserBackup = {
 
         if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
             backup.liked = this._safeClone(projectedSections.liked);
+        } else if (likedClearFlag) {
+            backup.liked = [];
         }
         if (Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0) {
             backup.savedNames = this._safeClone(projectedSections.savedNames);
@@ -3249,11 +3258,19 @@ const MeimayUserBackup = {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
 
-        return {
+        const patch = {
             meimayBackup: backup,
             meimayBackupUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
+
+        if (likedClearFlag) {
+            patch.liked = Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0
+                ? this._safeClone(projectedSections.liked)
+                : [];
+        }
+
+        return patch;
     },
 
     _applySectionsToLocal: function (sections) {
@@ -3336,10 +3353,21 @@ const MeimayUserBackup = {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
+            const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
+                ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
+                : localStorage.getItem('meimay_liked_cleared_at');
+            const mergeRemoteItems = (nestedItems, legacyItems, keyGetter) => {
+                const combined = [];
+                if (Array.isArray(nestedItems)) combined.push(...nestedItems);
+                if (Array.isArray(legacyItems)) combined.push(...legacyItems);
+                return this._mergeByKey([], combined, keyGetter);
+            };
             const remoteSections = {
-                liked: this._mergeByKey([], remoteBackup?.liked || remoteData.liked || [], (item) => this._getLikedKey(item)),
-                savedNames: this._mergeByKey([], remoteBackup?.savedNames || remoteData.savedNames || [], (item) => this._getSavedKey(item)),
-                readingStock: this._mergeByKey([], remoteBackup?.readingStock || remoteData.readingStock || [], (item) => this._getReadingStockKey(item))
+                liked: likedClearFlag
+                    ? []
+                    : mergeRemoteItems(remoteBackup?.liked, remoteData.liked, (item) => this._getLikedKey(item)),
+                savedNames: mergeRemoteItems(remoteBackup?.savedNames, remoteData.savedNames, (item) => this._getSavedKey(item)),
+                readingStock: mergeRemoteItems(remoteBackup?.readingStock, remoteData.readingStock, (item) => this._getReadingStockKey(item))
             };
 
             const localSections = this._readCurrentSections();

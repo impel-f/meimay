@@ -8,6 +8,7 @@ const StorageBox = {
     KEY_LIKED_LEGACY: 'meimay_liked',
     KEY_LIKED_BACKUP: 'meimay_liked_backup_v1',
     KEY_LIKED_META: 'meimay_liked_meta_v1',
+    KEY_LIKED_CLEARED: 'meimay_liked_cleared_at',
     KEY_SAVED: 'meimay_saved',
     KEY_SURNAME: 'naming_app_surname',
     KEY_SEGMENTS: 'naming_app_segments',
@@ -48,6 +49,7 @@ const StorageBox = {
             }));
             if (safeLiked.length > 0) {
                 localStorage.setItem(this.KEY_LIKED_BACKUP, serialized);
+                localStorage.removeItem(this.KEY_LIKED_CLEARED);
             }
             return true;
         } catch (e) {
@@ -61,23 +63,15 @@ const StorageBox = {
         const primary = this._readStoredArray(this.KEY_LIKED);
         const legacy = this._readStoredArray(this.KEY_LIKED_LEGACY);
         const backup = this._readStoredArray(this.KEY_LIKED_BACKUP);
-
-        let meta = null;
-        try {
-            meta = JSON.parse(localStorage.getItem(this.KEY_LIKED_META) || 'null');
-        } catch (e) {
-            meta = null;
-        }
-
-        const confirmedEmptyPrimary = Array.isArray(primary) && primary.length === 0 && meta?.count === 0;
+        const explicitClear = !!localStorage.getItem(this.KEY_LIKED_CLEARED);
 
         if (Array.isArray(primary) && primary.length > 0) {
             return { items: primary, source: 'primary' };
         }
-        if (!confirmedEmptyPrimary && Array.isArray(legacy) && legacy.length > 0) {
+        if (!explicitClear && Array.isArray(legacy) && legacy.length > 0) {
             return { items: legacy, source: 'legacy' };
         }
-        if (!confirmedEmptyPrimary && Array.isArray(backup) && backup.length > 0) {
+        if (!explicitClear && Array.isArray(backup) && backup.length > 0) {
             return { items: backup, source: 'backup' };
         }
         if (Array.isArray(primary)) {
@@ -259,7 +253,17 @@ const StorageBox = {
         if (typeof syncReadingStockFromLiked === 'function') {
             syncReadingStockFromLiked(liked);
         }
-        return this._persistLikedState(liked);
+        const result = this._persistLikedState(liked);
+        try {
+            if (Array.isArray(liked) && liked.length === 0) {
+                localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
+            } else {
+                localStorage.removeItem(this.KEY_LIKED_CLEARED);
+            }
+        } catch (e) {
+            console.warn("STORAGE: Failed to update liked clear marker", e);
+        }
+        return result;
     },
 
     saveNoped: function () {
