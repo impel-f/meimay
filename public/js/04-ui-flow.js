@@ -291,6 +291,21 @@ function getVisibleOwnLikedReadingsForUI() {
     });
 }
 
+function getReadingStockGroupKey(item) {
+    const reading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const baseNickname = getReadingBaseReading(item?.baseNickname || '');
+    if (!baseNickname) return reading || '';
+    if (!reading) return baseNickname;
+
+    const normalize = (value) => (typeof toHira === 'function' ? toHira(String(value || '')) : String(value || '')).replace(/\s+/g, '');
+    const normalizedBase = normalize(baseNickname);
+    const normalizedReading = normalize(reading);
+    if (normalizedBase && normalizedReading && normalizedReading.startsWith(normalizedBase)) {
+        return baseNickname;
+    }
+    return reading || baseNickname;
+}
+
 /**
  * 読み入力画面: ストックがあればプルダウンを表示
  */
@@ -4200,6 +4215,7 @@ function saveReadingStock(stock) {
 function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const stock = getReadingStock();
     const shouldTrackStats = options.trackStats !== false;
+    const normalizedBaseNickname = typeof baseNickname === 'string' ? baseNickname.trim() : '';
     const normalizedTags = Array.isArray(tags)
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
         : [];
@@ -4211,8 +4227,8 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
 
     if (existing) {
         existing.tags = [...new Set([...(existing.tags || []), ...normalizedTags])];
-        if (!existing.baseNickname && (baseNickname || nicknameBaseReading)) {
-            existing.baseNickname = baseNickname || nicknameBaseReading || '';
+        if (!existing.baseNickname && normalizedBaseNickname) {
+            existing.baseNickname = normalizedBaseNickname;
         }
         existing.readingPromoted = !!(existing.readingPromoted || readingPromoted);
         existing.segments = existing.readingPromoted
@@ -4241,7 +4257,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         id: targetId,
         reading: reading,
         segments: normalizedSegments,
-        baseNickname: baseNickname || nicknameBaseReading || '',
+        baseNickname: normalizedBaseNickname,
         tags: normalizedTags,
         isSuper: !!options.isSuper,
         ownSuper: !!options.isSuper,
@@ -6033,9 +6049,10 @@ function renderReadingStockSectionVisible() {
 }
 
 function startNicknameCandidateSwipe(baseReading) {
-    nicknameBaseReading = toHira(baseReading || '');
+    const flowBaseReading = toHira(baseReading || '');
+    nicknameBaseReading = flowBaseReading;
 
-    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'
@@ -6640,9 +6657,10 @@ function renderReadingStockSectionVisible() {
 }
 
 function startNicknameCandidateSwipe(baseReading) {
-    nicknameBaseReading = toHira(baseReading || '');
+    const flowBaseReading = toHira(baseReading || '');
+    nicknameBaseReading = flowBaseReading;
 
-    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'
@@ -8637,9 +8655,10 @@ function prepareAdaptiveReadingCandidates(candidates) {
 }
 
 function startNicknameCandidateSwipe(baseReading) {
-    nicknameBaseReading = toHira(baseReading || '');
+    const flowBaseReading = toHira(baseReading || '');
+    nicknameBaseReading = flowBaseReading;
 
-    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'
@@ -9242,9 +9261,10 @@ function renderReadingStockSectionVisible() {
 }
 
 function startNicknameCandidateSwipe(baseReading) {
-    nicknameBaseReading = toHira(baseReading || '');
+    const flowBaseReading = toHira(baseReading || '');
+    nicknameBaseReading = flowBaseReading;
 
-    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'
@@ -9699,7 +9719,7 @@ function renderReadingStockSectionV2() {
     if (visiblePendingOnly.length > 0) {
         const groups = {};
         visiblePendingOnly.forEach(item => {
-            const key = item.baseNickname || '漢字を選んでいない読み';
+            const key = getReadingStockGroupKey(item) || '漢字を選んでいない読み';
             if (!groups[key]) groups[key] = [];
             groups[key].push(item);
         });
@@ -9788,9 +9808,10 @@ function renderReadingStockSectionVisible() {
 }
 
 function startNicknameCandidateSwipe(baseReading) {
-    nicknameBaseReading = toHira(baseReading || '');
+    const flowBaseReading = toHira(baseReading || '');
+    nicknameBaseReading = flowBaseReading;
 
-    const candidates = generateNameCandidates(nicknameBaseReading, gender, nicknamePosition)
+    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'
@@ -9803,10 +9824,10 @@ function startNicknameCandidateSwipe(baseReading) {
 
     startUniversalSwipe('nickname', candidates, {
         title: '読みで選ぶ',
-        subtitle: `${nicknameBaseReading} をもとに、気になる読みを選んでください`,
+        subtitle: `${flowBaseReading} をもとに、気になる読みを選んでください`,
         onLike: (item, action) => {
             if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
+                addReadingToStock(item.reading, flowBaseReading, item.tags || [], {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
                     clearHidden: true
@@ -9814,7 +9835,7 @@ function startNicknameCandidateSwipe(baseReading) {
             }
         },
         onTap: (item) => {
-            openReadingCombinationModal(item, nicknameBaseReading);
+            openReadingCombinationModal(item, flowBaseReading);
         },
         renderCard: (item) => renderReadingSwipeCard(item)
     });
