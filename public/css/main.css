@@ -1487,6 +1487,13 @@ body.has-ad-banner #universal-footer {
     line-height: 1;
 }
 
+#scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
+    display: inline-block;
+    font-size: 1.22em;
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+}
+
 @media (max-height: 760px) {
     #scr-mode {
         padding-top: 56px !important;
@@ -1524,6 +1531,10 @@ body.has-ad-banner #universal-footer {
     #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
         font-size: 0.63em;
     }
+
+    #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
+        font-size: 1.18em;
+    }
 }
 
 @media (min-width: 768px) {
@@ -1553,5 +1564,9 @@ body.has-ad-banner #universal-footer {
 
     #scr-mode #home-stage-track [data-home-stage-count="reading"] + span {
         font-size: 0.62em;
+    }
+
+    #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
+        font-size: 1.24em;
     }
 }
