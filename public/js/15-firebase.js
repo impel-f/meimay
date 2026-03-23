@@ -2439,7 +2439,7 @@ function getRoomSyncLikedItems() {
         if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
             const state = StorageBox._loadLikedState();
             const items = filterOwnItems(state?.items);
-            if (items.length > 0 || Array.isArray(state?.items)) {
+            if (items.length > 0) {
                 return items;
             }
         }
@@ -2459,7 +2459,7 @@ function getRoomSyncLikedItems() {
             if (!raw) continue;
             const parsed = JSON.parse(raw);
             const items = filterOwnItems(parsed);
-            if (items.length > 0 || Array.isArray(parsed)) {
+            if (items.length > 0) {
                 return items;
             }
         }
@@ -3101,15 +3101,51 @@ const MeimayUserBackup = {
             if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
                 const state = StorageBox._loadLikedState();
                 source = Array.isArray(state?.items) ? state.items : [];
+                const filteredState = source
+                    .filter((item) => item && !item.fromPartner)
+                    .map((item) => this._safeClone(item));
+                if (filteredState.length > 0) {
+                    return filteredState;
+                }
             } else if (Array.isArray(liked)) {
                 source = liked;
             }
         } catch (error) {
             source = Array.isArray(liked) ? liked : [];
         }
-        return source
-            .filter((item) => item && !item.fromPartner)
-            .map((item) => this._safeClone(item));
+
+        if (Array.isArray(liked) && liked.length > 0) {
+            const filteredLiked = liked
+                .filter((item) => item && !item.fromPartner)
+                .map((item) => this._safeClone(item));
+            if (filteredLiked.length > 0) {
+                return filteredLiked;
+            }
+        }
+
+        try {
+            const keys = [
+                typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED ? StorageBox.KEY_LIKED : 'naming_app_liked_chars',
+                typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_LEGACY ? StorageBox.KEY_LIKED_LEGACY : 'meimay_liked',
+                typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_BACKUP ? StorageBox.KEY_LIKED_BACKUP : 'meimay_liked_backup_v1'
+            ];
+
+            for (const key of keys) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                const parsed = JSON.parse(raw);
+                const items = Array.isArray(parsed)
+                    ? parsed.filter((item) => item && !item.fromPartner)
+                    : [];
+                if (items.length > 0) {
+                    return items.map((item) => this._safeClone(item));
+                }
+            }
+        } catch (error) {
+            console.warn('BACKUP: Failed to read liked fallback sources', error);
+        }
+
+        return [];
     },
 
     _ownSavedNames: function () {
@@ -3253,8 +3289,6 @@ const MeimayUserBackup = {
 
         if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
             backup.liked = this._safeClone(projectedSections.liked);
-        } else if (likedClearFlag) {
-            backup.liked = [];
         }
         if (Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0) {
             backup.savedNames = this._safeClone(projectedSections.savedNames);
@@ -3358,9 +3392,6 @@ const MeimayUserBackup = {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
-            const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
-                ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
-                : localStorage.getItem('meimay_liked_cleared_at');
             const mergeRemoteItems = (nestedItems, legacyItems, keyGetter) => {
                 const combined = [];
                 if (Array.isArray(nestedItems)) combined.push(...nestedItems);
@@ -3368,9 +3399,7 @@ const MeimayUserBackup = {
                 return this._mergeByKey([], combined, keyGetter);
             };
             const remoteSections = {
-                liked: likedClearFlag
-                    ? []
-                    : mergeRemoteItems(remoteBackup?.liked, remoteData.liked, (item) => this._getLikedKey(item)),
+                liked: mergeRemoteItems(remoteBackup?.liked, remoteData.liked, (item) => this._getLikedKey(item)),
                 savedNames: mergeRemoteItems(remoteBackup?.savedNames, remoteData.savedNames, (item) => this._getSavedKey(item)),
                 readingStock: mergeRemoteItems(remoteBackup?.readingStock, remoteData.readingStock, (item) => this._getReadingStockKey(item))
             };
