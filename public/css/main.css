@@ -1187,40 +1187,19 @@ body.has-ad-banner #universal-footer {
 #scr-diagnosis-input > .glass-card,
 #scr-segment > .glass-card,
 #scr-surname-settings > .glass-card {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 252, 247, 0.95) 100%) !important;
-    border: 1px solid rgba(212, 197, 175, 0.28) !important;
+    background: transparent !important;
+    border: none !important;
     box-shadow: none !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    overflow: hidden;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+    overflow: visible;
     position: relative;
-    border-radius: 34px !important;
-}
-
-#wiz-step-4::before,
-#scr-input-reading > .glass-card::before,
-#scr-input-sound-entry > .glass-card::before,
-#scr-gender > .glass-card::before,
-#scr-vibe > .glass-card::before,
-#scr-input-nickname > .glass-card::before,
-#scr-diagnosis-input > .glass-card::before,
-#scr-segment > .glass-card::before,
-#scr-surname-settings > .glass-card::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    right: 0;
-    height: 10px;
-    background: linear-gradient(90deg, rgba(212, 197, 175, 0), rgba(188, 163, 127, 0.16), rgba(212, 197, 175, 0));
-    pointer-events: none;
 }
 
 #wiz-step-4 {
     width: min(100%, 430px);
     margin: 4px auto 0;
-    padding: 30px 24px 28px;
-    border-radius: 36px !important;
     display: flex;
     flex-direction: column;
     align-items: center;
