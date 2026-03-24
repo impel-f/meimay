@@ -380,8 +380,9 @@ function renderFreeBuildSection() {
                 <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     ${allKanji.map(item => {
             const k = item['漢字'];
-            const isSelected = selected === k;
-            const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
+            const resolvedSelected = (fbChoices[slotIdx] === '々' && slotIdx > 0) ? (fbChoices[slotIdx - 1] === '々' && slotIdx > 1 ? fbChoices[slotIdx - 2] : fbChoices[slotIdx - 1]) : fbChoices[slotIdx];
+            const isSelected = resolvedSelected === k;
+            const isUsed = fbChoices.some((c, i) => i !== slotIdx && (c === k || (c === '々' && i > 0 && fbChoices[i - 1] === k))) && !isSelected;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                             class="shrink-0 w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center text-xl font-black transition-all active:scale-90
                             ${isSelected ? 'bg-white text-[#bca37f] ring-2 ring-[#bca37f]/30' :
@@ -419,7 +420,14 @@ function renderFreeBuildSection() {
 
 // 漢字を選択（選び直しても他のスロットは保持）
 function selectFbKanji(slotIdx, kanji) {
-    fbChoices[slotIdx] = kanji;
+    const isAlreadyUsed = fbChoices.some((c, i) => i !== slotIdx && (c === kanji || (c === '々' && i > 0 && fbChoices[i-1] === kanji)));
+    let targetKanji = kanji;
+    if (isAlreadyUsed) {
+        if (fbChoices[slotIdx] === '々') targetKanji = kanji;
+        else if (fbChoices[slotIdx] === kanji) targetKanji = '々';
+        else targetKanji = '々';
+    }
+    fbChoices[slotIdx] = targetKanji;
     // 後ろのスロットは保持する（明示的に「解除」ボタンで削除するまで残す）
     const scrollPositions = [];
     document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
@@ -1806,8 +1814,9 @@ function renderBuildFreeMode(container) {
             const k = item['漢字'];
             const strokes = item['画数'] !== undefined ? item['画数']
                 : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '--';
-            const isSelected = selected === k;
-            const isUsed = fbChoices.includes(k) && fbChoices[slotIdx] !== k;
+            const resolvedSelected = (fbChoices[slotIdx] === '々' && slotIdx > 0) ? (fbChoices[slotIdx - 1] === '々' && slotIdx > 1 ? fbChoices[slotIdx - 2] : fbChoices[slotIdx - 1]) : fbChoices[slotIdx];
+            const isSelected = resolvedSelected === k;
+            const isUsed = fbChoices.some((c, i) => i !== slotIdx && (c === k || (c === '々' && i > 0 && fbChoices[i - 1] === k))) && !isSelected;
             const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
             const buttonStyles = [];
             if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
@@ -2242,7 +2251,14 @@ window.removeKanjiFromStock = removeKanjiFromStock;
 
 window.selectFbKanji = function (slotIdx, kanji) {
     withScrollPreservation(() => {
-        fbChoices[slotIdx] = kanji;
+        const isAlreadyUsed = fbChoices.some((c, i) => i !== slotIdx && (c === kanji || (c === '々' && i > 0 && fbChoices[i-1] === kanji)));
+        let targetKanji = kanji;
+        if (isAlreadyUsed) {
+            if (fbChoices[slotIdx] === '々') targetKanji = kanji;
+            else if (fbChoices[slotIdx] === kanji) targetKanji = '々';
+            else targetKanji = '々';
+        }
+        fbChoices[slotIdx] = targetKanji;
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
 
         const buildScreen = document.getElementById('scr-build');
