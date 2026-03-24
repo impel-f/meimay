@@ -762,8 +762,11 @@ function getMergedLikedCandidates() {
         : [];
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
-    const partnerItems = pairInsights?.getPartnerLiked
-        ? pairInsights.getPartnerLiked().map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
+    const partnerLikedSource = pairInsights?.getPartnerLikedRaw
+        ? pairInsights.getPartnerLikedRaw()
+        : (pairInsights?.getPartnerLiked ? pairInsights.getPartnerLiked() : []);
+    const partnerItems = Array.isArray(partnerLikedSource)
+        ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
         : [];
 
     const ownKanjiKeys = new Set(ownItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
@@ -992,6 +995,9 @@ function renderStock() {
         : null;
 
     let validItems = getMergedLikedCandidates().filter(item => {
+        if (kanjiFocus === 'partner' || kanjiFocus === 'matched') {
+            return true;
+        }
         if (item.sessionReading === 'FREE') return true;
         return item.slot >= 0 && item.sessionReading !== 'SEARCH';
     });

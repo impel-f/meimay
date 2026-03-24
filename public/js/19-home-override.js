@@ -1493,14 +1493,15 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             ? liked.filter(item => !item?.fromPartner)
             : []);
     const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
+    const partnerLikedItemsRaw = insights?.getPartnerLikedRaw ? insights.getPartnerLikedRaw() : partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItems.length ?? 0);
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItemsRaw.length ?? 0);
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount ?? 0);
     const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount ?? 0);
     const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
     const aggregateBuildCount = getHomeBuildPatternCount();
-    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItems);
+    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsRaw);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems);
 
     if (mode === 'shared') {

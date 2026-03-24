@@ -1118,7 +1118,8 @@ const MeimayPartnerInsights = {
     },
 
     getMatchedLikedItems: function () {
-        const partnerKeys = new Set(this.getPartnerLiked().map(item => this.buildLikedMatchKey(item)).filter(Boolean));
+        const partnerLiked = this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : this.getPartnerLiked();
+        const partnerKeys = new Set(partnerLiked.map(item => this.buildLikedMatchKey(item)).filter(Boolean));
         const seenKeys = new Set();
         return this.getOwnLiked().filter(item => {
             const key = this.buildLikedMatchKey(item);
@@ -1131,7 +1132,8 @@ const MeimayPartnerInsights = {
     isLikedItemMatched: function (item) {
         const key = this.buildLikedMatchKey(item);
         if (!key) return false;
-        const partnerKeys = new Set(this.getPartnerLiked().map(entry => this.buildLikedMatchKey(entry)).filter(Boolean));
+        const partnerLiked = this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : this.getPartnerLiked();
+        const partnerKeys = new Set(partnerLiked.map(entry => this.buildLikedMatchKey(entry)).filter(Boolean));
         return partnerKeys.has(key);
     },
 
@@ -3019,7 +3021,7 @@ MeimayPartnerInsights.getSummary = function () {
         ownReadingCount: ownReadingItems.length,
         partnerReadingCount: partnerReadingItems.length,
         ownKanjiCount: ownLikedItems.length,
-        partnerKanjiCount: partnerLikedItems.length,
+        partnerKanjiCount: partnerLikedItemsRaw.length,
         ownSavedCount: ownSavedItems.length,
         partnerSavedCount: partnerSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
@@ -3030,7 +3032,7 @@ MeimayPartnerInsights.getSummary = function () {
         matchedSavedItems: matchedSavedItems,
         matchedTotalCount: matchedReadingItems.length + matchedLikedItems.length + matchedSavedItems.length,
         ownTotalCount: ownReadingItems.length + ownLikedItems.length + ownSavedItems.length,
-        partnerTotalCount: partnerReadingItems.length + partnerLikedItems.length + partnerSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + partnerLikedItemsRaw.length + partnerSavedItems.length,
         counts: {
             own: {
                 reading: ownReadingItems.length,
@@ -3039,7 +3041,7 @@ MeimayPartnerInsights.getSummary = function () {
             },
             partner: {
                 reading: partnerReadingItems.length,
-                kanji: partnerLikedItems.length,
+                kanji: partnerLikedItemsRaw.length,
                 saved: partnerSavedItems.length
             },
             matched: {
