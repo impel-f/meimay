@@ -2069,10 +2069,8 @@ function getHomeBuildStagePreviewHtml() {
     return `
         <div class="wiz-mini-preview home-stage-preview-build" aria-hidden="true">
             <div class="home-stage-build-stack">
-                <div class="home-stage-build-tile home-stage-build-tile--one">春</div>
-                <div class="home-stage-build-tile home-stage-build-tile--two">陽</div>
-                <div class="home-stage-build-tile home-stage-build-tile--three">斗</div>
-                <div class="home-stage-build-tile home-stage-build-tile--four">翔</div>
+                <div class="home-stage-build-tile home-stage-build-tile--one">陽</div>
+                <div class="home-stage-build-tile home-stage-build-tile--two">斗</div>
             </div>
             <div class="home-stage-build-connector" aria-hidden="true">
                 <span class="home-stage-build-connector-line"></span>
@@ -2163,7 +2161,7 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         config.detailHtml = '集まった読みと漢字から<br>候補をつくります';
         break;
     case 'saved':
-        config.title = '保存した名前を見る';
+        config.title = '保存済みを見る';
         config.detailHtml = '保存した候補を<br>見比べて絞り込みます';
         break;
     case 'matched-saved':
@@ -2210,18 +2208,12 @@ function renderHomeNextStagePrimaryButton(cardConfig) {
     }
 
     return `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn home-next-stage-card w-full shadow-sm">
-            <div class="home-next-stage-head">
-                <span class="home-next-stage-title block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
+            <div class="wiz-reading-choice-copy">
+                <span class="block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
+                <span class="block mt-2 text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
             </div>
-            <div class="home-next-stage-body">
-                <div class="home-next-stage-copy">
-                    <span class="home-next-stage-detail block text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
-                </div>
-                <div class="home-next-stage-art" aria-hidden="true">
-                    ${cardConfig.previewHtml}
-                </div>
-            </div>
+            ${cardConfig.previewHtml}
         </button>
     `;
 }
@@ -2285,7 +2277,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                 ? '希望の読みから<br>合う漢字を探します'
                 : focusKey === 'build'
                     ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '候補を見返して<br>名前を絞り込みます',
+                    : '保存した候補を見返して<br>残したい名前を整理します',
         previewHtml: getHomeNextStagePreviewHtml(focusKey === 'reading' ? 'reading' : focusKey),
         variant: 'card',
         icon: ''
@@ -2638,7 +2630,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
                 ? '希望の読みから<br>合う漢字を探します'
                 : selectedTabKey === 'build'
                     ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '候補を見返して<br>名前を絞り込みます',
+                    : '保存した候補を見返して<br>残したい名前を整理します',
         previewHtml: getHomeNextStagePreviewHtml(selectedTabKey === 'reading' ? 'reading' : selectedTabKey),
         variant: 'card',
         icon: ''
