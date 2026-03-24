@@ -709,6 +709,9 @@ const MeimayPairing = {
             cleanupLegacyPartnerLocalData();
             this._clearLocal();
             this._isLeavingRoom = false;
+            if (typeof changeScreen === 'function') {
+                changeScreen('scr-login');
+            }
             updatePairingUI();
             console.log('PAIRING: Left room');
         }
