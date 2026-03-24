@@ -2009,6 +2009,7 @@ function getHomeNextStagePreviewHtml(stageKey) {
     }
 
     if (stageKey === 'build') {
+        return getHomeBuildStagePreviewHtml();
         return `
             <div class="wiz-mini-preview" aria-hidden="true">
                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#FFF8EF; flex-direction:column; gap:2px;">
@@ -2028,6 +2029,7 @@ function getHomeNextStagePreviewHtml(stageKey) {
     }
 
     if (stageKey === 'save') {
+        return getHomeSaveStagePreviewHtml();
         return `
             <div class="wiz-mini-preview" aria-hidden="true">
                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#FFF8EF; flex-direction:column; gap:2px;">
@@ -2061,6 +2063,53 @@ function formatHomeStatusBodyText(text) {
         .replace(/\s+/g, ' ')
         .replace(/。/g, '。\n')
         .trimEnd();
+}
+
+function getHomeBuildStagePreviewHtml() {
+    return `
+        <div class="wiz-mini-preview home-stage-preview-build" aria-hidden="true">
+            <div class="home-stage-build-stack">
+                <div class="home-stage-build-tile home-stage-build-tile--one">ひ</div>
+                <div class="home-stage-build-tile home-stage-build-tile--two">び</div>
+                <div class="home-stage-build-tile home-stage-build-tile--three">き</div>
+            </div>
+            <div class="home-stage-build-connector" aria-hidden="true">
+                <span class="home-stage-build-connector-line"></span>
+                <span class="home-stage-build-connector-arrow">→</span>
+            </div>
+            <div class="home-stage-build-result">
+                <div class="home-stage-build-result-stamp">完成</div>
+                <div class="home-stage-build-result-name">ひびき</div>
+            </div>
+        </div>
+    `;
+}
+
+function getHomeSaveStagePreviewHtml() {
+    return `
+        <div class="wiz-mini-preview home-stage-preview-save" aria-hidden="true">
+            <div class="home-stage-save-frame">
+                <div class="home-stage-save-header">
+                    <span>保存一覧</span>
+                    <span class="home-stage-save-header-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                </div>
+                <div class="home-stage-save-list">
+                    <div class="home-stage-save-row home-stage-save-row--highlight">
+                        <span class="home-stage-save-row-name">ひびき</span>
+                        <span class="home-stage-save-mark" aria-hidden="true">★</span>
+                    </div>
+                    <div class="home-stage-save-row">
+                        <span class="home-stage-save-row-name">みお</span>
+                        <span class="home-stage-save-row-meta">候補</span>
+                    </div>
+                    <div class="home-stage-save-row">
+                        <span class="home-stage-save-row-name">はる</span>
+                        <span class="home-stage-save-row-meta">候補</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function getHomeNextStageCardConfig(nextStep, readingStockCount) {

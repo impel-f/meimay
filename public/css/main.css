@@ -1122,6 +1122,215 @@ body.hide-top-bar #top-bar {
     z-index: 3;
 }
 
+.wiz-mini-preview.home-stage-preview-build,
+.wiz-mini-preview.home-stage-preview-save {
+    width: 96px;
+    height: 70px;
+}
+
+.home-stage-build-stack {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+}
+
+.home-stage-build-tile {
+    position: absolute;
+    width: 23px;
+    height: 30px;
+    border: 1.5px solid #d4c5af;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #fffdf8 0%, #f4e8d4 100%);
+    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.12);
+    color: #5d5444;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.home-stage-build-tile--one {
+    left: 0;
+    top: 10px;
+    transform: rotate(-8deg);
+}
+
+.home-stage-build-tile--two {
+    left: 12px;
+    top: 4px;
+    transform: rotate(-2deg);
+}
+
+.home-stage-build-tile--three {
+    left: 24px;
+    top: 10px;
+    transform: rotate(6deg);
+}
+
+.home-stage-build-connector {
+    position: absolute;
+    left: 32px;
+    right: 36px;
+    top: 30px;
+    height: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    color: #b9965b;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.home-stage-build-connector-line {
+    position: absolute;
+    left: 0;
+    right: 12px;
+    top: 50%;
+    border-top: 1.5px dotted rgba(185, 150, 91, 0.78);
+    transform: translateY(-50%);
+}
+
+.home-stage-build-connector-arrow {
+    position: relative;
+    z-index: 1;
+    padding-left: 10px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.94) 28%, rgba(255, 255, 255, 1));
+}
+
+.home-stage-build-result {
+    position: absolute;
+    right: 0;
+    top: 7px;
+    width: 45px;
+    height: 56px;
+    padding: 10px 4px 6px;
+    border: 1.5px solid #d4c5af;
+    border-radius: 15px;
+    background: linear-gradient(180deg, #fffdf9 0%, #f6ead7 100%);
+    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #5d5444;
+}
+
+.home-stage-build-result-stamp {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 6px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #b9965b;
+    line-height: 1;
+}
+
+.home-stage-build-result-name {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.home-stage-save-frame {
+    position: absolute;
+    inset: 5px 0 4px 0;
+    padding: 6px 5px 5px;
+    border: 1.5px solid #d4c5af;
+    border-radius: 15px;
+    background: linear-gradient(180deg, #fffdf9 0%, #f7ebd9 100%);
+    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.14);
+    overflow: hidden;
+}
+
+.home-stage-save-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #a6967a;
+    line-height: 1;
+}
+
+.home-stage-save-header-dots {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.home-stage-save-header-dots span {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: #d7c4a8;
+}
+
+.home-stage-save-list {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.home-stage-save-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    min-height: 11px;
+    padding: 2px 5px;
+    border-radius: 10px;
+    border: 1px solid rgba(212, 197, 175, 0.85);
+    background: rgba(255, 255, 255, 0.76);
+    color: #5d5444;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.home-stage-save-row--highlight {
+    background: #fff7ea;
+    border-color: #cfba96;
+}
+
+.home-stage-save-row-name {
+    font-size: 8px;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+}
+
+.home-stage-save-row-meta {
+    font-size: 7px;
+    font-weight: 800;
+    color: #a6967a;
+    white-space: nowrap;
+}
+
+.home-stage-save-mark {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid #d4c5af;
+    background: #f5e7c9;
+    color: #b9965b;
+    font-size: 8px;
+    line-height: 1;
+    box-shadow: 0 4px 10px rgba(93, 84, 68, 0.08);
+}
+
 /* ============================================================
    BOTTOM SAFE ZONE
    ============================================================
