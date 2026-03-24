@@ -1203,7 +1203,7 @@ body.hide-top-bar #top-bar {
 
 .home-stage-build-connector-line {
     position: absolute;
-    left: 0;
+    left: 18px;
     right: 10px;
     top: 50%;
     border-top: 1.5px dotted rgba(185, 150, 91, 0.78);
