@@ -3459,6 +3459,7 @@ const MeimayUserBackup = {
 
         const patch = {
             meimayBackup: backup,
+            backup,
             pairRoomCode,
             roomCode: pairRoomCode,
             hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),

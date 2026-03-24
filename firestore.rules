@@ -103,7 +103,7 @@ service cloud.firestore {
       allow create: if isSelf(userId)
         && request.resource.data.keys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
-          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings'
         ])
         && isValidBackupRoom(request.resource.data.pairRoomCode);
@@ -111,12 +111,12 @@ service cloud.firestore {
       allow update: if isSelf(userId)
         && request.resource.data.keys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
-          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings'
         ])
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
-          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings'
         ])
         && isValidBackupRoom(request.resource.data.pairRoomCode);
