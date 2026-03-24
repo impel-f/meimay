@@ -1,4 +1,4 @@
-﻿/* 18-ranking.js: Ranking screen logic */
+/* 18-ranking.js: Ranking screen logic */
 
 let currentRankingType = 'kanji';
 const RANKING_PERIOD_STORAGE_KEY = 'meimay_ranking_period_v1';
@@ -182,7 +182,7 @@ function getPrimaryKanjiReading(kanjiData) {
 function getRankingCardTone(index) {
     const isTopThree = index < 3;
     return {
-        rankClass: isTopThree ? 'text-[11px]' : 'text-[10px]',
+        rankClass: 'text-[10px]',
         countClass: isTopThree ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'
     };
 }
@@ -564,7 +564,11 @@ function renderRankingKanjiCard(item, index) {
     const meaningText = meaning ? (meaning.length > 18 ? `${meaning.slice(0, 18)}…` : meaning) : 'データあり';
     const isStocked = isRankingKanjiStocked(displayKanji);
     const tone = getRankingCardTone(index);
-    const rankLabel = `${index + 1}位`;
+    const isTopThree = index < 3;
+    const rankLabel = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
+    const rankHtml = isTopThree
+        ? `<div class="text-[17px] leading-none">${rankLabel}</div>`
+        : `<div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>`;
 
     return `
         <button type="button"
@@ -575,7 +579,7 @@ function renderRankingKanjiCard(item, index) {
             onclick="openRankingKanjiDetail(this.dataset.kanji)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
-                <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
+                ${rankHtml}
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
             </div>
             <div class="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.45rem] font-black leading-none text-[#5d5444]">
@@ -600,7 +604,11 @@ function renderRankingReadingCard(item, index) {
     const reading = String(item?.displayReading || item?.key || '');
     const tone = getRankingCardTone(index);
     const isStocked = isRankingReadingStocked(reading);
-    const rankLabel = `${index + 1}位`;
+    const isTopThree = index < 3;
+    const rankLabel = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
+    const rankHtml = isTopThree
+        ? `<div class="text-[17px] leading-none">${rankLabel}</div>`
+        : `<div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>`;
 
     return `
         <button type="button"
@@ -611,7 +619,7 @@ function renderRankingReadingCard(item, index) {
             onclick="openRankingReadingAction(this.dataset.reading)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
-                <div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>
+                ${rankHtml}
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
             </div>
             <div class="min-w-0 flex-1">
