@@ -310,7 +310,7 @@ function openFreeBuild() {
  * ストック画面に自由ビルドセクションを描画する
  * 1文字目?最大3文字目まで横スクロールで漢字を選べる
  */
-let fbChoices = []; fbChoicesUseMark = {};
+let fbChoices = [];
 let fbChoicesUseMark = {}; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
 let fbSelectedReading = null; // 修正部: 選択した読みを保存時に固定する
