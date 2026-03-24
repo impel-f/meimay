@@ -3901,9 +3901,12 @@ function checkInheritForSlot(slotIdx, onDone) {
     const kanjiList = [...new Set(newItems.map(i => i['漢字']))].join('・');
     showInheritModal(seg, kanjiList, (action) => {
         if (action === 'skip') {
-            // スキップ：そのスロットには何もしない（裏で全自動引き継ぎさせる要望もあったが、ここでは純粋に「追加で選ぶか飛ばすか」の形。全選択済みとして次スロットへ飛ばすのが旧仕様だったが、今回は「そのスロットの漢字を改めて選ばなくていいように自動で継承する」処理を行う方が親切）
+            // スキップ：そのスロットには何もしない（裏で全自動引き継ぎさせる）
             // 仕様：スキップ＝「もう前の漢字を引き継ぐだけでいいから、この文字のスワイプは飛ばす」
             doInheritKanji([{ slot: slotIdx, segReading: seg, items: newItems }]);
+
+            // 現在のスワイプ位置を次のスロットへ進める
+            currentPos = slotIdx + 1;
 
             // 次のスロットのチェックへ行くが、これが最後のスロットならビルドへ
             if (slotIdx >= segments.length - 1) {
