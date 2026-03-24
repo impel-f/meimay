@@ -2297,8 +2297,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         </div>
                         <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
-                            ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:${tone.text};">（内一致:${matchedReadingCount}件）</div>` : ''}
-                            ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:${tone.text};">（内一致:${matchedKanjiCount}件）</div>` : ''}
+                            ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
+                            ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
                         ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">選択中</div>` : ''}
                     </div>

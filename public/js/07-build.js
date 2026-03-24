@@ -298,7 +298,7 @@ function openFreeBuild() {
         return;
     }
     buildMode = 'free';
-    fbChoices = [];
+    fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
     selectedPieces = [];
     fbSelectedReading = null;
@@ -310,7 +310,8 @@ function openFreeBuild() {
  * ストック画面に自由ビルドセクションを描画する
  * 1文字目?最大3文字目まで横スクロールで漢字を選べる
  */
-let fbChoices = []; // ['漢字1', '漢字2', ...]  選択済み
+let fbChoices = []; fbChoicesUseMark = {};
+let fbChoicesUseMark = {}; // ['漢字1', '漢字2', ...]  選択済み
 let shownFbSlots = 1; // 自由モードで表示するスロット数（追加ボタンで増える）
 let fbSelectedReading = null; // 修正部: 選択した読みを保存時に固定する
 let currentFbRecommendedReadings = []; // 保存モーダル等で共有するための変数
@@ -380,9 +381,8 @@ function renderFreeBuildSection() {
                 <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     ${allKanji.map(item => {
             const k = item['漢字'];
-            const resolvedSelected = (fbChoices[slotIdx] === '々' && slotIdx > 0) ? (fbChoices[slotIdx - 1] === '々' && slotIdx > 1 ? fbChoices[slotIdx - 2] : fbChoices[slotIdx - 1]) : fbChoices[slotIdx];
-            const isSelected = resolvedSelected === k;
-            const isUsed = fbChoices.some((c, i) => i !== slotIdx && (c === k || (c === '々' && i > 0 && fbChoices[i - 1] === k))) && !isSelected;
+            const isSelected = fbChoices[slotIdx] === k;
+            const isUsed = fbChoices.includes(k) && !isSelected;
             return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                             class="shrink-0 w-14 h-14 rounded-2xl border-2 flex flex-col items-center justify-center text-xl font-black transition-all active:scale-90
                             ${isSelected ? 'bg-white text-[#bca37f] ring-2 ring-[#bca37f]/30' :
@@ -400,7 +400,7 @@ function renderFreeBuildSection() {
     // 運勢ランキング（名前が1文字以上選ばれたら表示）
     let fortuneHtml = '';
     if (fbChoices.length >= 1) {
-        const givenName = fbChoices.join('');
+        const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
         const givenReading = getSafeFreeBuildAutoReading(fbChoices);
         fortuneHtml = `
             <div class="mt-4 border-t border-[#ede5d8] pt-4">
@@ -420,14 +420,15 @@ function renderFreeBuildSection() {
 
 // 漢字を選択（選び直しても他のスロットは保持）
 function selectFbKanji(slotIdx, kanji) {
-    const isAlreadyUsed = fbChoices.some((c, i) => i !== slotIdx && (c === kanji || (c === '々' && i > 0 && fbChoices[i-1] === kanji)));
-    let targetKanji = kanji;
-    if (isAlreadyUsed) {
-        if (fbChoices[slotIdx] === '々') targetKanji = kanji;
-        else if (fbChoices[slotIdx] === kanji) targetKanji = '々';
-        else targetKanji = '々';
+    if (fbChoices[slotIdx] === kanji) {
+        if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) {
+            fbChoicesUseMark[slotIdx] = !fbChoicesUseMark[slotIdx];
+        }
+    } else {
+        fbChoices[slotIdx] = kanji;
+        if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) fbChoicesUseMark[slotIdx] = true;
+        else fbChoicesUseMark[slotIdx] = false;
     }
-    fbChoices[slotIdx] = targetKanji;
     // 後ろのスロットは保持する（明示的に「解除」ボタンで削除するまで残す）
     const scrollPositions = [];
     document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
@@ -441,7 +442,7 @@ function selectFbKanji(slotIdx, kanji) {
 
 // 選択を解除
 function removeFbChoice(slotIdx) {
-    fbChoices.splice(slotIdx, 1);
+    fbChoices.splice(slotIdx, 1); for(let i=slotIdx; i<10; i++) fbChoicesUseMark[i] = fbChoicesUseMark[i+1];
     const scrollPositions = [];
     document.querySelectorAll('.overflow-x-auto').forEach(el => scrollPositions.push(el.scrollLeft));
     renderFreeBuildSection();
@@ -496,7 +497,7 @@ function renderFbFortune(choices) {
 
 // 自由ビルド確定
 function confirmFbBuild() {
-    const givenName = fbChoices.join('');
+    const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
     if (!givenName) return;
     const combination = fbChoices.map(k =>
         liked.find(l => l['漢字'] === k) || master?.find(m => m['漢字'] === k) || { '漢字': k, '画数': 1 }
@@ -1186,7 +1187,7 @@ function openBuild() {
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
     hydrateCompoundBuildSelections();
     buildMode = 'reading';
-    fbChoices = [];
+    fbChoices = []; fbChoicesUseMark = {};
     excludedKanjiFromBuild = []; // 除外リストをリセット
     renderBuildSelection();
     changeScreen('scr-build');
@@ -1206,7 +1207,7 @@ function openBuildFreeMode() {
     }
     selectedPieces = [];
     buildMode = 'free';
-    fbChoices = [];
+    fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
     excludedKanjiFromBuild = []; // 除外リストをリセット
     renderBuildSelection();
@@ -1250,7 +1251,7 @@ function setBuildMode(mode) {
     // モードが実際に切り替わる場合のみ選択状態をリセット
     // （すでにfreeモードの場合はfbChoices/shownFbSlotsを保持）
     if (prevMode !== mode || mode === 'reading') {
-        fbChoices = [];
+        fbChoices = []; fbChoicesUseMark = {};
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
         if (mode === 'reading') {
@@ -1275,7 +1276,7 @@ function updateNamePreview() {
     let givenReading = '';
 
     if (buildMode === 'free') {
-        givenKanji = fbChoices.length > 0 ? fbChoices.join('') : '';
+        givenKanji = fbChoices.length > 0 ? fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('') : '';
         givenReading = fbSelectedReading || '';
     } else {
         const chosen = [];
@@ -1678,7 +1679,7 @@ function toggleReadingDropdown() {
     // 読みモードに切り替え（自由モード中の場合）
     if (buildMode !== 'reading') {
         buildMode = 'reading';
-        fbChoices = [];
+        fbChoices = []; fbChoicesUseMark = {};
         selectedPieces = [];
         hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
@@ -1814,9 +1815,8 @@ function renderBuildFreeMode(container) {
             const k = item['漢字'];
             const strokes = item['画数'] !== undefined ? item['画数']
                 : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '--';
-            const resolvedSelected = (fbChoices[slotIdx] === '々' && slotIdx > 0) ? (fbChoices[slotIdx - 1] === '々' && slotIdx > 1 ? fbChoices[slotIdx - 2] : fbChoices[slotIdx - 1]) : fbChoices[slotIdx];
-            const isSelected = resolvedSelected === k;
-            const isUsed = fbChoices.some((c, i) => i !== slotIdx && (c === k || (c === '々' && i > 0 && fbChoices[i - 1] === k))) && !isSelected;
+            const isSelected = fbChoices[slotIdx] === k;
+            const isUsed = fbChoices.includes(k) && !isSelected;
             const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
             const buttonStyles = [];
             if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
@@ -2028,7 +2028,7 @@ function executeFbBuild() {
         return;
     }
 
-    const givenName = fbChoices.join('');
+    const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
     const combination = fbChoices.map(k => {
         const fromLiked = (liked || []).find(l => l['漢字'] === k);
         if (fromLiked) return fromLiked;
@@ -2251,14 +2251,15 @@ window.removeKanjiFromStock = removeKanjiFromStock;
 
 window.selectFbKanji = function (slotIdx, kanji) {
     withScrollPreservation(() => {
-        const isAlreadyUsed = fbChoices.some((c, i) => i !== slotIdx && (c === kanji || (c === '々' && i > 0 && fbChoices[i-1] === kanji)));
-        let targetKanji = kanji;
-        if (isAlreadyUsed) {
-            if (fbChoices[slotIdx] === '々') targetKanji = kanji;
-            else if (fbChoices[slotIdx] === kanji) targetKanji = '々';
-            else targetKanji = '々';
+        if (fbChoices[slotIdx] === kanji) {
+            if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) {
+                fbChoicesUseMark[slotIdx] = !fbChoicesUseMark[slotIdx];
+            }
+        } else {
+            fbChoices[slotIdx] = kanji;
+            if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) fbChoicesUseMark[slotIdx] = true;
+            else fbChoicesUseMark[slotIdx] = false;
         }
-        fbChoices[slotIdx] = targetKanji;
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
 
         const buildScreen = document.getElementById('scr-build');
@@ -2271,9 +2272,15 @@ window.selectFbKanji = function (slotIdx, kanji) {
     });
 };
 
+
+function getFbDisplayKanji(idx) {
+    if (idx > 0 && fbChoicesUseMark[idx] && fbChoices[idx] === fbChoices[idx-1]) return '々';
+    return fbChoices[idx] || null;
+}
+
 window.removeFbChoice = function (slotIdx) {
     withScrollPreservation(() => {
-        fbChoices.splice(slotIdx, 1);
+        fbChoices.splice(slotIdx, 1); for(let i=slotIdx; i<10; i++) fbChoicesUseMark[i] = fbChoicesUseMark[i+1];
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
         if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
             shownFbSlots--;
