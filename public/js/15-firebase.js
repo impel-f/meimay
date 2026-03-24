@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 15: FIREBASE (V22.0 - ANONYMOUS AUTH + ROOM PAIRING)
    繧｢繧ｫ繧ｦ繝ｳ繝井ｸ崎ｦ√・蛹ｿ蜷崎ｪ崎ｨｼ繝ｻ繝ｫ繝ｼ繝繧ｳ繝ｼ繝画婿蠑上ヱ繝ｼ繝医リ繝ｼ騾｣謳ｺ
    ============================================================ */
@@ -241,7 +241,7 @@ const MeimayFirestorePayload = {
     _findKanjiMaster(kanji) {
         const target = this._normalizeString(kanji);
         if (!target || typeof master === 'undefined' || !Array.isArray(master)) return null;
-        return master.find((entry) => this._normalizeString(entry?.['貍｢蟄・'] || entry?.kanji) === target) || null;
+        return master.find((entry) => this._normalizeString(entry?.['漢字'] || entry?.kanji) === target) || null;
     },
 
     _findReadingSource(reading) {
@@ -255,10 +255,10 @@ const MeimayFirestorePayload = {
     },
 
     minifyLikedItem(item) {
-        const kanji = this._normalizeString(item?.['貍｢蟄・'] || item?.kanji);
+        const kanji = this._normalizeString(item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji);
         if (!kanji) return null;
         return {
-            '貍｢蟄・': kanji,
+            '漢字': kanji,
             slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
             sessionReading: this._normalizeString(item?.sessionReading),
             sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments.slice(0, 12) : [],
@@ -271,15 +271,15 @@ const MeimayFirestorePayload = {
     },
 
     hydrateLikedItem(item, options = {}) {
-        const kanji = this._normalizeString(item?.['貍｢蟄・'] || item?.kanji);
+        const kanji = this._normalizeString(item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji);
         if (!kanji) return null;
         const masterItem = this._findKanjiMaster(kanji);
         return {
             ...(masterItem || {}),
             ...(item || {}),
-            '貍｢蟄・': kanji,
-            '逕ｻ謨ｰ': item?.['逕ｻ謨ｰ'] ?? item?.strokes ?? masterItem?.['逕ｻ謨ｰ'] ?? 1,
-            '蛻・｡・': item?.['蛻・｡・'] ?? item?.category ?? masterItem?.['蛻・｡・'] ?? '',
+            '漢字': kanji,
+            '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 1,
+            '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'] ?? '',
             kanji_reading: this._normalizeString(item?.kanji_reading || masterItem?.kanji_reading),
             slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
             sessionReading: this._normalizeString(item?.sessionReading),
@@ -300,7 +300,7 @@ const MeimayFirestorePayload = {
         const combination = Array.isArray(item?.combination) ? item.combination : [];
         const combinationKeys = Array.isArray(item?.combinationKeys) && item.combinationKeys.length > 0
             ? item.combinationKeys.map((key) => this._normalizeString(key)).filter(Boolean)
-            : combination.map((part) => this._normalizeString(part?.['貍｢蟄・'] || part?.kanji)).filter(Boolean);
+            : combination.map((part) => this._normalizeString(part?.['漢字'] || part?.kanji)).filter(Boolean);
 
         return {
             fullName: this._normalizeString(item?.fullName),
@@ -319,11 +319,11 @@ const MeimayFirestorePayload = {
         const combinationKeys = Array.isArray(item?.combinationKeys) && item.combinationKeys.length > 0
             ? item.combinationKeys.map((key) => this._normalizeString(key)).filter(Boolean)
             : (Array.isArray(item?.combination)
-                ? item.combination.map((part) => this._normalizeString(part?.['貍｢蟄・'] || part?.kanji)).filter(Boolean)
+                ? item.combination.map((part) => this._normalizeString(part?.['漢字'] || part?.kanji)).filter(Boolean)
                 : []);
         const combination = Array.isArray(item?.combination) && item.combination.length > 0
             ? item.combination.map((part) => ({ ...(part || {}) }))
-            : combinationKeys.map((key) => this._findKanjiMaster(key) || { '貍｢蟄・': key, '逕ｻ謨ｰ': 1 });
+            : combinationKeys.map((key) => this._findKanjiMaster(key) || { '漢字': key, '画数': 1 });
 
         let fortune = item?.fortune || null;
         try {
@@ -332,8 +332,8 @@ const MeimayFirestorePayload = {
                     ? surnameData
                     : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
                 const givArr = combination.map((part) => ({
-                    kanji: part?.['貍｢蟄・'] || part?.kanji || '',
-                    strokes: parseInt(part?.['逕ｻ謨ｰ'] ?? part?.strokes ?? 0, 10) || 0
+                    kanji: part?.['漢字'] || part?.kanji || '',
+                    strokes: parseInt(part?.['画数'] ?? part?.strokes ?? 0, 10) || 0
                 })).filter((part) => part.kanji);
                 if (givArr.length > 0) {
                     fortune = FortuneLogic.calculate(surArr, givArr);
@@ -949,13 +949,13 @@ const MeimayShare = {
             const readingKey = normalizeHiddenReadingKey(item?.sessionReading || item?.reading || '');
             if (readingKey && hiddenSet.has(readingKey)) return;
             const exists = liked.some(l =>
-                l['貍｢蟄・'] === item['貍｢蟄・'] &&
+                l['漢字'] === item['漢字'] &&
                 l.slot === item.slot &&
                 l.sessionReading === item.sessionReading
             );
             if (!exists) {
                 let fullKanji = typeof master !== 'undefined'
-                    ? master.find(m => m['貍｢蟄・'] === item['貍｢蟄・'])
+                    ? master.find(m => m['漢字'] === item['漢字'])
                     : null;
                 let hydratedItem = fullKanji ? {
                     ...fullKanji,
@@ -999,15 +999,15 @@ const MeimayShare = {
                     let combination = [];
                     if (item.combinationKeys && typeof master !== 'undefined') {
                         combination = item.combinationKeys.map(k => {
-                            const found = master.find(m => m['貍｢蟄・'] === k);
-                            return found || { '貍｢蟄・': k, '逕ｻ謨ｰ': 1 };
+                            const found = master.find(m => m['漢字'] === k);
+                            return found || { '漢字': k, '画数': 1 };
                         });
                     }
                     let fortune = null;
                     if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
                         const givArr = combination.map(p => ({
-                            kanji: p['貍｢蟄・'],
-                            strokes: parseInt(p['逕ｻ謨ｰ']) || 0
+                            kanji: p['漢字'],
+                            strokes: parseInt(p['画数']) || 0
                         }));
                         fortune = FortuneLogic.calculate(surArr, givArr);
                     }
@@ -1063,7 +1063,7 @@ const MeimayPartnerInsights = {
     },
 
     buildLikedMatchKey: function (item) {
-        const kanji = item?.['貍｢蟄・'] || item?.kanji || '';
+        const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
         if (!kanji) return '';
         return `kanji::${kanji}`;
     },
@@ -1071,7 +1071,7 @@ const MeimayPartnerInsights = {
     buildSavedMatchKey: function (item) {
         if (!item) return '';
         const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
-            ? item.combination.map(part => part['貍｢蟄・'] || part.kanji || '').join('')
+            ? item.combination.map(part => part['漢字'] || part.kanji || '').join('')
             : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
         const fullName = item.fullName || item.givenName || combinationKey;
         const reading = this.normalizeReading(item.reading || item.givenName || '');
@@ -1184,7 +1184,7 @@ const MeimayPartnerInsights = {
         const partnerLabel = MeimayPairing.partnerRole === 'mama' ? '繝槭・' : MeimayPairing.partnerRole === 'papa' ? '繝代ヱ' : '繝代・繝医リ繝ｼ';
         const previewLabels = [
             ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
-            ...matchedLikedItems.slice(0, 3).map(item => item['貍｢蟄・'] || '')
+            ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
         ].filter(Boolean).slice(0, 4);
 
         return {
@@ -2226,7 +2226,7 @@ const MeimayStats = {
             };
 
             ownLikedItems.forEach((item) => {
-                const kanji = String(item?.['貍｢蟄・'] || item?.kanji || '').trim();
+                const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
                 if (!kanji) return;
 
                 const genderKey = normalizeStatsGenderValue(item?.gender || item?.settings?.gender || gender);
@@ -3114,7 +3114,7 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerName = this.getPartnerDisplayName();
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
-        ...matchedLikedItems.slice(0, 3).map(item => item['貍｢蟄・'] || '')
+        ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
     ].filter(Boolean).slice(0, 4);
 
     return {
@@ -3411,7 +3411,7 @@ const MeimayUserBackup = {
     },
 
     _getLikedKey: function (item) {
-        const kanji = String(item?.['貍｢蟄・'] || item?.['雋搾ｽ｢陝・・'] || item?.kanji || '').trim();
+        const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
         if (kanji) return kanji;
         const sessionReading = String(item?.sessionReading || '').trim();
         const slot = String(item?.slot ?? '').trim();

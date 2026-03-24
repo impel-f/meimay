@@ -76,7 +76,7 @@ function normalizeSingleKanjiStock() {
     if (!Array.isArray(liked)) return;
 
     const cleaned = liked.filter((item) => {
-        const kanji = item?.['漢字'] || item?.kanji || '';
+        const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
         return Array.from(kanji).length <= 1;
     });
 
@@ -728,7 +728,7 @@ function getLikedCandidateKanjiKey(item) {
 }
 
 function hydrateLikedCandidate(item, options = {}) {
-    const kanji = item?.['漢字'] || item?.kanji || '';
+    const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
     if (!kanji) return null;
     if (Array.from(kanji).length > 1) return null;
 
@@ -740,8 +740,8 @@ function hydrateLikedCandidate(item, options = {}) {
         ...(masterItem || {}),
         ...(item || {}),
         '漢字': kanji,
-        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'],
-        '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'],
+        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 1,
+        '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'] ?? '',
         kanji_reading: item?.kanji_reading || masterItem?.kanji_reading || '',
         slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
         sessionReading: item?.sessionReading || '',
