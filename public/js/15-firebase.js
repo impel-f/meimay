@@ -698,7 +698,7 @@ const MeimayPairing = {
         localStorage.removeItem('meimay_my_role');
 
         if (typeof MeimayShare !== 'undefined') {
-            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
         }
 
         if (typeof changeScreen === 'function') {
@@ -916,7 +916,7 @@ const MeimayShare = {
             this._partnerUnsub();
             this._partnerUnsub = null;
         }
-        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], meimayBackup: null, backup: null, role: null };
+        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
 
@@ -1084,7 +1084,7 @@ const MeimayPartnerInsights = {
 
     getPartnerHiddenReadingSet: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
-        const backup = snapshot.meimayBackup || snapshot.backup || {};
+        const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         const hiddenReadings = Array.isArray(snapshot.hiddenReadings) && snapshot.hiddenReadings.length > 0
             ? snapshot.hiddenReadings
             : (Array.isArray(backup.hiddenReadings) ? backup.hiddenReadings : []);
@@ -1109,7 +1109,7 @@ const MeimayPartnerInsights = {
 
     getPartnerLikedRaw: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
-        const backup = snapshot.meimayBackup || snapshot.backup || {};
+        const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         if (Array.isArray(snapshot.liked) && snapshot.liked.length > 0) {
             return snapshot.liked;
         }
@@ -1128,7 +1128,7 @@ const MeimayPartnerInsights = {
 
     getPartnerSaved: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
-        const backup = snapshot.meimayBackup || snapshot.backup || {};
+        const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         if (Array.isArray(snapshot.savedNames) && snapshot.savedNames.length > 0) {
             return snapshot.savedNames;
         }
@@ -2655,7 +2655,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -2690,6 +2690,52 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 hiddenReadingsSource = roomBackup.hiddenReadings;
             }
 
+            let partnerUserBackup = null;
+            if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
+                try {
+                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
+                    if (partnerUserDoc.exists) {
+                        const partnerUserData = partnerUserDoc.data() || {};
+                        const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        partnerUserBackup = {
+                            ...partnerBackup,
+                            liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
+                                ? partnerBackup.liked
+                                : (Array.isArray(partnerUserData.liked) ? partnerUserData.liked : []),
+                            savedNames: Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0
+                                ? partnerBackup.savedNames
+                                : (Array.isArray(partnerUserData.savedNames) ? partnerUserData.savedNames : []),
+                            readingStock: Array.isArray(partnerBackup.readingStock) && partnerBackup.readingStock.length > 0
+                                ? partnerBackup.readingStock
+                                : (Array.isArray(partnerUserData.readingStock) ? partnerUserData.readingStock : []),
+                            encounteredReadings: Array.isArray(partnerBackup.encounteredReadings) && partnerBackup.encounteredReadings.length > 0
+                                ? partnerBackup.encounteredReadings
+                                : (Array.isArray(partnerUserData.encounteredReadings) ? partnerUserData.encounteredReadings : []),
+                            hiddenReadings: Array.isArray(partnerBackup.hiddenReadings) && partnerBackup.hiddenReadings.length > 0
+                                ? partnerBackup.hiddenReadings
+                                : (Array.isArray(partnerUserData.hiddenReadings) ? partnerUserData.hiddenReadings : [])
+                        };
+                        if (!likedSource.length && Array.isArray(partnerUserBackup.liked) && partnerUserBackup.liked.length > 0) {
+                            likedSource = partnerUserBackup.liked;
+                        }
+                        if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {
+                            savedNamesSource = partnerUserBackup.savedNames;
+                        }
+                        if (!readingStockSource.length && Array.isArray(partnerUserBackup.readingStock) && partnerUserBackup.readingStock.length > 0) {
+                            readingStockSource = partnerUserBackup.readingStock;
+                        }
+                        if (!encounteredSource.length && Array.isArray(partnerUserBackup.encounteredReadings) && partnerUserBackup.encounteredReadings.length > 0) {
+                            encounteredSource = partnerUserBackup.encounteredReadings;
+                        }
+                        if (!hiddenReadingsSource.length && Array.isArray(partnerUserBackup.hiddenReadings) && partnerUserBackup.hiddenReadings.length > 0) {
+                            hiddenReadingsSource = partnerUserBackup.hiddenReadings;
+                        }
+                    }
+                } catch (error) {
+                    // partner backup は読めるときだけ使う。権限エラーは room 側の結果をそのまま使う。
+                }
+            }
+
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: likedSource,
                 savedNames: savedNamesSource,
@@ -2709,7 +2755,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 nickname: String(data.nickname || '').trim(),
                 themeId: String(data.themeId || '').trim(),
                 meimayBackup: roomBackup,
-                backup: roomBackup
+                backup: roomBackup,
+                partnerUserBackup
             };
 
             if (typeof updatePairingUI === 'function') {
@@ -2729,7 +2776,7 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+        this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 };
 
@@ -2762,7 +2809,7 @@ MeimayShare.syncProfileAppearance = async function () {
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
     const snapshot = MeimayShare.partnerSnapshot || {};
-    const backup = snapshot.meimayBackup || snapshot.backup || {};
+    const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
     const partnerReadings = Array.isArray(snapshot.readingStock) && snapshot.readingStock.length > 0
         ? snapshot.readingStock
         : (Array.isArray(backup.readingStock) ? backup.readingStock : []);
@@ -2793,7 +2840,7 @@ MeimayPartnerInsights.getOwnEncounteredReadings = function () {
 
 MeimayPartnerInsights.getPartnerEncounteredReadings = function () {
     const snapshot = MeimayShare?.partnerSnapshot || {};
-    const backup = snapshot.meimayBackup || snapshot.backup || {};
+    const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
     const readings = Array.isArray(snapshot.encounteredReadings) && snapshot.encounteredReadings.length > 0
         ? snapshot.encounteredReadings
         : backup.encounteredReadings;
