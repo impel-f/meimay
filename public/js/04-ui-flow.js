@@ -5163,6 +5163,18 @@ function startDirectKanjiSwipe() {
     startFreeSwiping();
 }
 
+function freeSwipeAction(action) {
+    if (typeof action === 'string' && ['like', 'nope', 'super'].includes(action)) {
+        if (typeof universalSwipeAction === 'function') {
+            return universalSwipeAction(action);
+        }
+        return;
+    }
+    if (typeof startFreeSwiping === 'function') {
+        startFreeSwiping();
+    }
+}
+
 // Expose functions to global scope
 window.navSearchAction = navSearchAction;
 window.openSearchMethodChooser = openSearchMethodChooser;
