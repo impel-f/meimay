@@ -2579,18 +2579,32 @@ MeimayPairing.syncMyData = async function () {
             encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
         });
         const hiddenReadings = readNormalizedHiddenReadings();
+        const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
+        const roomDataDoc = await roomDataRef.get();
+        const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
+        const likedClearFlag = localStorage.getItem('meimay_liked_cleared_at');
+        const pickStoredSection = (localItems, existingItems) => {
+            if (Array.isArray(localItems) && localItems.length > 0) return localItems;
+            if (Array.isArray(existingItems) && existingItems.length > 0) return existingItems;
+            return Array.isArray(localItems) ? localItems : [];
+        };
+        const likedToStore = likedClearFlag
+            ? (Array.isArray(projectedSections.liked) ? projectedSections.liked : [])
+            : pickStoredSection(projectedSections.liked, existingRoomData.liked);
+        const savedNamesToStore = pickStoredSection(projectedSections.savedNames, existingRoomData.savedNames);
+        const readingStockToStore = pickStoredSection(projectedSections.readingStock, existingRoomData.readingStock);
+        const encounteredToStore = pickStoredSection(projectedSections.encounteredReadings, existingRoomData.encounteredReadings);
 
-        await firebaseDb.collection('rooms').doc(this.roomCode)
-            .collection('data').doc(user.uid).set({
+        await roomDataRef.set({
                 role: this.myRole,
                 displayName: String(wizard.username || '').trim(),
                 username: String(wizard.username || '').trim(),
                 nickname: String(wizard.username || '').trim(),
                 themeId: typeof getProfileThemeId === 'function' ? getProfileThemeId(wizard.role) : (wizard.themeId || null),
-                liked: projectedSections.liked,
-                savedNames: projectedSections.savedNames,
-                readingStock: projectedSections.readingStock,
-                encounteredReadings: projectedSections.encounteredReadings,
+                liked: likedToStore,
+                savedNames: savedNamesToStore,
+                readingStock: readingStockToStore,
+                encounteredReadings: encounteredToStore,
                 hiddenReadings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -2614,34 +2628,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.data() || {};
             cleanupLegacyPartnerLocalData();
-            let likedSource = Array.isArray(data.liked) ? data.liked : [];
-            let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
-            let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
-            let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
-
-            if (partnerUid && (!likedSource.length || !savedNamesSource.length || !readingStockSource.length)) {
-                try {
-                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
-                    if (partnerUserDoc.exists) {
-                        const partnerUserData = partnerUserDoc.data() || {};
-                        const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
-                        if (!likedSource.length && Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0) {
-                            likedSource = partnerBackup.liked;
-                        }
-                        if (!savedNamesSource.length && Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0) {
-                            savedNamesSource = partnerBackup.savedNames;
-                        }
-                        if (!readingStockSource.length && Array.isArray(partnerBackup.readingStock) && partnerBackup.readingStock.length > 0) {
-                            readingStockSource = partnerBackup.readingStock;
-                        }
-                        if (!encounteredSource.length && Array.isArray(partnerBackup.encounteredReadings) && partnerBackup.encounteredReadings.length > 0) {
-                            encounteredSource = partnerBackup.encounteredReadings;
-                        }
-                    }
-                } catch (error) {
-                    console.warn('SHARE: Partner backup fallback failed', error);
-                }
-            }
+            const likedSource = Array.isArray(data.liked) ? data.liked : [];
+            const savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
+            const readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
+            const encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
 
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: likedSource,
