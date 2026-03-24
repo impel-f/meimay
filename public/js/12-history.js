@@ -566,7 +566,7 @@ function renderEncounteredLibrary() {
                         <div class="grid grid-cols-4 gap-2">
                             ${group.items.map(item => {
                                 const isLiked = Array.isArray(liked)
-                                    ? liked.some(likedItem => (likedItem['漢字'] || likedItem.kanji) === item.kanji)
+                                    ? liked.some(likedItem => (likedItem['漢字'] || likedItem['\u8c8c\uff61\u87c4\uff65'] || likedItem['\u8c8d\uff62\u87c4\u30fb'] || likedItem.kanji) === item.kanji)
                                     : false;
                                 const isMatched = false;
                                 const isNope = !isLiked && item.lastAction === 'nope';
@@ -616,7 +616,10 @@ function renderEncounteredLibrary() {
                             const displayReading = normalizeEncounteredReadingText(item.reading);
                             if (!displayReading) return '';
                             const isStocked = typeof getReadingStock === 'function'
-                                ? getReadingStock().some(stockItem => stockItem.reading === displayReading || stockItem.reading === item.reading)
+                                ? getReadingStock().some(stockItem => {
+                                    const sReading = stockItem.reading || stockItem['\u96b1\uff6d\u7e3a\uff7f'];
+                                    return sReading === displayReading || sReading === item.reading;
+                                })
                                 : false;
                             const isNope = !isStocked && item.lastAction === 'nope';
                             const toneClass = isStocked

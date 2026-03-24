@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 04: UI FLOW (V14.3)
    ウィザード進行・モード管理
    ============================================================ */
@@ -4159,9 +4159,10 @@ function getReadingDisplayLabel(item, options = {}) {
 }
 
 function getReadingBaseReading(value) {
-    const raw = String(typeof value === 'object' && value !== null
-        ? (value.reading || value.sessionReading || '')
-        : value || '').trim();
+    const rawValue = typeof value === 'object' && value !== null
+        ? (value.reading || value.sessionReading || value['\u96b1\uff6d\u7e3a\uff7f'] || '')
+        : value || '';
+    const raw = String(rawValue).trim();
     if (!raw) return '';
     return raw.split('::')[0].trim();
 }
@@ -4169,8 +4170,9 @@ function getReadingBaseReading(value) {
 function matchesReadingStockTarget(item, target) {
     const normalizedTarget = getReadingBaseReading(target);
     if (!normalizedTarget) return false;
-    const itemReading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
-    return item?.id === target || item?.reading === target || itemReading === normalizedTarget;
+    const itemReading = getReadingBaseReading(item);
+    const itemKey = item?.id || item?.reading || item?.['\u96b1\uff6d\u7e3a\uff7f'] || '';
+    return itemKey === target || itemReading === normalizedTarget;
 }
 
 function isReadingStockPromoted(item) {

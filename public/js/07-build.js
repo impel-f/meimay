@@ -2210,9 +2210,9 @@ function confirmStockDeletion(kanji) {
 function removeKanjiFromStock(kanji) {
     if (!liked) return;
 
-    const removedItems = liked.filter(item => item['漢字'] === kanji);
+    const removedItems = liked.filter(item => (item['漢字'] || item['\u8c8d\uff62\u87c4\u30fb'] || item['\u8c8c\uff61\u87c4\uff65'] || item.kanji) === kanji);
     const initialCount = liked.length;
-    liked = liked.filter(item => item['漢字'] !== kanji);
+    liked = liked.filter(item => (item['漢字'] || item['\u8c8d\uff62\u87c4\u30fb'] || item['\u8c8c\uff61\u87c4\uff65'] || item.kanji) !== kanji);
 
     if (liked.length < initialCount) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {

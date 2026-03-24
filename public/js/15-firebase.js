@@ -271,7 +271,7 @@ const MeimayFirestorePayload = {
     },
 
     hydrateLikedItem(item, options = {}) {
-        const kanji = this._normalizeString(item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji);
+        const kanji = this._normalizeString(item?.['漢字'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.['\u8c8d\uff62\u87c4\u30fb'] || item?.kanji);
         if (!kanji) return null;
         const masterItem = this._findKanjiMaster(kanji);
         return {
@@ -464,19 +464,57 @@ const MeimayFirestorePayload = {
     },
 
     projectSections(sections = {}) {
+        const rawLiked = (Array.isArray(sections?.liked) ? sections.liked : [])
+            .map((item) => this.minifyLikedItem(item))
+            .filter(Boolean);
+        const likedMap = new Map();
+        rawLiked.forEach(item => {
+            const kanji = item['漢字'] || item['\u8c8c\uff61\u87c4\uff65'] || item['\u8c8d\uff62\u87c4\u30fb'] || item.kanji;
+            const key = `${kanji}::${item.slot}::${item.sessionReading}`;
+            if (!likedMap.has(key)) likedMap.set(key, item);
+        });
+
+        const rawReadingStock = (Array.isArray(sections?.readingStock) ? sections.readingStock : [])
+            .map((item) => this.minifyReadingStockItem(item))
+            .filter(Boolean);
+        const stockMap = new Map();
+        rawReadingStock.forEach(item => {
+            const key = item.reading || item['\u96b1\uff6d\u7e3a\uff7f'];
+            if (!stockMap.has(key)) stockMap.set(key, item);
+        });
+
         return {
-            liked: (Array.isArray(sections?.liked) ? sections.liked : []).map((item) => this.minifyLikedItem(item)).filter(Boolean),
+            liked: Array.from(likedMap.values()),
             savedNames: (Array.isArray(sections?.savedNames) ? sections.savedNames : []).map((item) => this.minifySavedItem(item)).filter(Boolean),
-            readingStock: (Array.isArray(sections?.readingStock) ? sections.readingStock : []).map((item) => this.minifyReadingStockItem(item)).filter(Boolean),
+            readingStock: Array.from(stockMap.values()),
             encounteredReadings: (Array.isArray(sections?.encounteredReadings) ? sections.encounteredReadings : []).map((item) => this.minifyEncounteredReading(item)).filter(Boolean)
         };
     },
 
     hydrateSections(sections = {}) {
+        const rawLiked = (Array.isArray(sections?.liked) ? sections.liked : [])
+            .map((item) => this.hydrateLikedItem(item))
+            .filter(Boolean);
+        const likedMap = new Map();
+        rawLiked.forEach(item => {
+            const kanji = item['漢字'] || item['\u8c8c\uff61\u87c4\uff65'] || item['\u8c8d\uff62\u87c4\u30fb'] || item.kanji;
+            const key = `${kanji}::${item.slot}::${item.sessionReading}`;
+            if (!likedMap.has(key)) likedMap.set(key, item);
+        });
+
+        const rawReadingStock = (Array.isArray(sections?.readingStock) ? sections.readingStock : [])
+            .map((item) => this.hydrateReadingStockItem(item))
+            .filter(Boolean);
+        const stockMap = new Map();
+        rawReadingStock.forEach(item => {
+            const key = item.reading || item['\u96b1\uff6d\u7e3a\uff7f'];
+            if (!stockMap.has(key)) stockMap.set(key, item);
+        });
+
         return {
-            liked: (Array.isArray(sections?.liked) ? sections.liked : []).map((item) => this.hydrateLikedItem(item)).filter(Boolean),
+            liked: Array.from(likedMap.values()),
             savedNames: (Array.isArray(sections?.savedNames) ? sections.savedNames : []).map((item) => this.hydrateSavedItem(item)).filter(Boolean),
-            readingStock: (Array.isArray(sections?.readingStock) ? sections.readingStock : []).map((item) => this.hydrateReadingStockItem(item)).filter(Boolean),
+            readingStock: Array.from(stockMap.values()),
             encounteredReadings: (Array.isArray(sections?.encounteredReadings) ? sections.encounteredReadings : []).map((item) => this.hydrateEncounteredReading(item)).filter(Boolean)
         };
     }
