@@ -93,6 +93,33 @@
     position: relative;
 }
 
+.choice-sheet {
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 480px);
+    max-height: min(86vh, 640px);
+    overflow: hidden;
+}
+
+.choice-sheet .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.choice-sheet .modal-footer {
+    margin-top: auto;
+    padding-top: 8px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(253, 250, 245, 0) 0%, #fdfaf5 24px);
+}
+
+.choice-sheet .btn-modal-primary {
+    min-height: 52px;
+}
+
 .profile-appearance-sheet {
     width: min(100%, 420px);
     padding: 26px 18px 18px;
@@ -483,6 +510,10 @@
     .modal-sheet {
         padding: 28px 20px;
         border-radius: 20px;
+    }
+
+    .choice-sheet {
+        max-height: 88vh;
     }
     
     .modal-input-large {
