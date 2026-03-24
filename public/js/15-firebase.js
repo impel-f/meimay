@@ -680,14 +680,37 @@ const MeimayPairing = {
         const roomRef = firebaseDb.collection('rooms').doc(roomCode);
         const mySlot = this.mySlot;
 
-        // まずローカル状態を切り替えて、押した直後に未連携画面へ戻す
-        this._stopListening();
-        cleanupLegacyPartnerLocalData();
-        this._clearLocal();
+        // まず画面だけは確実に戻す。以降の後処理で例外が出ても見た目は変える。
+        try {
+            this._stopListening();
+        } catch (e) {
+            console.warn('PAIRING: Stop listening failed during leave', e);
+        }
+
+        this.roomCode = null;
+        this.mySlot = null;
+        this.myRole = null;
+        this.partnerSlot = null;
+        this.partnerUid = null;
+        this.partnerRole = null;
+        localStorage.removeItem('meimay_room_code');
+        localStorage.removeItem('meimay_room_slot');
+        localStorage.removeItem('meimay_my_role');
+
+        if (typeof MeimayShare !== 'undefined') {
+            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], role: null, displayName: '', username: '', nickname: '', themeId: '' };
+        }
+
         if (typeof changeScreen === 'function') {
             changeScreen('scr-login');
         }
         updatePairingUI();
+
+        try {
+            cleanupLegacyPartnerLocalData();
+        } catch (e) {
+            console.warn('PAIRING: Cleanup failed during leave', e);
+        }
 
         try {
             const roomDoc = await roomRef.get();
