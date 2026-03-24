@@ -858,7 +858,18 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
             freeMatch = readings.includes(targetSeg);
         }
 
-        const baseMatch = (slotMatch && readingMatch) || freeMatch;
+        let itemSeg = '';
+        if (Array.isArray(item.sessionSegments) && item.slot >= 0 && item.slot < item.sessionSegments.length) {
+            itemSeg = item.sessionSegments[item.slot];
+        } else if (item.sessionReading && !item.sessionReading.includes('::') && !item.sessionReading.includes('/')) {
+            itemSeg = item.sessionReading;
+        }
+        
+        const targetSegHira = typeof toHira === 'function' && seg ? toHira(seg) : seg || '';
+        const itemSegHira = typeof toHira === 'function' && itemSeg ? toHira(itemSeg) : itemSeg || '';
+        const segmentMatch = !!(targetSegHira && itemSegHira && targetSegHira === itemSegHira);
+
+        const baseMatch = (slotMatch && readingMatch) || freeMatch || segmentMatch;
         if (!baseMatch || !isNotExcluded) return false;
         if (partnerOnly && !isPartnerVisible) return false;
         if (matchedOnly && !isMatched) return false;
