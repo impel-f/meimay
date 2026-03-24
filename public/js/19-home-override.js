@@ -416,7 +416,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
 
     if (savedCount === 0) {
         return {
-            title: '名前を組み立てる',
+            title: '組み立てる',
             detail: '集まった読みと漢字から、名前候補を保存していきましょう。',
             actionLabel: 'ビルドへ',
             action: 'build'
@@ -424,9 +424,9 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     }
 
     return {
-        title: '保存候補を見比べる',
+        title: '候補を見る',
         detail: '保存済みから第一候補を絞りやすい段階です。',
-        actionLabel: '保存済みを見る',
+        actionLabel: '候補を見る',
         action: 'saved'
     };
 }
@@ -468,8 +468,8 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
         'reading';
 
     const stageTitle =
-        activeKey === 'save' ? '保存候補を見比べる段階です' :
-        activeKey === 'build' ? '名前を組み立てる段階です' :
+        activeKey === 'save' ? '候補を見る段階です' :
+        activeKey === 'build' ? '組み立てる段階です' :
         activeKey === 'kanji' ? '漢字材料を集める段階です' :
         '読み候補を探す段階です';
 
@@ -709,7 +709,7 @@ function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCou
     if (stageKey === 'build') {
         copy.stageLabel = 'ビルド';
         copy.primaryAction = 'build';
-        copy.primaryLabel = '名前を組み立てる';
+        copy.primaryLabel = '組み立てる';
         copy.chips = [
             { label: '読み', value: readingStockCount, unit: '件' },
             { label: '漢字', value: likedCount, unit: '字' },
@@ -733,7 +733,7 @@ function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCou
 
     copy.stageLabel = '保存';
     copy.primaryAction = 'saved';
-    copy.primaryLabel = '保存した名前を見る';
+    copy.primaryLabel = '候補を見る';
     copy.chips = [
         { label: '保存', value: savedCount, unit: '件' },
         { label: '一致', value: matchedSavedCount, unit: '件' }
@@ -820,8 +820,8 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
         likedCount >= 2 ? 'kanji' :
         'reading';
     const stageTitle =
-        activeKey === 'save' ? '保存候補を見比べる段階です' :
-        activeKey === 'build' ? '名前を組み立てる段階です' :
+        activeKey === 'save' ? '候補を見る段階です' :
+        activeKey === 'build' ? '組み立てる段階です' :
         activeKey === 'kanji' ? '漢字材料を集める段階です' :
         '読み候補を探す段階です';
 
@@ -2069,8 +2069,10 @@ function getHomeBuildStagePreviewHtml() {
     return `
         <div class="wiz-mini-preview home-stage-preview-build" aria-hidden="true">
             <div class="home-stage-build-stack">
-                <div class="home-stage-build-tile home-stage-build-tile--one">陽</div>
-                <div class="home-stage-build-tile home-stage-build-tile--two">斗</div>
+                <div class="home-stage-build-tile home-stage-build-tile--one">春</div>
+                <div class="home-stage-build-tile home-stage-build-tile--two">陽</div>
+                <div class="home-stage-build-tile home-stage-build-tile--three">斗</div>
+                <div class="home-stage-build-tile home-stage-build-tile--four">翔</div>
             </div>
             <div class="home-stage-build-connector" aria-hidden="true">
                 <span class="home-stage-build-connector-line"></span>
@@ -2157,12 +2159,12 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         config.detailHtml = '相手が集めた漢字を<br>確認します';
         break;
     case 'build':
-        config.title = '名前を組み立てる';
+        config.title = '組み立てる';
         config.detailHtml = '集まった読みと漢字から<br>候補をつくります';
         break;
     case 'saved':
-        config.title = '保存済みを見る';
-        config.detailHtml = '保存した候補を<br>見比べて絞り込みます';
+        config.title = '候補を見る';
+        config.detailHtml = '候補を見返して<br>名前を絞り込みます';
         break;
     case 'matched-saved':
         config.title = '一致した候補がある';
@@ -2277,7 +2279,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                 ? '希望の読みから<br>合う漢字を探します'
                 : focusKey === 'build'
                     ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '保存した候補を見返して<br>残したい名前を整理します',
+                    : '候補を見返して<br>名前を絞り込みます',
         previewHtml: getHomeNextStagePreviewHtml(focusKey === 'reading' ? 'reading' : focusKey),
         variant: 'card',
         icon: ''
@@ -2488,7 +2490,7 @@ function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCou
 
     if (stageKey === 'build') {
         copy.primaryAction = 'build';
-        copy.primaryLabel = '名前を組み立てる';
+        copy.primaryLabel = '組み立てる';
         if (buildCount === 0) {
             copy.statusLines = [
                 'まだ名前は組み立てていません。',
@@ -2523,7 +2525,7 @@ function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCou
     }
 
     copy.primaryAction = 'saved';
-    copy.primaryLabel = '保存した名前を見る';
+    copy.primaryLabel = '候補を見る';
     copy.chips = [
         { label: '保存', value: savedCount, unit: '件' }
     ];
@@ -2630,7 +2632,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
                 ? '希望の読みから<br>合う漢字を探します'
                 : selectedTabKey === 'build'
                     ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '保存した候補を見返して<br>残したい名前を整理します',
+                    : '候補を見返して<br>名前を絞り込みます',
         previewHtml: getHomeNextStagePreviewHtml(selectedTabKey === 'reading' ? 'reading' : selectedTabKey),
         variant: 'card',
         icon: ''
@@ -2861,7 +2863,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         return setCopy(
             'ビルド',
             'build',
-            '名前を組み立てる',
+            '組み立てる',
             statusLines,
             [
                 { label: '読み', value: readingCount, unit: '件' },
@@ -2908,7 +2910,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     return setCopy(
         '保存',
         'saved',
-        '保存した名前を見る',
+        '候補を見る',
         statusLines,
         [
             { label: '保存', value: savedTotal, unit: '件' }
