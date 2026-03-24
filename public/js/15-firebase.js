@@ -676,7 +676,18 @@ const MeimayPairing = {
         if (!this.roomCode) return;
         this._isLeavingRoom = true;
         const user = MeimayAuth.getCurrentUser();
-        const roomRef = firebaseDb.collection('rooms').doc(this.roomCode);
+        const roomCode = this.roomCode;
+        const roomRef = firebaseDb.collection('rooms').doc(roomCode);
+        const mySlot = this.mySlot;
+
+        // まずローカル状態を切り替えて、押した直後に未連携画面へ戻す
+        this._stopListening();
+        cleanupLegacyPartnerLocalData();
+        this._clearLocal();
+        if (typeof changeScreen === 'function') {
+            changeScreen('scr-login');
+        }
+        updatePairingUI();
 
         try {
             const roomDoc = await roomRef.get();
@@ -692,8 +703,8 @@ const MeimayPairing = {
                 slotToClear = 'memberA';
             } else if (currentUid && roomData.memberBUid === currentUid) {
                 slotToClear = 'memberB';
-            } else if (this.mySlot === 'memberA' || this.mySlot === 'memberB') {
-                slotToClear = this.mySlot;
+            } else if (mySlot === 'memberA' || mySlot === 'memberB') {
+                slotToClear = mySlot;
             } else {
                 slotToClear = resolveRoomSlotFromDoc(roomData, currentUid, 'memberA');
             }
@@ -705,14 +716,7 @@ const MeimayPairing = {
         } catch (e) {
             console.error('PAIRING: Leave room failed', e);
         } finally {
-            this._stopListening();
-            cleanupLegacyPartnerLocalData();
-            this._clearLocal();
             this._isLeavingRoom = false;
-            if (typeof changeScreen === 'function') {
-                changeScreen('scr-login');
-            }
-            updatePairingUI();
             console.log('PAIRING: Left room');
         }
     },
