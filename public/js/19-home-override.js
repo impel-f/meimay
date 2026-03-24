@@ -2069,17 +2069,15 @@ function getHomeBuildStagePreviewHtml() {
     return `
         <div class="wiz-mini-preview home-stage-preview-build" aria-hidden="true">
             <div class="home-stage-build-stack">
-                <div class="home-stage-build-tile home-stage-build-tile--one">ひ</div>
-                <div class="home-stage-build-tile home-stage-build-tile--two">び</div>
-                <div class="home-stage-build-tile home-stage-build-tile--three">き</div>
+                <div class="home-stage-build-tile home-stage-build-tile--one">陽</div>
+                <div class="home-stage-build-tile home-stage-build-tile--two">斗</div>
             </div>
             <div class="home-stage-build-connector" aria-hidden="true">
                 <span class="home-stage-build-connector-line"></span>
                 <span class="home-stage-build-connector-arrow">→</span>
             </div>
             <div class="home-stage-build-result">
-                <div class="home-stage-build-result-stamp">完成</div>
-                <div class="home-stage-build-result-name">ひびき</div>
+                <div class="home-stage-build-result-name">陽斗</div>
             </div>
         </div>
     `;
@@ -2090,21 +2088,14 @@ function getHomeSaveStagePreviewHtml() {
         <div class="wiz-mini-preview home-stage-preview-save" aria-hidden="true">
             <div class="home-stage-save-frame">
                 <div class="home-stage-save-header">
-                    <span>保存一覧</span>
-                    <span class="home-stage-save-header-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+                    <span>保存済み</span>
                 </div>
                 <div class="home-stage-save-list">
-                    <div class="home-stage-save-row home-stage-save-row--highlight">
-                        <span class="home-stage-save-row-name">ひびき</span>
-                        <span class="home-stage-save-mark" aria-hidden="true">★</span>
+                    <div class="home-stage-save-row">
+                        <span class="home-stage-save-row-name">陽斗</span>
                     </div>
                     <div class="home-stage-save-row">
-                        <span class="home-stage-save-row-name">みお</span>
-                        <span class="home-stage-save-row-meta">候補</span>
-                    </div>
-                    <div class="home-stage-save-row">
-                        <span class="home-stage-save-row-name">はる</span>
-                        <span class="home-stage-save-row-meta">候補</span>
+                        <span class="home-stage-save-row-name">蓮</span>
                     </div>
                 </div>
             </div>
