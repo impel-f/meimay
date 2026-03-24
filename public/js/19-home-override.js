@@ -1357,11 +1357,20 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
     const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
         ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
         : 0;
+    const matchedReadingCount = Number.isFinite(Number(counts?.matched?.reading ?? pairing?.matchedReadingCount))
+        ? Number(counts?.matched?.reading ?? pairing?.matchedReadingCount)
+        : 0;
+    const matchedKanjiCount = Number.isFinite(Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount))
+        ? Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)
+        : 0;
+    const matchedSavedCount = Number.isFinite(Number(counts?.matched?.saved ?? pairing?.matchedNameCount))
+        ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
+        : 0;
 
     return {
-        readingStockCount: ownReadingCount + partnerReadingCount,
-        likedCount: ownKanjiCount + partnerKanjiCount,
-        savedCount: ownSavedCount + partnerSavedCount
+        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
+        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
+        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
     };
 }
 
@@ -2190,6 +2199,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const tone = getHomeStageTrackTone(options.mode);
     const pairing = getPairingHomeSummary();
     const matchedReadingCount = Math.max(0, Number(pairing?.matchedReadingCount) || 0);
+    const matchedKanjiCount = Math.max(0, Number(pairing?.matchedKanjiCount) || 0);
     const buildCount = Number.isFinite(Number(options.buildCount))
         ? Number(options.buildCount)
         : getHomeBuildPatternCount();
@@ -2288,6 +2298,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:${tone.text};">（内一致:${matchedReadingCount}件）</div>` : ''}
+                            ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[7px] md:mt-1 md:text-[9px]" style="color:${tone.text};">（内一致:${matchedKanjiCount}件）</div>` : ''}
                         </div>
                         ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">選択中</div>` : ''}
                     </div>
