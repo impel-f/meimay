@@ -2624,14 +2624,46 @@ MeimayShare.listenPartnerData = function (partnerUid) {
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
         .onSnapshot(async (doc) => {
-            if (!doc.exists) return;
             if (partnerUid !== MeimayPairing.partnerUid) return;
-            const data = doc.data() || {};
+            const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
-            const likedSource = Array.isArray(data.liked) ? data.liked : [];
-            const savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
-            const readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
-            const encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
+            let likedSource = Array.isArray(data.liked) ? data.liked : [];
+            let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
+            let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
+            let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
+            let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
+
+            if (partnerUid && (!doc.exists || !likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length)) {
+                try {
+                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
+                    if (partnerUserDoc.exists) {
+                        const partnerUserData = partnerUserDoc.data() || {};
+                        const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        if (!likedSource.length && Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0) {
+                            likedSource = partnerBackup.liked;
+                        }
+                        if (!savedNamesSource.length && Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0) {
+                            savedNamesSource = partnerBackup.savedNames;
+                        }
+                        if (!readingStockSource.length && Array.isArray(partnerBackup.readingStock) && partnerBackup.readingStock.length > 0) {
+                            readingStockSource = partnerBackup.readingStock;
+                        }
+                        if (!encounteredSource.length && Array.isArray(partnerBackup.encounteredReadings) && partnerBackup.encounteredReadings.length > 0) {
+                            encounteredSource = partnerBackup.encounteredReadings;
+                        }
+                        if (!hiddenReadingsSource.length) {
+                            const fallbackHidden = Array.isArray(partnerUserData.hiddenReadings)
+                                ? partnerUserData.hiddenReadings
+                                : (Array.isArray(partnerBackup.hiddenReadings) ? partnerBackup.hiddenReadings : []);
+                            if (fallbackHidden.length > 0) {
+                                hiddenReadingsSource = fallbackHidden;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn('SHARE: Partner backup fallback failed', error);
+                }
+            }
 
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: likedSource,
@@ -2645,7 +2677,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 savedNames: hydratedSections.savedNames,
                 readingStock: hydratedSections.readingStock,
                 encounteredReadings: hydratedSections.encounteredReadings,
-                hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
+                hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 username: String(data.username || '').trim(),
@@ -3378,10 +3410,18 @@ const MeimayUserBackup = {
     _fingerprint: function (sections) {
         try {
             const projectedSections = MeimayFirestorePayload.projectSections(sections);
+            const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
+                ? String(MeimayPairing.roomCode)
+                : '';
+            const hiddenReadings = typeof readNormalizedHiddenReadings === 'function'
+                ? readNormalizedHiddenReadings()
+                : [];
             return JSON.stringify({
                 liked: projectedSections.liked || [],
                 savedNames: projectedSections.savedNames || [],
-                readingStock: projectedSections.readingStock || []
+                readingStock: projectedSections.readingStock || [],
+                pairRoomCode,
+                hiddenReadings
             });
         } catch (error) {
             return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}`;
@@ -3400,6 +3440,12 @@ const MeimayUserBackup = {
             savedNamesCount: Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames.length : 0,
             readingStockCount: Array.isArray(projectedSections.readingStock) ? projectedSections.readingStock.length : 0
         };
+        const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
+            ? String(MeimayPairing.roomCode)
+            : null;
+        const hiddenReadings = typeof readNormalizedHiddenReadings === 'function'
+            ? readNormalizedHiddenReadings()
+            : [];
 
         if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
             backup.liked = this._safeClone(projectedSections.liked);
@@ -3413,6 +3459,9 @@ const MeimayUserBackup = {
 
         const patch = {
             meimayBackup: backup,
+            pairRoomCode,
+            roomCode: pairRoomCode,
+            hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
             meimayBackupUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };

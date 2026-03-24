@@ -1,0 +1,159 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isRole(value) {
+      return value == 'mama' || value == 'papa';
+    }
+
+    function isRoomMember(roomId) {
+      return signedIn() && (
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.memberAUid == request.auth.uid ||
+        get(/databases/$(database)/documents/rooms/$(roomId)).data.memberBUid == request.auth.uid
+      );
+    }
+
+    function isValidBackupRoom(roomCode) {
+      return roomCode == null
+        || (roomCode is string && roomCode.size() == 0)
+        || (roomCode is string && roomCode.size() > 0 && isRoomMember(roomCode));
+    }
+
+    function canReadSharedBackup(userId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(userId))
+        && (
+          (
+            resource.data.pairRoomCode is string
+            && resource.data.pairRoomCode.size() > 0
+            && isRoomMember(resource.data.pairRoomCode)
+          ) ||
+          (
+            resource.data.roomCode is string
+            && resource.data.roomCode.size() > 0
+            && isRoomMember(resource.data.roomCode)
+          )
+        );
+    }
+
+    match /rooms/{roomId} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'memberAUid', 'memberARole', 'memberBUid', 'memberBRole', 'createdAt'
+        ])
+        && request.resource.data.memberAUid == request.auth.uid
+        && isRole(request.resource.data.memberARole)
+        && request.resource.data.memberBUid == null
+        && request.resource.data.memberBRole == null;
+
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'memberAUid', 'memberARole', 'memberBUid', 'memberBRole', 'createdAt'
+        ])
+        && (
+          (
+            resource.data.memberBUid == null
+            && request.resource.data.memberAUid == resource.data.memberAUid
+            && request.resource.data.memberARole == resource.data.memberARole
+            && request.resource.data.memberBUid == request.auth.uid
+            && isRole(request.resource.data.memberBRole)
+            && request.resource.data.createdAt == resource.data.createdAt
+          ) ||
+          (
+            resource.data.memberAUid == request.auth.uid
+            && request.resource.data.memberAUid == null
+            && request.resource.data.memberARole == null
+            && request.resource.data.memberBUid == resource.data.memberBUid
+            && request.resource.data.memberBRole == resource.data.memberBRole
+            && request.resource.data.createdAt == resource.data.createdAt
+          ) ||
+          (
+            resource.data.memberBUid == request.auth.uid
+            && request.resource.data.memberBUid == null
+            && request.resource.data.memberBRole == null
+            && request.resource.data.memberAUid == resource.data.memberAUid
+            && request.resource.data.memberARole == resource.data.memberARole
+            && request.resource.data.createdAt == resource.data.createdAt
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    match /rooms/{roomId}/data/{userId} {
+      allow read: if isRoomMember(roomId);
+      allow create, update, delete: if isRoomMember(roomId) && isSelf(userId);
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId) || canReadSharedBackup(userId);
+
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasOnly([
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'savedNames', 'readingStock', 'encounteredReadings'
+        ])
+        && isValidBackupRoom(request.resource.data.pairRoomCode);
+
+      allow update: if isSelf(userId)
+        && request.resource.data.keys().hasOnly([
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'savedNames', 'readingStock', 'encounteredReadings'
+        ])
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'meimayBackup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
+          'savedNames', 'readingStock', 'encounteredReadings'
+        ])
+        && isValidBackupRoom(request.resource.data.pairRoomCode);
+
+      allow delete: if false;
+    }
+
+    match /statistics/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /reading_statistics/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /kanji_ai_explanations/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /kanji_ai_reading_explanations/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /billingPending/{docId} {
+      allow read, write: if false;
+    }
+
+    match /appStoreNotifications/{docId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
