@@ -324,6 +324,7 @@ function getHomeOwnershipSummary() {
     const pairInsights = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights)
         ? window.MeimayPartnerInsights
         : null;
+    const pairing = getPairingHomeSummary();
     const ownLikedItems = pairInsights?.getOwnLiked
         ? pairInsights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
@@ -346,6 +347,7 @@ function getHomeOwnershipSummary() {
             : []);
     return {
         pairInsights,
+        pairing,
         ownLikedItems,
         ownSavedItems,
         ownReadingItems,
@@ -1225,7 +1227,7 @@ function openHomeInsightsModal() {
     if (typeof closeHomeInsightsModal === 'function') closeHomeInsightsModal();
 
     const homeOwnership = getHomeOwnershipSummary();
-    const pairing = homeOwnership.pairing;
+    const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const likedCount = homeOwnership.ownLikedCount;
     const readingStock = homeOwnership.ownReadingItems;
     const readingStockCount = homeOwnership.ownReadingCount;
@@ -1570,7 +1572,7 @@ function renderHomeProfile() {
     const preference = typeof getHomePreferenceSummary === 'function'
         ? getHomePreferenceSummary(homeOwnership.ownLikedItems)
         : { shortText: 'まだ傾向なし' };
-    const pairing = homeOwnership.pairing;
+    const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
@@ -1868,7 +1870,7 @@ function renderHomeProfileV2() {
     const likedCount = homeOwnership.ownLikedCount;
     const savedCount = homeOwnership.ownSavedCount;
     const readingStockCount = homeOwnership.ownReadingCount;
-    const pairing = homeOwnership.pairing;
+    const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
     stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
