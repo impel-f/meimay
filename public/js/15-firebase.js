@@ -3179,6 +3179,13 @@ const MeimayUserBackup = {
     _restoreInFlight: false,
     _lastSyncedFingerprint: '',
     _hooksInstalled: false,
+    _remoteBackupDisabled: false,
+
+    _isPermissionDeniedError: function (error) {
+        const code = String(error?.code || error?.name || '').toLowerCase();
+        const message = String(error?.message || '').toLowerCase();
+        return code.includes('permission') || code.includes('denied') || message.includes('missing or insufficient permissions') || message.includes('permission denied');
+    },
 
     _currentUser: function () {
         if (typeof MeimayAuth !== 'undefined' && typeof MeimayAuth.getCurrentUser === 'function') {
@@ -3466,6 +3473,7 @@ const MeimayUserBackup = {
 
     syncLocalToRemote: async function (user = null, options = {}) {
         const currentUser = user || this._currentUser();
+        if (this._remoteBackupDisabled) return false;
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return false;
 
         const sections = options.sections || this._readCurrentSections();
@@ -3485,6 +3493,10 @@ const MeimayUserBackup = {
             console.log(`BACKUP: synced Firestore backup for ${currentUser.uid}`);
             return true;
         } catch (error) {
+            if (this._isPermissionDeniedError(error)) {
+                this._remoteBackupDisabled = true;
+                return false;
+            }
             console.warn('BACKUP: Firestore sync failed', error);
             return false;
         }
@@ -3492,6 +3504,7 @@ const MeimayUserBackup = {
 
     bootstrapForUser: async function (user = null) {
         const currentUser = user || this._currentUser();
+        if (this._remoteBackupDisabled) return false;
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return false;
         if (this._restoreInFlight) return false;
 
@@ -3526,6 +3539,10 @@ const MeimayUserBackup = {
             await this.syncLocalToRemote(currentUser, { sections: refreshedSections, force: true });
             return true;
         } catch (error) {
+            if (this._isPermissionDeniedError(error)) {
+                this._remoteBackupDisabled = true;
+                return false;
+            }
             console.warn('BACKUP: bootstrap failed', error);
             return false;
         }
@@ -3533,6 +3550,7 @@ const MeimayUserBackup = {
 
     scheduleSync: function (reason = 'save') {
         if (this._restoreInFlight) return;
+        if (this._remoteBackupDisabled) return;
         const currentUser = this._currentUser();
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return;
         clearTimeout(this._syncTimer);
