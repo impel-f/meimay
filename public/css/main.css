@@ -1124,16 +1124,29 @@ body.hide-top-bar #top-bar {
 
 .wiz-mini-preview.home-stage-preview-build,
 .wiz-mini-preview.home-stage-preview-save {
-    width: 96px;
-    height: 70px;
+    width: 104px;
+    height: 72px;
 }
 
 .home-stage-build-stack {
     position: absolute;
     left: 0;
-    top: 10px;
-    width: 40px;
-    height: 40px;
+    top: 7px;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    grid-template-columns: repeat(2, 18px);
+    grid-template-rows: repeat(2, 18px);
+    gap: 4px;
+}
+
+.home-stage-build-stack .home-stage-build-tile {
+    position: static;
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    font-size: 10px;
+    box-shadow: 0 6px 12px rgba(93, 84, 68, 0.10);
 }
 
 .home-stage-build-tile {
@@ -1154,27 +1167,25 @@ body.hide-top-bar #top-bar {
 }
 
 .home-stage-build-tile--one {
-    left: 0;
-    top: 10px;
     transform: rotate(-8deg);
 }
 
 .home-stage-build-tile--two {
-    left: 12px;
-    top: 4px;
-    transform: rotate(-2deg);
+    transform: rotate(5deg);
 }
 
 .home-stage-build-tile--three {
-    left: 24px;
-    top: 10px;
-    transform: rotate(6deg);
+    transform: rotate(-4deg);
+}
+
+.home-stage-build-tile--four {
+    transform: rotate(7deg);
 }
 
 .home-stage-build-connector {
     position: absolute;
-    left: 32px;
-    right: 36px;
+    left: 40px;
+    right: 34px;
     top: 30px;
     height: 10px;
     display: flex;
@@ -1205,9 +1216,9 @@ body.hide-top-bar #top-bar {
 .home-stage-build-result {
     position: absolute;
     right: 0;
-    top: 7px;
-    width: 45px;
-    height: 56px;
+    top: 6px;
+    width: 46px;
+    height: 58px;
     padding: 8px 4px 7px;
     border: 1.5px solid #d4c5af;
     border-radius: 15px;
@@ -1287,7 +1298,7 @@ body.hide-top-bar #top-bar {
     align-items: center;
     justify-content: flex-start;
     gap: 0;
-    min-height: 11px;
+    min-height: 12px;
     padding: 2px 6px;
     border-radius: 10px;
     border: 1px solid rgba(212, 197, 175, 0.85);
@@ -1329,6 +1340,68 @@ body.hide-top-bar #top-bar {
     font-size: 8px;
     line-height: 1;
     box-shadow: 0 4px 10px rgba(93, 84, 68, 0.08);
+}
+
+#scr-mode .home-next-stage-card {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+    gap: 8px;
+    padding: 14px 16px;
+}
+
+#scr-mode .home-next-stage-head {
+    width: 100%;
+    min-width: 0;
+}
+
+#scr-mode .home-next-stage-title {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    font-size: clamp(0.92rem, 3.5vw, 1.05rem);
+    line-height: 1.15;
+}
+
+#scr-mode .home-next-stage-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    width: 100%;
+}
+
+#scr-mode .home-next-stage-copy {
+    min-width: 0;
+}
+
+#scr-mode .home-next-stage-art {
+    justify-self: end;
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    #scr-mode .home-next-stage-card {
+        padding: 12px 14px;
+        gap: 6px;
+    }
+
+    #scr-mode .home-next-stage-title {
+        font-size: 0.92rem;
+    }
+
+    #scr-mode .home-next-stage-body {
+        align-items: start;
+        gap: 8px;
+    }
+
+    #scr-mode .home-next-stage-detail {
+        font-size: 10px;
+        line-height: 1.55;
+    }
 }
 
 /* ============================================================
