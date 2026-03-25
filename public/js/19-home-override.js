@@ -166,39 +166,57 @@ function getHomeBuildPatternCount(candidatePoolOverride) {
         ? candidatePoolOverride
         : typeof getMergedLikedCandidates === 'function'
             ? getMergedLikedCandidates()
-            : ((typeof liked !== 'undefined' && Array.isArray(liked))
-                ? liked.filter(item => !item?.fromPartner)
-                : []);
-    const readingGroups = new Map();
+            : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
+    
+    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    if (stock.length === 0) return 0;
 
-    candidatePool.forEach((item) => {
-        const sessionReading = String(item?.sessionReading || '');
-        const slot = Number(item?.slot);
-        if (!sessionReading || !Number.isFinite(slot) || slot < 0) return;
-        if (['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(sessionReading)) return;
-
-        const groupKey = `${sessionReading}::${Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : ''}`;
-        if (!readingGroups.has(groupKey)) {
-            readingGroups.set(groupKey, {
-                slotCount: Array.isArray(item?.sessionSegments) && item.sessionSegments.length > 0
-                    ? item.sessionSegments.length
-                    : slot + 1,
-                slots: new Map()
-            });
-        }
-
-        const group = readingGroups.get(groupKey);
-        group.slotCount = Math.max(group.slotCount, slot + 1);
-        if (!group.slots.has(slot)) group.slots.set(slot, new Set());
-        if (item?.['漢字']) group.slots.get(slot).add(item['漢字']);
-    });
+    // ヘルパー：読みの正規化（ひらがな化）
+    const norm = (s) => (typeof toHira === 'function' ? toHira(String(s || '').trim()) : String(s || '').trim());
 
     let total = 0;
-    readingGroups.forEach((group) => {
+    const processedReadingIds = new Set();
+
+    stock.forEach(rStock => {
+        // 同じ読み（ID）の重複計算を避ける
+        if (processedReadingIds.has(rStock.id)) return;
+        processedReadingIds.add(rStock.id);
+
+        const segments = Array.isArray(rStock.segments) && rStock.segments.length > 0
+            ? rStock.segments
+            : [rStock.reading];
+        
         let combinations = 1;
-        for (let i = 0; i < group.slotCount; i += 1) {
-            const count = group.slots.get(i)?.size || 0;
-            if (!count) {
+
+        for (let i = 0; i < segments.length; i++) {
+            const seg = norm(segments[i]);
+            if (!seg) {
+                combinations = 0;
+                break;
+            }
+
+            const uniqueKanjiForSlot = new Set();
+            candidatePool.forEach(c => {
+                const kanji = c['漢字'] || c.kanji;
+                if (!kanji) return;
+
+                // 1. 漢字の読みがセグメントと一致するか
+                const cReading = norm(c.kanji_reading || c.reading || '');
+                if (cReading === seg) {
+                    uniqueKanjiForSlot.add(kanji);
+                    return;
+                }
+
+                // 2. セッション情報が一致するか（読み全体とスロット位置が一致）
+                const cSessionReading = norm(c.sessionReading || '');
+                const rBaseReading = norm(rStock.reading);
+                if (cSessionReading === rBaseReading && c.slot === i) {
+                    uniqueKanjiForSlot.add(kanji);
+                }
+            });
+
+            const count = uniqueKanjiForSlot.size;
+            if (count === 0) {
                 combinations = 0;
                 break;
             }
