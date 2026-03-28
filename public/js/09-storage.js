@@ -109,11 +109,13 @@ const StorageBox = {
             }));
             localStorage.setItem(this.KEY_USER_TAGS, JSON.stringify(userTags));
             localStorage.setItem(this.KEY_NOPED, JSON.stringify(Array.from(noped)));
-            localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(
-                typeof soundPreferenceData !== 'undefined'
-                    ? soundPreferenceData
-                    : { liked: [], noped: [] }
-            ));
+            const normalizedSoundPreferenceData = typeof normalizeSoundPreferenceData === 'function'
+                ? normalizeSoundPreferenceData(typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : null)
+                : (typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : { liked: [], noped: [] });
+            if (typeof soundPreferenceData !== 'undefined') {
+                soundPreferenceData = normalizedSoundPreferenceData;
+            }
+            localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(normalizedSoundPreferenceData));
 
             console.log("STORAGE: State saved successfully");
             if (typeof queuePartnerStockSync === 'function') {
@@ -224,10 +226,15 @@ const StorageBox = {
             const soundPrefData = localStorage.getItem(this.KEY_SOUND_PREFERENCES);
             if (soundPrefData && typeof soundPreferenceData !== 'undefined') {
                 const parsedSoundPref = JSON.parse(soundPrefData);
-                soundPreferenceData = {
-                    liked: Array.isArray(parsedSoundPref?.liked) ? parsedSoundPref.liked : [],
-                    noped: Array.isArray(parsedSoundPref?.noped) ? parsedSoundPref.noped : []
-                };
+                soundPreferenceData = typeof normalizeSoundPreferenceData === 'function'
+                    ? normalizeSoundPreferenceData(parsedSoundPref)
+                    : {
+                        liked: Array.isArray(parsedSoundPref?.liked) ? parsedSoundPref.liked : [],
+                        noped: Array.isArray(parsedSoundPref?.noped) ? parsedSoundPref.noped : []
+                    };
+                localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(soundPreferenceData));
+            } else if (typeof normalizeSoundPreferenceData === 'function' && typeof soundPreferenceData !== 'undefined') {
+                soundPreferenceData = normalizeSoundPreferenceData(soundPreferenceData);
             }
 
             // いいねだけ残っている旧データから読みストックを復元する
@@ -348,7 +355,9 @@ const StorageBox = {
             readingStock: typeof getReadingStock === 'function' ? getReadingStock() : [],
             readingHistory: typeof getReadingHistory === 'function' ? getReadingHistory() : [],
             wizard: (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function') ? WizardData.get() : null,
-            soundPreferenceData: typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : { liked: [], noped: [] },
+            soundPreferenceData: typeof normalizeSoundPreferenceData === 'function' && typeof soundPreferenceData !== 'undefined'
+                ? normalizeSoundPreferenceData(soundPreferenceData)
+                : (typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : { liked: [], noped: [] }),
             localPremiumState: (() => {
                 try {
                     const raw = localStorage.getItem(this.KEY_PREMIUM);
@@ -428,10 +437,12 @@ const StorageBox = {
                 }
 
                 if (typeof soundPreferenceData !== 'undefined') {
-                    soundPreferenceData = {
-                        liked: Array.isArray(data.soundPreferenceData?.liked) ? data.soundPreferenceData.liked : [],
-                        noped: Array.isArray(data.soundPreferenceData?.noped) ? data.soundPreferenceData.noped : []
-                    };
+                    soundPreferenceData = typeof normalizeSoundPreferenceData === 'function'
+                        ? normalizeSoundPreferenceData(data.soundPreferenceData || { liked: [], noped: [] })
+                        : {
+                            liked: Array.isArray(data.soundPreferenceData?.liked) ? data.soundPreferenceData.liked : [],
+                            noped: Array.isArray(data.soundPreferenceData?.noped) ? data.soundPreferenceData.noped : []
+                        };
                     localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(soundPreferenceData));
                 }
 

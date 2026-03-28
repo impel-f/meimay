@@ -2749,7 +2749,8 @@ const SwipeState = {
     liked: [], // Items liked in this session
     selected: [], // Items selected from the list (for multi-select)
     history: [], // For undo
-    config: {} // { title, subtitle, renderCard, onNext }
+    config: {}, // { title, subtitle, renderCard, onNext }
+    soundSession: null
 };
 
 // Common Kanji Map
@@ -2942,6 +2943,9 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     SwipeState.selected = [];
     SwipeState.history = [];
     SwipeState.config = configOverride;
+    SwipeState.soundSession = mode === 'sound' && typeof createSoundSessionState === 'function'
+        ? createSoundSessionState()
+        : null;
 
     // UI Setup
     const elTitle = document.getElementById('uni-swipe-title');
@@ -3003,6 +3007,9 @@ function renderUniversalCard() {
     if (actionBtns) actionBtns.classList.remove('hidden');
 
     const item = SwipeState.candidates[SwipeState.currentIndex];
+    if (SwipeState.mode === 'sound' && typeof trackSoundCandidateShown === 'function') {
+        trackSoundCandidateShown(item);
+    }
 
     // the card element
     container.innerHTML = '';
@@ -3081,6 +3088,14 @@ function initUniversalSwipePhysics(card) {
 
         if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
             resetCard();
+            if (SwipeState.mode === 'sound' && typeof recordSoundPreferenceEvent === 'function') {
+                const dwellMs = SwipeState.soundSession?.lastShownAt
+                    ? Date.now() - SwipeState.soundSession.lastShownAt
+                    : 0;
+                recordSoundPreferenceEvent(SwipeState.candidates[SwipeState.currentIndex], 'opened', {
+                    dwellMs
+                });
+            }
             if (SwipeState.config.onTap) {
                 SwipeState.config.onTap(SwipeState.candidates[SwipeState.currentIndex]);
             }
@@ -3126,6 +3141,9 @@ function universalSwipeAction(action) {
     // AI: 好みの音パターン学習（nickname / sound モード共通）
     if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
         learnSoundPreference(item, action);
+        if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
+            rerankRemainingSoundCandidates();
+        }
     }
 
     if (action === 'nope') {
@@ -4979,11 +4997,16 @@ function isNicknameKanjiQueueActive() {
 // AI候補調整（好みの音パターンで並び替え）
 // ==========================================
 
-let soundPreferenceData = { liked: [], noped: [] };
+let soundPreferenceData = normalizeSoundPreferenceData({
+    liked: [],
+    noped: []
+});
 
 function persistSoundPreferenceData() {
     try {
-        localStorage.setItem('meimay_sound_preferences', JSON.stringify(soundPreferenceData));
+        const normalized = normalizeSoundPreferenceData(soundPreferenceData);
+        soundPreferenceData = normalized;
+        localStorage.setItem('meimay_sound_preferences', JSON.stringify(normalized));
     } catch (e) {
         console.warn('SOUND_PREF: Failed to persist', e);
     }
@@ -4993,12 +5016,24 @@ function persistSoundPreferenceData() {
  * スワイプ結果から好みの音パターンを学習
  */
 function learnSoundPreference(item, action) {
+    const reading = String(item?.reading || '').trim();
+    if (!reading) return;
+
     if (action === 'like' || action === 'super') {
-        soundPreferenceData.liked.push(item.reading);
-    } else if (action === 'nope') {
-        soundPreferenceData.noped.push(item.reading);
+        recordSoundPreferenceEvent(item, 'liked', {
+            action,
+            weightMultiplier: action === 'super' ? 1.25 : 1,
+            persist: typeof SwipeState !== 'undefined' && SwipeState.mode === 'sound' ? false : true
+        });
+        return;
     }
-    persistSoundPreferenceData();
+
+    if (action === 'nope') {
+        recordSoundPreferenceEvent(item, 'skipped', {
+            action,
+            reason: 'swipe-nope'
+        });
+    }
 }
 
 /**
@@ -5053,6 +5088,521 @@ function getVowelPattern(reading) {
         'ぱ': 'a', 'ぴ': 'i', 'ぷ': 'u', 'ぺ': 'e', 'ぽ': 'o'
     };
     return reading.split('').map(c => vowelMap[c] || '').join('');
+}
+
+const SOUND_PREFERENCE_SCHEMA_VERSION = 2;
+const SOUND_SESSION_WARMUP_LIMIT = 12;
+const SOUND_EVENT_LOG_LIMIT = 240;
+const SOUND_RANK_DEBUG_STORAGE_KEY = 'meimay_sound_debug_rank';
+const SOUND_DIVERSIFY_LOOKBACK = 5;
+
+function createSoundStatBucket() {
+    return { shown: 0, opened: 0, liked: 0, skipped: 0, saved: 0, builtFromReading: 0, positive: 0, negative: 0, score: 0, eventCount: 0, firstSeenAt: 0, lastSeenAt: 0, lastActionAt: 0, lastDwellMs: 0 };
+}
+function createSoundAttributeStore() {
+    return { moraCount: {}, headGroup: {}, tailType: {}, vowelPattern: {}, styleTags: {}, popularityBand: {}, genderTilt: {} };
+}
+function createSoundPreferenceBucket() {
+    const now = new Date().toISOString();
+    return { version: SOUND_PREFERENCE_SCHEMA_VERSION, liked: [], noped: [], events: [], readingStats: {}, attributeStats: createSoundAttributeStore(), meta: { createdAt: now, updatedAt: now, interactionCount: 0, showCount: 0, lastInteractionAt: 0, lastShownAt: 0, legacyMigrated: false } };
+}
+function normalizeSoundStringList(list) {
+    return Array.isArray(list) ? [...new Set(list.map(item => String(item || '').trim()).filter(Boolean))] : [];
+}
+function normalizeSoundStatBucket(source) {
+    const bucket = createSoundStatBucket();
+    if (!source || typeof source !== 'object') return bucket;
+    Object.keys(bucket).forEach(key => { if (typeof bucket[key] === 'number') bucket[key] = Number(source[key] || 0) || 0; });
+    return bucket;
+}
+function normalizeSoundAttributeStore(source) {
+    const store = createSoundAttributeStore();
+    const src = source && typeof source === 'object' ? source : {};
+    Object.keys(store).forEach(dim => {
+        const entries = src[dim];
+        if (!entries || typeof entries !== 'object') return;
+        Object.keys(entries).forEach(key => { store[dim][key] = normalizeSoundStatBucket(entries[key]); });
+    });
+    return store;
+}
+function normalizeSoundEventRecord(event) {
+    if (!event || typeof event !== 'object') return null;
+    const reading = String(event.reading || event.value || '').trim();
+    if (!reading) return null;
+    return { ...event, reading, eventType: String(event.eventType || event.type || event.action || '').trim(), timestamp: event.timestamp || event.createdAt || new Date().toISOString(), dwellMs: Number(event.dwellMs || 0) || 0, scoreDelta: Number(event.scoreDelta || 0) || 0 };
+}
+function normalizeSoundPreferenceData(source) {
+    const normalized = createSoundPreferenceBucket();
+    if (!source || typeof source !== 'object') return normalized;
+    normalized.version = Number(source.version || normalized.version) || normalized.version;
+    normalized.liked = normalizeSoundStringList(source.liked);
+    normalized.noped = normalizeSoundStringList(source.noped);
+    normalized.events = Array.isArray(source.events) ? source.events.map(normalizeSoundEventRecord).filter(Boolean).slice(-SOUND_EVENT_LOG_LIMIT) : [];
+    normalized.readingStats = {};
+    const sourceReadingStats = source.readingStats && typeof source.readingStats === 'object' ? source.readingStats : {};
+    Object.keys(sourceReadingStats).forEach(reading => { normalized.readingStats[reading] = normalizeSoundStatBucket(sourceReadingStats[reading]); });
+    normalized.attributeStats = normalizeSoundAttributeStore(source.attributeStats || source.attributes || source.tagStats);
+    normalized.meta = { ...normalized.meta, ...(source.meta && typeof source.meta === 'object' ? source.meta : {}) };
+    normalized.meta.interactionCount = Number(normalized.meta.interactionCount || 0) || 0;
+    normalized.meta.showCount = Number(normalized.meta.showCount || 0) || 0;
+    normalized.meta.lastInteractionAt = Number(normalized.meta.lastInteractionAt || 0) || 0;
+    normalized.meta.lastShownAt = Number(normalized.meta.lastShownAt || 0) || 0;
+    if (!normalized.meta.legacyMigrated && Object.keys(normalized.readingStats).length === 0 && (normalized.liked.length > 0 || normalized.noped.length > 0)) {
+        normalized.meta.legacyMigrated = true;
+        normalized.liked.forEach(reading => applySoundEventToProfile(normalized, { reading }, 'liked', { source: 'legacy', persist: false }, { skipEventLog: true }));
+        normalized.noped.forEach(reading => applySoundEventToProfile(normalized, { reading }, 'skipped', { source: 'legacy', persist: false }, { skipEventLog: true }));
+    }
+    normalized.meta.updatedAt = normalized.meta.updatedAt || normalized.meta.createdAt;
+    return normalized;
+}
+function createSoundSessionState() {
+    return { createdAt: Date.now(), lastShownAt: 0, lastShownKey: '', lastShownIndex: -1, recentShown: [], recentActions: [], interactionCount: 0, profile: createSoundPreferenceBucket(), lastRerankAt: 0 };
+}
+function getSoundCanonicalReading(candidate) {
+    const reading = String(candidate?.reading || '').trim();
+    return reading ? (typeof toHira === 'function' ? toHira(reading) : reading) : '';
+}
+function normalizeSoundGenderTilt(value) {
+    const text = String(value || '').toLowerCase();
+    if (!text) return 'neutral';
+    if (text.includes('male') || text.includes('boy')) return 'male';
+    if (text.includes('female') || text.includes('girl')) return 'female';
+    if (text.includes('neutral') || text.includes('unisex')) return 'neutral';
+    return text;
+}
+function getSoundCandidateProfile(candidate) {
+    const normalizedReading = getSoundCanonicalReading(candidate);
+    const moraUnits = typeof splitReadingIntoMoraUnits === 'function' ? splitReadingIntoMoraUnits(normalizedReading) : Array.from(normalizedReading);
+    const styleTags = normalizeSoundStringList(candidate?.tags || []);
+    const firstMora = moraUnits[0] || normalizedReading.slice(0, 1) || '';
+    const lastMora = moraUnits[moraUnits.length - 1] || normalizedReading.slice(-1) || '';
+    const rawCount = Number(candidate?.rawCount ?? candidate?.count ?? 0) || 0;
+    const popular = !!candidate?.popular || !!candidate?.isPopular || rawCount >= 25;
+    return { reading: String(candidate?.reading || '').trim(), normalizedReading, moraUnits, moraCount: moraUnits.length || (normalizedReading ? normalizedReading.length : 0), headGroup: firstMora || '#other', tailType: lastMora || '#other', vowelPattern: typeof getVowelPattern === 'function' ? getVowelPattern(normalizedReading) : '', styleTags, primaryStyleTag: styleTags[0] || '#other', popularityBand: String(candidate?.popularityBand || (popular || rawCount >= 35 ? '定番' : rawCount >= 12 ? '準定番' : 'やや珍しい')), genderTilt: normalizeSoundGenderTilt(candidate?.gender), rawCount, popular, baseScore: Number(candidate?.score || 0) || 0, bucketKey: [moraUnits.length || 0, firstMora || '#other', lastMora || '#other', styleTags[0] || '#other', popular ? 'popular' : 'normal'].join('::') };
+}
+function getSoundEventWeight(eventType, meta = {}) {
+    let weight = { shown: 0, opened: 0.45, liked: 1.8, skipped: -1, saved: 4, builtFromReading: 5 }[eventType] ?? 0;
+    if (eventType === 'opened') {
+        const dwellMs = Number(meta.dwellMs || 0) || 0;
+        if (dwellMs < 250) weight -= 0.5; else if (dwellMs < 800) weight += 0; else if (dwellMs < 1800) weight += 0.5; else weight += 1;
+    }
+    if (eventType === 'liked' && meta.action === 'super') weight *= 1.25;
+    if (typeof meta.weightMultiplier === 'number' && Number.isFinite(meta.weightMultiplier)) weight *= meta.weightMultiplier;
+    return weight;
+}
+function incrementSoundBucket(store, key, eventType, delta, timestamp, meta = {}) {
+    const valueKey = String(key || '').trim();
+    if (!valueKey) return;
+    if (!store[valueKey]) store[valueKey] = createSoundStatBucket();
+    const bucket = store[valueKey];
+    const weight = Number(delta || 0) || 0;
+    bucket.eventCount += 1;
+    if (eventType === 'shown') {
+        bucket.shown += 1;
+        bucket.lastSeenAt = timestamp;
+        if (!bucket.firstSeenAt) bucket.firstSeenAt = timestamp;
+        return;
+    }
+    bucket.lastSeenAt = timestamp;
+    bucket.lastActionAt = timestamp;
+    bucket.lastDwellMs = Number(meta.dwellMs || 0) || bucket.lastDwellMs || 0;
+    bucket.score += weight;
+    if (eventType === 'opened') bucket.opened += 1;
+    if (eventType === 'liked') bucket.liked += 1;
+    if (eventType === 'skipped') bucket.skipped += 1;
+    if (eventType === 'saved') bucket.saved += 1;
+    if (eventType === 'builtFromReading') bucket.builtFromReading += 1;
+    if (weight > 0) bucket.positive += 1;
+    if (weight < 0) bucket.negative += 1;
+}
+function applySoundEventToProfile(profile, itemOrProfile, eventType, meta = {}, options = {}) {
+    if (!profile) return null;
+    const candidateProfile = itemOrProfile && itemOrProfile.readingStats ? itemOrProfile : getSoundCandidateProfile(itemOrProfile);
+    const reading = candidateProfile?.reading || '';
+    if (!reading) return null;
+    const timestamp = Number(meta.timestamp || Date.now()) || Date.now();
+    const weight = getSoundEventWeight(eventType, meta);
+    if (!profile.readingStats[reading]) profile.readingStats[reading] = createSoundStatBucket();
+    incrementSoundBucket(profile.readingStats, reading, eventType, weight, timestamp, meta);
+    ['moraCount', 'headGroup', 'tailType', 'vowelPattern', 'popularityBand', 'genderTilt'].forEach(dim => incrementSoundBucket(profile.attributeStats[dim], candidateProfile[dim], eventType, weight, timestamp, meta));
+    candidateProfile.styleTags.forEach(tag => incrementSoundBucket(profile.attributeStats.styleTags, tag, eventType, weight, timestamp, meta));
+    if (!options.skipListSync) {
+        if (eventType === 'liked' || eventType === 'saved' || eventType === 'builtFromReading') profile.liked = normalizeSoundStringList([...(profile.liked || []), reading]);
+        if (eventType === 'skipped') profile.noped = normalizeSoundStringList([...(profile.noped || []), reading]);
+    }
+    if (!options.skipEventLog) {
+        profile.events.push({ eventType, reading, timestamp: new Date(timestamp).toISOString(), dwellMs: Number(meta.dwellMs || 0) || 0, scoreDelta: weight, source: meta.source || '', action: meta.action || '' });
+        if (profile.events.length > SOUND_EVENT_LOG_LIMIT) profile.events = profile.events.slice(-SOUND_EVENT_LOG_LIMIT);
+    }
+    if (eventType === 'shown') {
+        profile.meta.showCount = Number(profile.meta.showCount || 0) + 1;
+        profile.meta.lastShownAt = timestamp;
+    } else {
+        profile.meta.interactionCount = Number(profile.meta.interactionCount || 0) + 1;
+        profile.meta.lastInteractionAt = timestamp;
+    }
+    profile.meta.updatedAt = new Date(timestamp).toISOString();
+    return { profile, candidate: candidateProfile, eventType, timestamp, weight };
+}
+function recordSoundPreferenceEvent(item, eventType, meta = {}) {
+    const candidateProfile = getSoundCandidateProfile(item);
+    if (!candidateProfile.reading) return null;
+    const timestamp = Number(meta.timestamp || Date.now()) || Date.now();
+    const session = typeof SwipeState !== 'undefined' ? SwipeState.soundSession : null;
+    const sessionProfile = session ? (session.profile || (session.profile = createSoundPreferenceBucket())) : null;
+    if (sessionProfile) {
+        applySoundEventToProfile(sessionProfile, candidateProfile, eventType, { ...meta, timestamp }, { skipEventLog: false, skipListSync: false });
+    }
+    if (eventType === 'shown') {
+        if (session) {
+            session.lastShownAt = timestamp;
+            session.lastShownKey = candidateProfile.bucketKey;
+            session.lastShownIndex = typeof SwipeState !== 'undefined' ? SwipeState.currentIndex : -1;
+            session.recentShown.push({ key: candidateProfile.bucketKey, reading: candidateProfile.reading, timestamp, profile: candidateProfile });
+            if (session.recentShown.length > SOUND_DIVERSIFY_LOOKBACK + 6) session.recentShown = session.recentShown.slice(-1 * (SOUND_DIVERSIFY_LOOKBACK + 6));
+        }
+        return { eventType, reading: candidateProfile.reading, weight: 0, timestamp };
+    }
+    soundPreferenceData = normalizeSoundPreferenceData(soundPreferenceData);
+    const result = applySoundEventToProfile(soundPreferenceData, candidateProfile, eventType, { ...meta, timestamp }, { skipEventLog: false, skipListSync: false });
+    if (meta.persist !== false) persistSoundPreferenceData();
+    if (session) {
+        session.interactionCount += 1;
+        session.recentActions.push({ eventType, reading: candidateProfile.reading, timestamp, weight: result?.weight || 0 });
+        if (session.recentActions.length > 20) session.recentActions = session.recentActions.slice(-20);
+    }
+    return result;
+}
+function trackSoundCandidateShown(item) {
+    if (!item) return null;
+    const profile = getSoundCandidateProfile(item);
+    if (!profile.reading) return null;
+    const session = typeof SwipeState !== 'undefined' ? SwipeState.soundSession : null;
+    if (session && session.lastShownKey === profile.bucketKey && session.lastShownIndex === SwipeState.currentIndex) return profile;
+    return recordSoundPreferenceEvent(item, 'shown', { persist: false, source: 'sound-render' });
+}
+
+function getSoundPreferenceInteractionCount() {
+    const normalized = normalizeSoundPreferenceData(soundPreferenceData);
+    if (normalized !== soundPreferenceData) soundPreferenceData = normalized;
+    return Number(normalized.meta?.interactionCount || 0) || (normalized.liked.length + normalized.noped.length);
+}
+
+function getSoundStatAffinity(bucket) {
+    const raw = Number(bucket?.score || 0) || 0;
+    return raw ? Math.tanh(raw / 4) * 2.4 : 0;
+}
+
+function getSoundProfileAffinity(profile, candidateProfile) {
+    if (!profile || !candidateProfile) return 0;
+    let score = 0;
+    score += getSoundStatAffinity(profile.readingStats?.[candidateProfile.reading]) * 1.35;
+    score += getSoundStatAffinity(profile.attributeStats?.moraCount?.[String(candidateProfile.moraCount)]) * 0.6;
+    score += getSoundStatAffinity(profile.attributeStats?.headGroup?.[String(candidateProfile.headGroup)]) * 0.85;
+    score += getSoundStatAffinity(profile.attributeStats?.tailType?.[String(candidateProfile.tailType)]) * 1.05;
+    score += getSoundStatAffinity(profile.attributeStats?.vowelPattern?.[String(candidateProfile.vowelPattern)]) * 0.55;
+    score += getSoundStatAffinity(profile.attributeStats?.popularityBand?.[String(candidateProfile.popularityBand)]) * 0.45;
+    score += getSoundStatAffinity(profile.attributeStats?.genderTilt?.[String(candidateProfile.genderTilt)]) * 0.35;
+    if (Array.isArray(candidateProfile.styleTags) && candidateProfile.styleTags.length > 0) {
+        const styleScores = candidateProfile.styleTags.map(tag => getSoundStatAffinity(profile.attributeStats?.styleTags?.[String(tag)])).sort((a, b) => b - a);
+        score += styleScores.slice(0, 2).reduce((sum, value, index) => sum + (value * (index === 0 ? 1 : 0.7)), 0) * 0.95;
+    }
+    return score;
+}
+
+function incrementCounter(store, key) {
+    const valueKey = String(key || '').trim();
+    if (!valueKey) return;
+    store[valueKey] = (store[valueKey] || 0) + 1;
+}
+
+function buildSoundCandidateDistribution(candidates) {
+    const distribution = { total: Array.isArray(candidates) ? candidates.length : 0, moraCount: {}, headGroup: {}, tailType: {}, vowelPattern: {}, primaryStyleTag: {}, styleTags: {}, popularityBand: {}, genderTilt: {} };
+    (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
+        const profile = getSoundCandidateProfile(candidate);
+        incrementCounter(distribution.moraCount, profile.moraCount);
+        incrementCounter(distribution.headGroup, profile.headGroup);
+        incrementCounter(distribution.tailType, profile.tailType);
+        incrementCounter(distribution.vowelPattern, profile.vowelPattern);
+        incrementCounter(distribution.primaryStyleTag, profile.primaryStyleTag);
+        incrementCounter(distribution.popularityBand, profile.popularityBand);
+        incrementCounter(distribution.genderTilt, profile.genderTilt);
+        profile.styleTags.forEach(tag => incrementCounter(distribution.styleTags, tag));
+    });
+    return distribution;
+}
+
+function getSoundPreferenceBlend(context = {}) {
+    const interactionCount = Number(context.interactionCount || 0) || 0;
+    const sessionShownCount = Number(context.sessionShownCount || 0) || 0;
+    if (context.phase === 'explore' || sessionShownCount < SOUND_SESSION_WARMUP_LIMIT) return { longTermWeight: 0.45, shortTermWeight: 0.25, explorationWeight: 1.35, freshnessWeight: 1.1, baselineWeight: 0.35, similarityWeight: 1, repetitionWeight: 1, fatigueWeight: 1 };
+    if (interactionCount < 12) return { longTermWeight: 0.55, shortTermWeight: 0.25, explorationWeight: 1.05, freshnessWeight: 0.95, baselineWeight: 0.4, similarityWeight: 1, repetitionWeight: 1.05, fatigueWeight: 0.9 };
+    if (interactionCount < 36) return { longTermWeight: 0.7, shortTermWeight: 0.3, explorationWeight: 0.8, freshnessWeight: 0.9, baselineWeight: 0.35, similarityWeight: 1.05, repetitionWeight: 1.15, fatigueWeight: 1 };
+    return { longTermWeight: 0.7, shortTermWeight: 0.3, explorationWeight: 0.45, freshnessWeight: 0.75, baselineWeight: 0.3, similarityWeight: 1.1, repetitionWeight: 1.2, fatigueWeight: 1.05 };
+}
+
+function getSoundFrequencyRarity(store, key, total) {
+    const valueKey = String(key || '').trim();
+    if (!valueKey || !total) return 0;
+    const count = Number(store?.[valueKey] || 0) || 0;
+    return Math.max(0, 1 - (count / Math.max(total, 1)));
+}
+
+function getSoundExplorationBonus(profile, distribution, sessionProfile, blend) {
+    if (!profile) return 0;
+    const total = Number(distribution?.total || 0) || 0;
+    const poolAverage = [
+        getSoundFrequencyRarity(distribution?.moraCount, profile.moraCount, total),
+        getSoundFrequencyRarity(distribution?.headGroup, profile.headGroup, total),
+        getSoundFrequencyRarity(distribution?.tailType, profile.tailType, total),
+        getSoundFrequencyRarity(distribution?.vowelPattern, profile.vowelPattern, total),
+        getSoundFrequencyRarity(distribution?.primaryStyleTag, profile.primaryStyleTag, total),
+        getSoundFrequencyRarity(distribution?.popularityBand, profile.popularityBand, total),
+        getSoundFrequencyRarity(distribution?.genderTilt, profile.genderTilt, total)
+    ].reduce((sum, value) => sum + value, 0) / 7;
+    const sessionAverage = [
+        getSoundStatAffinity(sessionProfile?.attributeStats?.moraCount?.[String(profile.moraCount)]),
+        getSoundStatAffinity(sessionProfile?.attributeStats?.headGroup?.[String(profile.headGroup)]),
+        getSoundStatAffinity(sessionProfile?.attributeStats?.tailType?.[String(profile.tailType)]),
+        getSoundStatAffinity(sessionProfile?.attributeStats?.vowelPattern?.[String(profile.vowelPattern)]),
+        getSoundStatAffinity(sessionProfile?.attributeStats?.popularityBand?.[String(profile.popularityBand)]),
+        getSoundStatAffinity(sessionProfile?.attributeStats?.genderTilt?.[String(profile.genderTilt)])
+    ].map(value => Math.max(0, 1 - (value / 2.4))).reduce((sum, value) => sum + value, 0) / 6;
+    const styleRarity = profile.styleTags.length > 0 ? profile.styleTags.map(tag => getSoundFrequencyRarity(distribution?.styleTags, tag, total)).reduce((sum, value) => sum + value, 0) / profile.styleTags.length : 0;
+    const unseenBoost = sessionProfile?.readingStats?.[profile.reading]?.shown ? 0 : 0.35;
+    return ((poolAverage * 0.9) + (sessionAverage * 0.8) + (styleRarity * 0.9) + unseenBoost) * blend.explorationWeight;
+}
+
+function getSoundFreshnessBonus(profile, globalProfile, sessionProfile, blend) {
+    if (!profile) return 0;
+    const now = Date.now();
+    const globalReading = globalProfile?.readingStats?.[profile.reading];
+    const sessionReading = sessionProfile?.readingStats?.[profile.reading];
+    let bonus = 0;
+    if (!globalReading || Number(globalReading.shown || 0) === 0) bonus += 0.45;
+    if (!sessionReading || Number(sessionReading.shown || 0) === 0) bonus += 0.45;
+    const lastGlobalActionAt = Number(globalReading?.lastActionAt || 0) || 0;
+    if (lastGlobalActionAt > 0) {
+        const ageHours = (now - lastGlobalActionAt) / (1000 * 60 * 60);
+        if (ageHours > 72) bonus += 0.2; else if (ageHours > 24) bonus += 0.1;
+    }
+    return bonus * blend.freshnessWeight;
+}
+
+function getSoundProfileSimilarity(candidateProfile, otherProfile) {
+    if (!candidateProfile || !otherProfile) return 0;
+    let score = 0;
+    if (candidateProfile.moraCount === otherProfile.moraCount) score += 1;
+    if (candidateProfile.headGroup === otherProfile.headGroup) score += 0.85;
+    if (candidateProfile.tailType === otherProfile.tailType) score += 1.2;
+    if (candidateProfile.vowelPattern && candidateProfile.vowelPattern === otherProfile.vowelPattern) score += 0.55;
+    if (candidateProfile.popularityBand === otherProfile.popularityBand) score += 0.35;
+    if (candidateProfile.genderTilt === otherProfile.genderTilt) score += 0.35;
+    if (candidateProfile.primaryStyleTag && candidateProfile.primaryStyleTag === otherProfile.primaryStyleTag) score += 0.9;
+    const sharedTags = (candidateProfile.styleTags || []).filter(tag => (otherProfile.styleTags || []).includes(tag)).length;
+    return score + Math.min(1.2, sharedTags * 0.35);
+}
+
+function getSoundSimilarityPenalty(candidateProfile, recentProfiles, blend) {
+    const history = Array.isArray(recentProfiles) ? recentProfiles.filter(Boolean) : [];
+    if (history.length === 0) return 0;
+    const weights = [1, 0.7, 0.5, 0.35, 0.2];
+    let penalty = 0;
+    history.slice(-SOUND_DIVERSIFY_LOOKBACK).reverse().forEach((otherProfile, index) => { penalty += getSoundProfileSimilarity(candidateProfile, otherProfile) * (weights[index] || 0.15); });
+    return penalty * (blend.similarityWeight || 1);
+}
+
+function getSoundRepetitionPenalty(candidateProfile, recentProfiles, blend) {
+    const history = Array.isArray(recentProfiles) ? recentProfiles.filter(Boolean) : [];
+    if (history.length === 0) return 0;
+    const last = history[history.length - 1];
+    const prev = history[history.length - 2];
+    let penalty = 0;
+    if (last && candidateProfile.tailType === last.tailType) penalty += 0.75;
+    if (last && candidateProfile.headGroup === last.headGroup) penalty += 0.55;
+    if (last && candidateProfile.moraCount === last.moraCount) penalty += 0.45;
+    if (last && candidateProfile.primaryStyleTag === last.primaryStyleTag) penalty += 0.6;
+    if (last && candidateProfile.popularityBand === last.popularityBand) penalty += 0.25;
+    if (prev && last && candidateProfile.tailType === last.tailType && last.tailType === prev.tailType) penalty += 1;
+    if (prev && last && candidateProfile.headGroup === last.headGroup && last.headGroup === prev.headGroup) penalty += 0.75;
+    if (prev && last && candidateProfile.primaryStyleTag === last.primaryStyleTag && last.primaryStyleTag === prev.primaryStyleTag) penalty += 0.75;
+    if (prev && last && candidateProfile.moraCount === last.moraCount && last.moraCount === prev.moraCount) penalty += 0.75;
+    return penalty * (blend.repetitionWeight || 1);
+}
+
+function getSoundFatiguePenalty(candidateProfile, globalProfile, sessionProfile, blend) {
+    const globalReading = globalProfile?.readingStats?.[candidateProfile.reading];
+    const sessionReading = sessionProfile?.readingStats?.[candidateProfile.reading];
+    const shownCount = Math.max(Number(globalReading?.shown || 0), Number(sessionReading?.shown || 0));
+    const actionCount = Math.max(Number(globalReading?.eventCount || 0), Number(sessionReading?.eventCount || 0));
+    return ((shownCount > 0 ? Math.log1p(shownCount) * 0.35 : 0) + (actionCount > 2 ? (actionCount - 2) * 0.08 : 0)) * (blend.fatigueWeight || 1);
+}
+
+function buildSoundRankReason(candidateProfile, breakdown) {
+    const labelParts = [
+        candidateProfile.moraCount ? `${candidateProfile.moraCount}音` : '',
+        candidateProfile.tailType ? `終わり:${candidateProfile.tailType}` : '',
+        candidateProfile.primaryStyleTag ? `印象:${candidateProfile.primaryStyleTag}` : '',
+        candidateProfile.popularityBand ? `人気:${candidateProfile.popularityBand}` : '',
+        candidateProfile.genderTilt ? `性別:${candidateProfile.genderTilt}` : ''
+    ].filter(Boolean);
+    const parts = [];
+    if (breakdown.preference > 0.2) parts.push(`好み +${breakdown.preference.toFixed(2)}`);
+    if (breakdown.exploration > 0.2) parts.push(`探索 +${breakdown.exploration.toFixed(2)}`);
+    if (breakdown.freshness > 0.2) parts.push(`新規 +${breakdown.freshness.toFixed(2)}`);
+    if (breakdown.similarityPenalty > 0.2) parts.push(`類似 -${breakdown.similarityPenalty.toFixed(2)}`);
+    if (breakdown.repetitionPenalty > 0.2) parts.push(`連続 -${breakdown.repetitionPenalty.toFixed(2)}`);
+    if (breakdown.fatiguePenalty > 0.2) parts.push(`疲労 -${breakdown.fatiguePenalty.toFixed(2)}`);
+    return `${labelParts.join(' / ')}${parts.length ? ` | ${parts.join(' / ')}` : ''}`;
+}
+
+function isSoundRankingDebugEnabled() {
+    try {
+        if (typeof window !== 'undefined' && window.__MEIMAY_SOUND_RANK_DEBUG__ === true) return true;
+        if (typeof localStorage !== 'undefined' && localStorage.getItem(SOUND_RANK_DEBUG_STORAGE_KEY) === '1') return true;
+        if (typeof location !== 'undefined') {
+            if (/[?&](soundRankDebug|debugSoundRank)=1\b/.test(location.search)) return true;
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return true;
+        }
+    } catch (e) { }
+    return false;
+}
+
+function logSoundRankingDebug(scoredCandidates, context = {}) {
+    if (!isSoundRankingDebugEnabled()) return;
+    const rows = (Array.isArray(scoredCandidates) ? scoredCandidates : []).slice(0, 8).map((item, index) => {
+        const breakdown = item?._soundRank || {};
+        return {
+            rank: index + 1,
+            reading: item?.reading || '',
+            score: Number((item?._soundScore || breakdown.total || 0).toFixed(2)),
+            base: Number((breakdown.base || 0).toFixed(2)),
+            preference: Number((breakdown.preference || 0).toFixed(2)),
+            exploration: Number((breakdown.exploration || 0).toFixed(2)),
+            freshness: Number((breakdown.freshness || 0).toFixed(2)),
+            similarityPenalty: Number((breakdown.similarityPenalty || 0).toFixed(2)),
+            repetitionPenalty: Number((breakdown.repetitionPenalty || 0).toFixed(2)),
+            fatiguePenalty: Number((breakdown.fatiguePenalty || 0).toFixed(2)),
+            reason: breakdown.reason || ''
+        };
+    });
+    console.groupCollapsed(`[sound-rank] ${context.debugLabel || 'rank'} count=${Array.isArray(scoredCandidates) ? scoredCandidates.length : 0}`);
+    console.table(rows);
+    console.groupEnd();
+}
+
+function getSoundDiversityConflictScore(candidateProfile, historyProfiles = []) {
+    if (!candidateProfile) return 0;
+    const recent = Array.isArray(historyProfiles) ? historyProfiles.slice(-SOUND_DIVERSIFY_LOOKBACK) : [];
+    if (recent.length === 0) return 0;
+    const last = recent[recent.length - 1];
+    const prev = recent[recent.length - 2];
+    let conflict = 0;
+    if (last && candidateProfile.tailType === last.tailType) conflict += 1.15;
+    if (last && candidateProfile.headGroup === last.headGroup) conflict += 0.75;
+    if (last && candidateProfile.moraCount === last.moraCount) conflict += 0.6;
+    if (last && candidateProfile.primaryStyleTag === last.primaryStyleTag) conflict += 0.95;
+    if (last && candidateProfile.popularityBand === last.popularityBand) conflict += 0.3;
+    if (prev && last && candidateProfile.tailType === last.tailType && last.tailType === prev.tailType) conflict += 1.4;
+    if (prev && last && candidateProfile.headGroup === last.headGroup && last.headGroup === prev.headGroup) conflict += 0.85;
+    if (prev && last && candidateProfile.primaryStyleTag === last.primaryStyleTag && last.primaryStyleTag === prev.primaryStyleTag) conflict += 0.95;
+    if (prev && last && candidateProfile.moraCount === last.moraCount && last.moraCount === prev.moraCount) conflict += 0.85;
+    conflict += getSoundProfileSimilarity(candidateProfile, last) * 0.35;
+    return conflict;
+}
+
+function diversifySoundCandidates(scoredCandidates, recentProfiles = []) {
+    const source = Array.isArray(scoredCandidates) ? [...scoredCandidates] : [];
+    const result = [];
+    const seedHistory = Array.isArray(recentProfiles) ? recentProfiles.filter(Boolean) : [];
+    while (source.length > 0) {
+        const history = [...seedHistory, ...result.map(item => item._soundProfile).filter(Boolean)];
+        let chosenIndex = 0;
+        let chosenPenalty = Infinity;
+        const lookahead = Math.min(12, source.length);
+        for (let i = 0; i < lookahead; i += 1) {
+            const candidate = source[i];
+            const penalty = getSoundDiversityConflictScore(candidate?._soundProfile, history);
+            if (penalty <= 0) { chosenIndex = i; chosenPenalty = penalty; break; }
+            if (penalty < chosenPenalty) { chosenPenalty = penalty; chosenIndex = i; }
+        }
+        result.push(source.splice(chosenIndex, 1)[0]);
+    }
+    return result;
+}
+
+function rankSoundCandidates(candidates, options = {}) {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (list.length === 0) return [];
+    const globalProfile = normalizeSoundPreferenceData(soundPreferenceData);
+    if (globalProfile !== soundPreferenceData) soundPreferenceData = globalProfile;
+    const session = typeof SwipeState !== 'undefined' ? SwipeState.soundSession : null;
+    const sessionProfile = session && session.profile ? session.profile : null;
+    const interactionCount = Number(options.interactionCount || getSoundPreferenceInteractionCount()) || 0;
+    const sessionShownCount = Number(options.sessionShownCount || session?.recentShown?.length || 0) || 0;
+    const blend = getSoundPreferenceBlend({ phase: options.phase || 'learn', interactionCount, sessionShownCount });
+    const distribution = buildSoundCandidateDistribution(list);
+    const recentProfiles = (Array.isArray(session?.recentShown) ? session.recentShown : []).map(entry => entry?.profile).filter(Boolean);
+    const scored = list.map((candidate, index) => {
+        const profile = getSoundCandidateProfile(candidate);
+        const baseScore = getReadingCandidateRankScore(candidate) / 1000000;
+        const globalAffinity = getSoundProfileAffinity(globalProfile, profile);
+        const sessionAffinity = getSoundProfileAffinity(sessionProfile, profile);
+        const preference = (globalAffinity * blend.longTermWeight) + (sessionAffinity * blend.shortTermWeight);
+        const exploration = getSoundExplorationBonus(profile, distribution, sessionProfile, blend);
+        const freshness = getSoundFreshnessBonus(profile, globalProfile, sessionProfile, blend);
+        const similarityPenalty = getSoundSimilarityPenalty(profile, recentProfiles, blend);
+        const repetitionPenalty = getSoundRepetitionPenalty(profile, recentProfiles, blend);
+        const fatiguePenalty = getSoundFatiguePenalty(profile, globalProfile, sessionProfile, blend);
+        const total = (baseScore * blend.baselineWeight) + preference + exploration + freshness - similarityPenalty - repetitionPenalty - fatiguePenalty;
+        return {
+            ...candidate,
+            _soundProfile: profile,
+            _soundScore: total,
+            _soundRank: {
+                base: baseScore,
+                globalAffinity,
+                sessionAffinity,
+                preference,
+                exploration,
+                freshness,
+                similarityPenalty,
+                repetitionPenalty,
+                fatiguePenalty,
+                total,
+                reason: buildSoundRankReason(profile, { preference, exploration, freshness, similarityPenalty, repetitionPenalty, fatiguePenalty })
+            },
+            _soundOrderSeed: index
+        };
+    });
+    scored.sort((a, b) => {
+        const diff = (b._soundScore || 0) - (a._soundScore || 0);
+        if (diff !== 0) return diff;
+        const baseDiff = (b._soundProfile?.baseScore || 0) - (a._soundProfile?.baseScore || 0);
+        if (baseDiff !== 0) return baseDiff;
+        const countDiff = (b._soundProfile?.rawCount || 0) - (a._soundProfile?.rawCount || 0);
+        if (countDiff !== 0) return countDiff;
+        return (a._soundOrderSeed || 0) - (b._soundOrderSeed || 0);
+    });
+    const diversified = diversifySoundCandidates(scored, recentProfiles);
+    logSoundRankingDebug(diversified, { debugLabel: options.debugLabel || options.phase || 'rank' });
+    return diversified.map(item => {
+        const { _soundProfile, _soundScore, _soundRank, _soundOrderSeed, ...rest } = item;
+        return rest;
+    });
+}
+
+function rerankRemainingSoundCandidates() {
+    if (typeof SwipeState === 'undefined' || SwipeState.mode !== 'sound') return [];
+    if (!Array.isArray(SwipeState.candidates) || SwipeState.candidates.length === 0) return [];
+    const currentIndex = Number(SwipeState.currentIndex || 0) || 0;
+    const prefix = SwipeState.candidates.slice(0, currentIndex + 1);
+    const suffix = SwipeState.candidates.slice(currentIndex + 1);
+    if (suffix.length <= 1) return SwipeState.candidates;
+    const rankedSuffix = rankSoundCandidates(suffix, { phase: 'rerank', debugLabel: 'rerank', interactionCount: getSoundPreferenceInteractionCount(), sessionShownCount: SwipeState.soundSession?.recentShown?.length || 0 });
+    SwipeState.candidates = [...prefix, ...rankedSuffix];
+    if (SwipeState.soundSession) SwipeState.soundSession.lastRerankAt = Date.now();
+    return SwipeState.candidates;
 }
 
 // ==========================================
@@ -6209,9 +6759,16 @@ function initSoundMode() {
         onLike: (item, action) => {
             if (typeof addReadingToStock === 'function') {
                 addReadingToStock(item.reading, '', item.tags || [], {
+                    segments: getPreferredReadingSegments(item.reading),
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
                     clearHidden: true
+                });
+            }
+            if (typeof recordSoundPreferenceEvent === 'function') {
+                recordSoundPreferenceEvent(item, 'saved', {
+                    action,
+                    source: 'sound-like'
                 });
             }
         },
@@ -8698,19 +9255,6 @@ function removeCompletedReadingFromStock(reading) {
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
 
-function getSoundPreferenceInteractionCount() {
-    return (soundPreferenceData?.liked?.length || 0) + (soundPreferenceData?.noped?.length || 0);
-}
-
-function shuffleReadingCandidates(list) {
-    const copied = Array.isArray(list) ? [...list] : [];
-    for (let i = copied.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copied[i], copied[j]] = [copied[j], copied[i]];
-    }
-    return copied;
-}
-
 function getReadingCandidateRankScore(candidate) {
     return ((candidate?.popular ? 1 : 0) * 1000000) +
         ((candidate?.score || 0) * 1000) +
@@ -8718,72 +9262,25 @@ function getReadingCandidateRankScore(candidate) {
 }
 
 function buildExplorationReadingOrder(candidates) {
-    const grouped = new Map();
-
-    (Array.isArray(candidates) ? candidates : []).forEach(candidate => {
-        const firstMora = splitReadingIntoMoraUnits(candidate?.reading || '')[0] || '';
-        const primaryTag = Array.isArray(candidate?.tags) && candidate.tags.length > 0
-            ? candidate.tags[0]
-            : '#other';
-        const groupKey = `${firstMora}::${primaryTag}`;
-        if (!grouped.has(groupKey)) grouped.set(groupKey, []);
-        grouped.get(groupKey).push(candidate);
+    return rankSoundCandidates(Array.isArray(candidates) ? candidates : [], {
+        phase: 'explore',
+        debugLabel: 'explore'
     });
-
-    grouped.forEach((items, key) => {
-        const ranked = [...items].sort((a, b) => getReadingCandidateRankScore(b) - getReadingCandidateRankScore(a));
-        const lead = shuffleReadingCandidates(ranked.slice(0, 8));
-        grouped.set(key, [...lead, ...shuffleReadingCandidates(ranked.slice(8))]);
-    });
-
-    const keys = shuffleReadingCandidates(
-        Array.from(grouped.keys()).sort((a, b) => grouped.get(b).length - grouped.get(a).length)
-    );
-
-    const result = [];
-    let madeProgress = true;
-    while (madeProgress) {
-        madeProgress = false;
-        keys.forEach(key => {
-            const queue = grouped.get(key);
-            if (queue && queue.length > 0) {
-                result.push(queue.shift());
-                madeProgress = true;
-            }
-        });
-    }
-
-    return result.length > 0 ? result : (Array.isArray(candidates) ? [...candidates] : []);
 }
 
 function aiReorderCandidates(candidates) {
+    const list = Array.isArray(candidates) ? candidates : [];
     const interactionCount = getSoundPreferenceInteractionCount();
-    if (interactionCount < SOUND_EXPLORATION_INTERACTION_THRESHOLD) {
-        return buildExplorationReadingOrder(candidates);
+    const sessionShownCount = SwipeState?.soundSession?.recentShown?.length || 0;
+    if (interactionCount < SOUND_EXPLORATION_INTERACTION_THRESHOLD || sessionShownCount < SOUND_SESSION_WARMUP_LIMIT) {
+        return buildExplorationReadingOrder(list);
     }
-
-    const likedEndings = soundPreferenceData.liked.map(r => r.slice(-2));
-    const nopedEndings = soundPreferenceData.noped.map(r => r.slice(-2));
-    const likedVowels = soundPreferenceData.liked.map(r => getVowelPattern(r));
-
-    const endingScore = {};
-    likedEndings.forEach(e => { endingScore[e] = (endingScore[e] || 0) + 2; });
-    nopedEndings.forEach(e => { endingScore[e] = (endingScore[e] || 0) - 1; });
-
-    const vowelScore = {};
-    likedVowels.forEach(v => { vowelScore[v] = (vowelScore[v] || 0) + 1; });
-
-    return (Array.isArray(candidates) ? candidates : []).map(candidate => {
-        let boost = 0;
-        const ending = (candidate.reading || '').slice(-2);
-        const vowel = getVowelPattern(candidate.reading || '');
-        boost += (endingScore[ending] || 0) * 10;
-        boost += (vowelScore[vowel] || 0) * 5;
-        return { ...candidate, _aiBoost: boost };
-    }).sort((a, b) =>
-        (getReadingCandidateRankScore(b) + (b._aiBoost || 0)) -
-        (getReadingCandidateRankScore(a) + (a._aiBoost || 0))
-    );
+    return rankSoundCandidates(list, {
+        phase: 'learn',
+        debugLabel: 'learn',
+        interactionCount,
+        sessionShownCount
+    });
 }
 
 function prepareAdaptiveReadingCandidates(candidates) {
