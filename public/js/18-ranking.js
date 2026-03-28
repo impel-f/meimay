@@ -128,6 +128,30 @@ function normalizeRankingType(type) {
     return type === 'reading' ? 'reading' : 'kanji';
 }
 
+function getRankingAllowedReadingSet(targetGender = 'all') {
+    if (!Array.isArray(readingsData) || readingsData.length === 0) return null;
+
+    const normalizedGender = normalizeRankingGender(targetGender);
+    const allowed = new Set();
+
+    readingsData.forEach((entry) => {
+        const normalizedReading = normalizeRankingReadingText(entry?.reading || '');
+        if (!normalizedReading) return;
+
+        if (
+            normalizedGender !== 'all' &&
+            typeof isReadingGenderAllowed === 'function' &&
+            !isReadingGenderAllowed(entry?.gender, normalizedGender)
+        ) {
+            return;
+        }
+
+        allowed.add(normalizedReading);
+    });
+
+    return allowed;
+}
+
 function getRankingEncounteredReadingItems() {
     if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getEncounteredReadingsForRanking === 'function') {
         return MeimayPartnerInsights.getEncounteredReadingsForRanking();
@@ -510,13 +534,15 @@ function getMonthlyReadingCount(entry, currentMonthKey) {
     return 0;
 }
 
-function buildReadingRankingItems(rankingItems = []) {
+function buildReadingRankingItems(rankingItems = [], targetGender = 'all') {
     const groups = new Map();
+    const allowedReadings = getRankingAllowedReadingSet(targetGender);
 
     (Array.isArray(rankingItems) ? rankingItems : []).forEach((entry) => {
         const normalizedReading = normalizeRankingReadingText(entry?.reading || entry?.key || '');
         const count = Number(entry?.count) || 0;
         if (!normalizedReading || count <= 0) return;
+        if (allowedReadings && !allowedReadings.has(normalizedReading)) return;
 
         const existing = groups.get(normalizedReading);
         if (!existing || count > existing.count) {
@@ -828,7 +854,7 @@ async function loadRanking() {
             items = await MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
         } else {
             const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'all', genderFilter);
-            items = buildReadingRankingItems(readingRanking);
+            items = buildReadingRankingItems(readingRanking, genderFilter);
         }
 
         if (!Array.isArray(items) || items.length === 0) {

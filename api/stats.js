@@ -1,4 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 const { FieldValue, getAdminFirestore, verifyRequestAuth } = require('./_lib/firebase-admin');
+
+const READINGS_DATA_PATH = path.join(__dirname, '..', 'public', 'data', 'readings_data.json');
+let cachedReadingAllowlists = null;
+let readingAllowlistsLoaded = false;
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -284,11 +290,12 @@ async function fetchRankingItems(kind, period, metric = 'all', gender = 'all') {
     accumulateRankingTotals(doc.data(), kind, totals);
   }));
 
+  const normalizedKind = normalizeStatsKind(kind);
   return Array.from(totals.values())
     .filter((item) => item.count > 0)
+    .filter((item) => normalizedKind !== 'reading' || isAllowedReadingForGender(item.reading, gender))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
-      const normalizedKind = normalizeStatsKind(kind);
       const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
       const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
       return String(aKey || '').localeCompare(String(bKey || ''), 'ja');
@@ -303,6 +310,64 @@ function normalizeStatsReadingKey(value) {
   return raw
     .replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
     .replace(/[^\u3041-\u3093\u30fc]/g, '');
+}
+
+function getReadingAllowlists() {
+  if (readingAllowlistsLoaded) {
+    return cachedReadingAllowlists;
+  }
+
+  readingAllowlistsLoaded = true;
+
+  try {
+    const raw = fs.readFileSync(READINGS_DATA_PATH, 'utf8');
+    const entries = JSON.parse(raw);
+    if (!Array.isArray(entries) || entries.length === 0) {
+      cachedReadingAllowlists = null;
+      return null;
+    }
+
+    const allowlists = {
+      all: new Set(),
+      male: new Set(),
+      female: new Set(),
+    };
+
+    entries.forEach((entry) => {
+      const normalizedReading = normalizeStatsReadingKey(entry?.reading || '');
+      if (!normalizedReading) return;
+
+      allowlists.all.add(normalizedReading);
+
+      const entryGender = normalizeStatsGender(entry?.gender);
+      if (entryGender === 'male' || entryGender === 'neutral') {
+        allowlists.male.add(normalizedReading);
+      }
+      if (entryGender === 'female' || entryGender === 'neutral') {
+        allowlists.female.add(normalizedReading);
+      }
+    });
+
+    cachedReadingAllowlists = allowlists.all.size > 0 ? allowlists : null;
+    return cachedReadingAllowlists;
+  } catch (error) {
+    console.warn('STATS: Failed to load reading allowlist', error.message);
+    cachedReadingAllowlists = null;
+    return null;
+  }
+}
+
+function isAllowedReadingForGender(reading, gender = 'all') {
+  const allowlists = getReadingAllowlists();
+  if (!allowlists) return true;
+
+  const normalizedReading = normalizeStatsReadingKey(reading);
+  if (!normalizedReading) return false;
+
+  const normalizedGender = normalizeStatsGender(gender);
+  if (normalizedGender === 'male') return allowlists.male.has(normalizedReading);
+  if (normalizedGender === 'female') return allowlists.female.has(normalizedReading);
+  return allowlists.all.has(normalizedReading);
 }
 
 function buildErrorResponse(res, error, fallbackMessage) {
@@ -389,6 +454,17 @@ module.exports = async (req, res) => {
   }
   if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0 || Math.abs(normalizedDelta) > 100000) {
     return res.status(400).json({ error: 'Delta must be a non-zero integer' });
+  }
+
+  if (normalizedKind === 'reading' && !isAllowedReadingForGender(normalizedValue, normalizedGender)) {
+    return res.status(200).json({
+      ok: true,
+      kind: normalizedKind,
+      gender: normalizedGender,
+      scope: normalizedScope,
+      period: normalizedUpdatePeriod,
+      filtered: true
+    });
   }
 
   const db = getAdminFirestore();

@@ -1554,6 +1554,30 @@ function normalizeStatsReadingText(value) {
     return String(normalized || '').trim();
 }
 
+function getReadingRankingAllowlist(targetGender = 'all') {
+    if (!Array.isArray(readingsData) || readingsData.length === 0) return null;
+
+    const normalizedGender = normalizeStatsGenderValue(targetGender);
+    const allowed = new Set();
+
+    readingsData.forEach((entry) => {
+        const normalizedReading = normalizeStatsReadingText(entry?.reading || '');
+        if (!normalizedReading) return;
+
+        if (
+            normalizedGender !== 'all' &&
+            typeof isReadingGenderAllowed === 'function' &&
+            !isReadingGenderAllowed(entry?.gender, normalizedGender)
+        ) {
+            return;
+        }
+
+        allowed.add(normalizedReading);
+    });
+
+    return allowed;
+}
+
 function normalizeStatsGenderValue(value, fallback = 'all') {
     const raw = String(value || '').trim().toLowerCase();
     if (raw === 'male' || raw === 'female' || raw === 'neutral' || raw === 'all') {
@@ -2440,6 +2464,9 @@ const MeimayStats = {
         try {
             const collections = getStatsRankingCollectionNames(normalizedKind, normalizedMetric, normalizedGender);
             const totals = new Map();
+            const allowedReadings = normalizedKind === 'reading'
+                ? getReadingRankingAllowlist(normalizedGender)
+                : null;
             const docId = normalizedType === 'monthly'
                 ? `monthly_${this.getCurrentMonthKey()}`
                 : normalizedType === 'weekly'
@@ -2458,6 +2485,7 @@ const MeimayStats = {
                         if (normalizedKind === 'reading') {
                             const reading = normalizeStatsReadingText(key);
                             if (!reading) return;
+                            if (allowedReadings && !allowedReadings.has(reading)) return;
                             const current = totals.get(reading) || { reading, count: 0 };
                             current.count += count;
                             totals.set(reading, current);

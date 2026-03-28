@@ -1862,10 +1862,43 @@ function renderBuildFreeMode(container) {
  * 自由組み立てモード：選択した漢字の読みの組み合わせから
  * readings_data.json 内にマッチする読みを候補として提案する
  */
+function normalizeReadingLookupKey(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return typeof toHira === 'function'
+        ? toHira(raw).replace(/\s+/g, '')
+        : raw.replace(/\s+/g, '');
+}
+
+function getAllowedReadingsForBuild(targetGender = gender || 'neutral') {
+    if (!Array.isArray(readingsData) || readingsData.length === 0) return null;
+
+    const normalizedTarget = targetGender === 'male' || targetGender === 'female' ? targetGender : 'all';
+    const allowed = new Set();
+
+    readingsData.forEach((entry) => {
+        const normalizedReading = normalizeReadingLookupKey(entry?.reading);
+        if (!normalizedReading) return;
+
+        if (
+            normalizedTarget !== 'all' &&
+            typeof isReadingGenderAllowed === 'function' &&
+            !isReadingGenderAllowed(entry?.gender, normalizedTarget)
+        ) {
+            return;
+        }
+
+        allowed.add(normalizedReading);
+    });
+
+    return allowed;
+}
+
 function suggestReadingsForKanji(choices, container) {
     if (!choices || choices.length === 0) return;
     if (typeof master === 'undefined' || !master || master.length === 0) return;
     const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
+    const allowedReadings = getAllowedReadingsForBuild(gender);
     const selectedName = choices.join('');
 
     // 各漢字の可能な読み一覧を取得
@@ -1898,9 +1931,12 @@ function suggestReadingsForKanji(choices, container) {
     if (!readingArrays.some(a => a.length === 0)) {
         const combinedReadings = cartesian(readingArrays);
         const combinedSet = new Set(combinedReadings);
-        const matched = dictionaryReadings.filter(r => combinedSet.has(r.reading));
-        const filtered = matched;
-        const matchedSet = new Set(filtered.map(r => r.reading));
+        const filtered = dictionaryReadings.filter((r) => {
+            const normalizedReading = normalizeReadingLookupKey(r?.reading);
+            if (!normalizedReading || !combinedSet.has(normalizedReading)) return false;
+            if (allowedReadings && !allowedReadings.has(normalizedReading)) return false;
+            return true;
+        });
 
         const exactMatches = filtered.map(r => {
             let score = 0;
@@ -1923,30 +1959,6 @@ function suggestReadingsForKanji(choices, container) {
         });
 
         scored = exactMatches;
-
-        if (scored.length === 0) {
-            const onReadingArrays = choices.map(kanji => getKanjiReadings(kanji, 'on'));
-            if (!onReadingArrays.some(a => a.length === 0)) {
-                const generatedSet = new Set();
-                const generatedMatches = cartesian(onReadingArrays).filter(reading => {
-                    if (!reading || matchedSet.has(reading) || generatedSet.has(reading)) return false;
-                    generatedSet.add(reading);
-                    return true;
-                }).map((reading, index) => ({
-                    reading,
-                    tags: [],
-                    count: 0,
-                    isGenerated: true,
-                    _score: 0,
-                    _generatedOrder: index
-                })).sort((a, b) => a._generatedOrder - b._generatedOrder);
-
-                scored = generatedMatches.map(entry => {
-                    const { _generatedOrder, ...rest } = entry;
-                    return rest;
-                });
-            }
-        }
     }
 
     currentFbRecommendedReadings = scored; // グローバルに保存
