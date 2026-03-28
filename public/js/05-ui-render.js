@@ -473,12 +473,12 @@ async function showKanjiDetail(data) {
         } else {
             const likeBtn = document.createElement('button');
             likeBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            likeBtn.innerHTML = '<span>♥</span> LIKE';
+            likeBtn.innerHTML = '<span>♥</span> 候補';
             likeBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, false);
 
             const superBtn = document.createElement('button');
             superBtn.className = 'flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95';
-            superBtn.innerHTML = '<span>★</span> SUPER';
+            superBtn.innerHTML = '<span>★</span> 本命';
             superBtn.onclick = () => toggleStockFromModal(_currentDetailData, false, true);
 
             stockBtnsEl.appendChild(likeBtn);
@@ -752,7 +752,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             renderStock();
         }
 
-        alert(isSuper ? '★スーパーライクでストックに追加しました！' : '♥ライクでストックに追加しました！');
+        alert(isSuper ? '★本命でストックに追加しました！' : '♥候補でストックに追加しました！');
         closeKanjiDetail();
     }
 }

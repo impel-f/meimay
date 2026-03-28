@@ -2218,7 +2218,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper) {
     }
 
     if (typeof showToast === 'function') {
-        showToast(`${candidate.givenName}\u3092${asSuper ? 'SUPER\u3067' : ''}\u4FDD\u5B58\u3057\u307E\u3057\u305F`, asSuper ? '⭐' : '💾');
+        showToast(`${candidate.givenName}\u3092${asSuper ? '本命として' : '候補として'}\u4FDD\u5B58\u3057\u307E\u3057\u305F`, asSuper ? '⭐' : '💾');
     }
 
     if (typeof openSavedNames === 'function') {
@@ -2336,8 +2336,8 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
                                     <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">\u5019\u88DC</span>
                                 </div>
                                 <div class="flex gap-2">
-                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="flex-1 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">\u4FDD\u5B58</button>
-                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, true)" class="flex-1 py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">SUPER</button>
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="flex-1 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">候補</button>
+                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex}, true)" class="flex-1 py-2.5 rounded-2xl bg-[#b9965b] text-white font-black text-sm shadow-sm active:scale-95 transition-all">本命</button>
                                 </div>
                             </div>
                         `).join('')
@@ -3342,7 +3342,7 @@ function showNicknameList() {
 
         btn.className = classes;
         btn.innerHTML = `
-            ${item.isSuper ? '<span class="text-[10px] text-[#fbbc04]">★ SUPER</span>' : ''}
+            ${item.isSuper ? '<span class="text-[10px] text-[#fbbc04]">★ 本命</span>' : ''}
             <span>${item.reading}</span>
         `;
         btn.onclick = () => confirmReading(item.reading);
@@ -4679,7 +4679,7 @@ function renderReadingStockSection() {
                     ${items.map(item => {
                         const display = getReadingDisplayLabel(item);
                         const badge = item.isSuper
-                            ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-[#fff1d8] text-[#b9965b] text-[9px] font-black">SUPER</span>'
+                            ? '<span class="inline-flex px-2 py-0.5 rounded-full bg-[#fff1d8] text-[#b9965b] text-[9px] font-black">本命</span>'
                             : '';
                         return `
                         <div class="bg-white border border-[#ede5d8] rounded-xl p-3 flex items-center gap-3 hover:border-[#bca37f] transition-all cursor-pointer active:scale-[0.98]"
@@ -5708,7 +5708,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
     );
     if (typeof showToast === 'function') {
         showToast(
-            asSuper ? `${item.reading}をSUPER保存しました` : `${item.reading}をライク保存しました`,
+            asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`,
             asSuper ? '⭐' : '💾'
         );
     }
@@ -6168,6 +6168,7 @@ window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
 
+
 function renderReadingCardStarsV2(selfSuper, partnerSuper) {
     if (typeof window.renderMeimaySuperStars !== 'function') {
         return selfSuper || partnerSuper ? '<div class="text-[12px] leading-none text-[#fbbc04]">★</div>' : '';
@@ -6313,7 +6314,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
     );
     if (typeof showToast === 'function') {
         showToast(
-            asSuper ? `${item.reading}をSUPER保存しました` : `${item.reading}をライク保存しました`,
+            asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`,
             asSuper ? '⭐' : '💾'
         );
     }
@@ -6980,7 +6981,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
 
     if (typeof showToast === 'function') {
         showToast(
-            asSuper ? `${candidate.givenName}をSUPERで保存しました` : `${candidate.givenName}を保存しました`,
+            asSuper ? `${candidate.givenName}を本命として保存しました` : `${candidate.givenName}を候補として保存しました`,
             asSuper ? '★' : '✓'
         );
     }
@@ -7018,7 +7019,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     );
     if (typeof showToast === 'function') {
         showToast(
-            asSuper ? `${item.reading}をSUPER保存しました` : `${item.reading}をライク保存しました`,
+            asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`,
             asSuper ? '⭐' : '💾'
         );
     }
@@ -7103,8 +7104,8 @@ function renderReadingSwipeCard(item) {
             </div>
             ${renderReadingTagBadges(item.tags || [])}
             <div class="flex gap-2 mb-4" style="${forceSplit ? 'display:none;' : ''}">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> LIKE</button>
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> SUPER</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> 候補</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> 本命</button>
             </div>
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
@@ -8965,7 +8966,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
         clearHidden: true
     });
     if (typeof showToast === 'function') {
-        showToast(asSuper ? `${item.reading}をSUPER保存しました` : `${item.reading}をライク保存しました`, asSuper ? '★' : '✓');
+        showToast(asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`, asSuper ? '★' : '✓');
     }
 
     closeReadingCombinationModal();
@@ -9499,7 +9500,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
         clearHidden: true
     });
     if (typeof showToast === 'function') {
-        showToast(asSuper ? `${item.reading}をSUPERで取り込みました` : `${item.reading}を取り込みました`, asSuper ? '★' : '✓');
+        showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を取り込みました`, asSuper ? '★' : '✓');
     }
 
     closeReadingCombinationModal();
@@ -9940,4 +9941,3 @@ window.renderReadingCardStarsV2 = renderReadingCardStarsV2;
 window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
-
