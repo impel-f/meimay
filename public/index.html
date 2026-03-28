@@ -747,25 +747,34 @@
 
             <div id="uni-swipe-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto"
                 style="z-index:1;">
-                <div id="badge-like-uni" class="stamp-premium hidden">LIKE</div>
-                <div id="badge-nope-uni" class="stamp-premium hidden">NOPE</div>
-                <div id="badge-super-uni" class="stamp-premium hidden">SUPER</div>
+                <div id="badge-like-uni" class="stamp-premium hidden">候補</div>
+                <div id="badge-nope-uni" class="stamp-premium hidden">見送り</div>
+                <div id="badge-super-uni" class="stamp-premium hidden">本命</div>
                 <div id="uni-stack" class="w-full h-full"></div>
             </div>
 
             <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="uni-swipe-action-btns"
-                class="w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0"
+                class="w-full flex justify-center items-start gap-4 px-4 py-3 flex-shrink-0"
                 style="pointer-events:none;">
-                <button onclick="universalSwipeAction('nope')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">✕</button>
-                <button onclick="universalSwipeAction('super')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">★</button>
-                <button onclick="universalSwipeAction('like')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">♥</button>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="universalSwipeAction('nope')"
+                        class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">✕</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#f28b82]">見送り</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="universalSwipeAction('super')"
+                        class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">★</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#8ab4f8]">本命</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="universalSwipeAction('like')"
+                        class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">♥</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#81c995]">候補</span>
+                </div>
             </div>
         </div>
 
@@ -895,25 +904,34 @@
             </div>
 
             <div id="stack-container" class="relative w-full max-w-sm flex-1 min-h-0 mt-6 mx-auto" style="z-index:1;">
-                <div id="badge-like" class="stamp-premium">LIKE</div>
-                <div id="badge-nope" class="stamp-premium">NOPE</div>
-                <div id="badge-super" class="stamp-premium">SUPER</div>
+                <div id="badge-like" class="stamp-premium">候補</div>
+                <div id="badge-nope" class="stamp-premium">見送り</div>
+                <div id="badge-super" class="stamp-premium">本命</div>
                 <div id="stack" class="w-full h-full"></div>
             </div>
 
             <!-- Swipe Action Buttons (× ★ ♡) -->
             <div id="swipe-action-btns"
-                class="hidden w-full flex justify-center items-center gap-6 px-4 py-3 flex-shrink-0"
+                class="hidden w-full flex justify-center items-start gap-4 px-4 py-3 flex-shrink-0"
                 style="pointer-events:none;">
-                <button onclick="manual('left')"
-                    class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">✕</button>
-                <button onclick="manual('up')"
-                    class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">★</button>
-                <button onclick="manual('right')"
-                    class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
-                    style="pointer-events:all;">♥</button>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="manual('left')"
+                        class="btn-circle text-[#f28b82] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#fef2f2] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">✕</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#f28b82]">見送り</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="manual('up')"
+                        class="btn-circle text-[#8ab4f8] w-10 h-10 text-lg shadow-lg bg-white border-2 border-[#f0f4ff] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">★</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#8ab4f8]">本命</span>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <button onclick="manual('right')"
+                        class="btn-circle text-[#81c995] w-14 h-14 text-xl shadow-lg bg-white border-2 border-[#f0fdf4] active:scale-90 hover:shadow-xl transition-all"
+                        style="pointer-events:all;">♥</button>
+                    <span class="text-[10px] font-black tracking-[0.18em] text-[#81c995]">候補</span>
+                </div>
             </div>
 
         </div>
@@ -1290,21 +1308,21 @@
 
                         <div id="tut-badge-like"
                             class="absolute top-4 left-4 border-4 border-[#81c995] text-[#81c995] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20">
-                            LIKE</div>
+                            候補</div>
                         <div id="tut-badge-nope"
                             class="absolute top-4 right-4 border-4 border-[#f28b82] text-[#f28b82] font-black text-2xl px-2 py-1 rounded opacity-0 transform rotate-12 z-20">
-                            NOPE</div>
+                            見送り</div>
                         <div id="tut-badge-super"
                             class="absolute bottom-10 left-1/2 -translate-x-1/2 border-4 border-[#8ab4f8] text-[#8ab4f8] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20 whitespace-nowrap">
-                            SUPER</div>
+                            本命</div>
                     </div>
                     <div id="tut-hand-1" class="absolute bottom-10 right-10 text-6xl drop-shadow-xl z-50">👆</div>
                 </div>
 
                 <div class="w-full text-center text-white">
                     <p class="text-xl font-bold mb-2">直感でスワイプ！</p>
-                    <p class="text-sm opacity-90">右でLIKE、左でNOPE</p>
-                    <p class="text-sm opacity-90 text-[#8ab4f8] font-bold mt-1">上スワイプで超いいね！</p>
+                    <p class="text-sm opacity-90">右で候補、左で見送り</p>
+                    <p class="text-sm opacity-90 text-[#8ab4f8] font-bold mt-1">上スワイプで本命！</p>
                     <p class="text-xs mt-6 opacity-60 animate-pulse">画面をタップして次へ</p>
                 </div>
             </div>
