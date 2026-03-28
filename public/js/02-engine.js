@@ -85,7 +85,86 @@ function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
     return uniquePaths.slice(0, limit);
 }
 
+function getReadingSegmentRuleState(part) {
+    const normalizedPart = typeof normalizeReadingSegmentRuleKey === 'function'
+        ? normalizeReadingSegmentRuleKey(part)
+        : toHira(String(part || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, '');
+    if (!normalizedPart) {
+        return { state: 'missing', candidates: [] };
+    }
+
+    const approvedSegments = readingSegmentRules?.approvedSegments || {};
+    if (Object.prototype.hasOwnProperty.call(approvedSegments, normalizedPart)) {
+        return {
+            state: 'approved',
+            candidates: Array.isArray(approvedSegments[normalizedPart]) ? approvedSegments[normalizedPart] : []
+        };
+    }
+
+    const disabledSegments = Array.isArray(readingSegmentRules?.disabledSegments)
+        ? readingSegmentRules.disabledSegments
+        : [];
+    if (disabledSegments.includes(normalizedPart)) {
+        return { state: 'disabled', candidates: [] };
+    }
+
+    return { state: 'missing', candidates: [] };
+}
+
+function getMasterKanjiReadings(item) {
+    const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
+        .split(/[、,\/\s]+/)
+        .map(x => toHira(String(x || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, ''))
+        .filter(Boolean);
+    const minorReadings = (item?.['伝統名のり'] || '')
+        .split(/[、,\/\s]+/)
+        .map(x => toHira(String(x || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, ''))
+        .filter(Boolean);
+    return [...majorReadings, ...minorReadings];
+}
+
+function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neutral') {
+    if (!part || !Array.isArray(master) || master.length === 0) return false;
+
+    const target = toHira((part || '').trim());
+    if (!target) return false;
+
+    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
+    const targetSokuon = target.replace(/っ$/, 'つ');
+    const canUseSeionFallback = isLeadingDakutenVariant(target, targetSeion);
+
+    return master.some((k) => {
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+        }
+        if (isKanjiGenderMismatch(k, targetGender)) return false;
+
+        const readings = getMasterKanjiReadings(k);
+        return readings.includes(target) ||
+            (canUseSeionFallback && readings.includes(targetSeion)) ||
+            (targetSokuon !== target && readings.includes(targetSokuon));
+    });
+}
+
 function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
+    const target = toHira((part || '').trim());
+    if (!target || !Array.isArray(master) || master.length === 0) return false;
+
+    const segmentState = getReadingSegmentRuleState(target);
+    if (segmentState.state === 'approved') {
+        return segmentState.candidates.length > 0;
+    }
+    if (segmentState.state === 'disabled') {
+        return false;
+    }
+
+    const moraLength = splitReadingIntoMoraUnits(target).length;
+    if (moraLength < 3) return false;
+
+    return hasMasterKanjiCandidatesForReading(target, targetGender);
+
+    if (false) {
     if (!part || !Array.isArray(master) || master.length === 0) return false;
 
     if (typeof getCuratedReadingSegmentCandidates === 'function') {
@@ -124,6 +203,7 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
             (canUseSeionFallback && readings.includes(targetSeion)) ||
             (targetSokuon !== target && readings.includes(targetSokuon));
     });
+    }
 }
 
 function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
@@ -141,11 +221,15 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
         const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
         const partSokuon = part.replace(/っ$/, 'つ');
         const canUseSeionFallback = isLeadingDakutenVariant(part, partSeion);
+        const segmentState = getReadingSegmentRuleState(part);
+        const masterFallback = segmentState.state === 'missing'
+            && splitReadingIntoMoraUnits(part).length >= 3
+            && hasMasterKanjiCandidatesForReading(part, targetGender);
         const hasStrictReading = !useStrictMatching || (validReadingsSet && (
             validReadingsSet.has(part) ||
             (canUseSeionFallback && validReadingsSet.has(partSeion)) ||
             (partSokuon !== part && validReadingsSet.has(partSokuon))
-        ));
+        )) || segmentState.state === 'approved' || masterFallback;
         return hasStrictReading && hasViableKanjiForReading(part, targetGender);
     };
     let allPaths = [];

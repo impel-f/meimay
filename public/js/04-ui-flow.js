@@ -6882,43 +6882,39 @@ function compareReadingSegmentOptionsForDisplay(a, b) {
 }
 
 function pickReadingDisplayCandidates(allCandidates, limit) {
-    const selected = [];
-    const usedBySlot = [];
-
-    function canUse(candidate, requireFreshAllSlots) {
-        return candidate.combination.every((piece, slotIndex) => {
-            const kanji = piece && piece['漢字'];
-            if (!kanji) return false;
-            if (!usedBySlot[slotIndex]) usedBySlot[slotIndex] = new Set();
-            return !requireFreshAllSlots || !usedBySlot[slotIndex].has(kanji);
-        });
-    }
-
-    function markUsed(candidate) {
-        candidate.combination.forEach((piece, slotIndex) => {
-            const kanji = piece && piece['漢字'];
-            if (!kanji) return;
-            if (!usedBySlot[slotIndex]) usedBySlot[slotIndex] = new Set();
-            usedBySlot[slotIndex].add(kanji);
-        });
-    }
-
     const rankedCandidates = sortReadingCandidatesForDisplay(allCandidates);
-    const strictPool = rankedCandidates.slice(0, Math.max(limit * 8, 24));
-    strictPool.forEach((candidate) => {
-        if (selected.length >= limit) return;
-        const exists = selected.some(item => item.givenName === candidate.givenName);
-        if (exists || !canUse(candidate, true)) return;
+    const selected = [];
+    const selectedNames = new Set();
+    const firstSlotSeen = new Set();
+
+    const getFirstSlotKey = (candidate) => {
+        const firstPiece = Array.isArray(candidate?.combination) ? candidate.combination[0] : null;
+        const firstKanji = firstPiece && firstPiece['漢字'] ? String(firstPiece['漢字']).trim() : '';
+        return firstKanji || String(candidate?.givenName || candidate?.fullName || '').trim();
+    };
+
+    const addCandidate = (candidate) => {
+        if (!candidate || selected.length >= limit) return false;
+        const nameKey = String(candidate.givenName || candidate.fullName || '').trim();
+        if (!nameKey || selectedNames.has(nameKey)) return false;
         selected.push(candidate);
-        markUsed(candidate);
+        selectedNames.add(nameKey);
+        return true;
+    };
+
+    rankedCandidates.forEach((candidate) => {
+        if (selected.length >= limit) return;
+        const firstSlotKey = getFirstSlotKey(candidate);
+        if (!firstSlotKey || firstSlotSeen.has(firstSlotKey)) return;
+        if (addCandidate(candidate)) {
+            firstSlotSeen.add(firstSlotKey);
+        }
     });
 
     if (selected.length < limit) {
-        rankedCandidates.slice(0, Math.max(limit * 10, 32)).forEach((candidate) => {
+        rankedCandidates.forEach((candidate) => {
             if (selected.length >= limit) return;
-            const exists = selected.some(item => item.givenName === candidate.givenName);
-            if (exists) return;
-            selected.push(candidate);
+            addCandidate(candidate);
         });
     }
 
