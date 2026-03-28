@@ -5694,6 +5694,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
 
 function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const item = readingCombinationModalState.item || {};
     addReadingToStock(
         item.reading,
@@ -6300,6 +6301,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
 
 function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const item = readingCombinationModalState.item || {};
     addReadingToStock(
         item.reading,
@@ -7003,6 +7005,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     }
 }function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const item = readingCombinationModalState.item || {};
     const options = Array.isArray(readingCombinationModalState.options) ? readingCombinationModalState.options : [];
     const preferred = options[0]?.path || getPreferredReadingSegments(item.reading);
@@ -8958,6 +8961,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
 
 function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const item = readingCombinationModalState.item || {};
     addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
         segments: [],
@@ -9492,6 +9496,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
 
 function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
+    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
     const item = readingCombinationModalState.item || {};
     addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
         segments: [],
