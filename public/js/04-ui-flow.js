@@ -617,7 +617,7 @@ function renderSoundEntryScreen() {
                 </div>
             </div>
             <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 w-full">響きを見て探す</button>
-            <button onclick="goBack()" class="text-sm text-[#bca37f] hover:underline">戻る</button>
+            <button onclick="goBack()" class="screen-back-btn">← 戻る</button>
         </div>
     `;
 }
