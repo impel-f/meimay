@@ -6222,6 +6222,7 @@ window.renderReadingCardStarsV2 = renderReadingCardStarsV2;
 window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
+window.openReadingCombinationDetailFromItem = openReadingCombinationDetailFromItem;
 
 function renderReadingCardStarsV2(selfSuper, partnerSuper) {
     if (typeof window.renderMeimaySuperStars !== 'function') {
@@ -9629,25 +9630,8 @@ function startReadingFromStock(target) {
     openBuildFromReading(stockItem.id || stockItem.reading || target, Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : []);
 }
 
-function openReadingCombinationDetailFromStockTarget(target) {
+function openReadingCombinationDetailFromItem(item) {
     if (typeof openReadingCombinationModal !== 'function') return;
-    const stockItem = findReadingStockItem(target);
-    if (!stockItem) return;
-
-    const reading = getReadingBaseReading(stockItem.reading || stockItem.sessionReading || target) || stockItem.reading || stockItem.sessionReading || target;
-    openReadingCombinationModal({
-        ...stockItem,
-        reading,
-        forceSplit: false
-    }, stockItem.baseNickname || '', '');
-}
-
-function openPartnerReadingCombinationDetail(index) {
-    if (typeof openReadingCombinationModal !== 'function') return;
-
-    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
-    const item = partnerReadings[index];
     if (!item) return;
 
     const reading = getReadingBaseReading(item.reading || item.sessionReading || '') || item.reading || item.sessionReading || '';
@@ -9656,6 +9640,18 @@ function openPartnerReadingCombinationDetail(index) {
         reading,
         forceSplit: false
     }, item.baseNickname || '', '');
+}
+
+function openReadingCombinationDetailFromStockTarget(target) {
+    const stockItem = findReadingStockItem(target);
+    openReadingCombinationDetailFromItem(stockItem);
+}
+
+function openPartnerReadingCombinationDetail(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const item = partnerReadings[index];
+    openReadingCombinationDetailFromItem(item);
 }
 
 function likePartnerReadingStock(index) {
@@ -9864,10 +9860,13 @@ function renderReadingStockSectionV2() {
         visibleCompleted.forEach(item => {
             const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
             const tone = getReadingCardToneV2(kind);
+            const detailPayload = JSON.stringify(item.ownItem || item)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;');
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
                      style="${tone.card}"
-                     onclick='event.stopPropagation(); openReadingCombinationDetailFromStockTarget(${JSON.stringify(String(item.ownItem?.id || item.reading || ''))})'>
+                     onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${detailPayload})">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                             ${renderReadingTitleWithStarsV2(
@@ -9924,9 +9923,9 @@ function renderReadingStockSectionV2() {
                         const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick='event.stopPropagation(); openReadingCombinationDetailFromStockTarget(${JSON.stringify(String(item.id || item.reading || ''))})'>
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})">
                             <div class="flex items-center justify-between gap-2">
-                                <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
+                                <button onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})" class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                                         ${renderReadingTitleWithStarsV2(
                                             display,
@@ -9957,8 +9956,11 @@ function renderReadingStockSectionV2() {
                     const item = entry.item;
                     const display = getReadingDisplayLabel(item, { forceRaw: true });
                     const tone = getReadingCardToneV2('partner');
+                    const detailPayload = JSON.stringify(item)
+                        .replace(/&/g, '&amp;')
+                        .replace(/"/g, '&quot;');
                     return `
-                        <div class="w-full rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" onclick="openPartnerReadingCombinationDetail(${entry.originalIndex})">
+                        <div class="w-full rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" onclick="openReadingCombinationDetailFromItem(${detailPayload})">
                             <div class="flex-1 min-w-0">
                                 <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                                     ${renderReadingTitleWithStarsV2(display, false, item.isSuper)}
