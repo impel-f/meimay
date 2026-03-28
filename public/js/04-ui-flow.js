@@ -514,7 +514,7 @@ function renderSearchMethodChooserScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
+        <div class="w-full max-w-sm text-center mt-2 mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">名前のさがし方</h2>
             <p class="text-xs text-[#a6967a] text-center mb-8">さがし方を選んでください</p>
 
