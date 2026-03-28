@@ -823,6 +823,9 @@ function likeEncounteredKanji(key) {
     } else {
         localStorage.setItem('naming_app_liked_chars', JSON.stringify(liked));
     }
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('historyStock');
+    }
 
     if (typeof noped !== 'undefined') {
         noped.delete(item.kanji);

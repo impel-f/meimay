@@ -1247,6 +1247,9 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading) {
             console.warn('COMPOUND: Failed to seed kanji stock', error);
         }
     }
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('seedCompoundStock');
+    }
 
     return chars;
 }
@@ -1543,6 +1546,9 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
         } catch (error) {
             console.warn('COMPOUND: Failed to seed kanji stock', error);
         }
+    }
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('seedCompoundStock');
     }
 
     return chars;
@@ -4284,6 +4290,9 @@ function saveReadingStock(stock) {
         localStorage.setItem(READING_STOCK_KEY, JSON.stringify(stock.map(normalizeReadingStockItem)));
     } catch (e) {
         console.error("STOCK: Failed to save reading stock", e);
+    }
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('saveReadingStock');
     }
 }
 

@@ -83,7 +83,7 @@ function normalizeSingleKanjiStock() {
 
     const cleaned = liked.filter((item) => {
         const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
-        return Array.from(kanji).length <= 1;
+        return String(kanji).trim().length > 0;
     });
 
     if (cleaned.length === liked.length) return;
@@ -102,6 +102,10 @@ function normalizeSingleKanjiStock() {
         }
     } catch (error) {
         console.warn('BUILD: Failed to normalize stock', error);
+    }
+
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('normalizeSingleKanjiStock');
     }
 }
 

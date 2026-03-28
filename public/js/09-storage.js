@@ -116,6 +116,9 @@ const StorageBox = {
             ));
 
             console.log("STORAGE: State saved successfully");
+            if (typeof queuePartnerStockSync === 'function') {
+                queuePartnerStockSync('saveAll');
+            }
             return true;
         } catch (e) {
             console.error("STORAGE: Save failed", e);
@@ -262,6 +265,9 @@ const StorageBox = {
             }
         } catch (e) {
             console.warn("STORAGE: Failed to update liked clear marker", e);
+        }
+        if (typeof queuePartnerStockSync === 'function') {
+            queuePartnerStockSync('saveLiked');
         }
         return result;
     },

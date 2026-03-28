@@ -1456,6 +1456,15 @@ MeimayPairing._autoSyncDebounced = (function () {
     };
 })();
 
+function queuePartnerStockSync(reason = 'stock') {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing.roomCode) return false;
+    if (typeof MeimayPairing._autoSyncDebounced !== 'function') return false;
+    MeimayPairing._autoSyncDebounced(reason);
+    return true;
+}
+
+window.queuePartnerStockSync = queuePartnerStockSync;
+
 let roomSyncSuspendInFlight = false;
 function flushRoomSyncOnSuspend() {
     if (roomSyncSuspendInFlight) return;
