@@ -168,7 +168,7 @@ function getRankingOwnLikedEntries() {
         return MeimayPartnerInsights.getOwnLiked();
     }
 
-    return Array.isArray(liked) ? liked.filter((entry) => !entry?.fromPartner) : [];
+    return Array.isArray(liked) ? liked : [];
 }
 
 function getRankingOwnReadingStockEntries() {
@@ -177,7 +177,7 @@ function getRankingOwnReadingStockEntries() {
     }
 
     const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    return Array.isArray(stock) ? stock.filter((entry) => !entry?.fromPartner) : [];
+    return Array.isArray(stock) ? stock : [];
 }
 
 function isRankingKanjiStocked(kanjiStr) {

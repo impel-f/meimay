@@ -1136,7 +1136,7 @@ const MeimayPartnerInsights = {
 
     getOwnLiked: function () {
         const hiddenSet = this.getOwnHiddenReadingSet();
-        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet));
+        return (typeof liked !== 'undefined' ? liked : []).filter(item => !this._isHiddenReadingItem(item, hiddenSet));
     },
 
     getPartnerLiked: function () {
@@ -1161,7 +1161,7 @@ const MeimayPartnerInsights = {
         const list = typeof getSavedNames === 'function'
             ? getSavedNames()
             : JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-        return list.filter(item => !item.fromPartner);
+        return list;
     },
 
     getPartnerSaved: function () {

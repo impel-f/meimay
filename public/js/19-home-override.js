@@ -586,7 +586,7 @@ function getHomeOwnershipSummary() {
     const ownLikedItems = pairInsights?.getOwnLiked
         ? pairInsights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
-            ? liked.filter(item => !item?.fromPartner)
+            ? liked
             : []);
     const ownSavedItems = pairInsights?.getOwnSaved
         ? pairInsights.getOwnSaved()
@@ -595,13 +595,13 @@ function getHomeOwnershipSummary() {
                 ? getSavedNames()
                 : (typeof savedNames !== 'undefined' && Array.isArray(savedNames) ? savedNames : []);
             return Array.isArray(savedSource)
-                ? savedSource.filter(item => !item?.fromPartner)
+                ? savedSource
                 : [];
         })();
     const ownReadingItems = pairInsights?.getOwnReadingStock
         ? pairInsights.getOwnReadingStock()
         : ((typeof getReadingStock === 'function')
-            ? getReadingStock().filter(item => !item?.fromPartner)
+            ? getReadingStock()
             : []);
     const ownKanjiCount = ownLikedItems.length;
     return {

@@ -767,7 +767,7 @@ function hydrateLikedCandidate(item, options = {}) {
 
 function getMergedLikedCandidates() {
     const ownItems = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.filter(item => !item?.fromPartner).map(item => hydrateLikedCandidate(item)).filter(Boolean)
+        ? liked.map(item => hydrateLikedCandidate(item)).filter(Boolean)
         : [];
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
