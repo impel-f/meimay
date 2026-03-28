@@ -162,65 +162,315 @@ function getHomePairSummaryText(pairing) {
 }
 
 function getHomeBuildPatternCount(candidatePoolOverride) {
-    const candidatePool = Array.isArray(candidatePoolOverride)
+    // 1. プールの取得
+    const pool = Array.isArray(candidatePoolOverride)
         ? candidatePoolOverride
         : typeof getMergedLikedCandidates === 'function'
             ? getMergedLikedCandidates()
             : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
     
-    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    if (stock.length === 0) return 0;
+    if (!pool || pool.length === 0) return 0;
 
-    // ヘルパー：読みの正規化（ひらがな化）
-    const norm = (s) => (typeof toHira === 'function' ? toHira(String(s || '').trim()) : String(s || '').trim());
+    // 2. ヘルパー：正規化
+    const clean = (s) => {
+        let t = String(s || '').trim();
+        if (typeof toHira === 'function') t = toHira(t);
+        else if (typeof window.toHira === 'function') t = window.toHira(t);
+        return t.replace(/[・．／\/ 　]/g, '');
+    };
+
+    // 3. カウント対象となる「読みパターン（読み＋セグメント構成）」の収集
+    const patterns = new Map(); // key: rBase -> { segments, reading }
+
+    // (A) 読みストックからパターンを抽出
+    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    stock.forEach(r => {
+        const base = clean(r.reading);
+        if (!base) return;
+        if (!patterns.has(base)) {
+            patterns.set(base, {
+                reading: r.reading,
+                segments: (Array.isArray(r.segments) && r.segments.length > 0) ? r.segments.map(s => clean(s)) : null
+            });
+        }
+    });
+
+    // (B) 候補漢字のセッション情報からパターンを抽出（ストック外のパターンも救済）
+    pool.forEach(c => {
+        const sRead = clean(c.sessionReading);
+        if (!sRead || ['free', 'search', 'ranking', 'shared', 'unknown'].includes(sRead)) return;
+        if (!patterns.has(sRead)) {
+            patterns.set(sRead, {
+                reading: c.sessionReading,
+                segments: (Array.isArray(c.sessionSegments) && c.sessionSegments.length > 0) ? c.sessionSegments.map(s => clean(s)) : null
+            });
+        }
+    });
+
+    // 4. 各パターンについて実際の組み合わせを計算
+    let total = 0;
+    patterns.forEach((pattern, rBase) => {
+        const slotData = new Map(); // slotIndex -> Set of unique characters
+
+        pool.forEach(c => {
+            const kanji = c['漢字'] || c.kanji;
+            if (!kanji) return;
+
+            const cSession = clean(c.sessionReading);
+            const cReadingRaw = c.kanji_reading || c.reading || '';
+            const cReadings = cReadingRaw.split(/[,、，]/).map(r => clean(r));
+
+            let matchedSlot = -1;
+
+            // 判定1: 明示的なセッション・スロット一致
+            if (cSession === rBase && c.slot >= 0) {
+                matchedSlot = c.slot;
+            }
+            // 判定2: セグメントベースのマッチ（FREEモード等）
+            else if (pattern.segments) {
+                for (let i = 0; i < pattern.segments.length; i++) {
+                    const seg = pattern.segments[i];
+                    if (seg && cReadings.includes(seg)) {
+                        matchedSlot = i;
+                        break;
+                    }
+                }
+            }
+
+            if (matchedSlot >= 0) {
+                if (!slotData.has(matchedSlot)) slotData.set(matchedSlot, new Set());
+                slotData.get(matchedSlot).add(kanji);
+            }
+        });
+
+        // スロット数の決定: セグメント数、または使用されている最大スロット番号
+        let slotCount = pattern.segments ? pattern.segments.length : 0;
+        const usedSlotIndices = Array.from(slotData.keys());
+        if (usedSlotIndices.length > 0) {
+            slotCount = Math.max(slotCount, Math.max(...usedSlotIndices) + 1);
+        }
+
+        if (slotCount <= 0) return;
+
+        // すべてのスロットで1つ以上の漢字がある場合のみ組み合わせを計算
+        let combos = 1;
+        for (let i = 0; i < slotCount; i++) {
+            const count = slotData.has(i) ? slotData.get(i).size : 0;
+            if (count === 0) {
+                combos = 0;
+                break;
+            }
+            combos *= count;
+        }
+        total += combos;
+    });
+
+    return total;
+}
+
+function normalizeHomeBuildReadingValue(value) {
+    const raw = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(value)
+        : String(value || '').trim().split('::')[0].trim();
+    if (!raw) return '';
+
+    let normalized = raw;
+    if (typeof toHira === 'function') normalized = toHira(normalized);
+    else if (typeof window.toHira === 'function') normalized = window.toHira(normalized);
+
+    return normalized.replace(/[、,，・/]/g, '').replace(/\s+/g, '').toLowerCase();
+}
+
+function sanitizeHomeBuildSegments(segments) {
+    return (Array.isArray(segments) ? segments : [])
+        .map(segment => String(segment || '').trim())
+        .filter(segment => segment && !/^__compound_slot_\d+__$/.test(segment));
+}
+
+function getHomeBuildPatternSegments(reading, segmentsSource) {
+    const baseReading = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(reading)
+        : String(reading || '').trim();
+    if (!baseReading) return [];
+
+    const explicitSegments = sanitizeHomeBuildSegments(segmentsSource);
+    if (explicitSegments.length > 0) return explicitSegments;
+
+    if (typeof getPreferredReadingSegments === 'function') {
+        const preferredSegments = sanitizeHomeBuildSegments(getPreferredReadingSegments(baseReading));
+        if (preferredSegments.length > 0) return preferredSegments;
+    }
+
+    if (typeof getDisplaySegmentsForReading === 'function') {
+        const displaySegments = sanitizeHomeBuildSegments(getDisplaySegmentsForReading(baseReading));
+        if (displaySegments.length > 0) return displaySegments;
+    }
+
+    return [baseReading];
+}
+
+function normalizeHomeBuildPool(candidatePoolOverride) {
+    const sourcePool = Array.isArray(candidatePoolOverride)
+        ? candidatePoolOverride
+        : typeof getMergedLikedCandidates === 'function'
+            ? getMergedLikedCandidates()
+            : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
+
+    return (Array.isArray(sourcePool) ? sourcePool : [])
+        .map((item) => {
+            if (!item) return null;
+            if (typeof hydrateLikedCandidate === 'function') {
+                const hydrated = hydrateLikedCandidate(item, {
+                    fromPartner: !!item?.fromPartner,
+                    partnerAlsoPicked: !!item?.partnerAlsoPicked,
+                    partnerName: item?.partnerName || ''
+                });
+                if (hydrated) return hydrated;
+            }
+
+            const kanji = item['漢字'] || item.kanji || '';
+            if (!kanji || Array.from(kanji).length > 1) return null;
+
+            return {
+                ...item,
+                '漢字': kanji,
+                slot: Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1,
+                sessionReading: item.sessionReading || '',
+                sessionSegments: Array.isArray(item.sessionSegments) ? item.sessionSegments : [],
+                kanji_reading: item.kanji_reading || item.reading || ''
+            };
+        })
+        .filter(Boolean);
+}
+
+function getHomeBuildHiddenReadingSet() {
+    let removedList = [];
+    try {
+        removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]');
+    } catch (error) {
+        removedList = [];
+    }
+
+    return new Set(
+        (Array.isArray(removedList) ? removedList : [])
+            .map(value => normalizeHomeBuildReadingValue(value))
+            .filter(Boolean)
+    );
+}
+
+function getHomeBuildPatternKey(reading, segments) {
+    const normalizedReading = normalizeHomeBuildReadingValue(reading);
+    const normalizedSegments = sanitizeHomeBuildSegments(segments)
+        .map(segment => normalizeHomeBuildReadingValue(segment))
+        .filter(Boolean);
+    return `${normalizedReading}::${normalizedSegments.join('/')}`;
+}
+
+function getHomeBuildSlotCandidateCount(pool, segment, slotIndex, reading) {
+    const matchedKanji = new Set();
+    const normalizedReading = normalizeHomeBuildReadingValue(reading);
+    const normalizedSegment = normalizeHomeBuildReadingValue(segment);
+    if (!normalizedSegment) return 0;
+
+    pool.forEach((item) => {
+        const kanji = item?.['漢字'] || item?.kanji || '';
+        if (!kanji) return;
+
+        const itemReading = normalizeHomeBuildReadingValue(item?.sessionReading || '');
+        const itemSlot = Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1;
+        const itemSegments = Array.isArray(item?.sessionSegments) ? item.sessionSegments : [];
+        const itemSegment = itemSlot >= 0 && itemSlot < itemSegments.length
+            ? itemSegments[itemSlot]
+            : (item?.sessionReading && !String(item.sessionReading).includes('::') && !String(item.sessionReading).includes('/')
+                ? item.sessionReading
+                : '');
+        const normalizedItemSegment = normalizeHomeBuildReadingValue(itemSegment);
+        const rawReadings = String(item?.kanji_reading || item?.reading || '')
+            .split(/[、,，\s/]+/)
+            .map(value => normalizeHomeBuildReadingValue(value))
+            .filter(Boolean);
+        const generalSource = ['free', 'search', 'ranking', 'shared', 'unknown'].includes(itemReading);
+
+        const slotMatch = itemSlot === slotIndex && itemReading === normalizedReading;
+        const segmentMatch = normalizedItemSegment && normalizedItemSegment === normalizedSegment;
+        const readingMatch = generalSource && rawReadings.includes(normalizedSegment);
+
+        if (slotMatch || segmentMatch || readingMatch) {
+            matchedKanji.add(kanji);
+        }
+    });
+
+    return matchedKanji.size;
+}
+
+function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
+    const pool = normalizeHomeBuildPool(candidatePoolOverride);
+    const readingStock = Array.isArray(readingStockOverride)
+        ? readingStockOverride
+        : typeof getReadingStock === 'function'
+            ? getReadingStock()
+            : [];
+
+    if (pool.length === 0 && (!Array.isArray(readingStock) || readingStock.length === 0)) {
+        return 0;
+    }
+
+    const hiddenReadingSet = Array.isArray(readingStockOverride)
+        ? new Set()
+        : getHomeBuildHiddenReadingSet();
+    const patterns = new Map();
+
+    const registerPattern = (reading, segmentsSource) => {
+        const baseReading = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(reading)
+            : String(reading || '').trim();
+        const normalizedReading = normalizeHomeBuildReadingValue(baseReading);
+        if (!normalizedReading || hiddenReadingSet.has(normalizedReading)) return;
+
+        const segments = getHomeBuildPatternSegments(baseReading, segmentsSource);
+        if (segments.length === 0) return;
+
+        const key = getHomeBuildPatternKey(baseReading, segments);
+        if (!patterns.has(key)) {
+            patterns.set(key, {
+                reading: baseReading,
+                segments
+            });
+        }
+    };
+
+    (Array.isArray(readingStock) ? readingStock : []).forEach((item) => {
+        registerPattern(
+            item?.reading || item?.sessionReading || '',
+            Array.isArray(item?.segments) && item.segments.length > 0
+                ? item.segments
+                : item?.sessionSegments
+        );
+    });
+
+    pool.forEach((item) => {
+        const baseReading = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(item?.sessionReading || item?.reading || '')
+            : String(item?.sessionReading || item?.reading || '').trim();
+        const normalizedReading = normalizeHomeBuildReadingValue(baseReading);
+        if (!normalizedReading || ['free', 'search', 'ranking', 'shared', 'unknown'].includes(normalizedReading)) {
+            return;
+        }
+
+        registerPattern(baseReading, item?.sessionSegments);
+    });
 
     let total = 0;
-    const processedReadingIds = new Set();
-
-    stock.forEach(rStock => {
-        // 同じ読み（ID）の重複計算を避ける
-        if (processedReadingIds.has(rStock.id)) return;
-        processedReadingIds.add(rStock.id);
-
-        const segments = Array.isArray(rStock.segments) && rStock.segments.length > 0
-            ? rStock.segments
-            : [rStock.reading];
-        
+    patterns.forEach((pattern) => {
         let combinations = 1;
-
-        for (let i = 0; i < segments.length; i++) {
-            const seg = norm(segments[i]);
-            if (!seg) {
+        for (let index = 0; index < pattern.segments.length; index++) {
+            const segment = pattern.segments[index];
+            const candidateCount = getHomeBuildSlotCandidateCount(pool, segment, index, pattern.reading);
+            if (candidateCount === 0) {
                 combinations = 0;
                 break;
             }
-
-            const uniqueKanjiForSlot = new Set();
-            candidatePool.forEach(c => {
-                const kanji = c['漢字'] || c.kanji;
-                if (!kanji) return;
-
-                // 1. 漢字の読みがセグメントと一致するか
-                const cReading = norm(c.kanji_reading || c.reading || '');
-                if (cReading === seg) {
-                    uniqueKanjiForSlot.add(kanji);
-                    return;
-                }
-
-                // 2. セッション情報が一致するか（読み全体とスロット位置が一致）
-                const cSessionReading = norm(c.sessionReading || '');
-                const rBaseReading = norm(rStock.reading);
-                if (cSessionReading === rBaseReading && c.slot === i) {
-                    uniqueKanjiForSlot.add(kanji);
-                }
-            });
-
-            const count = uniqueKanjiForSlot.size;
-            if (count === 0) {
-                combinations = 0;
-                break;
-            }
-            combinations *= count;
+            combinations *= candidateCount;
         }
         total += combinations;
     });
@@ -1527,9 +1777,16 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount ?? 0);
     const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount ?? 0);
     const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
-    const aggregateBuildCount = getHomeBuildPatternCount();
-    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsRaw);
-    const ownBuildCount = getHomeBuildPatternCount(ownLikedItems);
+    const ownReadingStock = insights?.getOwnReadingStock
+        ? insights.getOwnReadingStock()
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
+    const partnerReadingStock = insights?.getPartnerReadingStock
+        ? insights.getPartnerReadingStock()
+        : [];
+    const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
+    const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
+    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsRaw, partnerReadingStock);
+    const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
 
     if (mode === 'shared') {
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
