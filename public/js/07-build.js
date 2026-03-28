@@ -771,9 +771,9 @@ function getMergedLikedCandidates() {
         : [];
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
-    const partnerLikedSource = pairInsights?.getPartnerLikedRaw
-        ? pairInsights.getPartnerLikedRaw()
-        : (pairInsights?.getPartnerLiked ? pairInsights.getPartnerLiked() : []);
+    const partnerLikedSource = pairInsights?.getPartnerLiked
+        ? pairInsights.getPartnerLiked()
+        : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
     const partnerItems = Array.isArray(partnerLikedSource)
         ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
         : [];
@@ -840,6 +840,89 @@ function getMergedLikedCandidates() {
     return Array.from(merged.values());
 }
 
+function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride = null) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const focus = String(kanjiFocus || 'all');
+    const matchedLikedKeys = focus === 'matched' && pairInsights?.getMatchedLikedItems
+        ? new Set(
+            pairInsights
+                .getMatchedLikedItems()
+                .map(item => pairInsights.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '')
+                .filter(Boolean)
+        )
+        : null;
+
+    let validItems = (Array.isArray(candidatePoolOverride)
+        ? candidatePoolOverride
+        : getMergedLikedCandidates()
+    ).filter((item) => {
+        if (focus === 'partner' || focus === 'matched') return true;
+        if (item.sessionReading === 'FREE') return true;
+        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
+    });
+
+    if (focus === 'partner') {
+        validItems = validItems.filter(item => item.fromPartner || item.partnerAlsoPicked);
+    }
+
+    if (focus === 'matched') {
+        validItems = validItems.filter(item => {
+            const key = pairInsights?.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '';
+            return key && matchedLikedKeys?.has(key);
+        });
+    }
+
+    const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
+        ? getLatestReadingHistoryLookup()
+        : {};
+    const readingToSegments = {};
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    history.forEach((entry) => {
+        if (!entry || !entry.reading || readingToSegments[entry.reading]) return;
+        readingToSegments[entry.reading] = entry.segments;
+    });
+
+    const segGroups = {};
+    validItems.forEach(item => {
+        let segRaw = '閾ｪ逕ｱ';
+        if (item.sessionReading === 'FREE') {
+            segRaw = 'FREE';
+        } else if (item.sessionSegments && item.sessionSegments[item.slot]) {
+            segRaw = item.sessionSegments[item.slot];
+        } else if (readingToSegments[item.sessionReading] && readingToSegments[item.sessionReading][item.slot]) {
+            segRaw = readingToSegments[item.sessionReading][item.slot];
+        } else if (item.sessionReading) {
+            segRaw = item.sessionReading;
+        }
+
+        const seg = isCompoundSlotPlaceholder(segRaw)
+            ? getReadableSegmentForItem(item, historyLookup)
+            : segRaw;
+        if (!segGroups[seg]) segGroups[seg] = [];
+
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        const dup = segGroups[seg].find(entry => getLikedCandidateKanjiKey(entry) === kanjiKey);
+        if (!dup) {
+            segGroups[seg].push(item);
+            return;
+        }
+
+        if (item.isSuper && !dup.isSuper) {
+            dup.isSuper = true;
+        } else if (item.fromPartner || item.partnerAlsoPicked) {
+            dup.partnerAlsoPicked = dup.partnerAlsoPicked || item.partnerAlsoPicked || !item.fromPartner;
+            dup.fromPartner = dup.fromPartner || item.fromPartner;
+            dup.partnerName = dup.partnerName || item.partnerName || '';
+        }
+
+        dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
+        dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
+        dup.isSuper = dup.ownSuper || dup.partnerSuper;
+    });
+
+    return Object.values(segGroups).reduce((sum, items) => sum + items.length, 0);
+}
+
 function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const {
         excluded = [],
@@ -887,6 +970,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
 }
 
 window.getMergedLikedCandidates = getMergedLikedCandidates;
+window.getVisibleKanjiStockCardCount = getVisibleKanjiStockCardCount;
 window.getBuildSlotCandidates = getBuildSlotCandidates;
 
 function getStockOwnershipKind(item) {

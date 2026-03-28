@@ -1177,7 +1177,9 @@ const MeimayPartnerInsights = {
     },
 
     getMatchedLikedItems: function () {
-        const partnerLiked = this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : this.getPartnerLiked();
+        const partnerLiked = this.getPartnerLiked
+            ? this.getPartnerLiked()
+            : (this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : []);
         const partnerKeys = new Set(partnerLiked.map(item => this.buildLikedMatchKey(item)).filter(Boolean));
         const seenKeys = new Set();
         return this.getOwnLiked().filter(item => {
@@ -1191,7 +1193,9 @@ const MeimayPartnerInsights = {
     isLikedItemMatched: function (item) {
         const key = this.buildLikedMatchKey(item);
         if (!key) return false;
-        const partnerLiked = this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : this.getPartnerLiked();
+        const partnerLiked = this.getPartnerLiked
+            ? this.getPartnerLiked()
+            : (this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : []);
         const partnerKeys = new Set(partnerLiked.map(entry => this.buildLikedMatchKey(entry)).filter(Boolean));
         return partnerKeys.has(key);
     },
@@ -3171,13 +3175,18 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerReadingItems = this.getPartnerReadingCollection();
     const ownLikedItems = this.getOwnLiked();
     const partnerLikedItems = this.getPartnerLiked();
-    const partnerLikedItemsRaw = this.getPartnerLikedRaw ? this.getPartnerLikedRaw() : partnerLikedItems;
     const ownSavedItems = this.getOwnSaved();
     const partnerSavedItems = this.getPartnerSaved();
     const matchedReadingItems = this.getMatchedReadingItems();
     const matchedLikedItems = this.getMatchedLikedItems();
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
+    const visibleOwnKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
+        ? getVisibleKanjiStockCardCount('all', ownLikedItems)
+        : ownLikedItems.length;
+    const visiblePartnerKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
+        ? getVisibleKanjiStockCardCount('all', partnerLikedItems)
+        : partnerLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
@@ -3190,8 +3199,8 @@ MeimayPartnerInsights.getSummary = function () {
         partnerDisplayName: partnerName,
         ownReadingCount: ownReadingItems.length,
         partnerReadingCount: partnerReadingItems.length,
-        ownKanjiCount: ownLikedItems.length,
-        partnerKanjiCount: partnerLikedItemsRaw.length,
+        ownKanjiCount: visibleOwnKanjiStockCount,
+        partnerKanjiCount: visiblePartnerKanjiStockCount,
         ownSavedCount: ownSavedItems.length,
         partnerSavedCount: partnerSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
@@ -3201,17 +3210,17 @@ MeimayPartnerInsights.getSummary = function () {
         matchedLikedItems: matchedLikedItems,
         matchedSavedItems: matchedSavedItems,
         matchedTotalCount: matchedReadingItems.length + matchedLikedItems.length + matchedSavedItems.length,
-        ownTotalCount: ownReadingItems.length + ownLikedItems.length + ownSavedItems.length,
-        partnerTotalCount: partnerReadingItems.length + partnerLikedItemsRaw.length + partnerSavedItems.length,
+        ownTotalCount: ownReadingItems.length + visibleOwnKanjiStockCount + ownSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + visiblePartnerKanjiStockCount + partnerSavedItems.length,
         counts: {
             own: {
                 reading: ownReadingItems.length,
-                kanji: ownLikedItems.length,
+                kanji: visibleOwnKanjiStockCount,
                 saved: ownSavedItems.length
             },
             partner: {
                 reading: partnerReadingItems.length,
-                kanji: partnerLikedItemsRaw.length,
+                kanji: visiblePartnerKanjiStockCount,
                 saved: partnerSavedItems.length
             },
             matched: {

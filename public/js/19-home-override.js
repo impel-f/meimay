@@ -603,13 +603,16 @@ function getHomeOwnershipSummary() {
         : ((typeof getReadingStock === 'function')
             ? getReadingStock().filter(item => !item?.fromPartner)
             : []);
+    const visibleKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
+        ? getVisibleKanjiStockCardCount('all', ownLikedItems)
+        : ownLikedItems.length;
     return {
         pairInsights,
         pairing,
         ownLikedItems,
         ownSavedItems,
         ownReadingItems,
-        ownLikedCount: ownLikedItems.length,
+        ownLikedCount: visibleKanjiStockCount,
         ownSavedCount: ownSavedItems.length,
         ownReadingCount: ownReadingItems.length
     };
@@ -1760,9 +1763,9 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             ? liked.filter(item => !item?.fromPartner)
             : []);
     const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
-    const partnerLikedItemsRaw = insights?.getPartnerLikedRaw ? insights.getPartnerLikedRaw() : partnerLikedItems;
+    const partnerLikedItemsVisible = insights?.getPartnerLiked ? insights.getPartnerLiked() : partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItemsRaw.length ?? 0);
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? partnerLikedItemsVisible.length ?? 0);
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount ?? 0);
     const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount ?? 0);
@@ -1775,7 +1778,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         : [];
     const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
     const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
-    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsRaw, partnerReadingStock);
+    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
 
     if (mode === 'shared') {
