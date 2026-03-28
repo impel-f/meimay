@@ -597,7 +597,7 @@ async function showKanjiDetail(data) {
                 ${listHtml}
             `;
         } else {
-            yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af] italic">関連するポジティブな言葉は見つかりませんでした</p>';
+            yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af] italic">この漢字が使われた四字熟語・ことわざは見つかりませんでした。登録されている四字熟語やことわざはありません。</p>';
         }
     } else {
         yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af]">データ読み込み中...</p>';
