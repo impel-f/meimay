@@ -227,6 +227,18 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
         seenSet.add(fullMoraKey);
     }
 
+    uniquePaths.sort((a, b) => {
+        const aFirstLength = Array.isArray(a) && a[0] ? String(a[0]).length : 0;
+        const bFirstLength = Array.isArray(b) && b[0] ? String(b[0]).length : 0;
+        if (aFirstLength !== bFirstLength) return bFirstLength - aFirstLength;
+
+        const aLength = Array.isArray(a) ? a.length : 0;
+        const bLength = Array.isArray(b) ? b.length : 0;
+        if (aLength !== bLength) return aLength - bLength;
+
+        return String((a || []).join('/')).localeCompare(String((b || []).join('/')), 'ja');
+    });
+
     if (uniquePaths.length === 0 && allowFallback) {
         return getFallbackReadingSegmentPaths(nameReading, limit);
     }

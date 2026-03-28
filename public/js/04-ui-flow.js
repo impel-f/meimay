@@ -1924,22 +1924,14 @@ function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
             };
         })
         .filter(Boolean)
-        .sort((a, b) => {
-            const aCount = Array.isArray(a.candidates) ? a.candidates.length : 0;
-            const bCount = Array.isArray(b.candidates) ? b.candidates.length : 0;
-            if (aCount !== bCount) return bCount - aCount;
-            const aPathLength = Array.isArray(a.path) ? a.path.length : 0;
-            const bPathLength = Array.isArray(b.path) ? b.path.length : 0;
-            if (aPathLength !== bPathLength) return aPathLength - bPathLength;
-            return a.label.localeCompare(b.label, 'ja');
-        })
+        .sort(compareReadingSegmentOptionsForDisplay)
         .slice(0, limit);
 
     const compoundOptions = typeof getCompoundReadingOptions === 'function'
         ? getCompoundReadingOptions(reading, extraOptions.compoundLimit || limit, targetGender)
         : [];
 
-    let merged = [...normalOptions, ...compoundOptions];
+    let merged = [...normalOptions, ...compoundOptions].sort(compareReadingSegmentOptionsForDisplay);
     if (extraOptions && extraOptions.preferredLabel) {
         merged = merged.filter(option => option.label === extraOptions.preferredLabel);
     }
@@ -1951,15 +1943,7 @@ function getPreferredReadingSegments(reading) {
     const options = getReadingSegmentOptions(reading, 4);
     if (options.length === 0) return [];
 
-    const bestOption = [...options].sort((a, b) => {
-        const aCount = Array.isArray(a.candidates) ? a.candidates.length : 0;
-        const bCount = Array.isArray(b.candidates) ? b.candidates.length : 0;
-        if (aCount !== bCount) return bCount - aCount;
-        const aPathLength = Array.isArray(a.path) ? a.path.length : 0;
-        const bPathLength = Array.isArray(b.path) ? b.path.length : 0;
-        if (aPathLength !== bPathLength) return aPathLength - bPathLength;
-        return a.label.localeCompare(b.label, 'ja');
-    })[0];
+    const bestOption = [...options].sort(compareReadingSegmentOptionsForDisplay)[0];
 
     return bestOption ? bestOption.path : [];
 }
@@ -2992,12 +2976,13 @@ function renderUniversalCard() {
     }
 
     if (SwipeState.currentIndex >= SwipeState.candidates.length) {
+        const completionLabel = SwipeState.mode === 'sound' ? '読みストックへ →' : '終了する →';
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full text-center px-6">
                 <div class="text-[60px] mb-4">✨</div>
                 <p class="text-[#bca37f] font-bold text-lg mb-4">チェック完了！</p>
                 <p class="text-sm text-[#a6967a] mb-6">いいねした読みはストックに保存されました</p>
-                <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">終了する →</button>
+                <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">${completionLabel}</button>
             </div>
         `;
         const actionBtns = document.getElementById('uni-swipe-action-btns');
@@ -3210,6 +3195,11 @@ function showUniversalList() {
         showToast('スワイプを終了しました');
     }
     document.getElementById('uni-liked-list').classList.add('hidden');
+    if (SwipeState.mode === 'sound' || appMode === 'sound') {
+        if (typeof changeScreen === 'function') changeScreen('scr-stock');
+        if (typeof switchStockTab === 'function') switchStockTab('reading');
+        return;
+    }
     goBack(); // モードに応じたホームへの遷移を実行
 }
 
@@ -6871,6 +6861,25 @@ function sortReadingCandidatesForDisplay(list) {
     return [...(Array.isArray(list) ? list : [])].sort(compareReadingCandidatesForDisplay);
 }
 
+// 最初の区切りが長い候補を先に見せる
+function compareReadingSegmentOptionsForDisplay(a, b) {
+    const aPath = Array.isArray(a?.path) ? a.path.filter(Boolean) : [];
+    const bPath = Array.isArray(b?.path) ? b.path.filter(Boolean) : [];
+    const aFirstLength = aPath[0] ? String(aPath[0]).length : 0;
+    const bFirstLength = bPath[0] ? String(bPath[0]).length : 0;
+    if (aFirstLength !== bFirstLength) return bFirstLength - aFirstLength;
+
+    const aPathLength = aPath.length;
+    const bPathLength = bPath.length;
+    if (aPathLength !== bPathLength) return aPathLength - bPathLength;
+
+    const aCount = Array.isArray(a?.candidates) ? a.candidates.length : 0;
+    const bCount = Array.isArray(b?.candidates) ? b.candidates.length : 0;
+    if (aCount !== bCount) return bCount - aCount;
+
+    return String(a?.label || '').localeCompare(String(b?.label || ''), 'ja');
+}
+
 function pickReadingDisplayCandidates(allCandidates, limit) {
     const selected = [];
     const usedBySlot = [];
@@ -9620,6 +9629,35 @@ function startReadingFromStock(target) {
     openBuildFromReading(stockItem.id || stockItem.reading || target, Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : []);
 }
 
+function openReadingCombinationDetailFromStockTarget(target) {
+    if (typeof openReadingCombinationModal !== 'function') return;
+    const stockItem = findReadingStockItem(target);
+    if (!stockItem) return;
+
+    const reading = getReadingBaseReading(stockItem.reading || stockItem.sessionReading || target) || stockItem.reading || stockItem.sessionReading || target;
+    openReadingCombinationModal({
+        ...stockItem,
+        reading,
+        forceSplit: false
+    }, stockItem.baseNickname || '', '');
+}
+
+function openPartnerReadingCombinationDetail(index) {
+    if (typeof openReadingCombinationModal !== 'function') return;
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
+    const item = partnerReadings[index];
+    if (!item) return;
+
+    const reading = getReadingBaseReading(item.reading || item.sessionReading || '') || item.reading || item.sessionReading || '';
+    openReadingCombinationModal({
+        ...item,
+        reading,
+        forceSplit: false
+    }, item.baseNickname || '', '');
+}
+
 function likePartnerReadingStock(index) {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerReadings = pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [];
@@ -9829,7 +9867,7 @@ function renderReadingStockSectionV2() {
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
                      style="${tone.card}"
-                     onclick="openReadingStockModal('${item.reading}')">
+                     onclick='event.stopPropagation(); openReadingCombinationDetailFromStockTarget(${JSON.stringify(String(item.ownItem?.id || item.reading || ''))})'>
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                             ${renderReadingTitleWithStarsV2(
@@ -9840,7 +9878,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
+                    <button onclick='event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})'
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -9886,7 +9924,7 @@ function renderReadingStockSectionV2() {
                         const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick='event.stopPropagation(); openReadingCombinationDetailFromStockTarget(${JSON.stringify(String(item.id || item.reading || ''))})'>
                             <div class="flex items-center justify-between gap-2">
                                 <button onclick='event.stopPropagation(); openReadingStockModal(${JSON.stringify(String(item.id || item.reading || ''))})' class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">
@@ -9920,13 +9958,13 @@ function renderReadingStockSectionV2() {
                     const display = getReadingDisplayLabel(item, { forceRaw: true });
                     const tone = getReadingCardToneV2('partner');
                     return `
-                        <div class="w-full rounded-2xl p-3 flex items-center gap-3" style="${tone.card}">
+                        <div class="w-full rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" onclick="openPartnerReadingCombinationDetail(${entry.originalIndex})">
                             <div class="flex-1 min-w-0">
                                 <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                                     ${renderReadingTitleWithStarsV2(display, false, item.isSuper)}
                                 </div>
                             </div>
-                            <button onclick="likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
+                            <button onclick="event.stopPropagation(); likePartnerReadingStock(${entry.originalIndex})" class="shrink-0 px-4 py-2 rounded-full text-[11px] font-bold shadow-sm active:scale-95 whitespace-nowrap" style="${tone.action}">
                                 取り込む
                             </button>
                         </div>`;
