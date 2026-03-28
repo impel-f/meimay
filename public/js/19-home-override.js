@@ -1618,20 +1618,12 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
     const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
         ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
         : 0;
-    const matchedReadingCount = Number.isFinite(Number(counts?.matched?.reading ?? pairing?.matchedReadingCount))
-        ? Number(counts?.matched?.reading ?? pairing?.matchedReadingCount)
-        : 0;
-    const matchedKanjiCount = Number.isFinite(Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount))
-        ? Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)
-        : 0;
-    const matchedSavedCount = Number.isFinite(Number(counts?.matched?.saved ?? pairing?.matchedNameCount))
-        ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
-        : 0;
 
     return {
-        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
-        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
-        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
+        // 共有表示は「ふたりの合計」をそのまま出し、重複分は matched として別表示する。
+        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount),
+        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount),
+        savedCount: Math.max(0, ownSavedCount + partnerSavedCount)
     };
 }
 
