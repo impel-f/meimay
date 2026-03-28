@@ -1618,12 +1618,20 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
     const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
         ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
         : 0;
+    const matchedReadingCount = Number.isFinite(Number(counts?.matched?.reading ?? pairing?.matchedReadingCount))
+        ? Number(counts?.matched?.reading ?? pairing?.matchedReadingCount)
+        : 0;
+    const matchedKanjiCount = Number.isFinite(Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount))
+        ? Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)
+        : 0;
+    const matchedSavedCount = Number.isFinite(Number(counts?.matched?.saved ?? pairing?.matchedNameCount))
+        ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
+        : 0;
 
     return {
-        // 共有表示は「ふたりの合計」をそのまま出し、重複分は matched として別表示する。
-        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount),
-        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount),
-        savedCount: Math.max(0, ownSavedCount + partnerSavedCount)
+        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
+        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
+        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
     };
 }
 
@@ -2076,24 +2084,28 @@ function getHomeOverviewModel(pairing, nextStep) {
     const tone = getHomeOverviewTone(mode);
 
     if (mode === 'shared') {
-        const total = (pairing?.matchedTotalCount ?? 0);
+        const sharedReadingCount = aggregateCounts.readingStockCount;
+        const sharedKanjiCount = aggregateCounts.likedCount;
+        const sharedSavedCount = aggregateCounts.savedCount;
+        const total = sharedReadingCount + sharedKanjiCount + sharedSavedCount;
+        const sharedNextStep = getHomeNextStep(sharedKanjiCount, sharedReadingCount, sharedSavedCount, pairing) || nextStep;
         return {
             mode,
             tone,
             total,
             unit: '件',
-            eyebrow: 'ふたりの一致',
-            title: total > 0 ? `いま、ふたりで重なっている候補 ${total}件` : 'まだ一致はこれからです',
+            eyebrow: 'ふたりで集めた候補',
+            title: total > 0 ? `いま、ふたりで集めた候補 ${total}件` : 'まだふたりの候補はこれからです',
             description: total > 0
-                ? `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と重なった候補から、次の絞り込みに進めます。`
-                : `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と候補を集めるほど、一致が育っていきます。`,
+                ? `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と集めた候補を合わせた総数です。`
+                : `${pairing?.partnerCallName || pairing?.partnerDisplayName || 'パートナー'}と候補を集めるほど、ここに合計が増えていきます。`,
             breakdown: [
-                { label: '読み', count: counts.matched.reading || 0, action: (counts.matched.reading || 0) > 0 ? 'matched-reading' : 'reading' },
-                { label: '漢字', count: counts.matched.kanji || 0, action: (counts.matched.kanji || 0) > 0 ? 'matched-liked' : 'stock' },
-                { label: '保存', count: counts.matched.saved || 0, action: (counts.matched.saved || 0) > 0 ? 'matched-saved' : 'saved' }
+                { label: '読み', count: sharedReadingCount, action: sharedReadingCount > 0 ? 'stock-reading' : 'reading' },
+                { label: '漢字', count: sharedKanjiCount, action: sharedKanjiCount > 0 ? 'stock' : (sharedReadingCount > 0 ? 'reading' : 'sound') },
+                { label: '保存', count: sharedSavedCount, action: sharedSavedCount > 0 ? 'saved' : (sharedKanjiCount > 0 ? 'build' : (sharedReadingCount > 0 ? 'reading' : 'sound')) }
             ],
-            primaryAction: nextStep?.action || 'matched-reading',
-            primaryLabel: nextStep?.actionLabel || '次に進む',
+            primaryAction: sharedNextStep?.action || 'stock',
+            primaryLabel: sharedNextStep?.actionLabel || '次に進む',
             secondaryAction: 'openHomeInsightsModalFromEvent(event)',
             secondaryLabel: 'くわしく見る'
         };

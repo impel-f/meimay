@@ -3187,6 +3187,9 @@ MeimayPartnerInsights.getSummary = function () {
     const visiblePartnerKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
         ? getVisibleKanjiStockCardCount('all', partnerLikedItems)
         : partnerLikedItems.length;
+    const visibleMatchedKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
+        ? getVisibleKanjiStockCardCount('matched')
+        : matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
@@ -3204,12 +3207,12 @@ MeimayPartnerInsights.getSummary = function () {
         ownSavedCount: ownSavedItems.length,
         partnerSavedCount: partnerSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
-        matchedKanjiCount: matchedLikedItems.length,
+        matchedKanjiCount: visibleMatchedKanjiStockCount,
         matchedNameCount: matchedSavedItems.length,
         matchedReadingItems: matchedReadingItems,
         matchedLikedItems: matchedLikedItems,
         matchedSavedItems: matchedSavedItems,
-        matchedTotalCount: matchedReadingItems.length + matchedLikedItems.length + matchedSavedItems.length,
+        matchedTotalCount: matchedReadingItems.length + visibleMatchedKanjiStockCount + matchedSavedItems.length,
         ownTotalCount: ownReadingItems.length + visibleOwnKanjiStockCount + ownSavedItems.length,
         partnerTotalCount: partnerReadingItems.length + visiblePartnerKanjiStockCount + partnerSavedItems.length,
         counts: {
@@ -3225,7 +3228,7 @@ MeimayPartnerInsights.getSummary = function () {
             },
             matched: {
                 reading: matchedReadingItems.length,
-                kanji: matchedLikedItems.length,
+                kanji: visibleMatchedKanjiStockCount,
                 saved: matchedSavedItems.length
             }
         },
