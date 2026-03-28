@@ -411,7 +411,9 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
             ? getReadingStock()
             : [];
 
-    if (pool.length === 0 && (!Array.isArray(readingStock) || readingStock.length === 0)) {
+    // 組み合わせ数は「現在の読みストック」を基準に数える。
+    // 漢字候補だけ残っていても、読みをストックから外していれば件数には含めない。
+    if (!Array.isArray(readingStock) || readingStock.length === 0 || pool.length === 0) {
         return 0;
     }
 
@@ -446,18 +448,6 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
                 ? item.segments
                 : item?.sessionSegments
         );
-    });
-
-    pool.forEach((item) => {
-        const baseReading = typeof getReadingBaseReading === 'function'
-            ? getReadingBaseReading(item?.sessionReading || item?.reading || '')
-            : String(item?.sessionReading || item?.reading || '').trim();
-        const normalizedReading = normalizeHomeBuildReadingValue(baseReading);
-        if (!normalizedReading || ['free', 'search', 'ranking', 'shared', 'unknown'].includes(normalizedReading)) {
-            return;
-        }
-
-        registerPattern(baseReading, item?.sessionSegments);
     });
 
     let total = 0;
