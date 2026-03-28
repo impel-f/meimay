@@ -2622,14 +2622,14 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             `;
             }).join('')}
         </div>
-        <div class="mt-4 rounded-[24px] bg-transparent px-0 py-0">
-            <div class="rounded-[24px] border border-[#eee5d8] bg-white/96 px-5 py-5 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+        <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
+            <div class="rounded-[24px] px-5 py-5">
                 <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
                 <div class="mt-3 whitespace-pre-line text-[14px] font-normal leading-[1.8] text-[#4f4639] md:text-[15px]">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
             </div>
         </div>
-        <div class="mt-4 rounded-[24px] bg-transparent px-0 py-0">
-            <div class="rounded-[24px] border border-[#eee5d8] bg-white/96 px-5 py-5 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+        <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
+            <div class="rounded-[24px] px-5 py-5">
                 <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡この段階でできること</div>
                 <div class="mt-3">
                 ${primaryCard}
