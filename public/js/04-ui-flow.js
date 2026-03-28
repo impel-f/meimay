@@ -5635,9 +5635,8 @@ function openReadingStockModal(reading) {
     };
     btnAdd.style.display = isPromotedReading ? '' : 'none';
 
-    btnRemove.textContent = 'この読みをストックから削除';
+    btnRemove.textContent = 'ストックから外す';
     btnRemove.onclick = () => {
-        closeModal('modal-reading-detail');
         removeCompletedReadingFromStock(stockTarget);
     };
 
@@ -6951,7 +6950,6 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     const option = readingCombinationModalState.options[optionIndex];
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
-    const returnTarget = readingCombinationModalState.returnTarget || null;
     const reading = readingCombinationModalState.item.reading;
 
     saveReadingCandidateToStock(option, candidate, asSuper);
@@ -6979,22 +6977,11 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
         timestamp: new Date().toISOString()
     });
 
-    closeReadingCombinationModal();
-
     if (typeof showToast === 'function') {
         showToast(
             asSuper ? `${candidate.givenName}を本命として保存しました` : `${candidate.givenName}を候補として保存しました`,
             asSuper ? '★' : '✓'
         );
-    }
-
-    if (returnTarget && typeof openBuildFromReading === 'function') {
-        appMode = 'nickname';
-        window._addMoreFromBuild = false;
-        segments = Array.isArray(option.path) ? [...option.path] : [];
-        if (typeof closeModal === 'function') closeModal('modal-reading-detail');
-        openBuildFromReading(reading);
-        return;
     }
 
     if (typeof renderReadingStockSection === 'function') {
@@ -7027,7 +7014,6 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
         );
     }
 
-    closeReadingCombinationModal();
     if (typeof renderReadingStockSection === 'function') {
         renderReadingStockSection();
     }
@@ -8595,8 +8581,6 @@ function removeCompletedReadingFromStock(reading) {
     const displayReading = getReadingBaseReading(reading) || String(reading || '').trim();
     if (!confirm(`「${displayReading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
 
-    if (typeof closeModal === 'function') closeModal('modal-reading-detail');
-    if (typeof closeReadingCombinationModal === 'function') closeReadingCombinationModal();
     const removedItems = typeof removeReadingFromStock === 'function'
         ? removeReadingFromStock(reading)
         : [];
@@ -8973,7 +8957,6 @@ function saveReadingOnlyFromModal(asSuper = false) {
         showToast(asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`, asSuper ? '★' : '✓');
     }
 
-    closeReadingCombinationModal();
     if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 }
@@ -9447,10 +9430,12 @@ function openReadingStockModal(reading) {
     };
     btnAdd.style.display = isPromotedReading ? '' : 'none';
 
-    btnRemove.textContent = 'この読みをストックから削除';
+    btnRemove.textContent = 'ストックから外す';
     btnRemove.onclick = () => {
-        closeModal('modal-reading-detail');
         removeCompletedReadingFromStock(stockTarget);
+        if (typeof openReadingStockModal === 'function') {
+            openReadingStockModal(reading);
+        }
     };
 
     modal.classList.add('active');
@@ -9508,7 +9493,6 @@ function saveReadingOnlyFromModal(asSuper = false) {
         showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を取り込みました`, asSuper ? '★' : '✓');
     }
 
-    closeReadingCombinationModal();
     if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 }

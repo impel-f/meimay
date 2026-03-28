@@ -706,7 +706,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             }
 
             alert('ストックから外しました');
-            closeKanjiDetail();
+            if (typeof showKanjiDetail === 'function') showKanjiDetail(data);
         }
     } else {
         const sourceContext = resolveStockSourceSessionContext(data);
@@ -753,7 +753,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         }
 
         alert(isSuper ? '★本命でストックに追加しました！' : '♥候補でストックに追加しました！');
-        closeKanjiDetail();
+        if (typeof showKanjiDetail === 'function') showKanjiDetail(data);
     }
 }
 
