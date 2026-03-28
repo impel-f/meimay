@@ -2473,10 +2473,10 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
 function renderHomeNextStagePrimaryButton(cardConfig) {
     if (cardConfig.variant === 'icon') {
         return `
-            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left active:scale-[0.98] transition-transform shadow-sm">
+            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left active:scale-[0.98] transition-transform shadow-sm">
                 <div class="min-w-0 flex-1">
-                    <span class="block text-[1rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
-                    <span class="mt-2 block text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+                    <span class="block text-[1.08rem] font-black leading-tight text-[#5d5444] md:text-[1.14rem]">${cardConfig.title}</span>
+                    <span class="mt-2 block text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
                 </div>
                 <span class="shrink-0 text-[30px] leading-none" aria-hidden="true">${cardConfig.icon || '⚒️'}</span>
             </button>
@@ -2486,8 +2486,8 @@ function renderHomeNextStagePrimaryButton(cardConfig) {
     return `
         <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
             <div class="wiz-reading-choice-copy">
-                <span class="block text-[1.05rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
-                <span class="block mt-2 text-[11px] leading-[1.65] text-[#8b7e66]">${cardConfig.detailHtml}</span>
+                <span class="block text-[1.12rem] font-black leading-tight text-[#5d5444] md:text-[1.18rem]">${cardConfig.title}</span>
+                <span class="block mt-2 text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
             </div>
             ${cardConfig.previewHtml}
         </button>
@@ -2497,10 +2497,10 @@ function renderHomeNextStagePrimaryButton(cardConfig) {
 function renderHomeSecondaryActionButton(cardConfig, detailHtml) {
     if (!cardConfig) return '';
     return `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-4 py-4 text-left shadow-sm active:scale-[0.98] transition-transform">
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left shadow-sm active:scale-[0.98] transition-transform">
             <div class="min-w-0 flex-1">
-                <span class="block text-[0.95rem] font-black leading-tight text-[#5d5444]">${cardConfig.title}</span>
-                <span class="mt-1 block text-[11px] leading-[1.65] text-[#8b7e66]">${detailHtml}</span>
+                <span class="block text-[1rem] font-black leading-tight text-[#5d5444] md:text-[1.06rem]">${cardConfig.title}</span>
+                <span class="mt-1 block text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${detailHtml}</span>
             </div>
             <span class="shrink-0 text-[20px] leading-none text-[#b9965b]" aria-hidden="true">›</span>
         </button>
@@ -2622,16 +2622,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             `;
             }).join('')}
         </div>
-        <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
-            <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
-                <div class="mt-2 whitespace-pre-line text-[13px] font-normal leading-relaxed text-[#4f4639]">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
+        <div class="mt-4 rounded-[24px] bg-transparent px-0 py-0">
+            <div class="rounded-[24px] border border-[#eee5d8] bg-white/96 px-5 py-5 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
+                <div class="mt-3 whitespace-pre-line text-[14px] font-normal leading-[1.8] text-[#4f4639] md:text-[15px]">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
             </div>
         </div>
-        <div class="mt-4 rounded-[24px] bg-[#fff9f0] px-3 py-3">
-            <div class="rounded-[22px] bg-white/95 px-4 py-4 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
-                <div class="text-[11px] font-black tracking-[0.18em] text-[#b9965b]">💡この段階でできること</div>
-                <div class="mt-2">
+        <div class="mt-4 rounded-[24px] bg-transparent px-0 py-0">
+            <div class="rounded-[24px] border border-[#eee5d8] bg-white/96 px-5 py-5 shadow-[0_6px_18px_rgba(93,84,68,0.05)]">
+                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡この段階でできること</div>
+                <div class="mt-3">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
                 </div>
