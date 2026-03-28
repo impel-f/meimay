@@ -923,6 +923,18 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
     return Object.values(segGroups).reduce((sum, items) => sum + items.length, 0);
 }
 
+function getVisibleKanjiStockItemCount(candidatePoolOverride = null) {
+    const source = Array.isArray(candidatePoolOverride)
+        ? candidatePoolOverride
+        : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
+
+    return source.filter(item => {
+        if (!item) return false;
+        if (item.sessionReading === 'FREE') return true;
+        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
+    }).length;
+}
+
 function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const {
         excluded = [],
@@ -971,6 +983,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
 
 window.getMergedLikedCandidates = getMergedLikedCandidates;
 window.getVisibleKanjiStockCardCount = getVisibleKanjiStockCardCount;
+window.getVisibleKanjiStockItemCount = getVisibleKanjiStockItemCount;
 window.getBuildSlotCandidates = getBuildSlotCandidates;
 
 function getStockOwnershipKind(item) {

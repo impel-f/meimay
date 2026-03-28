@@ -3181,14 +3181,14 @@ MeimayPartnerInsights.getSummary = function () {
     const matchedLikedItems = this.getMatchedLikedItems();
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
-    const visibleOwnKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
-        ? getVisibleKanjiStockCardCount('all', ownLikedItems)
+    const visibleOwnKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
+        ? getVisibleKanjiStockItemCount(ownLikedItems)
         : ownLikedItems.length;
-    const visiblePartnerKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
-        ? getVisibleKanjiStockCardCount('all', partnerLikedItems)
+    const visiblePartnerKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
+        ? getVisibleKanjiStockItemCount(partnerLikedItems)
         : partnerLikedItems.length;
-    const visibleMatchedKanjiStockCount = typeof getVisibleKanjiStockCardCount === 'function'
-        ? getVisibleKanjiStockCardCount('matched')
+    const visibleMatchedKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
+        ? getVisibleKanjiStockItemCount(matchedLikedItems)
         : matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
