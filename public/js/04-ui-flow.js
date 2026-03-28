@@ -5310,9 +5310,12 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
 
     const curatedItems = getCuratedSegmentCandidateItems(target, targetGender);
     if (Array.isArray(curatedItems)) {
-        readingKanjiCache.set(cacheKey, curatedItems.slice(0, 20));
-        return curatedItems.slice(0, limit);
+        const rankedCuratedItems = sortReadingCandidatesForDisplay(curatedItems);
+        readingKanjiCache.set(cacheKey, rankedCuratedItems.slice(0, 20));
+        return rankedCuratedItems.slice(0, limit);
     }
+
+    return [];
 
     const unique = [];
     const seen = new Set();
@@ -6780,6 +6783,32 @@ window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
 window.learnSoundPreference = learnSoundPreference;
 
+function getReadingCandidateDisplayName(candidate) {
+    return String(candidate?.givenName || candidate?.fullName || '').replace(/\s+/g, '');
+}
+
+function compareReadingCandidatesForDisplay(a, b) {
+    const aName = getReadingCandidateDisplayName(a);
+    const bName = getReadingCandidateDisplayName(b);
+    const lengthDelta = aName.length - bName.length;
+    if (lengthDelta !== 0) return lengthDelta;
+
+    const aCuratedOrder = typeof a?._curatedOrder === 'number' ? a._curatedOrder : null;
+    const bCuratedOrder = typeof b?._curatedOrder === 'number' ? b._curatedOrder : null;
+    if (aCuratedOrder !== null && bCuratedOrder !== null && aCuratedOrder !== bCuratedOrder) {
+        return aCuratedOrder - bCuratedOrder;
+    }
+
+    const scoreDelta = (b?.score || 0) - (a?.score || 0);
+    if (scoreDelta !== 0) return scoreDelta;
+
+    return aName.localeCompare(bName, 'ja');
+}
+
+function sortReadingCandidatesForDisplay(list) {
+    return [...(Array.isArray(list) ? list : [])].sort(compareReadingCandidatesForDisplay);
+}
+
 function pickReadingDisplayCandidates(allCandidates, limit) {
     const selected = [];
     const usedBySlot = [];
@@ -6802,11 +6831,8 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
         });
     }
 
-    const strictPool = shuffleReadingCandidates(
-        [...(Array.isArray(allCandidates) ? allCandidates : [])]
-            .sort((a, b) => (b.score || 0) - (a.score || 0))
-            .slice(0, Math.max(limit * 8, 24))
-    );
+    const rankedCandidates = sortReadingCandidatesForDisplay(allCandidates);
+    const strictPool = rankedCandidates.slice(0, Math.max(limit * 8, 24));
     strictPool.forEach((candidate) => {
         if (selected.length >= limit) return;
         const exists = selected.some(item => item.givenName === candidate.givenName);
@@ -6816,11 +6842,7 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
     });
 
     if (selected.length < limit) {
-        shuffleReadingCandidates(
-            [...(Array.isArray(allCandidates) ? allCandidates : [])]
-                .sort((a, b) => (b.score || 0) - (a.score || 0))
-                .slice(0, Math.max(limit * 10, 32))
-        ).forEach((candidate) => {
+        rankedCandidates.slice(0, Math.max(limit * 10, 32)).forEach((candidate) => {
             if (selected.length >= limit) return;
             const exists = selected.some(item => item.givenName === candidate.givenName);
             if (exists) return;
@@ -6828,7 +6850,7 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
         });
     }
 
-    return selected.slice(0, limit);
+    return sortReadingCandidatesForDisplay(selected).slice(0, limit);
 }
 
 function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
@@ -6836,18 +6858,15 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
 
     const groups = path.map((segment) => {
         const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender);
-        const pool = rawGroup
-            .slice(0, 16)
-            .map((item, index) => ({
-                ...item,
-                _poolOrder: index,
-                _displayNoise: Math.random() * 120
-            }))
-            .sort((a, b) => {
-                const aScore = (a._recommendationScore || 0) - (a._poolOrder * 8) + a._displayNoise;
-                const bScore = (b._recommendationScore || 0) - (b._poolOrder * 8) + b._displayNoise;
-                return bScore - aScore;
-            });
+        const pool = sortReadingCandidatesForDisplay(
+            rawGroup
+                .slice(0, 16)
+                .map((item, index) => ({
+                    ...item,
+                    _poolOrder: index,
+                    _displayNoise: Math.random() * 120
+                }))
+        );
         return pool;
     });
 
@@ -6890,11 +6909,10 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
 
     build(0, [], 0, new Set());
 
-    const sorted = shuffleReadingCandidates(
-        allResults
-            .sort((a, b) => b.score - a.score)
-            .slice(0, Math.max(limit * 20, 40))
-    ).map(result => ({
+    const sorted = [...allResults]
+        .sort(compareReadingCandidatesForDisplay)
+        .slice(0, Math.max(limit * 20, 40))
+        .map(result => ({
             ...result,
             fullName: surnameStr ? `${surnameStr} ${result.givenName}` : result.givenName
         }));
@@ -7142,7 +7160,7 @@ function getSampleKanjiHtml(item) {
     const examples = [];
 
     options.forEach((option) => {
-        shuffleReadingCandidates(option.candidates.slice(0, 4)).forEach((candidate) => {
+        sortReadingCandidatesForDisplay(option.candidates).slice(0, 4).forEach((candidate) => {
             const label = candidate.givenName || candidate.fullName;
             if (!examples.includes(label)) {
                 examples.push(label);
@@ -7154,7 +7172,10 @@ function getSampleKanjiHtml(item) {
         return '<span class="text-xs text-[#d4c5af]">候補なし</span>';
     }
 
-    return shuffleReadingCandidates(examples).slice(0, 4).map((example) =>
+    return examples
+        .sort((a, b) => a.length - b.length || a.localeCompare(b, 'ja'))
+        .slice(0, 4)
+        .map((example) =>
         `<span class="text-sm font-bold mx-1">${example}</span>`
     ).join('');
 }

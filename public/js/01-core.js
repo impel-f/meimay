@@ -75,6 +75,10 @@ function setReadingSegmentRules(nextRules) {
         disabledSegments: [...disabledSet]
     };
 
+    if (typeof readingKanjiCache !== 'undefined' && readingKanjiCache && typeof readingKanjiCache.clear === 'function') {
+        readingKanjiCache.clear();
+    }
+
     console.log(
         `CORE: Loaded curated reading segment rules (${Object.keys(approvedSegments).length} approved, ${disabledSet.size} disabled)`
     );

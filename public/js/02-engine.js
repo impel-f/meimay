@@ -93,7 +93,10 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
         if (Array.isArray(curatedCandidates)) {
             return curatedCandidates.length > 0;
         }
+        return false;
     }
+
+    return false;
 
     const target = toHira(part);
     const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
