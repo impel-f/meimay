@@ -1628,7 +1628,7 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
 
     return {
         readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
-        likedCount: Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
+        likedCount: typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all') : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
         savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
     };
 }
@@ -1769,10 +1769,10 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         : [];
     const partnerLikedItemsVisible = partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
+    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('partner') : Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
-    const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
+    const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
     const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
     const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
     const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);

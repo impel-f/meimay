@@ -3164,9 +3164,9 @@ MeimayPartnerInsights.getSummary = function () {
     const matchedLikedItems = this.getMatchedLikedItems();
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
-    const ownKanjiCount = ownLikedItems.length;
-    const partnerKanjiCount = partnerLikedItems.length;
-    const matchedKanjiCount = matchedLikedItems.length;
+    const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : ownLikedItems.length;
+    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('partner') : partnerLikedItems.length;
+    const matchedKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('matched') : matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
