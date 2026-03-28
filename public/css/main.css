@@ -1532,6 +1532,16 @@ body.has-ad-banner #universal-footer {
     border-bottom: none;
 }
 
+#scr-input-reading .reading-input-panel {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(212, 197, 175, 0.28);
+    border-radius: 28px;
+    box-shadow: 0 10px 24px rgba(93, 84, 68, 0.06);
+    padding: 16px 18px 18px;
+    text-align: left;
+    overflow: visible;
+}
+
 #scr-input-sound-entry button[id^="sound-entry-choice-"] {
     background: rgba(255, 255, 255, 0.58) !important;
     border: 1.5px solid rgba(212, 197, 175, 0.34) !important;

@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="/css/main.css?v=25.33">
+<link rel="stylesheet" href="/css/main.css?v=25.34">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.12">
 
     <!-- Google AdSense -->
@@ -130,7 +130,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.45
+            メイメー v25.46
         </div>
     </aside>
 
@@ -513,17 +513,19 @@
     <div id="scr-input-reading" class="screen">
         <div class="w-full max-w-sm text-center mt-2 mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">漢字をさがす</h2>
-            <p class="label-mini mb-2">名前の読み（ひらがな）</p>
-            <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2" style="font-size:1.7rem; padding:10px 0;">
+            <div class="reading-input-panel mb-4">
+                <p class="label-mini mb-2">名前の読み（ひらがな）</p>
+                <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2" style="font-size:1.7rem; padding:10px 0;">
 
-            <div id="reading-stock-picker" class="hidden mb-4 relative">
-                <button onclick="toggleReadingStockPicker()"
-                    class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
-                    <span id="reading-stock-picker-label">📖 ストックから選ぶ</span>
-                    <span id="reading-stock-picker-arrow">▼</span>
-                </button>
-                <div id="reading-stock-picker-list"
-                    class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-[#eee5d8] rounded-2xl overflow-hidden shadow-xl z-[60] max-h-56 overflow-y-auto">
+                <div id="reading-stock-picker" class="hidden mt-2 relative">
+                    <button onclick="toggleReadingStockPicker()"
+                        class="w-full flex items-center justify-between px-4 py-2 rounded-xl border border-[#eee5d8] bg-white text-[#8b7e66] text-[12px] font-bold active:scale-95 transition-transform">
+                        <span id="reading-stock-picker-label">📖 ストックから選ぶ</span>
+                        <span id="reading-stock-picker-arrow">▼</span>
+                    </button>
+                    <div id="reading-stock-picker-list"
+                        class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-[#eee5d8] rounded-2xl overflow-hidden shadow-xl z-[60] max-h-56 overflow-y-auto">
+                    </div>
                 </div>
             </div>
 
