@@ -598,21 +598,19 @@ function getHomeOwnershipSummary() {
                 ? savedSource.filter(item => !item?.fromPartner)
                 : [];
         })();
-    const ownReadingItems = pairInsights?.getOwnReadingCollection
-        ? pairInsights.getOwnReadingCollection()
+    const ownReadingItems = pairInsights?.getOwnReadingStock
+        ? pairInsights.getOwnReadingStock()
         : ((typeof getReadingStock === 'function')
             ? getReadingStock().filter(item => !item?.fromPartner)
             : []);
-    const visibleKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
-        ? getVisibleKanjiStockItemCount(ownLikedItems)
-        : ownLikedItems.length;
+    const ownKanjiCount = ownLikedItems.length;
     return {
         pairInsights,
         pairing,
         ownLikedItems,
         ownSavedItems,
         ownReadingItems,
-        ownLikedCount: visibleKanjiStockCount,
+        ownLikedCount: ownKanjiCount,
         ownSavedCount: ownSavedItems.length,
         ownReadingCount: ownReadingItems.length
     };
@@ -1763,21 +1761,19 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             ? liked.filter(item => !item?.fromPartner)
             : []);
     const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
-    const partnerLikedItemsVisible = insights?.getPartnerLiked ? insights.getPartnerLiked() : partnerLikedItems;
-    const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? 0);
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (typeof getVisibleKanjiStockItemCount === 'function'
-        ? getVisibleKanjiStockItemCount(partnerLikedItemsVisible)
-        : partnerLikedItemsVisible.length) ?? 0);
-    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
-    const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount ?? 0);
-    const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount ?? 0);
-    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
     const ownReadingStock = insights?.getOwnReadingStock
         ? insights.getOwnReadingStock()
         : (typeof getReadingStock === 'function' ? getReadingStock() : []);
     const partnerReadingStock = insights?.getPartnerReadingStock
         ? insights.getPartnerReadingStock()
         : [];
+    const partnerLikedItemsVisible = partnerLikedItems;
+    const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
+    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
+    const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
+    const ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
+    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
     const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
     const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
     const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);

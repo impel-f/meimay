@@ -3116,7 +3116,7 @@ MeimayPartnerInsights.isPartnerSavedApproved = function (item) {
 MeimayPartnerInsights.isPartnerReadingApproved = function (item) {
     const key = this.buildReadingStockKey(item);
     if (!key) return false;
-    const ownKeys = new Set(this.getOwnReadingCollection().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
+    const ownKeys = new Set(this.getOwnReadingStock().map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
     return ownKeys.has(key);
 };
 
@@ -3129,50 +3129,33 @@ MeimayPartnerInsights.getPartnerReadingCollection = function () {
 };
 
 MeimayPartnerInsights.getMatchedReadingItems = function () {
-    const normalizeReading = (value) => {
-        const raw = String(value || '').trim().split('::')[0].trim();
-        if (!raw) return '';
-        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
-    };
+    const ownReadings = this.getOwnReadingStock();
+    const partnerReadings = this.getPartnerReadingStock();
+    const partnerKeys = new Set(partnerReadings.map(item => this.buildReadingStockKey(item)).filter(Boolean));
+    const seenKeys = new Set();
 
-    const partnerReadings = new Set(
-        this.getPartnerReadingCollection()
-            .map(item => normalizeReading(item?.reading))
-            .filter(Boolean)
-    );
-    const seenReadings = new Set();
-
-    return this.getOwnReadingCollection().filter(item => {
-        const normalizedReading = normalizeReading(item?.reading);
-        if (!normalizedReading || !partnerReadings.has(normalizedReading) || seenReadings.has(normalizedReading)) {
+    return ownReadings.filter(item => {
+        const key = this.buildReadingStockKey(item);
+        if (!key || !partnerKeys.has(key) || seenKeys.has(key)) {
             return false;
         }
-        seenReadings.add(normalizedReading);
+        seenKeys.add(key);
         return true;
     });
 };
 
 MeimayPartnerInsights.isReadingItemMatched = function (item) {
-    const normalizeReading = (value) => {
-        const raw = String(value || '').trim().split('::')[0].trim();
-        if (!raw) return '';
-        return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
-    };
+    const key = this.buildReadingStockKey(item);
+    if (!key) return false;
 
-    const normalizedReading = normalizeReading(item?.reading);
-    if (!normalizedReading) return false;
-
-    const partnerReadings = new Set(
-        this.getPartnerReadingCollection()
-            .map(entry => normalizeReading(entry?.reading))
-            .filter(Boolean)
-    );
-    return partnerReadings.has(normalizedReading);
+    const partnerReadings = this.getPartnerReadingStock();
+    const partnerKeys = new Set(partnerReadings.map(entry => this.buildReadingStockKey(entry)).filter(Boolean));
+    return partnerKeys.has(key);
 };
 
 MeimayPartnerInsights.getSummary = function () {
-    const ownReadingItems = this.getOwnReadingCollection();
-    const partnerReadingItems = this.getPartnerReadingCollection();
+    const ownReadingItems = this.getOwnReadingStock();
+    const partnerReadingItems = this.getPartnerReadingStock();
     const ownLikedItems = this.getOwnLiked();
     const partnerLikedItems = this.getPartnerLiked();
     const ownSavedItems = this.getOwnSaved();
@@ -3181,15 +3164,9 @@ MeimayPartnerInsights.getSummary = function () {
     const matchedLikedItems = this.getMatchedLikedItems();
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
-    const visibleOwnKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
-        ? getVisibleKanjiStockItemCount(ownLikedItems)
-        : ownLikedItems.length;
-    const visiblePartnerKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
-        ? getVisibleKanjiStockItemCount(partnerLikedItems)
-        : partnerLikedItems.length;
-    const visibleMatchedKanjiStockCount = typeof getVisibleKanjiStockItemCount === 'function'
-        ? getVisibleKanjiStockItemCount(matchedLikedItems)
-        : matchedLikedItems.length;
+    const ownKanjiCount = ownLikedItems.length;
+    const partnerKanjiCount = partnerLikedItems.length;
+    const matchedKanjiCount = matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
@@ -3202,33 +3179,33 @@ MeimayPartnerInsights.getSummary = function () {
         partnerDisplayName: partnerName,
         ownReadingCount: ownReadingItems.length,
         partnerReadingCount: partnerReadingItems.length,
-        ownKanjiCount: visibleOwnKanjiStockCount,
-        partnerKanjiCount: visiblePartnerKanjiStockCount,
+        ownKanjiCount: ownKanjiCount,
+        partnerKanjiCount: partnerKanjiCount,
         ownSavedCount: ownSavedItems.length,
         partnerSavedCount: partnerSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
-        matchedKanjiCount: visibleMatchedKanjiStockCount,
+        matchedKanjiCount: matchedKanjiCount,
         matchedNameCount: matchedSavedItems.length,
         matchedReadingItems: matchedReadingItems,
         matchedLikedItems: matchedLikedItems,
         matchedSavedItems: matchedSavedItems,
-        matchedTotalCount: matchedReadingItems.length + visibleMatchedKanjiStockCount + matchedSavedItems.length,
-        ownTotalCount: ownReadingItems.length + visibleOwnKanjiStockCount + ownSavedItems.length,
-        partnerTotalCount: partnerReadingItems.length + visiblePartnerKanjiStockCount + partnerSavedItems.length,
+        matchedTotalCount: matchedReadingItems.length + matchedKanjiCount + matchedSavedItems.length,
+        ownTotalCount: ownReadingItems.length + ownKanjiCount + ownSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + partnerKanjiCount + partnerSavedItems.length,
         counts: {
             own: {
                 reading: ownReadingItems.length,
-                kanji: visibleOwnKanjiStockCount,
+                kanji: ownKanjiCount,
                 saved: ownSavedItems.length
             },
             partner: {
                 reading: partnerReadingItems.length,
-                kanji: visiblePartnerKanjiStockCount,
+                kanji: partnerKanjiCount,
                 saved: partnerSavedItems.length
             },
             matched: {
                 reading: matchedReadingItems.length,
-                kanji: visibleMatchedKanjiStockCount,
+                kanji: matchedKanjiCount,
                 saved: matchedSavedItems.length
             }
         },
