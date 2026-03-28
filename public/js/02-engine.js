@@ -566,13 +566,18 @@ function calcSegments() {
 
         compoundOptions.forEach((option, idx) => {
             const btn = document.createElement('button');
-            btn.className = "w-[92%] mx-auto mb-3 rounded-[34px] border border-[#eadfce] bg-[#fffaf4] px-5 py-4 text-left shadow-sm transition-all hover:border-[#bca37f] hover:shadow-md active:scale-[0.99]";
+            btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
+            const labelParts = String(option.label || '').split(' / ').filter(Boolean);
+            const displayLabelParts = labelParts.length > 0 ? labelParts : [''];
+            const displayParts = displayLabelParts.map((part, index) => {
+                const piece = `<span data-segment-piece class="shrink-0 inline-flex items-center whitespace-nowrap px-2">${part}</span>`;
+                if (index === displayLabelParts.length - 1) return piece;
+                return `${piece}<span data-segment-separator class="shrink-0 inline-flex items-center whitespace-nowrap px-2 text-sm text-[#d4c5af] opacity-40 group-hover:opacity-100 transition-opacity">/</span>`;
+            }).join('');
             btn.innerHTML = `
-                <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                        <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
-                    </div>
-                    <span class="shrink-0 px-3 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#eadfce]">${option.badgeLabel || 'まとめ読み'}</span>
+                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${option.badgeLabel || 'まとめ読み'}</span>
+                <div data-segment-label class="min-w-0 flex-1 flex items-center flex-nowrap whitespace-nowrap overflow-hidden text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight">
+                    ${displayParts}
                 </div>
             `;
             btn.onclick = () => {
@@ -593,6 +598,16 @@ function calcSegments() {
         });
 
         optionsContainer.appendChild(compoundSection);
+        compoundSection.querySelectorAll('[data-segment-label]').forEach((label) => {
+            const button = label.closest('button');
+            fitSegmentOptionButton(button);
+        });
+        requestAnimationFrame(() => {
+            compoundSection.querySelectorAll('[data-segment-label]').forEach((label) => {
+                const button = label.closest('button');
+                fitSegmentOptionButton(button);
+            });
+        });
     }
 
     // 画面遷移
