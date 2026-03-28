@@ -1998,16 +1998,25 @@ window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.renderHomeProfile = renderHomeProfile;
 
 function getHomeOverviewMode(pairing) {
+    const hasPartner = !!pairing?.hasPartner;
+    const modeSource = window.MeimayHomeOverviewModeSource || 'auto';
     const defaultMode = pairing?.hasPartner ? 'shared' : 'self';
     const allowed = pairing?.hasPartner ? ['shared', 'self', 'partner'] : ['self'];
     if (!allowed.includes(window.MeimayHomeOverviewMode)) {
         window.MeimayHomeOverviewMode = defaultMode;
+        window.MeimayHomeOverviewModeSource = 'auto';
+    } else if (hasPartner && window.MeimayHomeOverviewMode === 'self' && modeSource !== 'manual') {
+        window.MeimayHomeOverviewMode = 'shared';
+        window.MeimayHomeOverviewModeSource = 'auto';
+    } else if (!window.MeimayHomeOverviewModeSource) {
+        window.MeimayHomeOverviewModeSource = 'auto';
     }
     return window.MeimayHomeOverviewMode;
 }
 
 function setHomeOverviewMode(mode) {
     window.MeimayHomeOverviewMode = mode;
+    window.MeimayHomeOverviewModeSource = window.MeimayPairing?.partnerUid ? 'manual' : 'auto';
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
 }
 
