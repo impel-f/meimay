@@ -556,17 +556,20 @@ function renderSoundEntryScreen() {
         <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
 
-            <div class="space-y-2.5 text-left mb-3">
+            <div class="space-y-2.5 text-left mb-4">
                 <button
                     id="sound-entry-choice-browse"
                     onclick="selectSoundEntryMode('browse')"
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div class="flex items-center gap-3">
-                        <div id="sound-entry-dot-browse" class="dot-selector active"></div>
-                        <div>
-                            <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
-                            <p class="mt-1 text-[10px] text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
-                        </div>
+                    <div id="sound-entry-dot-browse" class="dot-selector active"></div>
+                    <div class="sound-entry-choice-copy">
+                        <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
+                        <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
+                    </div>
+                    <div class="sound-entry-preview" aria-hidden="true">
+                        <div class="sound-entry-preview-card sound-entry-preview-card-back">あおい</div>
+                        <div class="sound-entry-preview-card sound-entry-preview-card-center">ひなた</div>
+                        <div class="sound-entry-preview-card sound-entry-preview-card-front">みなと</div>
                     </div>
                 </button>
 
@@ -574,23 +577,23 @@ function renderSoundEntryScreen() {
                     id="sound-entry-choice-input"
                     onclick="selectSoundEntryMode('input')"
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div class="flex items-center gap-3">
-                        <div id="sound-entry-dot-input" class="dot-selector"></div>
-                        <div>
-                            <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
-                            <p class="mt-1 text-[10px] text-[#a6967a] whitespace-nowrap">例: 「はる」から始まる名前を探す</p>
-                        </div>
+                    <div id="sound-entry-dot-input" class="dot-selector"></div>
+                    <div class="sound-entry-choice-copy">
+                        <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
+                        <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">例: 「はる」から始まる名前を探す</p>
+                    </div>
+                    <div class="sound-entry-preview" aria-hidden="true">
+                        <div class="sound-entry-preview-card sound-entry-preview-card-back">はると</div>
+                        <div class="sound-entry-preview-card sound-entry-preview-card-center">はるか</div>
+                        <div class="sound-entry-preview-card sound-entry-preview-card-front">はるみ</div>
                     </div>
                 </button>
             </div>
 
-            <div id="sound-entry-input-slot" class="mt-0 min-h-[156px] mb-4">
-                <div id="sound-entry-input-placeholder" class="w-full min-h-[156px] rounded-[28px] border border-dashed border-[#e8ddd0] bg-white/40 px-4 py-4 text-center text-[10px] leading-relaxed text-[#bca37f] flex items-center justify-center">
-                    音を指定する場合は、ここに入力欄が出ます
-                </div>
+            <div id="sound-entry-input-slot" class="hidden mt-0 mb-4">
                 <div
                     id="sound-entry-input-panel"
-                    class="hidden min-h-[156px] rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
+                    class="hidden min-h-[176px] rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
                     <p class="label-mini mb-2">入れたい音</p>
                     <input
                         id="in-sound-entry"
@@ -633,7 +636,7 @@ function updateSoundEntryModeUI() {
     const browseChoice = document.getElementById('sound-entry-choice-browse');
     const inputDot = document.getElementById('sound-entry-dot-input');
     const browseDot = document.getElementById('sound-entry-dot-browse');
-    const inputPlaceholder = document.getElementById('sound-entry-input-placeholder');
+    const inputSlot = document.getElementById('sound-entry-input-slot');
     const inputPanel = document.getElementById('sound-entry-input-panel');
     const submitBtn = document.getElementById('btn-sound-entry-submit');
 
@@ -648,8 +651,8 @@ function updateSoundEntryModeUI() {
     if (inputDot) inputDot.classList.toggle('active', isInputMode);
     if (browseDot) browseDot.classList.toggle('active', !isInputMode);
 
-    if (inputPlaceholder) {
-        inputPlaceholder.classList.toggle('hidden', isInputMode);
+    if (inputSlot) {
+        inputSlot.classList.toggle('hidden', !isInputMode);
     }
 
     if (inputPanel) {
