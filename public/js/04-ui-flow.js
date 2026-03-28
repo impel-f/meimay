@@ -132,8 +132,22 @@ function clearCompoundBuildFlow() {
     window.meimayCompoundBuildFlow = null;
 }
 
-function getReadingHistoryEntryByReading(reading) {
+function getReadingHistoryEntryByReading(reading, preferredSegments = []) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
+
+    if (normalizedReading && normalizedSegments.length > 0) {
+        const exactSegmentKey = normalizedSegments.join('/');
+        const exactEntry = history.find(item => {
+            if (!item) return false;
+            if (getReadingBaseReading(item.reading) !== normalizedReading) return false;
+            const itemSegmentKey = item.segmentKey || (Array.isArray(item.segments) ? item.segments.filter(Boolean).join('/') : '');
+            return itemSegmentKey === exactSegmentKey;
+        });
+        return exactEntry || null;
+    }
+
     return history.find(item => item.reading === reading && item.compoundFlow) || history.find(item => item.reading === reading) || null;
 }
 
@@ -144,17 +158,21 @@ function shouldRebuildCompoundFlow(flow) {
     return placeholderCount > 0 && fixedCount < placeholderCount;
 }
 
-function restoreCompoundBuildFlowFromLiked(reading, fallbackEntry = null) {
+function restoreCompoundBuildFlowFromLiked(reading, fallbackEntry = null, preferredSegments = []) {
     if (!Array.isArray(liked) || !reading) return null;
+    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
+    const preferredSegmentKey = normalizedSegments.join('/');
 
     const seededItems = liked
-        .filter(item =>
-            item &&
-            item.sessionReading === reading &&
-            item._compoundSeeded &&
-            Array.isArray(item.sessionSegments) &&
-            item.sessionSegments.length > 0
-        )
+        .filter(item => {
+            if (!item || !item._compoundSeeded || !Array.isArray(item.sessionSegments) || item.sessionSegments.length === 0) return false;
+            if (getReadingBaseReading(item.sessionReading) !== normalizedReading) return false;
+            if (normalizedSegments.length > 0) {
+                return item.sessionSegments.filter(Boolean).join('/') === preferredSegmentKey;
+            }
+            return item.sessionReading === reading || getReadingBaseReading(item.sessionReading) === normalizedReading;
+        })
         .sort((a, b) => (Number(a.slot) || 0) - (Number(b.slot) || 0));
 
     if (seededItems.length === 0) return null;
@@ -163,7 +181,7 @@ function restoreCompoundBuildFlowFromLiked(reading, fallbackEntry = null) {
     const segmentsForFlow = Array.isArray(template.sessionSegments) && template.sessionSegments.length > 0
         ? [...template.sessionSegments]
         : seededItems.map((_, idx) => `__compound_slot_${idx}__`);
-    const historyEntry = fallbackEntry || getReadingHistoryEntryByReading(reading);
+    const historyEntry = fallbackEntry || getReadingHistoryEntryByReading(reading, normalizedSegments);
     const fixedSlotsBySlot = {};
 
     seededItems.forEach((item) => {
@@ -1873,17 +1891,24 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 }
 function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
     const targetGender = gender || 'neutral';
+    const normalizedReading = toHira(reading || '');
     const strictPaths = typeof getReadingSegmentPaths === 'function'
-        ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: true, allowFallback: false })
+        ? getReadingSegmentPaths(normalizedReading, limit * 2, { strictOnly: true, allowFallback: false })
         : [];
     const paths = strictPaths.length > 0
         ? strictPaths
         : (typeof getReadingSegmentPaths === 'function'
-            ? getReadingSegmentPaths(reading, limit * 2, { strictOnly: false, allowFallback: true })
+            ? getReadingSegmentPaths(normalizedReading, limit * 2, { strictOnly: false, allowFallback: true })
             : []);
+    const curatedDirectCandidates = typeof getCuratedReadingSegmentCandidates === 'function'
+        ? getCuratedReadingSegmentCandidates(normalizedReading)
+        : null;
+    const pathPool = Array.isArray(curatedDirectCandidates) && curatedDirectCandidates.length > 0
+        ? [[normalizedReading], ...paths]
+        : [...paths];
 
     const seen = new Set();
-    const normalOptions = paths
+    const normalOptions = pathPool
         .map(path => {
             const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
             const label = cleanPath.join('/');
@@ -1895,10 +1920,19 @@ function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
                 path: cleanPath,
                 label,
                 candidates,
-                examples: candidates.map(candidate => candidate.givenName).slice(0, 3)
+                examples: sortReadingCandidatesForDisplay(candidates).slice(0, 4).map(candidate => candidate.givenName)
             };
         })
         .filter(Boolean)
+        .sort((a, b) => {
+            const aCount = Array.isArray(a.candidates) ? a.candidates.length : 0;
+            const bCount = Array.isArray(b.candidates) ? b.candidates.length : 0;
+            if (aCount !== bCount) return bCount - aCount;
+            const aPathLength = Array.isArray(a.path) ? a.path.length : 0;
+            const bPathLength = Array.isArray(b.path) ? b.path.length : 0;
+            if (aPathLength !== bPathLength) return aPathLength - bPathLength;
+            return a.label.localeCompare(b.label, 'ja');
+        })
         .slice(0, limit);
 
     const compoundOptions = typeof getCompoundReadingOptions === 'function'
@@ -1914,8 +1948,20 @@ function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
 }
 
 function getPreferredReadingSegments(reading) {
-    const options = getReadingSegmentOptions(reading, 1);
-    return options.length > 0 ? options[0].path : [];
+    const options = getReadingSegmentOptions(reading, 4);
+    if (options.length === 0) return [];
+
+    const bestOption = [...options].sort((a, b) => {
+        const aCount = Array.isArray(a.candidates) ? a.candidates.length : 0;
+        const bCount = Array.isArray(b.candidates) ? b.candidates.length : 0;
+        if (aCount !== bCount) return bCount - aCount;
+        const aPathLength = Array.isArray(a.path) ? a.path.length : 0;
+        const bPathLength = Array.isArray(b.path) ? b.path.length : 0;
+        if (aPathLength !== bPathLength) return aPathLength - bPathLength;
+        return a.label.localeCompare(b.label, 'ja');
+    })[0];
+
+    return bestOption ? bestOption.path : [];
 }
 
 function findKanjiCandidatesForSegment(segment, limit = 3) {
@@ -4525,6 +4571,7 @@ function openReadingStockModal(reading) {
     const btnRemove = document.getElementById('reading-detail-btn-remove');
     const stockItem = getReadingStock().find(item => matchesReadingStockTarget(item, reading)) || null;
     const stockTarget = stockItem?.id || reading;
+    const stockSegments = Array.isArray(stockItem?.segments) ? stockItem.segments.filter(Boolean) : [];
     const displayReading = getReadingDisplayLabel(stockItem || { reading });
 
     titleEl.textContent = displayReading;
@@ -4557,7 +4604,7 @@ function openReadingStockModal(reading) {
         btnBuild.textContent = '組み立てる';
         btnBuild.onclick = () => {
             closeModal('modal-reading-detail');
-            openBuildFromReading(stockItem?.reading || reading);
+            openBuildFromReading(stockItem?.id || stockItem?.reading || reading, stockSegments);
         };
         btnBuild.textContent = '組み立てる';
         btnAdd.style.display = '';
@@ -4703,46 +4750,60 @@ function renderReadingStockSection() {
     section.innerHTML = html;
 }
 
-function openBuildFromReading(reading) {
-    const entry = getReadingHistoryEntryByReading(reading);
+function openBuildFromReading(reading, preferredSegments = []) {
+    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
+    const entry = getReadingHistoryEntryByReading(reading, normalizedSegments);
     clearCompoundBuildFlow();
     const nameInput = document.getElementById('in-name');
-    if (nameInput) nameInput.value = reading;
+    if (nameInput) nameInput.value = normalizedReading || reading;
 
     let restoredFlow = null;
     if (entry && entry.compoundFlow) {
         restoredFlow = setCompoundBuildFlow(entry.compoundFlow);
     }
     if (shouldRebuildCompoundFlow(restoredFlow)) {
-        restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry) || restoredFlow;
+        restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry, normalizedSegments) || restoredFlow;
     }
 
     if (restoredFlow && Array.isArray(restoredFlow.segments) && restoredFlow.segments.length > 0) {
         segments = [...restoredFlow.segments];
     } else if (entry && entry.segments) {
         segments = [...entry.segments];
+    } else if (normalizedSegments.length > 0) {
+        segments = [...normalizedSegments];
+    } else if (typeof getPreferredReadingSegments === 'function') {
+        const preferred = getPreferredReadingSegments(normalizedReading || reading);
+        segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
     }
     if (typeof openBuild === 'function') openBuild();
 }
 
-function addMoreForReading(reading) {
-    const entry = getReadingHistoryEntryByReading(reading);
+function addMoreForReading(reading, preferredSegments = []) {
+    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
+    const entry = getReadingHistoryEntryByReading(reading, normalizedSegments);
     clearCompoundBuildFlow();
     const nameInput = document.getElementById('in-name');
-    if (nameInput) nameInput.value = reading;
+    if (nameInput) nameInput.value = normalizedReading || reading;
 
     let restoredFlow = null;
     if (entry && entry.compoundFlow) {
         restoredFlow = setCompoundBuildFlow(entry.compoundFlow);
     }
     if (shouldRebuildCompoundFlow(restoredFlow)) {
-        restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry) || restoredFlow;
+        restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry, normalizedSegments) || restoredFlow;
     }
 
     if (restoredFlow && Array.isArray(restoredFlow.segments) && restoredFlow.segments.length > 0) {
         segments = [...restoredFlow.segments];
     } else if (entry && entry.segments) {
         segments = [...entry.segments];
+    } else if (normalizedSegments.length > 0) {
+        segments = [...normalizedSegments];
+    } else if (typeof getPreferredReadingSegments === 'function') {
+        const preferred = getPreferredReadingSegments(normalizedReading || reading);
+        segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
     }
     window._addMoreFromBuild = false;
     if (typeof updateSurnameData === 'function') updateSurnameData();
@@ -5634,7 +5695,7 @@ function openReadingStockModal(reading) {
     btnAdd.textContent = '漢字を追加する';
     btnAdd.onclick = () => {
         closeModal('modal-reading-detail');
-        addMoreForReading(stockItem?.reading || reading);
+        addMoreForReading(stockItem?.id || stockItem?.reading || reading, stockSegments);
     };
     btnAdd.style.display = isPromotedReading ? '' : 'none';
 
@@ -5735,6 +5796,7 @@ function startReadingSplitProposalFromStock(reading) {
     }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
+    const stockSegments = Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : [];
 
     if (typeof openReadingCombinationModal === 'function') {
         openReadingCombinationModal({
@@ -6007,7 +6069,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -6170,7 +6232,6 @@ window.renderReadingCardStarsV2 = renderReadingCardStarsV2;
 window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
-
 
 function renderReadingCardStarsV2(selfSuper, partnerSuper) {
     if (typeof window.renderMeimaySuperStars !== 'function') {
@@ -6342,6 +6403,7 @@ function startReadingSplitProposalFromStock(reading) {
     }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
+    const stockSegments = Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : [];
 
     if (typeof openReadingCombinationModal === 'function') {
         openReadingCombinationModal({
@@ -6615,7 +6677,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -7050,7 +7112,7 @@ function renderReadingSwipeCard(item) {
         <div class="w-full px-5 py-6">
         ${topLine}
         ${renderReadingTagBadges(item.tags)}
-        <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+        <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center whitespace-nowrap" style="word-break:normal;overflow-wrap:normal;">${item.reading}</div>
         <div class="w-full mt-2">
             <div class="mx-auto max-w-[286px] rounded-[26px] border px-4 py-3 shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
                 style="background:#ffffff;border-color:#ffffff;">
@@ -7075,7 +7137,7 @@ function renderReadingSwipeCard(item) {
     );
     const preview = getReadingFullNamePreview(modalReading || item.reading);
     const tone = getReadingCardTone(item);
-    const headerLabel = forceSplit ? '分け方の提案' : 'KANJI CANDIDATES';
+    const headerLabel = forceSplit ? '分け方の提案' : '';
     const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
     readingCombinationModalState = {
@@ -7104,7 +7166,6 @@ function renderReadingSwipeCard(item) {
             </div>
             ` : ''}
             <div class="text-center mb-5">
-                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">${headerLabel}</div>
                 <h3 class="text-3xl font-black text-[#5d5444] mb-2">${headerTitle}</h3>
                 <div class="text-[12px] font-bold text-[#8b7e66]">${headerSubtitle}</div>
                 ${forceSplit ? '<div class="mt-2 text-[11px] text-[#a6967a]">候補を選ぶと、その分け方でストックに入ります。</div>' : ''}
@@ -7127,7 +7188,7 @@ function renderReadingSwipeCard(item) {
                                 <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${forceSplit ? 'この分け方から出せる候補' : preview.ruby}</div>
                                 <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                             </div>
-                            <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">漢字を選ぶ</button>
+                            <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>
                         </div>
                         `).join('')
                         : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
@@ -8503,7 +8564,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}件の漢字候補</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -9225,7 +9286,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -9423,6 +9484,7 @@ function openReadingStockModal(reading) {
     const btnRemove = document.getElementById('reading-detail-btn-remove');
     const stockItem = findReadingStockItem(reading);
     const stockTarget = stockItem?.id || reading;
+    const stockSegments = Array.isArray(stockItem?.segments) ? stockItem.segments.filter(Boolean) : [];
     const kanjiCount = liked.filter(item => getReadingBaseReading(item.sessionReading) === getReadingBaseReading(stockItem?.reading || reading) && item.slot >= 0).length;
     const isPromotedReading = !!stockItem?.readingPromoted || kanjiCount > 0;
     const displayReading = getReadingDisplayLabel(stockItem || { reading }, isPromotedReading ? { allowSegments: true } : { forceRaw: true });
@@ -9438,16 +9500,16 @@ function openReadingStockModal(reading) {
     btnBuild.onclick = () => {
         closeModal('modal-reading-detail');
         if (isPromotedReading) {
-            openBuildFromReading(stockItem?.reading || reading);
+            openBuildFromReading(stockItem?.id || stockItem?.reading || reading, stockSegments);
         } else {
-            startReadingSplitProposalFromStock(stockItem?.reading || reading);
+            startReadingSplitProposalFromStock(stockItem?.id || stockItem?.reading || reading);
         }
     };
 
     btnAdd.textContent = '漢字を追加する';
     btnAdd.onclick = () => {
         closeModal('modal-reading-detail');
-        addMoreForReading(stockItem?.reading || reading);
+        addMoreForReading(stockItem?.id || stockItem?.reading || reading, stockSegments);
     };
     btnAdd.style.display = isPromotedReading ? '' : 'none';
 
@@ -9528,6 +9590,7 @@ function startReadingSplitProposalFromStock(reading) {
     }
     const stockItem = findReadingStockItem(reading);
     if (!stockItem) return;
+    const stockSegments = Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : [];
 
     if (typeof openReadingCombinationModal === 'function') {
         openReadingCombinationModal({
@@ -9539,7 +9602,7 @@ function startReadingSplitProposalFromStock(reading) {
         return;
     }
 
-    if (typeof openBuildFromReading === 'function') openBuildFromReading(targetReading || stockItem.reading);
+    if (typeof openBuildFromReading === 'function') openBuildFromReading(stockItem.id || targetReading || stockItem.reading, stockSegments);
 }
 function startReadingFromStock(target) {
     const stockItem = findReadingStockItem(target);
@@ -9554,7 +9617,7 @@ function startReadingFromStock(target) {
         segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [stockItem.reading];
     }
 
-    openBuildFromReading(stockItem.reading);
+    openBuildFromReading(stockItem.id || stockItem.reading || target, Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : []);
 }
 
 function likePartnerReadingStock(index) {
@@ -9777,7 +9840,7 @@ function renderReadingStockSectionV2() {
                         </div>
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
-                    <button onclick="event.stopPropagation(); openBuildFromReading('${item.reading}')"
+                    <button onclick="event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})"
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         組み立てる
@@ -9835,7 +9898,7 @@ function renderReadingStockSectionV2() {
                                     </div>
                                     <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字候補</div>
                                 </button>
-                                <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.id || item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     ${actionLabel}
                                 </button>
                             </div>
