@@ -563,7 +563,7 @@ function renderSoundEntryScreen() {
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
                     <div id="sound-entry-dot-browse" class="dot-selector active"></div>
                     <div class="sound-entry-choice-copy">
-                        <div class="text-sm font-bold text-[#5d5444]">響きを見ながら探す</div>
+                        <div class="sound-entry-choice-title font-bold text-[#5d5444]">響きを見ながら探す</div>
                         <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
                     </div>
                     <div class="sound-entry-preview" aria-hidden="true">
@@ -579,7 +579,7 @@ function renderSoundEntryScreen() {
                     class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
                     <div id="sound-entry-dot-input" class="dot-selector"></div>
                     <div class="sound-entry-choice-copy">
-                        <div class="text-sm font-bold text-[#5d5444]">入れたい音から探す</div>
+                        <div class="sound-entry-choice-title font-bold text-[#5d5444]">入れたい音から探す</div>
                         <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">例: 「はる」から始まる名前を探す</p>
                     </div>
                     <div class="sound-entry-preview" aria-hidden="true">

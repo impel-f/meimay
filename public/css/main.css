@@ -1564,26 +1564,26 @@ body.has-ad-banner #universal-footer {
 
 #scr-input-sound-entry .sound-entry-preview {
     position: relative;
-    width: clamp(108px, 31vw, 128px);
-    height: clamp(78px, 21vw, 92px);
+    width: clamp(98px, 29vw, 118px);
+    height: clamp(74px, 20vw, 88px);
     flex-shrink: 0;
 }
 
 #scr-input-sound-entry .sound-entry-preview-card {
     position: absolute;
-    width: clamp(48px, 14vw, 58px);
-    height: clamp(60px, 17vw, 70px);
-    border: 1.5px solid #d4c5af;
+    width: clamp(45px, 13vw, 54px);
+    height: clamp(56px, 16vw, 66px);
+    border: none;
     border-radius: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.14);
+    box-shadow: none;
     color: #5d5444;
     font-weight: 900;
     line-height: 1.1;
     text-align: center;
-    font-size: clamp(8px, 2.3vw, 10px);
+    font-size: clamp(8px, 2.1vw, 9px);
     letter-spacing: -0.03em;
     padding: 0 4px;
     background: linear-gradient(145deg, #fdf7ef, #f0e0c4);
@@ -1598,7 +1598,7 @@ body.has-ad-banner #universal-footer {
 }
 
 #scr-input-sound-entry .sound-entry-preview-card-center {
-    left: 32px;
+    left: 28px;
     top: 8px;
     z-index: 2;
 }
@@ -1608,6 +1608,19 @@ body.has-ad-banner #universal-footer {
     bottom: 7px;
     transform: rotate(8deg);
     z-index: 3;
+}
+
+#wiz-step-4 .wiz-mini-card,
+#scr-input-sound-entry .wiz-mini-card {
+    border: none;
+    box-shadow: none;
+}
+
+#scr-input-sound-entry .sound-entry-choice-title {
+    white-space: nowrap;
+    font-size: clamp(0.88rem, 3vw, 0.98rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
 #scr-input-sound-entry .sound-entry-pos-label {
