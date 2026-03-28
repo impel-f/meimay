@@ -553,7 +553,7 @@ function renderSoundEntryScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="glass-card p-6 rounded-[40px] w-full max-w-sm text-center mt-2 shadow-2xl mx-auto">
+        <div class="w-full max-w-sm text-center mt-2 mx-auto">
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
 
             <div class="space-y-2.5 text-left mb-4">
