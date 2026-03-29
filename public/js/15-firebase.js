@@ -1216,8 +1216,7 @@ const MeimayPartnerInsights = {
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
         const ownCandidates = ownItems.slice();
         if (ownOverrideKey) {
-            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === ownOverrideKey)
-                || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === ownOverrideKey);
+            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === ownOverrideKey);
             if (overrideItem && !ownCandidates.some(item => this.buildSavedMatchKey(item) === ownOverrideKey)) {
                 ownCandidates.push(overrideItem);
             }
@@ -1262,13 +1261,11 @@ const MeimayPartnerInsights = {
 
     getOwnMainSavedItem: function () {
         const ownItems = this.getOwnSaved();
-        const partnerItems = this.getPartnerSaved();
         const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
             ? window.__meimaySavedCanvasOwnKey
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
         if (overrideKey) {
-            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey)
-                || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
+            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
             if (overrideItem) return overrideItem;
         }
 
@@ -1282,7 +1279,16 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerMainSavedItem: function () {
-        const items = this.getPartnerSaved().filter(item => item?.mainSelected);
+        const partnerItems = this.getPartnerSaved();
+        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
+            ? window.__meimaySavedCanvasPartnerKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+        if (overrideKey) {
+            const overrideItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
+            if (overrideItem) return overrideItem;
+        }
+
+        const items = partnerItems.filter(item => item?.mainSelected);
         if (items.length === 0) return null;
         return items.slice().sort((a, b) => {
             const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
