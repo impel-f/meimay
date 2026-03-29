@@ -1665,6 +1665,10 @@ body.has-ad-banner #universal-footer {
     transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
+.screen-back-btn--wide {
+    width: 100%;
+}
+
 .screen-back-btn:hover {
     background: #fffdfa;
     border-color: rgba(188, 163, 127, 0.68);
