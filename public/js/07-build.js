@@ -2957,12 +2957,16 @@ function displayFortuneRankingModal(rankedList) {
     const nameEl = document.getElementById('for-name');
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
+    const saveBtn = document.getElementById('fortune-save-btn');
 
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
     if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
-    gridEl.innerHTML =
-        (!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : '') +
-        '<p class="text-xs text-center text-[#a6967a] mb-3">タップして選択すると自動的に反映されます</p>';
+    if (saveBtn) saveBtn.style.display = 'none';
+    gridEl.innerHTML = `
+        <div style="position:sticky;top:0;z-index:20;padding:4px 0 12px;background:linear-gradient(180deg, rgba(253,250,245,0.98) 0%, rgba(253,250,245,0.92) 100%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
+            ${!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : ''}
+            <p class="text-xs text-center text-[#a6967a]">タップして選択すると自動的に反映されます</p>
+        </div>`;
     descEl.innerHTML = '';
 
     // 同スコア同順位（dense ranking）
