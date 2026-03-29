@@ -2887,3 +2887,286 @@ window.votePartnerSavedName = votePartnerSavedName;
 window.deleteSavedName = deleteSavedNameBySourceIndex;
 window.getSavedCandidateKey = getSavedCandidateKey;
 window.getSavedCanvasState = getSavedCanvasState;
+
+function renderSavedScreen() {
+    const canvasContainer = document.getElementById('saved-naming-canvas');
+    const listContainer = document.getElementById('saved-list-content');
+    if (!canvasContainer || !listContainer) return;
+
+    const saved = getSavedNames();
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const canvasState = getSavedCanvasState();
+    const partnerName = canvasState.partnerName || (pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー'));
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const getFortuneText = (fortune) => {
+        if (!fortune || fortune.so == null || fortune.so === '') return '';
+        const raw = typeof fortune.so === 'object'
+            ? (fortune.so.val || fortune.so.label || fortune.so.text || '')
+            : fortune.so;
+        const text = String(raw || '').trim().replace(/[画数]+$/, '');
+        return text ? escapeHtml(text) : '';
+    };
+
+    const fitSavedText = (node, minSize, maxSize) => {
+        if (!node) return;
+        const parent = node.parentElement;
+        if (!parent) return;
+
+        node.style.whiteSpace = 'nowrap';
+        node.style.display = 'block';
+        node.style.width = '100%';
+        node.style.overflow = 'hidden';
+        node.style.textOverflow = 'clip';
+
+        const availableWidth = parent.clientWidth || parent.getBoundingClientRect().width || 0;
+        if (!availableWidth) return;
+
+        let size = maxSize;
+        node.style.fontSize = `${size}px`;
+        while (size > minSize && node.scrollWidth > availableWidth) {
+            size -= 1;
+            node.style.fontSize = `${size}px`;
+        }
+    };
+
+    const applySavedTextFit = () => {
+        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 20, 40));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 18, 30));
+        listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 17, 26));
+    };
+
+    const ownKeySet = new Set(saved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+
+    const ownDecorated = saved.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        return {
+            item,
+            index,
+            key,
+            ownSelected,
+            partnerSelected,
+            shared
+        };
+    }).sort((a, b) => {
+        if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+        if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+        if (a.shared !== b.shared) return a.shared ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const partnerDecorated = partnerSaved.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        return {
+            item,
+            index,
+            key,
+            ownSelected,
+            partnerSelected,
+            shared,
+            showInList: !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
+        };
+    }).filter(entry => entry.showInList).sort((a, b) => {
+        if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+        if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+        if (a.shared !== b.shared) return a.shared ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    let visibleOwn = ownDecorated;
+    let visiblePartner = partnerDecorated;
+    if (savedFocus === 'partner') {
+        visibleOwn = [];
+    } else if (savedFocus === 'matched') {
+        visibleOwn = ownDecorated.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
+        visiblePartner = [];
+    }
+
+    const renderCanvasSide = (item, sourceType, emptyText) => {
+        const isOwn = sourceType === 'own';
+        const label = isOwn ? '自分' : partnerName;
+        const borderClass = isOwn ? 'border-[#f1d7c8]' : 'border-[#f3ddd3]';
+        const bgClass = isOwn ? 'bg-[#fff8f2]' : 'bg-[#fffaf8]';
+        const labelClass = isOwn ? 'text-[#cf8c7a]' : 'text-[#d19a88]';
+
+        if (!item) {
+            return `
+                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} px-4 py-5 text-center">
+                    <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
+                    <div class="mt-3 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                </div>
+            `;
+        }
+
+        const key = getSavedCandidateKey(item);
+        const selected = isOwn
+            ? !!canvasState.ownKey && key === canvasState.ownKey
+            : !!canvasState.partnerKey && key === canvasState.partnerKey;
+
+        return `
+            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-5 shadow-sm ${selected ? 'ring-2 ring-[#e8c7a0]' : ''}">
+                <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
+                <div class="mt-4 flex min-h-[120px] items-center justify-center">
+                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[38px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+                        ${escapeHtml(item.fullName || item.givenName || '')}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const renderCanvasHtml = canvasState.matched && mainItem
+        ? `
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-7 text-center shadow-sm">
+                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[42px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+                        ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
+                    </div>
+                </div>
+            </div>
+        `
+        : `
+            <div class="grid grid-cols-2 gap-3">
+                ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
+                ${renderCanvasSide(canvasState.partnerMain, 'partner', 'まだ本命を選んでいません')}
+            </div>
+        `;
+
+    const canvasHeaderText = canvasState.matched
+        ? 'ふたりの本命が一致しました'
+        : '本命の候補を選択してください';
+
+    canvasContainer.innerHTML = `
+        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+            <div class="mb-3 text-sm font-black text-[#5d5444]">${escapeHtml(canvasHeaderText)}</div>
+            ${renderCanvasHtml}
+        </div>
+    `;
+
+    const focusBanner = savedFocus !== 'all'
+        ? `
+            <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">絞り込み</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${savedFocus === 'partner' ? `${escapeHtml(partnerName)}の候補だけ表示中` : 'ふたりで一致した候補だけ表示中'}</div>
+                    </div>
+                    <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        すべて表示
+                    </button>
+                </div>
+            </div>
+        `
+        : '';
+
+    const renderCard = (entry, source) => {
+        const item = entry.item;
+        const detailSource = source === 'own' ? 'own' : 'partner';
+        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const buttonAction = source === 'own'
+            ? `setSavedMainCandidate(${entry.index})`
+            : `votePartnerSavedName(${entry.index})`;
+        const buttonClass = entry.ownSelected
+            ? 'bg-[#5d5444] text-white cursor-default'
+            : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
+        const cardClass = source === 'own'
+            ? (entry.ownSelected
+                ? 'border-[#e1c29a] bg-[#fff7ef] shadow-[0_10px_30px_-22px_rgba(188,163,127,0.55)]'
+                : 'border-[#f1d8cb] bg-[#fff8f3] shadow-sm')
+            : (entry.ownSelected
+                ? 'border-[#e1b7b1] bg-[#fff7f7] shadow-[0_10px_30px_-22px_rgba(221,125,115,0.28)]'
+                : 'border-[#f1ddd8] bg-[#fffaf9] shadow-sm');
+        const nameText = escapeHtml(item.fullName || item.givenName || '');
+        const readingText = escapeHtml(item.reading || '');
+        const messageText = item.message ? escapeHtml(item.message) : '';
+        const fortuneText = getFortuneText(item.fortune);
+
+        return `
+            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${cardClass} p-4 transition-all active:scale-[0.99]">
+                <div class="flex items-start gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-start gap-3">
+                            <div class="min-w-0 flex-1">
+                                <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-xl font-black leading-tight text-[#5d5444]">${nameText}</div>
+                                ${readingText ? `<div class="mt-1 text-xs text-[#a6967a]">${readingText}</div>` : ''}
+                                ${messageText ? `<div class="mt-1 text-xs text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                            </div>
+                            <div class="flex shrink-0 flex-col items-end gap-2">
+                                <button onclick="event.stopPropagation(); ${buttonAction}" ${entry.ownSelected ? 'disabled' : ''} class="min-w-[6.5rem] rounded-full px-3.5 py-2 text-[11px] font-black ${buttonClass}">
+                                    ${buttonText}
+                                </button>
+                                ${fortuneText ? `<div class="text-sm font-bold text-[#bca37f]">${fortuneText}画</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    let html = focusBanner;
+    if (visibleOwn.length > 0) {
+        html += `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">自分の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visibleOwn.length}件</div>
+                </div>
+                ${visibleOwn.map(entry => renderCard(entry, 'own')).join('')}
+            </div>
+        `;
+    }
+
+    if (visiblePartner.length > 0) {
+        html += `
+            <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">${escapeHtml(partnerName)}の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visiblePartner.length}件</div>
+                </div>
+                ${visiblePartner.map(entry => renderCard(entry, 'partner')).join('')}
+            </div>
+        `;
+    }
+
+    if (!visibleOwn.length && !visiblePartner.length) {
+        html += `
+            <div class="text-center py-16 text-sm text-[#a6967a]">
+                <p>まだ保存済みの候補はありません</p>
+                <p class="text-[10px] mt-2">候補を保存するとここに並びます</p>
+            </div>
+        `;
+    }
+
+    listContainer.innerHTML = html;
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(applySavedTextFit);
+    } else {
+        setTimeout(applySavedTextFit, 0);
+    }
+}
+
+window.renderSavedScreen = renderSavedScreen;
