@@ -1690,6 +1690,27 @@ body.has-ad-banner #universal-footer {
     transform: scale(0.98);
 }
 
+#build-save-btn:disabled {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border-color: #eee5d8 !important;
+    color: #a6967a !important;
+    box-shadow: none !important;
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+#build-save-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.55) !important;
+    border-color: #eee5d8 !important;
+    color: #a6967a !important;
+    transform: none !important;
+}
+
+.build-right-actions > button:first-child {
+    display: none !important;
+}
+
 #scr-segment .wiz-gender-btn {
     padding: 18px 20px;
     border-radius: 24px;

@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="/css/main.css?v=25.38">
+<link rel="stylesheet" href="/css/main.css?v=25.39">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.12">
 
     <!-- Google AdSense -->
@@ -130,7 +130,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.57
+            メイメー v25.58
         </div>
     </aside>
 
@@ -1102,12 +1102,19 @@
     </div>
 
     <div id="scr-build" class="screen bg-[#fdfaf5]" style="padding-top: 48px;">
-        <div class="w-full max-w-md pt-0 px-4 mx-auto relative h-full flex flex-col">
+        <div class="w-full max-w-md pt-0 px-4 mx-auto relative h-full flex flex-col" style="padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));">
             <div id="build-header-sticky" class="screen-header-shell shrink-0">
             </div>
             <div class="flex-1 min-h-0 overflow-y-auto">
                 <div id="build-selection" class="space-y-6 mb-6 pt-4"></div>
                 <div id="build-result-area" class="pb-40"></div>
+            </div>
+            <div class="shrink-0 pt-4 flex justify-center">
+                <button id="build-save-btn" onclick="saveName()" disabled
+                    class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
+                    <div class="text-sm font-bold">💾 保存</div>
+                    <div class="text-[10px] font-medium opacity-80">今の名前を保存</div>
+                </button>
             </div>
         </div>
     </div>
@@ -1910,7 +1917,7 @@
     <script src="/js/04-ui-flow.js?v=25.87"></script>
     <script src="/js/05-ui-render.js?v=25.21"></script>
     <script src="/js/06-ui-physics.js?v=25.13"></script>
-<script src="/js/07-build.js?v=25.29"></script>
+<script src="/js/07-build.js?v=25.30"></script>
 <script src="/js/08-origin.js?v=25.42"></script>
 <script src="/js/09-storage.js?v=25.17"></script>
     <script src="/js/10-choice.js?v=25.11"></script>

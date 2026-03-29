@@ -1367,6 +1367,16 @@ function setBuildMode(mode) {
 window.setBuildMode = setBuildMode;
 
 /**
+ * 保存フッターの有効状態を同期
+ */
+function syncBuildSaveButton(canSave) {
+    const btn = document.getElementById('build-save-btn');
+    if (!btn) return;
+    btn.disabled = !canSave;
+    btn.setAttribute('aria-disabled', String(!canSave));
+}
+
+/**
  * 固定ヘッダー（名前プレビュー）を更新
  */
 function updateNamePreview() {
@@ -1465,7 +1475,7 @@ function updateNamePreview() {
 
     // キャンバスと横幅を左右対称にするため w-[64px] に統一
     const BTN_W = 'w-[64px]';
-    const rightButtons = `<div class="flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
+    const rightButtons = `<div class="build-right-actions flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
         <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
             <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
@@ -1487,6 +1497,7 @@ function updateNamePreview() {
             </div>
             ${rightButtons}
         </div>`;
+        syncBuildSaveButton(canSave);
         return;
     }
 
@@ -1503,6 +1514,7 @@ function updateNamePreview() {
             </div>
             ${rightButtons}
         </div>`;
+        syncBuildSaveButton(canSave);
         return;
     }
 
@@ -1527,6 +1539,7 @@ function updateNamePreview() {
             </div>
             ${rightButtons}
         </div>`;
+    syncBuildSaveButton(canSave);
 }
 
 /**
