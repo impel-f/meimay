@@ -1907,6 +1907,18 @@ window.likePartnerSavedName = likePartnerSavedName;
 window.getSavedNames = getSavedNames;
 window.renderSavedScreen = renderSavedScreen;
 
+if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, 'savedFocus')) {
+    Object.defineProperty(window, 'savedFocus', {
+        configurable: true,
+        get() {
+            const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+                ? window.getMeimayPartnerViewState()
+                : { savedFocus: 'all' };
+            return partnerViewState?.savedFocus || 'all';
+        }
+    });
+}
+
 function clearSavedPartnerFocus() {
     if (typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus(['savedFocus']);
