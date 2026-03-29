@@ -142,6 +142,9 @@ window.onload = () => {
             });
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
+            if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+                renderHomeProfile();
+            }
 
             // UI更新 (今日の一字)
             if (typeof initTodaysKanji === 'function') {

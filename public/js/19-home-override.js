@@ -840,8 +840,17 @@ function getHomeSearchChoiceRecommended(readingStockCount) {
 
 function getHomeStageFocus(defaultKey = 'reading') {
     const allowed = new Set(['reading', 'kanji', 'build', 'save']);
+    const nextDefault = allowed.has(defaultKey) ? defaultKey : 'reading';
+    const currentSource = window.MeimayHomeStageFocusSource || 'auto';
+
     if (!allowed.has(window.MeimayHomeStageFocus)) {
-        window.MeimayHomeStageFocus = allowed.has(defaultKey) ? defaultKey : 'reading';
+        window.MeimayHomeStageFocus = nextDefault;
+        window.MeimayHomeStageFocusSource = 'auto';
+    } else if (currentSource !== 'manual' && window.MeimayHomeStageFocus !== nextDefault) {
+        window.MeimayHomeStageFocus = nextDefault;
+        window.MeimayHomeStageFocusSource = 'auto';
+    } else if (!window.MeimayHomeStageFocusSource) {
+        window.MeimayHomeStageFocusSource = 'auto';
     }
     return window.MeimayHomeStageFocus;
 }
@@ -850,6 +859,7 @@ function selectHomeStageTab(stageKey) {
     const allowed = new Set(['reading', 'kanji', 'build', 'save']);
     if (!allowed.has(stageKey)) return;
     window.MeimayHomeStageFocus = stageKey;
+    window.MeimayHomeStageFocusSource = 'manual';
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
 }
 
