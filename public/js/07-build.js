@@ -2972,7 +2972,7 @@ function displayFortuneRankingModal(rankedList) {
         ranks.push(item.score === rankedList[i - 1].score ? ranks[i - 1] : ranks[i - 1] + 1);
     });
 
-    const medals = { 1: '1位', 2: '2位', 3: '3位' };
+    const medals = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
     rankedList.forEach((item, index) => {
         const rank = ranks[index];
@@ -2989,7 +2989,7 @@ function displayFortuneRankingModal(rankedList) {
         card.onclick = () => applyRankedCombination(item.combination);
 
         const rankBadge = medals[rank]
-            ? `<span style = "font-size:22px;line-height:1;flex-shrink:0" > ${medals[rank]}</span> `
+            ? `<span style="font-size:18px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px">${medals[rank]}</span> `
             : `<div style = "width:28px;height:28px;border-radius:50%;background:#f8f5ef;border:1.5px solid #d4c5af;display:flex;align-items:center;justify-content:center;flex-shrink:0" > <span style="font-size:12px;font-weight:900;color:#a6967a;line-height:1">${rank}</span></div> `;
 
         card.innerHTML = `
