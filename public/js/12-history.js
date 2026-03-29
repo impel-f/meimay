@@ -1063,6 +1063,7 @@ let _lastSavedDetailIndex = null;
  * 保存済み名前の詳細を表示するモーダル
  */
 function showSavedNameDetail(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const saved = getSavedNames();
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
     const sourceSaved = source === 'partner' ? partnerSaved : saved;
@@ -1728,6 +1729,7 @@ function votePartnerSavedName(index) {
         const existing = updated[existingIndex] || {};
         updated[existingIndex] = {
             ...existing,
+            fromPartner: false,
             approvedFromPartner: true,
             approvedPartnerSavedKey: sourceKey,
             partnerName,
@@ -2590,7 +2592,7 @@ function votePartnerSavedName(index) {
         const existing = updated[existingIndex] || {};
         updated[existingIndex] = {
             ...existing,
-            fromPartner: true,
+            fromPartner: false,
             approvedFromPartner: true,
             approvedPartnerSavedKey: sourceKey,
             partnerName,
@@ -2602,7 +2604,7 @@ function votePartnerSavedName(index) {
         updated = [
             {
                 ...approved,
-                fromPartner: true,
+                fromPartner: false,
                 mainSelected: true,
                 mainSelectedAt: now
             },
@@ -3044,10 +3046,10 @@ function renderSavedScreen() {
             : !!canvasState.partnerKey && key === canvasState.partnerKey;
 
         return `
-            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-5 shadow-sm ${selected ? 'ring-2 ring-[#e8c7a0]' : ''}">
+            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-3 shadow-sm ${selected ? 'ring-2 ring-[#e8c7a0]' : ''}">
                 <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
-                <div class="mt-4 flex min-h-[120px] items-center justify-center">
-                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[38px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+                <div class="mt-2 flex min-h-[88px] items-center justify-center">
+                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[32px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(item.fullName || item.givenName || '')}
                     </div>
                 </div>
@@ -3058,9 +3060,9 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
-                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-7 text-center shadow-sm">
-                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[42px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-4 text-center shadow-sm">
+                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[36px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
                     </div>
                 </div>
@@ -3120,7 +3122,6 @@ function renderSavedScreen() {
         const nameText = escapeHtml(item.fullName || item.givenName || '');
         const readingText = escapeHtml(item.reading || '');
         const messageText = item.message ? escapeHtml(item.message) : '';
-        const fortuneText = getFortuneText(item.fortune);
 
         return `
             <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${cardClass} p-4 transition-all active:scale-[0.99]">
@@ -3136,7 +3137,6 @@ function renderSavedScreen() {
                                 <button onclick="event.stopPropagation(); ${buttonAction}" ${entry.ownSelected ? 'disabled' : ''} class="min-w-[6.5rem] rounded-full px-3.5 py-2 text-[11px] font-black ${buttonClass}">
                                     ${buttonText}
                                 </button>
-                                ${fortuneText ? `<div class="text-sm font-bold text-[#bca37f]">${fortuneText}画</div>` : ''}
                             </div>
                         </div>
                     </div>
