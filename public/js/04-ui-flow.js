@@ -7628,8 +7628,8 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
 function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
     if (!Array.isArray(path) || path.length === 0) return [];
 
-    const groups = path.map((segment) => {
-        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender);
+    const groups = path.map((segment, index) => {
+        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender, { segmentIndex: index });
         const pool = sortReadingCandidatesForDisplay(
             rawGroup
                 .slice(0, 16)

@@ -2907,9 +2907,9 @@ function renderSavedScreen() {
     };
 
     const applySavedTextFit = () => {
-        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 20, 40));
-        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 18, 30));
-        listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 17, 26));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 16, 28));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 15, 24));
+        listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 14, 22));
     };
 
     const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
@@ -2970,18 +2970,34 @@ function renderSavedScreen() {
         visiblePartner = [];
     }
 
+    const canvasTheme = {
+        own: {
+            border: 'border-[#e7c7a0]',
+            bg: 'bg-[#fff7ee]',
+            label: 'text-[#be8558]',
+            ring: 'ring-[#e7c7a0]'
+        },
+        partner: {
+            border: 'border-[#e7bcc6]',
+            bg: 'bg-[#fff5f7]',
+            label: 'text-[#d57f8f]',
+            ring: 'ring-[#e7b0bb]'
+        }
+    };
+
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
         const label = isOwn ? '自分' : partnerName;
-        const borderClass = isOwn ? 'border-[#f1d7c8]' : 'border-[#f3ddd3]';
-        const bgClass = isOwn ? 'bg-[#fff8f2]' : 'bg-[#fffaf8]';
-        const labelClass = isOwn ? 'text-[#cf8c7a]' : 'text-[#d19a88]';
+        const theme = isOwn ? canvasTheme.own : canvasTheme.partner;
+        const borderClass = theme.border;
+        const bgClass = theme.bg;
+        const labelClass = theme.label;
 
         if (!item) {
             return `
-                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} px-4 py-5 text-center">
+                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} px-4 py-4 text-center">
                     <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
-                    <div class="mt-3 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                    <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
                 </div>
             `;
         }
@@ -2992,10 +3008,10 @@ function renderSavedScreen() {
             : !!canvasState.partnerKey && key === canvasState.partnerKey;
 
         return `
-            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-3 shadow-sm ${selected ? 'ring-2 ring-[#e8c7a0]' : ''}">
+            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-2.5 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}">
                 <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
-                <div class="mt-2 flex min-h-[88px] items-center justify-center">
-                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[32px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+                <div class="mt-1 flex min-h-[60px] items-center justify-center">
+                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[26px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(item.fullName || item.givenName || '')}
                     </div>
                 </div>
@@ -3006,16 +3022,16 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
-                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-4 text-center shadow-sm">
-                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[36px] font-black leading-[1.05] whitespace-nowrap text-[#5d5444]">
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-2 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="rounded-[22px] border border-[#eadfce] bg-white px-4 py-2 text-center shadow-sm">
+                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[28px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
                     </div>
                 </div>
             </div>
         `
         : `
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-2.5">
                 ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
                 ${renderCanvasSide(canvasState.partnerMain, 'partner', 'まだ本命を選んでいません')}
             </div>
@@ -3026,8 +3042,8 @@ function renderSavedScreen() {
         : '本命の候補を選択してください';
 
     canvasContainer.innerHTML = `
-        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
-            <div class="mb-3 text-sm font-black text-[#5d5444]">${escapeHtml(canvasHeaderText)}</div>
+        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+            <div class="mb-2 text-[13px] font-black text-[#5d5444]">${escapeHtml(canvasHeaderText)}</div>
             ${renderCanvasHtml}
         </div>
     `;
@@ -3059,29 +3075,33 @@ function renderSavedScreen() {
         const buttonClass = selected
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
-        const cardClass = source === 'own'
-            ? (selected
-                ? 'border-[#e1c29a] bg-[#fff7ef] shadow-[0_10px_30px_-22px_rgba(188,163,127,0.55)]'
-                : 'border-[#f1d8cb] bg-[#fff8f3] shadow-sm')
-            : (selected
-                ? 'border-[#e1b7b1] bg-[#fff7f7] shadow-[0_10px_30px_-22px_rgba(221,125,115,0.28)]'
-                : 'border-[#f1ddd8] bg-[#fffaf9] shadow-sm');
+        const theme = source === 'own'
+            ? {
+                border: selected ? 'border-[#e4be8f]' : 'border-[#efd7be]',
+                bg: selected ? 'bg-[#fff3e7]' : 'bg-[#fff9f2]',
+                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(188,163,127,0.45)]' : 'shadow-sm'
+            }
+            : {
+                border: selected ? 'border-[#e6b0bb]' : 'border-[#f0d2d9]',
+                bg: selected ? 'bg-[#fff1f4]' : 'bg-[#fff8fa]',
+                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(221,125,115,0.24)]' : 'shadow-sm'
+            };
         const nameText = escapeHtml(item.fullName || item.givenName || '');
         const readingText = escapeHtml(item.reading || '');
         const messageText = item.message ? escapeHtml(item.message) : '';
 
         return `
-            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${cardClass} p-4 transition-all active:scale-[0.99]">
+            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${theme.border} ${theme.bg} ${theme.shadow} p-3.5 transition-all active:scale-[0.99]">
                 <div class="flex items-start gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-start gap-3">
                             <div class="min-w-0 flex-1">
-                                <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-xl font-black leading-tight text-[#5d5444]">${nameText}</div>
-                                ${readingText ? `<div class="mt-1 text-xs text-[#a6967a]">${readingText}</div>` : ''}
-                                ${messageText ? `<div class="mt-1 text-xs text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                                <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-black leading-tight text-[#5d5444]">${nameText}</div>
+                                ${readingText ? `<div class="mt-1 text-[11px] text-[#a6967a]">${readingText}</div>` : ''}
+                                ${messageText ? `<div class="mt-1 text-[11px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
-                                <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[6.5rem] rounded-full px-3.5 py-2 text-[11px] font-black ${buttonClass}">
+                                <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[6rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
                                     ${buttonText}
                                 </button>
                             </div>
