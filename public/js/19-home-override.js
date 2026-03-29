@@ -842,6 +842,20 @@ function getHomeRecommendedStageKey(action) {
     return '';
 }
 
+function getHomeOverviewInitialStageKey(stageSnapshot, nextStep) {
+    if (stageSnapshot?.mode === 'shared') {
+        const timeline = getHomeStageTrackTimeline(
+            Number(stageSnapshot?.likedCount) || 0,
+            Number(stageSnapshot?.readingStockCount) || 0,
+            Number(stageSnapshot?.savedCount) || 0,
+            stageSnapshot || {}
+        );
+        return timeline?.activeKey || 'reading';
+    }
+
+    return getHomeRecommendedStageKey(nextStep?.action);
+}
+
 function getHomeSearchChoiceRecommended(readingStockCount) {
     const wizard = getWizardHomeState();
     return readingStockCount > 0 || wizard.hasReadingCandidate === true ? 'reading' : 'sound';
@@ -1871,11 +1885,7 @@ function renderHomeProfile() {
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    const overviewMode = getHomeOverviewMode(pairing);
-    const recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
-    stageSnapshot.recommendedKey = overviewMode === 'shared' && recommendedKey === 'reading'
-        ? 'kanji'
-        : recommendedKey;
+    stageSnapshot.recommendedKey = getHomeOverviewInitialStageKey(stageSnapshot, nextStep);
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -2039,8 +2049,12 @@ function getHomeOverviewMode(pairing) {
 }
 
 function setHomeOverviewMode(mode) {
+    const previousMode = window.MeimayHomeOverviewMode;
     window.MeimayHomeOverviewMode = mode;
     window.MeimayHomeOverviewModeSource = window.MeimayPairing?.partnerUid ? 'manual' : 'auto';
+    if (previousMode !== mode) {
+        window.MeimayHomeStageFocusSource = 'auto';
+    }
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
 }
 
@@ -2185,11 +2199,7 @@ function renderHomeProfileV2() {
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    const overviewMode = getHomeOverviewMode(pairing);
-    const recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
-    stageSnapshot.recommendedKey = overviewMode === 'shared' && recommendedKey === 'reading'
-        ? 'kanji'
-        : recommendedKey;
+    stageSnapshot.recommendedKey = getHomeOverviewInitialStageKey(stageSnapshot, nextStep);
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
