@@ -4997,6 +4997,12 @@ function isNicknameKanjiQueueActive() {
 // AI候補調整（好みの音パターンで並び替え）
 // ==========================================
 
+const SOUND_PREFERENCE_SCHEMA_VERSION = 2;
+const SOUND_SESSION_WARMUP_LIMIT = 12;
+const SOUND_EVENT_LOG_LIMIT = 240;
+const SOUND_RANK_DEBUG_STORAGE_KEY = 'meimay_sound_debug_rank';
+const SOUND_DIVERSIFY_LOOKBACK = 5;
+
 let soundPreferenceData = normalizeSoundPreferenceData({
     liked: [],
     noped: []
@@ -5089,12 +5095,6 @@ function getVowelPattern(reading) {
     };
     return reading.split('').map(c => vowelMap[c] || '').join('');
 }
-
-const SOUND_PREFERENCE_SCHEMA_VERSION = 2;
-const SOUND_SESSION_WARMUP_LIMIT = 12;
-const SOUND_EVENT_LOG_LIMIT = 240;
-const SOUND_RANK_DEBUG_STORAGE_KEY = 'meimay_sound_debug_rank';
-const SOUND_DIVERSIFY_LOOKBACK = 5;
 
 function createSoundStatBucket() {
     return { shown: 0, opened: 0, liked: 0, skipped: 0, saved: 0, builtFromReading: 0, positive: 0, negative: 0, score: 0, eventCount: 0, firstSeenAt: 0, lastSeenAt: 0, lastActionAt: 0, lastDwellMs: 0 };
