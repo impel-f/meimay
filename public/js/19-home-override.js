@@ -1871,7 +1871,11 @@ function renderHomeProfile() {
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    const overviewMode = getHomeOverviewMode(pairing);
+    const recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    stageSnapshot.recommendedKey = overviewMode === 'shared' && recommendedKey === 'reading'
+        ? 'kanji'
+        : recommendedKey;
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -2181,7 +2185,11 @@ function renderHomeProfileV2() {
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    const overviewMode = getHomeOverviewMode(pairing);
+    const recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    stageSnapshot.recommendedKey = overviewMode === 'shared' && recommendedKey === 'reading'
+        ? 'kanji'
+        : recommendedKey;
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
