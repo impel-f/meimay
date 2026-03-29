@@ -843,17 +843,13 @@ function getHomeRecommendedStageKey(action) {
 }
 
 function getHomeOverviewInitialStageKey(stageSnapshot, nextStep) {
-    if (stageSnapshot?.mode === 'shared') {
-        const timeline = getHomeStageTrackTimeline(
-            Number(stageSnapshot?.likedCount) || 0,
-            Number(stageSnapshot?.readingStockCount) || 0,
-            Number(stageSnapshot?.savedCount) || 0,
-            stageSnapshot || {}
-        );
-        return timeline?.activeKey || 'reading';
-    }
-
-    return getHomeRecommendedStageKey(nextStep?.action);
+    const timeline = getHomeStageTrackTimeline(
+        Number(stageSnapshot?.likedCount) || 0,
+        Number(stageSnapshot?.readingStockCount) || 0,
+        Number(stageSnapshot?.savedCount) || 0,
+        stageSnapshot || {}
+    );
+    return timeline?.activeKey || getHomeRecommendedStageKey(nextStep?.action) || 'reading';
 }
 
 function getHomeSearchChoiceRecommended(readingStockCount) {
