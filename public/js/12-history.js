@@ -3794,10 +3794,8 @@ function setSavedMainCandidate(index) {
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = selectedKey;
-            window.__meimaySavedCanvasPartnerKey = '';
         }
         localStorage.setItem('meimay_saved_canvas_own_key', selectedKey);
-        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
         console.warn('SAVED: Persist own main key failed', error);
     }
@@ -3868,10 +3866,8 @@ function votePartnerSavedName(index) {
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = sourceKey;
-            window.__meimaySavedCanvasPartnerKey = '';
         }
         localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
-        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
         console.warn('SAVED: Persist own main key from partner candidate failed', error);
     }
@@ -4298,11 +4294,8 @@ function renderSavedScreen() {
             ring: 'ring-[#e7b0bb]'
         }
     };
-    const ownNickname = typeof getWizardNickname === 'function'
-        ? String(getWizardNickname() || '').trim()
-        : '';
-    const ownDisplayLabel = ownNickname ? `自分（${ownNickname}）` : '自分';
-    const partnerDisplayLabel = partnerName ? `パートナー（${partnerName}）` : 'パートナー';
+    const ownDisplayLabel = 'マイ本命';
+    const partnerDisplayLabel = 'パートナー本命';
 
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
@@ -4315,7 +4308,7 @@ function renderSavedScreen() {
         if (!item) {
             return `
                 <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} px-4 py-4 text-center">
-                    <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
+                    <div class="text-[12px] font-black tracking-[0.18em] ${labelClass} text-center">${escapeHtml(label)}</div>
                     <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
                 </div>
             `;
@@ -4327,11 +4320,13 @@ function renderSavedScreen() {
             : !!canvasState.partnerKey && key === canvasState.partnerKey;
 
         return `
-            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-2.5 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}">
-                <div class="text-[10px] font-black tracking-[0.18em] ${labelClass}">${escapeHtml(label)}</div>
-                <div class="mt-1 flex min-h-[60px] items-center justify-center">
-                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[26px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
-                        ${escapeHtml(item.fullName || item.givenName || '')}
+            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-3 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}">
+                <div class="flex flex-col items-center text-center">
+                    <div class="text-[12px] font-black tracking-[0.18em] ${labelClass} text-center">${escapeHtml(label)}</div>
+                    <div class="mt-2 flex min-h-[56px] items-center justify-center">
+                        <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[24px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+                            ${escapeHtml(item.fullName || item.givenName || '')}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4386,7 +4381,7 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
-        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
+        const selected = entry.ownSelected;
         const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
@@ -4394,20 +4389,24 @@ function renderSavedScreen() {
         const buttonClass = selected
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
+        const cardActive = entry.ownSelected || entry.partnerSelected;
         const theme = source === 'own'
             ? {
-                border: selected ? 'border-[#e4be8f]' : 'border-[#efd7be]',
-                bg: selected ? 'bg-[#fff3e7]' : 'bg-[#fff9f2]',
+                border: cardActive ? 'border-[#e4be8f]' : 'border-[#efd7be]',
+                bg: cardActive ? 'bg-[#fff3e7]' : 'bg-[#fff9f2]',
                 shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(188,163,127,0.45)]' : 'shadow-sm'
             }
             : {
-                border: selected ? 'border-[#e6b0bb]' : 'border-[#f0d2d9]',
-                bg: selected ? 'bg-[#fff1f4]' : 'bg-[#fff8fa]',
+                border: cardActive ? 'border-[#e6b0bb]' : 'border-[#f0d2d9]',
+                bg: cardActive ? 'bg-[#fff1f4]' : 'bg-[#fff8fa]',
                 shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(221,125,115,0.24)]' : 'shadow-sm'
             };
         const nameText = escapeHtml(item.fullName || item.givenName || '');
         const readingText = escapeHtml(item.reading || '');
         const messageText = item.message ? escapeHtml(item.message) : '';
+        const statusLabel = entry.ownSelected
+            ? '本命中'
+            : (entry.partnerSelected ? 'パートナー本命' : '');
 
         return `
             <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${theme.border} ${theme.bg} ${theme.shadow} p-3.5 transition-all active:scale-[0.99]">
@@ -4418,6 +4417,7 @@ function renderSavedScreen() {
                                 <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-black leading-tight text-[#5d5444]">${nameText}</div>
                                 ${readingText ? `<div class="mt-1 text-[11px] text-[#a6967a]">${readingText}</div>` : ''}
                                 ${messageText ? `<div class="mt-1 text-[11px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                                ${statusLabel ? `<div class="mt-2 inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${statusLabel}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
                                 <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[6rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
@@ -4436,7 +4436,7 @@ function renderSavedScreen() {
         html += `
             <div class="space-y-3">
                 <div class="flex items-center justify-between gap-3 px-1">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">${escapeHtml(ownDisplayLabel)}の候補</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">自分の候補</div>
                     <div class="text-[11px] text-[#8b7e66]">${visibleOwn.length}件</div>
                 </div>
                 ${visibleOwn.map(entry => renderCard(entry, 'own')).join('')}
@@ -4448,7 +4448,7 @@ function renderSavedScreen() {
         html += `
             <div class="space-y-3 pt-1">
                 <div class="flex items-center justify-between gap-3 px-1">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">${escapeHtml(partnerDisplayLabel)}の候補</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">${escapeHtml(partnerName)}の候補</div>
                     <div class="text-[11px] text-[#8b7e66]">${visiblePartner.length}件</div>
                 </div>
                 ${visiblePartner.map(entry => renderCard(entry, 'partner')).join('')}

@@ -1261,11 +1261,13 @@ const MeimayPartnerInsights = {
 
     getOwnMainSavedItem: function () {
         const ownItems = this.getOwnSaved();
+        const partnerItems = this.getPartnerSaved();
         const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
             ? window.__meimaySavedCanvasOwnKey
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
         if (overrideKey) {
-            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
+            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey)
+                || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
             if (overrideItem) return overrideItem;
         }
 
