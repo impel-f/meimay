@@ -1072,6 +1072,9 @@ function showSavedNameDetail(index, source = 'own') {
 
     const sourceKey = getSavedCandidateKey(item);
     const canvasState = getSavedCanvasState();
+    const savedFocus = typeof window !== 'undefined' && typeof window.savedFocus !== 'undefined'
+        ? window.savedFocus
+        : 'all';
     const localDeleteIndex = source === 'partner'
         ? saved.findIndex(entry => getSavedCandidateKey(entry) === sourceKey)
         : index;
@@ -2909,6 +2912,9 @@ function renderSavedScreen() {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
     const canvasState = getSavedCanvasState();
+    const savedFocus = typeof window !== 'undefined' && typeof window.savedFocus !== 'undefined'
+        ? window.savedFocus
+        : 'all';
     const partnerName = canvasState.partnerName || (pairInsights?.getPartnerDisplayName
         ? pairInsights.getPartnerDisplayName()
         : (typeof getPartnerRoleLabel === 'function'
