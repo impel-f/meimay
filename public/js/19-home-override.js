@@ -646,6 +646,15 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         };
     }
 
+    if (savedCount > 0) {
+        return {
+            title: '保存した候補を見る',
+            detail: '保存した候補が十分にたまっています。見比べながら、方向性を絞っていきましょう。',
+            actionLabel: '候補を見る',
+            action: 'saved'
+        };
+    }
+
     if (readingStockCount === 0 && wizard.hasReadingCandidate) {
         return {
             title: '読み候補があるので漢字を探せます',

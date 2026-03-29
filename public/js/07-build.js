@@ -551,6 +551,242 @@ function renderFbFortune(choices) {
 }
 
 // 自由ビルド確定
+function getFreeBuildRankingCandidatePool() {
+    const source = typeof getMergedLikedCandidates === 'function'
+        ? getMergedLikedCandidates()
+        : (Array.isArray(liked) ? liked : []);
+    const seen = new Set();
+    const pool = [];
+
+    source.forEach((item) => {
+        const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
+        if (!kanji || seen.has(kanji) || excludedKanjiFromBuild.includes(kanji)) return;
+        if (item?.isSuper) {
+            seen.add(kanji);
+            pool.push(item);
+        }
+    });
+
+    source.forEach((item) => {
+        const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
+        if (!kanji || seen.has(kanji) || excludedKanjiFromBuild.includes(kanji)) return;
+        seen.add(kanji);
+        pool.push(item);
+    });
+
+    return pool;
+}
+
+function getFreeBuildRankingCandidateItem(kanji, pool = getFreeBuildRankingCandidatePool()) {
+    const key = String(kanji || '').trim();
+    if (!key) return null;
+
+    const poolItem = pool.find((entry) => String(entry?.['漢字'] || entry?.kanji || '').trim() === key);
+    if (poolItem) return poolItem;
+
+    if (typeof master !== 'undefined' && Array.isArray(master)) {
+        const masterItem = master.find((entry) => String(entry?.['漢字'] || entry?.kanji || '').trim() === key);
+        if (masterItem) {
+            return {
+                ...masterItem,
+                '漢字': key,
+                '画数': masterItem['画数'] ?? 1
+            };
+        }
+    }
+
+    return { '漢字': key, '画数': 1 };
+}
+
+function getFreeBuildReadingInfo(choices) {
+    const readingFallback = getSafeFreeBuildAutoReading(choices || []);
+    if (!Array.isArray(choices) || choices.length === 0) {
+        return { candidates: [], reading: readingFallback, label: readingFallback };
+    }
+    if (typeof master === 'undefined' || !Array.isArray(master) || master.length === 0) {
+        return { candidates: [], reading: readingFallback, label: readingFallback };
+    }
+
+    const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
+    const allowedReadings = getAllowedReadingsForBuild(gender);
+    const selectedName = choices.join('');
+
+    function getKanjiReadings(kanji, mode = 'all') {
+        const rec = master.find((m) => m['漢字'] === kanji);
+        if (!rec) return [];
+        const raw = mode === 'on'
+            ? (rec['音'] || '')
+            : [rec['音'] || '', rec['訓'] || '', rec['伝統名のり'] || ''].join(',');
+        return [...new Set(
+            String(raw)
+                .split(/[、,・\/\s]+/)
+                .map((r) => typeof toHira === 'function'
+                    ? toHira(r.trim())
+                    : r.trim().replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60)))
+                .filter((r) => r && r.length >= 1 && /^[ぁ-ゖー]+$/.test(r))
+        )];
+    }
+
+    function cartesian(arrays) {
+        return arrays.reduce((acc, curr) => {
+            const result = [];
+            acc.forEach((a) => curr.forEach((c) => result.push(a + c)));
+            return result;
+        }, ['']);
+    }
+
+    const readingArrays = choices.map((kanji) => getKanjiReadings(kanji));
+    if (readingArrays.some((arr) => arr.length === 0)) {
+        return { candidates: [], reading: readingFallback, label: readingFallback };
+    }
+
+    const combinedSet = new Set(cartesian(readingArrays));
+    const candidates = dictionaryReadings.filter((entry) => {
+        const normalizedReading = normalizeReadingLookupKey(entry?.reading);
+        if (!normalizedReading || !combinedSet.has(normalizedReading)) return false;
+        if (allowedReadings && !allowedReadings.has(normalizedReading)) return false;
+        return true;
+    }).map((entry) => {
+        let score = 0;
+        if (entry.tags && typeof userTags !== 'undefined') {
+            entry.tags.forEach((tag) => {
+                if (userTags[tag]) score += userTags[tag];
+            });
+        }
+        const exampleText = String(entry.examples || '');
+        const exactNameMatch = selectedName && exampleText.includes(selectedName);
+        return {
+            ...entry,
+            _score: score,
+            _exactNameMatch: exactNameMatch ? 1 : 0,
+            _popularBoost: entry.isPopular ? 1 : 0
+        };
+    }).sort((a, b) => {
+        if (a._exactNameMatch !== b._exactNameMatch) return b._exactNameMatch - a._exactNameMatch;
+        if (a._score !== b._score) return b._score - a._score;
+        if (a._popularBoost !== b._popularBoost) return b._popularBoost - a._popularBoost;
+        return (b.count || 0) - (a.count || 0);
+    });
+
+    const topReading = String(candidates[0]?.reading || '').trim();
+    const reading = topReading || readingFallback;
+    const label = topReading
+        ? (candidates.length > 1 ? `${topReading} など` : topReading)
+        : readingFallback;
+
+    return { candidates, reading, label };
+}
+
+function getFortuneRankingScore(fortune, pieces = []) {
+    let score = 0;
+    if (fortune) {
+        const getLuckScore = (label) => {
+            if (label === '大吉') return 1000;
+            if (label === '吉') return 500;
+            if (label === '中吉') return 300;
+            if (label === '小吉') return 100;
+            if (label === '末吉') return 50;
+            if (label === '凶') return -500;
+            if (label === '大凶') return -1000;
+            return 0;
+        };
+
+        score += getLuckScore(fortune.so?.res?.label) * 2.0;
+        score += getLuckScore(fortune.jin?.res?.label) * 1.5;
+        score += getLuckScore(fortune.chi?.res?.label) * 1.2;
+        score += getLuckScore(fortune.gai?.res?.label) * 1.0;
+        score += getLuckScore(fortune.ten?.res?.label) * 0.5;
+
+        if (fortune.sansai) {
+            if (fortune.sansai.label === '大吉') score += 1500;
+            else if (fortune.sansai.label === '吉') score += 800;
+            else if (fortune.sansai.label === '中吉') score += 300;
+        }
+
+        const val = fortune.so?.val;
+        if ([15, 16, 21, 23, 24, 31, 32, 41, 45].includes(val)) score += 500;
+    }
+
+    const superCount = (Array.isArray(pieces) ? pieces : []).filter((piece) => piece && piece.isSuper).length;
+    score += superCount * 100;
+    return score;
+}
+
+function buildFreeBuildFortuneRanking() {
+    const pool = getFreeBuildRankingCandidatePool();
+    if (pool.length === 0) return [];
+
+    const totalSlots = Math.max(1, Math.min(3, Number(shownFbSlots) || fbChoices.length || 1));
+    const fixedFirstKanji = totalSlots > 1 ? String(fbChoices[0] || '').trim() : '';
+    const fixedPieces = fixedFirstKanji ? [getFreeBuildRankingCandidateItem(fixedFirstKanji, pool)].filter(Boolean) : [];
+    const variableSlots = Math.max(1, totalSlots - fixedPieces.length);
+    const ranked = [];
+
+    function walk(depth, pieces) {
+        if (depth === variableSlots) {
+            const givArr = pieces.map((piece) => ({
+                kanji: piece['漢字'],
+                strokes: parseInt(piece['画数']) || 0
+            }));
+            const fortune = typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate
+                ? FortuneLogic.calculate(surnameData, givArr)
+                : null;
+            ranked.push({
+                combination: {
+                    pieces,
+                    name: pieces.map((piece) => piece['漢字']).join(''),
+                    reading: '',
+                    readingLabel: ''
+                },
+                fortune,
+                score: getFortuneRankingScore(fortune, pieces)
+            });
+            return;
+        }
+
+        pool.forEach((item) => {
+            walk(depth + 1, [...pieces, item]);
+        });
+    }
+
+    walk(0, fixedPieces);
+
+    return ranked
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map((item) => {
+            const choices = item.combination.pieces.map((piece) => piece['漢字']);
+            const readingInfo = getFreeBuildReadingInfo(choices);
+            return {
+                ...item,
+                combination: {
+                    ...item.combination,
+                    reading: readingInfo.reading,
+                    readingLabel: readingInfo.label || readingInfo.reading
+                }
+            };
+        });
+}
+
+function applyFreeRankedCombination(combination) {
+    if (!combination || !Array.isArray(combination.pieces)) return;
+
+    fbChoices = combination.pieces.map((piece) => piece['漢字']).filter(Boolean);
+    fbChoicesUseMark = {};
+    fbChoices.forEach((kanji, idx) => {
+        fbChoicesUseMark[idx] = idx > 0 && fbChoices[idx - 1] === kanji;
+    });
+    shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
+    fbSelectedReading = combination.reading || null;
+    currentFbRecommendedReadings = [];
+
+    closeFortuneDetail();
+    withScrollPreservation(() => {
+        renderBuildSelection();
+        executeFbBuild();
+    });
+}
+
 function confirmFbBuild() {
     const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
     if (!givenName) return;
@@ -2935,6 +3171,16 @@ function showFortuneRanking() {
         alert('名字を入力してください');
         return;
     }
+    if (buildMode === 'free') {
+        const ranked = buildFreeBuildFortuneRanking();
+        if (ranked.length === 0) {
+            alert('???????????');
+            return;
+        }
+        displayFortuneRankingModal(ranked, { mode: 'free' });
+        return;
+    }
+
     const allCombinations = generateAllCombinations();
     if (allCombinations.length === 0) {
         alert('候補が不足しています。各文字で最低1つ以上選んでください。');
@@ -3033,7 +3279,7 @@ function generateAllCombinations() {
 /**
  * 運勢ランキングモーダルを表示
  */
-function displayFortuneRankingModal(rankedList) {
+function displayFortuneRankingModal(rankedList, options = {}) {
     const modal = document.getElementById('modal-fortune-detail');
     if (!modal) return;
 
@@ -3042,6 +3288,7 @@ function displayFortuneRankingModal(rankedList) {
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
     const saveBtn = document.getElementById('fortune-save-btn');
+    const isFreeModeRanking = options.mode === 'free' || buildMode === 'free';
 
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
     if (nameEl) nameEl.innerText = '🏆 運勢TOP10';
@@ -3078,7 +3325,13 @@ function displayFortuneRankingModal(rankedList) {
         else if (rank === 3) card.classList.add('border-[#e5dfd5]');
         else card.classList.add('border-[#eee5d8]');
 
-        card.onclick = () => applyRankedCombination(item.combination);
+        card.onclick = () => {
+            if (isFreeModeRanking) {
+                applyFreeRankedCombination(item.combination);
+            } else {
+                applyRankedCombination(item.combination);
+            }
+        };
 
         const rankBadge = medals[rank]
             ? `<span style="font-size:18px;line-height:1;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px">${medals[rank]}</span> `
@@ -3090,7 +3343,7 @@ function displayFortuneRankingModal(rankedList) {
                 <div style="flex:1;min-width:0;overflow:hidden">
                     <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:2px">
                         <span style="font-size:17px;font-weight:900;color:#5d5444;white-space:nowrap">${fullName}</span>
-                        <span style="font-size:10px;color:#a6967a;white-space:nowrap">${item.combination.reading}</span>
+                        <span style="font-size:10px;color:#a6967a;white-space:nowrap">${item.combination.readingLabel || item.combination.reading || ''}</span>
                     </div>
                     <div style="display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden">
                         <span style="padding:1px 5px;background:white;border-radius:20px;font-size:9px;font-weight:700;border:1px solid #eee5d8;white-space:nowrap;flex-shrink:0" class="${f.ten.res.color}">天:${f.ten.res.label}</span>
