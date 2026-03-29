@@ -543,7 +543,7 @@ function renderSearchMethodChooserScreen() {
                     </div>
                 </button>
             </div>
-            <button onclick="changeScreen('scr-mode')" class="screen-back-btn">戻る</button>
+            <button onclick="changeScreen('scr-mode')" class="screen-back-btn screen-back-btn--wide">戻る</button>
         </div>
     `;
 }
