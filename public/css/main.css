@@ -1667,6 +1667,8 @@ body.has-ad-banner #universal-footer {
 
 .screen-back-btn--wide {
     width: 100%;
+    display: flex;
+    align-self: stretch;
 }
 
 .screen-back-btn:hover {
