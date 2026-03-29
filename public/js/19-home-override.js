@@ -2021,7 +2021,8 @@ window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
-window.renderHomeProfile = renderHomeProfile;
+window.renderHomeProfileLegacy = renderHomeProfile;
+window.renderHomeProfile = renderHomeProfileV2;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -3005,7 +3006,8 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
     `;
 }
 
-window.renderHomeProfile = renderHomeProfile;
+window.renderHomeProfileLegacy = renderHomeProfile;
+window.renderHomeProfile = renderHomeProfileV2;
 window.selectHomeStageTab = selectHomeStageTab;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
