@@ -2022,7 +2022,9 @@ window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.renderHomeProfileLegacy = renderHomeProfile;
-window.renderHomeProfile = renderHomeProfileV2;
+window.renderHomeProfileV2 = renderHomeProfileV2;
+window.renderHomeProfileFallback = renderHomeProfileFallback;
+window.renderHomeProfile = renderHomeProfileSafe;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -2301,6 +2303,186 @@ function renderHomeProfileV2() {
         stageSnapshot.savedCount,
         stageSnapshot
     );
+}
+
+function renderHomeProfileFallback() {
+    const screen = document.getElementById('scr-mode');
+    const heroCard = document.getElementById('home-hero-card');
+    const statusLineEl = document.getElementById('home-status-line');
+    const legacyActions = document.getElementById('home-legacy-actions');
+    const summaryPanel = document.getElementById('home-summary-panel');
+    const entryDivider = document.getElementById('home-entry-divider');
+    const entryGrid = document.getElementById('home-entry-grid');
+    const utilityGrid = document.getElementById('home-utility-grid');
+    const toolGrid = document.getElementById('home-tool-grid');
+    const pairCard = document.getElementById('home-pair-card');
+    const restoreBtn = document.getElementById('home-pair-restore');
+    const dismissBtn = document.getElementById('home-pair-dismiss');
+    const stageAnchor = document.getElementById('home-stage-track-anchor');
+    const overviewSwitch = document.getElementById('home-overview-switch');
+    const nextStepTitleEl = document.getElementById('home-next-step-title');
+    const nextStepDetailEl = document.getElementById('home-next-step-detail');
+    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
+    const pairTitleEl = document.getElementById('home-partner-match-title');
+    const pairSubtitleEl = document.getElementById('home-partner-match-subtitle');
+    const pairFootnoteEl = document.getElementById('home-match-footnote');
+    const pairActionEl = document.getElementById('home-pair-action');
+    const pairStatsRow = document.getElementById('home-pair-stats-row');
+    const pairActionRow = document.getElementById('home-pair-action-row');
+    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
+    const pairJoinRole = document.getElementById('home-pair-quick-role');
+    const pairJoinRow = document.getElementById('home-pair-join-row');
+    const pairReadingCountEl = document.getElementById('home-pair-reading-count');
+    const pairLikedCountEl = document.getElementById('home-pair-liked-count');
+    const pairSavedCountEl = document.getElementById('home-pair-saved-count');
+
+    let likedCount = 0;
+    try {
+        likedCount = Array.isArray(liked)
+            ? liked.filter(item => !item?.fromPartner).length
+            : 0;
+    } catch (e) { }
+
+    let readingStockCount = 0;
+    try {
+        const readingStock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+        readingStockCount = Array.isArray(readingStock) ? readingStock.length : 0;
+    } catch (e) { }
+
+    let savedCount = 0;
+    try {
+        const savedList = typeof getSavedNames === 'function'
+            ? getSavedNames()
+            : (Array.isArray(window.savedNames) ? window.savedNames : []);
+        savedCount = Array.isArray(savedList) ? savedList.length : 0;
+    } catch (e) { }
+
+    let pairing = null;
+    try {
+        pairing = typeof getPairingHomeSummary === 'function'
+            ? getPairingHomeSummary()
+            : null;
+    } catch (e) {
+        pairing = null;
+    }
+
+    const safePairing = pairing || {
+        inRoom: false,
+        hasPartner: false,
+        partnerDisplayName: 'パートナー',
+        partnerCallName: 'パートナー',
+        title: 'パートナー連携はまだ未設定です',
+        subtitle: '連携すると二人で名前をさがせます。',
+        footnote: '必要になった時だけ使えます。',
+        actionLabel: '連携する',
+        matchedReadingCount: 0,
+        matchedKanjiCount: 0,
+        matchedNameCount: 0,
+        myRoleLabel: '自分'
+    };
+
+    let nextStep = null;
+    try {
+        nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, safePairing);
+    } catch (e) {
+        nextStep = {
+            title: '名前の候補を集めよう',
+            detail: '響きか読みから候補を集めると、ここに次の一手が出ます。',
+            actionLabel: '次に進む',
+            action: 'sound'
+        };
+    }
+
+    if (screen) {
+        screen.style.paddingLeft = '12px';
+        screen.style.paddingRight = '12px';
+    }
+
+    if (heroCard) {
+        heroCard.removeAttribute('onclick');
+        heroCard.removeAttribute('role');
+        heroCard.removeAttribute('tabindex');
+        heroCard.removeAttribute('onkeydown');
+        heroCard.style.cssText = '';
+    }
+
+    if (statusLineEl) {
+        statusLineEl.classList.remove('hidden');
+        statusLineEl.textContent = nextStep.detail || '候補を集めながら、次に進む準備をしています。';
+    }
+    if (legacyActions) legacyActions.classList.remove('hidden');
+    if (summaryPanel) summaryPanel.classList.remove('hidden');
+    if (entryDivider) entryDivider.classList.remove('hidden');
+    if (entryGrid) entryGrid.classList.remove('hidden');
+    if (utilityGrid) utilityGrid.classList.remove('hidden');
+    if (toolGrid) toolGrid.classList.remove('hidden');
+    if (pairCard) pairCard.classList.remove('hidden');
+    if (restoreBtn) restoreBtn.classList.add('hidden');
+    if (dismissBtn) dismissBtn.classList.add('hidden');
+    if (stageAnchor) stageAnchor.classList.remove('hidden');
+
+    if (overviewSwitch) {
+        overviewSwitch.innerHTML = `
+            <div class="rounded-[20px] border border-[#eadfce] bg-white/84 px-3 py-2 text-center">
+                <div class="text-[18px] font-black leading-none text-[#4f4639]">${likedCount + readingStockCount + savedCount}</div>
+                <div class="mt-1 text-[9px] font-bold text-[#8b7e66]">候補</div>
+            </div>
+        `;
+    }
+
+    if (nextStepTitleEl) {
+        nextStepTitleEl.classList.remove('hidden');
+        nextStepTitleEl.textContent = nextStep.title || '次に進む候補';
+    }
+    if (nextStepDetailEl) {
+        nextStepDetailEl.classList.remove('hidden');
+        nextStepDetailEl.textContent = nextStep.detail || '';
+    }
+    if (nextStepActionLabelEl) {
+        nextStepActionLabelEl.classList.remove('hidden');
+        nextStepActionLabelEl.textContent = nextStep.actionLabel || '次に進む';
+    }
+
+    if (pairTitleEl) pairTitleEl.textContent = safePairing.title || 'パートナー連携はまだ未設定です';
+    if (pairSubtitleEl) pairSubtitleEl.textContent = safePairing.subtitle || '連携すると二人で名前をさがせます。';
+    if (pairFootnoteEl) pairFootnoteEl.textContent = safePairing.footnote || '必要になった時だけ使えます。';
+    if (pairActionEl) {
+        pairActionEl.textContent = safePairing.actionLabel || '連携する';
+        pairActionEl.classList.toggle('hidden', !!safePairing.hasPartner);
+    }
+
+    if (pairStatsRow) pairStatsRow.classList.toggle('hidden', !safePairing.inRoom);
+    if (pairActionRow) pairActionRow.classList.toggle('hidden', !!safePairing.hasPartner);
+    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!safePairing.inRoom);
+    if (pairJoinRole) {
+        pairJoinRole.classList.toggle('hidden', !!safePairing.inRoom);
+        pairJoinRole.textContent = safePairing.inRoom ? (safePairing.myRoleLabel || '自分') : '';
+    }
+    if (pairJoinRow && safePairing.inRoom) pairJoinRow.classList.add('hidden');
+    if (pairReadingCountEl) pairReadingCountEl.textContent = String(Math.max(0, Number(safePairing.matchedReadingCount) || 0));
+    if (pairLikedCountEl) pairLikedCountEl.textContent = String(Math.max(0, Number(safePairing.matchedKanjiCount) || 0));
+    if (pairSavedCountEl) pairSavedCountEl.textContent = String(Math.max(0, Number(safePairing.matchedNameCount) || 0));
+}
+
+function renderHomeProfileSafe() {
+    try {
+        return renderHomeProfileV2();
+    } catch (error) {
+        console.error('HOME: renderHomeProfileV2 failed, falling back', error);
+        try {
+            if (typeof window.renderHomeProfileLegacy === 'function') {
+                return window.renderHomeProfileLegacy();
+            }
+        } catch (legacyError) {
+            console.error('HOME: legacy home render failed', legacyError);
+        }
+        try {
+            return renderHomeProfileFallback();
+        } catch (fallbackError) {
+            console.error('HOME: minimal home fallback failed', fallbackError);
+        }
+        return null;
+    }
 }
 
 function getHomeNextStagePreviewHtml(stageKey) {
@@ -3007,7 +3189,9 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
 }
 
 window.renderHomeProfileLegacy = renderHomeProfile;
-window.renderHomeProfile = renderHomeProfileV2;
+window.renderHomeProfileV2 = renderHomeProfileV2;
+window.renderHomeProfileFallback = renderHomeProfileFallback;
+window.renderHomeProfile = renderHomeProfileSafe;
 window.selectHomeStageTab = selectHomeStageTab;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
