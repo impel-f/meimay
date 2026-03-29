@@ -114,11 +114,11 @@ function getReadingSegmentRuleState(part) {
 function getMasterKanjiReadings(item) {
     const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
         .split(/[、,\/\s]+/)
-        .map(x => toHira(String(x || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, ''))
+        .map(x => normalizeReadingComparisonValue(x))
         .filter(Boolean);
     const minorReadings = (item?.['伝統名のり'] || '')
         .split(/[、,\/\s]+/)
-        .map(x => toHira(String(x || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, ''))
+        .map(x => normalizeReadingComparisonValue(x))
         .filter(Boolean);
     return [...majorReadings, ...minorReadings];
 }
@@ -126,11 +126,10 @@ function getMasterKanjiReadings(item) {
 function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neutral') {
     if (!part || !Array.isArray(master) || master.length === 0) return false;
 
-    const target = toHira((part || '').trim());
+    const target = normalizeReadingComparisonValue(part);
     if (!target) return false;
 
-    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-    const targetSokuon = target.replace(/っ$/, 'つ');
+    const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
     const canUseSeionFallback = isLeadingDakutenVariant(target, targetSeion);
 
     return master.some((k) => {
@@ -142,13 +141,12 @@ function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neut
 
         const readings = getMasterKanjiReadings(k);
         return readings.includes(target) ||
-            (canUseSeionFallback && readings.includes(targetSeion)) ||
-            (targetSokuon !== target && readings.includes(targetSokuon));
+            (canUseSeionFallback && readings.includes(targetSeion));
     });
 }
 
 function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
-    const target = toHira((part || '').trim());
+    const target = normalizeReadingComparisonValue(part);
     if (!target || !Array.isArray(master) || master.length === 0) return false;
 
     const segmentState = getReadingSegmentRuleState(target);
@@ -198,6 +196,7 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
             .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
             .filter(Boolean);
         const readings = [...majorReadings, ...minorReadings];
+        const normalizedReadings = readings.map(x => normalizeReadingComparisonValue(x)).filter(Boolean);
 
         return readings.includes(target) ||
             (canUseSeionFallback && readings.includes(targetSeion)) ||
@@ -217,20 +216,19 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const useStrictMatching = strictOnly || rule === 'strict';
     const targetGender = options?.gender || gender || 'neutral';
     const canUseReadingSegment = (part) => {
-        if (isInvalidReadingSegment(part)) return false;
-        const partSeion = typeof toSeion === 'function' ? toSeion(part) : part;
-        const partSokuon = part.replace(/っ$/, 'つ');
-        const canUseSeionFallback = isLeadingDakutenVariant(part, partSeion);
-        const segmentState = getReadingSegmentRuleState(part);
+        const normalizedPart = normalizeReadingComparisonValue(part);
+        if (isInvalidReadingSegment(normalizedPart)) return false;
+        const partSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(normalizedPart)) : normalizedPart;
+        const canUseSeionFallback = isLeadingDakutenVariant(normalizedPart, partSeion);
+        const segmentState = getReadingSegmentRuleState(normalizedPart);
         const masterFallback = segmentState.state === 'missing'
-            && splitReadingIntoMoraUnits(part).length >= 3
-            && hasMasterKanjiCandidatesForReading(part, targetGender);
+            && splitReadingIntoMoraUnits(normalizedPart).length >= 3
+            && hasMasterKanjiCandidatesForReading(normalizedPart, targetGender);
         const hasStrictReading = !useStrictMatching || (validReadingsSet && (
-            validReadingsSet.has(part) ||
-            (canUseSeionFallback && validReadingsSet.has(partSeion)) ||
-            (partSokuon !== part && validReadingsSet.has(partSokuon))
+            validReadingsSet.has(normalizedPart) ||
+            (canUseSeionFallback && validReadingsSet.has(partSeion))
         )) || segmentState.state === 'approved' || masterFallback;
-        return hasStrictReading && hasViableKanjiForReading(part, targetGender);
+        return hasStrictReading && hasViableKanjiForReading(normalizedPart, targetGender);
     };
     let allPaths = [];
 
@@ -688,9 +686,9 @@ function loadStack() {
     const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
     const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
     window._includeNopedForSlot = null;
-    // 促音(っ)末尾 → つ 変換: きっ→きつ、てっ→てつ 等で漢字マッチング
-    const targetSokuon = target.replace(/っ$/, 'つ');
-    console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${targetSokuon !== target ? ` (→ "${targetSokuon}")` : ''}`);
+    const normalizedTarget = normalizeReadingComparisonValue(target);
+    const targetSokuon = normalizedTarget;
+    console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${normalizedTarget !== target ? ` (→ "${normalizedTarget}")` : ''}`);
 
     // --- Free Stock Auto-Matching ---
     const freeItems = liked.filter(l => l.sessionReading === 'FREE');
@@ -703,19 +701,20 @@ function loadStack() {
 
         const majorReadings = ((freeItem['音'] || '') + ',' + (freeItem['訓'] || ''))
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x)).filter(x => x);
+            .map(x => normalizeReadingComparisonValue(x))
+            .filter(Boolean);
         const minorReadings = (freeItem['伝統名のり'] || '')
             .split(/[、,，\s/]+/)
-            .map(x => toHira(x)).filter(x => x);
+            .map(x => normalizeReadingComparisonValue(x))
+            .filter(Boolean);
         const readings = [...majorReadings, ...minorReadings];
+        const normalizedReadings = readings.map(x => normalizeReadingComparisonValue(x)).filter(Boolean);
 
-        const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-        const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(target, targetSeion);
-        const isExact = majorReadings.includes(target) || minorReadings.includes(target) ||
-            (targetSokuon !== target && (majorReadings.includes(targetSokuon) || minorReadings.includes(targetSokuon)));
-        const isSeionMatch = allowVoicedFallback && readings.includes(targetSeion);
-        const isPartial = readings.some(r => r.startsWith(target)) || (allowVoicedFallback && readings.some(r => r.startsWith(targetSeion))) ||
-            (targetSokuon !== target && readings.some(r => r.startsWith(targetSokuon)));
+        const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(normalizedTarget)) : normalizedTarget;
+        const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
+        const isExact = normalizedReadings.includes(normalizedTarget);
+        const isSeionMatch = allowVoicedFallback && normalizedReadings.includes(targetSeion);
+        const isPartial = normalizedReadings.some(r => r.startsWith(normalizedTarget)) || (allowVoicedFallback && normalizedReadings.some(r => r.startsWith(targetSeion)));
 
         let match = false;
         if (typeof activeRule !== 'undefined' && activeRule === 'strict') {

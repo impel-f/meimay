@@ -14,8 +14,7 @@ let readingStockSoundFilter = null;
 
 function normalizeReadingStockSoundValue(value) {
     const raw = String(value || '').trim().split('::')[0].trim();
-    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
-    return hira.replace(/\s+/g, '');
+    return normalizeReadingComparisonValue(raw);
 }
 
 function setReadingStockSoundFilter(reading, position = 'prefix') {
@@ -134,21 +133,25 @@ function clearCompoundBuildFlow() {
 
 function getReadingHistoryEntryByReading(reading, preferredSegments = []) {
     const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedReading = normalizeReadingComparisonValue(getReadingBaseReading(reading));
     const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
 
     if (normalizedReading && normalizedSegments.length > 0) {
         const exactSegmentKey = normalizedSegments.join('/');
         const exactEntry = history.find(item => {
             if (!item) return false;
-            if (getReadingBaseReading(item.reading) !== normalizedReading) return false;
+            if (normalizeReadingComparisonValue(getReadingBaseReading(item.reading)) !== normalizedReading) return false;
             const itemSegmentKey = item.segmentKey || (Array.isArray(item.segments) ? item.segments.filter(Boolean).join('/') : '');
             return itemSegmentKey === exactSegmentKey;
         });
         return exactEntry || null;
     }
 
-    return history.find(item => item.reading === reading && item.compoundFlow) || history.find(item => item.reading === reading) || null;
+    return history.find(item => item.reading === reading && item.compoundFlow) ||
+        history.find(item => normalizeReadingComparisonValue(getReadingBaseReading(item.reading)) === normalizedReading && item.compoundFlow) ||
+        history.find(item => item.reading === reading) ||
+        history.find(item => normalizeReadingComparisonValue(getReadingBaseReading(item.reading)) === normalizedReading) ||
+        null;
 }
 
 function shouldRebuildCompoundFlow(flow) {
@@ -160,18 +163,18 @@ function shouldRebuildCompoundFlow(flow) {
 
 function restoreCompoundBuildFlowFromLiked(reading, fallbackEntry = null, preferredSegments = []) {
     if (!Array.isArray(liked) || !reading) return null;
-    const normalizedReading = getReadingBaseReading(reading);
+    const normalizedReading = normalizeReadingComparisonValue(getReadingBaseReading(reading));
     const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
     const preferredSegmentKey = normalizedSegments.join('/');
 
     const seededItems = liked
         .filter(item => {
             if (!item || !item._compoundSeeded || !Array.isArray(item.sessionSegments) || item.sessionSegments.length === 0) return false;
-            if (getReadingBaseReading(item.sessionReading) !== normalizedReading) return false;
+            if (normalizeReadingComparisonValue(getReadingBaseReading(item.sessionReading)) !== normalizedReading) return false;
             if (normalizedSegments.length > 0) {
                 return item.sessionSegments.filter(Boolean).join('/') === preferredSegmentKey;
             }
-            return item.sessionReading === reading || getReadingBaseReading(item.sessionReading) === normalizedReading;
+            return item.sessionReading === reading || normalizeReadingComparisonValue(getReadingBaseReading(item.sessionReading)) === normalizedReading;
         })
         .sort((a, b) => (Number(a.slot) || 0) - (Number(b.slot) || 0));
 
@@ -1291,9 +1294,9 @@ function getCompoundStrokeCount(kanji) {
 }
 
 function getCompoundTags(reading, fallbackTags = []) {
-    const normalizedReading = toHira(reading || '');
+    const normalizedReading = normalizeReadingComparisonValue(reading || '');
     const source = Array.isArray(readingsData)
-        ? readingsData.find(item => toHira(item?.reading || '') === normalizedReading)
+        ? readingsData.find(item => normalizeReadingComparisonValue(item?.reading || '') === normalizedReading)
         : null;
     const readingTags = Array.isArray(source?.tags) ? source.tags.filter(Boolean) : [];
     const entryTags = Array.isArray(fallbackTags) ? fallbackTags.filter(Boolean) : [];
@@ -1514,6 +1517,7 @@ window.startCompoundReadingFlow = startCompoundReadingFlow;
 
 function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 'neutral') {
     const inputReading = toHira(reading || '');
+    const normalizedInputReading = normalizeReadingComparisonValue(inputReading);
     if (!inputReading || !Array.isArray(compoundReadingsData) || compoundReadingsData.length === 0) {
         return [];
     }
@@ -1527,6 +1531,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 
         variants.forEach((variant) => {
             const consumedReading = toHira(variant?.reading || '');
+            const normalizedConsumedReading = normalizeReadingComparisonValue(consumedReading);
             if (!consumedReading) return;
 
             const compoundTargetGender = 'neutral';
@@ -1537,7 +1542,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
             const tags = getCompoundTags(inputReading, entry.tags || []);
             const fixedPiece = createCompoundPiece(entry, consumedReading, compoundTargetGender, tags, baseScore);
 
-            if (supportsExact && inputReading === consumedReading) {
+            if (supportsExact && normalizedInputReading === normalizedConsumedReading) {
                 const label = entry.kanji;
                 const exactKey = `exact::${entry.kanji}::${inputReading}`;
                 if (!seenKeys.has(exactKey)) {
@@ -1563,7 +1568,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                 }
             }
 
-            if (supportsPrefix && inputReading.startsWith(consumedReading) && inputReading.length > consumedReading.length) {
+            if (supportsPrefix && normalizedInputReading.startsWith(normalizedConsumedReading) && normalizedInputReading.length > normalizedConsumedReading.length) {
                 const tailReading = inputReading.slice(consumedReading.length);
                 const tailPaths = typeof getReadingSegmentPaths === 'function'
                     ? getReadingSegmentPaths(tailReading, 4, { strictOnly: true, allowFallback: false })
@@ -1844,6 +1849,7 @@ window.startCompoundReadingFlow = startCompoundReadingFlow;
 
 function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 'neutral') {
     const inputReading = toHira(reading || '');
+    const normalizedInputReading = normalizeReadingComparisonValue(inputReading);
     if (!inputReading || !Array.isArray(compoundReadingsData) || compoundReadingsData.length === 0) {
         return [];
     }
@@ -1871,6 +1877,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 
         variants.forEach((variant) => {
             const consumedReading = toHira(variant?.reading || '');
+            const normalizedConsumedReading = normalizeReadingComparisonValue(consumedReading);
             if (!consumedReading) return;
 
             const compoundTargetGender = 'neutral';
@@ -1878,8 +1885,8 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
             const tags = getCompoundTags(inputReading, entry.tags || []);
             const fixedPiece = createCompoundPiece(entry, consumedReading, compoundTargetGender, tags, baseScore);
 
-            if (inputReading === consumedReading) {
-                setOption(`${entry.kanji}::${consumedReading}`, {
+            if (normalizedInputReading === normalizedConsumedReading) {
+                setOption(`${entry.kanji}::${normalizedConsumedReading}`, {
                     path: [inputReading],
                     label: entry.kanji,
                     optionType: 'compound',
@@ -1910,7 +1917,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
                     for (let end = start; end < cleanPath.length; end++) {
                         readingSlice += cleanPath[end] || '';
                         if (readingSlice.length > consumedReading.length) break;
-                        if (readingSlice !== consumedReading) continue;
+                        if (normalizeReadingComparisonValue(readingSlice) !== normalizedConsumedReading) continue;
 
                         const prefixSegments = cleanPath.slice(0, start);
                         const suffixSegments = cleanPath.slice(end + 1);
@@ -2070,19 +2077,18 @@ function getPreferredReadingSegments(reading) {
 }
 
 function findKanjiCandidatesForSegment(segment, limit = 3) {
-    const target = toHira(segment || '');
+    const target = normalizeReadingComparisonValue(segment);
     if (!target || !master || master.length === 0) return [];
 
     if (readingKanjiCache.has(target)) {
         return readingKanjiCache.get(target).slice(0, limit);
     }
 
-    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-    const targetSokuon = target.replace(/っ$/, 'つ');
+    const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
 
     const candidates = master.filter(item => {
         const readings = getReadingBucketsForKanji(item).allReadings;
-        return readings.includes(target) || readings.includes(targetSeion) || readings.includes(targetSokuon);
+        return readings.includes(target) || readings.includes(targetSeion);
     });
 
     const unique = [];
@@ -2110,11 +2116,11 @@ function getReadingBucketsForKanji(item) {
 
     const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
         .split(/[、,，\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .map(value => normalizeReadingComparisonValue(value))
         .filter(Boolean);
     const minorReadings = (item?.['伝統名のり'] || '')
         .split(/[、,，\s/]+/)
-        .map(value => toHira((value || '').trim()).replace(/[^\u3041-\u3093\u30FC]/g, ''))
+        .map(value => normalizeReadingComparisonValue(value))
         .filter(Boolean);
 
     return {
@@ -4338,12 +4344,8 @@ function getReadingDisplayLabel(item, options = {}) {
     const allowSegments = options.allowSegments === true || (!!item?.readingPromoted && options.allowSegments !== false);
 
     if (allowSegments && readableSegments.length > 1) {
-        const normalizedJoined = typeof toHira === 'function'
-            ? toHira(readableSegments.join(''))
-            : readableSegments.join('');
-        const normalizedReading = typeof toHira === 'function'
-            ? toHira(reading)
-            : reading;
+        const normalizedJoined = normalizeReadingComparisonValue(readableSegments.join(''));
+        const normalizedReading = normalizeReadingComparisonValue(reading);
         if (!reading || normalizedJoined === normalizedReading) {
             return readableSegments.join('/');
         }
@@ -4366,11 +4368,12 @@ function getReadingBaseReading(value) {
 }
 
 function matchesReadingStockTarget(item, target) {
-    const normalizedTarget = getReadingBaseReading(target);
+    const normalizedTarget = normalizeReadingComparisonValue(getReadingBaseReading(target));
     if (!normalizedTarget) return false;
-    const itemReading = getReadingBaseReading(item);
-    const itemKey = item?.id || item?.reading || item?.['\u96b1\uff6d\u7e3a\uff7f'] || '';
-    return itemKey === target || itemReading === normalizedTarget;
+    const itemReading = normalizeReadingComparisonValue(getReadingBaseReading(item));
+    const rawItemKey = item?.id || item?.reading || item?.['\u96b1\uff6d\u7e3a\uff7f'] || '';
+    const normalizedItemKey = normalizeReadingComparisonValue(rawItemKey);
+    return rawItemKey === target || normalizedItemKey === normalizedTarget || itemReading === normalizedTarget;
 }
 
 function isReadingStockPromoted(item) {
@@ -4407,14 +4410,15 @@ function sortReadingStockMatches(matches) {
 }
 
 function findReadingStockItemInStock(stock, target) {
-    const normalizedTarget = getReadingBaseReading(target);
+    const normalizedTarget = normalizeReadingComparisonValue(getReadingBaseReading(target));
     if (!normalizedTarget) return null;
     const exactTarget = String(target || '').trim();
     const matches = Array.isArray(stock)
         ? stock.filter(item => {
             if (!item) return false;
-            const itemReading = getReadingBaseReading(item.reading || item.sessionReading || '');
-            return (exactTarget && item.id === exactTarget) || item.reading === target || itemReading === normalizedTarget;
+            const itemReading = normalizeReadingComparisonValue(item.reading || item.sessionReading || '');
+            const itemKey = normalizeReadingComparisonValue(item.id || item.reading || item.sessionReading || '');
+            return (exactTarget && item.id === exactTarget) || item.reading === target || itemKey === normalizedTarget || itemReading === normalizedTarget;
         })
         : [];
     if (matches.length === 0) return null;
@@ -4528,8 +4532,8 @@ function syncReadingStockFromLiked(items = liked) {
         const raw = String(value || '').trim().split('::')[0].trim();
         if (!raw) return '';
         return (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
-            ? window.MeimayPartnerInsights.normalizeReading(raw)
-            : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+            ? normalizeReadingComparisonValue(window.MeimayPartnerInsights.normalizeReading(raw))
+            : normalizeReadingComparisonValue(raw);
     };
     const hiddenReadingSet = new Set(
         Array.from(hiddenReadings)
@@ -4666,8 +4670,8 @@ function normalizeHiddenReadingValue(value) {
     const raw = String(value || '').trim().split('::')[0].trim();
     if (!raw) return '';
     return (typeof window !== 'undefined' && window.MeimayPartnerInsights && typeof window.MeimayPartnerInsights.normalizeReading === 'function')
-        ? window.MeimayPartnerInsights.normalizeReading(raw)
-        : (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+        ? normalizeReadingComparisonValue(window.MeimayPartnerInsights.normalizeReading(raw))
+        : normalizeReadingComparisonValue(raw);
 }
 
 function hideReadingFromStock(target) {
@@ -5975,19 +5979,18 @@ window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
 window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
 
 function getStrictReadingMatch(item, segment, options = {}) {
-    const target = toHira(segment || '');
+    const target = normalizeReadingComparisonValue(segment);
     if (!target || !item) return null;
 
     const allowVoicedFallback = options.segmentIndex > 0;
-    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-    const targetSokuon = target.replace(/\u3063$/, '\u3064');
+    const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
     const { majorReadings, minorReadings } = getReadingBucketsForKanji(item);
 
-    if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
+    if (majorReadings.includes(target)) {
         return { tier: 1 };
     }
 
-    if (minorReadings.includes(target) || (targetSokuon !== target && minorReadings.includes(targetSokuon))) {
+    if (minorReadings.includes(target)) {
         return { tier: 2 };
     }
 
@@ -8976,10 +8979,10 @@ function getPartnerViewReadingKey(item, pairInsights) {
 }
 
 function getPartnerViewNormalizedReading(value, pairInsights) {
-    if (pairInsights?.normalizeReading) return pairInsights.normalizeReading(getReadingBaseReading(value));
+    if (pairInsights?.normalizeReading) return normalizeReadingComparisonValue(pairInsights.normalizeReading(getReadingBaseReading(value)));
     const raw = getReadingBaseReading(value);
     if (!raw) return '';
-    return (typeof toHira === 'function' ? toHira(raw) : raw).replace(/\s+/g, '');
+    return normalizeReadingComparisonValue(raw);
 }
 
 function getReadingOwnershipPaletteFallback(kind) {

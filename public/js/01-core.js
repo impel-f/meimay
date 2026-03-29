@@ -40,7 +40,17 @@ let currentBuildResult = {
 };
 
 function normalizeReadingSegmentRuleKey(value) {
-    return toHira(String(value || '').trim()).replace(/[^\u3041-\u3093\u30fc]/g, '');
+    return normalizeReadingComparisonValue(value);
+}
+
+function normalizeReadingComparisonValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return hira
+        .replace(/[っッ]/g, 'つ')
+        .replace(/\s+/g, '')
+        .replace(/[^\u3041-\u3093\u30fc]/g, '');
 }
 
 function setReadingSegmentRules(nextRules) {
@@ -136,8 +146,8 @@ window.onload = () => {
             master.forEach(k => {
                 const readings = (k['音'] + ',' + k['訓'] + ',' + k['伝統名のり'])
                     .split(/[、,，\s/]+/)
-                    .map(toHira)
-                    .filter(x => clean(x));
+                    .map(normalizeReadingComparisonValue)
+                    .filter(Boolean);
                 readings.forEach(r => validReadingsSet.add(r));
             });
 
