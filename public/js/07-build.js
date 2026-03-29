@@ -9,6 +9,7 @@ let fbChoices = [];
 let fbChoicesUseMark = {};
 let shownFbSlots = 1;
 let fbSelectedReading = null;
+let fbSelectedReadingSource = 'auto';
 let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
 
@@ -270,6 +271,52 @@ function getSafeFreeBuildAutoReading(choices) {
     return safeParts.join('');
 }
 
+function getFreeBuildTopRecommendedReading() {
+    if (!Array.isArray(currentFbRecommendedReadings) || currentFbRecommendedReadings.length === 0) {
+        return '';
+    }
+    return String(currentFbRecommendedReadings[0]?.reading || '').trim();
+}
+
+function syncFreeBuildReadingSelection() {
+    if (fbSelectedReadingSource === 'manual') {
+        return fbSelectedReading || '';
+    }
+
+    const autoReading = getFreeBuildTopRecommendedReading() || getSafeFreeBuildAutoReading(fbChoices);
+    fbSelectedReading = autoReading || null;
+    fbSelectedReadingSource = 'auto';
+    return fbSelectedReading || '';
+}
+
+function getFreeBuildEffectiveReading() {
+    const selected = String(fbSelectedReading || '').trim();
+    if (selected) return selected;
+    return getFreeBuildTopRecommendedReading() || getSafeFreeBuildAutoReading(fbChoices) || '';
+}
+
+function getFreeBuildReadingLabel() {
+    const selected = String(fbSelectedReading || '').trim();
+    if (selected && fbSelectedReadingSource === 'manual') {
+        return selected;
+    }
+
+    const effectiveReading = getFreeBuildEffectiveReading();
+    if (!effectiveReading) {
+        return '読みを選ぶ';
+    }
+
+    const hasMultipleCandidates =
+        Array.isArray(currentFbRecommendedReadings) && currentFbRecommendedReadings.length > 1;
+    return hasMultipleCandidates ? `${effectiveReading} など` : effectiveReading;
+}
+
+function refreshFreeBuildReadingButtonLabel() {
+    const labelEl = document.getElementById('build-reading-btn-label');
+    if (!labelEl) return;
+    labelEl.textContent = getFreeBuildReadingLabel();
+}
+
 function openStock(tab, options = {}) {
     if (!options.preservePartnerFocus && typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus();
@@ -310,8 +357,10 @@ function openFreeBuild() {
     buildMode = 'free';
     fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
-    selectedPieces = [];
     fbSelectedReading = null;
+    fbSelectedReadingSource = 'auto';
+    currentFbRecommendedReadings = [];
+    selectedPieces = [];
     renderBuildSelection();
     changeScreen('scr-build');
 }
@@ -405,7 +454,7 @@ function renderFreeBuildSection() {
     let fortuneHtml = '';
     if (fbChoices.length >= 1) {
         const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
-        const givenReading = getSafeFreeBuildAutoReading(fbChoices);
+        const givenReading = getFreeBuildEffectiveReading();
         fortuneHtml = `
             <div class="mt-4 border-t border-[#ede5d8] pt-4">
                 <p class="text-xs font-bold text-[#8b7e66] mb-3">運勢ランキング（${givenName}）</p>
@@ -506,7 +555,7 @@ function confirmFbBuild() {
     const combination = fbChoices.map(k =>
         liked.find(l => l['漢字'] === k) || master?.find(m => m['漢字'] === k) || { '漢字': k, '画数': 1 }
     );
-    const givenReading = getSafeFreeBuildAutoReading(fbChoices);
+    const givenReading = getFreeBuildEffectiveReading();
     if (typeof openSaveScreen === 'function') {
         openSaveScreen(combination, givenName, givenReading);
     } else {
@@ -1328,6 +1377,7 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
     fbChoices = (Array.isArray(choices) ? choices : []).filter(Boolean);
     shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
     fbSelectedReading = reading || null;
+    fbSelectedReadingSource = reading ? 'manual' : 'auto';
     excludedKanjiFromBuild = [];
 
     currentFbRecommendedReadings = fbSelectedReading
@@ -1554,6 +1604,12 @@ function renderBuildSelection() {
     const headerContainer = document.getElementById('build-header-sticky');
     if (!container || !headerContainer) return;
 
+    if (buildMode === 'free' && fbChoices.length === 0) {
+        fbSelectedReading = null;
+        fbSelectedReadingSource = 'auto';
+        currentFbRecommendedReadings = [];
+    }
+
     container.innerHTML = '';
     headerContainer.innerHTML = '';
 
@@ -1576,7 +1632,7 @@ function renderBuildSelection() {
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
                 <span class="inline-flex items-center justify-center gap-1.5 min-w-0 w-full">
-                    <span style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${readingBtnLabel}</span>
+                    <span id="build-reading-btn-label" style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${buildMode === 'free' ? getFreeBuildReadingLabel() : readingBtnLabel}</span>
                     <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
                 </span>
             </button>
@@ -1604,6 +1660,7 @@ function renderBuildSelection() {
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
         renderBuildFreeMode(container);
+        refreshFreeBuildReadingButtonLabel();
         return;
     }
 
@@ -2079,14 +2136,17 @@ function suggestReadingsForKanji(choices, container) {
         scored = exactMatches;
     }
 
-    currentFbRecommendedReadings = scored; // グローバルに保存
-
     // 手入力された読みがおすすめに含まれていない場合、チップとして表示するために追加
     if (fbSelectedReading && !scored.some(r => r.reading === fbSelectedReading)) {
         scored.unshift({ reading: fbSelectedReading, isManual: true });
     }
 
+    currentFbRecommendedReadings = scored; // グローバルに保存
+    syncFreeBuildReadingSelection();
+
     // UI 描画
+    syncFreeBuildReadingSelection();
+
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
     section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
@@ -2108,6 +2168,7 @@ function suggestReadingsForKanji(choices, container) {
         chip.onclick = () => {
             withScrollPreservation(() => {
                 fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
+                fbSelectedReadingSource = fbSelectedReading ? 'manual' : 'auto';
                 renderBuildSelection();
                 executeFbBuild();
             });
@@ -2136,8 +2197,10 @@ function promptManualFbReading() {
     const cleaned = clean(input);
     if (!cleaned) {
         fbSelectedReading = null;
+        fbSelectedReadingSource = 'auto';
     } else {
         fbSelectedReading = cleaned;
+        fbSelectedReadingSource = 'manual';
     }
 
     withScrollPreservation(() => {
@@ -2167,7 +2230,7 @@ function executeFbBuild() {
     });
 
     // fbSelectedReadingが設定されている場合はそれを使用、なければ安全な自動読みを使う
-    const givenReading = fbSelectedReading || getSafeFreeBuildAutoReading(fbChoices);
+    const givenReading = getFreeBuildEffectiveReading();
 
     const givArr = combination.map(p => ({
         kanji: p['漢字'],
@@ -2392,6 +2455,7 @@ window.selectFbKanji = function (slotIdx, kanji) {
         }
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
 
+        fbSelectedReadingSource = 'auto';
         const buildScreen = document.getElementById('scr-build');
         if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
             renderBuildSelection();
@@ -2412,6 +2476,7 @@ window.removeFbChoice = function (slotIdx) {
     withScrollPreservation(() => {
         fbChoices.splice(slotIdx, 1); for(let i=slotIdx; i<10; i++) fbChoicesUseMark[i] = fbChoicesUseMark[i+1];
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
+        fbSelectedReadingSource = 'auto';
         if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
             shownFbSlots--;
         }
