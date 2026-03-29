@@ -1158,6 +1158,118 @@ function getReadingFullNamePreview(reading) {
     };
 }
 
+function escapeHtmlText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getAdaptiveReadingHeadingStyle(reading, options = {}) {
+    const baseSize = Number.isFinite(options.baseSize) ? options.baseSize : 52;
+    const minSize = Number.isFinite(options.minSize) ? options.minSize : 26;
+    const maxChars = Number.isFinite(options.maxChars) ? options.maxChars : 4;
+    const shrinkStep = Number.isFinite(options.shrinkStep) ? options.shrinkStep : 4;
+    const charCount = Array.from(String(reading ?? '').trim()).length || 1;
+    const shrinkCount = Math.max(0, charCount - maxChars);
+    const fontSize = Math.max(minSize, baseSize - (shrinkCount * shrinkStep));
+    const letterSpacing = fontSize <= 28
+        ? '-0.05em'
+        : fontSize <= 32
+            ? '-0.04em'
+            : fontSize <= 38
+                ? '-0.03em'
+                : fontSize <= 44
+                    ? '-0.015em'
+                    : '0';
+
+    return [
+        `font-size:${fontSize}px`,
+        'line-height:1.05',
+        `letter-spacing:${letterSpacing}`,
+        'width:100%',
+        'max-width:100%',
+        'display:block',
+        'white-space:nowrap',
+        'overflow:hidden',
+        'text-overflow:clip',
+        'word-break:keep-all',
+        'overflow-wrap:normal',
+        'text-align:center'
+    ].join(';');
+}
+
+function renderAdaptiveReadingHeading(reading, options = {}) {
+    const text = String(reading ?? '');
+    const safeText = escapeHtmlText(text);
+    const charCount = Array.from(text).length || 1;
+    const baseSize = Number.isFinite(options.baseSize) ? options.baseSize : 52;
+    const minSize = Number.isFinite(options.minSize) ? options.minSize : 26;
+    const className = ['reading-swipe-heading', 'font-black', 'text-[#5d5444]', 'tracking-wider', 'leading-tight', options.className || '']
+        .filter(Boolean)
+        .join(' ');
+
+    return `
+        <div
+            class="${className}"
+            data-reading-char-count="${charCount}"
+            data-reading-base-size="${baseSize}"
+            data-reading-min-size="${minSize}"
+            style="${getAdaptiveReadingHeadingStyle(text, options)}"
+        >${safeText}</div>
+    `.trim();
+}
+
+function fitAdaptiveReadingHeading(card) {
+    if (!card) return;
+    const heading = card.querySelector('.reading-swipe-heading');
+    if (!heading) return;
+
+    const availableWidth = heading.clientWidth;
+    if (!availableWidth) return;
+
+    const minSize = Number.parseFloat(heading.dataset.readingMinSize || '26') || 26;
+    let fontSize = Number.parseFloat(heading.style.fontSize || heading.dataset.readingBaseSize || '52') || 52;
+
+    const applyLetterSpacing = () => {
+        heading.style.letterSpacing = fontSize <= 28
+            ? '-0.05em'
+            : fontSize <= 32
+                ? '-0.04em'
+                : fontSize <= 38
+                    ? '-0.03em'
+                    : fontSize <= 44
+                        ? '-0.015em'
+                        : '0';
+    };
+
+    const fits = () => heading.scrollWidth <= heading.clientWidth + 1;
+
+    heading.style.width = '100%';
+    heading.style.maxWidth = '100%';
+    heading.style.display = 'block';
+    heading.style.whiteSpace = 'nowrap';
+    heading.style.overflow = 'hidden';
+    heading.style.textOverflow = 'clip';
+    heading.style.wordBreak = 'keep-all';
+    heading.style.overflowWrap = 'normal';
+    heading.style.textAlign = 'center';
+    applyLetterSpacing();
+
+    while (fontSize > minSize && !fits()) {
+        fontSize -= 1;
+        heading.style.fontSize = `${fontSize}px`;
+        applyLetterSpacing();
+    }
+
+    if (!fits()) {
+        heading.style.fontSize = `${minSize}px`;
+        heading.style.letterSpacing = '-0.05em';
+    }
+}
+
 function isCompoundGenderAllowed(entryGender, targetGender = gender || 'neutral') {
     const allowed = Array.isArray(entryGender) ? entryGender.filter(Boolean) : [];
     if (allowed.length === 0 || !targetGender || targetGender === 'neutral') return true;
@@ -2307,7 +2419,7 @@ function renderReadingSwipeCard(item) {
 
     return `
         ${renderReadingTagBadges(item.tags)}
-        <div class="text-[52px] font-black text-[#5d5444] mb-2 tracking-wider leading-tight" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+        ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-2' })}
         ${surnameLine}
         <div class="w-full px-4 mt-2">
             <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[220px] mx-auto shadow-sm">
@@ -2493,7 +2605,7 @@ function initAdanaMode() {
                         }
                         return `
                             ${tagsHtml}
-                            <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                            ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-4' })}
                             <div class="w-full px-4 mt-2">
                                 <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
                                     <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
@@ -2520,7 +2632,7 @@ function initAdanaMode() {
 
             return `
                 ${tagsHtml}
-                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-4' })}
                 <div class="w-full px-4 mt-2">
                     <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
                         <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">代表的な名前</p>
@@ -2863,7 +2975,7 @@ function processNickname() {
 
             return `
                 ${tagsHtml}
-                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-4' })}
                 <div class="w-full px-4 mt-2">
                     <div class="bg-white/60 rounded-2xl p-3 border border-white max-w-[200px] mx-auto shadow-sm">
                         <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">漢字の組み合わせ例</p>
@@ -3056,6 +3168,7 @@ function renderUniversalCard() {
     card.innerHTML = SwipeState.config.renderCard(item);
 
     container.appendChild(card);
+    fitAdaptiveReadingHeading(card);
 
     // Physics
     initUniversalSwipePhysics(card);
@@ -3352,7 +3465,7 @@ function renderNicknameCardForce() {
         <div class="text-xs font-bold text-[#bca37f] mb-6 tracking-widest uppercase opacity-70">
             ${item.type === 'original' ? 'Original' : (item.type === 'prefix' ? 'Suffix Match' : 'Expansion')}
         </div>
-        <div class="text-5xl font-black text-[#5d5444] mb-8 tracking-wider">${item.reading}</div>
+        ${renderAdaptiveReadingHeading(item.reading, { baseSize: 48, minSize: 24, className: 'mb-8' })}
         <div class="text-xs text-[#a6967a] px-4 text-center leading-relaxed">
             ${item.type === 'original' ? 'そのままの読み' : (item.type === 'prefix' ? '後ろに続く候補' : '読みを広げた候補')}
         </div>
@@ -6076,7 +6189,7 @@ function renderReadingSwipeCard(item) {
             ">
             <div class="text-[12px] font-bold text-[#8b7e66] mb-3 tracking-[0.08em] text-center">${preview.ruby}</div>
             ${getReadingCardTagBadges(item.tags)}
-            <div class="text-[54px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center" style="word-break:keep-all;overflow-wrap:break-word;">${item.reading}</div>
+            ${renderAdaptiveReadingHeading(item.reading, { baseSize: 54, minSize: 28, className: 'mb-5' })}
             <div class="w-full px-2 mt-2">
                 <div class="rounded-[28px] p-4 border border-white/70 max-w-[290px] mx-auto shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
                     style="background:linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.62));">
@@ -7706,7 +7819,7 @@ function renderReadingSwipeCard(item) {
         <div class="w-full px-5 py-6">
         ${topLine}
         ${renderReadingTagBadges(item.tags)}
-        <div class="text-[52px] font-black text-[#5d5444] mb-5 tracking-wider leading-tight text-center whitespace-nowrap" style="word-break:normal;overflow-wrap:normal;">${item.reading}</div>
+        ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-5' })}
         <div class="w-full mt-2">
             <div class="mx-auto max-w-[286px] rounded-[26px] border px-4 py-3 shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
                 style="background:#ffffff;border-color:#ffffff;">
@@ -9402,7 +9515,7 @@ function initAdanaMode() {
 
             return `
                 ${tagsHtml}
-                <div class="text-[52px] font-black text-[#5d5444] mb-4 tracking-wider leading-tight">${item.reading}</div>
+                ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-4' })}
                 <div class="w-full px-4 mt-2">
                     <div class="bg-white/70 rounded-2xl p-3 border border-white max-w-[220px] mx-auto shadow-sm">
                         <p class="text-[10px] text-[#a6967a] text-center mb-2 font-bold">近い読みの例</p>
