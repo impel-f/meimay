@@ -1721,16 +1721,18 @@ function votePartnerSavedName(index) {
 
     try {
         if (typeof window !== 'undefined') {
-            window.__meimaySavedCanvasPartnerKey = sourceKey;
+            window.__meimaySavedCanvasOwnKey = sourceKey;
+            window.__meimaySavedCanvasPartnerKey = '';
         }
-        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+        localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
+        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
-        console.warn('SAVED: Persist partner main key failed', error);
+        console.warn('SAVED: Persist own main key from partner candidate failed', error);
     }
 
     renderSavedScreen();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '寵');
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '✓');
     return true;
 }
 
@@ -1883,6 +1885,222 @@ function renderSavedScreen() {
 
 window.likePartnerSavedName = likePartnerSavedName;
 window.getSavedNames = getSavedNames;
+window.renderSavedScreen = renderSavedScreen;
+
+function renderSavedScreen() {
+    const canvasContainer = document.getElementById('saved-naming-canvas');
+    const listContainer = document.getElementById('saved-list-content');
+    if (!canvasContainer || !listContainer) return;
+
+    const saved = getSavedNames();
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const canvasState = getSavedCanvasState();
+    const partnerName = canvasState.partnerName || (pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー'));
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const fitSavedText = (node, minSize, maxSize) => {
+        if (!node) return;
+        const parent = node.parentElement;
+        if (!parent) return;
+        node.style.whiteSpace = 'nowrap';
+        node.style.display = 'block';
+        node.style.width = '100%';
+        node.style.overflow = 'hidden';
+        node.style.textOverflow = 'clip';
+        const availableWidth = parent.clientWidth || parent.getBoundingClientRect().width || 0;
+        if (!availableWidth) return;
+        let size = maxSize;
+        node.style.fontSize = `${size}px`;
+        while (size > minSize && node.scrollWidth > availableWidth) {
+            size -= 1;
+            node.style.fontSize = `${size}px`;
+        }
+    };
+
+    const applySavedTextFit = () => {
+        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 18, 30));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 16, 24));
+        listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 13, 18));
+    };
+
+    const ownTheme = {
+        border: 'border-[#e7c7a0]',
+        bg: 'bg-[#fff7ee]',
+        bgStrong: 'bg-[#fff3e7]',
+        text: 'text-[#5d5444]',
+        label: 'text-[#be8558]',
+        ring: 'ring-[#e7c7a0]'
+    };
+    const partnerTheme = {
+        border: 'border-[#e7bcc6]',
+        bg: 'bg-[#fff5f7]',
+        bgStrong: 'bg-[#fff1f4]',
+        text: 'text-[#5d5444]',
+        label: 'text-[#d57f8f]',
+        ring: 'ring-[#e7b0bb]'
+    };
+
+    const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
+    const partnerVisibleItems = partnerSaved.filter(item => !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item));
+
+    const ownDecorated = ownVisibleItems.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const mySelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        return { item, index, key, mySelected };
+    }).sort((a, b) => {
+        if (a.mySelected !== b.mySelected) return a.mySelected ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const partnerDecorated = partnerVisibleItems.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const mySelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        return { item, index, key, mySelected };
+    }).sort((a, b) => {
+        if (a.mySelected !== b.mySelected) return a.mySelected ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const renderCanvasSide = (item, labelText, sourceType, emptyText, theme) => {
+        if (!item) {
+            return `
+                <div class="rounded-[22px] border border-dashed ${theme.border} ${theme.bg} px-4 py-4 text-center">
+                    <div class="text-[10px] font-black tracking-[0.18em] ${theme.label} text-center">${escapeHtml(labelText)}</div>
+                    <div class="mt-2 text-[13px] font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                </div>
+            `;
+        }
+
+        const key = getSavedCandidateKey(item);
+        const selected = sourceType === 'own'
+            ? !!canvasState.ownKey && key === canvasState.ownKey
+            : !!canvasState.partnerKey && key === canvasState.partnerKey;
+
+        return `
+            <div class="rounded-[22px] border ${theme.border} ${theme.bg} px-4 py-3 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}">
+                <div class="text-[10px] font-black tracking-[0.18em] ${theme.label} text-center">${escapeHtml(labelText)}</div>
+                <div class="mt-1 flex min-h-[56px] items-center justify-center">
+                    <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[24px] font-black leading-[1.02] whitespace-nowrap ${theme.text}">
+                        ${escapeHtml(item.fullName || item.givenName || '')}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const renderCanvasHtml = canvasState.matched && mainItem
+        ? `
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="rounded-[22px] border border-[#eadfce] bg-white px-4 py-4 text-center shadow-sm">
+                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[30px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+                        ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
+                    </div>
+                </div>
+            </div>
+        `
+        : `
+            <div class="grid grid-cols-2 gap-2.5">
+                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'own', 'まだ本命を選んでいません', ownTheme)}
+                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'partner', 'まだ本命を選んでいません', partnerTheme)}
+            </div>
+        `;
+
+    canvasContainer.innerHTML = `
+        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+            <div class="mb-2 text-[13px] font-black text-[#5d5444]">本命の候補を選択してください</div>
+            ${renderCanvasHtml}
+        </div>
+    `;
+
+    const renderCard = (entry, sourceType) => {
+        const item = entry.item;
+        const isOwn = sourceType === 'own';
+        const theme = isOwn ? ownTheme : partnerTheme;
+        const mySelected = !!canvasState.ownKey && entry.key === canvasState.ownKey;
+        const buttonText = mySelected ? '本命中' : '本命にする';
+        const buttonAction = isOwn
+            ? `setSavedMainCandidate(${entry.index})`
+            : `votePartnerSavedName(${entry.index})`;
+        const cardClass = mySelected ? `ring-2 ${theme.border} ${theme.bgStrong} ${theme.ring}` : `${theme.border} ${theme.bg}`;
+
+        return `
+            <div onclick="showSavedNameDetail(${entry.index}, '${sourceType}')" class="group cursor-pointer rounded-[24px] border ${cardClass} p-3.5 shadow-sm transition-all active:scale-[0.99]">
+                <div class="flex items-start gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-[16px] font-black leading-tight ${theme.text}">
+                            ${escapeHtml(item.fullName || item.givenName || '')}
+                        </div>
+                        ${item.reading ? `<div class="mt-1 text-[10px] text-[#a6967a]">${escapeHtml(item.reading)}</div>` : ''}
+                        ${item.message ? `<div class="mt-1 text-[10px] text-[#bca37f]">${escapeHtml(item.message)}</div>` : ''}
+                    </div>
+                    <div class="shrink-0 pt-0.5">
+                        <button onclick="event.stopPropagation(); ${buttonAction}" ${mySelected ? 'disabled' : ''} class="min-w-[5.8rem] rounded-full px-3 py-1.5 text-[10px] font-black ${mySelected ? 'bg-[#5d5444] text-white cursor-default' : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95'}">
+                            ${buttonText}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+
+    let html = '';
+    if (ownDecorated.length > 0) {
+        html += `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">自分の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${ownDecorated.length}件</div>
+                </div>
+                ${ownDecorated.map(entry => renderCard(entry, 'own')).join('')}
+            </div>
+        `;
+    }
+
+    if (partnerDecorated.length > 0) {
+        html += `
+            <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">パートナーの候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${partnerDecorated.length}件</div>
+                </div>
+                ${partnerDecorated.map(entry => renderCard(entry, 'partner')).join('')}
+            </div>
+        `;
+    }
+
+    if (!ownDecorated.length && !partnerDecorated.length) {
+        html = `
+            <div class="text-center py-16 text-sm text-[#a6967a]">
+                <p>まだ保存候補はありません</p>
+                <p class="text-[10px] mt-2">候補を保存するとここに並びます</p>
+            </div>
+        `;
+    }
+
+    listContainer.innerHTML = html;
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(applySavedTextFit);
+    } else {
+        setTimeout(applySavedTextFit, 0);
+    }
+}
+
 window.renderSavedScreen = renderSavedScreen;
 
 if (typeof window !== 'undefined' && !Object.getOwnPropertyDescriptor(window, 'savedFocus')) {
@@ -2437,10 +2655,11 @@ function getSavedCandidateCreatorMeta(item, source = 'own', partnerName = '') {
 
 function getSavedCanvasState() {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    if (pairInsights?.getSavedNameCanvasState) return pairInsights.getSavedNameCanvasState();
-
     const saved = getSavedNames();
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
+        ? window.__meimaySavedCanvasOwnKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
     const pickLatestMain = (items) => items
         .filter(item => item?.mainSelected)
         .slice()
@@ -2450,7 +2669,11 @@ function getSavedCanvasState() {
             return bTime - aTime;
         })[0] || null;
 
-    const ownMain = pickLatestMain(saved);
+    const ownMain = overrideKey
+        ? (saved.slice().reverse().find(item => getSavedCandidateKey(item) === overrideKey)
+            || partnerSaved.slice().reverse().find(item => getSavedCandidateKey(item) === overrideKey)
+            || null)
+        : pickLatestMain(saved.filter(item => item && !item.fromPartner && !item.approvedFromPartner));
     const partnerMain = pickLatestMain(partnerSaved);
     const ownKey = getSavedCandidateKey(ownMain);
     const partnerKey = getSavedCandidateKey(partnerMain);
@@ -2460,7 +2683,7 @@ function getSavedCanvasState() {
         partnerMain,
         ownKey,
         partnerKey,
-        matched: !!ownKey && ownKey === partnerKey,
+        matched: !!ownKey && !!partnerKey && ownKey === partnerKey,
         partnerName: pairInsights?.getPartnerDisplayName
             ? pairInsights.getPartnerDisplayName()
             : (typeof getPartnerRoleLabel === 'function'
@@ -2489,6 +2712,16 @@ function setSavedMainCandidate(index) {
 
     localStorage.setItem('meimay_saved', JSON.stringify(updated));
     if (typeof savedNames !== 'undefined') savedNames = updated;
+    try {
+        if (typeof window !== 'undefined') {
+            window.__meimaySavedCanvasOwnKey = selectedKey;
+            window.__meimaySavedCanvasPartnerKey = '';
+        }
+        localStorage.setItem('meimay_saved_canvas_own_key', selectedKey);
+        localStorage.removeItem('meimay_saved_canvas_partner_key');
+    } catch (error) {
+        console.warn('SAVED: Persist own main key failed', error);
+    }
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
         MeimayPairing._autoSyncDebounced?.();
@@ -2496,7 +2729,7 @@ function setSavedMainCandidate(index) {
 
     renderSavedScreen();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-    if (typeof showToast === 'function') showToast('本命にしました', '✨');
+    if (typeof showToast === 'function') showToast('本命にしました', '✓');
     return true;
 }
 
@@ -2555,16 +2788,18 @@ function votePartnerSavedName(index) {
 
     try {
         if (typeof window !== 'undefined') {
-            window.__meimaySavedCanvasPartnerKey = sourceKey;
+            window.__meimaySavedCanvasOwnKey = sourceKey;
+            window.__meimaySavedCanvasPartnerKey = '';
         }
-        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+        localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
+        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
-        console.warn('SAVED: Persist partner main key failed', error);
+        console.warn('SAVED: Persist own main key from partner candidate failed', error);
     }
 
     renderSavedScreen();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '寵');
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '✓');
     return true;
 }
 

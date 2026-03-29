@@ -2552,6 +2552,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
     const pairing = getPairingHomeSummary();
+    const savedCanvasState = typeof window !== 'undefined'
+        && window.MeimayPartnerInsights
+        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+        ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+        : null;
+    const savedStateLabel = savedCanvasState?.matched ? '（確定済）' : '（未確定）';
     const matchedReadingCount = Math.max(0, Number(pairing?.matchedReadingCount) || 0);
     const matchedKanjiCount = Math.max(0, Number(pairing?.matchedKanjiCount) || 0);
     const buildCount = Number.isFinite(Number(options.buildCount))
@@ -2651,6 +2657,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         </div>
                         <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
+                            ${step.key === 'save' ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">${savedStateLabel}</div>` : ''}
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
                             ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
@@ -3036,6 +3043,11 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     const unresolvedReadingCount = readingCount === 0
         ? 0
         : Math.max(0, Math.min(readingCount, Number(unresolvedReadingCountRaw) || 0));
+    const savedCanvasState = typeof window !== 'undefined'
+        && window.MeimayPartnerInsights
+        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+        ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+        : null;
 
     const readingZeroLines = [
         'まだ読み候補はありません。',
@@ -3186,6 +3198,12 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     }
 
     const statusLines = (() => {
+        if (savedCanvasState?.matched) {
+            return [
+                'ふたりの本命が一致しました。',
+                '大切な名前が決まりました。'
+            ];
+        }
         if (savedTotal >= 4) {
             return [
                 '保存した候補はしっかり集まっています。',

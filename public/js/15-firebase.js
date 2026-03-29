@@ -1209,9 +1209,22 @@ const MeimayPartnerInsights = {
     },
 
     getMatchedSavedItems: function () {
-        const partnerKeys = new Set(this.getPartnerSaved().map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+        const partnerItems = this.getPartnerSaved();
+        const ownItems = this.getOwnSaved();
+        const ownOverrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
+            ? window.__meimaySavedCanvasOwnKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+        const ownCandidates = ownItems.slice();
+        if (ownOverrideKey) {
+            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === ownOverrideKey)
+                || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === ownOverrideKey);
+            if (overrideItem && !ownCandidates.some(item => this.buildSavedMatchKey(item) === ownOverrideKey)) {
+                ownCandidates.push(overrideItem);
+            }
+        }
+        const partnerKeys = new Set(partnerItems.map(item => this.buildSavedMatchKey(item)).filter(Boolean));
         const seenKeys = new Set();
-        return this.getOwnSaved().filter(item => {
+        return ownCandidates.filter(item => {
             const key = this.buildSavedMatchKey(item);
             if (!key || !partnerKeys.has(key) || seenKeys.has(key)) return false;
             seenKeys.add(key);
@@ -1222,10 +1235,8 @@ const MeimayPartnerInsights = {
     isSavedItemMatched: function (item) {
         const key = this.buildSavedMatchKey(item);
         if (!key) return false;
-        const compareSet = item.fromPartner
-            ? new Set(this.getOwnSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean))
-            : new Set(this.getPartnerSaved().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean));
-        return compareSet.has(key);
+        const matchedKeys = new Set(this.getMatchedSavedItems().map(entry => this.buildSavedMatchKey(entry)).filter(Boolean));
+        return matchedKeys.has(key);
     },
 
     getSummary: function () {
@@ -1250,7 +1261,18 @@ const MeimayPartnerInsights = {
     },
 
     getOwnMainSavedItem: function () {
-        const items = this.getOwnSaved().filter(item => item?.mainSelected && !item?.fromPartner && !item?.approvedFromPartner);
+        const ownItems = this.getOwnSaved();
+        const partnerItems = this.getPartnerSaved();
+        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
+            ? window.__meimaySavedCanvasOwnKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+        if (overrideKey) {
+            const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey)
+                || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
+            if (overrideItem) return overrideItem;
+        }
+
+        const items = ownItems.filter(item => item?.mainSelected && !item?.fromPartner && !item?.approvedFromPartner);
         if (items.length === 0) return null;
         return items.slice().sort((a, b) => {
             const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
@@ -1260,17 +1282,9 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerMainSavedItem: function () {
-        const items = this.getPartnerSaved();
-        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
-            ? window.__meimaySavedCanvasPartnerKey
-            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
-        if (overrideKey) {
-            const overrideItem = items.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
-            if (overrideItem) return overrideItem;
-        }
-        const selected = items.filter(item => item?.mainSelected);
-        if (selected.length === 0) return null;
-        return selected.slice().sort((a, b) => {
+        const items = this.getPartnerSaved().filter(item => item?.mainSelected);
+        if (items.length === 0) return null;
+        return items.slice().sort((a, b) => {
             const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
             const bTime = new Date(b.mainSelectedAt || b.savedAt || b.timestamp || 0).getTime();
             return bTime - aTime;
@@ -1288,7 +1302,7 @@ const MeimayPartnerInsights = {
             partnerMain,
             ownKey,
             partnerKey,
-            matched: !!ownKey && ownKey === partnerKey,
+            matched: !!ownKey && !!partnerKey && ownKey === partnerKey,
             partnerName: this.getPartnerDisplayName()
         };
     }
