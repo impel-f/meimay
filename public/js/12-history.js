@@ -2325,7 +2325,7 @@ function renderSavedScreen() {
         const item = entry.item;
         const itemKey = entry.key;
         const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
-        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
+        const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
@@ -2764,7 +2764,7 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
-        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
+        const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
@@ -2984,10 +2984,15 @@ function renderSavedScreen() {
             ring: 'ring-[#e7b0bb]'
         }
     };
+    const ownNickname = typeof getWizardNickname === 'function'
+        ? String(getWizardNickname() || '').trim()
+        : '';
+    const ownDisplayLabel = ownNickname ? `自分（${ownNickname}）` : '自分';
+    const partnerDisplayLabel = partnerName ? `パートナー（${partnerName}）` : 'パートナー';
 
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
-        const label = isOwn ? '自分' : partnerName;
+        const label = isOwn ? ownDisplayLabel : partnerDisplayLabel;
         const theme = isOwn ? canvasTheme.own : canvasTheme.partner;
         const borderClass = theme.border;
         const bgClass = theme.bg;
@@ -3068,7 +3073,7 @@ function renderSavedScreen() {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
         const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
-        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
+        const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
@@ -3117,7 +3122,7 @@ function renderSavedScreen() {
         html += `
             <div class="space-y-3">
                 <div class="flex items-center justify-between gap-3 px-1">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">自分の候補</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">${escapeHtml(ownDisplayLabel)}の候補</div>
                     <div class="text-[11px] text-[#8b7e66]">${visibleOwn.length}件</div>
                 </div>
                 ${visibleOwn.map(entry => renderCard(entry, 'own')).join('')}
@@ -3129,7 +3134,7 @@ function renderSavedScreen() {
         html += `
             <div class="space-y-3 pt-1">
                 <div class="flex items-center justify-between gap-3 px-1">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">${escapeHtml(partnerName)}の候補</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73]">${escapeHtml(partnerDisplayLabel)}の候補</div>
                     <div class="text-[11px] text-[#8b7e66]">${visiblePartner.length}件</div>
                 </div>
                 ${visiblePartner.map(entry => renderCard(entry, 'partner')).join('')}
