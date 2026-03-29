@@ -454,15 +454,19 @@ function renderFreeBuildSection() {
     let fortuneHtml = '';
     if (fbChoices.length >= 1) {
         const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
-        const givenReading = getFreeBuildEffectiveReading();
         fortuneHtml = `
             <div class="mt-4 border-t border-[#ede5d8] pt-4">
-                <p class="text-xs font-bold text-[#8b7e66] mb-3">運勢ランキング（${givenName}）</p>
-                <div id="fb-fortune-area" class="space-y-2">
+                <p class="text-xs font-bold text-[#8b7e66] mb-3">運勢TOP10</p>
+                <button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95 mx-auto">
+                    <div class="text-sm font-bold">🏆 運勢TOP10</div>
+                    <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
+                </button>
+                <div id="fb-fortune-area" class="space-y-2 mt-4">
+                    <div class="text-[10px] font-bold text-[#a6967a] mb-2">今の組み合わせの運勢（${givenName}）</div>
                     ${renderFbFortune(fbChoices)}
                 </div>
                 <button onclick="confirmFbBuild()" class="btn-gold py-4 shadow-xl w-full mt-4">
-                    この名前で詳細を見る →
+                    この名前で姓名判断をする
                 </button>
             </div>
         `;
