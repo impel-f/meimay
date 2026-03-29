@@ -9,7 +9,6 @@ let fbChoices = [];
 let fbChoicesUseMark = {};
 let shownFbSlots = 1;
 let fbSelectedReading = null;
-let fbSelectedReadingSource = 'auto';
 let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
 
@@ -358,7 +357,6 @@ function openFreeBuild() {
     fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
     fbSelectedReading = null;
-    fbSelectedReadingSource = 'auto';
     currentFbRecommendedReadings = [];
     selectedPieces = [];
     renderBuildSelection();
@@ -559,7 +557,7 @@ function confirmFbBuild() {
     const combination = fbChoices.map(k =>
         liked.find(l => l['漢字'] === k) || master?.find(m => m['漢字'] === k) || { '漢字': k, '画数': 1 }
     );
-    const givenReading = getFreeBuildEffectiveReading();
+    const givenReading = fbSelectedReading || getSafeFreeBuildAutoReading(fbChoices);
     if (typeof openSaveScreen === 'function') {
         openSaveScreen(combination, givenName, givenReading);
     } else {
@@ -1381,7 +1379,6 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
     fbChoices = (Array.isArray(choices) ? choices : []).filter(Boolean);
     shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
     fbSelectedReading = reading || null;
-    fbSelectedReadingSource = reading ? 'manual' : 'auto';
     excludedKanjiFromBuild = [];
 
     currentFbRecommendedReadings = fbSelectedReading
@@ -1610,7 +1607,6 @@ function renderBuildSelection() {
 
     if (buildMode === 'free' && fbChoices.length === 0) {
         fbSelectedReading = null;
-        fbSelectedReadingSource = 'auto';
         currentFbRecommendedReadings = [];
     }
 
@@ -1636,7 +1632,7 @@ function renderBuildSelection() {
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
                 <span class="inline-flex items-center justify-center gap-1.5 min-w-0 w-full">
-                    <span id="build-reading-btn-label" style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${buildMode === 'free' ? getFreeBuildReadingLabel() : readingBtnLabel}</span>
+                    <span style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${readingBtnLabel}</span>
                     <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
                 </span>
             </button>
@@ -1664,7 +1660,6 @@ function renderBuildSelection() {
     // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
         renderBuildFreeMode(container);
-        refreshFreeBuildReadingButtonLabel();
         return;
     }
 
@@ -2146,11 +2141,8 @@ function suggestReadingsForKanji(choices, container) {
     }
 
     currentFbRecommendedReadings = scored; // グローバルに保存
-    syncFreeBuildReadingSelection();
 
     // UI 描画
-    syncFreeBuildReadingSelection();
-
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
     section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
@@ -2172,7 +2164,6 @@ function suggestReadingsForKanji(choices, container) {
         chip.onclick = () => {
             withScrollPreservation(() => {
                 fbSelectedReading = (fbSelectedReading === r.reading) ? null : r.reading;
-                fbSelectedReadingSource = fbSelectedReading ? 'manual' : 'auto';
                 renderBuildSelection();
                 executeFbBuild();
             });
@@ -2201,10 +2192,8 @@ function promptManualFbReading() {
     const cleaned = clean(input);
     if (!cleaned) {
         fbSelectedReading = null;
-        fbSelectedReadingSource = 'auto';
     } else {
         fbSelectedReading = cleaned;
-        fbSelectedReadingSource = 'manual';
     }
 
     withScrollPreservation(() => {
@@ -2234,7 +2223,7 @@ function executeFbBuild() {
     });
 
     // fbSelectedReadingが設定されている場合はそれを使用、なければ安全な自動読みを使う
-    const givenReading = getFreeBuildEffectiveReading();
+    const givenReading = fbSelectedReading || getSafeFreeBuildAutoReading(fbChoices);
 
     const givArr = combination.map(p => ({
         kanji: p['漢字'],
@@ -2458,8 +2447,6 @@ window.selectFbKanji = function (slotIdx, kanji) {
             else fbChoicesUseMark[slotIdx] = false;
         }
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
-
-        fbSelectedReadingSource = 'auto';
         const buildScreen = document.getElementById('scr-build');
         if (buildScreen && buildScreen.classList.contains('active') && buildMode === 'free') {
             renderBuildSelection();
@@ -2480,7 +2467,6 @@ window.removeFbChoice = function (slotIdx) {
     withScrollPreservation(() => {
         fbChoices.splice(slotIdx, 1); for(let i=slotIdx; i<10; i++) fbChoicesUseMark[i] = fbChoicesUseMark[i+1];
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
-        fbSelectedReadingSource = 'auto';
         if (typeof shownFbSlots !== 'undefined' && shownFbSlots > 1 && fbChoices.length < shownFbSlots) {
             shownFbSlots--;
         }
