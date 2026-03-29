@@ -4225,7 +4225,9 @@ function renderSavedScreen() {
     const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
     const ownKeySet = new Set(ownVisibleItems.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
-    const hasPartnerLinked = typeof MeimayPairing !== 'undefined' ? !!MeimayPairing.partnerUid : false;
+    const hasPartnerLinked = typeof MeimayPairing !== 'undefined'
+        ? !!(MeimayPairing.roomCode && MeimayPairing.partnerUid)
+        : false;
 
     const ownDecorated = ownVisibleItems.map((item, index) => {
         const key = getSavedCandidateKey(item);
@@ -4261,7 +4263,7 @@ function renderSavedScreen() {
             ownSelected,
             partnerSelected,
             shared,
-            showInList: !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
+            showInList: !item?.fromPartner && !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
         };
     }).filter(entry => entry.showInList).sort((a, b) => {
         if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
@@ -4320,9 +4322,10 @@ function renderSavedScreen() {
     };
     const ownDisplayLabel = 'マイ本命';
     const partnerDisplayLabel = 'パートナー本命';
-    const canvasCardMinHeight = 'min-h-[92px]';
-    const canvasLabelClass = 'text-[8px] font-black leading-none tracking-[0.04em] whitespace-nowrap';
-    const canvasReadingClass = 'text-[8px] font-bold leading-none whitespace-nowrap opacity-85';
+    const canvasCardMinHeight = 'min-h-[86px]';
+    const canvasLabelClass = 'text-[7px] font-black leading-none tracking-[0.02em] whitespace-nowrap';
+    const canvasReadingClass = 'text-[7px] font-bold leading-none whitespace-nowrap opacity-85';
+    const matchedFrameGradient = `linear-gradient(135deg, ${canvasTheme.own.ring} 0%, ${canvasTheme.partner.ring} 100%)`;
 
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
@@ -4333,7 +4336,7 @@ function renderSavedScreen() {
 
         if (!item) {
             return `
-                <div class="rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2 text-center" style="background:${theme.surface}; ${borderStyle}">
+                <div class="rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2.5 text-center" style="background:${theme.surface}; ${borderStyle}">
                     <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
                     <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
                 </div>
@@ -4350,11 +4353,11 @@ function renderSavedScreen() {
         const surfaceStyle = selected ? theme.surfaceSelected : theme.surface;
 
         return `
-            <div class="rounded-[24px] ${borderWidthClass} ${canvasCardMinHeight} px-3.5 py-2 shadow-sm" style="background:${surfaceStyle}; border-color:${borderColor};">
+            <div class="rounded-[24px] ${borderWidthClass} ${canvasCardMinHeight} px-3.5 pt-4 pb-2 shadow-sm" style="background:${surfaceStyle}; border-color:${borderColor};">
                 <div class="flex flex-col items-center text-center">
                     <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
-                    ${reading ? `<div class="${canvasReadingClass} mt-0.5" style="${labelStyle}">${reading}</div>` : ''}
-                    <div data-fit-saved-name="split" class="mt-1 w-full overflow-hidden text-center text-[22px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
+                    ${reading ? `<div class="${canvasReadingClass} mt-1" style="${labelStyle}">${reading}</div>` : ''}
+                    <div data-fit-saved-name="split" class="mt-1.5 w-full overflow-hidden text-center text-[22px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(item.fullName || item.givenName || '')}
                     </div>
                 </div>
@@ -4365,11 +4368,11 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[26px] border-2 p-1.5 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${canvasTheme.matched.surface}; border-color:${canvasTheme.matched.border};">
-                <div class="rounded-[22px] border-2 ${canvasCardMinHeight} px-3.5 py-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface}; border-color:${canvasTheme.matched.border};">
+            <div class="rounded-[26px] p-[2px] shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${matchedFrameGradient};">
+                <div class="rounded-[24px] ${canvasCardMinHeight} px-3.5 pt-4 pb-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface};">
                     <div class="${canvasLabelClass} text-center" style="color:${canvasTheme.matched.label};">ふたりの本命</div>
-                    ${mainItem.reading ? `<div class="${canvasReadingClass} mt-0.5" style="color:${canvasTheme.matched.label};">${escapeHtml(mainItem.reading)}</div>` : ''}
-                    <div data-fit-saved-name="canvas" class="mt-1 w-full overflow-hidden text-center text-[23px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
+                    ${mainItem.reading ? `<div class="${canvasReadingClass} mt-1" style="color:${canvasTheme.matched.label};">${escapeHtml(mainItem.reading)}</div>` : ''}
+                    <div data-fit-saved-name="canvas" class="mt-1.5 w-full overflow-hidden text-center text-[23px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
                     </div>
                 </div>
@@ -4439,6 +4442,32 @@ function renderSavedScreen() {
         const textColor = theme.label;
         const borderWidthClass = cardActive ? 'border-2' : 'border';
         const shadowClass = cardActive ? 'shadow-[0_10px_30px_-18px_rgba(123,104,83,0.16)]' : 'shadow-sm';
+        const useGradientFrame = cardMatched || (source === 'partner' && entry.ownSelected);
+
+        if (useGradientFrame) {
+            return `
+                <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group mx-0.5 cursor-pointer rounded-[24px] p-[2px] ${shadowClass} transition-all active:scale-[0.99]" style="background:${matchedFrameGradient};">
+                    <div class="rounded-[22px] px-3 py-3" style="background:${surfaceStyle};">
+                        <div class="flex items-start gap-2.5">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0 flex-1">
+                                        ${readingText ? `<div class="text-[10px] font-bold leading-none" style="color:${textColor};">${readingText}</div>` : ''}
+                                        <div data-fit-saved-name="card" class="${readingText ? 'mt-0.5' : 'mt-0'} w-full overflow-hidden whitespace-nowrap text-ellipsis text-[17px] font-black leading-tight text-[#5d5444]">${nameText}</div>
+                                        ${messageText ? `<div class="mt-1 text-[10px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                                    </div>
+                                    <div class="flex shrink-0 flex-col items-end gap-2">
+                                        <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[5.8rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
+                                            ${buttonText}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         return `
             <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group mx-0.5 cursor-pointer rounded-[24px] ${borderWidthClass} ${shadowClass} p-3 transition-all active:scale-[0.99]" style="background:${surfaceStyle}; border-color:${borderColor};">

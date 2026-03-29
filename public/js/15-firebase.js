@@ -1526,7 +1526,7 @@ MeimayPairing._autoSyncDebounced = (function () {
     let timer = null;
     return function () {
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => MeimayPairing.syncMyData(), 5000);
+        timer = setTimeout(() => MeimayPairing.syncMyData(), 1200);
     };
 })();
 
