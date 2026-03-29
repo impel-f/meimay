@@ -1250,7 +1250,7 @@ const MeimayPartnerInsights = {
     },
 
     getOwnMainSavedItem: function () {
-        const items = this.getOwnSaved().filter(item => item?.mainSelected);
+        const items = this.getOwnSaved().filter(item => item?.mainSelected && !item?.fromPartner && !item?.approvedFromPartner);
         if (items.length === 0) return null;
         return items.slice().sort((a, b) => {
             const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
@@ -1260,9 +1260,17 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerMainSavedItem: function () {
-        const items = this.getPartnerSaved().filter(item => item?.mainSelected);
-        if (items.length === 0) return null;
-        return items.slice().sort((a, b) => {
+        const items = this.getPartnerSaved();
+        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
+            ? window.__meimaySavedCanvasPartnerKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+        if (overrideKey) {
+            const overrideItem = items.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
+            if (overrideItem) return overrideItem;
+        }
+        const selected = items.filter(item => item?.mainSelected);
+        if (selected.length === 0) return null;
+        return selected.slice().sort((a, b) => {
             const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
             const bTime = new Date(b.mainSelectedAt || b.savedAt || b.timestamp || 0).getTime();
             return bTime - aTime;

@@ -1076,9 +1076,7 @@ function showSavedNameDetail(index, source = 'own') {
     const savedFocus = typeof window !== 'undefined' && typeof window.savedFocus !== 'undefined'
         ? window.savedFocus
         : 'all';
-    const localDeleteIndex = source === 'partner'
-        ? saved.findIndex(entry => getSavedCandidateKey(entry) === sourceKey)
-        : index;
+    const localDeleteIndex = source === 'own' ? index : -1;
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
     const f = item.fortune;
 
@@ -1712,7 +1710,6 @@ function votePartnerSavedName(index) {
     const source = partnerSaved[index];
     if (!source) return false;
 
-    const saved = getSavedNames();
     const sourceKey = getSavedCandidateKey(source);
     if (!sourceKey) return false;
 
@@ -1721,38 +1718,14 @@ function votePartnerSavedName(index) {
         : (typeof getPartnerRoleLabel === 'function'
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー');
-    const now = new Date().toISOString();
-    const existingIndex = saved.findIndex(item => getSavedCandidateKey(item) === sourceKey);
 
-    let updated = [...saved];
-    if (existingIndex >= 0) {
-        const existing = updated[existingIndex] || {};
-        updated[existingIndex] = {
-            ...existing,
-            fromPartner: false,
-            approvedFromPartner: true,
-            approvedPartnerSavedKey: sourceKey,
-            partnerName,
-            mainSelected: true,
-            mainSelectedAt: now
-        };
-        updated = updated.map((item, idx) => idx === existingIndex
-            ? updated[existingIndex]
-            : { ...item, mainSelected: false, mainSelectedAt: item.mainSelectedAt || '' });
-    } else {
-        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
-        approved.mainSelected = true;
-        approved.mainSelectedAt = now;
-        updated = [approved, ...updated].map((item, idx) => idx === 0
-            ? approved
-            : { ...item, mainSelected: false, mainSelectedAt: item.mainSelectedAt || '' });
-    }
-
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
-    if (typeof savedNames !== 'undefined') savedNames = updated;
-
-    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
-        MeimayPairing._autoSyncDebounced?.();
+    try {
+        if (typeof window !== 'undefined') {
+            window.__meimaySavedCanvasPartnerKey = sourceKey;
+        }
+        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+    } catch (error) {
+        console.warn('SAVED: Persist partner main key failed', error);
     }
 
     renderSavedScreen();
@@ -2180,7 +2153,7 @@ function renderSavedScreen() {
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー'));
 
-    const ownDecorated = saved.map((item, index) => {
+    const ownDecorated = ownVisibleItems.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
         const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
@@ -2351,11 +2324,12 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const itemKey = entry.key;
-        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
+        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
-        const buttonClass = entry.ownSelected
+        const buttonClass = selected
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white active:scale-95';
         const detailSource = source === 'own' ? 'own' : 'partner';
@@ -2570,7 +2544,6 @@ function votePartnerSavedName(index) {
     const source = partnerSaved[index];
     if (!source) return false;
 
-    const saved = getSavedNames();
     const sourceKey = getSavedCandidateKey(source);
     if (!sourceKey) return false;
 
@@ -2579,49 +2552,19 @@ function votePartnerSavedName(index) {
         : (typeof getPartnerRoleLabel === 'function'
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー');
-    const now = new Date().toISOString();
-    const existingIndex = saved.findIndex(item => getSavedCandidateKey(item) === sourceKey);
 
-    let updated = saved.map(item => ({
-        ...item,
-        mainSelected: false,
-        mainSelectedAt: ''
-    }));
-
-    if (existingIndex >= 0) {
-        const existing = updated[existingIndex] || {};
-        updated[existingIndex] = {
-            ...existing,
-            fromPartner: false,
-            approvedFromPartner: true,
-            approvedPartnerSavedKey: sourceKey,
-            partnerName,
-            mainSelected: true,
-            mainSelectedAt: now
-        };
-    } else {
-        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
-        updated = [
-            {
-                ...approved,
-                fromPartner: false,
-                mainSelected: true,
-                mainSelectedAt: now
-            },
-            ...updated
-        ];
-    }
-
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
-    if (typeof savedNames !== 'undefined') savedNames = updated;
-
-    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
-        MeimayPairing._autoSyncDebounced?.();
+    try {
+        if (typeof window !== 'undefined') {
+            window.__meimaySavedCanvasPartnerKey = sourceKey;
+        }
+        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+    } catch (error) {
+        console.warn('SAVED: Persist partner main key failed', error);
     }
 
     renderSavedScreen();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-    if (typeof showToast === 'function') showToast('本命にしました', '✨');
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '寵');
     return true;
 }
 
@@ -2657,7 +2600,8 @@ function renderSavedScreen() {
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー'));
 
-    const ownKeySet = new Set(saved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
+    const ownKeySet = new Set(ownVisibleItems.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
 
     const ownDecorated = saved.map((item, index) => {
@@ -2696,7 +2640,7 @@ function renderSavedScreen() {
             partnerSelected,
             shared,
             creatorMeta: getSavedCandidateCreatorMeta(item, 'partner', partnerName),
-            showInList: !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
+            showInList: !item?.approvedFromPartner
         };
     }).filter(entry => entry.showInList).sort((a, b) => {
         if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
@@ -2819,11 +2763,12 @@ function renderSavedScreen() {
 
     const renderCard = (entry, source) => {
         const item = entry.item;
-        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
+        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
-        const buttonClass = entry.ownSelected
+        const buttonClass = selected
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white active:scale-95';
         const detailSource = source === 'own' ? 'own' : 'partner';
@@ -2967,10 +2912,11 @@ function renderSavedScreen() {
         listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 17, 26));
     };
 
-    const ownKeySet = new Set(saved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
+    const ownKeySet = new Set(ownVisibleItems.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
 
-    const ownDecorated = saved.map((item, index) => {
+    const ownDecorated = ownVisibleItems.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
         const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
@@ -3105,18 +3051,19 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
-        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
+        const buttonText = selected ? '譛ｬ蜻ｽ荳ｭ' : '譛ｬ蜻ｽ縺ｫ縺吶ｋ';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
             : `votePartnerSavedName(${entry.index})`;
-        const buttonClass = entry.ownSelected
+        const buttonClass = selected
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
         const cardClass = source === 'own'
-            ? (entry.ownSelected
+            ? (selected
                 ? 'border-[#e1c29a] bg-[#fff7ef] shadow-[0_10px_30px_-22px_rgba(188,163,127,0.55)]'
                 : 'border-[#f1d8cb] bg-[#fff8f3] shadow-sm')
-            : (entry.ownSelected
+            : (selected
                 ? 'border-[#e1b7b1] bg-[#fff7f7] shadow-[0_10px_30px_-22px_rgba(221,125,115,0.28)]'
                 : 'border-[#f1ddd8] bg-[#fffaf9] shadow-sm');
         const nameText = escapeHtml(item.fullName || item.givenName || '');
@@ -3134,7 +3081,7 @@ function renderSavedScreen() {
                                 ${messageText ? `<div class="mt-1 text-xs text-[#bca37f]">メモ ${messageText}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
-                                <button onclick="event.stopPropagation(); ${buttonAction}" ${entry.ownSelected ? 'disabled' : ''} class="min-w-[6.5rem] rounded-full px-3.5 py-2 text-[11px] font-black ${buttonClass}">
+                                <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[6.5rem] rounded-full px-3.5 py-2 text-[11px] font-black ${buttonClass}">
                                     ${buttonText}
                                 </button>
                             </div>
