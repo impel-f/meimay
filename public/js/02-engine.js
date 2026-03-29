@@ -158,7 +158,7 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
     }
 
     const moraLength = splitReadingIntoMoraUnits(target).length;
-    if (moraLength < 2) return false;
+    if (moraLength < 3) return false;
 
     return hasMasterKanjiCandidatesForReading(target, targetGender);
 
@@ -222,7 +222,7 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
         const canUseSeionFallback = isLeadingDakutenVariant(normalizedPart, partSeion);
         const segmentState = getReadingSegmentRuleState(normalizedPart);
         const masterFallback = segmentState.state === 'missing'
-            && splitReadingIntoMoraUnits(normalizedPart).length >= 2
+            && splitReadingIntoMoraUnits(normalizedPart).length >= 3
             && hasMasterKanjiCandidatesForReading(normalizedPart, targetGender);
         const hasStrictReading = !useStrictMatching || (validReadingsSet && (
             validReadingsSet.has(normalizedPart) ||
