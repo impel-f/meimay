@@ -133,42 +133,22 @@ window.onload = () => {
             console.log(`CORE: ${master.length} kanji loaded successfully`);
 
             // 読みデータのインデックス作成
-            try {
-                master.forEach(k => {
-                    try {
-                        const readings = (
-                            String(k?.['音'] ?? '') + ',' +
-                            String(k?.['訓'] ?? '') + ',' +
-                            String(k?.['伝統名のり'] ?? '')
-                        )
-                            .split(/[、,，\s/]+/)
-                            .map(toHira)
-                            .filter(x => clean(x));
-                        readings.forEach(r => validReadingsSet.add(r));
-                    } catch (indexErr) {
-                        console.warn("CORE: Skipped a kanji index row", indexErr);
-                    }
-                });
-            } catch (indexErr) {
-                console.warn("CORE: Kanji reading index build failed, continuing", indexErr);
-            }
+            master.forEach(k => {
+                const readings = (k['音'] + ',' + k['訓'] + ',' + k['伝統名のり'])
+                    .split(/[、,，\s/]+/)
+                    .map(toHira)
+                    .filter(x => clean(x));
+                readings.forEach(r => validReadingsSet.add(r));
+            });
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
             if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-                try {
-                    renderHomeProfile();
-                } catch (renderErr) {
-                    console.error("CORE: Home render failed during bootstrap:", renderErr);
-                }
+                renderHomeProfile();
             }
 
             // UI更新 (今日の一字)
             if (typeof initTodaysKanji === 'function') {
-                try {
-                    initTodaysKanji();
-                } catch (todayErr) {
-                    console.warn("CORE: Today's kanji render failed:", todayErr);
-                }
+                initTodaysKanji();
             }
 
             // 四字熟語・ことわざデータの読み込み（非同期）
@@ -247,20 +227,7 @@ window.onload = () => {
                 statusEl.innerText = `ERROR: ${err.message}`;
                 statusEl.style.color = "#f28b82";
             }
-            if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-                try {
-                    renderHomeProfile();
-                } catch (renderErr) {
-                    console.warn("CORE: Fallback home render failed:", renderErr);
-                }
-            }
-            if (typeof initTodaysKanji === 'function') {
-                try {
-                    initTodaysKanji();
-                } catch (todayErr) {
-                    console.warn("CORE: Fallback today's kanji render failed:", todayErr);
-                }
-            }
+            alert('漢字データの読み込みに失敗しました。\n/data/kanji_data.json を確認してください。');
         });
 };
 

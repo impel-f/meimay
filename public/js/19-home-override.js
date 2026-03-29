@@ -1797,7 +1797,6 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
     const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
-    const partnerNextStep = getHomeNextStep(partnerKanjiCount, partnerReadingCount, partnerSavedCount, pairing);
 
     if (mode === 'shared') {
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
@@ -1807,7 +1806,6 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: aggregateCounts.likedCount,
             savedCount: aggregateCounts.savedCount,
             buildCount: aggregateBuildCount,
-            nextStep: sharedNextStep,
             actions: {
                 reading: aggregateCounts.readingStockCount > 0 ? 'stock-reading' : 'sound',
                 kanji: aggregateCounts.likedCount > 0 ? 'stock' : aggregateFallbackAction,
@@ -1830,7 +1828,6 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: partnerKanjiCount,
             savedCount: partnerSavedCount,
             buildCount: partnerBuildCount,
-            nextStep: partnerNextStep,
             actions: {
                 reading: 'partner-reading',
                 kanji: 'partner-liked',
@@ -1853,7 +1850,6 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         likedCount: ownKanjiCount,
         savedCount: ownSavedCount,
         buildCount: ownBuildCount,
-        nextStep,
         actions: {
             reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
             kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
@@ -1873,11 +1869,9 @@ function renderHomeProfile() {
         : { shortText: 'まだ傾向なし' };
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
-    const overview = getHomeOverviewModel(pairing, nextStep);
-    const displayNextStep = overview?.nextStep || nextStep;
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(displayNextStep?.action);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -2021,10 +2015,7 @@ window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
-window.renderHomeProfileLegacy = renderHomeProfile;
-window.renderHomeProfileV2 = renderHomeProfileV2;
-window.renderHomeProfileFallback = renderHomeProfileFallback;
-window.renderHomeProfile = renderHomeProfileSafe;
+window.renderHomeProfile = renderHomeProfile;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -2189,10 +2180,8 @@ function renderHomeProfileV2() {
     const readingStockCount = homeOwnership.ownReadingCount;
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
-    const overview = getHomeOverviewModel(pairing, nextStep);
-    const displayNextStep = overview?.nextStep || nextStep;
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(displayNextStep?.action);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
@@ -2229,6 +2218,7 @@ function renderHomeProfileV2() {
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
 
+    const overview = getHomeOverviewModel(pairing, nextStep);
     const mode = overview.mode;
     const isShared = mode === 'shared';
     const stage = getHomeStageTrackTimeline(
@@ -2275,8 +2265,8 @@ function renderHomeProfileV2() {
 
                 <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
                     <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
-                    <div class="mt-1 text-sm font-black text-[#4f4639]">${displayNextStep?.title || '次に進める候補を育てよう'}</div>
-                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${displayNextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
+                    <div class="mt-1 text-sm font-black text-[#4f4639]">${nextStep?.title || '次に進める候補を育てよう'}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${nextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
                     <div class="mt-3 flex items-center gap-2">
                         <button type="button" onclick="runHomeAction('${overview.primaryAction}')" class="flex-1 rounded-full px-4 py-3 text-[12px] font-bold shadow-sm active:scale-95" style="${overview.tone.button}">
                             ${overview.primaryLabel}
@@ -2303,186 +2293,6 @@ function renderHomeProfileV2() {
         stageSnapshot.savedCount,
         stageSnapshot
     );
-}
-
-function renderHomeProfileFallback() {
-    const screen = document.getElementById('scr-mode');
-    const heroCard = document.getElementById('home-hero-card');
-    const statusLineEl = document.getElementById('home-status-line');
-    const legacyActions = document.getElementById('home-legacy-actions');
-    const summaryPanel = document.getElementById('home-summary-panel');
-    const entryDivider = document.getElementById('home-entry-divider');
-    const entryGrid = document.getElementById('home-entry-grid');
-    const utilityGrid = document.getElementById('home-utility-grid');
-    const toolGrid = document.getElementById('home-tool-grid');
-    const pairCard = document.getElementById('home-pair-card');
-    const restoreBtn = document.getElementById('home-pair-restore');
-    const dismissBtn = document.getElementById('home-pair-dismiss');
-    const stageAnchor = document.getElementById('home-stage-track-anchor');
-    const overviewSwitch = document.getElementById('home-overview-switch');
-    const nextStepTitleEl = document.getElementById('home-next-step-title');
-    const nextStepDetailEl = document.getElementById('home-next-step-detail');
-    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
-    const pairTitleEl = document.getElementById('home-partner-match-title');
-    const pairSubtitleEl = document.getElementById('home-partner-match-subtitle');
-    const pairFootnoteEl = document.getElementById('home-match-footnote');
-    const pairActionEl = document.getElementById('home-pair-action');
-    const pairStatsRow = document.getElementById('home-pair-stats-row');
-    const pairActionRow = document.getElementById('home-pair-action-row');
-    const pairJoinToggle = document.getElementById('home-pair-join-toggle');
-    const pairJoinRole = document.getElementById('home-pair-quick-role');
-    const pairJoinRow = document.getElementById('home-pair-join-row');
-    const pairReadingCountEl = document.getElementById('home-pair-reading-count');
-    const pairLikedCountEl = document.getElementById('home-pair-liked-count');
-    const pairSavedCountEl = document.getElementById('home-pair-saved-count');
-
-    let likedCount = 0;
-    try {
-        likedCount = Array.isArray(liked)
-            ? liked.filter(item => !item?.fromPartner).length
-            : 0;
-    } catch (e) { }
-
-    let readingStockCount = 0;
-    try {
-        const readingStock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-        readingStockCount = Array.isArray(readingStock) ? readingStock.length : 0;
-    } catch (e) { }
-
-    let savedCount = 0;
-    try {
-        const savedList = typeof getSavedNames === 'function'
-            ? getSavedNames()
-            : (Array.isArray(window.savedNames) ? window.savedNames : []);
-        savedCount = Array.isArray(savedList) ? savedList.length : 0;
-    } catch (e) { }
-
-    let pairing = null;
-    try {
-        pairing = typeof getPairingHomeSummary === 'function'
-            ? getPairingHomeSummary()
-            : null;
-    } catch (e) {
-        pairing = null;
-    }
-
-    const safePairing = pairing || {
-        inRoom: false,
-        hasPartner: false,
-        partnerDisplayName: 'パートナー',
-        partnerCallName: 'パートナー',
-        title: 'パートナー連携はまだ未設定です',
-        subtitle: '連携すると二人で名前をさがせます。',
-        footnote: '必要になった時だけ使えます。',
-        actionLabel: '連携する',
-        matchedReadingCount: 0,
-        matchedKanjiCount: 0,
-        matchedNameCount: 0,
-        myRoleLabel: '自分'
-    };
-
-    let nextStep = null;
-    try {
-        nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, safePairing);
-    } catch (e) {
-        nextStep = {
-            title: '名前の候補を集めよう',
-            detail: '響きか読みから候補を集めると、ここに次の一手が出ます。',
-            actionLabel: '次に進む',
-            action: 'sound'
-        };
-    }
-
-    if (screen) {
-        screen.style.paddingLeft = '12px';
-        screen.style.paddingRight = '12px';
-    }
-
-    if (heroCard) {
-        heroCard.removeAttribute('onclick');
-        heroCard.removeAttribute('role');
-        heroCard.removeAttribute('tabindex');
-        heroCard.removeAttribute('onkeydown');
-        heroCard.style.cssText = '';
-    }
-
-    if (statusLineEl) {
-        statusLineEl.classList.remove('hidden');
-        statusLineEl.textContent = nextStep.detail || '候補を集めながら、次に進む準備をしています。';
-    }
-    if (legacyActions) legacyActions.classList.remove('hidden');
-    if (summaryPanel) summaryPanel.classList.remove('hidden');
-    if (entryDivider) entryDivider.classList.remove('hidden');
-    if (entryGrid) entryGrid.classList.remove('hidden');
-    if (utilityGrid) utilityGrid.classList.remove('hidden');
-    if (toolGrid) toolGrid.classList.remove('hidden');
-    if (pairCard) pairCard.classList.remove('hidden');
-    if (restoreBtn) restoreBtn.classList.add('hidden');
-    if (dismissBtn) dismissBtn.classList.add('hidden');
-    if (stageAnchor) stageAnchor.classList.remove('hidden');
-
-    if (overviewSwitch) {
-        overviewSwitch.innerHTML = `
-            <div class="rounded-[20px] border border-[#eadfce] bg-white/84 px-3 py-2 text-center">
-                <div class="text-[18px] font-black leading-none text-[#4f4639]">${likedCount + readingStockCount + savedCount}</div>
-                <div class="mt-1 text-[9px] font-bold text-[#8b7e66]">候補</div>
-            </div>
-        `;
-    }
-
-    if (nextStepTitleEl) {
-        nextStepTitleEl.classList.remove('hidden');
-        nextStepTitleEl.textContent = nextStep.title || '次に進む候補';
-    }
-    if (nextStepDetailEl) {
-        nextStepDetailEl.classList.remove('hidden');
-        nextStepDetailEl.textContent = nextStep.detail || '';
-    }
-    if (nextStepActionLabelEl) {
-        nextStepActionLabelEl.classList.remove('hidden');
-        nextStepActionLabelEl.textContent = nextStep.actionLabel || '次に進む';
-    }
-
-    if (pairTitleEl) pairTitleEl.textContent = safePairing.title || 'パートナー連携はまだ未設定です';
-    if (pairSubtitleEl) pairSubtitleEl.textContent = safePairing.subtitle || '連携すると二人で名前をさがせます。';
-    if (pairFootnoteEl) pairFootnoteEl.textContent = safePairing.footnote || '必要になった時だけ使えます。';
-    if (pairActionEl) {
-        pairActionEl.textContent = safePairing.actionLabel || '連携する';
-        pairActionEl.classList.toggle('hidden', !!safePairing.hasPartner);
-    }
-
-    if (pairStatsRow) pairStatsRow.classList.toggle('hidden', !safePairing.inRoom);
-    if (pairActionRow) pairActionRow.classList.toggle('hidden', !!safePairing.hasPartner);
-    if (pairJoinToggle) pairJoinToggle.classList.toggle('hidden', !!safePairing.inRoom);
-    if (pairJoinRole) {
-        pairJoinRole.classList.toggle('hidden', !!safePairing.inRoom);
-        pairJoinRole.textContent = safePairing.inRoom ? (safePairing.myRoleLabel || '自分') : '';
-    }
-    if (pairJoinRow && safePairing.inRoom) pairJoinRow.classList.add('hidden');
-    if (pairReadingCountEl) pairReadingCountEl.textContent = String(Math.max(0, Number(safePairing.matchedReadingCount) || 0));
-    if (pairLikedCountEl) pairLikedCountEl.textContent = String(Math.max(0, Number(safePairing.matchedKanjiCount) || 0));
-    if (pairSavedCountEl) pairSavedCountEl.textContent = String(Math.max(0, Number(safePairing.matchedNameCount) || 0));
-}
-
-function renderHomeProfileSafe() {
-    try {
-        return renderHomeProfileV2();
-    } catch (error) {
-        console.error('HOME: renderHomeProfileV2 failed, falling back', error);
-        try {
-            if (typeof window.renderHomeProfileLegacy === 'function') {
-                return window.renderHomeProfileLegacy();
-            }
-        } catch (legacyError) {
-            console.error('HOME: legacy home render failed', legacyError);
-        }
-        try {
-            return renderHomeProfileFallback();
-        } catch (fallbackError) {
-            console.error('HOME: minimal home fallback failed', fallbackError);
-        }
-        return null;
-    }
 }
 
 function getHomeNextStagePreviewHtml(stageKey) {
@@ -3188,10 +2998,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
     `;
 }
 
-window.renderHomeProfileLegacy = renderHomeProfile;
-window.renderHomeProfileV2 = renderHomeProfileV2;
-window.renderHomeProfileFallback = renderHomeProfileFallback;
-window.renderHomeProfile = renderHomeProfileSafe;
+window.renderHomeProfile = renderHomeProfile;
 window.selectHomeStageTab = selectHomeStageTab;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
