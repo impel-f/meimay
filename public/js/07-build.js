@@ -2554,8 +2554,14 @@ function showFortuneDetail() {
     const givens = currentBuildResult.combination.map(p => ({ kanji: p['漢字'], strokes: parseInt(p['画数']) || 0 }));
 
     const container = document.getElementById('for-grid');
+    const rankingHeaderEl = document.getElementById('fortune-ranking-header');
 
     if (!container) return;
+    container.style.display = '';
+    if (rankingHeaderEl) {
+        rankingHeaderEl.style.display = 'none';
+        rankingHeaderEl.innerHTML = '';
+    }
 
     const getNum = (obj) => (obj ? (obj.num || obj.val || 0) : 0);
 
@@ -2823,6 +2829,13 @@ function closeFortuneDetail() {
     // 保存ボタンの表示を復元
     const saveBtn = document.getElementById('fortune-save-btn');
     if (saveBtn) saveBtn.style.display = 'block';
+    const gridEl = document.getElementById('for-grid');
+    if (gridEl) gridEl.style.display = '';
+    const rankingHeaderEl = document.getElementById('fortune-ranking-header');
+    if (rankingHeaderEl) {
+        rankingHeaderEl.style.display = 'none';
+        rankingHeaderEl.innerHTML = '';
+    }
 
     // もし保存済み詳細から開いていたなら、詳細画面に戻す
     if (typeof _lastSavedDetailIndex === 'number' && _lastSavedDetailIndex !== null) {
@@ -2955,6 +2968,7 @@ function displayFortuneRankingModal(rankedList) {
     if (!modal) return;
 
     const nameEl = document.getElementById('for-name');
+    const rankingHeaderEl = document.getElementById('fortune-ranking-header');
     const gridEl = document.getElementById('for-grid');
     const descEl = document.getElementById('for-desc');
     const saveBtn = document.getElementById('fortune-save-btn');
@@ -2962,6 +2976,13 @@ function displayFortuneRankingModal(rankedList) {
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
     if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
     if (saveBtn) saveBtn.style.display = 'none';
+    if (gridEl) gridEl.style.display = 'none';
+    if (rankingHeaderEl) {
+        rankingHeaderEl.style.display = 'block';
+        rankingHeaderEl.innerHTML = `
+            ${!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">醇 驕句兇繝ｩ繝ｳ繧ｭ繝ｳ繧ｰ TOP10</div>' : ''}
+            <p class="text-xs text-center text-[#a6967a]">繧ｿ繝・・縺励※驕ｸ謚槭☆繧九→閾ｪ蜍慕噪縺ｫ蜿肴丐縺輔ｌ縺ｾ縺・</p>`;
+    }
     gridEl.innerHTML = `
         <div style="position:sticky;top:0;z-index:20;padding:4px 0 12px;background:linear-gradient(180deg, rgba(253,250,245,0.98) 0%, rgba(253,250,245,0.92) 100%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
             ${!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : ''}
