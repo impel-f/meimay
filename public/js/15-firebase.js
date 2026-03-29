@@ -3343,8 +3343,9 @@ function getMeimayRelationshipPalettes() {
     const selfBase = typeof window.getActiveProfilePalette === 'function'
         ? window.getActiveProfilePalette(resolvedSelfRole)
         : getMeimayRolePalette(resolvedSelfRole);
+    const partnerThemeId = String(MeimayShare?.partnerSnapshot?.themeId || '').trim() || getDefaultProfileThemeId(resolvedPartnerRole);
     const partnerBase = typeof window.getActiveProfilePalette === 'function'
-        ? window.getActiveProfilePalette(resolvedPartnerRole, MeimayShare?.partnerSnapshot?.themeId)
+        ? window.getActiveProfilePalette(resolvedPartnerRole, partnerThemeId)
         : getMeimayRolePalette(resolvedPartnerRole);
     const getMatchedSurface = (base) => base?.mist || base?.surface || '#fffaf5';
     const getMatchedAccent = (base) => base?.accentSoft || base?.accent || '#fff1e1';
