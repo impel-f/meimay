@@ -1797,6 +1797,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
     const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
     const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
+    const partnerNextStep = getHomeNextStep(partnerKanjiCount, partnerReadingCount, partnerSavedCount, pairing);
 
     if (mode === 'shared') {
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
@@ -1806,6 +1807,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: aggregateCounts.likedCount,
             savedCount: aggregateCounts.savedCount,
             buildCount: aggregateBuildCount,
+            nextStep: sharedNextStep,
             actions: {
                 reading: aggregateCounts.readingStockCount > 0 ? 'stock-reading' : 'sound',
                 kanji: aggregateCounts.likedCount > 0 ? 'stock' : aggregateFallbackAction,
@@ -1828,6 +1830,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: partnerKanjiCount,
             savedCount: partnerSavedCount,
             buildCount: partnerBuildCount,
+            nextStep: partnerNextStep,
             actions: {
                 reading: 'partner-reading',
                 kanji: 'partner-liked',
@@ -1850,6 +1853,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         likedCount: ownKanjiCount,
         savedCount: ownSavedCount,
         buildCount: ownBuildCount,
+        nextStep,
         actions: {
             reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
             kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
@@ -1869,9 +1873,11 @@ function renderHomeProfile() {
         : { shortText: 'まだ傾向なし' };
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const overview = getHomeOverviewModel(pairing, nextStep);
+    const displayNextStep = overview?.nextStep || nextStep;
     const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(displayNextStep?.action);
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -2180,8 +2186,10 @@ function renderHomeProfileV2() {
     const readingStockCount = homeOwnership.ownReadingCount;
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
+    const overview = getHomeOverviewModel(pairing, nextStep);
+    const displayNextStep = overview?.nextStep || nextStep;
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    stageSnapshot.recommendedKey = getHomeRecommendedStageKey(displayNextStep?.action);
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');
@@ -2218,7 +2226,6 @@ function renderHomeProfileV2() {
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
 
-    const overview = getHomeOverviewModel(pairing, nextStep);
     const mode = overview.mode;
     const isShared = mode === 'shared';
     const stage = getHomeStageTrackTimeline(
@@ -2265,8 +2272,8 @@ function renderHomeProfileV2() {
 
                 <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
                     <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
-                    <div class="mt-1 text-sm font-black text-[#4f4639]">${nextStep?.title || '次に進める候補を育てよう'}</div>
-                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${nextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
+                    <div class="mt-1 text-sm font-black text-[#4f4639]">${displayNextStep?.title || '次に進める候補を育てよう'}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${displayNextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
                     <div class="mt-3 flex items-center gap-2">
                         <button type="button" onclick="runHomeAction('${overview.primaryAction}')" class="flex-1 rounded-full px-4 py-3 text-[12px] font-bold shadow-sm active:scale-95" style="${overview.tone.button}">
                             ${overview.primaryLabel}
