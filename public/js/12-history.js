@@ -4217,8 +4217,8 @@ function renderSavedScreen() {
     };
 
     const applySavedTextFit = () => {
-        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 16, 28));
-        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 15, 24));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="canvas"]').forEach(node => fitSavedText(node, 14, 24));
+        canvasContainer.querySelectorAll('[data-fit-saved-name="split"]').forEach(node => fitSavedText(node, 14, 22));
         listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 14, 22));
     };
 
@@ -4284,56 +4284,57 @@ function renderSavedScreen() {
         visiblePartner = [];
     }
 
+    const relationshipPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
+        ? window.getMeimayRelationshipPalettes()
+        : null;
+    const getOwnershipPalette = (kind) => {
+        if (typeof window.getMeimayOwnershipPalette === 'function') {
+            return window.getMeimayOwnershipPalette(kind);
+        }
+        return null;
+    };
+    const ownPalette = relationshipPalettes?.self || getOwnershipPalette('self');
+    const partnerPalette = relationshipPalettes?.partner || getOwnershipPalette('partner');
+    const matchedPalette = relationshipPalettes?.matched || getOwnershipPalette('matched');
     const canvasTheme = {
         own: {
-            border: 'border-[#e7c7a0]',
-            bg: 'bg-[#fff7ee]',
-            label: 'text-[#be8558]',
-            ring: 'ring-[#e7c7a0]',
-            gradient: 'linear-gradient(180deg, rgba(231,199,160,0.12) 0%, rgba(255,247,238,0.98) 100%)',
-            gradientSelected: 'linear-gradient(180deg, rgba(231,199,160,0.18) 0%, rgba(255,243,231,0.98) 100%)'
+            border: ownPalette?.border || '#d9e8ff',
+            label: ownPalette?.text || '#59779d',
+            surface: ownPalette?.surface || 'linear-gradient(180deg, #eff7ff 0%, #f8fbff 100%)',
+            surfaceSelected: ownPalette?.surface || 'linear-gradient(180deg, #eaf4ff 0%, #ffffff 100%)',
+            ring: ownPalette?.accentStrong || ownPalette?.accent || '#5f98de'
         },
         partner: {
-            border: 'border-[#e7bcc6]',
-            bg: 'bg-[#fff5f7]',
-            label: 'text-[#d57f8f]',
-            ring: 'ring-[#e7b0bb]',
-            gradient: 'linear-gradient(180deg, rgba(231,188,198,0.12) 0%, rgba(255,245,247,0.98) 100%)',
-            gradientSelected: 'linear-gradient(180deg, rgba(231,188,198,0.18) 0%, rgba(255,241,244,0.98) 100%)'
+            border: partnerPalette?.border || '#f7dbe5',
+            label: partnerPalette?.text || '#8e6170',
+            surface: partnerPalette?.surface || 'linear-gradient(180deg, #fff3f7 0%, #fff8fb 100%)',
+            surfaceSelected: partnerPalette?.surface || 'linear-gradient(180deg, #fff0f5 0%, #ffffff 100%)',
+            ring: partnerPalette?.accentStrong || partnerPalette?.accent || '#dc7f9c'
+        },
+        matched: {
+            border: matchedPalette?.border || ownPalette?.border || '#d9e8ff',
+            label: matchedPalette?.text || '#7d6671',
+            surface: matchedPalette?.surface || `linear-gradient(135deg, ${ownPalette?.accentSoft || ownPalette?.mist || '#eff7ff'} 0%, #fffdfb 50%, ${partnerPalette?.accentSoft || partnerPalette?.mist || '#fff5f8'} 100%)`,
+            ring: matchedPalette?.accent || ownPalette?.accentStrong || ownPalette?.accent || '#5f98de'
         }
     };
     const ownDisplayLabel = 'マイ本命';
-    const ownDisplayReading = 'まいほんめい';
     const partnerDisplayLabel = 'パートナー本命';
-    const partnerDisplayReading = 'ぱーとなーほんめい';
-    const canvasCardMinHeight = 'min-h-[156px]';
-    const matchedCanvasStyle = 'linear-gradient(135deg, rgba(231,199,160,0.20) 0%, rgba(255,252,247,0.96) 48%, rgba(231,188,198,0.20) 100%)';
+    const canvasCardMinHeight = 'min-h-[108px]';
+    const canvasLabelClass = 'text-[9px] font-black leading-none tracking-[0.08em] whitespace-nowrap';
+    const canvasReadingClass = 'mt-0.5 text-[8px] font-bold leading-none whitespace-nowrap opacity-85';
 
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
         const label = isOwn ? ownDisplayLabel : partnerDisplayLabel;
-        const reading = isOwn ? ownDisplayReading : partnerDisplayReading;
         const theme = isOwn ? canvasTheme.own : canvasTheme.partner;
-        const borderClass = theme.border;
-        const bgClass = theme.bg;
-        const labelClass = theme.label;
-        const surfaceStyle = item
-            ? (isOwn
-                ? (item && canvasState.ownKey && getSavedCandidateKey(item) === canvasState.ownKey
-                    ? theme.gradientSelected
-                    : theme.gradient)
-                : (hasPartnerLinked && canvasState.partnerKey && getSavedCandidateKey(item) === canvasState.partnerKey
-                    ? theme.gradientSelected
-                    : theme.gradient))
-            : theme.gradient;
+        const borderStyle = `border-color:${theme.border};`;
+        const labelStyle = `color:${theme.label};`;
 
         if (!item) {
             return `
-                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} ${canvasCardMinHeight} px-4 py-4 text-center" style="background-image:${surfaceStyle};">
-                    <div class="flex flex-col items-center justify-center text-center">
-                        <div class="whitespace-nowrap text-[10px] font-black leading-none tracking-[0.12em] ${labelClass} text-center">${escapeHtml(label)}</div>
-                        <div class="mt-0.5 whitespace-nowrap text-[8px] font-bold leading-none tracking-[0.08em] ${labelClass} opacity-80 text-center">${escapeHtml(reading)}</div>
-                    </div>
+                <div class="rounded-[24px] border border-dashed ${canvasCardMinHeight} px-4 py-3 text-center" style="background:${surfaceStyle}; ${borderStyle}">
+                    <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
                     <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
                 </div>
             `;
@@ -4343,17 +4344,17 @@ function renderSavedScreen() {
         const selected = isOwn
             ? !!canvasState.ownKey && key === canvasState.ownKey
             : hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const reading = escapeHtml(item.reading || '');
+        const surfaceStyle = selected ? theme.surfaceSelected : theme.surface;
 
         return `
-            <div class="rounded-[24px] border ${borderClass} ${bgClass} ${canvasCardMinHeight} px-4 py-3 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}" style="background-image:${surfaceStyle};">
+            <div class="rounded-[24px] border ${canvasCardMinHeight} px-4 py-2 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}" style="background:${surfaceStyle}; ${borderStyle}">
                 <div class="flex flex-col items-center text-center">
-                    <div class="text-[10px] font-black leading-none tracking-[0.12em] whitespace-nowrap ${labelClass} text-center">${escapeHtml(label)}</div>
-                    <div class="mt-0.5 text-[8px] font-bold leading-none tracking-[0.08em] whitespace-nowrap ${labelClass} text-center/80">${escapeHtml(reading)}</div>
-                    <div class="mt-2 flex min-h-[56px] items-center justify-center">
-                        <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[23px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
-                            ${escapeHtml(item.fullName || item.givenName || '')}
-                        </div>
+                    <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
+                    <div data-fit-saved-name="split" class="mt-2 w-full overflow-hidden text-center text-[23px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+                        ${escapeHtml(item.fullName || item.givenName || '')}
                     </div>
+                    ${reading ? `<div class="${canvasReadingClass}" style="${labelStyle}">${reading}</div>` : ''}
                 </div>
             </div>
         `;
@@ -4362,15 +4363,13 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[28px] border border-[#eadfce] p-2 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]" style="background-image:${matchedCanvasStyle};">
-                <div class="rounded-[22px] border border-[#eadfce] px-4 py-3 text-center shadow-sm ${canvasCardMinHeight}" style="background-image:${matchedCanvasStyle};">
-                    <div class="flex flex-col items-center justify-center text-center">
-                        <div class="whitespace-nowrap text-[10px] font-black leading-none tracking-[0.12em] text-[#8b7e66]">ふたりの本命</div>
-                    <div class="mt-0.5 whitespace-nowrap text-[8px] font-bold leading-none tracking-[0.08em] text-[#9e8c77]">ふたりのほんめい</div>
-                    </div>
-                    <div data-fit-saved-name="canvas" class="mt-3 w-full overflow-hidden text-center text-[28px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+            <div class="rounded-[28px] border p-2 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]" style="background:${canvasTheme.matched.surface}; border-color:${canvasTheme.matched.border};">
+                <div class="rounded-[22px] border ${canvasCardMinHeight} px-4 py-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface}; border-color:${canvasTheme.matched.border};">
+                    <div class="${canvasLabelClass} text-center" style="color:${canvasTheme.matched.label};">ふたりの本命</div>
+                    <div data-fit-saved-name="canvas" class="mt-2 w-full overflow-hidden text-center text-[24px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
                     </div>
+                    ${mainItem.reading ? `<div class="${canvasReadingClass}" style="color:${canvasTheme.matched.label};">${escapeHtml(mainItem.reading)}</div>` : ''}
                 </div>
             </div>
         `
@@ -4427,36 +4426,26 @@ function renderSavedScreen() {
             : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
         const cardActive = entry.ownSelected || entry.partnerSelected;
         const cardMatched = entry.ownSelected && entry.partnerSelected;
-        const theme = source === 'own'
-            ? {
-                border: cardActive ? 'border-[#e4be8f]' : 'border-[#efd7be]',
-                bg: cardActive ? 'bg-[#fff3e7]' : 'bg-[#fff9f2]',
-                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(188,163,127,0.45)]' : 'shadow-sm',
-                gradient: 'linear-gradient(180deg, rgba(231,199,160,0.10) 0%, rgba(255,249,242,0.98) 100%)',
-                gradientSelected: 'linear-gradient(180deg, rgba(231,199,160,0.18) 0%, rgba(255,243,231,0.98) 100%)'
-            }
-            : {
-                border: cardActive ? 'border-[#e6b0bb]' : 'border-[#f0d2d9]',
-                bg: cardActive ? 'bg-[#fff1f4]' : 'bg-[#fff8fa]',
-                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(221,125,115,0.24)]' : 'shadow-sm',
-                gradient: 'linear-gradient(180deg, rgba(231,188,198,0.10) 0%, rgba(255,248,250,0.98) 100%)',
-                gradientSelected: 'linear-gradient(180deg, rgba(231,188,198,0.18) 0%, rgba(255,241,244,0.98) 100%)'
-            };
+        const theme = source === 'own' ? canvasTheme.own : canvasTheme.partner;
         const nameText = escapeHtml(item.fullName || item.givenName || '');
         const readingText = escapeHtml(item.reading || '');
         const messageText = item.message ? escapeHtml(item.message) : '';
         const surfaceStyle = cardMatched
-            ? matchedCanvasStyle
-            : (selected ? theme.gradientSelected : theme.gradient);
+            ? canvasTheme.matched.surface
+            : (selected ? theme.surfaceSelected : theme.surface);
+        const borderColor = cardMatched ? canvasTheme.matched.border : theme.border;
+        const textColor = theme.label;
+        const ringClass = cardActive ? `ring-2 ${cardMatched ? canvasTheme.matched.ring : theme.ring}` : '';
+        const shadowClass = cardActive ? 'shadow-[0_10px_30px_-18px_rgba(123,104,83,0.16)]' : 'shadow-sm';
 
         return `
-            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${theme.border} ${theme.bg} ${theme.shadow} p-3.5 transition-all active:scale-[0.99]" style="background-image:${surfaceStyle};">
+            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${ringClass} ${shadowClass} p-3.5 transition-all active:scale-[0.99]" style="background:${surfaceStyle}; border-color:${borderColor};">
                 <div class="flex items-start gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-start gap-3">
                             <div class="min-w-0 flex-1">
                                 <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-black leading-tight text-[#5d5444]">${nameText}</div>
-                                ${readingText ? `<div class="mt-1 text-[11px] text-[#a6967a]">${readingText}</div>` : ''}
+                                ${readingText ? `<div class="mt-1 text-[11px]" style="color:${textColor};">${readingText}</div>` : ''}
                                 ${messageText ? `<div class="mt-1 text-[11px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
