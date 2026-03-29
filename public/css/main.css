@@ -1707,7 +1707,7 @@ body.has-ad-banner #universal-footer {
     transform: none !important;
 }
 
-.build-right-actions > button:first-child {
+.build-right-actions > button:nth-child(2) {
     display: none !important;
 }
 

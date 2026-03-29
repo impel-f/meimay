@@ -1462,20 +1462,24 @@ function updateNamePreview() {
 
     // \u30dc\u30bf\u30f3\u5185\u306e\u30e9\u30d9\u30eb
     const fortuneLabel = fortuneData ? `
-        <div class="flex items-center justify-center gap-1 mb-1 px-1">
+        <div class="flex items-center justify-center gap-1 mb-0.5 px-1">
             <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
-            <span class="text-[11px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
+            <span class="text-[10px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
         </div>
-        <span class="text-[15px] leading-none mb-1">\ud83d\udd2e</span>
-        <span class="text-[8px] font-bold text-[#bca37f] leading-none">運勢詳細</span>
+        <span class="text-[15px] leading-none mb-0.5">\ud83d\udd2e</span>
+        <span class="text-[7px] font-bold text-[#bca37f] leading-none">運勢詳細</span>
     ` : `
-        <span class="text-[15px] leading-none mb-1 text-[#d4c5af]">\ud83d\udd2e</span>
-        <span class="text-[8px] font-bold text-[#d4c5af] leading-none">運勢</span>
+        <span class="text-[15px] leading-none mb-0.5 text-[#d4c5af]">\ud83d\udd2e</span>
+        <span class="text-[7px] font-bold text-[#d4c5af] leading-none">運勢</span>
     `;
 
     // キャンバスと横幅を左右対称にするため w-[64px] に統一
     const BTN_W = 'w-[64px]';
     const rightButtons = `<div class="build-right-actions flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
+        <button onclick="showFortuneRanking()" class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105">
+            <span class="text-[15px] leading-none mb-0.5">🏆</span>
+            <span class="text-[7px] font-bold leading-none text-[#5d5444] whitespace-nowrap">運勢TOP10</span>
+        </button>
         <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
             <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
@@ -1729,10 +1733,10 @@ function renderBuildSelection() {
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-6 flex justify-center';
     rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
-        <div class="text-sm font-bold">🏆 運勢ランキング TOP10</div>
+        <div class="text-sm font-bold">🏆 運勢TOP10</div>
         <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
     </button>`;
-    container.appendChild(rankingBtnWrapper);
+    if (false) container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
 }
@@ -2985,7 +2989,7 @@ function displayFortuneRankingModal(rankedList) {
     const saveBtn = document.getElementById('fortune-save-btn');
 
     // for-nameが存在しない場合もクラッシュしないようにnullチェック
-    if (nameEl) nameEl.innerText = '🏆 運勢ランキング TOP10';
+    if (nameEl) nameEl.innerText = '🏆 運勢TOP10';
     if (saveBtn) saveBtn.style.display = 'none';
     if (gridEl) gridEl.style.display = 'none';
     if (rankingHeaderEl) {
@@ -2993,7 +2997,7 @@ function displayFortuneRankingModal(rankedList) {
     }
     gridEl.innerHTML = `
         <div style="position:sticky;top:0;z-index:20;padding:4px 0 12px;background:linear-gradient(180deg, rgba(253,250,245,0.98) 0%, rgba(253,250,245,0.92) 100%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
-            ${!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢ランキング TOP10</div>' : ''}
+            ${!nameEl ? '<div style="font-size:15px;font-weight:900;color:#5d5444;text-align:center;margin-bottom:8px">🏆 運勢TOP10</div>' : ''}
             <p class="text-xs text-center text-[#a6967a]">タップして選択すると自動的に反映されます</p>
         </div>`;
     descEl.innerHTML = '';
