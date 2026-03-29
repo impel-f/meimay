@@ -2151,11 +2151,30 @@ function persistGeneratedSavedName(saveData) {
         }
     }
     const existing = typeof getSavedNames === 'function' ? getSavedNames() : (savedNames || []);
+    const matchKey = (item) => {
+        const combination = Array.isArray(item?.combination) && item.combination.length > 0
+            ? item.combination.map(part => part?.['\u6F22\u5B57'] || part?.kanji || '').join('')
+            : '';
+        const reading = String(item?.reading || '').trim();
+        const fullName = String(item?.fullName || item?.givenName || '').trim();
+        return `${fullName}::${combination}::${reading}`;
+    };
+    const nextKey = matchKey(enrichedSaveData);
+    const existingIndex = existing.findIndex(item => matchKey(item) === nextKey);
+    const preserved = existingIndex >= 0 ? existing[existingIndex] : null;
+    const mergedSaveData = preserved
+        ? {
+            ...preserved,
+            ...enrichedSaveData,
+            approvedFromPartner: preserved.approvedFromPartner || enrichedSaveData.approvedFromPartner || false,
+            approvedPartnerSavedKey: preserved.approvedPartnerSavedKey || enrichedSaveData.approvedPartnerSavedKey || '',
+            mainSelected: preserved.mainSelected || enrichedSaveData.mainSelected || false,
+            mainSelectedAt: preserved.mainSelectedAt || enrichedSaveData.mainSelectedAt || ''
+        }
+        : enrichedSaveData;
     const updated = [
-        enrichedSaveData,
-        ...existing.filter(item => !(item.fullName === enrichedSaveData.fullName &&
-            JSON.stringify((item.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || '')) ===
-            JSON.stringify((enrichedSaveData.combination || []).map(part => part['\u6F22\u5B57'] || part.kanji || ''))))
+        mergedSaveData,
+        ...existing.filter(item => matchKey(item) !== nextKey)
     ].slice(0, 50);
 
     if (typeof savedNames !== 'undefined') savedNames = updated;

@@ -1062,12 +1062,20 @@ let _lastSavedDetailIndex = null;
 /**
  * 保存済み名前の詳細を表示するモーダル
  */
-function showSavedNameDetail(index) {
+function showSavedNameDetail(index, source = 'own') {
     const saved = getSavedNames();
-    if (index < 0 || index >= saved.length) return;
-    const item = saved[index];
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : saved;
+    if (index < 0 || index >= sourceSaved.length) return;
+    const item = sourceSaved[index];
     _lastSavedDetailIndex = index; // 戻り用に保存
 
+    const sourceKey = getSavedCandidateKey(item);
+    const canvasState = getSavedCanvasState();
+    const localDeleteIndex = source === 'partner'
+        ? saved.findIndex(entry => getSavedCandidateKey(entry) === sourceKey)
+        : index;
+    const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
     const f = item.fortune;
 
     // 苗字・名前のパース
@@ -1148,7 +1156,7 @@ function showSavedNameDetail(index) {
 
                     <!-- 姓名判断エリア (タイトル中央・リンク右下) -->
                     <div class="mb-8">
-                        <div onclick="showFortuneDetailFromSaved(${index})" 
+                        <div onclick="showFortuneDetailFromSaved(${index}, '${source}')"
                              class="group block p-5 bg-white rounded-[2.5rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer relative overflow-hidden">
                             <div class="text-center mb-4 border-b border-[#eee5d8] pb-2">
                                 <label class="text-[11px] font-black text-[#a6967a] tracking-widest">姓名判断 鑑定書</label>
@@ -1170,9 +1178,10 @@ function showSavedNameDetail(index) {
                 </div>
 
                 <div class="modal-footer flex flex-col gap-2">
-                    <button onclick="loadSavedName(${index})" class="w-full py-5 bg-[#bca37f] text-white rounded-[1.5rem] text-sm font-black shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                    <button onclick="loadSavedName(${index}, '${source}')" class="w-full py-5 bg-[#bca37f] text-white rounded-[1.5rem] text-sm font-black shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                          <span>🛠️</span> この構成で漢字を選びなおす
                     </button>
+                    ${localDeleteIndex >= 0 ? `<button onclick="deleteSavedName(${localDeleteIndex})" class="w-full py-4 bg-[#fef2f2] text-[#f28b82] rounded-xl text-xs font-bold hover:bg-[#f28b82] hover:text-white transition-all">削除</button>` : ''}
                     <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
                         閉じる
                     </button>
@@ -1208,9 +1217,12 @@ function showKanjiDetailFromSaved(kanjiData) {
 /**
  * 保存詳細から運勢詳細を開く
  */
-function showFortuneDetailFromSaved(index) {
+function showFortuneDetailFromSaved(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const saved = getSavedNames();
-    const item = saved[index];
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : saved;
+    const item = sourceSaved[index];
     if (!item) return;
 
     // 現在のビルド結果としてセット（showFortuneDetailがこれを見るため）
@@ -1233,11 +1245,14 @@ function closeSavedNameDetail() {
 /**
  * 保存済み名前を読み込む（苗字を含めず、元のビルドモードを復元）
  */
-function loadSavedName(index) {
+function loadSavedName(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const saved = getSavedNames();
-    if (index < 0 || index >= saved.length) return;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : saved;
+    if (index < 0 || index >= sourceSaved.length) return;
 
-    const item = saved[index];
+    const item = sourceSaved[index];
 
     // ビルド画面の初期化
     if (typeof clearBuildSelection === 'function') clearBuildSelection();
@@ -1549,10 +1564,196 @@ function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKe
         fortune: fortune,
         message: item.message || '',
         savedAt: new Date().toISOString(),
+        fromPartner: true,
         approvedFromPartner: true,
         approvedPartnerSavedKey: approvedPartnerSavedKey || '',
         partnerName: partnerName || 'パートナー'
     };
+}
+
+/*
+function getSavedCandidateKey(item) {
+    if (!item) return '';
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    if (pairInsights?.buildSavedMatchKey) {
+        return pairInsights.buildSavedMatchKey(item);
+    }
+    const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
+        ? item.combination.map(part => part?.['貍｢蟄・] || part?.kanji || '').join('')
+        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
+    const fullName = item.fullName || item.givenName || combinationKey;
+    const reading = String(item.reading || item.givenName || '').trim();
+    return `${fullName}::${combinationKey}::${reading}`;
+}
+
+function getSavedCandidateCreatorMeta(item, source = 'own', partnerName = '') {
+    const fromPartner = source === 'own'
+        ? !!item?.approvedFromPartner
+        : !item?.approvedFromPartner;
+    const label = fromPartner
+        ? `${partnerName || 'パートナー'}発案`
+        : '自分発案';
+
+    return {
+        fromPartner,
+        label,
+        toneClass: fromPartner
+            ? 'bg-[#fde8e5] text-[#dd7d73] border-[#f4d3cf]'
+            : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]'
+    };
+}
+
+function getSavedCanvasState() {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    if (pairInsights?.getSavedNameCanvasState) {
+        return pairInsights.getSavedNameCanvasState();
+    }
+
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const saved = getSavedNames();
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const ownMain = saved.slice().reverse().find(item => item?.mainSelected) || null;
+    const partnerMain = partnerSaved.slice().reverse().find(item => item?.mainSelected) || null;
+    const ownKey = getSavedCandidateKey(ownMain);
+    const partnerKey = getSavedCandidateKey(partnerMain);
+
+    return {
+        ownMain,
+        partnerMain,
+        ownKey,
+        partnerKey,
+        matched: !!ownKey && ownKey === partnerKey,
+        partnerName: pairInsights?.getPartnerDisplayName
+            ? pairInsights.getPartnerDisplayName()
+            : (typeof getPartnerRoleLabel === 'function'
+                ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+                : 'パートナー')
+    };
+}
+
+function setSavedMainCandidate(index) {
+    const saved = getSavedNames();
+    if (index < 0 || index >= saved.length) return false;
+
+    const selectedItem = saved[index];
+    const selectedKey = getSavedCandidateKey(selectedItem);
+    if (!selectedKey) return false;
+
+    const now = new Date().toISOString();
+    const updated = saved.map((item) => {
+        const itemKey = getSavedCandidateKey(item);
+        const isSelected = itemKey === selectedKey;
+        return {
+            ...item,
+            mainSelected: isSelected,
+            mainSelectedAt: isSelected ? now : item.mainSelectedAt || ''
+        };
+    });
+
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('本命にしました', '寵');
+    return true;
+}
+
+function deleteSavedNameBySourceIndex(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const sourceSaved = source === 'partner'
+        ? (pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [])
+        : getSavedNames();
+    if (index < 0 || index >= sourceSaved.length) return false;
+
+    const sourceItem = sourceSaved[index];
+    const sourceKey = getSavedCandidateKey(sourceItem);
+    if (!sourceKey) return false;
+
+    const saved = getSavedNames();
+    const ownIndex = source === 'partner'
+        ? saved.findIndex(item => getSavedCandidateKey(item) === sourceKey)
+        : index;
+
+    if (ownIndex < 0 || ownIndex >= saved.length) {
+        if (typeof showToast === 'function') showToast('自分の保存済みにはない候補です', '沈');
+        return false;
+    }
+
+    if (!confirm('この名前を削除しますか？')) return false;
+
+    saved.splice(ownIndex, 1);
+    if (typeof savedNames !== 'undefined') savedNames = saved;
+    localStorage.setItem('meimay_saved', JSON.stringify(saved));
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('削除しました', '寵');
+    return true;
+}
+
+function votePartnerSavedName(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    if (index < 0 || index >= partnerSaved.length) return false;
+
+    const source = partnerSaved[index];
+    if (!source) return false;
+
+    const saved = getSavedNames();
+    const sourceKey = getSavedCandidateKey(source);
+    if (!sourceKey) return false;
+
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+    const now = new Date().toISOString();
+    const existingIndex = saved.findIndex(item => getSavedCandidateKey(item) === sourceKey);
+
+    let updated = [...saved];
+    if (existingIndex >= 0) {
+        const existing = updated[existingIndex] || {};
+        updated[existingIndex] = {
+            ...existing,
+            approvedFromPartner: true,
+            approvedPartnerSavedKey: sourceKey,
+            partnerName,
+            mainSelected: true,
+            mainSelectedAt: now
+        };
+        updated = updated.map((item, idx) => idx === existingIndex
+            ? updated[existingIndex]
+            : { ...item, mainSelected: false, mainSelectedAt: item.mainSelectedAt || '' });
+    } else {
+        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
+        approved.mainSelected = true;
+        approved.mainSelectedAt = now;
+        updated = [approved, ...updated].map((item, idx) => idx === 0
+            ? approved
+            : { ...item, mainSelected: false, mainSelectedAt: item.mainSelectedAt || '' });
+    }
+
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '寵');
+    return true;
 }
 
 function likePartnerSavedName(index) {
@@ -1938,3 +2139,751 @@ window.likePartnerSavedName = likePartnerSavedName;
 window.clearSavedPartnerFocus = clearSavedPartnerFocus;
 window.getSavedNames = getSavedNames;
 window.renderSavedScreen = renderSavedScreen;
+
+function likePartnerSavedName(index) {
+    return votePartnerSavedName(index);
+}
+
+function renderSavedScreen() {
+    const canvasContainer = document.getElementById('saved-naming-canvas');
+    const listContainer = document.getElementById('saved-list-content');
+    if (!canvasContainer || !listContainer) return;
+
+    const saved = getSavedNames();
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { savedFocus: 'all' };
+    const savedFocus = partnerViewState.savedFocus || 'all';
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const canvasState = getSavedCanvasState();
+    const partnerName = canvasState.partnerName || (pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー'));
+
+    const ownDecorated = saved.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const creatorMeta = getSavedCandidateCreatorMeta(item, 'own', partnerName);
+        const approvalMatched = pairInsights?.isSavedItemMatched ? pairInsights.isSavedItemMatched(item) : false;
+        let statusLabel = '';
+        if (canvasState.matched && ownSelected && partnerSelected) statusLabel = '一致';
+        else if (ownSelected) statusLabel = '本命中';
+        else if (partnerSelected) statusLabel = '相手の本命';
+        else if (approvalMatched) statusLabel = '両方保存';
+        return {
+            item,
+            index,
+            key,
+            ownSelected,
+            partnerSelected,
+            approvalMatched,
+            creatorMeta,
+            statusLabel
+        };
+    }).sort((a, b) => {
+        if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+        if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+        if (a.approvalMatched !== b.approvalMatched) return a.approvalMatched ? -1 : 1;
+        const aTime = new Date(a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const partnerDecorated = partnerSaved
+        .filter(item => !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item))
+        .map((item, index) => {
+            const key = getSavedCandidateKey(item);
+            const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+            const partnerSelected = !!item?.mainSelected || (!!canvasState.partnerKey && key === canvasState.partnerKey);
+            const creatorMeta = getSavedCandidateCreatorMeta(item, 'partner', partnerName);
+            const approvalMatched = pairInsights?.isSavedItemMatched ? pairInsights.isSavedItemMatched(item) : false;
+            let statusLabel = '';
+            if (canvasState.matched && ownSelected && partnerSelected) statusLabel = '一致';
+            else if (partnerSelected) statusLabel = 'パートナーの本命';
+            else if (ownSelected) statusLabel = 'あなたの本命';
+            else if (approvalMatched) statusLabel = '両方保存';
+            return {
+                item,
+                index,
+                key,
+                ownSelected,
+                partnerSelected,
+                approvalMatched,
+                creatorMeta,
+                statusLabel
+            };
+        }).sort((a, b) => {
+            if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+            if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+            if (a.approvalMatched !== b.approvalMatched) return a.approvalMatched ? -1 : 1;
+            const aTime = new Date(a.item.savedAt || a.item.timestamp || 0).getTime();
+            const bTime = new Date(b.item.savedAt || b.item.timestamp || 0).getTime();
+            return bTime - aTime;
+        });
+
+    let visibleOwn = ownDecorated;
+    let visiblePartner = partnerDecorated;
+    if (savedFocus === 'partner') {
+        visibleOwn = [];
+    } else if (savedFocus === 'matched') {
+        visibleOwn = ownDecorated.filter(entry => entry.approvalMatched);
+        visiblePartner = [];
+    }
+
+    const renderCanvasSide = (item, sourceTitle, sourceType, emptyText) => {
+        if (!item) {
+            return `
+                <div class="rounded-[22px] border border-dashed border-[#eadfce] bg-white/70 px-4 py-4 text-center">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">${sourceTitle}</div>
+                    <div class="mt-2 text-sm font-bold text-[#8b7e66]">${emptyText}</div>
+                </div>
+            `;
+        }
+
+        const key = getSavedCandidateKey(item);
+        const creatorMeta = getSavedCandidateCreatorMeta(item, sourceType, partnerName);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const statusLabel = canvasState.matched && ownSelected && partnerSelected
+            ? '一致'
+            : (sourceType === 'own'
+                ? (ownSelected ? '本命中' : (partnerSelected ? '相手の本命' : ''))
+                : (partnerSelected ? 'パートナーの本命' : (ownSelected ? 'あなたの本命' : '')));
+
+        return `
+            <div class="rounded-[22px] border border-[#eadfce] bg-white px-4 py-4 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">${sourceTitle}</div>
+                        <div class="mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${creatorMeta.toneClass}">${creatorMeta.label}</div>
+                    </div>
+                    ${statusLabel ? `<div class="rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${statusLabel}</div>` : ''}
+                </div>
+                <div class="mt-3 text-2xl font-black text-[#5d5444] leading-tight">${item.fullName || item.givenName || ''}</div>
+                <div class="mt-1 text-xs text-[#a6967a]">${item.reading || ''}</div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    ${item.mainSelected && sourceType === 'partner' ? `<span class="inline-flex items-center rounded-full bg-[#fde8e5] px-2.5 py-1 text-[10px] font-bold text-[#dd7d73]">パートナーの本命</span>` : ''}
+                    ${item.mainSelected && sourceType === 'own' ? `<span class="inline-flex items-center rounded-full bg-[#fef5df] px-2.5 py-1 text-[10px] font-bold text-[#b8860b]">本命中</span>` : ''}
+                </div>
+            </div>
+        `;
+    };
+
+    const renderCanvasHtml = canvasState.matched && (canvasState.ownMain || canvasState.partnerMain)
+        ? `
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.22em] text-[#bca37f] uppercase">Naming Canvas</div>
+                        <div class="mt-1 text-sm font-black text-[#5d5444]">ふたりの本命が一致しました</div>
+                    </div>
+                    <div class="rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-bold text-[#8b7e66]">統合済み</div>
+                </div>
+                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-5 text-center shadow-sm">
+                    <div class="inline-flex items-center rounded-full border ${getSavedCandidateCreatorMeta(canvasState.ownMain || canvasState.partnerMain, 'own', partnerName).toneClass} px-3 py-1 text-[10px] font-bold">${partnerName}と一致</div>
+                    <div class="mt-3 text-3xl font-black text-[#5d5444] leading-tight">${(canvasState.ownMain || canvasState.partnerMain)?.fullName || ''}</div>
+                    <div class="mt-1 text-xs text-[#a6967a]">${(canvasState.ownMain || canvasState.partnerMain)?.reading || ''}</div>
+                    <div class="mt-3 flex flex-wrap justify-center gap-2">
+                        <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">自分の本命</span>
+                        <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${partnerName}の本命</span>
+                    </div>
+                </div>
+            </div>
+        `
+        : `
+            <div class="grid grid-cols-2 gap-3">
+                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', 'まだ本命を選んでいません')}
+                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', 'まだ選ばれていません')}
+            </div>
+        `;
+
+    canvasContainer.innerHTML = `
+        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                    <div class="text-[10px] font-black tracking-[0.22em] text-[#bca37f] uppercase">Naming Canvas</div>
+                    <div class="mt-1 text-sm font-black text-[#5d5444]">本命を1票ずつ選ぶ</div>
+                </div>
+                <div class="rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-bold text-[#8b7e66]">1人1票 / 変更OK</div>
+            </div>
+            ${renderCanvasHtml}
+        </div>
+    `;
+
+    const focusBanner = savedFocus !== 'all'
+        ? `
+            <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">FILTER</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${savedFocus === 'partner' ? `${partnerName}の候補` : '一致候補'}</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">${savedFocus === 'partner' ? 'パートナー候補だけを表示しています。' : '一致している候補だけを表示しています。'}</div>
+                    </div>
+                    <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        全体に戻す
+                    </button>
+                </div>
+            </div>
+        `
+        : '';
+
+    const renderCard = (entry, source) => {
+        const item = entry.item;
+        const itemKey = entry.key;
+        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const buttonAction = source === 'own'
+            ? `setSavedMainCandidate(${entry.index})`
+            : `votePartnerSavedName(${entry.index})`;
+        const buttonClass = entry.ownSelected
+            ? 'bg-[#5d5444] text-white cursor-default'
+            : 'bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white active:scale-95';
+        const detailSource = source === 'own' ? 'own' : 'partner';
+        const detailIndex = source === 'own'
+            ? entry.index
+            : partnerSaved.findIndex(candidate => getSavedCandidateKey(candidate) === itemKey);
+
+        return `
+            <div onclick="showSavedNameDetail(${detailIndex}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${entry.ownSelected ? 'border-[#bca37f] bg-[#fffaf6] shadow-[0_10px_30px_-18px_rgba(188,163,127,0.55)]' : 'border-[#eee5d8] bg-white shadow-sm'} p-4 transition-all active:scale-[0.99]">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${entry.creatorMeta.toneClass}">${entry.creatorMeta.label}</span>
+                            ${entry.statusLabel ? `<span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${entry.statusLabel}</span>` : ''}
+                        </div>
+                        <div class="text-xl font-black text-[#5d5444]">${item.fullName || item.givenName || ''}</div>
+                        <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                        ${item.message ? `<div class="mt-1 text-xs text-[#bca37f]">メモ ${item.message}</div>` : ''}
+                        ${source === 'own' && item.approvedFromPartner ? `<div class="mt-1 text-[10px] text-[#dd7d73]">${item.partnerName || partnerName}発案</div>` : ''}
+                    </div>
+                    <div class="shrink-0 text-right">
+                        ${item.fortune ? `<div class="text-sm font-bold text-[#bca37f]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</div>` : ''}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); ${buttonAction}" ${entry.ownSelected ? 'disabled' : ''} class="w-full py-3 rounded-xl text-sm font-black ${buttonClass}">
+                    ${buttonText}
+                </button>
+            </div>
+        `;
+    };
+
+    let html = focusBanner;
+    if (visibleOwn.length > 0) {
+        html += `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">自分の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visibleOwn.length}件</div>
+                </div>
+                ${visibleOwn.map(entry => renderCard(entry, 'own')).join('')}
+            </div>
+        `;
+    }
+
+    if (visiblePartner.length > 0) {
+        html += `
+            <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase">${partnerName}の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visiblePartner.length}件</div>
+                </div>
+                ${visiblePartner.map(entry => renderCard(entry, 'partner')).join('')}
+            </div>
+        `;
+    }
+
+    if (!html) {
+        html = `
+            <div class="text-center py-16 text-sm text-[#a6967a]">
+                <div class="text-4xl mb-4 opacity-50">沈</div>
+                <p>保存済みはまだありません</p>
+                <p class="text-[10px] mt-2">候補を保存すると、ここで本命を1票ずつ選べます。</p>
+            </div>
+        `;
+    }
+
+    listContainer.innerHTML = html;
+}
+
+window.likePartnerSavedName = likePartnerSavedName;
+window.clearSavedPartnerFocus = clearSavedPartnerFocus;
+window.getSavedNames = getSavedNames;
+window.renderSavedScreen = renderSavedScreen;
+window.setSavedMainCandidate = setSavedMainCandidate;
+window.deleteSavedName = deleteSavedNameBySourceIndex;
+*/
+
+function getSavedCandidateKey(item) {
+    if (!item) return '';
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    if (pairInsights?.buildSavedMatchKey) return pairInsights.buildSavedMatchKey(item);
+
+    const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
+        ? item.combination.map(part => part?.['漢字'] || part?.kanji || '').join('')
+        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
+    const fullName = item.fullName || item.givenName || combinationKey;
+    const reading = String(item.reading || item.givenName || '').trim();
+    return `${fullName}::${combinationKey}::${reading}`;
+}
+
+function getSavedCandidateCreatorMeta(item, source = 'own', partnerName = '') {
+    const partnerLabel = partnerName || 'パートナー';
+    const fromPartner = source === 'own'
+        ? !!item?.fromPartner || !!item?.approvedFromPartner
+        : !(item?.fromPartner || item?.approvedFromPartner);
+
+    return {
+        fromPartner,
+        label: fromPartner ? `${partnerLabel}発案` : '自分発案',
+        toneClass: fromPartner
+            ? 'bg-[#fde8e5] text-[#dd7d73] border-[#f4d3cf]'
+            : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]'
+    };
+}
+
+function getSavedCanvasState() {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    if (pairInsights?.getSavedNameCanvasState) return pairInsights.getSavedNameCanvasState();
+
+    const saved = getSavedNames();
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const pickLatestMain = (items) => items
+        .filter(item => item?.mainSelected)
+        .slice()
+        .sort((a, b) => {
+            const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
+            const bTime = new Date(b.mainSelectedAt || b.savedAt || b.timestamp || 0).getTime();
+            return bTime - aTime;
+        })[0] || null;
+
+    const ownMain = pickLatestMain(saved);
+    const partnerMain = pickLatestMain(partnerSaved);
+    const ownKey = getSavedCandidateKey(ownMain);
+    const partnerKey = getSavedCandidateKey(partnerMain);
+
+    return {
+        ownMain,
+        partnerMain,
+        ownKey,
+        partnerKey,
+        matched: !!ownKey && ownKey === partnerKey,
+        partnerName: pairInsights?.getPartnerDisplayName
+            ? pairInsights.getPartnerDisplayName()
+            : (typeof getPartnerRoleLabel === 'function'
+                ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+                : 'パートナー')
+    };
+}
+
+function setSavedMainCandidate(index) {
+    const saved = getSavedNames();
+    if (index < 0 || index >= saved.length) return false;
+
+    const selectedItem = saved[index];
+    const selectedKey = getSavedCandidateKey(selectedItem);
+    if (!selectedKey) return false;
+
+    const now = new Date().toISOString();
+    const updated = saved.map((item) => {
+        const isSelected = getSavedCandidateKey(item) === selectedKey;
+        return {
+            ...item,
+            mainSelected: isSelected,
+            mainSelectedAt: isSelected ? now : ''
+        };
+    });
+
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('本命にしました', '✨');
+    return true;
+}
+
+function deleteSavedNameBySourceIndex(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const sourceSaved = source === 'partner'
+        ? (pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [])
+        : getSavedNames();
+    if (index < 0 || index >= sourceSaved.length) return false;
+
+    const sourceItem = sourceSaved[index];
+    const sourceKey = getSavedCandidateKey(sourceItem);
+    if (!sourceKey) return false;
+
+    const saved = getSavedNames();
+    const ownIndex = source === 'partner'
+        ? saved.findIndex(item => getSavedCandidateKey(item) === sourceKey)
+        : index;
+    if (ownIndex < 0 || ownIndex >= saved.length) {
+        if (typeof showToast === 'function') showToast('削除対象が見つかりません', '⚠️');
+        return false;
+    }
+
+    if (!confirm('この候補を削除しますか？')) return false;
+
+    const updated = saved.filter((_, idx) => idx !== ownIndex);
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('削除しました', '🗑️');
+    return true;
+}
+
+function votePartnerSavedName(index) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    if (index < 0 || index >= partnerSaved.length) return false;
+
+    const source = partnerSaved[index];
+    if (!source) return false;
+
+    const saved = getSavedNames();
+    const sourceKey = getSavedCandidateKey(source);
+    if (!sourceKey) return false;
+
+    const partnerName = pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー');
+    const now = new Date().toISOString();
+    const existingIndex = saved.findIndex(item => getSavedCandidateKey(item) === sourceKey);
+
+    let updated = saved.map(item => ({
+        ...item,
+        mainSelected: false,
+        mainSelectedAt: ''
+    }));
+
+    if (existingIndex >= 0) {
+        const existing = updated[existingIndex] || {};
+        updated[existingIndex] = {
+            ...existing,
+            fromPartner: true,
+            approvedFromPartner: true,
+            approvedPartnerSavedKey: sourceKey,
+            partnerName,
+            mainSelected: true,
+            mainSelectedAt: now
+        };
+    } else {
+        const approved = buildApprovedPartnerSavedItem(source, partnerName, sourceKey);
+        updated = [
+            {
+                ...approved,
+                fromPartner: true,
+                mainSelected: true,
+                mainSelectedAt: now
+            },
+            ...updated
+        ];
+    }
+
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+
+    renderSavedScreen();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof showToast === 'function') showToast('本命にしました', '✨');
+    return true;
+}
+
+function likePartnerSavedName(index) {
+    return votePartnerSavedName(index);
+}
+
+function clearSavedPartnerFocus() {
+    if (typeof window.resetMeimayPartnerViewFocus === 'function') {
+        window.resetMeimayPartnerViewFocus(['savedFocus']);
+    } else if (typeof window.setMeimayPartnerViewFocus === 'function') {
+        window.setMeimayPartnerViewFocus({ savedFocus: 'all' });
+    }
+    renderSavedScreen();
+}
+
+function renderSavedScreen() {
+    const canvasContainer = document.getElementById('saved-naming-canvas');
+    const listContainer = document.getElementById('saved-list-content');
+    if (!canvasContainer || !listContainer) return;
+
+    const saved = getSavedNames();
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
+        ? window.getMeimayPartnerViewState()
+        : { savedFocus: 'all' };
+    const savedFocus = partnerViewState.savedFocus || 'all';
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const canvasState = getSavedCanvasState();
+    const partnerName = canvasState.partnerName || (pairInsights?.getPartnerDisplayName
+        ? pairInsights.getPartnerDisplayName()
+        : (typeof getPartnerRoleLabel === 'function'
+            ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+            : 'パートナー'));
+
+    const ownKeySet = new Set(saved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+
+    const ownDecorated = saved.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        return {
+            item,
+            index,
+            key,
+            ownSelected,
+            partnerSelected,
+            shared,
+            creatorMeta: getSavedCandidateCreatorMeta(item, 'own', partnerName)
+        };
+    }).sort((a, b) => {
+        if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+        if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+        if (a.shared !== b.shared) return a.shared ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    const partnerDecorated = partnerSaved.map((item, index) => {
+        const key = getSavedCandidateKey(item);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        return {
+            item,
+            index,
+            key,
+            ownSelected,
+            partnerSelected,
+            shared,
+            creatorMeta: getSavedCandidateCreatorMeta(item, 'partner', partnerName),
+            showInList: !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
+        };
+    }).filter(entry => entry.showInList).sort((a, b) => {
+        if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;
+        if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
+        if (a.shared !== b.shared) return a.shared ? -1 : 1;
+        const aTime = new Date(a.item.mainSelectedAt || a.item.savedAt || a.item.timestamp || 0).getTime();
+        const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
+        return bTime - aTime;
+    });
+
+    let visibleOwn = ownDecorated;
+    let visiblePartner = partnerDecorated;
+    if (savedFocus === 'partner') {
+        visibleOwn = [];
+    } else if (savedFocus === 'matched') {
+        visibleOwn = ownDecorated.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
+        visiblePartner = [];
+    }
+
+    const renderCanvasSide = (item, sourceTitle, sourceType, emptyText) => {
+        if (!item) {
+            return `
+                <div class="rounded-[22px] border border-dashed border-[#eadfce] bg-white/70 px-4 py-4 text-center">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">${sourceTitle}</div>
+                    <div class="mt-2 text-sm font-bold text-[#8b7e66]">${emptyText}</div>
+                </div>
+            `;
+        }
+
+        const key = getSavedCandidateKey(item);
+        const creatorMeta = getSavedCandidateCreatorMeta(item, sourceType, partnerName);
+        const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
+        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const statusLabel = ownSelected && partnerSelected
+            ? 'ふたりの本命'
+            : ownSelected
+                ? 'あなたの本命'
+                : (partnerSelected ? `${partnerName}の本命` : '');
+
+        return `
+            <div class="rounded-[22px] border border-[#eadfce] bg-white px-4 py-4 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">${sourceTitle}</div>
+                        <div class="mt-2 inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${creatorMeta.toneClass}">${creatorMeta.label}</div>
+                    </div>
+                    ${statusLabel ? `<div class="rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${statusLabel}</div>` : ''}
+                </div>
+                <div class="mt-3 text-2xl font-black text-[#5d5444] leading-tight">${item.fullName || item.givenName || ''}</div>
+                <div class="mt-1 text-xs text-[#a6967a]">${item.reading || ''}</div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    ${ownSelected && partnerSelected ? '<span class="inline-flex items-center rounded-full bg-[#fff3da] px-2.5 py-1 text-[10px] font-bold text-[#b8860b]">一致</span>' : ''}
+                    ${ownSelected && !partnerSelected ? '<span class="inline-flex items-center rounded-full bg-[#fff3da] px-2.5 py-1 text-[10px] font-bold text-[#b8860b]">本命</span>' : ''}
+                    ${!ownSelected && partnerSelected ? `<span class="inline-flex items-center rounded-full bg-[#fde8e5] px-2.5 py-1 text-[10px] font-bold text-[#dd7d73]">${partnerName}の本命</span>` : ''}
+                    ${item.fortune ? `<span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</span>` : ''}
+                </div>
+            </div>
+        `;
+    };
+
+    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainCreatorMeta = getSavedCandidateCreatorMeta(mainItem, 'own', partnerName);
+    const renderCanvasHtml = canvasState.matched && mainItem
+        ? `
+            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffaf4] via-[#fffdf9] to-[#f7f1e8] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.22em] text-[#bca37f] uppercase">Naming Canvas</div>
+                        <div class="mt-1 text-sm font-black text-[#5d5444]">ふたりの本命が一致しました</div>
+                    </div>
+                    <div class="rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-bold text-[#8b7e66]">ひとつのキャンバス</div>
+                </div>
+                <div class="rounded-[24px] border border-[#eadfce] bg-white px-4 py-5 text-center shadow-sm">
+                    <div class="inline-flex items-center rounded-full border ${mainCreatorMeta.toneClass} px-3 py-1 text-[10px] font-bold">${mainCreatorMeta.label}</div>
+                    <div class="mt-3 text-3xl font-black text-[#5d5444] leading-tight">${mainItem.fullName || mainItem.givenName || ''}</div>
+                    <div class="mt-1 text-xs text-[#a6967a]">${mainItem.reading || ''}</div>
+                    <div class="mt-3 flex flex-wrap justify-center gap-2">
+                        <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">自分の本命</span>
+                        <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${partnerName}の本命</span>
+                    </div>
+                </div>
+            </div>
+        `
+        : `
+            <div class="grid grid-cols-2 gap-3">
+                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', 'まだ本命を選んでいません')}
+                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', 'まだ本命を選んでいません')}
+            </div>
+        `;
+
+    canvasContainer.innerHTML = `
+        <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-4 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                    <div class="text-[10px] font-black tracking-[0.22em] text-[#bca37f] uppercase">Naming Canvas</div>
+                    <div class="mt-1 text-sm font-black text-[#5d5444]">1人1票 / 変更OK</div>
+                </div>
+                <div class="rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-bold text-[#8b7e66]">${canvasState.matched ? '一致中' : 'スプリット'}</div>
+            </div>
+            ${renderCanvasHtml}
+        </div>
+    `;
+
+    const focusBanner = savedFocus !== 'all'
+        ? `
+            <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">FILTER</div>
+                        <div class="mt-1 text-sm font-bold text-[#4f4639]">${savedFocus === 'partner' ? `${partnerName}の候補だけ表示` : 'ふたりに共通する候補だけ表示'}</div>
+                        <div class="mt-1 text-[11px] text-[#8b7e66]">${savedFocus === 'partner' ? 'パートナー側の候補に絞っています。' : 'ふたりで保存が重なった候補だけを見ています。'}</div>
+                    </div>
+                    <button onclick="clearSavedPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        すべて表示
+                    </button>
+                </div>
+            </div>
+        `
+        : '';
+
+    const renderCard = (entry, source) => {
+        const item = entry.item;
+        const buttonText = entry.ownSelected ? '本命中' : '本命にする';
+        const buttonAction = source === 'own'
+            ? `setSavedMainCandidate(${entry.index})`
+            : `votePartnerSavedName(${entry.index})`;
+        const buttonClass = entry.ownSelected
+            ? 'bg-[#5d5444] text-white cursor-default'
+            : 'bg-gradient-to-r from-[#f8c27a] to-[#e8a96b] text-white active:scale-95';
+        const detailSource = source === 'own' ? 'own' : 'partner';
+        const statusLabel = entry.ownSelected && entry.partnerSelected
+            ? 'ふたりの本命'
+            : entry.ownSelected
+                ? 'あなたの本命'
+                : (entry.partnerSelected ? `${partnerName}の本命` : (entry.shared ? '両方保存' : ''));
+
+        return `
+            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${entry.ownSelected ? 'border-[#bca37f] bg-[#fffaf6] shadow-[0_10px_30px_-18px_rgba(188,163,127,0.55)]' : (entry.partnerSelected ? 'border-[#f4d3cf] bg-[#fff9f8] shadow-sm' : 'border-[#eee5d8] bg-white shadow-sm')} p-4 transition-all active:scale-[0.99]">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold ${entry.creatorMeta.toneClass}">${entry.creatorMeta.label}</span>
+                            ${statusLabel ? `<span class="inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${statusLabel}</span>` : ''}
+                        </div>
+                        <div class="text-xl font-black text-[#5d5444]">${item.fullName || item.givenName || ''}</div>
+                        <div class="text-xs text-[#a6967a]">${item.reading || ''}</div>
+                        ${item.message ? `<div class="mt-1 text-xs text-[#bca37f]">メモ ${item.message}</div>` : ''}
+                        ${entry.shared ? `<div class="mt-1 text-[10px] text-[#8b7e66]">ふたりに保存済み</div>` : ''}
+                    </div>
+                    <div class="shrink-0 text-right">
+                        ${item.fortune ? `<div class="text-sm font-bold text-[#bca37f]">${typeof item.fortune.so === 'object' ? (item.fortune.so.val || '') : item.fortune.so}画</div>` : ''}
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); ${buttonAction}" ${entry.ownSelected ? 'disabled' : ''} class="w-full py-3 rounded-xl text-sm font-black ${buttonClass}">
+                    ${buttonText}
+                </button>
+            </div>
+        `;
+    };
+
+    let html = focusBanner;
+    if (visibleOwn.length > 0) {
+        html += `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f] uppercase">自分の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visibleOwn.length}件</div>
+                </div>
+                ${visibleOwn.map(entry => renderCard(entry, 'own')).join('')}
+            </div>
+        `;
+    }
+
+    if (visiblePartner.length > 0) {
+        html += `
+            <div class="space-y-3 pt-1">
+                <div class="flex items-center justify-between gap-3 px-1">
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#dd7d73] uppercase">${partnerName}の候補</div>
+                    <div class="text-[11px] text-[#8b7e66]">${visiblePartner.length}件</div>
+                </div>
+                ${visiblePartner.map(entry => renderCard(entry, 'partner')).join('')}
+            </div>
+        `;
+    }
+
+    if (!html) {
+        html = `
+            <div class="text-center py-16 text-sm text-[#a6967a]">
+                <div class="text-4xl mb-4 opacity-50">🗂️</div>
+                <p>まだ保存された候補はありません</p>
+                <p class="text-[10px] mt-2">保存するとここに一覧が出ます。</p>
+            </div>
+        `;
+    }
+
+    listContainer.innerHTML = html;
+}
+
+window.likePartnerSavedName = likePartnerSavedName;
+window.clearSavedPartnerFocus = clearSavedPartnerFocus;
+window.getSavedNames = getSavedNames;
+window.renderSavedScreen = renderSavedScreen;
+window.setSavedMainCandidate = setSavedMainCandidate;
+window.votePartnerSavedName = votePartnerSavedName;
+window.deleteSavedName = deleteSavedNameBySourceIndex;
+window.getSavedCandidateKey = getSavedCandidateKey;
+window.getSavedCanvasState = getSavedCanvasState;

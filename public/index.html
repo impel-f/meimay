@@ -1808,7 +1808,7 @@
 
     <!-- 保存済み画面（独立スクリーン） -->
     <div id="scr-saved" class="screen">
-        <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1 pt-2">
+        <div class="w-full max-w-md px-4 mx-auto flex flex-col flex-1 pt-2 min-h-0">
             <div class="flex justify-between items-center mb-4 border-b border-[#eee5d8] pb-2">
                 <h3 class="font-bold text-[#8b7e66] text-sm pl-1">保存済み</h3>
                 <button onclick="MeimayShare.shareSavedNames()"
@@ -1816,7 +1816,10 @@
                     <span>📤</span> 共有
                 </button>
             </div>
-            <div id="saved-list-content" class="space-y-3 overflow-y-auto flex-1 pb-32">
+            <div id="saved-naming-canvas" class="shrink-0 mb-3">
+                <!-- JS populated -->
+            </div>
+            <div id="saved-list-content" class="space-y-3 overflow-y-auto flex-1 min-h-0 pb-32">
                 <!-- JS populated -->
             </div>
         </div>
@@ -1914,7 +1917,7 @@
     <script src="/js/01-core.js?v=25.12"></script>
     <script src="/js/02-engine.js?v=25.20"></script>
     <script src="/js/03-fortune.js?v=25.11"></script>
-    <script src="/js/04-ui-flow.js?v=25.87"></script>
+<script src="/js/04-ui-flow.js?v=25.88"></script>
     <script src="/js/05-ui-render.js?v=25.21"></script>
     <script src="/js/06-ui-physics.js?v=25.13"></script>
 <script src="/js/07-build.js?v=25.35"></script>
@@ -1922,10 +1925,10 @@
 <script src="/js/09-storage.js?v=25.17"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.13"></script>
-<script src="/js/12-history.js?v=25.16"></script>
+<script src="/js/12-history.js?v=25.18"></script>
     <script src="/js/13-drawer-wizard.js?v=25.16"></script>
     <script src="/js/14-admob.js?v=25.11"></script>
-<script src="/js/15-firebase.js?v=25.71"></script>
+<script src="/js/15-firebase.js?v=25.72"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>

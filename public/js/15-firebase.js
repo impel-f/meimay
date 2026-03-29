@@ -311,7 +311,9 @@ const MeimayFirestorePayload = {
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
             approvedFromPartner: item?.approvedFromPartner === true,
-            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey)
+            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            mainSelected: item?.mainSelected === true,
+            mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
         };
     },
 
@@ -353,7 +355,9 @@ const MeimayFirestorePayload = {
             savedAt: item?.savedAt || item?.timestamp || null,
             fortune,
             approvedFromPartner: item?.approvedFromPartner === true,
-            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey)
+            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            mainSelected: item?.mainSelected === true,
+            mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
         };
     },
 
@@ -1058,7 +1062,11 @@ const MeimayShare = {
                         message: item.message,
                         savedAt: item.savedAt,
                         fromPartner: true,
-                        partnerName: partnerName || '繝代・繝医リ繝ｼ'
+                        partnerName: partnerName || '繝代・繝医リ繝ｼ',
+                        approvedFromPartner: item?.approvedFromPartner === true,
+                        approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+                        mainSelected: item?.mainSelected === true,
+                        mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
                     });
                     added++;
                 }
@@ -1238,6 +1246,42 @@ const MeimayPartnerInsights = {
             matchedLikedItems: matchedLikedItems,
             matchedSavedItems: matchedSavedItems,
             previewLabels: previewLabels
+        };
+    },
+
+    getOwnMainSavedItem: function () {
+        const items = this.getOwnSaved().filter(item => item?.mainSelected);
+        if (items.length === 0) return null;
+        return items.slice().sort((a, b) => {
+            const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
+            const bTime = new Date(b.mainSelectedAt || b.savedAt || b.timestamp || 0).getTime();
+            return bTime - aTime;
+        })[0] || null;
+    },
+
+    getPartnerMainSavedItem: function () {
+        const items = this.getPartnerSaved().filter(item => item?.mainSelected);
+        if (items.length === 0) return null;
+        return items.slice().sort((a, b) => {
+            const aTime = new Date(a.mainSelectedAt || a.savedAt || a.timestamp || 0).getTime();
+            const bTime = new Date(b.mainSelectedAt || b.savedAt || b.timestamp || 0).getTime();
+            return bTime - aTime;
+        })[0] || null;
+    },
+
+    getSavedNameCanvasState: function () {
+        const ownMain = this.getOwnMainSavedItem();
+        const partnerMain = this.getPartnerMainSavedItem();
+        const ownKey = this.buildSavedMatchKey(ownMain);
+        const partnerKey = this.buildSavedMatchKey(partnerMain);
+
+        return {
+            ownMain,
+            partnerMain,
+            ownKey,
+            partnerKey,
+            matched: !!ownKey && ownKey === partnerKey,
+            partnerName: this.getPartnerDisplayName()
         };
     }
 };
