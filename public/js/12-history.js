@@ -4225,12 +4225,13 @@ function renderSavedScreen() {
     const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
     const ownKeySet = new Set(ownVisibleItems.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const hasPartnerLinked = typeof MeimayPairing !== 'undefined' ? !!MeimayPairing.partnerUid : false;
 
     const ownDecorated = ownVisibleItems.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
-        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
-        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        const partnerSelected = hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = hasPartnerLinked && !!key && ownKeySet.has(key) && partnerKeySet.has(key);
         return {
             item,
             index,
@@ -4251,8 +4252,8 @@ function renderSavedScreen() {
     const partnerDecorated = partnerSaved.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
-        const partnerSelected = !!canvasState.partnerKey && key === canvasState.partnerKey;
-        const shared = !!key && ownKeySet.has(key) && partnerKeySet.has(key);
+        const partnerSelected = hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
+        const shared = hasPartnerLinked && !!key && ownKeySet.has(key) && partnerKeySet.has(key);
         return {
             item,
             index,
@@ -4273,7 +4274,10 @@ function renderSavedScreen() {
 
     let visibleOwn = ownDecorated;
     let visiblePartner = partnerDecorated;
-    if (savedFocus === 'partner') {
+    if (!hasPartnerLinked) {
+        visiblePartner = [];
+    }
+    if (savedFocus === 'partner' && hasPartnerLinked) {
         visibleOwn = [];
     } else if (savedFocus === 'matched') {
         visibleOwn = ownDecorated.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
@@ -4285,30 +4289,51 @@ function renderSavedScreen() {
             border: 'border-[#e7c7a0]',
             bg: 'bg-[#fff7ee]',
             label: 'text-[#be8558]',
-            ring: 'ring-[#e7c7a0]'
+            ring: 'ring-[#e7c7a0]',
+            gradient: 'linear-gradient(180deg, rgba(231,199,160,0.12) 0%, rgba(255,247,238,0.98) 100%)',
+            gradientSelected: 'linear-gradient(180deg, rgba(231,199,160,0.18) 0%, rgba(255,243,231,0.98) 100%)'
         },
         partner: {
             border: 'border-[#e7bcc6]',
             bg: 'bg-[#fff5f7]',
             label: 'text-[#d57f8f]',
-            ring: 'ring-[#e7b0bb]'
+            ring: 'ring-[#e7b0bb]',
+            gradient: 'linear-gradient(180deg, rgba(231,188,198,0.12) 0%, rgba(255,245,247,0.98) 100%)',
+            gradientSelected: 'linear-gradient(180deg, rgba(231,188,198,0.18) 0%, rgba(255,241,244,0.98) 100%)'
         }
     };
     const ownDisplayLabel = 'マイ本命';
+    const ownDisplayReading = 'まいほんめい';
     const partnerDisplayLabel = 'パートナー本命';
+    const partnerDisplayReading = 'ぱーとなーほんめい';
+    const canvasCardMinHeight = 'min-h-[156px]';
+    const matchedCanvasStyle = 'linear-gradient(135deg, rgba(231,199,160,0.20) 0%, rgba(255,252,247,0.96) 48%, rgba(231,188,198,0.20) 100%)';
 
     const renderCanvasSide = (item, sourceType, emptyText) => {
         const isOwn = sourceType === 'own';
         const label = isOwn ? ownDisplayLabel : partnerDisplayLabel;
+        const reading = isOwn ? ownDisplayReading : partnerDisplayReading;
         const theme = isOwn ? canvasTheme.own : canvasTheme.partner;
         const borderClass = theme.border;
         const bgClass = theme.bg;
         const labelClass = theme.label;
+        const surfaceStyle = item
+            ? (isOwn
+                ? (item && canvasState.ownKey && getSavedCandidateKey(item) === canvasState.ownKey
+                    ? theme.gradientSelected
+                    : theme.gradient)
+                : (hasPartnerLinked && canvasState.partnerKey && getSavedCandidateKey(item) === canvasState.partnerKey
+                    ? theme.gradientSelected
+                    : theme.gradient))
+            : theme.gradient;
 
         if (!item) {
             return `
-                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} px-4 py-4 text-center">
-                    <div class="text-[12px] font-black tracking-[0.18em] ${labelClass} text-center">${escapeHtml(label)}</div>
+                <div class="rounded-[24px] border border-dashed ${borderClass} ${bgClass} ${canvasCardMinHeight} px-4 py-4 text-center" style="background-image:${surfaceStyle};">
+                    <div class="flex flex-col items-center justify-center text-center">
+                        <div class="whitespace-nowrap text-[10px] font-black leading-none tracking-[0.12em] ${labelClass} text-center">${escapeHtml(label)}</div>
+                        <div class="mt-0.5 whitespace-nowrap text-[8px] font-bold leading-none tracking-[0.08em] ${labelClass} opacity-80 text-center">${escapeHtml(reading)}</div>
+                    </div>
                     <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
                 </div>
             `;
@@ -4317,14 +4342,15 @@ function renderSavedScreen() {
         const key = getSavedCandidateKey(item);
         const selected = isOwn
             ? !!canvasState.ownKey && key === canvasState.ownKey
-            : !!canvasState.partnerKey && key === canvasState.partnerKey;
+            : hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
 
         return `
-            <div class="rounded-[24px] border ${borderClass} ${bgClass} px-4 py-3 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}">
+            <div class="rounded-[24px] border ${borderClass} ${bgClass} ${canvasCardMinHeight} px-4 py-3 shadow-sm ${selected ? `ring-2 ${theme.ring}` : ''}" style="background-image:${surfaceStyle};">
                 <div class="flex flex-col items-center text-center">
-                    <div class="text-[12px] font-black tracking-[0.18em] ${labelClass} text-center">${escapeHtml(label)}</div>
+                    <div class="text-[10px] font-black leading-none tracking-[0.12em] whitespace-nowrap ${labelClass} text-center">${escapeHtml(label)}</div>
+                    <div class="mt-0.5 text-[8px] font-bold leading-none tracking-[0.08em] whitespace-nowrap ${labelClass} text-center/80">${escapeHtml(reading)}</div>
                     <div class="mt-2 flex min-h-[56px] items-center justify-center">
-                        <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[24px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+                        <div data-fit-saved-name="split" class="w-full overflow-hidden text-center text-[23px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
                             ${escapeHtml(item.fullName || item.givenName || '')}
                         </div>
                     </div>
@@ -4336,19 +4362,29 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-2 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
-                <div class="rounded-[22px] border border-[#eadfce] bg-white px-4 py-2 text-center shadow-sm">
-                    <div data-fit-saved-name="canvas" class="w-full overflow-hidden text-center text-[28px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
+            <div class="rounded-[28px] border border-[#eadfce] p-2 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]" style="background-image:${matchedCanvasStyle};">
+                <div class="rounded-[22px] border border-[#eadfce] px-4 py-3 text-center shadow-sm ${canvasCardMinHeight}" style="background-image:${matchedCanvasStyle};">
+                    <div class="flex flex-col items-center justify-center text-center">
+                        <div class="whitespace-nowrap text-[10px] font-black leading-none tracking-[0.12em] text-[#8b7e66]">ふたりの本命</div>
+                    <div class="mt-0.5 whitespace-nowrap text-[8px] font-bold leading-none tracking-[0.08em] text-[#9e8c77]">ふたりのほんめい</div>
+                    </div>
+                    <div data-fit-saved-name="canvas" class="mt-3 w-full overflow-hidden text-center text-[28px] font-black leading-[1.04] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
                     </div>
                 </div>
             </div>
         `
         : `
-            <div class="grid grid-cols-2 gap-2.5">
-                ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
-                ${renderCanvasSide(canvasState.partnerMain, 'partner', 'まだ本命を選んでいません')}
-            </div>
+            ${hasPartnerLinked ? `
+                <div class="grid grid-cols-2 gap-2.5">
+                    ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
+                    ${renderCanvasSide(canvasState.partnerMain, 'partner', 'まだ本命を選んでいません')}
+                </div>
+            ` : `
+                <div class="mx-auto max-w-[320px]">
+                    ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
+                </div>
+            `}
         `;
 
     const canvasHeaderText = canvasState.matched
@@ -4362,7 +4398,7 @@ function renderSavedScreen() {
         </div>
     `;
 
-    const focusBanner = savedFocus !== 'all'
+    const focusBanner = savedFocus !== 'all' && hasPartnerLinked
         ? `
             <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-3">
                 <div class="flex items-center justify-between gap-3">
@@ -4390,26 +4426,31 @@ function renderSavedScreen() {
             ? 'bg-[#5d5444] text-white cursor-default'
             : 'bg-gradient-to-r from-[#f7c47c] to-[#e7a665] text-white active:scale-95';
         const cardActive = entry.ownSelected || entry.partnerSelected;
+        const cardMatched = entry.ownSelected && entry.partnerSelected;
         const theme = source === 'own'
             ? {
                 border: cardActive ? 'border-[#e4be8f]' : 'border-[#efd7be]',
                 bg: cardActive ? 'bg-[#fff3e7]' : 'bg-[#fff9f2]',
-                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(188,163,127,0.45)]' : 'shadow-sm'
+                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(188,163,127,0.45)]' : 'shadow-sm',
+                gradient: 'linear-gradient(180deg, rgba(231,199,160,0.10) 0%, rgba(255,249,242,0.98) 100%)',
+                gradientSelected: 'linear-gradient(180deg, rgba(231,199,160,0.18) 0%, rgba(255,243,231,0.98) 100%)'
             }
             : {
                 border: cardActive ? 'border-[#e6b0bb]' : 'border-[#f0d2d9]',
                 bg: cardActive ? 'bg-[#fff1f4]' : 'bg-[#fff8fa]',
-                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(221,125,115,0.24)]' : 'shadow-sm'
+                shadow: selected ? 'shadow-[0_10px_30px_-22px_rgba(221,125,115,0.24)]' : 'shadow-sm',
+                gradient: 'linear-gradient(180deg, rgba(231,188,198,0.10) 0%, rgba(255,248,250,0.98) 100%)',
+                gradientSelected: 'linear-gradient(180deg, rgba(231,188,198,0.18) 0%, rgba(255,241,244,0.98) 100%)'
             };
         const nameText = escapeHtml(item.fullName || item.givenName || '');
         const readingText = escapeHtml(item.reading || '');
         const messageText = item.message ? escapeHtml(item.message) : '';
-        const statusLabel = entry.ownSelected
-            ? '本命中'
-            : (entry.partnerSelected ? 'パートナー本命' : '');
+        const surfaceStyle = cardMatched
+            ? matchedCanvasStyle
+            : (selected ? theme.gradientSelected : theme.gradient);
 
         return `
-            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${theme.border} ${theme.bg} ${theme.shadow} p-3.5 transition-all active:scale-[0.99]">
+            <div onclick="showSavedNameDetail(${entry.index}, '${detailSource}')" class="group cursor-pointer rounded-[24px] border ${theme.border} ${theme.bg} ${theme.shadow} p-3.5 transition-all active:scale-[0.99]" style="background-image:${surfaceStyle};">
                 <div class="flex items-start gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-start gap-3">
@@ -4417,7 +4458,6 @@ function renderSavedScreen() {
                                 <div data-fit-saved-name="card" class="w-full overflow-hidden whitespace-nowrap text-ellipsis text-[18px] font-black leading-tight text-[#5d5444]">${nameText}</div>
                                 ${readingText ? `<div class="mt-1 text-[11px] text-[#a6967a]">${readingText}</div>` : ''}
                                 ${messageText ? `<div class="mt-1 text-[11px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
-                                ${statusLabel ? `<div class="mt-2 inline-flex items-center rounded-full border border-[#eadfce] bg-[#fff8ef] px-2.5 py-1 text-[10px] font-bold text-[#b68a52]">${statusLabel}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
                                 <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[6rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
@@ -4444,7 +4484,7 @@ function renderSavedScreen() {
         `;
     }
 
-    if (visiblePartner.length > 0) {
+    if (hasPartnerLinked && visiblePartner.length > 0) {
         html += `
             <div class="space-y-3 pt-1">
                 <div class="flex items-center justify-between gap-3 px-1">
