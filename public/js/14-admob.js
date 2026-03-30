@@ -441,6 +441,127 @@ if (document.readyState === 'loading') {
 // Global exports
 window.PremiumManager = PremiumManager;
 window.showPremiumModal = showPremiumModal;
+
+// Final premium overrides with partner priority
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumMembershipState({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: typeof this.getLocalPremiumState === 'function' ? this.getLocalPremiumState() : false,
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source,
+        active: state.active,
+        expired: state.expired
+    };
+};
+
+function showPremiumModal() {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    const state = PremiumManager.getMembershipState();
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    const partnerActive = !!(partnerState && partnerState.active);
+    const canDeactivate = !!state.active && state.source === 'self' && !partnerActive;
+
+    modal.classList.add('active');
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
+            <div class="text-center py-6">
+                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
+                <div class="text-4xl mb-4">👑</div>
+                <h3 class="text-lg font-black text-[#5d5444] mb-2">プレミアムモード</h3>
+                <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
+
+                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
+                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
+                </div>
+
+                ${state.active ? `
+                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6 text-left">
+                        <p class="text-sm font-bold text-green-700">${escapePremiumHtml(
+                            state.source === 'partner'
+                                ? '連携中のパートナーのプレミアムモードを利用しています。'
+                                : (partnerActive
+                                    ? 'あなたのプレミアムモードは有効で、連携中のパートナーも利用中です。'
+                                    : 'あなたのアカウントのプレミアムモードを利用しています。')
+                        )}</p>
+                    </div>
+                    ${canDeactivate ? `
+                        <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
+                            プレミアムを解除
+                        </button>
+                    ` : `
+                        <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                            閉じる
+                        </button>
+                    `}
+                ` : `
+                    <div class="space-y-3 mb-6 text-left px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✨</span>
+                            <span class="text-sm text-[#5d5444]">名前カードの表示を強化します</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✨</span>
+                            <span class="text-sm text-[#5d5444]">保存や検索の体験を快適にします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✨</span>
+                            <span class="text-sm text-[#5d5444]">プレミアムの状態はここで確認できます</span>
+                        </div>
+                    </div>
+                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        プレミアムモードを有効にする
+                    </button>
+                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                        購入状態を更新
+                    </button>
+                    <p class="text-[9px] text-[#a6967a] mt-3">現在は試験的な案内表示です。購入後の反映に少し時間がかかる場合があります。</p>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+window.PremiumManager = PremiumManager;
+window.showPremiumModal = showPremiumModal;
 // Final premium overrides
 PremiumManager.getMembershipState = function () {
     const selfState = buildPremiumMembershipState({
@@ -460,12 +581,12 @@ PremiumManager.getMembershipState = function () {
         ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
         : null;
 
-    if (selfState.active) return selfState;
     if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
     if (selfState.expired) return selfState;
     if (partnerState && partnerState.expired) return partnerState;
-    if (selfState.hasPremiumIndicators) return selfState;
     if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
 
     return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
 };
@@ -607,12 +728,12 @@ PremiumManager.getMembershipState = function () {
         ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
         : null;
 
-    if (selfState.active) return selfState;
     if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
     if (selfState.expired) return selfState;
     if (partnerState && partnerState.expired) return partnerState;
-    if (selfState.hasPremiumIndicators) return selfState;
     if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
 
     return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
 };
@@ -802,12 +923,12 @@ PremiumManager.getMembershipState = function () {
         ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
         : null;
 
-    if (selfState.active) return selfState;
     if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
     if (selfState.expired) return selfState;
     if (partnerState && partnerState.expired) return partnerState;
-    if (selfState.hasPremiumIndicators) return selfState;
     if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
 
     return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
 };
