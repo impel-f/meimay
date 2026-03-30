@@ -4263,7 +4263,7 @@ function renderSavedScreen() {
             ownSelected,
             partnerSelected,
             shared,
-            showInList: !item?.fromPartner && !item?.approvedFromPartner && !pairInsights?.isPartnerSavedApproved?.(item)
+            showInList: true
         };
     }).filter(entry => entry.showInList).sort((a, b) => {
         if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;

@@ -310,8 +310,10 @@ const MeimayFirestorePayload = {
             message: this._normalizeString(item?.message),
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
+            fromPartner: item?.fromPartner === true,
             approvedFromPartner: item?.approvedFromPartner === true,
             approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            partnerName: this._normalizeString(item?.partnerName),
             mainSelected: item?.mainSelected === true,
             mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
         };
@@ -354,8 +356,10 @@ const MeimayFirestorePayload = {
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
             fortune,
+            fromPartner: item?.fromPartner === true,
             approvedFromPartner: item?.approvedFromPartner === true,
             approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            partnerName: this._normalizeString(item?.partnerName),
             mainSelected: item?.mainSelected === true,
             mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
         };
@@ -1036,7 +1040,8 @@ const MeimayShare = {
                 : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
             let added = 0;
             items.forEach(item => {
-                const exists = local.some(l => l.fullName === item.fullName);
+                const itemKey = this.buildSavedMatchKey(item);
+                const exists = itemKey ? local.some(l => this.buildSavedMatchKey(l) === itemKey) : false;
                 if (!exists) {
                     let combination = [];
                     if (item.combinationKeys && typeof master !== 'undefined') {
@@ -1073,6 +1078,7 @@ const MeimayShare = {
             });
             if (added > 0) {
                 localStorage.setItem('meimay_saved', JSON.stringify(local));
+                if (typeof savedNames !== 'undefined') savedNames = local;
                 if (typeof renderSavedScreen === 'function' &&
                     document.getElementById('scr-saved')?.classList.contains('active')) {
                     renderSavedScreen();
@@ -2678,10 +2684,8 @@ function cleanupLegacyPartnerLocalData() {
 
     try {
         const savedRaw = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-        const ownSaved = Array.isArray(savedRaw) ? savedRaw.filter(item => !item?.fromPartner) : [];
-        if (ownSaved.length !== savedRaw.length) {
-            localStorage.setItem('meimay_saved', JSON.stringify(ownSaved));
-            if (typeof savedNames !== 'undefined') savedNames = ownSaved;
+        if (Array.isArray(savedRaw) && typeof savedNames !== 'undefined') {
+            savedNames = savedRaw;
         }
     } catch (e) {
         console.warn('PAIRING: Failed to cleanup legacy saved items', e);
@@ -2741,7 +2745,7 @@ MeimayPairing.syncMyData = async function () {
             : {};
         const ownLiked = getRoomSyncLikedItems();
         const savedData = JSON.parse(localStorage.getItem('meimay_saved') || '[]')
-            .filter(item => !item?.fromPartner);
+            .filter(item => item && typeof item === 'object');
         const readingStockSource = typeof getReadingStock === 'function' ? getReadingStock() : [];
         const encounteredLibrary = typeof getEncounteredLibrary === 'function'
             ? getEncounteredLibrary()
