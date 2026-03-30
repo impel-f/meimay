@@ -19,6 +19,9 @@ const PremiumManager = {
     TOKEN_KEY: 'meimay_app_account_token',
     _remotePremium: null,
     _remoteStatus: null,
+    _remoteExpiresAt: null,
+    _remoteProductId: null,
+    _remoteLastNotificationType: null,
     _userDocUnsub: null,
 
     getLocalPremiumState: function () {
@@ -55,7 +58,18 @@ const PremiumManager = {
     },
 
     isPremium: function () {
-        return this._remotePremium === true || this.getLocalPremiumState();
+        const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
+        const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt);
+        const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
+
+        if (this._remotePremium === true) return !remoteExpired;
+        if (this._remotePremium === false) return false;
+        if (remoteStatus === 'active') return !remoteExpired;
+        if (remoteExpired || remoteStatus === 'expired' || remoteStatus === 'refunded' || remoteStatus === 'revoked' || remoteStatus === 'billing_retry') {
+            return false;
+        }
+
+        return this.getLocalPremiumState();
     },
 
     activate: function () {
@@ -109,10 +123,17 @@ const PremiumManager = {
 
         this._userDocUnsub = docRef.onSnapshot((doc) => {
             const data = doc.exists ? (doc.data() || {}) : {};
-            this._remotePremium = data.isPremium === true;
+            this._remotePremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
             this._remoteStatus = typeof data.subscriptionStatus === 'string'
-                ? data.subscriptionStatus
+                ? data.subscriptionStatus.trim().toLowerCase()
                 : null;
+            this._remoteExpiresAt = data.appStoreExpiresAt || data.premiumExpiresAt || null;
+            this._remoteProductId = typeof data.appStoreProductId === 'string'
+                ? data.appStoreProductId
+                : (typeof data.premiumProductId === 'string' ? data.premiumProductId : null);
+            this._remoteLastNotificationType = typeof data.appStoreLastNotificationType === 'string'
+                ? data.appStoreLastNotificationType
+                : (typeof data.latestNotificationType === 'string' ? data.latestNotificationType : null);
 
             if (this.isPremium()) {
                 hideAdBanner();
@@ -125,6 +146,35 @@ const PremiumManager = {
         });
     }
 };
+
+function normalizePremiumDate(value) {
+    if (!value) return null;
+
+    if (typeof value.toDate === 'function') {
+        const date = value.toDate();
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === 'number') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    if (typeof value === 'string') {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    return null;
+}
+
+function formatPremiumDateLabel(date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
 
 function getPlatform() {
     const ua = navigator.userAgent || '';
@@ -284,6 +334,14 @@ function updatePremiumUI() {
     if (premiumBadge) {
         premiumBadge.classList.toggle('hidden', !PremiumManager.isPremium());
     }
+
+    if (typeof updateDrawerProfile === 'function') {
+        updateDrawerProfile();
+    }
+
+    if (typeof renderSettingsScreen === 'function') {
+        renderSettingsScreen();
+    }
 }
 
 // 初期化
@@ -309,24 +367,56 @@ window.showAdBanner = showAdBanner;
 
 console.log("ADMOB: Module loaded (v19.0)");
 
-PremiumManager.getStatusSummary = function () {
+PremiumManager.getMembershipState = function () {
+    const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
+    const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt);
+    const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
+    const remoteExpiresLabel = remoteExpiresAt ? formatPremiumDateLabel(remoteExpiresAt) : '';
+
     if (this.isPremium()) {
+        if (remoteExpiresAt && !remoteExpired) {
+            return {
+                label: `👑プレミアム会員：${remoteExpiresLabel}まで有効`,
+                title: 'プレミアム利用中',
+                detail: `有効期限は${remoteExpiresLabel}までです。`
+            };
+        }
+
         return {
+            label: '👑プレミアム会員',
             title: 'プレミアム利用中',
-            detail: this._remoteStatus ? `状態: ${this._remoteStatus}` : '購入状態は有効です。'
+            detail: this._remoteStatus === 'active'
+                ? '買い切りのプレミアムです。'
+                : 'プレミアム会員として利用中です。'
         };
     }
 
-    if (this._remoteStatus) {
+    if (remoteExpired || remoteStatus === 'expired' || remoteStatus === 'refunded' || remoteStatus === 'revoked' || remoteStatus === 'billing_retry') {
         return {
-            title: '購入状態を確認できます',
-            detail: `現在の状態: ${this._remoteStatus}`
+            label: '👑プレミアム会員：期限切れ',
+            title: 'プレミアム会員：期限切れ',
+            detail: remoteExpiresAt && remoteExpired
+                ? `有効期限は${remoteExpiresLabel}まででした。`
+                : '購入状態は期限切れです。'
         };
     }
 
     return {
-        title: '購入状態を確認できます',
-        detail: 'アプリ版では購入後や復元後にここへ反映されます。'
+        label: '👑プレミアム会員：未登録',
+        title: 'プレミアム会員：未登録',
+        detail: 'まだプレミアム購入情報がありません。'
+    };
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.title,
+        detail: state.detail
     };
 };
 

@@ -746,16 +746,22 @@ if (_originalChangeScreen) {
 }
 
 function updateDrawerProfile() {
-    const data = WizardData.get();
-    if (!data) return;
-
+    const data = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
     const avatar = document.getElementById('drawer-avatar');
-    const username = document.getElementById('drawer-username');
+    const usernameText = document.getElementById('drawer-username-text');
+    const premiumCrown = document.getElementById('drawer-premium-crown');
     const surnameDisplay = document.getElementById('drawer-surname-display');
     const sideProfile = document.getElementById('side-profile');
     const drawer = document.getElementById('side-drawer');
     const settingsButton = document.getElementById('drawer-settings-button');
     const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
+    const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
+    const premiumActive = !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
+    const premiumLabel = premiumManager && typeof premiumManager.getDrawerStatusLabel === 'function'
+        ? premiumManager.getDrawerStatusLabel()
+        : '👑プレミアム会員：未登録';
 
     if (drawer) {
         drawer.style.background = '';
@@ -766,11 +772,16 @@ function updateDrawerProfile() {
         sideProfile.style.borderColor = '';
     }
 
-    if (data.username && username) {
-        username.innerText = data.username;
-        if (avatar) {
-            avatar.innerText = data.username.charAt(0).toUpperCase();
-        }
+    if (usernameText) {
+        usernameText.textContent = data.username || 'ゲスト';
+    }
+
+    if (premiumCrown) {
+        premiumCrown.classList.toggle('hidden', !premiumActive);
+    }
+
+    if (data.username && avatar) {
+        avatar.innerText = data.username.charAt(0).toUpperCase();
     }
 
     if (data.role && avatar && !data.username) {
@@ -781,6 +792,11 @@ function updateDrawerProfile() {
     if (surnameDisplay) {
         surnameDisplay.innerText = data.surname ? `@${data.surname}` : '@未設定';
         if (palette) surnameDisplay.style.color = palette.text;
+    }
+
+    if (settingsButton) {
+        settingsButton.textContent = premiumLabel;
+        settingsButton.setAttribute('aria-label', premiumLabel);
     }
 
     if (avatar && palette) {
