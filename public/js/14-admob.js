@@ -323,6 +323,22 @@ function showPremiumModal() {
     `;
 }
 
+function openPremiumModalFromDrawer() {
+    if (typeof closeDrawer === 'function') {
+        closeDrawer();
+        setTimeout(() => {
+            if (typeof showPremiumModal === 'function') {
+                showPremiumModal();
+            }
+        }, 320);
+        return;
+    }
+
+    if (typeof showPremiumModal === 'function') {
+        showPremiumModal();
+    }
+}
+
 function closePremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
     if (modal) modal.classList.remove('active');
@@ -361,6 +377,7 @@ if (document.readyState === 'loading') {
 // Global exports
 window.PremiumManager = PremiumManager;
 window.showPremiumModal = showPremiumModal;
+window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
