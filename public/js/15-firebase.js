@@ -3896,3 +3896,171 @@ window.MeimayUserBackup = MeimayUserBackup;
 
 cleanupLegacyPartnerLocalData();
 MeimayUserBackup.installHooks();
+
+MeimayShare._partnerUserUnsub = null;
+MeimayShare.partnerUserSnapshot = null;
+
+MeimayShare.listenPartnerData = function (partnerUid) {
+    if (!partnerUid || !MeimayPairing.roomCode) return;
+    this.stopListening();
+
+    this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
+        .collection('data').doc(partnerUid)
+        .onSnapshot(async (doc) => {
+            if (partnerUid !== MeimayPairing.partnerUid) return;
+            const data = doc.exists ? (doc.data() || {}) : {};
+            cleanupLegacyPartnerLocalData();
+            let likedSource = Array.isArray(data.liked) ? data.liked : [];
+            let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
+            let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
+            let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
+            let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
+            const roomBackup = data.meimayBackup || data.backup || {};
+
+            if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
+                likedSource = roomBackup.liked;
+            }
+            if (!savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
+                savedNamesSource = roomBackup.savedNames;
+            }
+            if (!readingStockSource.length && Array.isArray(roomBackup.readingStock) && roomBackup.readingStock.length > 0) {
+                readingStockSource = roomBackup.readingStock;
+            }
+            if (!encounteredSource.length && Array.isArray(roomBackup.encounteredReadings) && roomBackup.encounteredReadings.length > 0) {
+                encounteredSource = roomBackup.encounteredReadings;
+            }
+            if (!hiddenReadingsSource.length && Array.isArray(roomBackup.hiddenReadings) && roomBackup.hiddenReadings.length > 0) {
+                hiddenReadingsSource = roomBackup.hiddenReadings;
+            }
+
+            let partnerUserBackup = null;
+            if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
+                try {
+                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
+                    if (partnerUserDoc.exists) {
+                        const partnerUserData = partnerUserDoc.data() || {};
+                        const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        partnerUserBackup = {
+                            ...partnerBackup,
+                            liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
+                                ? partnerBackup.liked
+                                : (Array.isArray(partnerUserData.liked) ? partnerUserData.liked : []),
+                            savedNames: Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0
+                                ? partnerBackup.savedNames
+                                : (Array.isArray(partnerUserData.savedNames) ? partnerUserData.savedNames : []),
+                            readingStock: Array.isArray(partnerBackup.readingStock) && partnerBackup.readingStock.length > 0
+                                ? partnerBackup.readingStock
+                                : (Array.isArray(partnerUserData.readingStock) ? partnerUserData.readingStock : []),
+                            encounteredReadings: Array.isArray(partnerBackup.encounteredReadings) && partnerBackup.encounteredReadings.length > 0
+                                ? partnerBackup.encounteredReadings
+                                : (Array.isArray(partnerUserData.encounteredReadings) ? partnerUserData.encounteredReadings : []),
+                            hiddenReadings: Array.isArray(partnerBackup.hiddenReadings) && partnerBackup.hiddenReadings.length > 0
+                                ? partnerBackup.hiddenReadings
+                                : (Array.isArray(partnerUserData.hiddenReadings) ? partnerUserData.hiddenReadings : [])
+                        };
+                        if (!likedSource.length && Array.isArray(partnerUserBackup.liked) && partnerUserBackup.liked.length > 0) {
+                            likedSource = partnerUserBackup.liked;
+                        }
+                        if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {
+                            savedNamesSource = partnerUserBackup.savedNames;
+                        }
+                        if (!readingStockSource.length && Array.isArray(partnerUserBackup.readingStock) && partnerUserBackup.readingStock.length > 0) {
+                            readingStockSource = partnerUserBackup.readingStock;
+                        }
+                        if (!encounteredSource.length && Array.isArray(partnerUserBackup.encounteredReadings) && partnerUserBackup.encounteredReadings.length > 0) {
+                            encounteredSource = partnerUserBackup.encounteredReadings;
+                        }
+                        if (!hiddenReadingsSource.length && Array.isArray(partnerUserBackup.hiddenReadings) && partnerUserBackup.hiddenReadings.length > 0) {
+                            hiddenReadingsSource = partnerUserBackup.hiddenReadings;
+                        }
+                    }
+                } catch (error) {
+                    // partner backup の読込に失敗しても room 側の値を優先する
+                }
+            }
+
+            const hydratedSections = MeimayFirestorePayload.hydrateSections({
+                liked: likedSource,
+                savedNames: savedNamesSource,
+                readingStock: readingStockSource,
+                encounteredReadings: encounteredSource
+            });
+
+            this.partnerSnapshot = {
+                liked: hydratedSections.liked,
+                savedNames: hydratedSections.savedNames,
+                readingStock: hydratedSections.readingStock,
+                encounteredReadings: hydratedSections.encounteredReadings,
+                hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
+                role: data.role || null,
+                displayName: String(data.displayName || '').trim(),
+                username: String(data.username || '').trim(),
+                nickname: String(data.nickname || '').trim(),
+                themeId: String(data.themeId || '').trim(),
+                meimayBackup: roomBackup,
+                backup: roomBackup,
+                partnerUserBackup
+            };
+
+            if (typeof updatePairingUI === 'function') {
+                updatePairingUI();
+            } else if (typeof refreshPartnerAwareUI === 'function') {
+                refreshPartnerAwareUI();
+            }
+        }, (e) => {
+            console.warn('SHARE: Listen partner data error', e);
+        });
+
+    this._partnerUserUnsub = firebaseDb.collection('users').doc(partnerUid)
+        .onSnapshot((doc) => {
+            if (partnerUid !== MeimayPairing.partnerUid) return;
+            if (!doc.exists) {
+                this.partnerUserSnapshot = null;
+            } else {
+                const data = doc.data() || {};
+                this.partnerUserSnapshot = {
+                    raw: data,
+                    isPremium: typeof data.isPremium === 'boolean' ? data.isPremium : null,
+                    subscriptionStatus: typeof data.subscriptionStatus === 'string'
+                        ? data.subscriptionStatus.trim().toLowerCase()
+                        : null,
+                    appStoreExpiresAt: data.appStoreExpiresAt || null,
+                    premiumExpiresAt: data.premiumExpiresAt || null,
+                    appStoreProductId: typeof data.appStoreProductId === 'string' ? data.appStoreProductId : null,
+                    premiumProductId: typeof data.premiumProductId === 'string' ? data.premiumProductId : null,
+                    appAccountToken: typeof data.appAccountToken === 'string' ? data.appAccountToken : null,
+                    premiumLinkedAt: data.premiumLinkedAt || null,
+                    appStoreLastNotificationType: typeof data.appStoreLastNotificationType === 'string'
+                        ? data.appStoreLastNotificationType
+                        : null,
+                    latestNotificationType: typeof data.latestNotificationType === 'string'
+                        ? data.latestNotificationType
+                        : null,
+                    updatedAt: data.updatedAt || null
+                };
+            }
+
+            if (typeof updatePremiumUI === 'function') {
+                updatePremiumUI();
+            }
+        }, (e) => {
+            console.warn('SHARE: Listen partner premium error', e);
+        });
+
+    console.log('SHARE: Listening for partner data');
+};
+
+MeimayShare.stopListening = function () {
+    if (this._partnerUnsub) {
+        this._partnerUnsub();
+        this._partnerUnsub = null;
+    }
+    if (this._partnerUserUnsub) {
+        this._partnerUserUnsub();
+        this._partnerUserUnsub = null;
+    }
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    this.partnerUserSnapshot = null;
+    if (typeof updatePremiumUI === 'function') updatePremiumUI();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+};

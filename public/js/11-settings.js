@@ -356,10 +356,13 @@ function renderSettingsScreen() {
         pairingStatusColor = '#4ade80';
     }
 
-    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const premiumState = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+        ? PremiumManager.getMembershipState()
+        : null;
+    const premiumActive = !!premiumState?.active;
     const dailyRemainingText = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : '-';
-    const premiumText = premiumActive
-        ? '有効中'
+    const premiumText = premiumState
+        ? premiumState.label
         : `無料プラン・今日あと ${dailyRemainingText} 枚`;
 
 
@@ -444,7 +447,7 @@ function renderSettingsScreen() {
                 </div>
                 <div class="item-content-unified">
                     <div class="item-title-unified">プレミアム</div>
-                    <div class="item-value-unified">${premiumText}</div>
+                    <div class="item-value-unified" style="white-space: pre-line;">${premiumText}</div>
                 </div>
                 <div class="item-arrow-unified flex items-center gap-2">
                     <span id="premium-badge" class="px-2 py-1 rounded-full bg-[#fef3c7] text-[#b45309] text-[9px] font-black ${premiumActive ? '' : 'hidden'}">ACTIVE</span>

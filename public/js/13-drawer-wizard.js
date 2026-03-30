@@ -797,6 +797,8 @@ function updateDrawerProfile() {
     if (settingsButton) {
         settingsButton.textContent = premiumLabel;
         settingsButton.setAttribute('aria-label', premiumLabel);
+        settingsButton.style.whiteSpace = 'pre-line';
+        settingsButton.style.lineHeight = '1.25';
     }
 
     if (avatar && palette) {

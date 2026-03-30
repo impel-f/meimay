@@ -176,6 +176,70 @@ function formatPremiumDateLabel(date) {
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
+function escapePremiumHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    return MeimayShare.partnerUserSnapshot || null;
+}
+
+function buildPremiumState(source, activeHint, status, expiresAt) {
+    const normalizedStatus = String(status || '').trim().toLowerCase();
+    const expiresDate = normalizePremiumDate(expiresAt);
+    const expiredByDate = !!expiresDate && expiresDate.getTime() <= Date.now();
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const isExpired = expiredByDate || expiredStatuses.has(normalizedStatus);
+    const isActive = !isExpired && (activeHint === true || normalizedStatus === 'active');
+    const baseTitle = source === 'partner' ? '👑プレミアムモード（パートナー）' : '👑プレミアムモード';
+
+    if (isActive) {
+        return {
+            source,
+            active: true,
+            expired: false,
+            title: baseTitle,
+            subtitle: expiresDate ? `(${formatPremiumDateLabel(expiresDate)}まで有効)` : '',
+            detail: source === 'partner'
+                ? '連携中はパートナーのプレミアムを利用できます。'
+                : 'ご自身のプレミアム会員です。'
+        };
+    }
+
+    if (isExpired) {
+        return {
+            source,
+            active: false,
+            expired: true,
+            title: '👑プレミアムモード：期限切れ',
+            subtitle: '',
+            detail: expiresDate
+                ? `有効期限は${formatPremiumDateLabel(expiresDate)}まででした。`
+                : 'プレミアム会員の有効期限は切れています。'
+        };
+    }
+
+    return {
+        source,
+        active: false,
+        expired: false,
+        title: '👑プレミアムモード：未登録',
+        subtitle: '',
+        detail: 'まだプレミアム購入情報がありません。'
+    };
+}
+
 function getPlatform() {
     const ua = navigator.userAgent || '';
     if (/android/i.test(ua)) return 'android';
@@ -377,6 +441,395 @@ if (document.readyState === 'loading') {
 // Global exports
 window.PremiumManager = PremiumManager;
 window.showPremiumModal = showPremiumModal;
+
+PremiumManager.isPremium = function () {
+    if (typeof this.getMembershipState === 'function') {
+        const state = this.getMembershipState();
+        return !!(state && state.active);
+    }
+    return this.getLocalPremiumState();
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumStateFromRecord({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: this.getLocalPremiumState(),
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumStateFromRecord(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (selfState.active) return selfState;
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return {
+        source: 'self',
+        active: false,
+        expired: false,
+        hasPremiumIndicators: false,
+        title: '👑プレミアムモード：未登録',
+        label: '👑プレミアムモード：未登録',
+        detail: 'このアカウントにプレミアム登録がありません。',
+        expiresAt: null,
+        status: '',
+        productId: ''
+    };
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source
+    };
+};
+
+function showPremiumModal() {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+        ? PremiumManager.getMembershipState()
+        : {
+            active: false,
+            source: 'self',
+            label: '👑プレミアムモード：未登録',
+            detail: 'このアカウントにプレミアム登録がありません。'
+        };
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumStateFromRecord(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    const partnerActive = !!(partnerState && partnerState.active);
+    const canDeactivate = !!state.active && state.source === 'self' && !partnerActive;
+
+    modal.classList.add('active');
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closePremiumModal()">✕</button>
+            <div class="text-center py-6">
+                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
+                <div class="text-4xl mb-4">👑</div>
+                <h3 class="text-lg font-black text-[#5d5444] mb-2">プレミアムモード</h3>
+                <p class="text-xs text-[#a6967a] mb-4">広告を減らして、連携中も見やすく使えるようにするモードです。</p>
+
+                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
+                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
+                </div>
+
+                ${state.active ? `
+                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6 text-left">
+                        <p class="text-sm font-bold text-green-700">${state.source === 'partner'
+                            ? '連携中のパートナーのプレミアムで利用中です。'
+                            : (partnerActive
+                                ? '自分のプレミアムに加えて、連携中のパートナーもプレミアムです。'
+                                : '自分のプレミアムで利用中です。')}</p>
+                    </div>
+                    ${canDeactivate ? `
+                        <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
+                            プレミアムを解除
+                        </button>
+                    ` : `
+                        <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                            閉じる
+                        </button>
+                    `}
+                ` : `
+                    <div class="space-y-3 mb-6 text-left px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">広告の表示を減らします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">履歴や保存の表示を見やすくします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">購入状態の確認結果をこの画面に反映します</span>
+                        </div>
+                    </div>
+                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        プレミアムを有効にする
+                    </button>
+                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                        購入状態を確認する
+                    </button>
+                    <p class="text-[9px] text-[#a6967a] mt-3">※ 現在はベータ版のため無料でお試しいただけます</p>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+window.showPremiumModal = showPremiumModal;
+
+function normalizePremiumStatus(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+
+    if (typeof MeimayShare === 'undefined' || !MeimayShare || !MeimayShare.partnerUserSnapshot) {
+        return null;
+    }
+
+    return MeimayShare.partnerUserSnapshot;
+}
+
+function buildPremiumStateFromRecord(record, source, options = {}) {
+    const data = record || {};
+    const status = normalizePremiumStatus(data.subscriptionStatus || data.premiumStatus || '');
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+    const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const isExpired = expiredByDate || expiredStatuses.has(status);
+    const allowLocalFallback = options.allowLocalFallback === true
+        && !hasPremiumIndicators
+        && options.localPremium === true;
+    const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
+    const sourceTitle = source === 'partner'
+        ? '👑プレミアムモード（パートナー）'
+        : '👑プレミアムモード';
+    const expiresLabel = expiresAt ? formatPremiumDateLabel(expiresAt) : '';
+
+    let label = '👑プレミアムモード：未登録';
+    let detail = source === 'partner'
+        ? '連携中のパートナーにプレミアム登録がありません。'
+        : 'このアカウントにプレミアム登録がありません。';
+
+    if (isActive) {
+        label = expiresAt && !expiredByDate
+            ? `${sourceTitle}\n(${expiresLabel}まで有効)`
+            : sourceTitle;
+        detail = source === 'partner'
+            ? (expiresAt && !expiredByDate
+                ? `連携中のパートナーのプレミアムは${expiresLabel}まで有効です。`
+                : '連携中のパートナーのプレミアムで利用中です。')
+            : (expiresAt && !expiredByDate
+                ? `自分のプレミアムは${expiresLabel}まで有効です。`
+                : '自分のプレミアムで利用中です。');
+    } else if (isExpired) {
+        label = '👑プレミアムモード：期限切れ';
+        detail = expiresAt && expiredByDate
+            ? `有効期限は${expiresLabel}まででした。`
+            : '購入状態は期限切れです。';
+    }
+
+    return {
+        source,
+        active: isActive,
+        expired: isExpired,
+        hasPremiumIndicators,
+        title: label,
+        label,
+        detail,
+        expiresAt,
+        status,
+        productId
+    };
+}
+
+PremiumManager.isPremium = function () {
+    if (typeof this.getMembershipState === 'function') {
+        const state = this.getMembershipState();
+        return !!(state && state.active);
+    }
+    return this.getLocalPremiumState();
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumStateFromRecord({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: this.getLocalPremiumState(),
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumStateFromRecord(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (selfState.active) return selfState;
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return {
+        source: 'self',
+        active: false,
+        expired: false,
+        hasPremiumIndicators: false,
+        title: '👑プレミアムモード：未登録',
+        label: '👑プレミアムモード：未登録',
+        detail: 'このアカウントにプレミアム登録がありません。',
+        expiresAt: null,
+        status: '',
+        productId: ''
+    };
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source
+    };
+};
+
+function updatePremiumUI() {
+    const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+        ? PremiumManager.getMembershipState()
+        : {
+            active: false,
+            label: '👑プレミアムモード：未登録'
+        };
+
+    if (state.active) {
+        hideAdBanner();
+    } else {
+        showAdBanner();
+    }
+
+    const premiumBadge = document.getElementById('premium-badge');
+    if (premiumBadge) {
+        premiumBadge.classList.toggle('hidden', !state.active);
+        premiumBadge.title = state.label || '';
+    }
+
+    if (typeof updateDrawerProfile === 'function') {
+        updateDrawerProfile();
+    }
+
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        renderHomeProfile();
+    }
+
+    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')) {
+        renderSavedScreen();
+    }
+
+    if (typeof renderSettingsScreen === 'function') {
+        renderSettingsScreen();
+    }
+}
+
+function showPremiumModal() {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal) return;
+
+    const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+        ? PremiumManager.getMembershipState()
+        : {
+            active: false,
+            source: 'self',
+            label: '👑プレミアムモード：未登録',
+            detail: 'このアカウントにプレミアム登録がありません。'
+        };
+    const partnerSnapshot = getConnectedPremiumPartnerSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumStateFromRecord(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    const partnerActive = !!(partnerState && partnerState.active);
+    const canDeactivate = !!state.active && state.source === 'self' && !partnerActive;
+
+    modal.classList.add('active');
+    modal.innerHTML = `
+        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-btn" onclick="closePremiumModal()">✕</button>
+            <div class="text-center py-6">
+                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
+                <div class="text-4xl mb-4">👑</div>
+                <h3 class="text-lg font-black text-[#5d5444] mb-2">プレミアムモード</h3>
+                <p class="text-xs text-[#a6967a] mb-4">広告を減らして、連携中も見やすく使えるようにするモードです。</p>
+
+                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
+                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
+                </div>
+
+                ${state.active ? `
+                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6 text-left">
+                        <p class="text-sm font-bold text-green-700">${state.source === 'partner'
+                            ? '連携中のパートナーのプレミアムで利用中です。'
+                            : (partnerActive
+                                ? '自分のプレミアムに加えて、連携中のパートナーもプレミアムです。'
+                                : '自分のプレミアムで利用中です。')}</p>
+                    </div>
+                    ${canDeactivate ? `
+                        <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
+                            プレミアムを解除
+                        </button>
+                    ` : `
+                        <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                            閉じる
+                        </button>
+                    `}
+                ` : `
+                    <div class="space-y-3 mb-6 text-left px-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">広告の表示を減らします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">履歴や保存の表示を見やすくします</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-lg">✅</span>
+                            <span class="text-sm text-[#5d5444]">購入状態の確認結果をこの画面に反映します</span>
+                        </div>
+                    </div>
+                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        プレミアムを有効にする
+                    </button>
+                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                        購入状態を確認する
+                    </button>
+                    <p class="text-[9px] text-[#a6967a] mt-3">※ 現在はベータ版のため無料でお試しいただけます</p>
+                `}
+            </div>
+        </div>
+    `;
+}
 window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;
