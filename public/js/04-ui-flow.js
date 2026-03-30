@@ -4391,6 +4391,22 @@ function getReadingBaseReading(value) {
     return raw.split('::')[0].trim();
 }
 
+function getHiddenReadingSet() {
+    let removedList = [];
+    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
+    return new Set(
+        (Array.isArray(removedList) ? removedList : [])
+            .map(value => normalizeHiddenReadingValue(value))
+            .filter(Boolean)
+    );
+}
+
+function isReadingStockVisible(item, hiddenReadingSet = null) {
+    const targetSet = hiddenReadingSet instanceof Set ? hiddenReadingSet : getHiddenReadingSet();
+    const normalizedReading = normalizeHiddenReadingValue(getReadingBaseReading(item));
+    return !normalizedReading || !targetSet.has(normalizedReading);
+}
+
 function matchesReadingStockTarget(item, target) {
     const normalizedTarget = normalizeReadingComparisonValue(getReadingBaseReading(target));
     if (!normalizedTarget) return false;
@@ -4433,24 +4449,33 @@ function sortReadingStockMatches(matches) {
     });
 }
 
-function findReadingStockItemInStock(stock, target) {
+function findReadingStockItemInStock(stock, target, options = {}) {
     const normalizedTarget = normalizeReadingComparisonValue(getReadingBaseReading(target));
     if (!normalizedTarget) return null;
-    const exactTarget = String(target || '').trim();
+    const exactTargetSource = typeof target === 'object' && target !== null
+        ? (target.id || target.reading || target.sessionReading || target['\u96b1\uff6d\u7e3a\uff7f'] || '')
+        : target || '';
+    const exactTarget = String(exactTargetSource).trim();
+    const includeHidden = options.includeHidden === true;
+    const hiddenReadingSet = includeHidden ? null : getHiddenReadingSet();
     const matches = Array.isArray(stock)
         ? stock.filter(item => {
             if (!item) return false;
+            if (!includeHidden && !isReadingStockVisible(item, hiddenReadingSet)) return false;
             const itemReading = normalizeReadingComparisonValue(item.reading || item.sessionReading || '');
-            const itemKey = normalizeReadingComparisonValue(item.id || item.reading || item.sessionReading || '');
-            return (exactTarget && item.id === exactTarget) || item.reading === target || itemKey === normalizedTarget || itemReading === normalizedTarget;
+            return (exactTarget && item.id === exactTarget) || itemReading === normalizedTarget;
         })
         : [];
     if (matches.length === 0) return null;
     return sortReadingStockMatches(matches)[0] || null;
 }
 
-function findReadingStockItem(target) {
-    return findReadingStockItemInStock(getReadingStock(), target);
+function findReadingStockItem(target, options = {}) {
+    return findReadingStockItemInStock(getReadingStock(), target, options);
+}
+
+function getVisibleReadingStock() {
+    return getReadingStock().filter(item => isReadingStockVisible(item));
 }
 
 function getReadingStock() {
@@ -4502,7 +4527,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const normalizedSegmentsInput = Array.isArray(options.segments) ? options.segments.filter(Boolean) : [];
     const normalizedSegments = readingPromoted ? normalizedSegmentsInput : [];
     const targetId = getReadingStockKey(reading, normalizedSegments);
-    const existing = stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading);
+    const existing = stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true });
 
     if (existing) {
         existing.tags = [...new Set([...(existing.tags || []), ...normalizedTags])];
@@ -7980,7 +8005,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
         return;
     }
     const stockItem = typeof findReadingStockItem === 'function'
-        ? findReadingStockItem(modalReading || item.reading || item.sessionReading || '')
+        ? findReadingStockItem(modalReading || item.reading || item.sessionReading || '', { includeHidden: false })
         : null;
     const stockTarget = stockItem?.id || modalReading || item.reading || item.sessionReading || '';
     const isStocked = !!stockItem;
@@ -7995,9 +8020,9 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
     const actionButtonsHtml = isStocked ? `
-            <div class="mb-4 flex justify-end">
-                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
-                    この読みをストックから外す
+            <div class="mb-4">
+                <button type="button" onclick="window.removeCompletedReadingFromStock(${JSON.stringify(stockTarget)}); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                    <span>🗑️</span> ストックから外す
                 </button>
             </div>
         ` : (!forceSplit ? `
@@ -9542,6 +9567,10 @@ function removeCompletedReadingFromStock(reading) {
         refreshPartnerAwareUI();
     }
     showToast(`「${displayReading}」を外しました`, '🗑️');
+}
+
+if (typeof window !== 'undefined') {
+    window.removeCompletedReadingFromStock = removeCompletedReadingFromStock;
 }
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;

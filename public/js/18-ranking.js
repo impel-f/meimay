@@ -173,11 +173,9 @@ function getRankingOwnLikedEntries() {
 }
 
 function getRankingOwnReadingStockEntries() {
-    if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getOwnReadingStock === 'function') {
-        return MeimayPartnerInsights.getOwnReadingStock();
-    }
-
-    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    const stock = typeof getVisibleReadingStock === 'function'
+        ? getVisibleReadingStock()
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
     return Array.isArray(stock) ? stock : [];
 }
 
