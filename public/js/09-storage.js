@@ -94,7 +94,7 @@ const StorageBox = {
             if (typeof syncReadingStockFromLiked === 'function') {
                 syncReadingStockFromLiked(liked);
             }
-            this._persistLikedState(liked);
+            const likedSaved = this._persistLikedState(liked);
             localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
             localStorage.setItem(this.KEY_SURNAME, JSON.stringify({
                 str: surnameStr,
@@ -120,6 +120,9 @@ const StorageBox = {
             console.log("STORAGE: State saved successfully");
             if (typeof queuePartnerStockSync === 'function') {
                 queuePartnerStockSync('saveAll');
+            }
+            if (likedSaved && typeof notifyStockStateChanged === 'function') {
+                notifyStockStateChanged('saveAll');
             }
             return true;
         } catch (e) {
@@ -275,6 +278,9 @@ const StorageBox = {
         }
         if (typeof queuePartnerStockSync === 'function') {
             queuePartnerStockSync('saveLiked');
+        }
+        if (result && typeof notifyStockStateChanged === 'function') {
+            notifyStockStateChanged('saveLiked');
         }
         return result;
     },

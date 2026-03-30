@@ -2462,6 +2462,18 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
         preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
     );
     const preview = getReadingFullNamePreview(item.reading);
+    const actionButtonsHtml = isStocked ? `
+            <div class="mb-4 flex justify-end">
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    この読みをストックから外す
+                </button>
+            </div>
+        ` : (!forceSplit ? `
+            <div class="flex gap-2 mb-4">
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> 候補</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> 本命</button>
+            </div>
+        ` : '');
     readingCombinationModalState = {
         item: { ...item, baseNickname },
         options
@@ -2536,6 +2548,18 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     `;
 
     document.body.appendChild(modal);
+    if (isStocked) {
+        const actionRow = modal.querySelector('[data-reading-combination-actions]');
+        if (actionRow) {
+            actionRow.className = 'mb-4 flex justify-end';
+            actionRow.style.display = '';
+            actionRow.innerHTML = `
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    この読みをストックから外す
+                </button>
+            `;
+        }
+    }
 }
 
 function saveReadingCombinationFromModal(index, asSuper) {
@@ -4448,6 +4472,23 @@ function saveReadingStock(stock) {
     if (typeof queuePartnerStockSync === 'function') {
         queuePartnerStockSync('saveReadingStock');
     }
+    if (typeof notifyStockStateChanged === 'function') {
+        notifyStockStateChanged('reading-stock');
+    }
+}
+
+function notifyStockStateChanged(reason = 'stock') {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+    try {
+        window.dispatchEvent(new CustomEvent('meimay:stock-changed', {
+            detail: {
+                reason,
+                timestamp: Date.now()
+            }
+        }));
+    } catch (error) {
+        // Non-fatal.
+    }
 }
 
 function addReadingToStock(reading, baseNickname, tags, options = {}) {
@@ -6276,6 +6317,18 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     `;
 
     document.body.appendChild(modal);
+    if (isStocked) {
+        const actionRow = modal.querySelector('[data-reading-combination-actions]');
+        if (actionRow) {
+            actionRow.className = 'mb-4 flex justify-end';
+            actionRow.style.display = '';
+            actionRow.innerHTML = `
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    この読みをストックから外す
+                </button>
+            `;
+        }
+    }
 }
 
 function getSampleKanjiHtml(item) {
@@ -6848,9 +6901,19 @@ function renderReadingStockSectionVisible() {
     renderReadingStockSectionV2();
 }
 
-function startNicknameCandidateSwipe(baseReading) {
+async function startNicknameCandidateSwipe(baseReading) {
     const flowBaseReading = toHira(baseReading || '');
     nicknameBaseReading = flowBaseReading;
+
+    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        }
+        return;
+    }
 
     const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
@@ -7466,9 +7529,28 @@ function renderReadingStockSectionVisible() {
     renderReadingStockSectionV2();
 }
 
-function startNicknameCandidateSwipe(baseReading) {
+async function startNicknameCandidateSwipe(baseReading) {
     const flowBaseReading = toHira(baseReading || '');
     nicknameBaseReading = flowBaseReading;
+
+    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        }
+        return;
+    }
+    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
+        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
+        if (typeof showToast === 'function') {
+            showToast(loadMessage);
+        } else {
+            alert(loadMessage);
+        }
+        return;
+    }
 
     const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
@@ -7834,12 +7916,73 @@ function renderReadingSwipeCard(item) {
         </div>
         </div>
     `;
-}function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '', returnTarget = null) {
+}
+
+function getCandidateDataLoadStatus(key) {
+    if (!window.meimayDataLoadStatus || typeof window.meimayDataLoadStatus !== 'object') return 'idle';
+    return typeof window.meimayDataLoadStatus[key] === 'string' ? window.meimayDataLoadStatus[key] : 'idle';
+}
+
+function isCandidateDataPending(key) {
+    const status = getCandidateDataLoadStatus(key);
+    return status === 'idle' || status === 'loading';
+}
+
+async function waitForAllCandidateData(keys, timeoutMs = 5000, intervalMs = 50) {
+    const pending = () => Array.isArray(keys) && keys.some((key) => isCandidateDataPending(key));
+    if (!pending()) return true;
+
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        if (!pending()) return true;
+    }
+
+    return !pending();
+}
+
+async function waitForAnyCandidateData(keys, timeoutMs = 5000, intervalMs = 50) {
+    const ready = () => Array.isArray(keys) && keys.some((key) => getCandidateDataLoadStatus(key) === 'loaded');
+    if (ready()) return true;
+
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < timeoutMs) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+        if (ready()) return true;
+    }
+
+    return ready();
+}
+
+async function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '', returnTarget = null) {
     closeReadingCombinationModal();
 
     const modalReading = getReadingBaseReading(item.reading || item.sessionReading || '');
     const displayReading = getReadingDisplayLabel(item);
     const forceSplit = !!item.forceSplit;
+    const sourceReady = await waitForAllCandidateData(['master', 'compoundReadingsData', 'readingSegmentRules'], 6000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度開いてください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度開いてください。');
+        }
+        return;
+    }
+    if (getCandidateDataLoadStatus('master') !== 'loaded') {
+        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
+        if (typeof showToast === 'function') {
+            showToast(loadMessage);
+        } else {
+            alert(loadMessage);
+        }
+        return;
+    }
+    const stockItem = typeof findReadingStockItem === 'function'
+        ? findReadingStockItem(modalReading || item.reading || item.sessionReading || '')
+        : null;
+    const stockTarget = stockItem?.id || modalReading || item.reading || item.sessionReading || '';
+    const isStocked = !!stockItem;
     const options = getReadingSegmentOptions(
         modalReading || item.reading,
         4,
@@ -7850,6 +7993,18 @@ function renderReadingSwipeCard(item) {
     const headerLabel = forceSplit ? '分け方の提案' : '';
     const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
+    const actionButtonsHtml = isStocked ? `
+            <div class="mb-4 flex justify-end">
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                    この読みをストックから外す
+                </button>
+            </div>
+        ` : (!forceSplit ? `
+            <div class="flex gap-2 mb-4">
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> 候補</button>
+                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> 本命</button>
+            </div>
+        ` : '');
     readingCombinationModalState = {
         item: { ...item, reading: modalReading || item.reading, baseNickname },
         options,
@@ -7881,10 +8036,7 @@ function renderReadingSwipeCard(item) {
                 ${forceSplit ? '<div class="mt-2 text-[11px] text-[#a6967a]">候補を選ぶと、その分け方でストックに入ります。</div>' : ''}
             </div>
             ${renderReadingTagBadges(item.tags || [])}
-            <div class="flex gap-2 mb-4" style="${forceSplit ? 'display:none;' : ''}">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> 候補</button>
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> 本命</button>
-            </div>
+            ${actionButtonsHtml}
             <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
                 ${options.length === 0 ? `
                     <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
@@ -9422,9 +9574,28 @@ function prepareAdaptiveReadingCandidates(candidates) {
     return aiReorderCandidates(Array.isArray(candidates) ? candidates : []);
 }
 
-function startNicknameCandidateSwipe(baseReading) {
+async function startNicknameCandidateSwipe(baseReading) {
     const flowBaseReading = toHira(baseReading || '');
     nicknameBaseReading = flowBaseReading;
+
+    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        }
+        return;
+    }
+    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
+        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
+        if (typeof showToast === 'function') {
+            showToast(loadMessage);
+        } else {
+            alert(loadMessage);
+        }
+        return;
+    }
 
     const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
@@ -10028,9 +10199,28 @@ function renderReadingStockSectionVisible() {
     renderReadingStockSectionV2();
 }
 
-function startNicknameCandidateSwipe(baseReading) {
+async function startNicknameCandidateSwipe(baseReading) {
     const flowBaseReading = toHira(baseReading || '');
     nicknameBaseReading = flowBaseReading;
+
+    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        }
+        return;
+    }
+    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
+        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
+        if (typeof showToast === 'function') {
+            showToast(loadMessage);
+        } else {
+            alert(loadMessage);
+        }
+        return;
+    }
 
     const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({
@@ -10622,9 +10812,28 @@ function renderReadingStockSectionVisible() {
     renderReadingStockSectionV2();
 }
 
-function startNicknameCandidateSwipe(baseReading) {
+async function startNicknameCandidateSwipe(baseReading) {
     const flowBaseReading = toHira(baseReading || '');
     nicknameBaseReading = flowBaseReading;
+
+    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
+    if (!sourceReady) {
+        if (typeof showToast === 'function') {
+            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        } else {
+            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
+        }
+        return;
+    }
+    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
+        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
+        if (typeof showToast === 'function') {
+            showToast(loadMessage);
+        } else {
+            alert(loadMessage);
+        }
+        return;
+    }
 
     const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
         .map(item => ({

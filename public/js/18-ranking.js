@@ -70,6 +70,7 @@ let currentRankingGender = loadRankingGenderPreference();
 let rankingTouchStartX = 0;
 let rankingTouchStartY = 0;
 let rankingSwipeSetupDone = false;
+let rankingStockRefreshTimer = null;
 
 function escapeRankingHtml(value) {
     return String(value ?? '')
@@ -926,6 +927,23 @@ async function toggleRankingStock(kanjiStr, btn) {
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
     }
+}
+
+function refreshRankingOnStockChange() {
+    if (rankingStockRefreshTimer) {
+        clearTimeout(rankingStockRefreshTimer);
+    }
+    rankingStockRefreshTimer = setTimeout(() => {
+        rankingStockRefreshTimer = null;
+        const rankingScreen = document.getElementById('scr-ranking');
+        if (!rankingScreen || !rankingScreen.classList.contains('active')) return;
+        loadRanking();
+    }, 0);
+}
+
+if (typeof window !== 'undefined' && !window.__meimayRankingStockListenerAttached) {
+    window.__meimayRankingStockListenerAttached = true;
+    window.addEventListener('meimay:stock-changed', refreshRankingOnStockChange);
 }
 
 window.openRanking = openRanking;

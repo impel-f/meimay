@@ -30,6 +30,13 @@ let readingSegmentRules = {
     approvedSegments: {},
     disabledSegments: []
 };
+window.meimayDataLoadStatus = window.meimayDataLoadStatus || {
+    master: 'idle',
+    yomiSearchData: 'idle',
+    readingsData: 'idle',
+    compoundReadingsData: 'idle',
+    readingSegmentRules: 'idle'
+};
 let currentBuildResult = {
     fullName: "",
     reading: "",
@@ -121,6 +128,13 @@ function getCuratedReadingSegmentCandidates(segment) {
 window.onload = () => {
     console.log("CORE: Initializing Meimay App...");
     const statusEl = document.getElementById('status');
+    if (window.meimayDataLoadStatus) {
+        window.meimayDataLoadStatus.master = 'loading';
+        window.meimayDataLoadStatus.yomiSearchData = 'loading';
+        window.meimayDataLoadStatus.readingsData = 'loading';
+        window.meimayDataLoadStatus.compoundReadingsData = 'loading';
+        window.meimayDataLoadStatus.readingSegmentRules = 'loading';
+    }
 
     // LocalStorageから同期的に復元（非同期前に実行してリロード時のデータ消散を防ぐ）
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.loadAll === 'function') {
@@ -139,6 +153,9 @@ window.onload = () => {
             }
 
             master = data;
+            if (window.meimayDataLoadStatus) {
+                window.meimayDataLoadStatus.master = 'loaded';
+            }
             console.log("CORE: Sample kanji:", master[0]);
             console.log(`CORE: ${master.length} kanji loaded successfully`);
 
@@ -193,9 +210,17 @@ window.onload = () => {
                 })
                 .then(yomiData => {
                     yomiSearchData = yomiData;
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.yomiSearchData = Array.isArray(yomiData) && yomiData.length > 0 ? 'loaded' : 'empty';
+                    }
                     console.log(`CORE: Loaded ${yomiData.length} yomi search entries`);
                 })
-                .catch(err => console.warn("CORE: Failed to load yomi search data", err));
+                .catch(err => {
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.yomiSearchData = 'failed';
+                    }
+                    console.warn("CORE: Failed to load yomi search data", err);
+                });
 
             // タグ付き読みデータの読み込み（非同期）
             fetch('/data/readings_data.json')
@@ -205,9 +230,17 @@ window.onload = () => {
                 })
                 .then(rData => {
                     readingsData = rData;
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.readingsData = Array.isArray(rData) && rData.length > 0 ? 'loaded' : 'empty';
+                    }
                     console.log(`CORE: Loaded ${rData.length} reading entries with tags`);
                 })
-                .catch(err => console.warn("CORE: Failed to load readings data", err));
+                .catch(err => {
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.readingsData = 'failed';
+                    }
+                    console.warn("CORE: Failed to load readings data", err);
+                });
 
             fetch('/data/compound_readings_data.json')
                 .then(res => {
@@ -216,9 +249,17 @@ window.onload = () => {
                 })
                 .then(cData => {
                     compoundReadingsData = Array.isArray(cData) ? cData : [];
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.compoundReadingsData = compoundReadingsData.length > 0 ? 'loaded' : 'empty';
+                    }
                     console.log(`CORE: Loaded ${compoundReadingsData.length} compound reading entries`);
                 })
-                .catch(err => console.warn("CORE: Failed to load compound reading data", err));
+                .catch(err => {
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.compoundReadingsData = 'failed';
+                    }
+                    console.warn("CORE: Failed to load compound reading data", err);
+                });
 
             fetch('/data/reading_segment_rules.json')
                 .then(res => {
@@ -226,12 +267,28 @@ window.onload = () => {
                     return null;
                 })
                 .then(ruleData => {
-                    if (!ruleData) return;
+                    if (!ruleData) {
+                        if (window.meimayDataLoadStatus) {
+                            window.meimayDataLoadStatus.readingSegmentRules = 'empty';
+                        }
+                        return;
+                    }
                     setReadingSegmentRules(ruleData);
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.readingSegmentRules = 'loaded';
+                    }
                 })
-                .catch(err => console.warn("CORE: Failed to load reading segment rules", err));
+                .catch(err => {
+                    if (window.meimayDataLoadStatus) {
+                        window.meimayDataLoadStatus.readingSegmentRules = 'failed';
+                    }
+                    console.warn("CORE: Failed to load reading segment rules", err);
+                });
         })
         .catch(err => {
+            if (window.meimayDataLoadStatus) {
+                window.meimayDataLoadStatus.master = 'failed';
+            }
             console.error("CORE: データ読み込みエラー:", err);
             if (statusEl) {
                 statusEl.innerText = `ERROR: ${err.message}`;
