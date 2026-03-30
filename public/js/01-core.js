@@ -119,7 +119,7 @@ function getCuratedReadingSegmentCandidates(segment) {
         return [];
     }
 
-    return hasCuratedReadingSegmentRules() ? [] : null;
+    return null;
 }
 
 /**

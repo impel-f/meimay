@@ -2463,9 +2463,9 @@ function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '
     );
     const preview = getReadingFullNamePreview(item.reading);
     const actionButtonsHtml = isStocked ? `
-            <div class="mb-4 flex justify-end">
-                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
-                    この読みをストックから外す
+            <div class="mb-4">
+                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                    <span>🗑️</span> ストックから外す
                 </button>
             </div>
         ` : (!forceSplit ? `
@@ -6099,12 +6099,13 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
 
     const curatedItems = getCuratedSegmentCandidateItems(target, targetGender);
     if (Array.isArray(curatedItems)) {
-        const rankedCuratedItems = sortReadingCandidatesForDisplay(curatedItems);
-        readingKanjiCache.set(cacheKey, rankedCuratedItems.slice(0, 20));
-        return rankedCuratedItems.slice(0, limit);
+        if (curatedItems.length > 0) {
+            const rankedCuratedItems = sortReadingCandidatesForDisplay(curatedItems);
+            readingKanjiCache.set(cacheKey, rankedCuratedItems.slice(0, 20));
+            return rankedCuratedItems.slice(0, limit);
+        }
+        return [];
     }
-
-    return [];
 
     const unique = [];
     const seen = new Set();
@@ -9525,6 +9526,9 @@ function removeCompletedReadingFromStock(reading) {
     const displayReading = getReadingBaseReading(reading) || String(reading || '').trim();
     if (!confirm(`「${displayReading}」をストックリストから外しますか？\n（選んだ漢字は削除されません）`)) return;
 
+    if (typeof closeModal === 'function') closeModal('modal-reading-detail');
+    if (typeof closeReadingCombinationModal === 'function') closeReadingCombinationModal();
+
     const removedItems = typeof removeReadingFromStock === 'function'
         ? removeReadingFromStock(reading)
         : [];
@@ -10353,12 +10357,10 @@ function openReadingStockModal(reading) {
     };
     btnAdd.style.display = isPromotedReading ? '' : 'none';
 
-    btnRemove.textContent = 'ストックから外す';
+    btnRemove.className = 'w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95';
+    btnRemove.innerHTML = '<span>🗑️</span> ストックから外す';
     btnRemove.onclick = () => {
         removeCompletedReadingFromStock(stockTarget);
-        if (typeof openReadingStockModal === 'function') {
-            openReadingStockModal(reading);
-        }
     };
 
     modal.classList.add('active');
