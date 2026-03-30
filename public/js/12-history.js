@@ -4322,8 +4322,8 @@ function renderSavedScreen() {
     };
     const ownDisplayLabel = 'マイ本命';
     const partnerDisplayLabel = 'パートナー本命';
-    const canvasCardMinHeight = 'min-h-[86px]';
-    const canvasLabelClass = 'text-[7px] font-black leading-none tracking-[0.02em] whitespace-nowrap';
+    const canvasCardMinHeight = 'min-h-[72px]';
+    const canvasLabelClass = 'text-[11px] font-black leading-none tracking-[0.06em] whitespace-nowrap';
     const canvasReadingClass = 'text-[7px] font-bold leading-none whitespace-nowrap opacity-85';
     const matchedFrameGradient = `linear-gradient(135deg, ${canvasTheme.own.ring} 0%, ${canvasTheme.partner.ring} 100%)`;
 
@@ -4333,12 +4333,15 @@ function renderSavedScreen() {
         const theme = isOwn ? canvasTheme.own : canvasTheme.partner;
         const borderStyle = `border-color:${theme.border};`;
         const labelStyle = `color:${theme.label};`;
+        const labelHtml = `<div class="${canvasLabelClass} mb-1.5 text-center" style="${labelStyle}">${escapeHtml(label)}</div>`;
 
         if (!item) {
             return `
-                <div class="rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2.5 text-center" style="background:${theme.surface}; ${borderStyle}">
-                    <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
-                    <div class="mt-2 text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                <div class="flex flex-col items-center">
+                    ${labelHtml}
+                    <div class="w-full rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2 text-center" style="background:${theme.surface}; ${borderStyle}">
+                        <div class="text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                    </div>
                 </div>
             `;
         }
@@ -4353,12 +4356,14 @@ function renderSavedScreen() {
         const surfaceStyle = selected ? theme.surfaceSelected : theme.surface;
 
         return `
-            <div class="rounded-[24px] ${borderWidthClass} ${canvasCardMinHeight} px-3.5 pt-4 pb-2 shadow-sm" style="background:${surfaceStyle}; border-color:${borderColor};">
-                <div class="flex flex-col items-center text-center">
-                    <div class="${canvasLabelClass} text-center" style="${labelStyle}">${escapeHtml(label)}</div>
-                    ${reading ? `<div class="${canvasReadingClass} mt-1" style="${labelStyle}">${reading}</div>` : ''}
-                    <div data-fit-saved-name="split" class="mt-1.5 w-full overflow-hidden text-center text-[22px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
-                        ${escapeHtml(item.fullName || item.givenName || '')}
+            <div class="flex flex-col items-center">
+                ${labelHtml}
+                <div class="w-full rounded-[24px] ${borderWidthClass} ${canvasCardMinHeight} px-3.5 pt-2.5 pb-2 shadow-sm" style="background:${surfaceStyle}; border-color:${borderColor};">
+                    <div class="flex flex-col items-center text-center">
+                        ${reading ? `<div class="${canvasReadingClass}" style="${labelStyle}">${reading}</div>` : ''}
+                        <div data-fit-saved-name="split" class="${reading ? 'mt-1' : 'mt-0.5'} w-full overflow-hidden text-center text-[22px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
+                            ${escapeHtml(item.fullName || item.givenName || '')}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4368,9 +4373,9 @@ function renderSavedScreen() {
     const mainItem = canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
-            <div class="rounded-[26px] p-[2px] shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${matchedFrameGradient};">
-                <div class="rounded-[24px] ${canvasCardMinHeight} px-3.5 pt-4 pb-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface};">
-                    <div class="${canvasLabelClass} text-center" style="color:${canvasTheme.matched.label};">ふたりの本命</div>
+            <div class="relative rounded-[26px] p-[2px] shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${matchedFrameGradient};">
+                <div class="rounded-[24px] ${canvasCardMinHeight} px-3.5 pt-2.5 pb-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface};">
+                    <div class="${canvasLabelClass} absolute -top-3 left-1/2 z-10 -translate-x-1/2 text-center" style="color:${canvasTheme.matched.label};">ふたりの本命</div>
                     ${mainItem.reading ? `<div class="${canvasReadingClass} mt-1" style="color:${canvasTheme.matched.label};">${escapeHtml(mainItem.reading)}</div>` : ''}
                     <div data-fit-saved-name="canvas" class="mt-1.5 w-full overflow-hidden text-center text-[23px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
                         ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
