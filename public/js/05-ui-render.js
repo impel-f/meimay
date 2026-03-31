@@ -1456,6 +1456,27 @@ async function handleHomePairAction() {
 window.renderHomeProfile = renderHomeProfile;
 window.openHomeInsightsModal = openHomeInsightsModal;
 
+function closeKanjiDetail() {
+    const modal = document.getElementById('modal-kanji-detail');
+    if (modal) modal.classList.remove('active');
+    if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+
+    if (typeof _lastSavedDetailIndex === 'number' && _lastSavedDetailIndex !== null) {
+        const scrSaved = document.getElementById('scr-saved');
+        if (scrSaved && scrSaved.classList.contains('active')) {
+            const index = _lastSavedDetailIndex;
+            const source = typeof _lastSavedDetailSource === 'string' && _lastSavedDetailSource ? _lastSavedDetailSource : 'own';
+            _lastSavedDetailIndex = null;
+            _lastSavedDetailSource = 'own';
+            if (typeof showSavedNameDetail === 'function') {
+                showSavedNameDetail(index, source);
+            }
+        }
+    }
+}
+
+window.closeKanjiDetail = closeKanjiDetail;
+
 function canDismissHomePairCard(pairing) {
     return true;
 }

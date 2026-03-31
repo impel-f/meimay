@@ -1058,6 +1058,7 @@ function switchHistoryTab(tab) {
 
 // 詳細モーダルから戻るためのインデックス保持
 let _lastSavedDetailIndex = null;
+let _lastSavedDetailSource = 'own';
 
 /**
  * 保存済み名前の詳細を表示するモーダル
@@ -1072,6 +1073,7 @@ function showSavedNameDetail(index, source = 'own') {
     _lastSavedDetailIndex = index; // 戻り用に保存
 
     const sourceKey = getSavedCandidateKey(item);
+    _lastSavedDetailSource = source;
     const canvasState = getSavedCanvasState();
     const savedFocus = typeof window !== 'undefined' && typeof window.savedFocus !== 'undefined'
         ? window.savedFocus
