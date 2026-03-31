@@ -2814,17 +2814,33 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 hiddenReadingsSource = roomBackup.hiddenReadings;
             }
 
-            this.partnerUserSnapshot = this.buildPublicPremiumSnapshot(data);
-            if (typeof updatePremiumUI === 'function') {
-                updatePremiumUI();
-            }
-
+            const roomPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
+            let partnerPremiumSnapshot = roomPremiumSnapshot;
+            let partnerUserData = null;
             let partnerUserBackup = null;
-            if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
+            if (partnerUid && (
+                !roomPremiumSnapshot
+                || !roomPremiumSnapshot.active
+                || !likedSource.length
+                || !savedNamesSource.length
+                || !readingStockSource.length
+                || !encounteredSource.length
+                || !hiddenReadingsSource.length
+            )) {
                 try {
                     const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
                     if (partnerUserDoc.exists) {
-                        const partnerUserData = partnerUserDoc.data() || {};
+                        partnerUserData = partnerUserDoc.data() || {};
+                        if (!partnerPremiumSnapshot || !partnerPremiumSnapshot.active) {
+                            const partnerUserPremiumSnapshot = this.buildPublicPremiumSnapshot(partnerUserData);
+                            if (partnerUserPremiumSnapshot && (
+                                partnerUserPremiumSnapshot.active
+                                || partnerUserPremiumSnapshot.expired
+                                || partnerUserPremiumSnapshot.hasPremiumIndicators
+                            )) {
+                                partnerPremiumSnapshot = partnerUserPremiumSnapshot;
+                            }
+                        }
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
                         partnerUserBackup = {
                             ...partnerBackup,
@@ -2863,6 +2879,11 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 } catch (error) {
                     // partner backup は読めるときだけ使う。権限エラーは room 側の結果をそのまま使う。
                 }
+            }
+
+            this.partnerUserSnapshot = partnerPremiumSnapshot;
+            if (typeof updatePremiumUI === 'function') {
+                updatePremiumUI();
             }
 
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
