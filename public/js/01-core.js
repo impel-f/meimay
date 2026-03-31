@@ -178,6 +178,10 @@ window.onload = () => {
                 initTodaysKanji();
             }
 
+            if (typeof updateSurnameData === 'function') {
+                updateSurnameData();
+            }
+
             // 四字熟語・ことわざデータの読み込み（非同期）
             fetch('/data/idioms.json')
                 .then(res => {
@@ -199,6 +203,9 @@ window.onload = () => {
                 .then(strokes => {
                     strokeData = strokes;
                     console.log(`CORE: Loaded ${Object.keys(strokes).length} stroke entries`);
+                    if (typeof updateSurnameData === 'function') {
+                        updateSurnameData();
+                    }
                 })
                 .catch(err => console.warn("CORE: Failed to load stroke data", err));
 
@@ -338,6 +345,31 @@ function updateSurnameData() {
     });
 
     console.log("CORE: Surname data updated ->", surnameData);
+
+    if (
+        typeof FortuneLogic !== 'undefined' &&
+        FortuneLogic.calculate &&
+        typeof currentBuildResult !== 'undefined' &&
+        currentBuildResult &&
+        Array.isArray(currentBuildResult.combination) &&
+        currentBuildResult.combination.length > 0
+    ) {
+        const givArr = currentBuildResult.combination
+            .map(part => ({
+                kanji: part?.kanji || part?.['漢字'] || '',
+                strokes: parseInt(part?.strokes ?? part?.['画数'] ?? part?.['逕ｻ謨ｰ'] ?? 0, 10) || 0
+            }))
+            .filter(part => part.kanji);
+
+        if (givArr.length > 0) {
+            currentBuildResult.fortune = FortuneLogic.calculate(surnameData, givArr);
+        }
+    }
+
+    const fortuneModal = document.getElementById('modal-fortune-detail');
+    if (fortuneModal && fortuneModal.classList.contains('active') && typeof showFortuneDetail === 'function') {
+        showFortuneDetail();
+    }
 }
 
 /**
