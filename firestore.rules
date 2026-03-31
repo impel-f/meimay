@@ -28,6 +28,18 @@ service cloud.firestore {
         || (roomCode is string && roomCode.size() > 0 && isRoomMember(roomCode));
     }
 
+    function isPublicStatsCollection(collectionId) {
+      return collectionId == 'statistics'
+        || collectionId == 'statistics_male'
+        || collectionId == 'statistics_female'
+        || collectionId == 'reading_statistics'
+        || collectionId == 'reading_statistics_male'
+        || collectionId == 'reading_statistics_female'
+        || collectionId == 'reading_like_statistics'
+        || collectionId == 'reading_like_statistics_male'
+        || collectionId == 'reading_like_statistics_female';
+    }
+
     function canReadSharedBackup(userId) {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(userId))
@@ -131,6 +143,11 @@ service cloud.firestore {
 
     match /reading_statistics/{docId} {
       allow read: if true;
+      allow write: if false;
+    }
+
+    match /{collectionId}/{docId} {
+      allow read: if isPublicStatsCollection(collectionId);
       allow write: if false;
     }
 
