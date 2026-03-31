@@ -8008,6 +8008,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
         ? findReadingStockItem(modalReading || item.reading || item.sessionReading || '', { includeHidden: false })
         : null;
     const stockTarget = stockItem?.id || modalReading || item.reading || item.sessionReading || '';
+    const encodedStockTarget = encodeURIComponent(String(stockTarget || ''));
     const isStocked = !!stockItem;
     const options = getReadingSegmentOptions(
         modalReading || item.reading,
@@ -8021,7 +8022,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
     const actionButtonsHtml = isStocked ? `
             <div class="mb-4">
-                <button type="button" onclick="window.removeCompletedReadingFromStock(${JSON.stringify(stockTarget)}); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                <button type="button" onclick="window.removeCompletedReadingFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
                     <span>🗑️</span> ストックから外す
                 </button>
             </div>
