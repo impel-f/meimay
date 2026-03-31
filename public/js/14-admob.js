@@ -491,6 +491,384 @@ if (document.readyState === 'loading') {
 // Global exports
 window.PremiumManager = PremiumManager;
 window.showPremiumModal = showPremiumModal;
+// EOF premium override
+window.formatPremiumMembershipDate = function (date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+};
+
+window.getConnectedPartnerPremiumSnapshot = function () {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    return MeimayShare.partnerUserSnapshot || null;
+};
+
+window.getConnectedPremiumPartnerSnapshot = function () {
+    return window.getConnectedPartnerPremiumSnapshot();
+};
+
+window.buildPremiumMembershipState = function (record, source, options = {}) {
+    const data = record || {};
+    const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+    const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const isExpired = expiredByDate || expiredStatuses.has(status);
+    const allowLocalFallback = options.allowLocalFallback === true
+        && !hasPremiumIndicators
+        && options.localPremium === true;
+    const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
+    const isPartner = source === 'partner';
+    const expiresLabel = expiresAt ? window.formatPremiumMembershipDate(expiresAt) : '';
+    const activeLabel = isPartner
+        ? '👑プレミアムモード：有効（パートナー特典）'
+        : '👑プレミアムモード：有効';
+
+    let label = '👑プレミアムモード：未登録';
+    let detail = isPartner
+        ? '連携中のパートナーのプレミアム状態を表示します。'
+        : 'このアカウントのプレミアム状態を表示します。';
+
+    if (isActive) {
+        label = expiresAt && !expiredByDate
+            ? `${activeLabel}\n${expiresLabel}まで有効`
+            : activeLabel;
+        detail = isPartner
+            ? (expiresAt && !expiredByDate
+                ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
+                : '連携中のパートナーのプレミアムモードは有効です。')
+            : (expiresAt && !expiredByDate
+                ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
+                : 'このアカウントのプレミアムモードは有効です。');
+    } else if (isExpired) {
+        label = '👑プレミアムモード：期限切れ';
+        detail = expiresAt
+            ? `有効期限は${expiresLabel}で終了しました。`
+            : 'プレミアムの有効期限は切れています。';
+    }
+
+    return {
+        source,
+        active: isActive,
+        expired: isExpired,
+        hasPremiumIndicators,
+        title: label,
+        label,
+        detail,
+        expiresAt,
+        status,
+        productId
+    };
+};
+
+PremiumManager.isPremium = function () {
+    const state = this.getMembershipState();
+    return !!(state && state.active);
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = window.buildPremiumMembershipState({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: typeof this.getLocalPremiumState === 'function' ? this.getLocalPremiumState() : false,
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = window.getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? window.buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return window.buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source,
+        active: state.active,
+        expired: state.expired
+    };
+};
+function formatPremiumMembershipDate(date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function getConnectedPartnerPremiumSnapshot() {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    return MeimayShare.partnerUserSnapshot || null;
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    return getConnectedPartnerPremiumSnapshot();
+}
+
+function buildPremiumMembershipState(record, source, options = {}) {
+    const data = record || {};
+    const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+    const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const isExpired = expiredByDate || expiredStatuses.has(status);
+    const allowLocalFallback = options.allowLocalFallback === true
+        && !hasPremiumIndicators
+        && options.localPremium === true;
+    const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
+    const isPartner = source === 'partner';
+    const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
+    const activeLabel = isPartner
+        ? '👑プレミアムモード：有効（パートナー特典）'
+        : '👑プレミアムモード：有効';
+
+    let label = '👑プレミアムモード：未登録';
+    let detail = isPartner
+        ? '連携中のパートナーのプレミアム状態を表示します。'
+        : 'このアカウントのプレミアム状態を表示します。';
+
+    if (isActive) {
+        label = expiresAt && !expiredByDate
+            ? `${activeLabel}\n${expiresLabel}まで有効`
+            : activeLabel;
+        detail = isPartner
+            ? (expiresAt && !expiredByDate
+                ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
+                : '連携中のパートナーのプレミアムモードは有効です。')
+            : (expiresAt && !expiredByDate
+                ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
+                : 'このアカウントのプレミアムモードは有効です。');
+    } else if (isExpired) {
+        label = '👑プレミアムモード：期限切れ';
+        detail = expiresAt
+            ? `有効期限は${expiresLabel}で終了しました。`
+            : 'プレミアムの有効期限は切れています。';
+    }
+
+    return {
+        source,
+        active: isActive,
+        expired: isExpired,
+        hasPremiumIndicators,
+        title: label,
+        label,
+        detail,
+        expiresAt,
+        status,
+        productId
+    };
+}
+
+window.formatPremiumMembershipDate = formatPremiumMembershipDate;
+window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
+window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
+window.buildPremiumMembershipState = buildPremiumMembershipState;
+
+PremiumManager.isPremium = function () {
+    const state = this.getMembershipState();
+    return !!(state && state.active);
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumMembershipState({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: typeof this.getLocalPremiumState === 'function' ? this.getLocalPremiumState() : false,
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source,
+        active: state.active,
+        expired: state.expired
+    };
+};
+
+function formatPremiumMembershipDate(date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function getConnectedPartnerPremiumSnapshot() {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    return MeimayShare.partnerUserSnapshot || null;
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    return getConnectedPartnerPremiumSnapshot();
+}
+
+function buildPremiumMembershipState(record, source, options = {}) {
+    const data = record || {};
+    const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+    const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const isExpired = expiredByDate || expiredStatuses.has(status);
+    const allowLocalFallback = options.allowLocalFallback === true
+        && !hasPremiumIndicators
+        && options.localPremium === true;
+    const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
+    const isPartner = source === 'partner';
+    const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
+    const activeLabel = isPartner
+        ? '👑プレミアムモード：有効（パートナー特典）'
+        : '👑プレミアムモード：有効';
+
+    let label = '👑プレミアムモード：未登録';
+    let detail = isPartner
+        ? '連携中のパートナーのプレミアム状態を表示します。'
+        : 'このアカウントのプレミアム状態を表示します。';
+
+    if (isActive) {
+        label = expiresAt && !expiredByDate
+            ? `${activeLabel}\n${expiresLabel}まで有効`
+            : activeLabel;
+        detail = isPartner
+            ? (expiresAt && !expiredByDate
+                ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
+                : '連携中のパートナーのプレミアムモードは有効です。')
+            : (expiresAt && !expiredByDate
+                ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
+                : 'このアカウントのプレミアムモードは有効です。');
+    } else if (isExpired) {
+        label = '👑プレミアムモード：期限切れ';
+        detail = expiresAt
+            ? `有効期限は${expiresLabel}で終了しました。`
+            : 'プレミアムの有効期限は切れています。';
+    }
+
+    return {
+        source,
+        active: isActive,
+        expired: isExpired,
+        hasPremiumIndicators,
+        title: label,
+        label,
+        detail,
+        expiresAt,
+        status,
+        productId
+    };
+}
+
+window.formatPremiumMembershipDate = formatPremiumMembershipDate;
+window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
+window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
+window.buildPremiumMembershipState = buildPremiumMembershipState;
+
+PremiumManager.isPremium = function () {
+    const state = this.getMembershipState();
+    return !!(state && state.active);
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumMembershipState({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: typeof this.getLocalPremiumState === 'function' ? this.getLocalPremiumState() : false,
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source,
+        active: state.active,
+        expired: state.expired
+    };
+};
 
 function buildPremiumMembershipState(record, source, options = {}) {
     const data = record || {};
@@ -1811,3 +2189,131 @@ function showPremiumModal() {
 
 window.PremiumManager = PremiumManager;
 window.showPremiumModal = showPremiumModal;
+
+function formatPremiumMembershipDate(date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function getConnectedPartnerPremiumSnapshot() {
+    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
+        return null;
+    }
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    return MeimayShare.partnerUserSnapshot || null;
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    return getConnectedPartnerPremiumSnapshot();
+}
+
+function buildPremiumMembershipState(record, source, options = {}) {
+    const data = record || {};
+    const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+    const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
+    const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const isExpired = expiredByDate || expiredStatuses.has(status);
+    const allowLocalFallback = options.allowLocalFallback === true
+        && !hasPremiumIndicators
+        && options.localPremium === true;
+    const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
+    const isPartner = source === 'partner';
+    const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
+    const activeLabel = isPartner
+        ? '👑プレミアムモード：有効（パートナー特典）'
+        : '👑プレミアムモード：有効';
+
+    let label = '👑プレミアムモード：未登録';
+    let detail = isPartner
+        ? '連携中のパートナーのプレミアム状態を表示します。'
+        : 'このアカウントのプレミアム状態を表示します。';
+
+    if (isActive) {
+        label = expiresAt && !expiredByDate
+            ? `${activeLabel}\n${expiresLabel}まで有効`
+            : activeLabel;
+        detail = isPartner
+            ? (expiresAt && !expiredByDate
+                ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
+                : '連携中のパートナーのプレミアムモードは有効です。')
+            : (expiresAt && !expiredByDate
+                ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
+                : 'このアカウントのプレミアムモードは有効です。');
+    } else if (isExpired) {
+        label = '👑プレミアムモード：期限切れ';
+        detail = expiresAt
+            ? `有効期限は${expiresLabel}で終了しました。`
+            : 'プレミアムの有効期限は切れています。';
+    }
+
+    return {
+        source,
+        active: isActive,
+        expired: isExpired,
+        hasPremiumIndicators,
+        title: label,
+        label,
+        detail,
+        expiresAt,
+        status,
+        productId
+    };
+}
+
+window.formatPremiumMembershipDate = formatPremiumMembershipDate;
+window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
+window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
+window.buildPremiumMembershipState = buildPremiumMembershipState;
+
+PremiumManager.isPremium = function () {
+    const state = this.getMembershipState();
+    return !!(state && state.active);
+};
+
+PremiumManager.getMembershipState = function () {
+    const selfState = buildPremiumMembershipState({
+        isPremium: this._remotePremium,
+        subscriptionStatus: this._remoteStatus,
+        appStoreExpiresAt: this._remoteExpiresAt,
+        premiumExpiresAt: this._remoteExpiresAt,
+        appStoreProductId: this._remoteProductId,
+        premiumProductId: this._remoteProductId
+    }, 'self', {
+        localPremium: typeof this.getLocalPremiumState === 'function' ? this.getLocalPremiumState() : false,
+        allowLocalFallback: true
+    });
+
+    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+
+    if (partnerState && partnerState.active) return partnerState;
+    if (selfState.active) return selfState;
+    if (selfState.expired) return selfState;
+    if (partnerState && partnerState.expired) return partnerState;
+    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (selfState.hasPremiumIndicators) return selfState;
+
+    return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
+};
+
+PremiumManager.getDrawerStatusLabel = function () {
+    return this.getMembershipState().label;
+};
+
+PremiumManager.getStatusSummary = function () {
+    const state = this.getMembershipState();
+    return {
+        title: state.label,
+        detail: state.detail,
+        source: state.source,
+        active: state.active,
+        expired: state.expired
+    };
+};

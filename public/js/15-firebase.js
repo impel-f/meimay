@@ -3971,7 +3971,11 @@ MeimayShare.buildPublicPremiumSnapshot = function (data) {
 
 MeimayShare.syncPremiumState = async function (premiumState = null) {
     const user = MeimayAuth.getCurrentUser();
-    if (!user || !this.roomCode || this._isLeavingRoom) return false;
+    const roomCode = (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode)
+        ? MeimayPairing.roomCode
+        : (this.roomCode || null);
+    const isLeavingRoom = !!((typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing._isLeavingRoom) || this._isLeavingRoom);
+    if (!user || !roomCode || isLeavingRoom) return false;
 
     const state = this.buildPublicPremiumSnapshot
         ? this.buildPublicPremiumSnapshot(premiumState || (typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
@@ -3982,7 +3986,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
     if (!state) return false;
 
     try {
-        await firebaseDb.collection('rooms').doc(this.roomCode)
+        await firebaseDb.collection('rooms').doc(roomCode)
             .collection('data').doc(user.uid).set({
                 isPremium: state.isPremium,
                 subscriptionStatus: state.subscriptionStatus,
