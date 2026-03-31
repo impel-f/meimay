@@ -2853,6 +2853,28 @@ function renderBuildResult() {
 /**
  * 姓名判断詳細モーダル表示
  */
+function getFortuneTone(label) {
+    if (label === '大吉') return 'daikichi';
+    if (label === '吉') return 'kichi';
+    if (label === '凶' || label === '大凶') return 'kyo';
+    return 'neutral';
+}
+
+function getFortuneBadgeClass(label) {
+    return `fortune-badge fortune-badge--${getFortuneTone(label)}`;
+}
+
+function getFortuneRoleIconClass(index) {
+    const classes = [
+        'fortune-card__icon fortune-card__icon--ten',
+        'fortune-card__icon fortune-card__icon--jin',
+        'fortune-card__icon fortune-card__icon--chi',
+        'fortune-card__icon fortune-card__icon--gai',
+        'fortune-card__icon fortune-card__icon--so'
+    ];
+    return classes[index] || 'fortune-card__icon fortune-card__icon--ten';
+}
+
 function showFortuneDetail() {
     const modal = document.getElementById('modal-fortune-detail');
     if (!modal || !currentBuildResult.fortune) return;
@@ -2886,7 +2908,7 @@ function showFortuneDetail() {
     const BOX_W = 40;   // 漢字ボックス幅 px
     const GAP = 8;    // 行間 px（広めに）
     const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
-    const BC = '#bca37f'; // 括弧の色
+    const BC = '#bda58a'; // 括弧の色
     const BW = 2;    // 括弧の線幅 px
     const BARM = 10;   // 括弧のアーム幅 px
     const LINE = 12;   // 括弧中央から格ボックスへの横線長 px
@@ -2943,24 +2965,25 @@ function showFortuneDetail() {
 
     // 格ボックス HTML（コンパクト横並びレイアウト）
     const fBox = (obj, label) => `
-    <div style = "text-align:center;cursor:pointer;white-space:nowrap" onclick = "showFortuneTerm('${label}')" >
-            <div style="padding:2px 6px;background:#fdfaf5;border:1.5px solid #eee5d8;border-radius:6px;display:inline-block">
-                <span style="font-size:12px;font-weight:900;color:#5d5444">${getNum(obj)}</span><span style="font-size:7px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${obj.res.color}">${obj.res.label}</span>
+    <div class="fortune-figure-box" onclick="showFortuneTerm('${label}')">
+            <div class="fortune-figure-box__plate">
+                <span class="fortune-figure-box__score">${getNum(obj)}<span class="fortune-figure-box__unit">&#30011;</span></span>
+                <span class="${getFortuneBadgeClass(obj.res.label)}">${obj.res.label}</span>
             </div>
-            <div style="font-size:7px;font-weight:700;color:#a6967a;margin-top:1px">${label}</div>
+            <div class="fortune-figure-box__label">${label}</div>
         </div> `;
 
     // 漢字ボックス HTML
     const kBox = (char, isSur) => `
-    <div style = "width:${BOX_W}px;height:${BOX_H}px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;line-height:1;border-radius:8px;${isSur ? 'background:#fdfaf5;border:1.5px solid #eee5d8;color:#bca37f;' : 'background:white;border:1.5px solid #bca37f;color:#5d5444;box-shadow:0 1px 4px rgba(188,163,127,0.2);'}" > ${char}</div> `;
+    <div class="fortune-node ${isSur ? 'fortune-node--surname' : 'fortune-node--given'}" style="width:${BOX_W}px;height:${BOX_H}px;">${char}</div> `;
 
     const mapTitle = document.createElement('div');
-    mapTitle.className = "mb-2 text-center text-[12px] font-black tracking-[0.16em] text-[#5d5444] opacity-70 animate-fade-in";
+    mapTitle.className = "fortune-map-title mb-2 text-center text-[12px] font-black animate-fade-in";
     mapTitle.textContent = '姓名判断 鑑定図解';
     container.appendChild(mapTitle);
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-2 p-4 bg-white rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
+    mapArea.className = "fortune-map-panel mb-2 animate-fade-in";
     mapArea.innerHTML = `
         <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
@@ -2979,13 +3002,6 @@ function showFortuneDetail() {
                         ${fBox(res.gai, '外格')}
                     </div>
                     
-                    <!-- 総格：構造に干渉しないよう下方に絶対配置 -->
-                    <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);text-align:center;cursor:pointer;white-space:nowrap" onclick="showFortuneTerm('総格')">
-                        <div style="padding:4px 10px;background:linear-gradient(to bottom, white, #fdfaf5);border:1.5px solid #bca37f;border-radius:10px;display:inline-block;box-shadow:0 2px 6px rgba(188,163,127,0.15)">
-                            <div style="font-size:7px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
-                            <span style="font-size:14px;font-weight:900;color:#5d5444">${getNum(res.so)}</span><span style="font-size:8px;color:#a6967a">画</span><span style="font-size:10px;font-weight:900;margin-left:3px" class="${res.so.res.color}">${res.so.res.label}</span>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -3024,11 +3040,13 @@ function showFortuneDetail() {
 
         <!--下部：総格-- >
     <div style="margin-top:10px;text-align:center">
-        <div style="display:inline-block;padding:6px 20px;background:linear-gradient(to right,#fdfaf5,white);border-radius:12px;border:1.5px solid #bca37f;box-shadow:0 1px 4px rgba(188,163,127,0.15);cursor:pointer"
+        <div class="fortune-figure-box fortune-figure-box--total"
             onclick="showFortuneTerm('総格')">
-            <div style="font-size:8px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
-            <div style="font-size:16px;font-weight:900;color:#5d5444;line-height:1.2">${getNum(res.so)}<span style="font-size:9px;font-weight:400;color:#a6967a">画</span></div>
-            <div style="font-size:11px;font-weight:900" class="${res.so.res.color}">${res.so.res.label}</div>
+            <div class="fortune-figure-box__label">総格</div>
+            <div class="fortune-figure-box__plate">
+                <span class="fortune-figure-box__score">${getNum(res.so)}<span class="fortune-figure-box__unit">&#30011;</span></span>
+                <span class="${getFortuneBadgeClass(res.so.res.label)}">${res.so.res.label}</span>
+            </div>
         </div>
     </div>
 `;
@@ -3097,7 +3115,7 @@ function renderFortuneDetails(container, res, getNum) {
         { k: "外格", sub: "対人運", d: res.gai, icon: "🌍" },
         { k: "総格", sub: "総合運", d: res.so, icon: "🏆" }
     ];
-    items.forEach(p => {
+    items.forEach((p, index) => {
         if (!p.d) return;
 
         let descText = (p.d.role || p.d.res.desc || "").replace(/^【.+?】\s*/, '');
@@ -3107,20 +3125,25 @@ function renderFortuneDetails(container, res, getNum) {
             .replace(/^\s+/, '');
 
         const row = document.createElement('div');
-        row.className = "mb-2 w-full animate-fade-in bg-white border border-[#eee5d8] rounded-2xl p-3 shadow-sm";
+        row.className = "fortune-card mb-2 animate-fade-in";
         row.innerHTML = `
-    <div class="flex items-center gap-3 mb-1" >
-                <div class="flex items-center gap-1.5">
-                    <span class="text-sm">${p.icon}</span>
-                    <span class="text-xs font-black text-[#a6967a]">${p.k}（${p.sub}）</span>
-                    <span onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
-                </div>
-                <div class="flex items-center gap-2 ml-auto">
-                    <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>
-                    <span class="${p.d.res.color} text-sm font-black">${p.d.res.label}</span>
+    <div class="fortune-card__header">
+                <div class="${getFortuneRoleIconClass(index)}">${p.icon}</div>
+                <div class="fortune-card__content">
+                    <div class="fortune-card__title-row">
+                        <div class="fortune-card__titles">
+                            <div class="fortune-card__title">${p.k}</div>
+                            <div class="fortune-card__sub">${p.sub}</div>
+                        </div>
+                        <button type="button" class="fortune-help-dot" onclick="showFortuneTerm('${p.k}')">?</button>
+                    </div>
+                    <div class="fortune-card__meta">
+                        <span class="fortune-card__score">${getNum(p.d)}<span class="fortune-card__score-unit">&#30011;</span></span>
+                        <span class="${getFortuneBadgeClass(p.d.res.label)}">${p.d.res.label}</span>
+                    </div>
                 </div>
             </div>
-    <p class="text-[11px] leading-relaxed text-[#7a6f5a] line-clamp-3">${descText}</p>
+    <p class="fortune-card__desc">${descText}</p>
 `;
         container.appendChild(row);
     });
