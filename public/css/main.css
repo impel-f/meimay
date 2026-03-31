@@ -286,6 +286,7 @@ body {
     border: none;
     border-bottom: 2.5px solid var(--accent);
     padding: 16px 0;
+    font-family: inherit;
     font-size: clamp(2rem, 6vw, 2.5rem);
     font-weight: 900;
     text-align: center;
