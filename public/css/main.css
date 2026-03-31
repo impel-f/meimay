@@ -904,7 +904,8 @@ button {
 #side-drawer {
     --drawer-x: -100%;
     transform: translate3d(var(--drawer-x), 0, 0);
-    transition: transform 300ms ease-out;
+    box-shadow: none;
+    transition: transform 300ms ease-out, box-shadow 300ms ease-out;
     will-change: transform;
     touch-action: pan-y;
     overscroll-behavior: contain;
@@ -912,6 +913,7 @@ button {
 
 #side-drawer.open {
     --drawer-x: 0%;
+    box-shadow: var(--shadow-xl);
 }
 
 #drawer-overlay {
