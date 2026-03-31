@@ -2548,80 +2548,29 @@ const MeimayStats = {
                 if (normalizedGender !== 'all' && payloadGender !== normalizedGender) {
                     throw new Error('API gender mismatch');
                 }
-                if (apiItems.length > 0) {
-                    return apiItems
-                        .map((item) => {
-                            const key = normalizedKind === 'reading'
-                                ? String(item?.reading || item?.key || '').trim()
-                                : String(item?.kanji || item?.key || '').trim();
-                            return normalizedKind === 'reading'
-                                ? { reading: key, count: Number(item?.count) || 0 }
-                                : { kanji: key, count: Number(item?.count) || 0 };
-                        })
-                        .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
-                        .sort((a, b) => {
-                            if (b.count !== a.count) return b.count - a.count;
-                            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
-                            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
-                            return aKey.localeCompare(bKey, 'ja');
-                        })
-                        .slice(0, 100);
-                }
+                return apiItems
+                    .map((item) => {
+                        const key = normalizedKind === 'reading'
+                            ? String(item?.reading || item?.key || '').trim()
+                            : String(item?.kanji || item?.key || '').trim();
+                        return normalizedKind === 'reading'
+                            ? { reading: key, count: Number(item?.count) || 0 }
+                            : { kanji: key, count: Number(item?.count) || 0 };
+                    })
+                    .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
+                    .sort((a, b) => {
+                        if (b.count !== a.count) return b.count - a.count;
+                        const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+                        const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+                        return aKey.localeCompare(bKey, 'ja');
+                    })
+                    .slice(0, 100);
             }
         } catch (apiError) {
             console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) API fallback`, apiError);
         }
 
-        try {
-            const collections = getStatsRankingCollectionNames(normalizedKind, normalizedMetric, normalizedGender);
-            const totals = new Map();
-            const allowedReadings = normalizedKind === 'reading'
-                ? getReadingRankingAllowlist(normalizedGender)
-                : null;
-            const docId = normalizedType === 'monthly'
-                ? `monthly_${this.getCurrentMonthKey()}`
-                : normalizedType === 'weekly'
-                    ? `weekly_${this.getCurrentWeekKey()}`
-                    : 'allTime';
-
-            await Promise.all(collections.map(async (collection) => {
-                const doc = await firebaseDb.collection(collection).doc(docId).get();
-                if (!doc.exists) return;
-                const data = doc.data() || {};
-                Object.keys(data)
-                    .filter((key) => key !== 'updatedAt')
-                    .forEach((key) => {
-                        const count = Number(data[key]) || 0;
-                        if (count <= 0) return;
-                        if (normalizedKind === 'reading') {
-                            const reading = normalizeStatsReadingText(key);
-                            if (!reading) return;
-                            if (allowedReadings && !allowedReadings.has(reading)) return;
-                            const current = totals.get(reading) || { reading, count: 0 };
-                            current.count += count;
-                            totals.set(reading, current);
-                            return;
-                        }
-
-                        const current = totals.get(key) || { kanji: key, count: 0 };
-                        current.count += count;
-                        totals.set(key, current);
-                    });
-            }));
-
-            return Array.from(totals.values())
-                .filter((item) => item.count > 0)
-                .sort((a, b) => {
-                    if (b.count !== a.count) return b.count - a.count;
-                    const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
-                    const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
-                    return String(aKey || '').localeCompare(String(bKey || ''), 'ja');
-                })
-                .slice(0, 100);
-        } catch (e) {
-            console.error(`STATS: fetchRankings(${normalizedKind}:${type}) error`, e);
-            return [];
-        }
+        return [];
     }
 };
 
