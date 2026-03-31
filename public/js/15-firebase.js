@@ -3425,6 +3425,7 @@ function refreshPartnerAwareUI() {
     if (document.getElementById('scr-build')?.classList.contains('active')) {
         if (typeof renderBuildSelection === 'function') renderBuildSelection();
     }
+    if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
 }
 
 window.refreshPartnerAwareUI = refreshPartnerAwareUI;

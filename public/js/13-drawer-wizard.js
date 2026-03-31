@@ -529,6 +529,15 @@ function drawerNavigate(target) {
     }, 200);
 }
 
+function applyDrawerStatusButtonTone(button, active) {
+    if (!button) return;
+    button.style.background = active ? 'rgba(255, 255, 255, 0.84)' : 'rgba(244, 244, 241, 0.98)';
+    button.style.borderColor = active ? '#d4c5af' : '#d9d4ca';
+    button.style.color = active ? '#8b7e66' : '#a39b8d';
+    button.style.whiteSpace = 'pre-line';
+    button.style.lineHeight = '1.15';
+}
+
 function updateDrawerProfile() {
     const data = WizardData.get();
     if (!data) return;
@@ -755,7 +764,12 @@ function updateDrawerProfile() {
     const surnameDisplay = document.getElementById('drawer-surname-display');
     const sideProfile = document.getElementById('side-profile');
     const drawer = document.getElementById('side-drawer');
+    const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
     const settingsButton = document.getElementById('drawer-settings-button');
+    const pairingConnected = !!(typeof MeimayPairing !== 'undefined'
+        && MeimayPairing
+        && MeimayPairing.roomCode
+        && MeimayPairing.partnerUid);
     const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
     const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
     const premiumActive = !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
@@ -797,8 +811,6 @@ function updateDrawerProfile() {
     if (settingsButton) {
         settingsButton.textContent = premiumLabel;
         settingsButton.setAttribute('aria-label', premiumLabel);
-        settingsButton.style.whiteSpace = 'pre-line';
-        settingsButton.style.lineHeight = '1.25';
     }
 
     if (avatar && palette) {
@@ -808,11 +820,8 @@ function updateDrawerProfile() {
         avatar.style.border = 'none';
     }
 
-    if (settingsButton && palette) {
-        settingsButton.style.borderColor = palette.border;
-        settingsButton.style.color = palette.text;
-        settingsButton.style.background = 'rgba(255,255,255,0.84)';
-    }
+    applyDrawerStatusButtonTone(settingsButton, premiumActive);
+    applyDrawerStatusButtonTone(drawerPartnerStatusButton, pairingConnected);
 }
 
 function openDrawerProfileAppearance() {
