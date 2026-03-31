@@ -108,12 +108,24 @@ const PremiumManager = {
         }));
         hideAdBanner();
         updatePremiumUI();
+        if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+            const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+                ? this.getPublicPremiumSnapshot()
+                : null;
+            MeimayShare.syncPremiumState(publicPremiumState);
+        }
     },
 
     deactivate: function () {
         localStorage.removeItem(this.KEY);
         showAdBanner();
         updatePremiumUI();
+        if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+            const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+                ? this.getPublicPremiumSnapshot()
+                : null;
+            MeimayShare.syncPremiumState(publicPremiumState);
+        }
     },
 
     toggle: function () {
@@ -763,6 +775,12 @@ PremiumManager.refreshPurchaseState = async function () {
 
     try {
         await this.bindToUserDoc(user);
+        if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+            const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+                ? this.getPublicPremiumSnapshot()
+                : null;
+            await MeimayShare.syncPremiumState(publicPremiumState);
+        }
         if (typeof showToast === 'function') {
             showToast(this.isPremium() ? '購入状態を更新しました' : '現在の購入状態を確認しました', this.isPremium() ? '✓' : 'ℹ');
         }
