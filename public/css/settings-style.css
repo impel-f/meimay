@@ -145,6 +145,7 @@
 .profile-appearance-sheet .modal-input-large {
     font-size: 28px;
     padding: 8px 0;
+    font-family: 'Zen Maru Gothic', sans-serif;
 }
 
 .profile-appearance-desc {
@@ -323,7 +324,7 @@
     border: none;
     background: transparent;
     padding: 12px 0;
-    font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    font-family: 'Zen Maru Gothic', sans-serif;
     outline: none;
     text-align: center;
 }
@@ -331,6 +332,7 @@
 .modal-input-large::placeholder {
     color: #d4c5af;
     font-weight: 400;
+    font-family: inherit;
 }
 
 .modal-input-underline {
