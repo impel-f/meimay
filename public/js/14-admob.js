@@ -35,6 +35,35 @@ const PremiumManager = {
         }
     },
 
+    getPublicPremiumSnapshot: function () {
+        const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
+        const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt);
+        const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
+        let isPremium = this.getLocalPremiumState();
+
+        if (this._remotePremium === true) {
+            isPremium = !remoteExpired;
+        } else if (this._remotePremium === false) {
+            isPremium = false;
+        } else if (remoteStatus === 'active') {
+            isPremium = !remoteExpired;
+        } else if (remoteExpired || remoteStatus === 'expired' || remoteStatus === 'refunded' || remoteStatus === 'revoked' || remoteStatus === 'billing_retry') {
+            isPremium = false;
+        }
+
+        return {
+            isPremium,
+            subscriptionStatus: remoteStatus || null,
+            premiumStatus: remoteStatus || null,
+            appStoreExpiresAt: this._remoteExpiresAt || null,
+            premiumExpiresAt: this._remoteExpiresAt || null,
+            appStoreProductId: this._remoteProductId || null,
+            premiumProductId: this._remoteProductId || null,
+            appStoreLastNotificationType: this._remoteLastNotificationType || null,
+            latestNotificationType: this._remoteLastNotificationType || null
+        };
+    },
+
     getAppAccountToken: function () {
         try {
             let token = localStorage.getItem(this.TOKEN_KEY);
@@ -141,6 +170,15 @@ const PremiumManager = {
                 showAdBanner();
             }
             updatePremiumUI();
+
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+                const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+                    ? this.getPublicPremiumSnapshot()
+                    : null;
+                if (publicPremiumState) {
+                    MeimayShare.syncPremiumState(publicPremiumState);
+                }
+            }
         }, (error) => {
             console.warn('PREMIUM: Failed to subscribe user doc', error);
         });

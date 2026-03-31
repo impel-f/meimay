@@ -583,6 +583,12 @@ const MeimayPairing = {
             this._listenRoom();
             updatePairingUI();
             await this.syncMyData();
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+                const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
+                    ? PremiumManager.getPublicPremiumSnapshot()
+                    : null;
+                await MeimayShare.syncPremiumState(publicPremiumState);
+            }
             console.log(`PAIRING: Resumed room ${code} as ${slot} (${role})`);
         } catch (e) {
             console.error('PAIRING: Resume failed', e);
@@ -650,6 +656,12 @@ const MeimayPairing = {
             this._listenRoom();
             updatePairingUI();
             await this.syncMyData();
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+                const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
+                    ? PremiumManager.getPublicPremiumSnapshot()
+                    : null;
+                await MeimayShare.syncPremiumState(publicPremiumState);
+            }
 
             console.log(`PAIRING: Room created: ${code}`);
             return code;
@@ -708,6 +720,12 @@ const MeimayPairing = {
             MeimayShare.listenPartnerData(this.partnerUid);
             updatePairingUI();
             await this.syncMyData();
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+                const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
+                    ? PremiumManager.getPublicPremiumSnapshot()
+                    : null;
+                await MeimayShare.syncPremiumState(publicPremiumState);
+            }
 
             console.log(`PAIRING: Joined room ${upperCode}`);
             return { success: true };
@@ -809,7 +827,7 @@ const MeimayPairing = {
                 savedNames: projectedSections.savedNames,
                 hiddenReadings,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
 
             console.log('PAIRING: Synced my data to room');
         } catch (e) {
@@ -2847,6 +2865,11 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 hiddenReadingsSource = roomBackup.hiddenReadings;
             }
 
+            this.partnerUserSnapshot = this.buildPublicPremiumSnapshot(data);
+            if (typeof updatePremiumUI === 'function') {
+                updatePremiumUI();
+            }
+
             let partnerUserBackup = null;
             if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
                 try {
@@ -3901,6 +3924,84 @@ MeimayUserBackup.installHooks();
 MeimayShare._partnerUserUnsub = null;
 MeimayShare.partnerUserSnapshot = null;
 
+MeimayShare.buildPublicPremiumSnapshot = function (data) {
+    if (!data) return null;
+
+    const isPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+    const subscriptionStatus = typeof data.subscriptionStatus === 'string'
+        ? data.subscriptionStatus.trim().toLowerCase()
+        : (typeof data.premiumStatus === 'string' ? data.premiumStatus.trim().toLowerCase() : null);
+    const appStoreExpiresAt = data.appStoreExpiresAt || data.premiumExpiresAt || null;
+    const premiumExpiresAt = data.premiumExpiresAt || data.appStoreExpiresAt || null;
+    const appStoreProductId = typeof data.appStoreProductId === 'string'
+        ? data.appStoreProductId.trim() || null
+        : (typeof data.premiumProductId === 'string' ? data.premiumProductId.trim() || null : null);
+    const premiumProductId = typeof data.premiumProductId === 'string'
+        ? data.premiumProductId.trim() || null
+        : appStoreProductId;
+    const appStoreLastNotificationType = typeof data.appStoreLastNotificationType === 'string'
+        ? data.appStoreLastNotificationType.trim() || null
+        : (typeof data.latestNotificationType === 'string' ? data.latestNotificationType.trim() || null : null);
+    const latestNotificationType = typeof data.latestNotificationType === 'string'
+        ? data.latestNotificationType.trim() || null
+        : appStoreLastNotificationType;
+    const hasIndicators = isPremium !== null
+        || !!subscriptionStatus
+        || !!appStoreExpiresAt
+        || !!premiumExpiresAt
+        || !!appStoreProductId
+        || !!premiumProductId;
+
+    if (!hasIndicators) return null;
+
+    return {
+        raw: data,
+        isPremium,
+        subscriptionStatus,
+        premiumStatus: subscriptionStatus,
+        appStoreExpiresAt,
+        premiumExpiresAt,
+        appStoreProductId,
+        premiumProductId,
+        appStoreLastNotificationType,
+        latestNotificationType,
+        updatedAt: data.updatedAt || null
+    };
+};
+
+MeimayShare.syncPremiumState = async function (premiumState = null) {
+    const user = MeimayAuth.getCurrentUser();
+    if (!user || !this.roomCode || this._isLeavingRoom) return false;
+
+    const state = this.buildPublicPremiumSnapshot
+        ? this.buildPublicPremiumSnapshot(premiumState || (typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
+            ? PremiumManager.getPublicPremiumSnapshot()
+            : null))
+        : null;
+
+    if (!state) return false;
+
+    try {
+        await firebaseDb.collection('rooms').doc(this.roomCode)
+            .collection('data').doc(user.uid).set({
+                isPremium: state.isPremium,
+                subscriptionStatus: state.subscriptionStatus,
+                premiumStatus: state.premiumStatus,
+                appStoreExpiresAt: state.appStoreExpiresAt,
+                premiumExpiresAt: state.premiumExpiresAt,
+                appStoreProductId: state.appStoreProductId,
+                premiumProductId: state.premiumProductId,
+                appStoreLastNotificationType: state.appStoreLastNotificationType,
+                latestNotificationType: state.latestNotificationType,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        return true;
+    } catch (e) {
+        console.warn('SHARE: Sync premium state failed', e);
+        return false;
+    }
+};
+
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
     this.stopListening();
@@ -4010,42 +4111,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             }
         }, (e) => {
             console.warn('SHARE: Listen partner data error', e);
-        });
-
-    this._partnerUserUnsub = firebaseDb.collection('users').doc(partnerUid)
-        .onSnapshot((doc) => {
-            if (partnerUid !== MeimayPairing.partnerUid) return;
-            if (!doc.exists) {
-                this.partnerUserSnapshot = null;
-            } else {
-                const data = doc.data() || {};
-                this.partnerUserSnapshot = {
-                    raw: data,
-                    isPremium: typeof data.isPremium === 'boolean' ? data.isPremium : null,
-                    subscriptionStatus: typeof data.subscriptionStatus === 'string'
-                        ? data.subscriptionStatus.trim().toLowerCase()
-                        : null,
-                    appStoreExpiresAt: data.appStoreExpiresAt || null,
-                    premiumExpiresAt: data.premiumExpiresAt || null,
-                    appStoreProductId: typeof data.appStoreProductId === 'string' ? data.appStoreProductId : null,
-                    premiumProductId: typeof data.premiumProductId === 'string' ? data.premiumProductId : null,
-                    appAccountToken: typeof data.appAccountToken === 'string' ? data.appAccountToken : null,
-                    premiumLinkedAt: data.premiumLinkedAt || null,
-                    appStoreLastNotificationType: typeof data.appStoreLastNotificationType === 'string'
-                        ? data.appStoreLastNotificationType
-                        : null,
-                    latestNotificationType: typeof data.latestNotificationType === 'string'
-                        ? data.latestNotificationType
-                        : null,
-                    updatedAt: data.updatedAt || null
-                };
-            }
-
-            if (typeof updatePremiumUI === 'function') {
-                updatePremiumUI();
-            }
-        }, (e) => {
-            console.warn('SHARE: Listen partner premium error', e);
         });
 
     console.log('SHARE: Listening for partner data');
