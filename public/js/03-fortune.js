@@ -153,7 +153,7 @@ const FortuneLogic = (function () {
             const givTotal = givStrokes.reduce((a, b) => a + b, 0);
 
             // 五格の計算
-            const ten = surTotal || 1; // 天格（名字の総画数）
+            const ten = surTotal; // 天格（名字の総画数）
             const jin = (surStrokes[surStrokes.length - 1] || 0) + (givStrokes[0] || 0); // 人格
             const chi = givTotal; // 地格（名前の総画数）
 
@@ -190,6 +190,14 @@ const FortuneLogic = (function () {
          * 画数を吉凶でラップ
          */
         wrap: function (val, role) {
+            if (val <= 0) {
+                return {
+                    val: val,
+                    res: { label: "-", color: "text-[#bca37f]" },
+                    role: role + " 画数未設定"
+                };
+            }
+
             const targetVal = val > 81 ? (val % 81 || 81) : val;
             const luck = luckData[targetVal] || defaultLuck;
 

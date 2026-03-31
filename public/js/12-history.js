@@ -1551,7 +1551,7 @@ function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKe
         if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
             const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0
                 ? surnameData
-                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
             const givArr = combination.map(part => ({
                 kanji: part['漢字'] || part.kanji || '',
                 strokes: parseInt(part['画数'] || part.strokes || 0, 10) || 0

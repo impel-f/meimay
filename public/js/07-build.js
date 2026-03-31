@@ -66,7 +66,7 @@ function flattenBuildCombination(pieces) {
                 flattened.push({
                     ...(masterItem || {}),
                     '漢字': char,
-                    '画数': masterItem?.['画数'] ?? 1
+                    '画数': masterItem?.['画数'] ?? 0
                 });
             });
             return;
@@ -520,12 +520,12 @@ function renderFbFortune(choices) {
         const givenStrokes = choices.map(k => {
             const likedItem = liked.find(l => l['漢字'] === k);
             if (likedItem && likedItem['画数'] !== undefined) {
-                return parseInt(likedItem['画数']) || 1;
+                return parseInt(likedItem['画数']) || 0;
             }
             const item = master?.find(m => m['漢字'] === k);
-            return item ? parseInt(item['画数']) || 1 : 1;
+            return item ? parseInt(item['画数']) || 0 : 0;
         });
-        const surnameStrokes = surnameData.map(s => parseInt(s['画数']) || 1);
+        const surnameStrokes = surnameData.map(s => parseInt(s['画数']) || 0);
         const result = calcFortune(surnameStrokes, givenStrokes);
         if (!result) return '<p class="text-[10px] text-[#a6967a]">運勢の計算中...</p>';
 
@@ -590,7 +590,7 @@ function getFreeBuildRankingCandidateItem(kanji, pool = getFreeBuildRankingCandi
             return {
                 ...masterItem,
                 '漢字': key,
-                '画数': masterItem['画数'] ?? 1
+                '画数': masterItem['画数'] ?? 0
             };
         }
     }
@@ -1040,7 +1040,7 @@ function hydrateLikedCandidate(item, options = {}) {
         ...(masterItem || {}),
         ...(item || {}),
         '漢字': kanji,
-        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 1,
+        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 0,
         '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'] ?? '',
         kanji_reading: item?.kanji_reading || masterItem?.kanji_reading || '',
         slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
@@ -1729,10 +1729,10 @@ function updateNamePreview() {
                 const m = master.find(m => m['\u6f22\u5b57'] === ch);
                 if (m) return { kanji: ch, strokes: parseInt(m['\u753b\u6570']) || 0 };
             }
-            return { kanji: ch, strokes: 1 };
+            return { kanji: ch, strokes: 0 };
         });
         const tempSurname = (typeof surnameData !== 'undefined' && surnameData && surnameData.length > 0)
-            ? surnameData : [{ kanji: '', strokes: 1 }];
+            ? surnameData : [{ kanji: '', strokes: 0 }];
         fortuneData = FortuneLogic.calculate(tempSurname, givArr);
         if (typeof currentBuildResult !== 'undefined') {
             currentBuildResult = currentBuildResult || {};
@@ -2471,7 +2471,7 @@ function executeFbBuild() {
         if (surnameData && surnameData.length > 0) {
             fortune = FortuneLogic.calculate(surnameData, givArr);
         } else {
-            fortune = FortuneLogic.calculate([{ kanji: '', strokes: 1 }], givArr);
+            fortune = FortuneLogic.calculate([{ kanji: '', strokes: 0 }], givArr);
         }
     }
 
@@ -2732,7 +2732,7 @@ function sortByFortune(items, slotIndex) {
             if (slotItems.length > 0) {
                 return { kanji: slotItems[0]['漢字'], strokes: parseInt(slotItems[0]['画数']) || 0 };
             }
-            return { kanji: '', strokes: 1 };
+            return { kanji: '', strokes: 0 };
         });
 
         let score = 0;
@@ -2820,7 +2820,7 @@ function executeBuild() {
         if (surnameData && surnameData.length > 0) {
             fortune = FortuneLogic.calculate(surnameData, givArr);
         } else {
-            const tempSurname = [{ kanji: '', strokes: 1 }];
+            const tempSurname = [{ kanji: '', strokes: 0 }];
             fortune = FortuneLogic.calculate(tempSurname, givArr);
         }
     }
@@ -3122,7 +3122,7 @@ function renderFortuneDetails(container, res, getNum) {
                     <span onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
                 <div class="flex items-center gap-2 ml-auto">
-                    <span class="text-lg font-black text-[#5d5444]">${getNum(p.d)}画</span>
+                    <span class="text-base font-black text-[#5d5444]">${getNum(p.d)}画</span>
                     <span class="${getFortuneBadgeClass(p.d.res.label)}">${p.d.res.label}</span>
                 </div>
             </div>

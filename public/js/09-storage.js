@@ -170,7 +170,7 @@ const StorageBox = {
             if (Array.isArray(savedNames) && savedNames.length > 0 && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
                 const surArr = surnameData && surnameData.length > 0
                     ? surnameData
-                    : [{ kanji: surnameStr || '', strokes: 1 }];
+                    : [{ kanji: surnameStr || '', strokes: 0 }];
                 let savedUpdated = false;
                 savedNames = savedNames.map(item => {
                     if (item?.fortune || !Array.isArray(item?.combination) || item.combination.length === 0) return item;
@@ -613,7 +613,7 @@ function receiveSharedData() {
 
         if (data.savedNames) {
             const existing = typeof getSavedNames === 'function' ? getSavedNames() : [];
-            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+            const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0 ? surnameData : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
 
             data.savedNames.forEach(name => {
                 const exists = existing.some(n => n.fullName === name.fullName);

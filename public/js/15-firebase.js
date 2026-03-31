@@ -334,7 +334,7 @@ const MeimayFirestorePayload = {
             if (!fortune && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate && combination.length > 0) {
                 const surArr = typeof surnameData !== 'undefined' && Array.isArray(surnameData) && surnameData.length > 0
                     ? surnameData
-                    : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+                    : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
                 const givArr = combination.map((part) => ({
                     kanji: part?.['漢字'] || part?.kanji || '',
                     strokes: parseInt(part?.['画数'] ?? part?.strokes ?? 0, 10) || 0
@@ -1055,7 +1055,7 @@ const MeimayShare = {
             const local = JSON.parse(localStorage.getItem('meimay_saved') || '[]');
             const surArr = typeof surnameData !== 'undefined' && surnameData.length > 0
                 ? surnameData
-                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+                : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
             let added = 0;
             items.forEach(item => {
                 const itemKey = this.buildSavedMatchKey(item);

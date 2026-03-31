@@ -2262,7 +2262,7 @@ function persistGeneratedSavedName(saveData) {
             .filter(part => part.kanji);
         const surArr = Array.isArray(surnameData) && surnameData.length > 0
             ? surnameData
-            : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 1 }];
+            : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
         if (givArr.length > 0) {
             enrichedSaveData.fortune = FortuneLogic.calculate(surArr, givArr);
         }
@@ -3851,7 +3851,7 @@ function executeFreeBuild() {
 
     let fortune = null;
     if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
-        const surArr = surnameData && surnameData.length > 0 ? surnameData : [{ kanji: '', strokes: 1 }];
+        const surArr = surnameData && surnameData.length > 0 ? surnameData : [{ kanji: '', strokes: 0 }];
         fortune = FortuneLogic.calculate(surArr, givArr);
     }
 
