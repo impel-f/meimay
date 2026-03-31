@@ -519,13 +519,13 @@ function renderFbFortune(choices) {
     try {
         const givenStrokes = choices.map(k => {
             const likedItem = liked.find(l => l['漢字'] === k);
-            if (likedItem && likedItem['画数'] !== undefined) {
-                return parseInt(likedItem['画数']) || 0;
+            if (likedItem) {
+                return getFortuneStrokeValue(likedItem);
             }
             const item = master?.find(m => m['漢字'] === k);
-            return item ? parseInt(item['画数']) || 0 : 0;
+            return getFortuneStrokeValue(item);
         });
-        const surnameStrokes = surnameData.map(s => parseInt(s['画数']) || 0);
+        const surnameStrokes = surnameData.map(getFortuneStrokeValue);
         const result = calcFortune(surnameStrokes, givenStrokes);
         if (!result) return '<p class="text-[10px] text-[#a6967a]">運勢の計算中...</p>';
 
@@ -2857,6 +2857,19 @@ function getFortuneBadgeClass(label) {
     if (label === '大吉') return 'fortune-badge fortune-badge--daikichi';
     if (label === '吉') return 'fortune-badge fortune-badge--kichi';
     return 'fortune-badge fortune-badge--neutral';
+}
+
+function getFortuneStrokeValue(item) {
+    if (item == null) return 0;
+    if (typeof item === 'number') return Number.isFinite(item) ? item : 0;
+    if (typeof item === 'string') {
+        const parsed = parseInt(item, 10);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    const raw = item.strokes ?? item['画数'] ?? item['逕ｻ謨ｰ'];
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function showFortuneDetail() {
