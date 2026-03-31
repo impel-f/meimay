@@ -27,31 +27,6 @@
     --shadow-md: 0 12px 24px rgba(93, 84, 68, 0.08);
     --shadow-lg: 0 20px 45px rgba(93, 84, 68, 0.12);
     --shadow-xl: 0 30px 60px rgba(93, 84, 68, 0.18);
-    --fortune-overlay: rgba(247, 244, 238, 0.96);
-    --fortune-sheet: #fffdf9;
-    --fortune-surface: #fbf7f1;
-    --fortune-card: #fffdfc;
-    --fortune-border: #e6dccf;
-    --fortune-border-soft: #eee3d6;
-    --fortune-shadow: 0 2px 10px rgba(90, 70, 40, 0.05);
-    --fortune-shadow-strong: 0 16px 36px rgba(90, 70, 40, 0.1);
-    --fortune-text: #857564;
-    --fortune-main: #6b5b4b;
-    --fortune-muted: #a08f7d;
-    --fortune-daikichi: #d97706;
-    --fortune-daikichi-bg: #fff3e6;
-    --fortune-daikichi-border: #f3c99a;
-    --fortune-kichi: #5fa66b;
-    --fortune-kichi-bg: #eef8f0;
-    --fortune-kichi-border: #c8e3cf;
-    --fortune-neutral: #6b5b4b;
-    --fortune-neutral-bg: #f7f2ea;
-    --fortune-neutral-border: #e7dac7;
-    --fortune-icon-ten: #f1edf7;
-    --fortune-icon-jin: #eaf4fb;
-    --fortune-icon-chi: #eef7ea;
-    --fortune-icon-gai: #edf7fa;
-    --fortune-icon-so: #fff2e8;
 }
 
 * {
@@ -695,136 +670,15 @@ body {
     font-weight: 900 !important;
 }
 
-#modal-fortune-detail.overlay {
-    background: var(--fortune-overlay);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-}
-
 #modal-fortune-detail .detail-sheet {
-    background: linear-gradient(180deg, var(--fortune-sheet) 0%, #fbf8f2 100%);
-    border: 1px solid rgba(230, 220, 207, 0.72);
-    box-shadow: var(--fortune-shadow-strong);
-}
-
-#modal-fortune-detail .modal-close-btn {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(230, 220, 207, 0.92);
-    box-shadow: 0 8px 22px rgba(90, 70, 40, 0.08);
-    color: var(--fortune-main);
-}
-
-#modal-fortune-detail .modal-close-btn:hover {
-    background: white;
-    transform: translateY(-1px) scale(1.06);
-}
-
-#modal-fortune-detail #fortune-ranking-header {
-    color: var(--fortune-main);
-}
-
-#modal-fortune-detail #fortune-detail-scroll-area {
-    scrollbar-color: #d7c9b5 transparent;
-}
-
-.fortune-map-title {
-    color: var(--fortune-main);
-    opacity: 0.8;
-    letter-spacing: 0.18em;
-}
-
-.fortune-map-panel {
-    background: var(--fortune-surface);
-    border: 1px solid var(--fortune-border);
-    border-radius: 28px;
-    box-shadow: var(--fortune-shadow);
-    padding: 18px;
-}
-
-.fortune-node {
-    width: 100%;
-    height: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: 900;
-    line-height: 1;
-    border-radius: 14px;
-    box-sizing: border-box;
-}
-
-.fortune-node--surname {
-    background: var(--fortune-surface);
-    border: 1.5px solid var(--fortune-border);
-    color: var(--fortune-main);
-}
-
-.fortune-node--given {
-    background: var(--fortune-card);
-    border: 1.5px solid #cdb28d;
-    color: var(--fortune-main);
-    box-shadow: 0 2px 8px rgba(188, 163, 127, 0.14);
-}
-
-.fortune-figure-box {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.fortune-figure-box__plate {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 12px;
-    background: linear-gradient(180deg, #fffefb 0%, #faf5ed 100%);
-    border: 1px solid var(--fortune-border);
-    border-radius: 14px;
-    box-shadow: var(--fortune-shadow);
-}
-
-.fortune-figure-box__score {
-    font-size: 13px;
-    font-weight: 900;
-    color: var(--fortune-main);
-    line-height: 1;
-}
-
-.fortune-figure-box__unit {
-    font-size: 8px;
-    font-weight: 700;
-    color: var(--fortune-muted);
-    line-height: 1;
-}
-
-.fortune-figure-box__label {
-    font-size: 8px;
-    font-weight: 800;
-    color: var(--fortune-muted);
-    letter-spacing: 0.12em;
-}
-
-.fortune-figure-box--total .fortune-figure-box__plate {
-    padding: 10px 14px;
-    border-radius: 16px;
-    background: linear-gradient(180deg, #fffdf8 0%, #f8f1e6 100%);
-}
-
-.fortune-figure-box--total .fortune-figure-box__score {
-    font-size: 15px;
+    background: #F7F4EE;
 }
 
 .fortune-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 3px 9px;
+    padding: 2px 8px;
     border-radius: 999px;
     border: 1px solid transparent;
     font-size: 11px;
@@ -835,151 +689,21 @@ body {
 }
 
 .fortune-badge--daikichi {
-    color: var(--fortune-daikichi);
-    background: var(--fortune-daikichi-bg);
-    border-color: var(--fortune-daikichi-border);
+    color: #d97706;
+    background: #fff3e6;
+    border-color: #f3c99a;
 }
 
 .fortune-badge--kichi {
-    color: var(--fortune-kichi);
-    background: var(--fortune-kichi-bg);
-    border-color: var(--fortune-kichi-border);
+    color: #5fa66b;
+    background: #eef8f0;
+    border-color: #c8e3cf;
 }
 
 .fortune-badge--neutral {
-    color: var(--fortune-neutral);
-    background: var(--fortune-neutral-bg);
-    border-color: var(--fortune-neutral-border);
-}
-
-.fortune-badge--kyo {
-    color: #b65d5d;
-    background: #faecec;
-    border-color: #e7bebd;
-}
-
-.fortune-card {
-    width: 100%;
-    background: var(--fortune-card);
-    border: 1px solid rgba(230, 220, 207, 0.82);
-    border-radius: 24px;
-    box-shadow: var(--fortune-shadow);
-    padding: 14px 15px 13px;
-}
-
-.fortune-card__header {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-}
-
-.fortune-card__icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 20px;
-}
-
-.fortune-card__icon--ten {
-    background: var(--fortune-icon-ten);
-}
-
-.fortune-card__icon--jin {
-    background: var(--fortune-icon-jin);
-}
-
-.fortune-card__icon--chi {
-    background: var(--fortune-icon-chi);
-}
-
-.fortune-card__icon--gai {
-    background: var(--fortune-icon-gai);
-}
-
-.fortune-card__icon--so {
-    background: var(--fortune-icon-so);
-}
-
-.fortune-card__content {
-    flex: 1;
-    min-width: 0;
-}
-
-.fortune-card__title-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.fortune-card__titles {
-    flex: 1;
-    min-width: 0;
-}
-
-.fortune-card__title {
-    font-size: 15px;
-    font-weight: 900;
-    color: var(--fortune-main);
-    line-height: 1.15;
-}
-
-.fortune-card__sub {
-    margin-top: 2px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--fortune-muted);
-    line-height: 1.2;
-}
-
-.fortune-card__meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.fortune-card__score {
-    font-size: 19px;
-    font-weight: 900;
-    color: var(--fortune-main);
-    line-height: 1;
-}
-
-.fortune-card__score-unit {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--fortune-muted);
-    margin-left: 1px;
-}
-
-.fortune-help-dot {
-    width: 18px;
-    height: 18px;
-    min-width: 18px;
-    border-radius: 999px;
-    border: none;
-    background: var(--gold);
-    color: white;
-    font-size: 10px !important;
-    font-weight: 900;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(188, 163, 127, 0.22);
-    flex-shrink: 0;
-    line-height: 1;
-}
-
-.fortune-card__desc {
-    margin-top: 10px;
-    font-size: 12px;
-    line-height: 1.9;
-    color: var(--fortune-text);
+    color: #6b5b4b;
+    background: #f7f2ea;
+    border-color: #e7dac7;
 }
 
 .reading-part-box {
