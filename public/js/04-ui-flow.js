@@ -347,9 +347,8 @@ function getVisibleOwnLikedReadingsForUI() {
 }
 
 function getReadingStockGroupKey(item) {
-    const reading = getReadingBaseReading(item?.reading || item?.sessionReading || '');
     const baseNickname = getReadingBaseReading(item?.baseNickname || '');
-    return baseNickname || reading || '';
+    return baseNickname || '';
 }
 
 /**
