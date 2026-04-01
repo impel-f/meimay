@@ -1236,75 +1236,78 @@ PremiumManager.refreshPurchaseState = async function () {
     }
 };
 
+function renderPremiumComparisonMatrix() {
+    const rows = [
+        ['使える漢字', '常用漢字のみ', '常用漢字 + 人名用漢字'],
+        ['広告', 'あり', 'なし'],
+        ['読みスワイプ', '1日30回まで', '無制限'],
+        ['漢字スワイプ', '1日30回まで', '無制限'],
+        ['AI漢字深掘り', '1日1回まで', '無制限']
+    ];
+
+    return `
+        <div class="overflow-x-auto">
+            <div class="min-w-[620px] overflow-hidden rounded-[28px] border border-[#e8dfd4] bg-white">
+                <div class="grid grid-cols-[1.35fr_1fr_1fr] border-b border-[#e8dfd4] px-5 py-4 text-[17px] sm:text-[19px] font-black text-[#161310]">
+                    <div>項目</div>
+                    <div class="text-center">無料</div>
+                    <div class="text-center">プレミアム</div>
+                </div>
+                <div class="divide-y divide-[#eee7dd]">
+                    ${rows.map(([item, free, premium]) => `
+                        <div class="grid grid-cols-[1.35fr_1fr_1fr] items-center px-5 py-5 sm:py-6 text-[13px] sm:text-[18px] text-[#1f1a14]">
+                            <div class="pr-4 font-medium leading-snug">${escapePremiumHtml(item)}</div>
+                            <div class="px-2 text-center leading-snug">${escapePremiumHtml(free)}</div>
+                            <div class="px-2 text-center leading-snug">${escapePremiumHtml(premium)}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function showPremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
     if (!modal) return;
 
     const state = PremiumManager.getMembershipState();
-    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
-    const partnerState = partnerSnapshot
-        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
-        : null;
-    const partnerActive = !!(partnerState && partnerState.active);
-    const canDeactivate = !!state.active && state.source === 'self' && !partnerActive;
 
     modal.classList.add('active');
     modal.innerHTML = `
-        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+        <div class="detail-sheet max-w-none" style="max-width:min(94vw, 980px); padding: clamp(24px, 3.5vw, 36px);" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
-            <div class="text-center py-6">
-                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
-                <div class="text-4xl mb-4">👑</div>
-                <h3 class="text-lg font-black text-[#5d5444] mb-2">プレミアムモード</h3>
-                <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
+            <div class="pr-12 sm:pr-16">
+                <div class="text-[10px] font-black text-[#bca37f] mb-2 tracking-[0.35em] uppercase">Premium Plan</div>
+                <h3 class="text-2xl sm:text-[2rem] font-black text-[#5d5444] mb-3">プレミアム案内</h3>
+                <p class="text-sm sm:text-[15px] leading-7 text-[#8b7e66]">無料とプレミアムの違いをひと目で確認できます。</p>
+            </div>
 
-                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
-                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
-                </div>
+            <div class="mt-6 sm:mt-8">
+                ${renderPremiumComparisonMatrix()}
+            </div>
 
+            <div class="mt-8 rounded-[28px] border border-[#e8dfd4] bg-[#faf7f1] px-5 sm:px-6 py-5 sm:py-6">
+                <div class="text-[17px] sm:text-[22px] font-black text-[#161310] mb-3">パートナー特典</div>
+                <p class="text-[13px] sm:text-[16px] leading-7 text-[#3f3527]">どちらか1人がプレミアムに加入すると、連携中の相手もプレミアム機能を利用できます。</p>
+            </div>
+
+            <div class="mt-8 flex flex-col sm:flex-row gap-3">
                 ${state.active ? `
-                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6 text-left">
-                        <p class="text-sm font-bold text-green-700">${escapePremiumHtml(
-                            state.source === 'partner'
-                                ? '連携中のパートナーのプレミアムモードを利用しています。'
-                                : (partnerActive
-                                    ? 'あなたのプレミアムモードは有効で、連携中のパートナーも利用中です。'
-                                    : 'あなたのアカウントのプレミアムモードを利用しています。')
-                        )}</p>
-                    </div>
-                    ${canDeactivate ? `
-                        <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
-                            プレミアムを解除
-                        </button>
-                    ` : `
-                        <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
-                            閉じる
-                        </button>
-                    `}
+                    <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        閉じる
+                    </button>
                 ` : `
-                    <div class="space-y-3 mb-6 text-left px-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">名前カードの表示を強化します</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">保存や検索の体験を快適にします</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">プレミアムの状態はここで確認できます</span>
-                        </div>
-                    </div>
                     <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
-                        プレミアムモードを有効にする
+                        プレミアムを有効にする
                     </button>
-                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
-                        購入状態を更新
-                    </button>
-                    <p class="text-[9px] text-[#a6967a] mt-3">現在は試験的な案内表示です。購入後の反映に少し時間がかかる場合があります。</p>
                 `}
+                <button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                    購入状態を更新
+                </button>
+            </div>
+
+            <p class="mt-3 text-[9px] text-[#a6967a]">購入後の反映に少し時間がかかる場合があります。</p>
             </div>
         </div>
     `;
@@ -2132,71 +2135,42 @@ function showPremiumModal() {
     if (!modal) return;
 
     const state = PremiumManager.getMembershipState();
-    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
-    const partnerState = partnerSnapshot
-        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
-        : null;
-    const partnerActive = !!(partnerState && partnerState.active);
-    const canDeactivate = !!state.active && state.source === 'self' && !partnerActive;
 
     modal.classList.add('active');
     modal.innerHTML = `
-        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
+        <div class="detail-sheet max-w-none" style="max-width:min(94vw, 980px); padding: clamp(24px, 3.5vw, 36px);" onclick="event.stopPropagation()">
             <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
-            <div class="text-center py-6">
-                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
-                <div class="text-4xl mb-4">👑</div>
-                <h3 class="text-lg font-black text-[#5d5444] mb-2">プレミアムモード</h3>
-                <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
-
-                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
-                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
-                </div>
-
-                ${state.active ? `
-                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6 text-left">
-                        <p class="text-sm font-bold text-green-700">${escapePremiumHtml(
-                            state.source === 'partner'
-                                ? '連携中のパートナーのプレミアムモードを利用しています。'
-                                : (partnerActive
-                                    ? 'あなたのプレミアムモードは有効で、連携中のパートナーも利用中です。'
-                                    : 'あなたのアカウントのプレミアムモードを利用しています。')
-                        )}</p>
-                    </div>
-                    ${canDeactivate ? `
-                        <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
-                            プレミアムを解除
-                        </button>
-                    ` : `
-                        <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
-                            閉じる
-                        </button>
-                    `}
-                ` : `
-                    <div class="space-y-3 mb-6 text-left px-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">名前カードの表示を強化します</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">保存や検索の体験を快適にします</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✨</span>
-                            <span class="text-sm text-[#5d5444]">プレミアムの状態はここで確認できます</span>
-                        </div>
-                    </div>
-                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
-                        プレミアムモードを有効にする
-                    </button>
-                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
-                        購入状態を更新
-                    </button>
-                    <p class="text-[9px] text-[#a6967a] mt-3">現在は試験的な案内表示です。購入後の反映に少し時間がかかる場合があります。</p>
-                `}
+            <div class="pr-12 sm:pr-16">
+                <div class="text-[10px] font-black text-[#bca37f] mb-2 tracking-[0.35em] uppercase">Premium Plan</div>
+                <h3 class="text-2xl sm:text-[2rem] font-black text-[#5d5444] mb-3">プレミアム案内</h3>
+                <p class="text-sm sm:text-[15px] leading-7 text-[#8b7e66]">無料とプレミアムの違いをひと目で確認できます。</p>
             </div>
+
+            <div class="mt-6 sm:mt-8">
+                ${renderPremiumComparisonMatrix()}
+            </div>
+
+            <div class="mt-8 rounded-[28px] border border-[#e8dfd4] bg-[#faf7f1] px-5 sm:px-6 py-5 sm:py-6">
+                <div class="text-[17px] sm:text-[22px] font-black text-[#161310] mb-3">パートナー特典</div>
+                <p class="text-[13px] sm:text-[16px] leading-7 text-[#3f3527]">どちらか1人がプレミアムに加入すると、連携中の相手もプレミアム機能を利用できます。</p>
+            </div>
+
+            <div class="mt-8 flex flex-col sm:flex-row gap-3">
+                ${state.active ? `
+                    <button onclick="closePremiumModal()" class="w-full py-3 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        閉じる
+                    </button>
+                ` : `
+                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
+                        プレミアムを有効にする
+                    </button>
+                `}
+                <button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
+                    購入状態を更新
+                </button>
+            </div>
+
+            <p class="mt-3 text-[9px] text-[#a6967a]">購入後の反映に少し時間がかかる場合があります。</p>
         </div>
     `;
 }
