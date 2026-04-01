@@ -999,3 +999,42 @@ window.showRankingKanjiDetail = showRankingKanjiDetail;
 window.showRankingReadingAction = showRankingReadingAction;
 
 console.log('RANKING: Module loaded');
+function isRankingJinmeiKanji(kanjiData) {
+    if (!kanjiData) return false;
+    return !isRankingCommonKanji(kanjiData);
+}
+
+function renderRankingPremiumBadge() {
+    const premiumAccessActive = isRankingPremiumAccessActive();
+    const badgeClass = premiumAccessActive
+        ? 'pointer-events-none opacity-80'
+        : 'cursor-pointer hover:scale-[1.03] hover:bg-[#f4ead8] hover:shadow-sm';
+    const clickHandler = premiumAccessActive
+        ? ''
+        : ' onclick="event.stopPropagation();event.preventDefault();if (typeof showPremiumModal === \'function\') showPremiumModal();"';
+
+    return `
+        <span class="inline-flex items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8e6] px-2 py-0.5 text-[9px] font-black leading-none text-[#b9965b] transition-all ${badgeClass}"
+            title="人名用漢字"
+            aria-label="人名用漢字"${clickHandler}>👑人名用</span>
+    `;
+}
+
+function getRankingPeriodSwitchLabel(period) {
+    return period === 'monthly' ? '📅月間順位' : '🏆総合順位';
+}
+
+const __originalRefreshRankingOnStockChange = refreshRankingOnStockChange;
+refreshRankingOnStockChange = function () {
+    if (rankingStockRefreshTimer) {
+        clearTimeout(rankingStockRefreshTimer);
+        rankingStockRefreshTimer = null;
+    }
+};
+
+if (typeof window !== 'undefined') {
+    if (window.__meimayRankingStockListenerAttached) {
+        window.removeEventListener('meimay:stock-changed', __originalRefreshRankingOnStockChange);
+        window.addEventListener('meimay:stock-changed', refreshRankingOnStockChange);
+    }
+}
