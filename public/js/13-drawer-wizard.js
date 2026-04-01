@@ -775,7 +775,7 @@ function updateDrawerProfile() {
     const premiumActive = !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
     const premiumLabel = premiumManager && typeof premiumManager.getDrawerStatusLabel === 'function'
         ? premiumManager.getDrawerStatusLabel()
-        : '👑プレミアム会員：未登録';
+        : '👑 プレミアム：未登録';
 
     if (drawer) {
         drawer.style.background = '';
@@ -809,8 +809,24 @@ function updateDrawerProfile() {
     }
 
     if (settingsButton) {
-        settingsButton.textContent = premiumLabel;
-        settingsButton.setAttribute('aria-label', premiumLabel);
+        const premiumLines = String(premiumLabel || '').split('\n').map((line) => line.trim()).filter(Boolean);
+        settingsButton.replaceChildren();
+
+        if (premiumLines.length > 1) {
+            const primaryLine = document.createElement('span');
+            primaryLine.className = 'block text-[11px] leading-tight';
+            primaryLine.textContent = premiumLines[0];
+
+            const secondaryLine = document.createElement('span');
+            secondaryLine.className = 'block text-[9px] font-medium leading-tight';
+            secondaryLine.textContent = premiumLines.slice(1).join(' ');
+
+            settingsButton.append(primaryLine, secondaryLine);
+        } else {
+            settingsButton.textContent = premiumLines[0] || '';
+        }
+
+        settingsButton.setAttribute('aria-label', premiumLines.join(' '));
     }
 
     if (avatar && palette) {

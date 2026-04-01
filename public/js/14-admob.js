@@ -679,19 +679,24 @@ function buildPremiumMembershipState(record, source, options = {}) {
     const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
     const isPartner = source === 'partner';
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
-    const activeLabel = isPartner
-        ? '👑プレミアムモード：有効（パートナー特典）'
-        : '👑プレミアムモード：有効';
+    const activeLabel = '👑 プレミアム：有効';
+    const partnerActiveLabel = '👑 プレミアム：有効';
 
-    let label = '👑プレミアムモード：未登録';
+    let label = '👑 プレミアム：未登録';
     let detail = isPartner
         ? '連携中のパートナーのプレミアム状態を表示します。'
         : 'このアカウントのプレミアム状態を表示します。';
 
     if (isActive) {
-        label = expiresAt && !expiredByDate
-            ? `${activeLabel}\n${expiresLabel}まで有効`
-            : activeLabel;
+        if (isPartner) {
+            label = expiresAt && !expiredByDate
+                ? `${partnerActiveLabel}\nパートナー特典・${expiresLabel}まで`
+                : `${partnerActiveLabel}\nパートナー特典`;
+        } else {
+            label = expiresAt && !expiredByDate
+                ? `${activeLabel}\n${expiresLabel}まで有効`
+                : activeLabel;
+        }
         detail = isPartner
             ? (expiresAt && !expiredByDate
                 ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
@@ -700,7 +705,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
                 ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
                 : 'このアカウントのプレミアムモードは有効です。');
     } else if (isExpired) {
-        label = '👑プレミアムモード：期限切れ';
+        label = '👑 プレミアム：期限切れ';
         detail = expiresAt
             ? `有効期限は${expiresLabel}で終了しました。`
             : 'プレミアムの有効期限は切れています。';
@@ -724,6 +729,22 @@ window.formatPremiumMembershipDate = formatPremiumMembershipDate;
 window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
 window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
 window.buildPremiumMembershipState = buildPremiumMembershipState;
+
+function renderPremiumLabelMarkup(label) {
+    const lines = String(label || '').split('\n').map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) {
+        return '';
+    }
+
+    if (lines.length === 1) {
+        return `<span class="block text-[11px] font-black leading-tight">${escapePremiumHtml(lines[0])}</span>`;
+    }
+
+    return `
+        <span class="block text-[11px] font-black leading-tight">${escapePremiumHtml(lines[0])}</span>
+        <span class="mt-0.5 block text-[9px] font-medium leading-tight text-[#8b7e66]">${escapePremiumHtml(lines.slice(1).join(' '))}</span>
+    `;
+}
 
 PremiumManager.isPremium = function () {
     const state = this.getMembershipState();
@@ -814,19 +835,24 @@ function buildPremiumMembershipState(record, source, options = {}) {
     const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
     const isPartner = source === 'partner';
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
-    const activeLabel = isPartner
-        ? '👑プレミアムモード：有効（パートナー特典）'
-        : '👑プレミアムモード：有効';
+    const activeLabel = '👑 プレミアム：有効';
+    const partnerActiveLabel = '👑 プレミアム：有効';
 
-    let label = '👑プレミアムモード：未登録';
+    let label = '👑 プレミアム：未登録';
     let detail = isPartner
         ? '連携中のパートナーのプレミアム状態を表示します。'
         : 'このアカウントのプレミアム状態を表示します。';
 
     if (isActive) {
-        label = expiresAt && !expiredByDate
-            ? `${activeLabel}\n${expiresLabel}まで有効`
-            : activeLabel;
+        if (isPartner) {
+            label = expiresAt && !expiredByDate
+                ? `${partnerActiveLabel}\nパートナー特典・${expiresLabel}まで`
+                : `${partnerActiveLabel}\nパートナー特典`;
+        } else {
+            label = expiresAt && !expiredByDate
+                ? `${activeLabel}\n${expiresLabel}まで有効`
+                : activeLabel;
+        }
         detail = isPartner
             ? (expiresAt && !expiredByDate
                 ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
@@ -835,7 +861,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
                 ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
                 : 'このアカウントのプレミアムモードは有効です。');
     } else if (isExpired) {
-        label = '👑プレミアムモード：期限切れ';
+        label = '👑 プレミアム：期限切れ';
         detail = expiresAt
             ? `有効期限は${expiresLabel}で終了しました。`
             : 'プレミアムの有効期限は切れています。';
@@ -1080,7 +1106,7 @@ function showPremiumModal() {
                 <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
 
                 <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
                 </div>
 
@@ -1233,7 +1259,7 @@ function showPremiumModal() {
                 <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
 
                 <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
                 </div>
 
@@ -1355,7 +1381,7 @@ function showPremiumModal() {
                 <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
 
                 <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
                 </div>
 
@@ -1550,7 +1576,7 @@ function showPremiumModal() {
                 <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
 
                 <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
                 </div>
 
@@ -2124,7 +2150,7 @@ function showPremiumModal() {
                 <p class="text-xs text-[#a6967a] mb-4">プレミアム会員の状態を確認できます。</p>
 
                 <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444] whitespace-pre-line">${escapePremiumHtml(state.label)}</div>
+                    <div class="text-[#5d5444]">${renderPremiumLabelMarkup(state.label)}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${escapePremiumHtml(state.detail)}</div>
                 </div>
 
@@ -2173,56 +2199,6 @@ function showPremiumModal() {
             </div>
         </div>
     `;
-    return;
-
-    modal.classList.add('active');
-    modal.innerHTML = `
-        <div class="detail-sheet max-w-md" onclick="event.stopPropagation()">
-            <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
-            <div class="text-center py-6">
-                <div class="text-[10px] font-black text-[#bca37f] mb-4 tracking-widest uppercase">Premium Plan</div>
-                <div class="text-4xl mb-4">名</div>
-                <h3 class="text-lg font-black text-[#5d5444] mb-2">メイメー プレミアム</h3>
-                <p class="text-xs text-[#a6967a] mb-4">広告を減らして、比較や整理をしやすくするプランです。</p>
-
-                <div class="mb-6 rounded-2xl border border-[#eee5d8] bg-[#fff9f0] px-4 py-3 text-left">
-                    <div class="text-[11px] font-black text-[#5d5444]">${statusSummary.title}</div>
-                    <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${statusSummary.detail}</div>
-                </div>
-
-                ${isPremium ? `
-                    <div class="bg-[#f0fdf4] border border-green-200 rounded-2xl p-4 mb-6">
-                        <p class="text-sm font-bold text-green-700">現在プレミアム利用中です</p>
-                    </div>
-                    <button onclick="PremiumManager.deactivate();closePremiumModal()" class="w-full py-3 bg-[#fef2f2] text-[#f28b82] rounded-2xl font-bold text-sm">
-                        プレミアムを解除
-                    </button>
-                ` : `
-                    <div class="space-y-3 mb-6 text-left px-4">
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✓</span>
-                            <span class="text-sm text-[#5d5444]">広告の表示を減らします</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✓</span>
-                            <span class="text-sm text-[#5d5444]">比較や整理の体験を強化します</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-lg">✓</span>
-                            <span class="text-sm text-[#5d5444]">購入状態の確認結果をこの画面に反映します</span>
-                        </div>
-                    </div>
-                    <button onclick="PremiumManager.activate();closePremiumModal()" class="w-full py-4 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">
-                        プレミアムを有効にする
-                    </button>
-                    <button onclick="PremiumManager.refreshPurchaseState()" class="mt-3 w-full py-3 rounded-2xl border border-[#eadfce] bg-white text-[#8b7e66] font-bold text-sm">
-                        購入状態を確認する
-                    </button>
-                    <p class="text-[9px] text-[#a6967a] mt-3">ネイティブ購入フローの本実装後は、ここから復元確認にもつながります。</p>
-                `}
-            </div>
-        </div>
-    `;
 }
 
 window.PremiumManager = PremiumManager;
@@ -2262,19 +2238,24 @@ function buildPremiumMembershipState(record, source, options = {}) {
     const isActive = !isExpired && (explicitPremium === true || status === 'active' || allowLocalFallback);
     const isPartner = source === 'partner';
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
-    const activeLabel = isPartner
-        ? '👑プレミアムモード：有効（パートナー特典）'
-        : '👑プレミアムモード：有効';
+    const activeLabel = '👑 プレミアム：有効';
+    const partnerActiveLabel = '👑 プレミアム：有効';
 
-    let label = '👑プレミアムモード：未登録';
+    let label = '👑 プレミアム：未登録';
     let detail = isPartner
         ? '連携中のパートナーのプレミアム状態を表示します。'
         : 'このアカウントのプレミアム状態を表示します。';
 
     if (isActive) {
-        label = expiresAt && !expiredByDate
-            ? `${activeLabel}\n${expiresLabel}まで有効`
-            : activeLabel;
+        if (isPartner) {
+            label = expiresAt && !expiredByDate
+                ? `${partnerActiveLabel}\nパートナー特典・${expiresLabel}まで`
+                : `${partnerActiveLabel}\nパートナー特典`;
+        } else {
+            label = expiresAt && !expiredByDate
+                ? `${activeLabel}\n${expiresLabel}まで有効`
+                : activeLabel;
+        }
         detail = isPartner
             ? (expiresAt && !expiredByDate
                 ? `連携中のパートナーのプレミアムモードは${expiresLabel}まで有効です。`
@@ -2283,7 +2264,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
                 ? `このアカウントのプレミアムモードは${expiresLabel}まで有効です。`
                 : 'このアカウントのプレミアムモードは有効です。');
     } else if (isExpired) {
-        label = '👑プレミアムモード：期限切れ';
+        label = '👑 プレミアム：期限切れ';
         detail = expiresAt
             ? `有効期限は${expiresLabel}で終了しました。`
             : 'プレミアムの有効期限は切れています。';
