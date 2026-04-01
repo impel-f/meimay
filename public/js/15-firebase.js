@@ -3596,11 +3596,61 @@ const MeimayUserBackup = {
         }
     },
 
+    _readChildWorkspaceStateV2: function () {
+        try {
+            if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.getRootSnapshot === 'function') {
+                const snapshot = MeimayChildWorkspaces.getRootSnapshot();
+                if (snapshot && typeof snapshot === 'object') {
+                    return this._safeClone(snapshot);
+                }
+            }
+
+            const raw = localStorage.getItem('meimay_state_v2');
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (error) {
+            return null;
+        }
+    },
+
+    _getChildWorkspaceStateV2Stamp: function (state = null) {
+        const snapshot = state || this._readChildWorkspaceStateV2();
+        if (!snapshot || typeof snapshot !== 'object') return '';
+        const updatedAt = String(snapshot.updatedAt || '').trim();
+        if (updatedAt) return updatedAt;
+        const createdAt = String(snapshot.createdAt || '').trim();
+        if (createdAt) return createdAt;
+        return JSON.stringify({
+            version: snapshot.version || 0,
+            activeChildId: String(snapshot.activeChildId || ''),
+            childCount: snapshot && snapshot.children && typeof snapshot.children === 'object'
+                ? Object.keys(snapshot.children).length
+                : 0,
+            childOrderCount: Array.isArray(snapshot.childOrder) ? snapshot.childOrder.length : 0
+        });
+    },
+
+    _applyChildWorkspaceStateV2: function (state = null) {
+        if (!state || typeof state !== 'object') return false;
+        try {
+            if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyRemoteRootSnapshot === 'function') {
+                return MeimayChildWorkspaces.applyRemoteRootSnapshot(state, { reason: 'firestore-bootstrap' });
+            }
+            localStorage.setItem('meimay_state_v2', JSON.stringify(state));
+            return true;
+        } catch (error) {
+            console.warn('BACKUP: Failed to apply child workspace state', error);
+            return false;
+        }
+    },
+
     _readCurrentSections: function () {
         return {
             liked: this._ownLikedItems(),
             savedNames: this._ownSavedNames(),
-            readingStock: this._ownReadingStock()
+            readingStock: this._ownReadingStock(),
+            childWorkspaceStateV2: this._readChildWorkspaceStateV2()
         };
     },
 
@@ -3679,6 +3729,7 @@ const MeimayUserBackup = {
             (Array.isArray(sections.liked) && sections.liked.length > 0) ||
             (Array.isArray(sections.savedNames) && sections.savedNames.length > 0) ||
             (Array.isArray(sections.readingStock) && sections.readingStock.length > 0) ||
+            !!sections.childWorkspaceStateV2 ||
             !!likedClearFlag
         ));
     },
@@ -3697,7 +3748,8 @@ const MeimayUserBackup = {
                 savedNames: projectedSections.savedNames || [],
                 readingStock: projectedSections.readingStock || [],
                 pairRoomCode,
-                hiddenReadings
+                hiddenReadings,
+                childWorkspaceStateV2: this._getChildWorkspaceStateV2Stamp(sections?.childWorkspaceStateV2)
             });
         } catch (error) {
             return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}`;
@@ -3731,6 +3783,12 @@ const MeimayUserBackup = {
         }
         if (Array.isArray(projectedSections.readingStock) && projectedSections.readingStock.length > 0) {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
+        }
+
+        const childWorkspaceStateV2 = sections?.childWorkspaceStateV2 || this._readChildWorkspaceStateV2();
+        if (childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object') {
+            backup.meimayStateV2 = this._safeClone(childWorkspaceStateV2);
+            backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');
         }
 
         const patch = {
@@ -3838,6 +3896,11 @@ const MeimayUserBackup = {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
+            const remoteChildWorkspaceStateV2 = remoteBackup?.meimayStateV2
+                || remoteBackup?.stateV2
+                || remoteData.meimayStateV2
+                || remoteData.stateV2
+                || null;
             const mergeRemoteItems = (nestedItems, legacyItems, keyGetter) => {
                 const combined = [];
                 if (Array.isArray(nestedItems)) combined.push(...nestedItems);
@@ -3856,6 +3919,15 @@ const MeimayUserBackup = {
                 savedNames: this._mergeByKey(localSections.savedNames, remoteSections.savedNames, (item) => this._getSavedKey(item)),
                 readingStock: this._mergeByKey(localSections.readingStock, remoteSections.readingStock, (item) => this._getReadingStockKey(item))
             };
+
+            const localChildWorkspaceStateV2 = this._readChildWorkspaceStateV2();
+            if (remoteChildWorkspaceStateV2) {
+                const remoteStamp = this._getChildWorkspaceStateV2Stamp(remoteChildWorkspaceStateV2);
+                const localStamp = this._getChildWorkspaceStateV2Stamp(localChildWorkspaceStateV2);
+                if (!localChildWorkspaceStateV2 || remoteStamp >= localStamp) {
+                    this._applyChildWorkspaceStateV2(remoteChildWorkspaceStateV2);
+                }
+            }
 
             if (this._hasData(mergedSections) && this._fingerprint(mergedSections) !== this._fingerprint(localSections)) {
                 this._applySectionsToLocal(mergedSections);
