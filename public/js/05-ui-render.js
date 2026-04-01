@@ -519,11 +519,20 @@ async function showKanjiDetail(data) {
     const aiSection = document.createElement('div');
     aiSection.id = 'btn-ai-kanji-detail';
     aiSection.className = 'mb-4';
+    const aiPremiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const aiAvailable = aiPremiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
+    const aiButtonClass = aiAvailable
+        ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
+        : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
+    const aiButtonLabel = aiAvailable
+        ? 'AIで漢字の成り立ち・意味を深掘り'
+        : '今日の無料AIは終了しました';
     aiSection.innerHTML = `
-        <button id="btn-ai-kanji-detail-action" onclick="generateKanjiDetail('${data['漢字']}', ${currentReadingForAI ? `'${currentReadingForAI}'` : 'null'})"
-                class="w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
-            <span>🤖</span> AIで漢字の成り立ち・意味を深掘り
+        <button id="btn-ai-kanji-detail-action" type="button"
+                class="${aiButtonClass}">
+            <span>🤖</span> ${aiButtonLabel}
         </button>
+        ${aiAvailable ? '' : '<p class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
         <div id="ai-kanji-result" class="mt-3"></div>
     `;
 
@@ -560,11 +569,24 @@ async function showKanjiDetail(data) {
         aiActionButton.addEventListener('mouseleave', clearLongPress);
         aiActionButton.addEventListener('touchend', clearLongPress);
         aiActionButton.addEventListener('touchcancel', clearLongPress);
-        aiActionButton.addEventListener('click', (event) => {
-            if (!longPressTriggered) return;
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            longPressTriggered = false;
+        aiActionButton.addEventListener('click', async (event) => {
+            if (longPressTriggered) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                longPressTriggered = false;
+                return;
+            }
+
+            if (!aiAvailable) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (typeof showToast === 'function') {
+                    showToast('今日の無料AIは使い切りました', '🌙');
+                }
+                return;
+            }
+
+            await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
         }, true);
     }
 

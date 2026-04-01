@@ -362,6 +362,39 @@ function isSpecialKanjiAiReading(reading) {
     return !reading || ['FREE', 'SEARCH', 'RANKING', 'SHARED'].includes(reading);
 }
 
+const DAILY_KANJI_DETAIL_LIMIT = 1;
+
+function _getDailyKanjiDetailKey() {
+    const d = new Date();
+    return `meimay_daily_kanji_detail_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+
+function getDailyKanjiDetailUseCount() {
+    try {
+        const raw = localStorage.getItem(_getDailyKanjiDetailKey());
+        const count = Number(raw || 0);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function canUseDailyKanjiDetailAI() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return true;
+    return getDailyKanjiDetailUseCount() < DAILY_KANJI_DETAIL_LIMIT;
+}
+
+function consumeDailyKanjiDetailUse() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return true;
+    if (!canUseDailyKanjiDetailAI()) return false;
+    try {
+        localStorage.setItem(_getDailyKanjiDetailKey(), String(getDailyKanjiDetailUseCount() + 1));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 function sanitizeKanjiAiText(text) {
     return String(text || '')
         .replace(/\r\n/g, '\n')
@@ -881,6 +914,13 @@ async function generateKanjiDetail(kanji, currentReading) {
     const resultEl = document.getElementById('ai-kanji-result');
     if (!resultEl) return;
 
+    if (!consumeDailyKanjiDetailUse()) {
+        if (typeof showToast === 'function') {
+            showToast('今日の無料AIは使い切りました', '🌙');
+        }
+        return;
+    }
+
     resultEl.innerHTML = `
         <div class="flex items-center justify-center py-6">
             <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
@@ -1280,6 +1320,8 @@ function renderKanjiDetailSections(resultEl, aiText) {
 // Global Exports
 window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
+window.canUseDailyKanjiDetailAI = canUseDailyKanjiDetailAI;
+window.consumeDailyKanjiDetailUse = consumeDailyKanjiDetailUse;
 window.renderKanjiDetailText = renderKanjiDetailSections;
 window.renderKanjiDetailSections = renderKanjiDetailSections;
 window.resetKanjiDetailCache = resetKanjiDetailCache;

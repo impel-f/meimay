@@ -1642,6 +1642,12 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
         const masterItem = Array.isArray(master)
             ? master.find((entry) => entry['漢字'] === char)
             : null;
+        if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(masterItem)) {
+            return;
+        }
+        if (!masterItem && typeof isPremiumAccessActive === 'function' && !isPremiumAccessActive()) {
+            return;
+        }
 
         liked.push({
             ...(masterItem || {}),
@@ -2086,6 +2092,9 @@ function findKanjiCandidatesForSegment(segment, limit = 3) {
     const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
 
     const candidates = master.filter(item => {
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) {
+            return false;
+        }
         const readings = getReadingBucketsForKanji(item).allReadings;
         return readings.includes(target) || readings.includes(targetSeion);
     });
@@ -2910,7 +2919,8 @@ const SwipeState = {
     selected: [], // Items selected from the list (for multi-select)
     history: [], // For undo
     config: {}, // { title, subtitle, renderCard, onNext }
-    soundSession: null
+    soundSession: null,
+    dailyLimitMode: null
 };
 
 // Common Kanji Map
@@ -3095,14 +3105,30 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     const aiFreeBtn = document.getElementById('btn-ai-free-learn');
     if (aiFreeBtn) aiFreeBtn.remove();
 
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    let candidateList = Array.isArray(candidates) ? candidates.slice() : [];
+    const limitedReadingMode = isDailyReadingSwipeLimitedMode(mode);
+    if (limitedReadingMode && !premiumActive) {
+        const remaining = getDailyReadingSwipeRemainingCount();
+        if (remaining <= 0) {
+            if (typeof showToast === 'function') {
+                showToast('今日の読みスワイプは使い切りました', '🌙');
+            }
+            if (typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
+            return;
+        }
+        candidateList = candidateList.slice(0, remaining);
+    }
+
     // Reset State
     SwipeState.mode = mode;
-    SwipeState.candidates = candidates;
+    SwipeState.candidates = candidateList;
     SwipeState.currentIndex = 0;
     SwipeState.liked = [];
     SwipeState.selected = [];
     SwipeState.history = [];
     SwipeState.config = configOverride;
+    SwipeState.dailyLimitMode = limitedReadingMode && !premiumActive ? 'reading' : null;
     SwipeState.soundSession = mode === 'sound' && typeof createSoundSessionState === 'function'
         ? createSoundSessionState()
         : null;
@@ -3325,6 +3351,9 @@ function universalSwipeAction(action) {
     recordEncounteredSwipeItem(item, action);
 
     SwipeState.history.push({ action: action, item: item });
+    if (SwipeState.dailyLimitMode === 'reading' && typeof addDailyReadingSwipeCount === 'function') {
+        addDailyReadingSwipeCount();
+    }
 
     // onSwipeコールバック（直感スワイプ等で毎回呼ばれる）
     if (SwipeState.config.onSwipe) {
@@ -3686,6 +3715,9 @@ function startFreeSwiping() {
 
     // フィルタリング
     let list = master.filter(k => {
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(k)) {
+            return false;
+        }
         const flag = k['不適切フラグ'];
         const shouldHideFlagged = !(typeof showInappropriateKanji !== 'undefined' && showInappropriateKanji);
         if (shouldHideFlagged && flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
@@ -3762,7 +3794,13 @@ function renderFreeBuild() {
     const container = document.getElementById('build-selection');
     if (!container) return;
 
-    const freeItems = liked.filter(l => l.sessionReading === 'FREE');
+    const freeItems = liked.filter(l => {
+        if (l.sessionReading !== 'FREE') return false;
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(l)) return false;
+        return true;
+    });
+    const freeItemSet = new Set(freeItems.map(item => item['漢字']));
+    freeBuildOrder = freeBuildOrder.filter(kanji => freeItemSet.has(kanji));
 
     container.innerHTML = `
         <div class="mb-6">
@@ -3833,6 +3871,18 @@ function clearFreeBuild() {
 function executeFreeBuild() {
     if (freeBuildOrder.length === 0) {
         alert('漢字を1つ以上選んでください');
+        return;
+    }
+
+    const blockedKanji = freeBuildOrder.find((kanji) => {
+        const found = Array.isArray(master) ? master.find((item) => item['漢字'] === kanji) : null;
+        if (!found) {
+            return typeof isPremiumAccessActive === 'function' ? !isPremiumAccessActive() : true;
+        }
+        return typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(found);
+    });
+    if (blockedKanji) {
+        alert('無料会員では常用漢字のみ使えます');
         return;
     }
 
@@ -3995,6 +4045,7 @@ function findInheritCandidates() {
         const inheritItems = liked.filter(item => {
             if (!item.sessionReading || item.sessionReading === currentReading) return false;
             if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
+            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
             if (item.slot !== slotIdx) return false;
             const itemSegs = readingToSegments[item.sessionReading];
             if (!itemSegs) return false;
@@ -4025,6 +4076,9 @@ function doInheritKanji(candidates) {
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
     candidates.forEach(c => {
         c.items.forEach(item => {
+            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) {
+                return;
+            }
             const exists = liked.some(l =>
                 l['漢字'] === item['漢字'] &&
                 l.slot === c.slot &&
@@ -4101,6 +4155,7 @@ function checkInheritForSlot(slotIdx, onDone) {
     const inheritItems = liked.filter(item => {
         if (!item.sessionReading || item.sessionReading === currentReading) return false;
         if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
         if (item.slot !== slotIdx) return false;
         const itemSegs = readingToSegments[item.sessionReading];
         if (!itemSegs) return false;
@@ -5916,10 +5971,10 @@ function navSearchAction() {
 }
 
 // ==========================================
-// 直感スワイプ – 1日10枚制限
+// 直感スワイプ – 1日30枚制限
 // ==========================================
 
-const DAILY_KANJI_LIMIT = 10;
+const DAILY_KANJI_LIMIT = 30;
 
 function _getDailyKey() {
     const d = new Date();
@@ -5945,6 +6000,41 @@ function addDailySeenKanji(kanji) {
 
 function getDailyRemainingCount() {
     return Math.max(0, DAILY_KANJI_LIMIT - getDailySeenKanji().length);
+}
+
+const DAILY_READING_SWIPE_LIMIT = 30;
+
+function _getDailyReadingSwipeKey() {
+    const d = new Date();
+    return `meimay_daily_reading_swipe_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+
+function getDailyReadingSwipeCount() {
+    try {
+        const raw = localStorage.getItem(_getDailyReadingSwipeKey());
+        const count = Number(raw || 0);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function addDailyReadingSwipeCount() {
+    try {
+        const next = getDailyReadingSwipeCount() + 1;
+        localStorage.setItem(_getDailyReadingSwipeKey(), String(next));
+        return next;
+    } catch (e) {
+        return getDailyReadingSwipeCount();
+    }
+}
+
+function getDailyReadingSwipeRemainingCount() {
+    return Math.max(0, DAILY_READING_SWIPE_LIMIT - getDailyReadingSwipeCount());
+}
+
+function isDailyReadingSwipeLimitedMode(mode) {
+    return ['nickname', 'sound', 'adana'].includes(mode);
 }
 
 function updateDailyRemainingDisplay() {
@@ -6084,7 +6174,13 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
             ? master.find((item) => String(item['漢字'] || '').trim() === normalizedKanji)
             : null;
 
-        if (masterItem && typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem, targetGender)) {
+        if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(masterItem)) {
+            return;
+        }
+        if (!masterItem && typeof isPremiumAccessActive === 'function' && !isPremiumAccessActive()) {
+            return;
+        }
+        if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem, targetGender)) {
             return;
         }
 
@@ -6136,6 +6232,9 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
 
     master
         .filter(item => {
+            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) {
+                return false;
+            }
             const flag = item['\u4E0D\u9069\u5207\u30D5\u30E9\u30B0'];
             if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
             if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(item, targetGender)) return false;
@@ -8278,6 +8377,9 @@ function executeKanjiSearch() {
     }
 
     let results = master.map(k => {
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(k)) {
+            return null;
+        }
         // 不適切フラグチェック
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return null;
@@ -8598,7 +8700,11 @@ function closeAISoundModal() {
  * AI自由モード提案
  */
 function aiSuggestFreeKanji() {
-    const freeLiked = liked.filter(l => l.sessionReading === 'FREE');
+    const freeLiked = liked.filter(l => {
+        if (l.sessionReading !== 'FREE') return false;
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(l)) return false;
+        return true;
+    });
     if (freeLiked.length < 2) {
         alert('AI提案には2つ以上のストックが必要です');
         return;
@@ -8647,7 +8753,14 @@ ${likedKanji}
             const suggestions = lines.map(l => {
                 const parts = l.split('|').map(p => p.trim());
                 return { kanji: parts[0], strokes: parts[1], desc: parts[2] || '' };
-            }).filter(s => s.kanji && s.kanji.length === 1);
+            }).filter(s => s.kanji && s.kanji.length === 1)
+                .filter(s => {
+                    const found = master.find(m => m['漢字'] === s.kanji);
+                    if (!found) {
+                        return typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
+                    }
+                    return typeof isKanjiAccessibleForCurrentMembership !== 'function' || isKanjiAccessibleForCurrentMembership(found);
+                });
 
             modal.innerHTML = `
             <div class="detail-sheet max-w-md max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
@@ -8705,10 +8818,24 @@ function stockAISuggestion(kanji, btn) {
         }
     } else {
         const found = master.find(m => m['漢字'] === kanji);
-        if (found) {
-            liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
-            if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji, found.gender || gender || 'neutral');
+        if (!found) {
+            if (typeof showToast === 'function') {
+                showToast('漢字データが見つかりません', '🌙');
+            } else {
+                alert('漢字データが見つかりません');
+            }
+            return;
         }
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(found)) {
+            if (typeof showToast === 'function') {
+                showToast('無料会員では常用漢字のみ使えます', '🌙');
+            } else {
+                alert('無料会員では常用漢字のみ使えます');
+            }
+            return;
+        }
+        liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
+        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji, found.gender || gender || 'neutral');
         btn.innerText = '解除';
         btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-full text-xs font-bold transition-all active:scale-95';
         btn.closest('.flex').classList.add('border-[#bca37f]', 'bg-[#fffbeb]');

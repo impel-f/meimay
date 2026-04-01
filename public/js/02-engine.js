@@ -32,6 +32,29 @@ function splitReadingIntoMoraUnits(rawReading) {
     return units;
 }
 
+function isPremiumAccessActive() {
+    return typeof PremiumManager !== 'undefined'
+        && PremiumManager
+        && typeof PremiumManager.isPremium === 'function'
+        && PremiumManager.isPremium();
+}
+
+function isCommonKanjiEntry(item) {
+    if (!item) return false;
+    const flag = item['常用漢字'];
+    return flag === true || flag === 'true' || flag === 1 || flag === '1';
+}
+
+function isKanjiAccessibleForCurrentMembership(item) {
+    if (!item) return false;
+    if (isPremiumAccessActive()) return true;
+    return isCommonKanjiEntry(item);
+}
+
+function filterKanjiByCurrentMembership(items) {
+    return (Array.isArray(items) ? items : []).filter(isKanjiAccessibleForCurrentMembership);
+}
+
 function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
     const units = splitReadingIntoMoraUnits(rawReading);
     if (!units.length) return [];
@@ -133,6 +156,7 @@ function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neut
     const canUseSeionFallback = isLeadingDakutenVariant(target, targetSeion);
 
     return master.some((k) => {
+        if (!isKanjiAccessibleForCurrentMembership(k)) return false;
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
             if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
@@ -808,6 +832,9 @@ function loadStack() {
 
     // フィルタリング
     stack = master.filter(k => {
+        if (!isKanjiAccessibleForCurrentMembership(k)) {
+            return false;
+        }
         // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {

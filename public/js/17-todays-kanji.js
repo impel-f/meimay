@@ -54,6 +54,9 @@ function initTodaysKanji() {
     if (typeof TodaysKanjiData !== 'undefined' && TodaysKanjiData[mmdd]) {
         const plannedKanji = TodaysKanjiData[mmdd].kanji;
         let matchedKanji = master.find(k => k['漢字'] === plannedKanji);
+        if (matchedKanji && typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(matchedKanji)) {
+            matchedKanji = null;
+        }
         if (matchedKanji) {
             selectedKanjiData = {
                 ...matchedKanji,
@@ -79,6 +82,9 @@ function initTodaysKanji() {
         let todaysRecord = history.find(h => h.date === todayDate);
         if (todaysRecord) {
             selectedKanjiData = master.find(k => k['漢字'] === todaysRecord.kanji);
+            if (selectedKanjiData && typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(selectedKanjiData)) {
+                selectedKanjiData = null;
+            }
         }
 
         if (!selectedKanjiData) {
@@ -108,6 +114,7 @@ function initTodaysKanji() {
 function selectRandomGoodKanji(excludeKanjiList) {
     // 意味が含まれていて、除外リストに入っていないものをフィルタ
     const candidates = master.filter(k => {
+        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(k)) return false;
         if (excludeKanjiList.includes(k['漢字'])) return false;
         if (!k['意味'] || k['意味'].trim() === '' || k['意味'] === 'ー') return false;
         // （必要であれば画数や人名用漢字などのフィルターもここに追加可能）
@@ -116,8 +123,11 @@ function selectRandomGoodKanji(excludeKanjiList) {
 
     if (candidates.length === 0) {
         // すべて除外されてしまった場合は、除外フィルターを外して意味があるものだけからランダム
-        const fallbackCandidates = master.filter(k => k['意味'] && k['意味'].trim() !== '' && k['意味'] !== 'ー');
-        if (fallbackCandidates.length === 0) return master[Math.floor(Math.random() * master.length)];
+        const fallbackCandidates = master.filter(k => {
+            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(k)) return false;
+            return k['意味'] && k['意味'].trim() !== '' && k['意味'] !== 'ー';
+        });
+        if (fallbackCandidates.length === 0) return null;
         return fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)];
     }
 
