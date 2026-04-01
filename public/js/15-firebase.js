@@ -1470,10 +1470,10 @@ function updatePairingUI() {
                 : (MeimayPairing.partnerDisplayName || MeimayPairing.partnerLabel || 'パートナー');
             const partnerStatusName = formatPartnerStatusName(partnerDisplayName);
             drawerPartnerStatusLabel.textContent = partnerStatusName
-                ? 'パートナー：' + partnerStatusName + 'と連携中'
-                : 'パートナー：連携中';
+                ? '🔗パートナー：' + partnerStatusName + 'と連携中'
+                : '🔗パートナー：連携中';
         } else {
-            drawerPartnerStatusLabel.textContent = 'パートナー：未連携';
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：未連携';
         }
     }
     if (drawerPairingBadge) {
