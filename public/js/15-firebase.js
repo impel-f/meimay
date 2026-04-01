@@ -4058,6 +4058,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 hiddenReadingsSource = roomBackup.hiddenReadings;
             }
 
+            const roomPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
+            let partnerPremiumSnapshot = roomPremiumSnapshot;
             let partnerUserBackup = null;
             if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
                 try {
