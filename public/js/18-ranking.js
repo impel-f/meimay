@@ -202,6 +202,41 @@ function getPrimaryKanjiReading(kanjiData) {
     return raw.split(/[\s　,、\/／]+/).find(Boolean) || raw;
 }
 
+function isRankingPremiumAccessActive() {
+    return typeof PremiumManager !== 'undefined'
+        && PremiumManager
+        && typeof PremiumManager.isPremium === 'function'
+        && PremiumManager.isPremium();
+}
+
+function isRankingCommonKanji(kanjiData) {
+    if (!kanjiData) return false;
+    const commonFlag = kanjiData['常用漢字'];
+    return commonFlag === true || commonFlag === 'true' || commonFlag === 1 || commonFlag === '1';
+}
+
+function isRankingJinmeiKanji(kanjiData) {
+    if (!kanjiData || isRankingCommonKanji(kanjiData)) return false;
+    const nameReading = String(kanjiData['伝統名のり'] || kanjiData['名乗り'] || '').trim();
+    return !!nameReading;
+}
+
+function renderRankingPremiumBadge() {
+    const premiumAccessActive = isRankingPremiumAccessActive();
+    const badgeClass = premiumAccessActive
+        ? 'pointer-events-none opacity-80'
+        : 'cursor-pointer hover:scale-[1.03] hover:bg-[#f4ead8] hover:shadow-sm';
+    const clickHandler = premiumAccessActive
+        ? ''
+        : ' onclick="event.stopPropagation();event.preventDefault();if (typeof showPremiumModal === \'function\') showPremiumModal();"';
+
+    return `
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8e6] text-[14px] leading-none text-[#b9965b] transition-all ${badgeClass}"
+            title="人名用漢字"
+            aria-label="人名用漢字"${clickHandler}>👑</span>
+    `;
+}
+
 function getRankingCardTone(index) {
     const isTopThree = index < 3;
     return {
@@ -584,10 +619,13 @@ function renderRankingKanjiCard(item, index) {
         ? master.find((entry) => entry && entry['漢字'] === kanjiKey)
         : null;
     const displayKanji = kanjiData?.['漢字'] || kanjiKey;
+    const rankingKanjiData = kanjiData || resolveRankingKanjiData(displayKanji);
     const primaryReading = getPrimaryKanjiReading(kanjiData);
     const meaning = String(kanjiData?.['意味'] || '').trim();
     const meaningText = meaning ? (meaning.length > 18 ? `${meaning.slice(0, 18)}…` : meaning) : 'データあり';
     const isStocked = isRankingKanjiStocked(displayKanji);
+    const isJinmeiKanji = isRankingJinmeiKanji(rankingKanjiData);
+    const jinmeiBadgeHtml = isJinmeiKanji ? renderRankingPremiumBadge() : '';
     const tone = getRankingCardTone(index);
     const isTopThree = index < 3;
     const rankLabel = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
@@ -618,9 +656,12 @@ function renderRankingKanjiCard(item, index) {
                     ${escapeRankingHtml(meaningText)}
                 </div>
             </div>
-            <span class="shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}" data-ranking-status-label>
-                ${isStocked ? 'ストック済み' : '詳細'}
-            </span>
+            <div class="shrink-0 flex flex-col items-center justify-center gap-1">
+                <span class="rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}" data-ranking-status-label>
+                    ${isStocked ? 'ストック済み' : '詳細'}
+                </span>
+                ${jinmeiBadgeHtml}
+            </div>
         </button>
     `;
 }

@@ -155,7 +155,13 @@
         <div class="flex-1 text-center">
             <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
         </div>
-        <div class="w-9 h-9"></div>
+        <button
+            id="top-bar-child-button"
+            type="button"
+            onclick="if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') { MeimayChildWorkspaces.openManagerModal(); }"
+            class="ml-auto inline-flex max-w-[46vw] items-center justify-center rounded-full border border-[#d4c5af] bg-white px-3 py-2 text-[11px] font-black leading-tight text-[#5d5444] shadow-sm transition-all active:scale-95">
+            第一子
+        </button>
     </div>
 
     <!-- ============================================================
@@ -1925,13 +1931,13 @@
     <script src="/js/11-settings.js?v=25.13"></script>
     <script src="/js/12-history.js?v=25.43"></script>
     <script src="/js/13-drawer-wizard.js?v=25.18"></script>
-    <script src="/js/14-admob.js?v=25.20"></script>
+    <script src="/js/14-admob.js?v=25.21"></script>
     <script src="/js/15-firebase.js?v=25.92"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
-    <script src="/js/18-ranking.js?v=25.32"></script>
+    <script src="/js/18-ranking.js?v=25.33"></script>
 <script src="/js/19-home-override.js?v=25.58"></script>
     <script src="/js/21-child-workspaces.js?v=26.01"></script>
 
