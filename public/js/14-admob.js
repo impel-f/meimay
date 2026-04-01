@@ -614,18 +614,49 @@ PremiumManager.getStatusSummary = function () {
         expired: state.expired
     };
 };
+
+function getConnectedPartnerPremiumSnapshot() {
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    if (typeof MeimayShare.getConnectedPremiumSnapshot === 'function') {
+        const premiumSnapshot = MeimayShare.getConnectedPremiumSnapshot();
+        if (premiumSnapshot) return premiumSnapshot;
+    }
+    if (MeimayShare.partnerUserSnapshot) {
+        return MeimayShare.partnerUserSnapshot;
+    }
+    if (MeimayShare.partnerSnapshot && MeimayShare.partnerSnapshot.premiumState) {
+        return MeimayShare.partnerSnapshot.premiumState;
+    }
+    return null;
+}
+
+function getConnectedPremiumPartnerSnapshot() {
+    return getConnectedPartnerPremiumSnapshot();
+}
+
+window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
+window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
 function formatPremiumMembershipDate(date) {
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
 function getConnectedPartnerPremiumSnapshot() {
-    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
-        return null;
-    }
     if (typeof MeimayShare === 'undefined' || !MeimayShare) {
         return null;
     }
-    return MeimayShare.partnerUserSnapshot || null;
+    if (typeof MeimayShare.getConnectedPremiumSnapshot === 'function') {
+        const premiumSnapshot = MeimayShare.getConnectedPremiumSnapshot();
+        if (premiumSnapshot) return premiumSnapshot;
+    }
+    if (MeimayShare.partnerUserSnapshot) {
+        return MeimayShare.partnerUserSnapshot;
+    }
+    if (MeimayShare.partnerSnapshot && MeimayShare.partnerSnapshot.premiumState) {
+        return MeimayShare.partnerSnapshot.premiumState;
+    }
+    return null;
 }
 
 function getConnectedPremiumPartnerSnapshot() {
@@ -747,13 +778,20 @@ function formatPremiumMembershipDate(date) {
 }
 
 function getConnectedPartnerPremiumSnapshot() {
-    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
-        return null;
-    }
     if (typeof MeimayShare === 'undefined' || !MeimayShare) {
         return null;
     }
-    return MeimayShare.partnerUserSnapshot || null;
+    if (typeof MeimayShare.getConnectedPremiumSnapshot === 'function') {
+        const premiumSnapshot = MeimayShare.getConnectedPremiumSnapshot();
+        if (premiumSnapshot) return premiumSnapshot;
+    }
+    if (MeimayShare.partnerUserSnapshot) {
+        return MeimayShare.partnerUserSnapshot;
+    }
+    if (MeimayShare.partnerSnapshot && MeimayShare.partnerSnapshot.premiumState) {
+        return MeimayShare.partnerSnapshot.premiumState;
+    }
+    return null;
 }
 
 function getConnectedPremiumPartnerSnapshot() {

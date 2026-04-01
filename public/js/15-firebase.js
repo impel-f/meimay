@@ -2805,7 +2805,7 @@ MeimayPairing.syncMyData = async function () {
     }
 };
 
-MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
@@ -2925,6 +2925,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 readingStock: hydratedSections.readingStock,
                 encounteredReadings: hydratedSections.encounteredReadings,
                 hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
+                premiumState: partnerPremiumSnapshot,
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 username: String(data.username || '').trim(),
@@ -2952,8 +2953,30 @@ MeimayShare.stopListening = function () {
         this._partnerUnsub();
         this._partnerUnsub = null;
     }
-        this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+        this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+};
+
+MeimayShare.getConnectedPremiumSnapshot = function () {
+    if (this.partnerUserSnapshot) {
+        return this.partnerUserSnapshot;
+    }
+
+    const partnerSnapshot = this.partnerSnapshot || null;
+    if (!partnerSnapshot) return null;
+
+    if (partnerSnapshot.premiumState) {
+        return partnerSnapshot.premiumState;
+    }
+
+    if (this.buildPublicPremiumSnapshot) {
+        const premiumState = this.buildPublicPremiumSnapshot(partnerSnapshot);
+        if (premiumState) {
+            return premiumState;
+        }
+    }
+
+    return null;
 };
 
 MeimayShare.syncProfileAppearance = async function () {
@@ -4094,6 +4117,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 readingStock: hydratedSections.readingStock,
                 encounteredReadings: hydratedSections.encounteredReadings,
                 hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
+                premiumState: partnerPremiumSnapshot,
                 role: data.role || null,
                 displayName: String(data.displayName || '').trim(),
                 username: String(data.username || '').trim(),
@@ -4125,8 +4149,29 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub();
         this._partnerUserUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     this.partnerUserSnapshot = null;
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+};
+
+window.getConnectedPartnerPremiumSnapshot = function () {
+    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
+        return null;
+    }
+    if (typeof MeimayShare.getConnectedPremiumSnapshot === 'function') {
+        const premiumSnapshot = MeimayShare.getConnectedPremiumSnapshot();
+        if (premiumSnapshot) return premiumSnapshot;
+    }
+    if (MeimayShare.partnerUserSnapshot) {
+        return MeimayShare.partnerUserSnapshot;
+    }
+    if (MeimayShare.partnerSnapshot && MeimayShare.partnerSnapshot.premiumState) {
+        return MeimayShare.partnerSnapshot.premiumState;
+    }
+    return null;
+};
+
+window.getConnectedPremiumPartnerSnapshot = function () {
+    return window.getConnectedPartnerPremiumSnapshot();
 };
