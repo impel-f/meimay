@@ -3735,6 +3735,25 @@ function getSavedCandidateCreatorMeta(item, source = 'own', partnerName = '') {
 }
 
 function getSavedCanvasState() {
+    const blankCanvas = typeof window !== 'undefined' && (
+        window.__meimaySavedCanvasBlank === true ||
+        (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
+    );
+    if (blankCanvas) {
+        const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+        return {
+            ownMain: null,
+            partnerMain: null,
+            ownKey: '',
+            partnerKey: '',
+            matched: false,
+            partnerName: pairInsights?.getPartnerDisplayName
+                ? pairInsights.getPartnerDisplayName()
+                : (typeof getPartnerRoleLabel === 'function'
+                    ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
+                    : 'パートナー')
+        };
+    }
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const saved = getSavedNames();
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
@@ -3796,8 +3815,12 @@ function setSavedMainCandidate(index) {
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = selectedKey;
+            window.__meimaySavedCanvasPartnerKey = '';
+            window.__meimaySavedCanvasBlank = false;
         }
+        localStorage.setItem('meimay_saved_canvas_blank', '0');
         localStorage.setItem('meimay_saved_canvas_own_key', selectedKey);
+        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
         console.warn('SAVED: Persist own main key failed', error);
     }
@@ -3868,8 +3891,12 @@ function votePartnerSavedName(index) {
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = sourceKey;
+            window.__meimaySavedCanvasPartnerKey = '';
+            window.__meimaySavedCanvasBlank = false;
         }
+        localStorage.setItem('meimay_saved_canvas_blank', '0');
         localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
+        localStorage.removeItem('meimay_saved_canvas_partner_key');
     } catch (error) {
         console.warn('SAVED: Persist own main key from partner candidate failed', error);
     }

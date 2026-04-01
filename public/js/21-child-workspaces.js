@@ -116,6 +116,50 @@
         return String(item?.givenName || item?.fullName || '').trim();
     }
 
+    function getSavedCanvasStateSnapshot() {
+        const blankFlag = typeof window !== 'undefined' && (
+            window.__meimaySavedCanvasBlank === true ||
+            (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
+        );
+        if (blankFlag) {
+            return { blank: true, ownKey: '', partnerKey: '' };
+        }
+        const ownKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
+            ? window.__meimaySavedCanvasOwnKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+        const partnerKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
+            ? window.__meimaySavedCanvasPartnerKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+        return { blank: blankFlag, ownKey, partnerKey };
+    }
+
+    function setSavedCanvasStateSnapshot(state = {}) {
+        const blank = state?.blank === true;
+        const ownKey = blank ? '' : String(state?.ownKey || '').trim();
+        const partnerKey = blank ? '' : String(state?.partnerKey || '').trim();
+        if (typeof window !== 'undefined') {
+            window.__meimaySavedCanvasBlank = blank;
+            window.__meimaySavedCanvasOwnKey = ownKey;
+            window.__meimaySavedCanvasPartnerKey = partnerKey;
+        }
+        try {
+            if (blank) localStorage.setItem('meimay_saved_canvas_blank', '1');
+            else localStorage.removeItem('meimay_saved_canvas_blank');
+            if (ownKey) localStorage.setItem('meimay_saved_canvas_own_key', ownKey);
+            else localStorage.removeItem('meimay_saved_canvas_own_key');
+            if (partnerKey) localStorage.setItem('meimay_saved_canvas_partner_key', partnerKey);
+            else localStorage.removeItem('meimay_saved_canvas_partner_key');
+        } catch (error) {
+            console.warn('CHILD_WORKSPACES: saved canvas state sync failed', error);
+        }
+        return { blank, ownKey, partnerKey };
+    }
+
+    if (typeof window !== 'undefined') {
+        window.getMeimaySavedCanvasState = getSavedCanvasStateSnapshot;
+        window.setMeimaySavedCanvasState = setSavedCanvasStateSnapshot;
+    }
+
     function getMatchedSavedNameLabel() {
         try {
             if (typeof MeimayPartnerInsights === 'undefined' || !MeimayPartnerInsights || typeof MeimayPartnerInsights.getSavedNameCanvasState !== 'function') {
@@ -130,13 +174,7 @@
     }
 
     function getChildHeaderLabel(child) {
-        const base = child?.meta?.displayLabel || '第一子';
-        const activeId = typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && MeimayChildWorkspaces.root
-            ? MeimayChildWorkspaces.root.activeChildId
-            : '';
-        if (!child?.meta?.id || child.meta.id !== activeId) return base;
-        const matchedName = getMatchedSavedNameLabel();
-        return matchedName ? `${base}：${matchedName}` : base;
+        return child?.meta?.displayLabel || '第一子';
     }
 
     function readJsonArray(key) {
@@ -553,6 +591,14 @@
             const draftReadingInput = document.getElementById('in-name');
             const compoundFlow = typeof window.getCompoundBuildFlow === 'function' ? window.getCompoundBuildFlow() : (window.meimayCompoundBuildFlow || null);
             const birthGroupIndex = existingMeta.birthGroupIndex ?? existingMeta.twinIndex ?? null;
+            const savedCanvas = getSavedCanvasStateSnapshot();
+            const savedCanvasDraft = savedCanvas.blank || savedCanvas.ownKey || savedCanvas.partnerKey
+                ? {
+                    blank: savedCanvas.blank === true,
+                    ownKey: String(savedCanvas.ownKey || '').trim(),
+                    partnerKey: String(savedCanvas.partnerKey || '').trim()
+                }
+                : null;
             return {
                 meta: {
                     id: String(existingMeta.id || '').trim(),
@@ -587,7 +633,8 @@
                     fbSelectedReading: typeof fbSelectedReading !== 'undefined' ? fbSelectedReading || null : null,
                     fbSelectedReadingSource: typeof fbSelectedReadingSource !== 'undefined' ? String(fbSelectedReadingSource || 'auto') : 'auto',
                     currentFbRecommendedReadings: typeof currentFbRecommendedReadings !== 'undefined' ? cloneData(currentFbRecommendedReadings, []) : [],
-                    excludedKanjiFromBuild: typeof excludedKanjiFromBuild !== 'undefined' ? cloneData(excludedKanjiFromBuild, []) : []
+                    excludedKanjiFromBuild: typeof excludedKanjiFromBuild !== 'undefined' ? cloneData(excludedKanjiFromBuild, []) : [],
+                    ...(savedCanvasDraft ? { savedCanvas: savedCanvasDraft } : {})
                 },
                 libraries: {
                     readingStock: this.normalizeReadingLibrary(typeof getReadingStock === 'function' ? getReadingStock() : readJsonArray('meimay_reading_stock')),
@@ -730,6 +777,8 @@
                 const key = this.getSavedItemKey(normalized);
                 if (!key || seenKeys.has(key)) return;
                 seenKeys.add(key);
+                normalized.mainSelected = false;
+                normalized.mainSelectedAt = '';
                 normalized.copiedFromChildId = options.sourceChildId || '';
                 normalized.copiedFromChildLabel = options.sourceLabel || '';
                 merged.push(normalized);
@@ -777,6 +826,13 @@
             const family = this.root?.family || createBlankFamilyState();
             const child = this.normalizeChildRecord(activeChild.meta.id, activeChild);
             const draft = { ...createBlankChildDraft(), ...cloneData(child.draft, {}) };
+            const nextSavedCanvas = child?.draft?.savedCanvas && typeof child.draft.savedCanvas === 'object'
+                ? {
+                    blank: child.draft.savedCanvas.blank === true,
+                    ownKey: String(child.draft.savedCanvas.ownKey || '').trim(),
+                    partnerKey: String(child.draft.savedCanvas.partnerKey || '').trim()
+                }
+                : { blank: false, ownKey: '', partnerKey: '' };
             this._persistenceLocked = true;
             try {
                 if (typeof surnameStr !== 'undefined') surnameStr = family.surnameDefault.kanji || '';
@@ -813,6 +869,11 @@
                 if (typeof window.setCompoundBuildFlow === 'function') {
                     if (draft.compoundFlow) window.setCompoundBuildFlow(cloneData(draft.compoundFlow, null));
                     else if (typeof window.clearCompoundBuildFlow === 'function') window.clearCompoundBuildFlow();
+                }
+                if (typeof window.setMeimaySavedCanvasState === 'function') {
+                    window.setMeimaySavedCanvasState(nextSavedCanvas);
+                } else {
+                    setSavedCanvasStateSnapshot(nextSavedCanvas);
                 }
                 this.syncVisibleInputs(draft, family);
                 this.syncVisibleControls(child);
@@ -872,7 +933,7 @@
 
         getChildLabel(childId) {
             const child = this.getChildById(childId);
-            return child?.meta?.displayLabel || '子ども';
+            return child?.meta?.displayLabel || '第一子';
         },
 
         getChildSummary(childId) {
@@ -1377,11 +1438,7 @@
 
         getChildLabel(childId) {
             const child = this.getChildById(childId);
-            if (!child) return '第一子';
-            const base = child?.meta?.displayLabel || '第一子';
-            if (child?.meta?.id !== this.root?.activeChildId) return base;
-            const matchedName = getMatchedSavedNameLabel();
-            return matchedName ? `${base}：${matchedName}` : base;
+            return child?.meta?.displayLabel || '第一子';
         },
 
         updateHeaderChildButton() {
@@ -1820,7 +1877,14 @@
                     prioritizeFortune: prefs.prioritizeFortune === true,
                     imageTags: Array.isArray(prefs.imageTags) && prefs.imageTags.length > 0 ? cloneData(prefs.imageTags, ['none']) : ['none']
                 },
-                draft: createBlankChildDraft(),
+                draft: {
+                    ...createBlankChildDraft(),
+                    savedCanvas: {
+                        blank: true,
+                        ownKey: '',
+                        partnerKey: ''
+                    }
+                },
                 libraries: this.buildInitialLibrariesForCreate(
                     options.startMode,
                     options.sourceChildId,

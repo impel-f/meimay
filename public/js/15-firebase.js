@@ -1287,6 +1287,11 @@ const MeimayPartnerInsights = {
     },
 
     getOwnMainSavedItem: function () {
+        const blankCanvas = typeof window !== 'undefined' && (
+            window.__meimaySavedCanvasBlank === true ||
+            (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
+        );
+        if (blankCanvas) return null;
         const ownItems = this.getOwnSaved();
         const partnerItems = this.getPartnerSaved();
         const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
@@ -1308,6 +1313,11 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerMainSavedItem: function () {
+        const blankCanvas = typeof window !== 'undefined' && (
+            window.__meimaySavedCanvasBlank === true ||
+            (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
+        );
+        if (blankCanvas) return null;
         const partnerItems = this.getPartnerSaved();
         const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
             ? window.__meimaySavedCanvasPartnerKey
@@ -1327,6 +1337,20 @@ const MeimayPartnerInsights = {
     },
 
     getSavedNameCanvasState: function () {
+        const blankCanvas = typeof window !== 'undefined' && (
+            window.__meimaySavedCanvasBlank === true ||
+            (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
+        );
+        if (blankCanvas) {
+            return {
+                ownMain: null,
+                partnerMain: null,
+                ownKey: '',
+                partnerKey: '',
+                matched: false,
+                partnerName: this.getPartnerDisplayName()
+            };
+        }
         const ownMain = this.getOwnMainSavedItem();
         const partnerMain = this.getPartnerMainSavedItem();
         const ownKey = this.buildSavedMatchKey(ownMain);

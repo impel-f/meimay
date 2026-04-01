@@ -141,9 +141,9 @@
 
     <!-- Top Bar (replaces floating history button) -->
     <div id="top-bar"
-        class="fixed top-0 left-0 right-0 z-[100] flex items-center px-4 h-12 bg-[#fdfaf5]/95 backdrop-blur-md border-b border-[#eee5d8]/50">
+        class="fixed top-0 left-0 right-0 z-[100] flex items-center h-12 bg-[#fdfaf5]/95 backdrop-blur-md border-b border-[#eee5d8]/50">
         <button onclick="openDrawer()"
-            class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95"
+            class="absolute left-4 top-1/2 w-9 h-9 -translate-y-1/2 rounded-full flex items-center justify-center hover:bg-[#eee5d8]/50 transition-all active:scale-95"
             id="btn-hamburger">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5d5444" stroke-width="2.5"
                 stroke-linecap="round">
@@ -152,14 +152,14 @@
                 <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
         </button>
-        <div class="flex-1 text-center">
+        <div class="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 px-24 text-center">
             <span class="text-sm font-black text-[#8b7e66] tracking-wider" id="top-bar-title">メイメー</span>
         </div>
         <button
             id="top-bar-child-button"
             type="button"
             onclick="if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') { MeimayChildWorkspaces.openManagerModal(); }"
-            class="ml-auto inline-flex max-w-[46vw] items-center justify-center rounded-full border border-[#d4c5af] bg-white px-3 py-2 text-[11px] font-black leading-tight text-[#5d5444] shadow-sm transition-all active:scale-95">
+            class="absolute right-4 top-1/2 inline-flex max-w-[44vw] -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-full border border-[#6d4e33] bg-[#7b5a3a] px-3 py-1.5 text-[11px] font-black leading-none text-white shadow-sm transition-all active:scale-95">
             第一子
         </button>
     </div>
