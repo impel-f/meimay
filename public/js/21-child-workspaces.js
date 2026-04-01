@@ -108,10 +108,35 @@
         return `第${safeOrder}子`;
     }
 
-    function buildDisplayLabel(order, twinIndex) {
-        const base = getJapaneseOrderLabel(order);
-        if (twinIndex === null || twinIndex === undefined) return base;
-        return `${base}${multipleIndexToSuffix(twinIndex)}`;
+    function buildDisplayLabel(order) {
+        return getJapaneseOrderLabel(order);
+    }
+
+    function getSavedNameLabel(item) {
+        return String(item?.givenName || item?.fullName || '').trim();
+    }
+
+    function getMatchedSavedNameLabel() {
+        try {
+            if (typeof MeimayPartnerInsights === 'undefined' || !MeimayPartnerInsights || typeof MeimayPartnerInsights.getSavedNameCanvasState !== 'function') {
+                return '';
+            }
+            const canvasState = MeimayPartnerInsights.getSavedNameCanvasState();
+            if (!canvasState || !canvasState.matched) return '';
+            return getSavedNameLabel(canvasState.ownMain || canvasState.partnerMain);
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function getChildHeaderLabel(child) {
+        const base = child?.meta?.displayLabel || '第一子';
+        const activeId = typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && MeimayChildWorkspaces.root
+            ? MeimayChildWorkspaces.root.activeChildId
+            : '';
+        if (!child?.meta?.id || child.meta.id !== activeId) return base;
+        const matchedName = getMatchedSavedNameLabel();
+        return matchedName ? `${base}：${matchedName}` : base;
     }
 
     function readJsonArray(key) {
@@ -218,7 +243,6 @@
             this.initialized = true;
             this.applyActiveChildToGlobals({ reason: 'init' });
             this.renderSwitchers();
-            this.decorateSettingsChildManagementCard();
             this.refreshVisibleUI('init');
             window.addEventListener('beforeunload', () => this.persistActiveChildSnapshot('beforeunload'));
             setInterval(() => this.persistActiveChildSnapshot('interval'), 15000);
@@ -230,26 +254,21 @@
             const style = document.createElement('style');
             style.id = 'meimay-child-workspaces-style';
             style.textContent = `
-                .meimay-child-switcher{margin-bottom:12px;padding:12px;border:1px solid #eee5d8;border-radius:24px;background:linear-gradient(180deg,rgba(255,253,249,.98) 0%,rgba(255,248,239,.98) 100%);box-shadow:0 14px 28px -22px rgba(123,104,83,.35)}
-                .meimay-child-switcher.compact{padding:10px 12px;border-radius:20px}
-                .meimay-child-switcher-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
-                .meimay-child-switcher-title{color:#5d5444;font-size:13px;font-weight:900}
-                .meimay-child-switcher-subtitle{margin-top:2px;color:#8b7e66;font-size:10px;font-weight:700}
-                .meimay-child-switcher-meta{margin-top:8px;color:#a6967a;font-size:10px;font-weight:700}
-                .meimay-child-chip-row{display:flex;gap:8px;overflow-x:auto;padding-top:10px;scrollbar-width:none}
-                .meimay-child-chip-row::-webkit-scrollbar{display:none}
-                .meimay-child-chip,.meimay-child-chip-add,.meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-                .meimay-child-chip,.meimay-child-chip-add{padding:9px 12px;white-space:nowrap;box-shadow:0 8px 18px -20px rgba(123,104,83,.28)}
-                .meimay-child-chip.active{border-color:#bca37f;background:linear-gradient(180deg,#fffbef 0%,#fff4dc 100%);box-shadow:0 12px 24px -22px rgba(188,163,127,.75)}
-                .meimay-child-chip-sub{display:block;margin-top:2px;color:#a6967a;font-size:9px;font-weight:700}
-                .meimay-child-inline-btn,.meimay-child-modal-btn{padding:8px 12px;font-size:11px}
-                .meimay-child-chip:active,.meimay-child-chip-add:active,.meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
+                .meimay-child-header-btn{display:inline-flex;align-items:center;justify-content:center;max-width:min(46vw, 160px);min-width:86px;padding:9px 14px;border:1px solid #d4c5af;border-radius:9999px;background:#fff;color:#5d5444;font-size:11px;font-weight:900;line-height:1.1;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+                .meimay-child-header-btn:active{transform:scale(.97)}
+                .meimay-child-switcher{display:none}
+                .meimay-child-switcher.compact{display:none}
+                .meimay-child-switcher-header{display:none}
+                .meimay-child-switcher-title,.meimay-child-switcher-subtitle,.meimay-child-switcher-meta,.meimay-child-chip-row,.meimay-child-chip,.meimay-child-chip-add,.meimay-child-chip-sub{display:none}
+                .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
+                .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
                 .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:#fffaf4;border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:22px 18px 18px}
                 .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;text-align:center}
                 .meimay-child-modal-desc{margin-top:6px;color:#8b7e66;font-size:12px;line-height:1.55;text-align:center}
                 .meimay-child-modal-section{margin-top:16px;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.82)}
                 .meimay-child-modal-section-title{color:#5d5444;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+                .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
                 .meimay-child-card{margin-top:10px;padding:12px;border:1px solid #eee5d8;border-radius:20px;background:#fff}
                 .meimay-child-card.active{background:linear-gradient(180deg,#fffdf8 0%,#fff5e7 100%);border-color:#e6d3b4}
                 .meimay-child-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
@@ -267,6 +286,11 @@
                 .meimay-child-radio-option input{margin-top:2px}
                 .meimay-child-radio-title{color:#5d5444;font-size:13px;font-weight:900}
                 .meimay-child-radio-desc{margin-top:3px;color:#8b7e66;font-size:11px;line-height:1.45}
+                .meimay-child-gender-grid,.meimay-child-toggle-grid{display:grid;gap:8px;margin-top:10px}
+                .meimay-child-gender-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+                .meimay-child-gender-btn,.meimay-child-toggle-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:13px;font-weight:900;text-align:left}
+                .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
+                .meimay-child-toggle-count{color:#a6967a;font-size:11px;font-weight:800}
                 .meimay-child-danger{border-color:#f5c8c8;background:#fff6f6;color:#c45d5d}
             `;
             document.head.appendChild(style);
@@ -1340,6 +1364,469 @@
             if (!options.skipRemoteSync && typeof window.MeimayUserBackup !== 'undefined' && window.MeimayUserBackup && typeof window.MeimayUserBackup.scheduleSync === 'function') {
                 window.MeimayUserBackup.scheduleSync(options.reason || 'child-root-save');
             }
+        },
+
+        renderSwitchers() {
+            document.querySelectorAll('.meimay-child-switcher').forEach((node) => node.remove());
+            this.updateHeaderChildButton();
+        },
+
+        decorateSettingsChildManagementCard() {
+            this.updateHeaderChildButton();
+        },
+
+        getChildLabel(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return '第一子';
+            const base = child?.meta?.displayLabel || '第一子';
+            if (child?.meta?.id !== this.root?.activeChildId) return base;
+            const matchedName = getMatchedSavedNameLabel();
+            return matchedName ? `${base}：${matchedName}` : base;
+        },
+
+        updateHeaderChildButton() {
+            const button = document.getElementById('top-bar-child-button');
+            if (!button) return;
+            const activeChild = this.getActiveChild();
+            const label = activeChild ? this.getChildLabel(activeChild.meta.id) : '第一子';
+            button.textContent = label;
+            button.title = label;
+            button.setAttribute('aria-label', label);
+        },
+
+        getAvailableBirthOrders(excludedChildId = null) {
+            const taken = new Set();
+            this.buildOrderedChildIds(this.root).forEach((childId) => {
+                if (excludedChildId && childId === excludedChildId) return;
+                const child = this.getChildById(childId);
+                const order = normalizePositiveInteger(child?.meta?.birthOrder, 0);
+                if (order >= 1) taken.add(order);
+            });
+            const available = [];
+            for (let order = 1; order <= 10; order += 1) {
+                if (!taken.has(order)) available.push(order);
+            }
+            return available;
+        },
+
+        getSuggestedBirthOrder() {
+            return this.getAvailableBirthOrders()[0] || 1;
+        },
+
+        isBirthOrderTaken(order, excludedChildId = null) {
+            const safeOrder = normalizePositiveInteger(order, 0);
+            if (safeOrder <= 0) return false;
+            return this.buildOrderedChildIds(this.root).some((childId) => {
+                if (excludedChildId && childId === excludedChildId) return false;
+                const child = this.getChildById(childId);
+                return normalizePositiveInteger(child?.meta?.birthOrder, 0) === safeOrder;
+            });
+        },
+
+        buildBirthOrderOptions(selectedOrder, excludedChildId = null) {
+            const availableOrders = this.getAvailableBirthOrders(excludedChildId);
+            const safeSelected = normalizePositiveInteger(selectedOrder, 0);
+            if (availableOrders.length === 0 && !excludedChildId) {
+                return '<option value="" disabled selected>追加できる順番がありません</option>';
+            }
+            const options = availableOrders.length > 0 ? availableOrders : [safeSelected || 1];
+            return options.map((order) => {
+                const isSelected = safeSelected === order;
+                return `<option value="${order}"${isSelected ? ' selected' : ''}>${escapeHtml(getJapaneseOrderLabel(order))}</option>`;
+            }).join('');
+        },
+
+        getSelectedChildModalGender() {
+            return normalizeGenderValue(document.getElementById('mcw-child-gender')?.value || 'neutral');
+        },
+
+        selectChildModalGender(genderValue) {
+            const normalized = normalizeGenderValue(genderValue);
+            const hidden = document.getElementById('mcw-child-gender');
+            if (hidden) hidden.value = normalized;
+            document.querySelectorAll('[data-child-modal-gender]').forEach((button) => {
+                button.classList.toggle('selected', button.dataset.childModalGender === normalized);
+                button.setAttribute('aria-pressed', button.dataset.childModalGender === normalized ? 'true' : 'false');
+            });
+        },
+
+        buildChildModalGenderButtons(selectedGender = 'neutral') {
+            const buttons = [
+                { value: 'male', label: '男の子' },
+                { value: 'female', label: '女の子' },
+                { value: 'neutral', label: '指定なし' }
+            ];
+            const normalized = normalizeGenderValue(selectedGender);
+            return buttons.map((item) => {
+                const isSelected = item.value === normalized;
+                return `<button type="button" class="meimay-child-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">${escapeHtml(item.label)}</button>`;
+            }).join('');
+        },
+
+        getSelectedChildModalStartMode() {
+            return document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
+        },
+
+        getSelectedChildModalCopySourceId() {
+            return document.getElementById('mcw-child-copy-source')?.value || '';
+        },
+
+        getSelectedChildModalCopySections() {
+            const selected = new Set();
+            document.querySelectorAll('[data-copy-section].selected').forEach((button) => {
+                selected.add(String(button.dataset.copySection || '').trim());
+            });
+            return selected;
+        },
+
+        getChildCopySummary(childId) {
+            const child = this.getChildById(childId);
+            if (!child) {
+                return { readingCount: 0, kanjiCount: 0, savedCount: 0 };
+            }
+            return {
+                readingCount: Array.isArray(child.libraries?.readingStock) ? child.libraries.readingStock.length : 0,
+                kanjiCount: new Set((child.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean)).size,
+                savedCount: Array.isArray(child.libraries?.savedNames)
+                    ? child.libraries.savedNames.filter((item) => item?.fromPartner !== true).length
+                    : 0
+            };
+        },
+
+        buildCopySourceOptions(excludedChildId = '') {
+            const childIds = this.buildOrderedChildIds(this.root).filter((id) => id !== excludedChildId);
+            if (childIds.length === 0) {
+                return '<option value="">引き継げる子がいません</option>';
+            }
+            const defaultSourceId = this.root?.activeChildId && childIds.includes(this.root.activeChildId)
+                ? this.root.activeChildId
+                : childIds[0];
+            return childIds.map((childId) => {
+                const child = this.getChildById(childId);
+                const summary = this.getChildCopySummary(childId);
+                const label = `${child?.meta?.displayLabel || '第一子'}（読 ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}）`;
+                return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+            }).join('');
+        },
+
+        buildCopySectionButtons(selectedSections = ['reading', 'kanji', 'saved'], sourceChildId = '') {
+            const selected = new Set(Array.isArray(selectedSections) ? selectedSections : []);
+            const summary = this.getChildCopySummary(sourceChildId);
+            const sections = [
+                { key: 'reading', label: '読み', count: `${summary.readingCount}件` },
+                { key: 'kanji', label: '漢字', count: `${summary.kanjiCount}字` },
+                { key: 'saved', label: '保存した名前', count: `${summary.savedCount}件` }
+            ];
+            return sections.map((section) => {
+                const isSelected = selected.has(section.key);
+                return `
+                    <button type="button" class="meimay-child-toggle-btn${isSelected ? ' selected' : ''}" data-copy-section="${section.key}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.toggleChildModalCopySection('${section.key}')">
+                        <span>${escapeHtml(section.label)}</span>
+                        <span class="meimay-child-toggle-count" data-copy-section-count="${section.key}">${escapeHtml(section.count)}</span>
+                    </button>
+                `;
+            }).join('');
+        },
+
+        updateChildModalCopySummary() {
+            const sourceChildId = this.getSelectedChildModalCopySourceId();
+            const summary = this.getChildCopySummary(sourceChildId);
+            const counts = {
+                reading: `${summary.readingCount}件`,
+                kanji: `${summary.kanjiCount}字`,
+                saved: `${summary.savedCount}件`
+            };
+            Object.entries(counts).forEach(([section, value]) => {
+                document.querySelectorAll(`[data-copy-section-count="${section}"]`).forEach((node) => {
+                    node.textContent = value;
+                });
+            });
+        },
+
+        toggleChildModalCopySection(section) {
+            const button = document.querySelector(`[data-copy-section="${section}"]`);
+            if (!button) return;
+            const isSelected = button.classList.toggle('selected');
+            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        },
+
+        updateChildModalStartModeVisibility() {
+            const mode = this.getSelectedChildModalStartMode();
+            const copyArea = document.getElementById('mcw-child-copy-area');
+            if (copyArea) copyArea.style.display = mode === 'copy' ? 'block' : 'none';
+            this.updateChildModalCopySummary();
+        },
+
+        buildManagerChildCard(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return '';
+            const summary = this.getChildSummary(childId);
+            const isActive = childId === this.root?.activeChildId;
+            const label = escapeHtml(child.meta?.displayLabel || '第一子');
+            const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
+            return `
+                <div class="meimay-child-card${isActive ? ' active' : ''}">
+                    <div class="meimay-child-card-head">
+                        <div>
+                            <div class="meimay-child-card-title">${label}</div>
+                            <div class="meimay-child-card-meta">${escapeHtml(counts)}</div>
+                        </div>
+                        ${isActive
+                            ? '<div class="meimay-child-badge">編集中</div>'
+                            : `<button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')">切り替える</button>`}
+                    </div>
+                    <div class="meimay-child-card-actions">
+                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('edit', '${escapeHtml(childId)}')">設定を編集</button>
+                    </div>
+                </div>
+            `;
+        },
+
+        openManagerModal() {
+            if (!this.initialized) return;
+            this.persistActiveChildSnapshot('open-manager');
+            this.closeManagerModal();
+            this.closeChildModal();
+            const modal = document.createElement('div');
+            modal.id = 'meimay-child-manager-modal';
+            modal.className = 'meimay-child-modal-overlay';
+            modal.onclick = (event) => {
+                if (event.target === modal) this.closeManagerModal();
+            };
+            const childCards = this.buildOrderedChildIds(this.root).map((childId) => this.buildManagerChildCard(childId)).join('');
+            const canAddMore = this.getAvailableBirthOrders().length > 0;
+            modal.innerHTML = `
+                <div class="meimay-child-modal-sheet">
+                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeManagerModal()">閉じる</button>
+                    <div class="meimay-child-modal-title">名づけ帳管理</div>
+                    <div class="meimay-child-modal-desc">いま進める子を切り替えたり、新しい子を追加できます。</div>
+                    <div class="meimay-child-modal-section">
+                        <div class="meimay-child-modal-section-title">切り替え</div>
+                        <div class="meimay-child-modal-stack">${childCards}</div>
+                    </div>
+                    <div class="meimay-child-modal-section">
+                        <div class="meimay-child-modal-section-title">新しい子を追加</div>
+                        <div class="meimay-child-card-actions" style="margin-top:12px">
+                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('create')" ${canAddMore ? '' : 'disabled'}>追加する</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        },
+
+        closeManagerModal() {
+            document.getElementById('meimay-child-manager-modal')?.remove();
+        },
+
+        openChildModal(mode = 'create', childId = null) {
+            this.closeChildModal();
+            const isEdit = mode === 'edit' && childId;
+            const child = isEdit ? this.getChildById(childId) : null;
+            if (isEdit && !child) return;
+
+            const selectedGender = isEdit
+                ? normalizeGenderValue(child?.meta?.gender)
+                : normalizeGenderValue(typeof gender !== 'undefined' ? gender : 'neutral');
+            const selectedOrder = isEdit
+                ? normalizePositiveInteger(child?.meta?.birthOrder, this.getSuggestedBirthOrder())
+                : this.getSuggestedBirthOrder();
+            const selectedSourceId = this.root?.activeChildId && this.getChildById(this.root.activeChildId)
+                ? this.root.activeChildId
+                : this.buildOrderedChildIds(this.root)[0] || '';
+            const defaultSections = ['reading', 'kanji', 'saved'];
+            const modal = document.createElement('div');
+            modal.id = 'meimay-child-editor-modal';
+            modal.className = 'meimay-child-modal-overlay';
+            modal.onclick = (event) => {
+                if (event.target === modal) this.closeChildModal();
+            };
+            modal.innerHTML = `
+                <div class="meimay-child-modal-sheet">
+                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeChildModal()">閉じる</button>
+                    <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
+                    <div class="meimay-child-modal-desc">${isEdit ? '順番と性別を変更できます。' : '順番と性別を選んで、新しい子を追加します。'}</div>
+                    <input type="hidden" id="mcw-child-gender" value="${escapeHtml(selectedGender)}">
+                    <div class="meimay-child-field">
+                        <label class="meimay-child-field-label" for="mcw-child-order">順番</label>
+                        <select id="mcw-child-order" class="meimay-child-select">${this.buildBirthOrderOptions(selectedOrder, isEdit ? childId : null)}</select>
+                    </div>
+                    <div class="meimay-child-field">
+                        <label class="meimay-child-field-label">性別</label>
+                        <div class="meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender)}</div>
+                    </div>
+                    ${isEdit ? '' : `
+                        <div class="meimay-child-field">
+                            <label class="meimay-child-field-label">はじめ方</label>
+                            <div class="meimay-child-radio-grid">
+                                <label class="meimay-child-radio-option">
+                                    <input type="radio" name="mcw-start-mode" value="blank" checked onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">
+                                    <div>
+                                        <div class="meimay-child-radio-title">まっさらから始める</div>
+                                        <div class="meimay-child-radio-desc">読み・漢字・保存した名前を空にしてはじめます。</div>
+                                    </div>
+                                </label>
+                                <label class="meimay-child-radio-option">
+                                    <input type="radio" name="mcw-start-mode" value="copy" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">
+                                    <div>
+                                        <div class="meimay-child-radio-title">ほかの子の候補をコピーする</div>
+                                        <div class="meimay-child-radio-desc">読み・漢字・保存した名前を引き継いで始めます。</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="mcw-child-copy-area" style="display:none">
+                            <div class="meimay-child-field">
+                                <label class="meimay-child-field-label" for="mcw-child-copy-source">コピー元</label>
+                                <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions()}</select>
+                            </div>
+                            <div class="meimay-child-field">
+                                <label class="meimay-child-field-label">引き継ぐ内容</label>
+                                <div class="meimay-child-toggle-grid">${this.buildCopySectionButtons(defaultSections, selectedSourceId)}</div>
+                            </div>
+                        </div>
+                    `}
+                    <div class="meimay-child-editor-actions">
+                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
+                        ${isEdit ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            this.selectChildModalGender(selectedGender);
+            this.updateChildModalStartModeVisibility();
+            this.updateChildModalCopySummary();
+        },
+
+        closeChildModal() {
+            document.getElementById('meimay-child-editor-modal')?.remove();
+        },
+
+        saveChildModal(mode = 'create', childId = null) {
+            const selectedOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 0);
+            const birthOrder = selectedOrder || this.getSuggestedBirthOrder();
+            const genderValue = this.getSelectedChildModalGender();
+            if (mode === 'edit' && childId) {
+                if (this.isBirthOrderTaken(birthOrder, childId)) {
+                    this.notify('その順番はすでに使われています。', '!');
+                    return;
+                }
+                const child = this.getChildById(childId);
+                if (!child) return;
+                this.persistActiveChildSnapshot('before-edit-child');
+                child.meta.birthOrder = birthOrder;
+                child.meta.displayLabel = buildDisplayLabel(birthOrder);
+                child.meta.gender = genderValue;
+                child.meta.birthGroupId = null;
+                child.meta.birthGroupIndex = null;
+                child.meta.twinGroupId = null;
+                child.meta.twinIndex = null;
+                child.meta.updatedAt = getNowIso();
+                this.root.childOrder = this.buildOrderedChildIds(this.root);
+                this.saveRoot(this.root);
+                if (childId === this.root.activeChildId) this.applyActiveChildToGlobals({ reason: 'edit-child' });
+                this.closeChildModal();
+                this.closeManagerModal();
+                this.refreshVisibleUI('edit-child');
+                this.renderSwitchers();
+                this.notify('子どもの設定を更新しました', '✓');
+                return;
+            }
+
+            if (this.isBirthOrderTaken(birthOrder)) {
+                this.notify('その順番はすでに使われています。', '!');
+                return;
+            }
+
+            const startMode = this.getSelectedChildModalStartMode();
+            const sourceChildId = this.getSelectedChildModalCopySourceId();
+            const copySections = Array.from(this.getSelectedChildModalCopySections());
+            if (startMode === 'copy' && (!sourceChildId || !this.getChildById(sourceChildId))) {
+                this.notify('コピー元の子を選んでください。', '!');
+                return;
+            }
+
+            this.persistActiveChildSnapshot('before-create-child');
+            const nextId = this.generateChildId();
+            this.root.children[nextId] = this.buildChildRecordForCreate({
+                id: nextId,
+                birthOrder,
+                gender: genderValue,
+                startMode,
+                sourceChildId,
+                copySections
+            });
+            this.root.childOrder = this.buildOrderedChildIds(this.root);
+            this.root.activeChildId = nextId;
+            this.saveRoot(this.root);
+            this.closeChildModal();
+            this.closeManagerModal();
+            this.applyActiveChildToGlobals({ reason: 'create-child' });
+            this.refreshVisibleUI('create-child');
+            this.renderSwitchers();
+            this.notify(`${this.getChildLabel(nextId)} を追加しました`, '✓');
+        },
+
+        buildInitialLibrariesForCreate(startMode = 'blank', sourceChildId = '', copySections = []) {
+            const blank = createBlankChildLibraries();
+            if (startMode !== 'copy') return blank;
+            const sourceChild = this.getChildById(sourceChildId);
+            if (!sourceChild) return blank;
+            const selected = new Set(Array.isArray(copySections) ? copySections : []);
+            const next = createBlankChildLibraries();
+            if (selected.has('reading')) {
+                next.readingStock = cloneData(sourceChild.libraries?.readingStock, []);
+            }
+            if (selected.has('kanji')) {
+                next.kanjiStock = this.mergeKanjiLibraries([], sourceChild.libraries?.kanjiStock, {
+                    sourceChildId,
+                    sourceLabel: sourceChild.meta?.displayLabel || '第一子'
+                }).items;
+            }
+            if (selected.has('saved')) {
+                next.savedNames = this.mergeSavedLibraries([], sourceChild.libraries?.savedNames, {
+                    sourceChildId,
+                    sourceLabel: sourceChild.meta?.displayLabel || '第一子'
+                }).items;
+            }
+            return next;
+        },
+
+        buildChildRecordForCreate(options = {}) {
+            const id = String(options.id || this.generateChildId());
+            const birthOrder = normalizePositiveInteger(options.birthOrder, this.getSuggestedBirthOrder());
+            const genderValue = normalizeGenderValue(options.gender || 'neutral');
+            const activeChild = this.getActiveChild();
+            const prefs = cloneData(activeChild?.prefs, {
+                rule: typeof rule !== 'undefined' ? rule : 'strict',
+                prioritizeFortune: typeof prioritizeFortune !== 'undefined' ? prioritizeFortune === true : false,
+                imageTags: typeof selectedImageTags !== 'undefined' ? cloneData(selectedImageTags, ['none']) : ['none']
+            });
+            return {
+                meta: {
+                    id,
+                    birthOrder,
+                    displayLabel: buildDisplayLabel(birthOrder),
+                    gender: genderValue,
+                    birthGroupId: null,
+                    birthGroupIndex: null,
+                    twinGroupId: null,
+                    twinIndex: null,
+                    createdAt: getNowIso(),
+                    updatedAt: getNowIso()
+                },
+                prefs: {
+                    rule: String(prefs.rule || 'strict'),
+                    prioritizeFortune: prefs.prioritizeFortune === true,
+                    imageTags: Array.isArray(prefs.imageTags) && prefs.imageTags.length > 0 ? cloneData(prefs.imageTags, ['none']) : ['none']
+                },
+                draft: createBlankChildDraft(),
+                libraries: this.buildInitialLibrariesForCreate(
+                    options.startMode,
+                    options.sourceChildId,
+                    options.copySections
+                )
+            };
         }
     };
 

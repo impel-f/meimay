@@ -1116,6 +1116,9 @@ function refreshPartnerAwareUI() {
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
         renderHomeProfile();
     }
+    if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
+        MeimayChildWorkspaces.renderSwitchers();
+    }
     if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
         renderSavedScreen();
     }
