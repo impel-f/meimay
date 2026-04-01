@@ -2757,6 +2757,11 @@ MeimayPairing.syncMyData = async function () {
             roomCode: String(this.roomCode || '')
         };
 
+        const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
+            ? PremiumManager.getPublicPremiumSnapshot()
+            : null;
+        const premiumFields = publicPremiumState || {};
+
         await roomDataRef.set({
                 role: this.myRole,
                 displayName: String(wizard.username || '').trim(),
@@ -2770,8 +2775,29 @@ MeimayPairing.syncMyData = async function () {
                 hiddenReadings,
                 meimayBackup: roomBackup,
                 backup: roomBackup,
+                isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
+                subscriptionStatus: typeof premiumFields.subscriptionStatus === 'string'
+                    ? premiumFields.subscriptionStatus
+                    : null,
+                premiumStatus: typeof premiumFields.premiumStatus === 'string'
+                    ? premiumFields.premiumStatus
+                    : (typeof premiumFields.subscriptionStatus === 'string' ? premiumFields.subscriptionStatus : null),
+                appStoreExpiresAt: premiumFields.appStoreExpiresAt || null,
+                premiumExpiresAt: premiumFields.premiumExpiresAt || premiumFields.appStoreExpiresAt || null,
+                appStoreProductId: typeof premiumFields.appStoreProductId === 'string'
+                    ? premiumFields.appStoreProductId
+                    : null,
+                premiumProductId: typeof premiumFields.premiumProductId === 'string'
+                    ? premiumFields.premiumProductId
+                    : (typeof premiumFields.appStoreProductId === 'string' ? premiumFields.appStoreProductId : null),
+                appStoreLastNotificationType: typeof premiumFields.appStoreLastNotificationType === 'string'
+                    ? premiumFields.appStoreLastNotificationType
+                    : null,
+                latestNotificationType: typeof premiumFields.latestNotificationType === 'string'
+                    ? premiumFields.latestNotificationType
+                    : (typeof premiumFields.appStoreLastNotificationType === 'string' ? premiumFields.appStoreLastNotificationType : null),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
 
         console.log('PAIRING: Synced my data to room');
     } catch (e) {
