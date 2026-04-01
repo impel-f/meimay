@@ -754,6 +754,30 @@ if (_originalChangeScreen) {
     };
 }
 
+function formatDrawerPremiumDate(value) {
+    if (!value) return '';
+    const date = value instanceof Date ? value : new Date(value);
+    if (!date || Number.isNaN(date.getTime())) return '';
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function buildDrawerPremiumLabelLines(state) {
+    if (!state) return ['👑 プレミアム：未登録'];
+    if (state.expired) return ['👑 プレミアム：期限切れ'];
+    if (!state.active) return ['👑 プレミアム：未登録'];
+
+    const expiresLabel = formatDrawerPremiumDate(state.expiresAt);
+    if (state.source === 'partner') {
+        return expiresLabel
+            ? ['👑 プレミアム：有効', `パートナー特典・${expiresLabel}まで`]
+            : ['👑 プレミアム：有効', 'パートナー特典'];
+    }
+
+    return expiresLabel
+        ? ['👑 プレミアム：有効', `${expiresLabel}まで有効`]
+        : ['👑 プレミアム：有効'];
+}
+
 function updateDrawerProfile() {
     const data = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
         ? (WizardData.get() || {})
@@ -772,10 +796,12 @@ function updateDrawerProfile() {
         && MeimayPairing.partnerUid);
     const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
     const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
-    const premiumActive = !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
-    const premiumLabel = premiumManager && typeof premiumManager.getDrawerStatusLabel === 'function'
-        ? premiumManager.getDrawerStatusLabel()
-        : '👑 プレミアム：未登録';
+    const premiumState = premiumManager && typeof premiumManager.getMembershipState === 'function'
+        ? premiumManager.getMembershipState()
+        : null;
+    const premiumActive = !!(premiumState && premiumState.active)
+        || !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
+    const premiumLines = buildDrawerPremiumLabelLines(premiumState);
 
     if (drawer) {
         drawer.style.background = '';
@@ -809,7 +835,6 @@ function updateDrawerProfile() {
     }
 
     if (settingsButton) {
-        const premiumLines = String(premiumLabel || '').split('\n').map((line) => line.trim()).filter(Boolean);
         settingsButton.replaceChildren();
 
         if (premiumLines.length > 1) {
