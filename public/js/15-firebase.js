@@ -1461,6 +1461,7 @@ function updatePairingUI() {
 
     const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
     const drawerPartnerStatusLabel = document.getElementById('drawer-partner-status-label');
+    const drawerPartnerStatusSubtext = document.getElementById('drawer-partner-status-subtext');
     const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
     if (drawerPartnerStatusButton && drawerPartnerStatusLabel) {
         drawerPartnerStatusButton.classList.remove('hidden');
@@ -1469,11 +1470,18 @@ function updatePairingUI() {
                 ? MeimayPartnerInsights.getPartnerDisplayName()
                 : (MeimayPairing.partnerDisplayName || MeimayPairing.partnerLabel || 'パートナー');
             const partnerStatusName = formatPartnerStatusName(partnerDisplayName);
-            drawerPartnerStatusLabel.textContent = partnerStatusName
-                ? '🔗パートナー：' + partnerStatusName + 'と連携中'
-                : '🔗パートナー：連携中';
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：連携中';
+            if (drawerPartnerStatusSubtext) {
+                const showPartnerName = partnerStatusName && partnerStatusName !== 'パートナー';
+                drawerPartnerStatusSubtext.textContent = showPartnerName ? partnerStatusName : '';
+                drawerPartnerStatusSubtext.classList.toggle('hidden', !showPartnerName);
+            }
         } else {
             drawerPartnerStatusLabel.textContent = '🔗パートナー：未連携';
+            if (drawerPartnerStatusSubtext) {
+                drawerPartnerStatusSubtext.textContent = '';
+                drawerPartnerStatusSubtext.classList.add('hidden');
+            }
         }
     }
     if (drawerPairingBadge) {
