@@ -2762,6 +2762,36 @@ MeimayPairing.syncMyData = async function () {
         const cloneSection = (items) => (Array.isArray(items)
             ? items.map((item) => (item && typeof item === 'object' ? { ...item } : item))
             : []);
+        const childWorkspaceStateV2 = typeof MeimayUserBackup !== 'undefined'
+            && MeimayUserBackup
+            && typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
+            ? MeimayUserBackup._readChildWorkspaceStateV2()
+            : (typeof MeimayChildWorkspaces !== 'undefined'
+                && MeimayChildWorkspaces
+                && typeof MeimayChildWorkspaces.getRootSnapshot === 'function'
+                    ? MeimayChildWorkspaces.getRootSnapshot()
+                    : null);
+        const childWorkspaceStateV2UpdatedAt = childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object'
+            ? String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || Date.now())
+            : '';
+        const cloneWorkspaceStateV2 = (value) => {
+            if (!value || typeof value !== 'object') return null;
+            if (typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._safeClone === 'function') {
+                return MeimayUserBackup._safeClone(value);
+            }
+            try {
+                return JSON.parse(JSON.stringify(value));
+            } catch (error) {
+                return null;
+            }
+        };
+        const childWorkspaceStateV2Payload = cloneWorkspaceStateV2(childWorkspaceStateV2);
+        const childWorkspaceStateV2Meta = childWorkspaceStateV2Payload
+            ? {
+                meimayStateV2: childWorkspaceStateV2Payload,
+                meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt
+            }
+            : {};
         const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
         const roomDataDoc = await roomDataRef.get();
         const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
@@ -2788,6 +2818,7 @@ MeimayPairing.syncMyData = async function () {
             readingStock: cloneSection(readingStockToStore),
             encounteredReadings: cloneSection(encounteredToStore),
             hiddenReadings: cloneSection(hiddenReadings),
+            ...childWorkspaceStateV2Meta,
             pairRoomCode: String(this.roomCode || ''),
             roomCode: String(this.roomCode || '')
         };
@@ -2808,6 +2839,7 @@ MeimayPairing.syncMyData = async function () {
                 readingStock: readingStockToStore,
                 encounteredReadings: encounteredToStore,
                 hiddenReadings,
+                ...childWorkspaceStateV2Meta,
                 meimayBackup: roomBackup,
                 backup: roomBackup,
                 isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
@@ -2858,6 +2890,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
             const roomBackup = data.meimayBackup || data.backup || {};
+            let partnerChildWorkspaceStateV2 = data.meimayStateV2
+                || roomBackup.meimayStateV2
+                || roomBackup.childWorkspaceStateV2
+                || null;
 
             if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
                 likedSource = roomBackup.liked;
@@ -3661,11 +3697,17 @@ const MeimayUserBackup = {
     _applyChildWorkspaceStateV2: function (state = null) {
         if (!state || typeof state !== 'object') return false;
         try {
+            let applied = false;
             if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyRemoteRootSnapshot === 'function') {
-                return MeimayChildWorkspaces.applyRemoteRootSnapshot(state, { reason: 'firestore-bootstrap' });
+                applied = MeimayChildWorkspaces.applyRemoteRootSnapshot(state, { reason: 'firestore-bootstrap' });
+            } else {
+                localStorage.setItem('meimay_state_v2', JSON.stringify(state));
+                applied = true;
             }
-            localStorage.setItem('meimay_state_v2', JSON.stringify(state));
-            return true;
+            if (applied && typeof this.scheduleSync === 'function') {
+                this.scheduleSync('child-workspace-apply');
+            }
+            return applied;
         } catch (error) {
             console.warn('BACKUP: Failed to apply child workspace state', error);
             return false;
@@ -4174,6 +4216,13 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        if (!partnerChildWorkspaceStateV2) {
+                            partnerChildWorkspaceStateV2 = partnerBackup.meimayStateV2
+                                || partnerBackup.childWorkspaceStateV2
+                                || partnerUserData.meimayStateV2
+                                || partnerUserData.childWorkspaceStateV2
+                                || null;
+                        }
                         partnerUserBackup = {
                             ...partnerBackup,
                             liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
@@ -4232,10 +4281,29 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 username: String(data.username || '').trim(),
                 nickname: String(data.nickname || '').trim(),
                 themeId: String(data.themeId || '').trim(),
+                meimayStateV2: partnerChildWorkspaceStateV2,
+                meimayStateV2UpdatedAt: partnerChildWorkspaceStateV2 && typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._getChildWorkspaceStateV2Stamp === 'function'
+                    ? MeimayUserBackup._getChildWorkspaceStateV2Stamp(partnerChildWorkspaceStateV2)
+                    : '',
                 meimayBackup: roomBackup,
                 backup: roomBackup,
                 partnerUserBackup
             };
+
+            if (partnerChildWorkspaceStateV2
+                && typeof MeimayUserBackup !== 'undefined'
+                && MeimayUserBackup
+                && typeof MeimayUserBackup._getChildWorkspaceStateV2Stamp === 'function'
+                && typeof MeimayUserBackup._applyChildWorkspaceStateV2 === 'function') {
+                const localWorkspaceStateV2 = typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
+                    ? MeimayUserBackup._readChildWorkspaceStateV2()
+                    : null;
+                const remoteStamp = MeimayUserBackup._getChildWorkspaceStateV2Stamp(partnerChildWorkspaceStateV2);
+                const localStamp = MeimayUserBackup._getChildWorkspaceStateV2Stamp(localWorkspaceStateV2);
+                if (!localWorkspaceStateV2 || remoteStamp >= localStamp) {
+                    MeimayUserBackup._applyChildWorkspaceStateV2(partnerChildWorkspaceStateV2);
+                }
+            }
 
             if (typeof updatePairingUI === 'function') {
                 updatePairingUI();

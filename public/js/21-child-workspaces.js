@@ -1422,8 +1422,13 @@
             nextRoot.updatedAt = getNowIso();
             if (!nextRoot.createdAt) nextRoot.createdAt = nextRoot.updatedAt;
             localStorage.setItem(ROOT_KEY, JSON.stringify(root));
-            if (!options.skipRemoteSync && typeof window.MeimayUserBackup !== 'undefined' && window.MeimayUserBackup && typeof window.MeimayUserBackup.scheduleSync === 'function') {
-                window.MeimayUserBackup.scheduleSync(options.reason || 'child-root-save');
+            if (!options.skipRemoteSync) {
+                if (typeof window.MeimayUserBackup !== 'undefined' && window.MeimayUserBackup && typeof window.MeimayUserBackup.scheduleSync === 'function') {
+                    window.MeimayUserBackup.scheduleSync(options.reason || 'child-root-save');
+                }
+                if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
+                    MeimayPairing._autoSyncDebounced(options.reason || 'child-root-save');
+                }
             }
         },
 

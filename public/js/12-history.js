@@ -98,6 +98,16 @@ function closeSaveMessageModal() {
 /**
  * モーダル内で読みを選択した際の処理
  */
+function persistActiveChildWorkspaceSnapshot(reason = 'saved-name-change') {
+    if (typeof MeimayChildWorkspaces !== 'undefined'
+        && MeimayChildWorkspaces
+        && typeof MeimayChildWorkspaces.persistActiveChildSnapshot === 'function') {
+        MeimayChildWorkspaces.persistActiveChildSnapshot(reason);
+        return true;
+    }
+    return false;
+}
+
 function selectReadingInModal(reading) {
     if (!currentBuildResult) return;
 
@@ -223,6 +233,7 @@ function executeSaveWithMessage() {
     // グローバル変数を更新
     if (typeof savedNames !== 'undefined') savedNames = updated;
     localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    persistActiveChildWorkspaceSnapshot('save-name-message');
 
     closeSaveMessageModal();
     alert('✨ 名前を保存しました！');
@@ -3821,6 +3832,7 @@ function setSavedMainCandidate(index) {
         localStorage.setItem('meimay_saved_canvas_blank', '0');
         localStorage.setItem('meimay_saved_canvas_own_key', selectedKey);
         localStorage.removeItem('meimay_saved_canvas_partner_key');
+        persistActiveChildWorkspaceSnapshot('set-saved-main');
     } catch (error) {
         console.warn('SAVED: Persist own main key failed', error);
     }
@@ -3860,6 +3872,7 @@ function deleteSavedNameBySourceIndex(index, source = 'own') {
     const updated = saved.filter((_, idx) => idx !== ownIndex);
     if (typeof savedNames !== 'undefined') savedNames = updated;
     localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    persistActiveChildWorkspaceSnapshot('delete-saved-name');
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
         MeimayPairing._autoSyncDebounced?.();
@@ -3897,6 +3910,7 @@ function votePartnerSavedName(index) {
         localStorage.setItem('meimay_saved_canvas_blank', '0');
         localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
         localStorage.removeItem('meimay_saved_canvas_partner_key');
+        persistActiveChildWorkspaceSnapshot('vote-partner-saved-name');
     } catch (error) {
         console.warn('SAVED: Persist own main key from partner candidate failed', error);
     }
