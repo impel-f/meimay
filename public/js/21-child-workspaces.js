@@ -1550,6 +1550,15 @@
             };
         },
 
+        getManagerChildTitle(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return '';
+            const baseLabel = child.meta?.displayLabel || '第一子';
+            if (childId !== this.root?.activeChildId) return baseLabel;
+            const matchedLabel = getMatchedSavedNameLabel();
+            return matchedLabel ? `${baseLabel}：${matchedLabel}` : baseLabel;
+        },
+
         buildCopySourceOptions(excludedChildId = '') {
             const childIds = this.buildOrderedChildIds(this.root).filter((id) => id !== excludedChildId);
             if (childIds.length === 0) {
@@ -1619,13 +1628,13 @@
             if (!child) return '';
             const summary = this.getChildSummary(childId);
             const isActive = childId === this.root?.activeChildId;
-            const label = escapeHtml(child.meta?.displayLabel || '第一子');
+            const title = escapeHtml(this.getManagerChildTitle(childId) || child.meta?.displayLabel || '第一子');
             const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
             return `
                 <div class="meimay-child-card${isActive ? ' active' : ''}">
                     <div class="meimay-child-card-head">
                         <div>
-                            <div class="meimay-child-card-title">${label}</div>
+                            <div class="meimay-child-card-title">${title}</div>
                             <div class="meimay-child-card-meta">${escapeHtml(counts)}</div>
                         </div>
                         ${isActive
