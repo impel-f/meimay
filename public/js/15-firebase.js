@@ -1633,7 +1633,7 @@ function showToast(message, icon = '\u2728', onAction = null) {
     const toast = document.createElement('div');
     toast.id = 'meimay-toast';
     toast.style.cssText = `
-        position: fixed; top: 48px; left: 50%; transform: translateX(-50%);
+        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
         background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
         border-radius: 16px; font-size: 13px; font-weight: 700;
         z-index: 99999; display: flex; align-items: center; gap: 8px;
