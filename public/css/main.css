@@ -61,8 +61,8 @@ body {
     align-items: center;
     position: absolute;
     inset: 0;
-    padding: 56px 24px 160px 24px;
-    /* top: 48px(top-bar) + 8px余白 */
+    padding: 48px 24px 160px 24px;
+    /* top: 40px(top-bar) + 8px余白 */
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1029,12 +1029,12 @@ body.hide-top-bar #top-bar {
 
 /* Adjust screen padding for top bar */
 .screen {
-    padding-top: 60px !important;
+    padding-top: 48px !important;
 }
 
-/* Build screen: namePreview starts flush under top-bar (48px) */
+/* Build screen: namePreview starts flush under top-bar (40px) */
 #scr-build {
-    padding-top: 48px !important;
+    padding-top: 40px !important;
 }
 
 /* ============================================================
@@ -1915,7 +1915,7 @@ body.has-ad-banner #universal-footer {
 
 @media (max-height: 760px) {
     #scr-mode {
-        padding-top: 56px !important;
+        padding-top: 48px !important;
         padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
     }
 
