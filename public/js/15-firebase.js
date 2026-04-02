@@ -2759,9 +2759,6 @@ MeimayPairing.syncMyData = async function () {
             encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
         });
         const hiddenReadings = readNormalizedHiddenReadings();
-        const cloneSection = (items) => (Array.isArray(items)
-            ? items.map((item) => (item && typeof item === 'object' ? { ...item } : item))
-            : []);
         const childWorkspaceStateV2 = typeof MeimayUserBackup !== 'undefined'
             && MeimayUserBackup
             && typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
@@ -2774,23 +2771,8 @@ MeimayPairing.syncMyData = async function () {
         const childWorkspaceStateV2UpdatedAt = childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object'
             ? String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || Date.now())
             : '';
-        const cloneWorkspaceStateV2 = (value) => {
-            if (!value || typeof value !== 'object') return null;
-            if (typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._safeClone === 'function') {
-                return MeimayUserBackup._safeClone(value);
-            }
-            try {
-                return JSON.parse(JSON.stringify(value));
-            } catch (error) {
-                return null;
-            }
-        };
-        const childWorkspaceStateV2Payload = cloneWorkspaceStateV2(childWorkspaceStateV2);
-        const childWorkspaceStateV2Meta = childWorkspaceStateV2Payload
-            ? {
-                meimayStateV2: childWorkspaceStateV2Payload,
-                meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt
-            }
+        const childWorkspaceStateV2Meta = childWorkspaceStateV2
+            ? { meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt }
             : {};
         const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
         const roomDataDoc = await roomDataRef.get();
@@ -2813,14 +2795,11 @@ MeimayPairing.syncMyData = async function () {
             likedCount: Array.isArray(likedToStore) ? likedToStore.length : 0,
             savedNamesCount: Array.isArray(savedNamesToStore) ? savedNamesToStore.length : 0,
             readingStockCount: Array.isArray(readingStockToStore) ? readingStockToStore.length : 0,
-            liked: cloneSection(likedToStore),
-            savedNames: cloneSection(savedNamesToStore),
-            readingStock: cloneSection(readingStockToStore),
-            encounteredReadings: cloneSection(encounteredToStore),
-            hiddenReadings: cloneSection(hiddenReadings),
-            ...childWorkspaceStateV2Meta,
+            encounteredReadingsCount: Array.isArray(encounteredToStore) ? encounteredToStore.length : 0,
+            hiddenReadingsCount: Array.isArray(hiddenReadings) ? hiddenReadings.length : 0,
             pairRoomCode: String(this.roomCode || ''),
-            roomCode: String(this.roomCode || '')
+            roomCode: String(this.roomCode || ''),
+            ...childWorkspaceStateV2Meta
         };
 
         const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
@@ -2839,7 +2818,6 @@ MeimayPairing.syncMyData = async function () {
                 readingStock: readingStockToStore,
                 encounteredReadings: encounteredToStore,
                 hiddenReadings,
-                ...childWorkspaceStateV2Meta,
                 meimayBackup: roomBackup,
                 backup: roomBackup,
                 isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
@@ -2923,6 +2901,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 || !readingStockSource.length
                 || !encounteredSource.length
                 || !hiddenReadingsSource.length
+                || !partnerChildWorkspaceStateV2
             )) {
                 try {
                     const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
@@ -4210,7 +4189,14 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             const roomPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
             let partnerPremiumSnapshot = roomPremiumSnapshot;
             let partnerUserBackup = null;
-            if ((!likedSource.length || !savedNamesSource.length || !readingStockSource.length || !encounteredSource.length || !hiddenReadingsSource.length) && partnerUid) {
+            if (partnerUid && (
+                !likedSource.length
+                || !savedNamesSource.length
+                || !readingStockSource.length
+                || !encounteredSource.length
+                || !hiddenReadingsSource.length
+                || !partnerChildWorkspaceStateV2
+            )) {
                 try {
                     const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
                     if (partnerUserDoc.exists) {
@@ -4289,6 +4275,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 backup: roomBackup,
                 partnerUserBackup
             };
+            this.partnerUserSnapshot = partnerPremiumSnapshot;
+            if (typeof updatePremiumUI === 'function') {
+                updatePremiumUI();
+            }
 
             if (partnerChildWorkspaceStateV2
                 && typeof MeimayUserBackup !== 'undefined'
