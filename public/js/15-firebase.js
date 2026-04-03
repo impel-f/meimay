@@ -287,7 +287,7 @@ function getSavedSelectionKeyForSync(item) {
     }
 
     const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
-        ? item.combination.map((part) => part?.['貍｢蟄・] || part?.kanji || '').join('')
+        ? item.combination.map((part) => part?.['漢字'] || part?.kanji || '').join('')
         : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
     const fullName = String(item.fullName || item.givenName || combinationKey || '').trim();
     const reading = String(item.reading || item.givenName || '').trim();
