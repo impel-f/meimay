@@ -214,6 +214,34 @@ function readNormalizedHiddenReadingsFromSnapshot(values) {
         : [];
 }
 
+function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
+    if (!state || typeof state !== 'object') return '';
+
+    const readOwnKey = (candidate) => {
+        const savedCanvas = candidate?.draft?.savedCanvas || candidate?.savedCanvas || null;
+        return String(savedCanvas?.ownKey || '').trim();
+    };
+
+    const directKey = readOwnKey(state);
+    if (directKey) return directKey;
+
+    const activeChildId = String(state?.activeChildId || '').trim();
+    const children = state?.children && typeof state.children === 'object' ? state.children : null;
+    if (children && activeChildId && children[activeChildId]) {
+        const activeKey = readOwnKey(children[activeChildId]);
+        if (activeKey) return activeKey;
+    }
+
+    if (children) {
+        for (const childId of Object.keys(children)) {
+            const childKey = readOwnKey(children[childId]);
+            if (childKey) return childKey;
+        }
+    }
+
+    return '';
+}
+
 const MeimayFirestorePayload = {
     _normalizeString(value) {
         return String(value == null ? '' : value).trim();
@@ -1325,6 +1353,22 @@ const MeimayPartnerInsights = {
         if (overrideKey) {
             const overrideItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
             if (overrideItem) return overrideItem;
+        }
+
+        const workspaceStateCandidates = [
+            MeimayShare?.partnerSnapshot?.meimayStateV2,
+            MeimayShare?.partnerSnapshot?.partnerUserBackup?.meimayStateV2,
+            MeimayShare?.partnerSnapshot?.partnerUserBackup?.childWorkspaceStateV2,
+            MeimayShare?.partnerSnapshot?.backup?.meimayStateV2,
+            MeimayShare?.partnerSnapshot?.backup?.childWorkspaceStateV2,
+            MeimayShare?.partnerSnapshot?.meimayBackup?.meimayStateV2,
+            MeimayShare?.partnerSnapshot?.meimayBackup?.childWorkspaceStateV2
+        ];
+        for (const candidate of workspaceStateCandidates) {
+            const workspaceKey = extractSavedCanvasOwnKeyFromWorkspaceState(candidate);
+            if (!workspaceKey) continue;
+            const workspaceItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === workspaceKey);
+            if (workspaceItem) return workspaceItem;
         }
 
         const items = partnerItems.filter(item => item?.mainSelected);
@@ -3764,6 +3808,57 @@ const MeimayUserBackup = {
 
     _mergeByKey: function (localItems, remoteItems, keyGetter) {
         const merged = new Map();
+        const parseStamp = (value) => {
+            const stamp = new Date(String(value || '').trim() || 0).getTime();
+            return Number.isFinite(stamp) ? stamp : 0;
+        };
+        const mergeSelectionState = (existing, incoming, base) => {
+            const hasMainSelected = (existing && Object.prototype.hasOwnProperty.call(existing, 'mainSelected'))
+                || (incoming && Object.prototype.hasOwnProperty.call(incoming, 'mainSelected'))
+                || existing?.mainSelected === true
+                || incoming?.mainSelected === true;
+            if (hasMainSelected) {
+                const existingSelected = existing?.mainSelected === true;
+                const incomingSelected = incoming?.mainSelected === true;
+                const existingAt = String(existing?.mainSelectedAt || '').trim();
+                const incomingAt = String(incoming?.mainSelectedAt || '').trim();
+                base.mainSelected = existingSelected || incomingSelected;
+                if (base.mainSelected) {
+                    if (existingSelected && incomingSelected) {
+                        base.mainSelectedAt = parseStamp(existingAt) >= parseStamp(incomingAt)
+                            ? (existingAt || incomingAt)
+                            : (incomingAt || existingAt);
+                    } else if (existingSelected) {
+                        base.mainSelectedAt = existingAt || incomingAt;
+                    } else {
+                        base.mainSelectedAt = incomingAt || existingAt;
+                    }
+                } else {
+                    base.mainSelectedAt = '';
+                }
+            }
+            if ((existing && Object.prototype.hasOwnProperty.call(existing, 'approvedFromPartner'))
+                || (incoming && Object.prototype.hasOwnProperty.call(incoming, 'approvedFromPartner'))
+                || existing?.approvedFromPartner === true
+                || incoming?.approvedFromPartner === true) {
+                base.approvedFromPartner = existing?.approvedFromPartner === true || incoming?.approvedFromPartner === true;
+            }
+            if ((existing && Object.prototype.hasOwnProperty.call(existing, 'fromPartner'))
+                || (incoming && Object.prototype.hasOwnProperty.call(incoming, 'fromPartner'))
+                || existing?.fromPartner === true
+                || incoming?.fromPartner === true) {
+                base.fromPartner = existing?.fromPartner === true || incoming?.fromPartner === true;
+            }
+            if ((existing && Object.prototype.hasOwnProperty.call(existing, 'approvedPartnerSavedKey'))
+                || (incoming && Object.prototype.hasOwnProperty.call(incoming, 'approvedPartnerSavedKey'))) {
+                base.approvedPartnerSavedKey = String(existing?.approvedPartnerSavedKey || incoming?.approvedPartnerSavedKey || '').trim();
+            }
+            if ((existing && Object.prototype.hasOwnProperty.call(existing, 'partnerName'))
+                || (incoming && Object.prototype.hasOwnProperty.call(incoming, 'partnerName'))) {
+                base.partnerName = String(existing?.partnerName || incoming?.partnerName || '').trim();
+            }
+            return base;
+        };
         const put = (item, preferExisting) => {
             if (!item) return;
             const key = String(keyGetter(item) || '').trim();
@@ -3773,11 +3868,12 @@ const MeimayUserBackup = {
                 return;
             }
             if (!merged.has(key)) {
-                merged.set(key, clone);
+                merged.set(key, mergeSelectionState({}, clone, clone));
                 return;
             }
             const existing = merged.get(key);
-            merged.set(key, preferExisting ? { ...clone, ...existing } : { ...existing, ...clone });
+            const base = preferExisting ? { ...clone, ...existing } : { ...existing, ...clone };
+            merged.set(key, mergeSelectionState(existing, clone, base));
         };
 
         (Array.isArray(localItems) ? localItems : []).forEach((item) => put(item, true));
