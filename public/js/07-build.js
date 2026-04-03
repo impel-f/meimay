@@ -401,12 +401,21 @@ function renderFreeBuildSection() {
     // ストックから重複なし全漢字を取得
     const allKanji = [];
     const seen = new Set();
+    const displaySeen = new Set();
+    liked.forEach(item => {
+        const displayKey = getLikedCandidateDisplayKey(item);
+        if (!displayKey || displaySeen.has(displayKey)) return;
+        displaySeen.add(displayKey);
+        allKanji.push(item);
+    });
+    if (false) {
     liked.forEach(item => {
         if (!seen.has(item['漢字'])) {
             seen.add(item['漢字']);
             allKanji.push(item);
         }
     });
+    }
 
     if (allKanji.length === 0) {
         container.innerHTML = '<div class="text-center py-10 text-[#a6967a] text-sm">ストックがありません</div>';
@@ -559,18 +568,20 @@ function getFreeBuildRankingCandidatePool() {
     const pool = [];
 
     source.forEach((item) => {
+        const displayKey = getLikedCandidateDisplayKey(item);
         const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
-        if (!kanji || seen.has(kanji) || excludedKanjiFromBuild.includes(kanji)) return;
+        if (!displayKey || seen.has(displayKey) || excludedKanjiFromBuild.includes(displayKey) || excludedKanjiFromBuild.includes(kanji)) return;
         if (item?.isSuper) {
-            seen.add(kanji);
+            seen.add(displayKey);
             pool.push(item);
         }
     });
 
     source.forEach((item) => {
+        const displayKey = getLikedCandidateDisplayKey(item);
         const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
-        if (!kanji || seen.has(kanji) || excludedKanjiFromBuild.includes(kanji)) return;
-        seen.add(kanji);
+        if (!displayKey || seen.has(displayKey) || excludedKanjiFromBuild.includes(displayKey) || excludedKanjiFromBuild.includes(kanji)) return;
+        seen.add(displayKey);
         pool.push(item);
     });
 
@@ -580,6 +591,9 @@ function getFreeBuildRankingCandidatePool() {
 function getFreeBuildRankingCandidateItem(kanji, pool = getFreeBuildRankingCandidatePool()) {
     const key = String(kanji || '').trim();
     if (!key) return null;
+
+    const exactDisplay = pool.find((entry) => getLikedCandidateDisplayKey(entry) === key);
+    if (exactDisplay) return exactDisplay;
 
     const poolItem = pool.find((entry) => String(entry?.['漢字'] || entry?.kanji || '').trim() === key);
     if (poolItem) return poolItem;
@@ -1024,50 +1038,107 @@ function buildLikedCandidateKey(item) {
 
 function getLikedCandidateKanjiKey(item) {
     if (!item) return '';
-    return item['漢字'] || item.kanji || '';
+    return item?.['\u6f22\u5b57'] || item?.kanji || '';
+}
+
+function getLikedCandidateDisplayKey(item) {
+    if (!item) return '';
+    const baseKey = buildLikedCandidateKey(item);
+    if (!baseKey) return '';
+    return `${item?.fromPartner ? 'partner' : 'self'}::${baseKey}`;
+}
+
+function matchesLikedCandidateTarget(item, target) {
+    const normalizedTarget = String(target || '').trim();
+    if (!item || !normalizedTarget) return false;
+
+    const displayKey = getLikedCandidateDisplayKey(item);
+    const baseKey = buildLikedCandidateKey(item);
+    const kanjiKey = getLikedCandidateKanjiKey(item);
+    const rawKanji = String(item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '').trim();
+
+    return displayKey === normalizedTarget
+        || baseKey === normalizedTarget
+        || kanjiKey === normalizedTarget
+        || rawKanji === normalizedTarget;
+}
+
+function findLikedCandidateByTarget(target, source = null) {
+    const normalizedTarget = String(target || '').trim();
+    if (!normalizedTarget) return null;
+
+    const items = Array.isArray(source)
+        ? source
+        : (typeof getMergedLikedCandidates === 'function'
+            ? getMergedLikedCandidates()
+            : (Array.isArray(liked) ? liked : []));
+
+    return items.find((item) => matchesLikedCandidateTarget(item, normalizedTarget)) || null;
+}
+
+function findLocalLikedCandidateByTarget(target) {
+    const normalizedTarget = String(target || '').trim();
+    if (!normalizedTarget || !Array.isArray(liked)) return null;
+
+    return liked.find((item) => matchesLikedCandidateTarget(hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true }), normalizedTarget)) || null;
+}
+
+function isBuildCandidateExcluded(item) {
+    if (!item) return false;
+    const displayKey = getLikedCandidateDisplayKey(item);
+    const baseKey = buildLikedCandidateKey(item);
+    const kanjiKey = getLikedCandidateKanjiKey(item);
+    const rawKanji = String(item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '').trim();
+    return [displayKey, baseKey, kanjiKey, rawKanji].some((key) => key && excludedKanjiFromBuild.includes(key));
 }
 
 function hydrateLikedCandidate(item, options = {}) {
-    const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
+    const kanji = item?.['\u6f22\u5b57'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '';
     if (!kanji) return null;
     if (Array.from(kanji).length > 1) return null;
 
+    const fromPartner = options.fromPartner ?? item?.fromPartner === true;
+
     const masterItem = typeof master !== 'undefined' && Array.isArray(master)
-        ? master.find(entry => entry['漢字'] === kanji)
+        ? master.find(entry => entry['\u6f22\u5b57'] === kanji)
         : null;
 
     return {
         ...(masterItem || {}),
         ...(item || {}),
-        '漢字': kanji,
-        '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 0,
-        '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'] ?? '',
+        '\u6f22\u5b57': kanji,
+        '\u753b\u6570': item?.['\u753b\u6570'] ?? item?.strokes ?? masterItem?.['\u753b\u6570'] ?? 0,
+        '\u5206\u985e': item?.['\u5206\u985e'] ?? item?.category ?? masterItem?.['\u5206\u985e'] ?? '',
         kanji_reading: item?.kanji_reading || masterItem?.kanji_reading || '',
         slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
         sessionReading: item?.sessionReading || '',
         sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
         sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments : [],
         isSuper: !!item?.isSuper,
-        ownSuper: options.fromPartner ? false : !!item?.isSuper,
-        partnerSuper: options.fromPartner ? !!item?.isSuper : false,
-        fromPartner: !!options.fromPartner,
-        partnerAlsoPicked: !!options.partnerAlsoPicked,
+        ownSuper: fromPartner ? false : !!item?.isSuper,
+        partnerSuper: fromPartner ? !!item?.isSuper : false,
+        fromPartner,
+        partnerAlsoPicked: !!options.partnerAlsoPicked || !!item?.partnerAlsoPicked,
         partnerName: options.partnerName || item?.partnerName || ''
     };
 }
 
 function getMergedLikedCandidates() {
-    const ownItems = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.map(item => hydrateLikedCandidate(item)).filter(Boolean)
+    const localLikedItems = (typeof liked !== 'undefined' && Array.isArray(liked))
+        ? liked.map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true })).filter(Boolean)
         : [];
+    const ownItems = localLikedItems.filter(item => !item.fromPartner);
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
+    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : '\u30d1\u30fc\u30c8\u30ca\u30fc';
     const partnerLikedSource = pairInsights?.getPartnerLiked
         ? pairInsights.getPartnerLiked()
         : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
-    const partnerItems = Array.isArray(partnerLikedSource)
-        ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
-        : [];
+    const partnerItems = [
+        ...(Array.isArray(partnerLikedSource)
+            ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
+            : []),
+        ...localLikedItems.filter(item => item.fromPartner)
+    ].filter(Boolean);
 
     const ownKanjiKeys = new Set(ownItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
     const partnerKanjiKeys = new Set(partnerItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
@@ -1084,14 +1155,14 @@ function getMergedLikedCandidates() {
             .filter(Boolean)
     );
 
-    const merged = new Map();
+    const ownMerged = new Map();
     ownItems.forEach((item) => {
-        const key = buildLikedCandidateKey(item);
-        if (!key) return;
+        const key = getLikedCandidateDisplayKey(item);
+        if (!key || ownMerged.has(key)) return;
         const kanjiKey = getLikedCandidateKanjiKey(item);
         const partnerAlsoPicked = partnerKanjiKeys.has(kanjiKey);
         const partnerSuper = partnerSuperKanjiKeys.has(kanjiKey);
-        merged.set(key, {
+        ownMerged.set(key, {
             ...item,
             fromPartner: false,
             partnerAlsoPicked,
@@ -1100,36 +1171,26 @@ function getMergedLikedCandidates() {
         });
     });
 
+    const partnerMerged = new Map();
     partnerItems.forEach((item) => {
-        const key = buildLikedCandidateKey(item);
-        if (!key) return;
+        const key = getLikedCandidateDisplayKey(item);
+        if (!key || partnerMerged.has(key)) return;
         const kanjiKey = getLikedCandidateKanjiKey(item);
         const ownAlsoPicked = ownKanjiKeys.has(kanjiKey);
         const ownSuper = ownSuperKanjiKeys.has(kanjiKey);
-        if (merged.has(key)) {
-            const existing = merged.get(key);
-            const partnerSuper = existing.partnerSuper || !!item.partnerSuper || !!item.isSuper || partnerSuperKanjiKeys.has(kanjiKey);
-            merged.set(key, {
-                ...existing,
-                partnerAlsoPicked: true,
-                partnerName: item.partnerName || existing.partnerName || '',
-                partnerSuper,
-                isSuper: !!existing.ownSuper || partnerSuper
-            });
-        } else {
-            merged.set(key, {
-                ...item,
-                fromPartner: true,
-                partnerAlsoPicked: ownAlsoPicked,
-                ownSuper,
-                partnerSuper: !!item.partnerSuper || !!item.isSuper,
-                isSuper: ownSuper || !!item.partnerSuper || !!item.isSuper
-            });
-        }
+        partnerMerged.set(key, {
+            ...item,
+            fromPartner: true,
+            partnerAlsoPicked: ownAlsoPicked,
+            ownSuper,
+            partnerSuper: !!item.partnerSuper || !!item.isSuper,
+            isSuper: ownSuper || !!item.partnerSuper || !!item.isSuper
+        });
     });
 
-    return Array.from(merged.values());
+    return [...ownMerged.values(), ...partnerMerged.values()];
 }
+
 
 function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride = null) {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
@@ -1153,7 +1214,7 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
     });
 
     if (focus === 'partner') {
-        validItems = validItems.filter(item => item.fromPartner || item.partnerAlsoPicked);
+        validItems = validItems.filter(item => item.fromPartner);
     }
 
     if (focus === 'matched') {
@@ -1175,7 +1236,7 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
 
     const segGroups = {};
     validItems.forEach(item => {
-        let segRaw = '閾ｪ逕ｱ';
+        let segRaw = '\u95be\uff6a\u9015\uff71';
         if (item.sessionReading === 'FREE') {
             segRaw = 'FREE';
         } else if (item.sessionSegments && item.sessionSegments[item.slot]) {
@@ -1191,21 +1252,17 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
             : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
-        const kanjiKey = getLikedCandidateKanjiKey(item);
-        const dup = segGroups[seg].find(entry => getLikedCandidateKanjiKey(entry) === kanjiKey);
+        const kanjiKey = getLikedCandidateDisplayKey(item);
+        const dup = segGroups[seg].find(entry => getLikedCandidateDisplayKey(entry) === kanjiKey);
         if (!dup) {
             segGroups[seg].push(item);
             return;
         }
 
-        if (item.isSuper && !dup.isSuper) {
-            dup.isSuper = true;
-        } else if (item.fromPartner || item.partnerAlsoPicked) {
-            dup.partnerAlsoPicked = dup.partnerAlsoPicked || item.partnerAlsoPicked || !item.fromPartner;
-            dup.fromPartner = dup.fromPartner || item.fromPartner;
-            dup.partnerName = dup.partnerName || item.partnerName || '';
-        }
-
+        dup.isSuper = dup.isSuper || !!item.isSuper;
+        dup.fromPartner = dup.fromPartner || !!item.fromPartner;
+        dup.partnerAlsoPicked = dup.partnerAlsoPicked || !!item.partnerAlsoPicked;
+        dup.partnerName = dup.partnerName || item.partnerName || '';
         dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
         dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
         dup.isSuper = dup.ownSuper || dup.partnerSuper;
@@ -1242,13 +1299,14 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     return getMergedLikedCandidates().filter((item) => {
         const slotMatch = item.slot === idx;
         const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
-        const isPartnerVisible = item.fromPartner || item.partnerAlsoPicked;
+        const isPartnerVisible = item.fromPartner;
         const isMatched = item.partnerAlsoPicked;
-        const isNotExcluded = !excludeSet.has(item['漢字']);
+        const itemDisplayKey = getLikedCandidateDisplayKey(item);
+        const isNotExcluded = !excludeSet.has(itemDisplayKey) && !excludeSet.has(item['\u6f22\u5b57']);
 
         let freeMatch = false;
         if (item.sessionReading === 'FREE') {
-            const readings = (item.kanji_reading || '').split(/[、,，\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(Boolean);
+            const readings = (item.kanji_reading || '').split(/[\u3001,\uff0c\s/]+/).map(r => typeof toHira === 'function' ? toHira(r) : r).filter(Boolean);
             const targetSeg = typeof toHira === 'function' ? toHira(seg) : seg;
             freeMatch = readings.includes(targetSeg);
         }
@@ -1259,7 +1317,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         } else if (item.sessionReading && !item.sessionReading.includes('::') && !item.sessionReading.includes('/')) {
             itemSeg = item.sessionReading;
         }
-        
+
         const targetSegHira = typeof toHira === 'function' && seg ? toHira(seg) : seg || '';
         const itemSegHira = typeof toHira === 'function' && itemSeg ? toHira(itemSeg) : itemSeg || '';
         const segmentMatch = !!(targetSegHira && itemSegHira && targetSegHira === itemSegHira);
@@ -1410,9 +1468,9 @@ function renderStock() {
         return item.slot >= 0 && item.sessionReading !== 'SEARCH';
     });
 
-    if (kanjiFocus === 'partner') {
-        validItems = validItems.filter(item => item.fromPartner || item.partnerAlsoPicked);
-    }
+if (kanjiFocus === 'partner') {
+    validItems = validItems.filter(item => item.fromPartner);
+}
 
     if (kanjiFocus === 'matched') {
         validItems = validItems.filter(item => {
@@ -1484,21 +1542,18 @@ function renderStock() {
         const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
-        const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
-        if (!dup) {
-            segGroups[seg].push(item);
-        } else if (item.isSuper && !dup.isSuper) {
-            dup.isSuper = true;
-        } else if (item.fromPartner || item.partnerAlsoPicked) {
-            dup.partnerAlsoPicked = dup.partnerAlsoPicked || item.partnerAlsoPicked || !item.fromPartner;
-            dup.fromPartner = dup.fromPartner || item.fromPartner;
-            dup.partnerName = dup.partnerName || item.partnerName || '';
-        }
-        if (dup) {
-            dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
-            dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
-            dup.isSuper = dup.ownSuper || dup.partnerSuper;
-        }
+const dup = segGroups[seg].find(e => getLikedCandidateDisplayKey(e) === getLikedCandidateDisplayKey(item));
+if (!dup) {
+    segGroups[seg].push(item);
+} else {
+    dup.isSuper = dup.isSuper || !!item.isSuper;
+    dup.fromPartner = dup.fromPartner || !!item.fromPartner;
+    dup.partnerAlsoPicked = dup.partnerAlsoPicked || !!item.partnerAlsoPicked;
+    dup.partnerName = dup.partnerName || item.partnerName || '';
+    dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
+    dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
+    dup.isSuper = dup.ownSuper || dup.partnerSuper;
+}
     });
 
     const sortedKeys = Object.keys(segGroups).sort((a, b) => {
@@ -1836,6 +1891,7 @@ function updateNamePreview() {
 /**
  * ビルド選択画面のレンダリング
  */
+
 function renderBuildSelection() {
     const container = document.getElementById('build-selection');
     const headerContainer = document.getElementById('build-header-sticky');
@@ -1851,16 +1907,12 @@ function renderBuildSelection() {
 
     const currentReading = getSafeBuildCurrentReading();
 
-    // モード切り替えタブ
     const modeBar = document.createElement('div');
     modeBar.className = 'relative w-full';
-
-    // 読みボタンのラベル：読みモードのときは「?? はるき ?」のように実際の読みを出す
     const readingBtnLabel = buildMode === 'reading' && currentReading
-        ? `読み（${currentReading}）`
-        : '読みを選ぶ';
+        ? `\u8aad\u307f\uff08${currentReading}\uff09`
+        : '\u8aad\u307f\u3092\u9078\u3076';
 
-    // 読みドロップダウンがヘッダーの下に潜り込むように配置
     modeBar.innerHTML = `
         <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="build-tabs">
             <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
@@ -1869,14 +1921,14 @@ function renderBuildSelection() {
             : 'text-[#a6967a]'}">
                 <span class="inline-flex items-center justify-center gap-1.5 min-w-0 w-full">
                     <span style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${readingBtnLabel}</span>
-                    <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
+                    <span id="reading-mode-caret" class="text-[11px] leading-none">?</span>
                 </span>
             </button>
             <button onclick="setBuildMode('free')"
                 class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'free'
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
-                自由組み立て
+                \u81ea\u7531\u7d44\u307f\u7acb\u3066
             </button>
         </div>
         <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
@@ -1886,26 +1938,22 @@ function renderBuildSelection() {
     namePreview.id = 'build-name-preview';
     namePreview.className = 'mt-3 mb-1 -mx-2';
 
-    // モードタブを先にして、そのあとに名前プレビューを配置
     headerContainer.appendChild(modeBar);
     headerContainer.appendChild(namePreview);
 
-    // DOMに追加してからupdateNamePreview()を実行（ID検索が機能するように）
     updateNamePreview();
 
-    // 自由モードはフリービルドUIを表示
     if (buildMode === 'free') {
         renderBuildFreeMode(container);
         return;
     }
 
-    // デバッグ情報
     console.log('=== BUILD DEBUG START ===');
     console.log('Current reading:', currentReading);
     console.log('Segments:', segments);
     console.log('Total liked items:', liked.length);
     console.log('Liked items:', liked.map(item => ({
-        kanji: item['漢字'],
+        kanji: item['\u6f22\u5b57'],
         slot: item.slot,
         sessionReading: item.sessionReading
     })));
@@ -1924,9 +1972,8 @@ function renderBuildSelection() {
                 </p>
                 <div class="flex gap-2">
                     <button onclick="addMoreToSlot(${idx})" class="text-[10px] font-bold text-[#5d5444] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#bca37f] rounded-full bg-white">
-                        + 追加する
+                        + \u8ffd\u52a0\u3059\u308b
                     </button>
-                    <!-- reselectSlot は非表示 -->
                 </div>
             </div>
     `;
@@ -1940,30 +1987,27 @@ function renderBuildSelection() {
         if (isFixedSlot) {
             const rowActions = row.querySelector('.flex.gap-2');
             if (rowActions) {
-                rowActions.innerHTML = '<span class="text-[10px] font-bold text-[#b9965b] px-3 py-1 border border-[#eadfce] rounded-full bg-[#fff8ef]">固定</span>';
+                rowActions.innerHTML = '<span class="text-[10px] font-bold text-[#b9965b] px-3 py-1 border border-[#eadfce] rounded-full bg-[#fff8ef]">\u56fa\u5b9a</span>';
             }
         }
 
         const scrollBox = document.createElement('div');
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
-        // このスロットの候補を取得
         let items = getBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
         });
 
-        console.log(`Slot ${idx} filtered items: `, items.length);
-
         const seen = new Set();
         items = items.filter(item => {
-            if (seen.has(item['漢字'])) return false;
-            seen.add(item['漢字']);
+            const buildKey = getLikedCandidateDisplayKey(item);
+            if (seen.has(buildKey)) return false;
+            seen.add(buildKey);
             return true;
         });
 
-        // 現在の読みにマッチしない候補は表示しない（フォールバック廃止）
         if (items.length === 0) {
-            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">候補なし（追加する から探し直してください）</div>';
+            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">\u5019\u88dc\u306a\u3057\uff08\u8ffd\u52a0\u3059\u308b \u304b\u3089\u63a2\u3057\u76f4\u3057\u3066\u304f\u3060\u3055\u3044\uff09</div>';
         }
 
         if (items.length > 0) {
@@ -1979,12 +2023,19 @@ function renderBuildSelection() {
 
             items.forEach((item, itemIdx) => {
                 const btn = document.createElement('button');
-                const isSelected = selectedPieces[idx] && selectedPieces[idx]['漢字'] === item['漢字'];
+                const selectedKey = selectedPieces[idx]
+                    ? getLikedCandidateDisplayKey(hydrateLikedCandidate(selectedPieces[idx], { fromPartner: selectedPieces[idx]?.fromPartner === true }))
+                    : '';
+                const itemKey = getLikedCandidateDisplayKey(item);
+                const isSelected = selectedKey && selectedKey === itemKey;
+                const buildTarget = itemKey;
                 btn.className = 'build-piece-btn relative';
                 btn._buildPieceData = item;
+                btn._buildPieceTarget = buildTarget;
 
                 btn.setAttribute('data-slot', idx);
-                btn.setAttribute('data-kanji', item['漢字']);
+                btn.setAttribute('data-kanji', item['\u6f22\u5b57']);
+                btn.setAttribute('data-build-target', buildTarget);
                 btn.onclick = () => {
                     selectBuildPiece(idx, item, btn);
                     updateNamePreview();
@@ -1992,23 +2043,22 @@ function renderBuildSelection() {
                 btn.oncontextmenu = (e) => {
                     e.preventDefault();
                     if (typeof openKanjiActionMenu === 'function') {
-                        openKanjiActionMenu(item['漢字'], idx, false);
+                        openKanjiActionMenu(buildTarget, idx, false);
                     }
                 };
 
                 let fortuneIndicator = '';
                 if (prioritizeFortune && itemIdx < 3) {
-                    const badges = ['1位', '2位', '3位'];
-                    fortuneIndicator = `<div class="text-lg mt-1" > ${badges[itemIdx]}</div> `;
+                    const badges = ['1\u4f4d', '2\u4f4d', '3\u4f4d'];
+                    fortuneIndicator = `<div class="text-lg mt-1">${badges[itemIdx]}</div>`;
                 }
 
-                // 画数が未設定の場合はmasterから補完
-                const strokes = item['画数'] !== undefined ? item['画数']
-                    : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === item['漢字'])?.['画数'] : undefined) ?? '--';
+                const strokes = item['\u753b\u6570'] !== undefined ? item['\u753b\u6570']
+                    : (typeof master !== 'undefined' ? master.find(m => m['\u6f22\u5b57'] === item['\u6f22\u5b57'])?.['\u753b\u6570'] : undefined) ?? '--';
 
                 btn.innerHTML = `
-                    <div class="build-kanji-text ${item['漢字'] && item['漢字'].length > 1 ? 'is-compound' : ''}">${item['漢字']}</div>
-                    <div class="build-piece-strokes text-[10px] font-bold">${strokes}画</div>
+                    <div class="build-kanji-text ${item['\u6f22\u5b57'] && item['\u6f22\u5b57'].length > 1 ? 'is-compound' : ''}">${item['\u6f22\u5b57']}</div>
+                    <div class="build-piece-strokes text-[10px] font-bold">${strokes}\u753b</div>
                     ${renderBuildSuperStars(item)}
                     ${fortuneIndicator}
 `;
@@ -2021,21 +2071,16 @@ function renderBuildSelection() {
         container.appendChild(row);
     });
 
-    // ?? 運勢ランキングTOP10 を一番下に追加
     const rankingBtnWrapper = document.createElement('div');
     rankingBtnWrapper.className = 'mt-6 mb-6 flex justify-center';
     rankingBtnWrapper.innerHTML = `<button onclick="showFortuneRanking()" class="w-full max-w-[300px] py-2.5 bg-white border-2 border-[#bca37f] text-[#bca37f] rounded-2xl shadow-sm transition-all hover:bg-[#bca37f] hover:text-white flex flex-col items-center justify-center gap-0.5 active:scale-95">
-        <div class="text-sm font-bold">🏆 運勢TOP10</div>
-        <div class="text-[10px] font-medium opacity-80">候補から運勢が良い組み合わせを自動計算</div>
+        <div class="text-sm font-bold">\u904b\u52e2TOP10</div>
+        <div class="text-[10px] font-medium opacity-80">\u5019\u88dc\u304b\u3089\u904b\u52e2\u304c\u9ad8\u3044\u3082\u306e\u3092\u8868\u793a\u3057\u307e\u3059</div>
     </button>`;
     if (false) container.appendChild(rankingBtnWrapper);
 
     console.log('=== BUILD DEBUG END ===');
 }
-
-/**
- * 指定した読み方のストックをすべて削除
- */
 function deleteStockGroup(reading) {
     if (!confirm(`「${reading}」のストックをすべて削除しますか？\n（${liked.filter(i => i.sessionReading === reading).length} 件）`)) {
         return;
@@ -2173,30 +2218,32 @@ window.selectReadingForBuild = selectReadingForBuild;
  * ストックされた漢字を読み方・FREE問わず全表示し、
  * 1?3文字を自由に組み合わせる（スーパーライクを先頭に）
  */
+
 function renderBuildFreeMode(container) {
-    // ストックから重複なし全漢字を取得（スーパーライク優先）
     const seen = new Set();
     const allKanji = [];
     const freeModeSource = typeof getMergedLikedCandidates === 'function'
         ? getMergedLikedCandidates()
         : (liked || []);
+    const pushCandidate = (item) => {
+        if (!item) return;
+        if (isBuildCandidateExcluded(item)) return;
+        const key = getLikedCandidateDisplayKey(item);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        allKanji.push({ ...item, _buildTarget: key });
+    };
     freeModeSource.forEach(item => {
-        if (item.isSuper && !seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
-            seen.add(item['漢字']);
-            allKanji.push(item);
-        }
+        if (item.isSuper) pushCandidate(item);
     });
     freeModeSource.forEach(item => {
-        if (!seen.has(item['漢字']) && !excludedKanjiFromBuild.includes(item['漢字'])) {
-            seen.add(item['漢字']);
-            allKanji.push(item);
-        }
+        if (!item.isSuper) pushCandidate(item);
     });
 
     if (allKanji.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'text-center py-16 text-[#a6967a] text-sm';
-        empty.textContent = 'ストックがありません。スワイプで漢字をストックしてください。';
+        empty.textContent = '\u30b9\u30c8\u30c3\u30af\u304c\u3042\u308a\u307e\u305b\u3093\u3002\u30b9\u30ef\u30a4\u30d7\u3067\u6f22\u5b57\u3092\u30b9\u30c8\u30c3\u30af\u3057\u3066\u304f\u3060\u3055\u3044\u3002';
         container.appendChild(empty);
         return;
     }
@@ -2204,7 +2251,7 @@ function renderBuildFreeMode(container) {
     const maxSlots = 3;
 
     for (let slotIdx = 0; slotIdx < shownFbSlots; slotIdx++) {
-        const label = `${slotIdx + 1}文字目`;
+        const label = `${slotIdx + 1}\u6587\u5b57\u76ee`;
         const selected = fbChoices[slotIdx] || null;
 
         const slotDiv = document.createElement('div');
@@ -2216,31 +2263,32 @@ function renderBuildFreeMode(container) {
                     <span class="bg-[#bca37f] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">${slotIdx + 1}</span>
                     ${label}
                 </p>
-                ${selected ? `<button onclick="removeFbChoice(${slotIdx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#f28b82] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">× 解除</button>` : ''}
+                ${selected ? `<button onclick="removeFbChoice(${slotIdx})" class="text-[10px] font-bold text-[#a6967a] hover:text-[#f28b82] transition-colors px-3 py-1 border border-[#d4c5af] rounded-full">\u00d7 \u89e3\u9664</button>` : ''}
             </div>
         `;
 
         const scrollHtml = `<div class="flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1">
             ${allKanji.map(item => {
-            const k = item['漢字'];
-            const strokes = item['画数'] !== undefined ? item['画数']
-                : (typeof master !== 'undefined' ? master.find(m => m['漢字'] === k)?.['画数'] : undefined) ?? '--';
-            const isSelected = fbChoices[slotIdx] === k;
-            const isUsed = fbChoices.includes(k) && !isSelected;
-            const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
-            const buttonStyles = [];
-            if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
-            const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
-            const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
-            return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
-                    oncontextmenu="event.preventDefault(); openKanjiActionMenu('${k}', ${slotIdx}, true)"
-                    data-slot="${slotIdx}" data-kanji="${k}"
-                    class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
-                    style="${buttonStyles.join('')}">
-                    <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
-                    <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}画</div>
-                    ${renderBuildSuperStars(item)}
-                </button>`;
+                const k = item['\u6f22\u5b57'];
+                const buildTarget = item._buildTarget || getLikedCandidateDisplayKey(item);
+                const strokes = item['\u753b\u6570'] !== undefined ? item['\u753b\u6570']
+                    : (typeof master !== 'undefined' ? master.find(m => m['\u6f22\u5b57'] === k)?.['\u753b\u6570'] : undefined) ?? '--';
+                const isSelected = fbChoices[slotIdx] === k;
+                const isUsed = fbChoices.includes(k) && !isSelected;
+                const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
+                const buttonStyles = [];
+                if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
+                const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
+                const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
+                return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
+                        oncontextmenu='event.preventDefault(); openKanjiActionMenu(${JSON.stringify(buildTarget)}, ${slotIdx}, true)'
+                        data-slot="${slotIdx}" data-kanji="${k}"
+                        class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
+                        style="${buttonStyles.join('')}">
+                        <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
+                        <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}\u753b</div>
+                        ${renderBuildSuperStars(item)}
+                    </button>`;
         }).join('')}
         </div>`;
 
@@ -2248,11 +2296,10 @@ function renderBuildFreeMode(container) {
         container.appendChild(slotDiv);
     }
 
-    // 「N文字目を追加」ボタン（1文字目が選択済みの場合のみ表示）
     if (fbChoices.length >= shownFbSlots && shownFbSlots < maxSlots) {
         const addBtn = document.createElement('button');
         addBtn.className = 'w-full py-3 mb-2 border-2 border-dashed border-[#d4c5af] rounded-2xl text-sm font-bold text-[#a6967a] hover:border-[#bca37f] hover:text-[#bca37f] transition-all active:scale-95';
-        addBtn.innerHTML = `＋ ${shownFbSlots + 1}文字目を追加`;
+        addBtn.innerHTML = `\uff0b${shownFbSlots + 1}\u6587\u5b57\u76ee\u3092\u8ffd\u52a0`;
         addBtn.onclick = () => {
             withScrollPreservation(() => {
                 shownFbSlots = Math.min(shownFbSlots + 1, maxSlots);
@@ -2262,16 +2309,10 @@ function renderBuildFreeMode(container) {
         container.appendChild(addBtn);
     }
 
-    // 選択した漢字の読み合わせ候補を表示
     if (fbChoices.length >= 1) {
         suggestReadingsForKanji(fbChoices, container);
     }
 }
-
-/**
- * 自由組み立てモード：選択した漢字の読みの組み合わせから
- * readings_data.json 内にマッチする読みを候補として提案する
- */
 function normalizeReadingLookupKey(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -2496,11 +2537,16 @@ window.executeFbBuild = executeFbBuild;
 /**
  * 漢字のアクションメニュー（ポップアップ）を表示
  */
-function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
-    // 既存のメニューがあれば削除
+function openKanjiActionMenu(target, slotIdx, isFreeMode) {
+    // ?????????????
     document.getElementById('kanji-action-popup')?.remove();
 
-    const item = liked.find(i => i['漢字'] === kanji);
+    const targetLabel = String(target || '').trim();
+    const localItem = findLocalLikedCandidateByTarget(targetLabel);
+    const item = localItem || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = item?.['??'] || item?.kanji || targetLabel;
+    const actionTarget = getLikedCandidateDisplayKey(localItem || item) || targetLabel;
+    const popupTargetLiteral = JSON.stringify(actionTarget);
     const isSuper = item?.isSuper ?? false;
 
     const popupHtml = `
@@ -2508,29 +2554,29 @@ function openKanjiActionMenu(kanji, slotIdx, isFreeMode) {
             <div class="modal-sheet w-11/12 max-w-sm flex flex-col gap-3 p-6" onclick="event.stopPropagation()">
                 <div class="text-center mb-2">
                     <div class="text-4xl font-black text-[#5d5444] mb-1">${kanji}</div>
-                    <div class="text-xs text-[#a6967a]">漢字のアクション</div>
+                    <div class="text-xs text-[#a6967a]">????????</div>
                 </div>
 
-                <button onclick="openKanjiDetailFromBuild('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                <button onclick='openKanjiDetailFromBuild(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
                     <span class="text-lg">i</span>
-                    漢字詳細を見る
-                </button>
-                
-                <button onclick="toggleSuperLikeInStock('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
-                    <span class="text-lg">${isSuper ? '★' : '☆'}</span> 
-                    SUPER ${isSuper ? 'を解除する' : 'に設定する'}
+                    ???????
                 </button>
 
-                <button onclick="removeFromBuildCandidates(${slotIdx}, '${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
-                    <span class="text-lg">−</span> 候補から外す
+                <button onclick='toggleSuperLikeInStock(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">${isSuper ? '?' : '?'}</span> 
+                    SUPER ${isSuper ? '?????' : '?????'}
                 </button>
 
-                <button onclick="confirmStockDeletion('${kanji}')" class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#d44e4e] flex items-center justify-center gap-2 hover:border-[#d44e4e] transition-all active:scale-95">
-                    <span class="text-lg">×</span> ストックから完全に削除
+                <button onclick='removeFromBuildCandidates(${slotIdx}, ${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">?</span> ??????
+                </button>
+
+                <button onclick='confirmStockDeletion(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#d44e4e] flex items-center justify-center gap-2 hover:border-[#d44e4e] transition-all active:scale-95">
+                    <span class="text-lg">?</span> ???????????
                 </button>
 
                 <button onclick="closeKanjiActionMenu()" class="mt-2 w-full py-3 text-sm font-bold text-[#a6967a] hover:text-[#5d5444] transition-all">
-                    キャンセル
+                    ?????
                 </button>
             </div>
         </div>
@@ -2543,17 +2589,19 @@ function closeKanjiActionMenu() {
     document.getElementById('kanji-action-popup')?.remove();
 }
 
-function openKanjiDetailFromBuild(kanji) {
-    const likedItem = Array.isArray(liked) ? liked.find(item => item['漢字'] === kanji) : null;
-    const masterItem = (typeof master !== 'undefined' && Array.isArray(master))
-        ? master.find(item => item['漢字'] === kanji)
-        : null;
+function openKanjiDetailFromBuild(target) {
+    const likedItem = findLikedCandidateByTarget(target) || null;
+    const masterItem = likedItem && likedItem['??'] && typeof master !== 'undefined' && Array.isArray(master)
+        ? master.find(item => item['??'] === likedItem['??'])
+        : (typeof master !== 'undefined' && Array.isArray(master)
+            ? master.find(item => item['??'] === String(target || '').trim())
+            : null);
     const detailItem = { ...(masterItem || {}), ...(likedItem || {}) };
 
     closeKanjiActionMenu();
 
-    if (!detailItem || !detailItem['漢字']) {
-        if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '!');
+    if (!detailItem || !detailItem['??']) {
+        if (typeof showToast === 'function') showToast('?????????????', '!');
         return;
     }
 
@@ -2567,21 +2615,23 @@ function openKanjiDetailFromBuild(kanji) {
         return;
     }
 
-    if (typeof showToast === 'function') showToast('漢字詳細を開けませんでした', '!');
+    if (typeof showToast === 'function') showToast('?????????????', '!');
 }
 
 /**
- * SUPER状態を切り替え
+ * SUPER???????
  */
-function toggleSuperLikeInStock(kanji) {
+function toggleSuperLikeInStock(target) {
     if (!liked) return;
-    const item = liked.find(i => i['漢字'] === kanji);
+    const targetLabel = String(target || '').trim();
+    const item = findLocalLikedCandidateByTarget(targetLabel);
     if (item) {
         item.isSuper = !item.isSuper;
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
             StorageBox.saveLiked();
         }
-        showToast(`「${kanji}」をSUPER${item.isSuper ? 'にしました' : 'から外しました'}`, '★');
+        const kanji = item['??'] || item.kanji || targetLabel;
+        showToast(`?${kanji}??SUPER${item.isSuper ? '?????' : '???????'}`, '?');
 
         withScrollPreservation(() => {
             renderBuildSelection();
@@ -2592,12 +2642,16 @@ function toggleSuperLikeInStock(kanji) {
 }
 
 /**
- * 候補から外す（一覧から非表示にする）
+ * ??????????????????
  */
-function removeFromBuildCandidates(slotIdx, kanji) {
-    // 除外リストに追加
-    if (kanji && !excludedKanjiFromBuild.includes(kanji)) {
-        excludedKanjiFromBuild.push(kanji);
+function removeFromBuildCandidates(slotIdx, target) {
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+
+    // ????????
+    if (targetLabel && !excludedKanjiFromBuild.includes(targetLabel)) {
+        excludedKanjiFromBuild.push(targetLabel);
     }
 
     if (buildMode === 'free') {
@@ -2608,33 +2662,48 @@ function removeFromBuildCandidates(slotIdx, kanji) {
             executeFbBuild();
         });
     } else {
-        selectedPieces[slotIdx] = null;
+        if (typeof selectedPieces !== 'undefined') {
+            selectedPieces = selectedPieces.map((p) => {
+                if (!p) return p;
+                const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
+                return matchesLikedCandidateTarget(hydrated, targetLabel) ? null : p;
+            });
+        }
         updateNamePreview();
         renderBuildSelection();
     }
-    showToast(`「${kanji}」を候補一覧から除外しました`, '−');
+    showToast(`?${kanji}?????????????`, '?');
     closeKanjiActionMenu();
 }
 
 /**
- * ストック削除の最終確認
+ * ???????????
  */
-function confirmStockDeletion(kanji) {
-    if (confirm(`漢字「${kanji}」をストックから完全に削除しますか？\nこの操作は取り消せません。`)) {
-        removeKanjiFromStock(kanji);
+function confirmStockDeletion(target) {
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+    if (confirm(`???${kanji}??????????????????
+?????????????`)) {
+        removeKanjiFromStock(targetLabel);
         closeKanjiActionMenu();
     }
 }
 
 /**
- * 漢字をストックから完全に削除
+ * ??????????????
  */
-function removeKanjiFromStock(kanji) {
+function removeKanjiFromStock(target) {
     if (!liked) return;
 
-    const removedItems = liked.filter(item => (item['漢字'] || item['\u8c8d\uff62\u87c4\u30fb'] || item['\u8c8c\uff61\u87c4\uff65'] || item.kanji) === kanji);
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+    const targetKey = targetItem ? getLikedCandidateDisplayKey(targetItem) : targetLabel;
+    const hydrateForTarget = (item) => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true });
+    const removedItems = liked.filter(item => matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
     const initialCount = liked.length;
-    liked = liked.filter(item => (item['漢字'] || item['\u8c8d\uff62\u87c4\u30fb'] || item['\u8c8c\uff61\u87c4\uff65'] || item.kanji) !== kanji);
+    liked = liked.filter(item => !matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
 
     if (liked.length < initialCount) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
@@ -2648,12 +2717,16 @@ function removeKanjiFromStock(kanji) {
         }
 
         fbChoices = fbChoices.map(c => c === kanji ? null : c);
-        // 通常モードの選択もクリア
+        // ????????????
         if (typeof selectedPieces !== 'undefined') {
-            selectedPieces = selectedPieces.map(p => (p && p['漢字'] === kanji) ? null : p);
+            selectedPieces = selectedPieces.map((p) => {
+                if (!p) return p;
+                const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
+                return matchesLikedCandidateTarget(hydrated, targetKey) ? null : p;
+            });
         }
 
-        showToast(`「${kanji}」を完全に削除しました`, '×');
+        showToast(`?${kanji}???????????`, '?');
 
         withScrollPreservation(() => {
             renderBuildSelection();
@@ -3267,6 +3340,15 @@ function generateAllCombinations() {
             excluded: excludedKanjiFromBuild
         });
 
+        const displaySeen = new Set();
+        items = items.filter(item => {
+            const displayKey = getLikedCandidateDisplayKey(item);
+            if (!displayKey || displaySeen.has(displayKey)) return false;
+            displaySeen.add(displayKey);
+            return true;
+        });
+        return items;
+        if (false) {
         const seen = new Set();
         items = items.filter(item => {
             if (seen.has(item['漢字'])) return false;
@@ -3275,6 +3357,7 @@ function generateAllCombinations() {
         });
 
         return items;
+        }
     });
     if (slotArrays.some(arr => arr.length === 0)) return [];
 
