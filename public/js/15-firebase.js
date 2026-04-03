@@ -2789,6 +2789,11 @@ MeimayPairing.syncMyData = async function () {
         const savedNamesToStore = pickStoredSection(projectedSections.savedNames, existingRoomData.savedNames);
         const readingStockToStore = pickStoredSection(projectedSections.readingStock, existingRoomData.readingStock);
         const encounteredToStore = pickStoredSection(projectedSections.encounteredReadings, existingRoomData.encounteredReadings);
+        const existingProfileName = String(existingRoomData.displayName || existingRoomData.username || existingRoomData.nickname || '').trim();
+        const profileName = String(wizard.username || existingProfileName || '').trim();
+        const profileThemeId = typeof getProfileThemeId === 'function'
+            ? getProfileThemeId(wizard.role)
+            : (wizard.themeId || existingRoomData.themeId || null);
         const roomBackup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
@@ -2809,10 +2814,10 @@ MeimayPairing.syncMyData = async function () {
 
         await roomDataRef.set({
                 role: this.myRole,
-                displayName: String(wizard.username || '').trim(),
-                username: String(wizard.username || '').trim(),
-                nickname: String(wizard.username || '').trim(),
-                themeId: typeof getProfileThemeId === 'function' ? getProfileThemeId(wizard.role) : (wizard.themeId || null),
+                displayName: profileName,
+                username: profileName,
+                nickname: profileName,
+                themeId: profileThemeId,
                 liked: likedToStore,
                 savedNames: savedNamesToStore,
                 readingStock: readingStockToStore,
@@ -3037,17 +3042,26 @@ MeimayShare.syncProfileAppearance = async function () {
         ? (WizardData.get() || {})
         : {};
     const nextRole = this.myRole || wizard.role || null;
-    const nextThemeId = typeof getProfileThemeId === 'function'
-        ? getProfileThemeId(wizard.role)
-        : String(wizard.themeId || '').trim();
+    const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
 
     try {
-        await firebaseDb.collection('rooms').doc(this.roomCode)
-            .collection('data').doc(user.uid).set({
+        const roomDataDoc = await roomDataRef.get();
+        const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
+        const existingProfileName = String(
+            existingRoomData.displayName
+            || existingRoomData.username
+            || existingRoomData.nickname
+            || ''
+        ).trim();
+        const profileName = String(wizard.username || existingProfileName || '').trim();
+        const nextThemeId = typeof getProfileThemeId === 'function'
+            ? getProfileThemeId(wizard.role)
+            : String(wizard.themeId || existingRoomData.themeId || '').trim();
+        await roomDataRef.set({
                 role: nextRole,
-                displayName: String(wizard.username || '').trim(),
-                username: String(wizard.username || '').trim(),
-                nickname: String(wizard.username || '').trim(),
+                displayName: profileName,
+                username: profileName,
+                nickname: profileName,
                 themeId: nextThemeId,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
@@ -3188,8 +3202,14 @@ function inferPartnerDisplayNameFromSnapshot(snapshot = {}) {
         snapshot.nickname,
         snapshot.partnerName
     ];
+    const backupCandidates = [
+        snapshot.partnerUserBackup && snapshot.partnerUserBackup.displayName,
+        snapshot.partnerUserBackup && snapshot.partnerUserBackup.username,
+        snapshot.partnerUserBackup && snapshot.partnerUserBackup.nickname,
+        snapshot.partnerUserBackup && snapshot.partnerUserBackup.partnerName
+    ];
 
-    for (const candidate of directCandidates) {
+    for (const candidate of [...directCandidates, ...backupCandidates]) {
         const text = String(candidate || '').trim();
         if (text && !isGenericPartnerDisplayName(text)) return text;
     }
