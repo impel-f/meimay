@@ -2158,8 +2158,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-2.5">
-                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'まだ本命を選んでいません', ownTheme)}
-                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'まだ本命を選んでいません', partnerTheme)}
+                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', '未選択', ownTheme)}
+                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', '未選択', partnerTheme)}
             </div>
         `;
 
@@ -2523,8 +2523,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-2.5">
-                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'まだ本命を選んでいません', ownTheme)}
-                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'まだ本命を選んでいません', partnerTheme)}
+                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', '未選択', ownTheme)}
+                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', '未選択', partnerTheme)}
             </div>
         `;
 
@@ -2884,8 +2884,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-2.5">
-                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'own', 'まだ本命を選んでいません', ownTheme)}
-                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'partner', 'まだ本命を選んでいません', partnerTheme)}
+                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'own', '未選択', ownTheme)}
+                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'partner', '未選択', partnerTheme)}
             </div>
         `;
 
@@ -3108,8 +3108,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-2.5">
-                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'own', 'まだ本命を選んでいません', ownTheme)}
-                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'partner', 'まだ本命を選んでいません', partnerTheme)}
+                ${renderCanvasSide(canvasState.ownMain, 'マイ本命', 'own', '未選択', ownTheme)}
+                ${renderCanvasSide(canvasState.partnerMain, 'パートナー本命', 'partner', '未選択', partnerTheme)}
             </div>
         `;
 
@@ -3596,8 +3596,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-3">
-                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', 'まだ本命を選んでいません')}
-                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', 'まだ選ばれていません')}
+                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', '未選択')}
+                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', '未選択')}
             </div>
         `;
 
@@ -4079,8 +4079,8 @@ function renderSavedScreen() {
         `
         : `
             <div class="grid grid-cols-2 gap-3">
-                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', 'まだ本命を選んでいません')}
-                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', 'まだ本命を選んでいません')}
+                ${renderCanvasSide(canvasState.ownMain, '自分', 'own', '未選択')}
+                ${renderCanvasSide(canvasState.partnerMain, partnerName, 'partner', '未選択')}
             </div>
         `;
 
@@ -4382,8 +4382,8 @@ function renderSavedScreen() {
             return `
                 <div class="flex flex-col items-center">
                     ${labelHtml}
-                    <div class="w-full rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2 text-center" style="background:${theme.surface}; ${borderStyle}">
-                        <div class="text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText)}</div>
+                    <div class="w-full rounded-[24px] border border-dashed ${canvasCardMinHeight} px-3.5 py-2 text-center flex items-center justify-center" style="background:${theme.surface}; ${borderStyle}">
+                        <div class="text-sm font-bold text-[#8b7e66]">${escapeHtml(emptyText || '未選択')}</div>
                     </div>
                 </div>
             `;
@@ -4428,12 +4428,12 @@ function renderSavedScreen() {
         : `
             ${hasPartnerLinked ? `
                 <div class="grid grid-cols-2 gap-2.5">
-                    ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
-                    ${renderCanvasSide(canvasState.partnerMain, 'partner', 'まだ本命を選んでいません')}
+                    ${renderCanvasSide(canvasState.ownMain, 'own', '未選択')}
+                    ${renderCanvasSide(canvasState.partnerMain, 'partner', '未選択')}
                 </div>
             ` : `
                 <div class="mx-auto max-w-[320px]">
-                    ${renderCanvasSide(canvasState.ownMain, 'own', 'まだ本命を選んでいません')}
+                    ${renderCanvasSide(canvasState.ownMain, 'own', '未選択')}
                 </div>
             `}
         `;

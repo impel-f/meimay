@@ -777,8 +777,6 @@
                 const key = this.getSavedItemKey(normalized);
                 if (!key || seenKeys.has(key)) return;
                 seenKeys.add(key);
-                normalized.mainSelected = false;
-                normalized.mainSelectedAt = '';
                 normalized.copiedFromChildId = options.sourceChildId || '';
                 normalized.copiedFromChildLabel = options.sourceLabel || '';
                 merged.push(normalized);
