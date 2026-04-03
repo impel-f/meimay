@@ -122,7 +122,7 @@
             (typeof localStorage !== 'undefined' && localStorage.getItem('meimay_saved_canvas_blank') === '1')
         );
         if (blankFlag) {
-            return { blank: true, ownKey: '', partnerKey: '' };
+            return { blank: true, ownKey: '', partnerKey: '', selectedKey: '', selectedSource: '', selectedAt: '' };
         }
         const ownKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
             ? window.__meimaySavedCanvasOwnKey
@@ -130,17 +130,32 @@
         const partnerKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
             ? window.__meimaySavedCanvasPartnerKey
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
-        return { blank: blankFlag, ownKey, partnerKey };
+        const selectedKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string'
+            ? window.__meimaySavedCanvasSelectedKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : '');
+        const selectedSource = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedSource === 'string'
+            ? window.__meimaySavedCanvasSelectedSource
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_source') || '') : '');
+        const selectedAt = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedAt === 'string'
+            ? window.__meimaySavedCanvasSelectedAt
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_at') || '') : '');
+        return { blank: blankFlag, ownKey, partnerKey, selectedKey, selectedSource, selectedAt };
     }
 
     function setSavedCanvasStateSnapshot(state = {}) {
         const blank = state?.blank === true;
         const ownKey = blank ? '' : String(state?.ownKey || '').trim();
         const partnerKey = blank ? '' : String(state?.partnerKey || '').trim();
+        const selectedKey = blank ? '' : String(state?.selectedKey || '').trim();
+        const selectedSource = blank ? '' : String(state?.selectedSource || '').trim();
+        const selectedAt = blank ? '' : String(state?.selectedAt || '').trim();
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasBlank = blank;
             window.__meimaySavedCanvasOwnKey = ownKey;
             window.__meimaySavedCanvasPartnerKey = partnerKey;
+            window.__meimaySavedCanvasSelectedKey = selectedKey;
+            window.__meimaySavedCanvasSelectedSource = selectedSource;
+            window.__meimaySavedCanvasSelectedAt = selectedAt;
         }
         try {
             if (blank) localStorage.setItem('meimay_saved_canvas_blank', '1');
@@ -149,10 +164,16 @@
             else localStorage.removeItem('meimay_saved_canvas_own_key');
             if (partnerKey) localStorage.setItem('meimay_saved_canvas_partner_key', partnerKey);
             else localStorage.removeItem('meimay_saved_canvas_partner_key');
+            if (selectedKey) localStorage.setItem('meimay_saved_canvas_selected_key', selectedKey);
+            else localStorage.removeItem('meimay_saved_canvas_selected_key');
+            if (selectedSource) localStorage.setItem('meimay_saved_canvas_selected_source', selectedSource);
+            else localStorage.removeItem('meimay_saved_canvas_selected_source');
+            if (selectedAt) localStorage.setItem('meimay_saved_canvas_selected_at', selectedAt);
+            else localStorage.removeItem('meimay_saved_canvas_selected_at');
         } catch (error) {
             console.warn('CHILD_WORKSPACES: saved canvas state sync failed', error);
         }
-        return { blank, ownKey, partnerKey };
+        return { blank, ownKey, partnerKey, selectedKey, selectedSource, selectedAt };
     }
 
     if (typeof window !== 'undefined') {
@@ -592,11 +613,14 @@
             const compoundFlow = typeof window.getCompoundBuildFlow === 'function' ? window.getCompoundBuildFlow() : (window.meimayCompoundBuildFlow || null);
             const birthGroupIndex = existingMeta.birthGroupIndex ?? existingMeta.twinIndex ?? null;
             const savedCanvas = getSavedCanvasStateSnapshot();
-            const savedCanvasDraft = savedCanvas.blank || savedCanvas.ownKey || savedCanvas.partnerKey
+            const savedCanvasDraft = savedCanvas.blank || savedCanvas.ownKey || savedCanvas.partnerKey || savedCanvas.selectedKey
                 ? {
                     blank: savedCanvas.blank === true,
                     ownKey: String(savedCanvas.ownKey || '').trim(),
-                    partnerKey: String(savedCanvas.partnerKey || '').trim()
+                    partnerKey: String(savedCanvas.partnerKey || '').trim(),
+                    selectedKey: String(savedCanvas.selectedKey || '').trim(),
+                    selectedSource: String(savedCanvas.selectedSource || '').trim(),
+                    selectedAt: String(savedCanvas.selectedAt || '').trim()
                 }
                 : null;
             return {
@@ -828,9 +852,21 @@
                 ? {
                     blank: child.draft.savedCanvas.blank === true,
                     ownKey: String(child.draft.savedCanvas.ownKey || '').trim(),
-                    partnerKey: String(child.draft.savedCanvas.partnerKey || '').trim()
+                    partnerKey: String(child.draft.savedCanvas.partnerKey || '').trim(),
+                    selectedKey: String(child.draft.savedCanvas.selectedKey || '').trim(),
+                    selectedSource: String(child.draft.savedCanvas.selectedSource || '').trim(),
+                    selectedAt: String(child.draft.savedCanvas.selectedAt || '').trim()
                 }
-                : { blank: false, ownKey: '', partnerKey: '' };
+                : { blank: false, ownKey: '', partnerKey: '', selectedKey: '', selectedSource: '', selectedAt: '' };
+            if (!nextSavedCanvas.selectedKey) {
+                const source = nextSavedCanvas.selectedSource === 'partner'
+                    ? 'partner'
+                    : (nextSavedCanvas.selectedSource === 'own' ? 'own' : (nextSavedCanvas.partnerKey && !nextSavedCanvas.ownKey ? 'partner' : 'own'));
+                nextSavedCanvas.selectedSource = source;
+                nextSavedCanvas.selectedKey = source === 'partner'
+                    ? nextSavedCanvas.partnerKey
+                    : nextSavedCanvas.ownKey;
+            }
             this._persistenceLocked = true;
             try {
                 if (typeof surnameStr !== 'undefined') surnameStr = family.surnameDefault.kanji || '';
@@ -1894,7 +1930,10 @@
                     savedCanvas: {
                         blank: true,
                         ownKey: '',
-                        partnerKey: ''
+                        partnerKey: '',
+                        selectedKey: '',
+                        selectedSource: '',
+                        selectedAt: ''
                     }
                 },
                 libraries: this.buildInitialLibrariesForCreate(

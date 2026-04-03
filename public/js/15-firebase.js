@@ -215,46 +215,53 @@ function readNormalizedHiddenReadingsFromSnapshot(values) {
 }
 
 function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
-    if (!state || typeof state !== 'object') return '';
-
-    const readOwnKey = (candidate) => {
-        const savedCanvas = candidate?.draft?.savedCanvas || candidate?.savedCanvas || null;
-        return String(savedCanvas?.ownKey || '').trim();
-    };
-
-    const directKey = readOwnKey(state);
-    if (directKey) return directKey;
-
-    const activeChildId = String(state?.activeChildId || '').trim();
-    const children = state?.children && typeof state.children === 'object' ? state.children : null;
-    if (children && activeChildId && children[activeChildId]) {
-        const activeKey = readOwnKey(children[activeChildId]);
-        if (activeKey) return activeKey;
-    }
-
-    if (children) {
-        for (const childId of Object.keys(children)) {
-            const childKey = readOwnKey(children[childId]);
-            if (childKey) return childKey;
-        }
-    }
-
-    return '';
+    const canvas = extractSavedCanvasStateFromWorkspaceState(state);
+    return String(canvas?.activeKey || canvas?.selectedKey || canvas?.ownKey || canvas?.partnerKey || '').trim();
 }
 
 function extractSavedCanvasStateFromWorkspaceState(state) {
+    const emptyCanvas = { blank: false, ownKey: '', partnerKey: '', selectedKey: '', selectedSource: '', selectedAt: '', activeKey: '' };
     if (!state || typeof state !== 'object') {
-        return { blank: false, ownKey: '', partnerKey: '' };
+        return emptyCanvas;
     }
+
+    const normalizeCanvas = (canvas) => {
+        if (!canvas || typeof canvas !== 'object') return null;
+        const blank = canvas.blank === true;
+        const ownKey = String(canvas.ownKey || '').trim();
+        const partnerKey = String(canvas.partnerKey || '').trim();
+        let selectedSource = canvas.selectedSource === 'partner'
+            ? 'partner'
+            : (canvas.selectedSource === 'own' ? 'own' : '');
+        const rawSelectedKey = String(canvas.selectedKey || '').trim();
+        const selectedKey = rawSelectedKey
+            || (selectedSource === 'partner' ? partnerKey : (selectedSource === 'own' ? ownKey : ''));
+        if (!selectedSource && selectedKey) {
+            if (selectedKey === partnerKey && selectedKey !== ownKey) {
+                selectedSource = 'partner';
+            } else if (selectedKey === ownKey && selectedKey !== partnerKey) {
+                selectedSource = 'own';
+            }
+        }
+        const selectedAt = String(canvas.selectedAt || '').trim();
+        const activeKey = selectedKey
+            || (selectedSource === 'partner' ? partnerKey : (selectedSource === 'own' ? ownKey : ''))
+            || ownKey
+            || partnerKey;
+        return {
+            blank,
+            ownKey,
+            partnerKey,
+            selectedKey,
+            selectedSource,
+            selectedAt,
+            activeKey
+        };
+    };
 
     const readCanvas = (candidate) => {
         const savedCanvas = candidate?.draft?.savedCanvas || candidate?.savedCanvas || null;
-        if (!savedCanvas || typeof savedCanvas !== 'object') return null;
-        return {
-            blank: savedCanvas.blank === true,
-            ownKey: String(savedCanvas.ownKey || '').trim(),
-            partnerKey: String(savedCanvas.partnerKey || '').trim()
-        };
+        return normalizeCanvas(savedCanvas);
     };
 
     const direct = readCanvas(state);
@@ -274,7 +281,7 @@ function extractSavedCanvasStateFromWorkspaceState(state) {
         }
     }
 
-    return { blank: false, ownKey: '', partnerKey: '' };
+    return emptyCanvas;
 }
 
 function getSavedSelectionKeyForSync(item) {
@@ -305,11 +312,19 @@ function canonicalizeSavedNamesForSync(items, workspaceState) {
         }));
     }
 
-    const selectedKey = canvas.ownKey || canvas.partnerKey || '';
+    if (canvas.selectedSource === 'partner') return list;
+
+    const selectedKey = canvas.selectedKey || canvas.activeKey || '';
     if (!selectedKey) return list;
 
     const hasSelectedItem = list.some((item) => getSavedSelectionKeyForSync(item) === selectedKey);
-    if (!hasSelectedItem) return list;
+    if (!hasSelectedItem) {
+        return list.map((item) => ({
+            ...item,
+            mainSelected: false,
+            mainSelectedAt: ''
+        }));
+    }
 
     const now = new Date().toISOString();
     return list.map((item) => {
@@ -1472,6 +1487,11 @@ const MeimayPartnerInsights = {
                 partnerMain: null,
                 ownKey: '',
                 partnerKey: '',
+                selectedKey: '',
+                selectedSource: '',
+                selectedAt: '',
+                activeMain: null,
+                activeKey: '',
                 matched: false,
                 partnerName: this.getPartnerDisplayName()
             };
@@ -1480,12 +1500,32 @@ const MeimayPartnerInsights = {
         const partnerMain = this.getPartnerMainSavedItem();
         const ownKey = this.buildSavedMatchKey(ownMain);
         const partnerKey = this.buildSavedMatchKey(partnerMain);
+        const selectedKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string' && window.__meimaySavedCanvasSelectedKey
+            ? window.__meimaySavedCanvasSelectedKey
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : '');
+        const selectedSource = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedSource === 'string'
+            ? window.__meimaySavedCanvasSelectedSource
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_source') || '') : '');
+        const selectedAt = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedAt === 'string'
+            ? window.__meimaySavedCanvasSelectedAt
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_at') || '') : '');
+        const activeMain = selectedSource === 'partner'
+            ? partnerMain
+            : (selectedSource === 'own'
+                ? ownMain
+                : (ownMain || partnerMain));
+        const activeKey = selectedKey || this.buildSavedMatchKey(activeMain);
 
         return {
             ownMain,
             partnerMain,
             ownKey,
             partnerKey,
+            selectedKey: selectedKey || activeKey,
+            selectedSource,
+            selectedAt,
+            activeMain,
+            activeKey,
             matched: !!ownKey && !!partnerKey && ownKey === partnerKey,
             partnerName: this.getPartnerDisplayName()
         };
@@ -2877,13 +2917,6 @@ MeimayPairing.syncMyData = async function () {
         const encounteredLibrary = typeof getEncounteredLibrary === 'function'
             ? getEncounteredLibrary()
             : { readings: [] };
-        const projectedSections = MeimayFirestorePayload.projectSections({
-            liked: Array.isArray(ownLiked) ? ownLiked : [],
-            savedNames: savedData,
-            readingStock: Array.isArray(readingStockSource) ? readingStockSource : [],
-            encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
-        });
-        const hiddenReadings = readNormalizedHiddenReadings();
         const childWorkspaceStateV2 = typeof MeimayUserBackup !== 'undefined'
             && MeimayUserBackup
             && typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
@@ -2893,6 +2926,16 @@ MeimayPairing.syncMyData = async function () {
                 && typeof MeimayChildWorkspaces.getRootSnapshot === 'function'
                     ? MeimayChildWorkspaces.getRootSnapshot()
                     : null);
+        const canonicalSavedData = typeof canonicalizeSavedNamesForSync === 'function'
+            ? canonicalizeSavedNamesForSync(savedData, childWorkspaceStateV2)
+            : savedData;
+        const projectedSections = MeimayFirestorePayload.projectSections({
+            liked: Array.isArray(ownLiked) ? ownLiked : [],
+            savedNames: canonicalSavedData,
+            readingStock: Array.isArray(readingStockSource) ? readingStockSource : [],
+            encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
+        });
+        const hiddenReadings = readNormalizedHiddenReadings();
         const childWorkspaceStateV2UpdatedAt = childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object'
             ? String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || Date.now())
             : '';
@@ -4042,7 +4085,13 @@ const MeimayUserBackup = {
     },
 
     _buildRemotePatch: function (sections) {
-        const projectedSections = MeimayFirestorePayload.projectSections(sections);
+        const childWorkspaceStateV2 = sections?.childWorkspaceStateV2 || this._readChildWorkspaceStateV2();
+        const projectedSections = MeimayFirestorePayload.projectSections({
+            ...(sections || {}),
+            savedNames: typeof canonicalizeSavedNamesForSync === 'function'
+                ? canonicalizeSavedNamesForSync(sections?.savedNames, childWorkspaceStateV2)
+                : sections?.savedNames
+        });
         const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
             ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
             : localStorage.getItem('meimay_liked_cleared_at');
@@ -4070,7 +4119,6 @@ const MeimayUserBackup = {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
 
-        const childWorkspaceStateV2 = sections?.childWorkspaceStateV2 || this._readChildWorkspaceStateV2();
         if (childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object') {
             backup.meimayStateV2 = this._safeClone(childWorkspaceStateV2);
             backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');

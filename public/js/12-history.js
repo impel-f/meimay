@@ -2144,7 +2144,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
             <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
@@ -2509,7 +2509,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
             <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
@@ -2870,7 +2870,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
             <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
@@ -3095,7 +3095,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
             <div class="rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fff7ee] via-[#fffdf9] to-[#fff5f7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
@@ -3757,6 +3757,11 @@ function getSavedCanvasState() {
             partnerMain: null,
             ownKey: '',
             partnerKey: '',
+            selectedKey: '',
+            selectedSource: '',
+            selectedAt: '',
+            activeMain: null,
+            activeKey: '',
             matched: false,
             partnerName: pairInsights?.getPartnerDisplayName
                 ? pairInsights.getPartnerDisplayName()
@@ -3771,6 +3776,18 @@ function getSavedCanvasState() {
     const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
         ? window.__meimaySavedCanvasOwnKey
         : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+    const partnerOverrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
+        ? window.__meimaySavedCanvasPartnerKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+    const selectedKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string'
+        ? window.__meimaySavedCanvasSelectedKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : '');
+    const selectedSource = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedSource === 'string'
+        ? window.__meimaySavedCanvasSelectedSource
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_source') || '') : '');
+    const selectedAt = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedAt === 'string'
+        ? window.__meimaySavedCanvasSelectedAt
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_at') || '') : '');
     const pickLatestMain = (items) => items
         .filter(item => item?.mainSelected)
         .slice()
@@ -3785,15 +3802,30 @@ function getSavedCanvasState() {
             || partnerSaved.slice().reverse().find(item => getSavedCandidateKey(item) === overrideKey)
             || null)
         : pickLatestMain(saved.filter(item => item && !item.fromPartner && !item.approvedFromPartner));
-    const partnerMain = pickLatestMain(partnerSaved);
+    const partnerMain = partnerOverrideKey
+        ? (partnerSaved.slice().reverse().find(item => getSavedCandidateKey(item) === partnerOverrideKey)
+            || saved.slice().reverse().find(item => getSavedCandidateKey(item) === partnerOverrideKey)
+            || pickLatestMain(partnerSaved))
+        : pickLatestMain(partnerSaved);
     const ownKey = getSavedCandidateKey(ownMain);
     const partnerKey = getSavedCandidateKey(partnerMain);
+    const activeMain = selectedSource === 'partner'
+        ? partnerMain
+        : (selectedSource === 'own'
+            ? ownMain
+            : (ownMain || partnerMain));
+    const activeKey = selectedKey || getSavedCandidateKey(activeMain);
 
     return {
         ownMain,
         partnerMain,
         ownKey,
         partnerKey,
+        selectedKey: selectedKey || activeKey,
+        selectedSource,
+        selectedAt,
+        activeMain,
+        activeKey,
         matched: !!ownKey && !!partnerKey && ownKey === partnerKey,
         partnerName: pairInsights?.getPartnerDisplayName
             ? pairInsights.getPartnerDisplayName()
@@ -3812,6 +3844,9 @@ function setSavedMainCandidate(index) {
     if (!selectedKey) return false;
 
     const now = new Date().toISOString();
+    const existingPartnerKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
+        ? window.__meimaySavedCanvasPartnerKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
     const updated = saved.map((item) => {
         const isSelected = getSavedCandidateKey(item) === selectedKey;
         return {
@@ -3826,12 +3861,19 @@ function setSavedMainCandidate(index) {
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = selectedKey;
-            window.__meimaySavedCanvasPartnerKey = '';
+            window.__meimaySavedCanvasPartnerKey = existingPartnerKey;
+            window.__meimaySavedCanvasSelectedKey = selectedKey;
+            window.__meimaySavedCanvasSelectedSource = 'own';
+            window.__meimaySavedCanvasSelectedAt = now;
             window.__meimaySavedCanvasBlank = false;
         }
         localStorage.setItem('meimay_saved_canvas_blank', '0');
         localStorage.setItem('meimay_saved_canvas_own_key', selectedKey);
-        localStorage.removeItem('meimay_saved_canvas_partner_key');
+        if (existingPartnerKey) localStorage.setItem('meimay_saved_canvas_partner_key', existingPartnerKey);
+        else localStorage.removeItem('meimay_saved_canvas_partner_key');
+        localStorage.setItem('meimay_saved_canvas_selected_key', selectedKey);
+        localStorage.setItem('meimay_saved_canvas_selected_source', 'own');
+        localStorage.setItem('meimay_saved_canvas_selected_at', now);
         persistActiveChildWorkspaceSnapshot('set-saved-main');
     } catch (error) {
         console.warn('SAVED: Persist own main key failed', error);
@@ -3901,15 +3943,26 @@ function votePartnerSavedName(index) {
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー');
 
+    const now = new Date().toISOString();
+    const existingOwnKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
+        ? window.__meimaySavedCanvasOwnKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
     try {
         if (typeof window !== 'undefined') {
-            window.__meimaySavedCanvasOwnKey = sourceKey;
-            window.__meimaySavedCanvasPartnerKey = '';
+            window.__meimaySavedCanvasOwnKey = existingOwnKey;
+            window.__meimaySavedCanvasPartnerKey = sourceKey;
+            window.__meimaySavedCanvasSelectedKey = sourceKey;
+            window.__meimaySavedCanvasSelectedSource = 'partner';
+            window.__meimaySavedCanvasSelectedAt = now;
             window.__meimaySavedCanvasBlank = false;
         }
         localStorage.setItem('meimay_saved_canvas_blank', '0');
-        localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
-        localStorage.removeItem('meimay_saved_canvas_partner_key');
+        if (existingOwnKey) localStorage.setItem('meimay_saved_canvas_own_key', existingOwnKey);
+        else localStorage.removeItem('meimay_saved_canvas_own_key');
+        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+        localStorage.setItem('meimay_saved_canvas_selected_key', sourceKey);
+        localStorage.setItem('meimay_saved_canvas_selected_source', 'partner');
+        localStorage.setItem('meimay_saved_canvas_selected_at', now);
         persistActiveChildWorkspaceSnapshot('vote-partner-saved-name');
     } catch (error) {
         console.warn('SAVED: Persist own main key from partner candidate failed', error);
@@ -4054,7 +4107,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const mainCreatorMeta = getSavedCandidateCreatorMeta(mainItem, 'own', partnerName);
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
@@ -4413,7 +4466,7 @@ function renderSavedScreen() {
         `;
     };
 
-    const mainItem = canvasState.ownMain || canvasState.partnerMain;
+    const mainItem = canvasState.activeMain || canvasState.ownMain || canvasState.partnerMain;
     const renderCanvasHtml = canvasState.matched && mainItem
         ? `
             <div class="relative rounded-[26px] p-[2px] shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${matchedFrameGradient};">
