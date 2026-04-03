@@ -242,6 +242,87 @@ function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
     return '';
 }
 
+function extractSavedCanvasStateFromWorkspaceState(state) {
+    if (!state || typeof state !== 'object') {
+        return { blank: false, ownKey: '', partnerKey: '' };
+    }
+
+    const readCanvas = (candidate) => {
+        const savedCanvas = candidate?.draft?.savedCanvas || candidate?.savedCanvas || null;
+        if (!savedCanvas || typeof savedCanvas !== 'object') return null;
+        return {
+            blank: savedCanvas.blank === true,
+            ownKey: String(savedCanvas.ownKey || '').trim(),
+            partnerKey: String(savedCanvas.partnerKey || '').trim()
+        };
+    };
+
+    const direct = readCanvas(state);
+    if (direct) return direct;
+
+    const activeChildId = String(state?.activeChildId || '').trim();
+    const children = state?.children && typeof state.children === 'object' ? state.children : null;
+    if (children && activeChildId && children[activeChildId]) {
+        const active = readCanvas(children[activeChildId]);
+        if (active) return active;
+    }
+
+    if (children) {
+        for (const childId of Object.keys(children)) {
+            const found = readCanvas(children[childId]);
+            if (found) return found;
+        }
+    }
+
+    return { blank: false, ownKey: '', partnerKey: '' };
+}
+
+function getSavedSelectionKeyForSync(item) {
+    if (!item) return '';
+    const pairInsights = typeof window !== 'undefined' && window.MeimayPartnerInsights
+        ? window.MeimayPartnerInsights
+        : null;
+    if (pairInsights && typeof pairInsights.buildSavedMatchKey === 'function') {
+        return String(pairInsights.buildSavedMatchKey(item) || '').trim();
+    }
+
+    const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
+        ? item.combination.map((part) => part?.['貍｢蟄・] || part?.kanji || '').join('')
+        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
+    const fullName = String(item.fullName || item.givenName || combinationKey || '').trim();
+    const reading = String(item.reading || item.givenName || '').trim();
+    return `${fullName}::${combinationKey}::${reading}`.trim();
+}
+
+function canonicalizeSavedNamesForSync(items, workspaceState) {
+    const list = Array.isArray(items) ? items.map((item) => ({ ...(item || {}) })) : [];
+    const canvas = extractSavedCanvasStateFromWorkspaceState(workspaceState);
+    if (canvas.blank) {
+        return list.map((item) => ({
+            ...item,
+            mainSelected: false,
+            mainSelectedAt: ''
+        }));
+    }
+
+    const selectedKey = canvas.ownKey || canvas.partnerKey || '';
+    if (!selectedKey) return list;
+
+    const hasSelectedItem = list.some((item) => getSavedSelectionKeyForSync(item) === selectedKey);
+    if (!hasSelectedItem) return list;
+
+    const now = new Date().toISOString();
+    return list.map((item) => {
+        const itemKey = getSavedSelectionKeyForSync(item);
+        const isSelected = itemKey === selectedKey;
+        return {
+            ...item,
+            mainSelected: isSelected,
+            mainSelectedAt: isSelected ? String(item.mainSelectedAt || now).trim() : ''
+        };
+    });
+}
+
 const MeimayFirestorePayload = {
     _normalizeString(value) {
         return String(value == null ? '' : value).trim();
@@ -2867,6 +2948,10 @@ MeimayPairing.syncMyData = async function () {
                 readingStock: readingStockToStore,
                 encounteredReadings: encounteredToStore,
                 hiddenReadings,
+                ...(childWorkspaceStateV2 ? {
+                    meimayStateV2: this._safeClone(childWorkspaceStateV2),
+                    meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt
+                } : {}),
                 meimayBackup: roomBackup,
                 backup: roomBackup,
                 isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
@@ -3743,6 +3828,34 @@ const MeimayUserBackup = {
         });
     },
 
+    _hasChildWorkspaceStructureDelta: function (localState = null, remoteState = null) {
+        if (!remoteState || typeof remoteState !== 'object') return false;
+        if (!localState || typeof localState !== 'object') return true;
+
+        const localChildren = localState.children && typeof localState.children === 'object'
+            ? localState.children
+            : {};
+        const remoteChildren = remoteState.children && typeof remoteState.children === 'object'
+            ? remoteState.children
+            : {};
+        const localChildIds = Object.keys(localChildren);
+        const remoteChildIds = Object.keys(remoteChildren);
+
+        if (remoteChildIds.length !== localChildIds.length) return true;
+        return remoteChildIds.some((childId) => !Object.prototype.hasOwnProperty.call(localChildren, childId));
+    },
+
+    _shouldApplyRemoteChildWorkspaceStateV2: function (localState = null, remoteState = null) {
+        if (!remoteState || typeof remoteState !== 'object') return false;
+        if (!localState || typeof localState !== 'object') return true;
+        if (this._hasChildWorkspaceStructureDelta(localState, remoteState)) return true;
+
+        const remoteStamp = this._getChildWorkspaceStateV2Stamp(remoteState);
+        const localStamp = this._getChildWorkspaceStateV2Stamp(localState);
+        if (!localStamp) return true;
+        return remoteStamp >= localStamp;
+    },
+
     _applyChildWorkspaceStateV2: function (state = null) {
         if (!state || typeof state !== 'object') return false;
         try {
@@ -4092,9 +4205,7 @@ const MeimayUserBackup = {
 
             const localChildWorkspaceStateV2 = this._readChildWorkspaceStateV2();
             if (remoteChildWorkspaceStateV2) {
-                const remoteStamp = this._getChildWorkspaceStateV2Stamp(remoteChildWorkspaceStateV2);
-                const localStamp = this._getChildWorkspaceStateV2Stamp(localChildWorkspaceStateV2);
-                if (!localChildWorkspaceStateV2 || remoteStamp >= localStamp) {
+                if (this._shouldApplyRemoteChildWorkspaceStateV2(localChildWorkspaceStateV2, remoteChildWorkspaceStateV2)) {
                     this._applyChildWorkspaceStateV2(remoteChildWorkspaceStateV2);
                 }
             }
@@ -4411,14 +4522,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerChildWorkspaceStateV2
                 && typeof MeimayUserBackup !== 'undefined'
                 && MeimayUserBackup
-                && typeof MeimayUserBackup._getChildWorkspaceStateV2Stamp === 'function'
+                && typeof MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2 === 'function'
                 && typeof MeimayUserBackup._applyChildWorkspaceStateV2 === 'function') {
                 const localWorkspaceStateV2 = typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
                     ? MeimayUserBackup._readChildWorkspaceStateV2()
                     : null;
-                const remoteStamp = MeimayUserBackup._getChildWorkspaceStateV2Stamp(partnerChildWorkspaceStateV2);
-                const localStamp = MeimayUserBackup._getChildWorkspaceStateV2Stamp(localWorkspaceStateV2);
-                if (!localWorkspaceStateV2 || remoteStamp >= localStamp) {
+                if (MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2(localWorkspaceStateV2, partnerChildWorkspaceStateV2)) {
                     MeimayUserBackup._applyChildWorkspaceStateV2(partnerChildWorkspaceStateV2);
                 }
             }
