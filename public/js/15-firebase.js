@@ -2949,7 +2949,9 @@ MeimayPairing.syncMyData = async function () {
                 encounteredReadings: encounteredToStore,
                 hiddenReadings,
                 ...(childWorkspaceStateV2 ? {
-                    meimayStateV2: this._safeClone(childWorkspaceStateV2),
+                    meimayStateV2: typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._safeClone === 'function'
+                        ? MeimayUserBackup._safeClone(childWorkspaceStateV2)
+                        : childWorkspaceStateV2,
                     meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt
                 } : {}),
                 meimayBackup: roomBackup,
