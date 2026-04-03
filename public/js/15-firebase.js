@@ -2863,7 +2863,9 @@ MeimayShare.listenPartnerData = function (partnerUid) {
 
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
-        .onSnapshot(async (doc) => {
+        .onSnapshot((doc) => {
+            void (async () => {
+                try {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
@@ -2996,6 +2998,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             } else if (typeof refreshPartnerAwareUI === 'function') {
                 refreshPartnerAwareUI();
             }
+                } catch (error) {
+                    console.warn('SHARE: Listen partner data error', error);
+                }
+            })();
         }, (e) => {
             console.warn('SHARE: Listen partner data error', e);
         });
@@ -4179,7 +4185,9 @@ MeimayShare.listenPartnerData = function (partnerUid) {
 
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
-        .onSnapshot(async (doc) => {
+        .onSnapshot((doc) => {
+            void (async () => {
+                try {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
@@ -4320,6 +4328,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             } else if (typeof refreshPartnerAwareUI === 'function') {
                 refreshPartnerAwareUI();
             }
+                } catch (error) {
+                    console.warn('SHARE: Listen partner data error', error);
+                }
+            })();
         }, (e) => {
             console.warn('SHARE: Listen partner data error', e);
         });
