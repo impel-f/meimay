@@ -4197,6 +4197,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
             const roomBackup = data.meimayBackup || data.backup || {};
+            let partnerChildWorkspaceStateV2 = data.meimayStateV2
+                || roomBackup.meimayStateV2
+                || roomBackup.childWorkspaceStateV2
+                || null;
 
             if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
                 likedSource = roomBackup.liked;
