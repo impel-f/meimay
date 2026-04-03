@@ -2557,7 +2557,10 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
         ? window.MeimayPartnerInsights.getSavedNameCanvasState()
         : null;
-    const savedStateLabel = savedCanvasState?.matched ? '（確定済）' : '（未確定）';
+    const hasPartnerLinked = !!pairing?.hasPartner;
+    const savedStateLabel = hasPartnerLinked
+        ? (savedCanvasState?.matched ? '（確定済）' : '（未確定）')
+        : (savedCanvasState?.ownMain ? '本命:選択済' : '本命:未選択');
     const matchedReadingCount = Math.max(0, Number(pairing?.matchedReadingCount) || 0);
     const matchedKanjiCount = Math.max(0, Number(pairing?.matchedKanjiCount) || 0);
     const buildCount = Number.isFinite(Number(options.buildCount))
