@@ -222,6 +222,9 @@ function wizFinish(mode) {
     if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    if (typeof window !== 'undefined') {
+        window.MeimayHomeStageFocusSource = 'auto';
+    }
 
     const nextMode = ['reading', 'sound', 'nickname', 'free'].includes(mode) ? mode : null;
     if (nextMode) {

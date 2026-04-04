@@ -843,13 +843,16 @@ function getHomeRecommendedStageKey(action) {
 }
 
 function getHomeOverviewInitialStageKey(stageSnapshot, nextStep) {
+    const recommendedKey = getHomeRecommendedStageKey(nextStep?.action);
+    if (recommendedKey) return recommendedKey;
+
     const timeline = getHomeStageTrackTimeline(
         Number(stageSnapshot?.likedCount) || 0,
         Number(stageSnapshot?.readingStockCount) || 0,
         Number(stageSnapshot?.savedCount) || 0,
         stageSnapshot || {}
     );
-    return timeline?.activeKey || getHomeRecommendedStageKey(nextStep?.action) || 'reading';
+    return timeline?.activeKey || 'reading';
 }
 
 function getHomeSearchChoiceRecommended(readingStockCount) {
