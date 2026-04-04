@@ -2558,9 +2558,11 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         ? window.MeimayPartnerInsights.getSavedNameCanvasState()
         : null;
     const hasPartnerLinked = !!pairing?.hasPartner;
-    const savedStateLabel = hasPartnerLinked
-        ? (savedCanvasState?.matched ? '（確定済）' : '（未確定）')
-        : (savedCanvasState?.ownMain ? '（本命:選択済）' : '（本命:未選択）');
+    const savedStateLabel = savedCount > 0
+        ? (hasPartnerLinked
+            ? (savedCanvasState?.matched ? '（確定済）' : '（未確定）')
+            : (savedCanvasState?.ownMain ? '（本命:選択済）' : '（本命:未選択）'))
+        : '';
     const matchedReadingCount = Math.max(0, Number(pairing?.matchedReadingCount) || 0);
     const matchedKanjiCount = Math.max(0, Number(pairing?.matchedKanjiCount) || 0);
     const buildCount = Number.isFinite(Number(options.buildCount))
@@ -2660,7 +2662,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                         </div>
                         <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
-                            ${step.key === 'save' ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">${savedStateLabel}</div>` : ''}
+                            ${step.key === 'save' && savedStateLabel ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">${savedStateLabel}</div>` : ''}
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
                             ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
