@@ -4318,14 +4318,13 @@ function renderSavedScreen() {
         listContainer.querySelectorAll('[data-fit-saved-name="card"]').forEach(node => fitSavedText(node, 14, 22));
     };
 
-    const ownVisibleItems = saved.filter(item => !item?.fromPartner && !item?.approvedFromPartner);
-    const ownKeySet = new Set(ownVisibleItems.map(item => getSavedCandidateKey(item)).filter(Boolean));
+    const ownKeySet = new Set(saved.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const partnerKeySet = new Set(partnerSaved.map(item => getSavedCandidateKey(item)).filter(Boolean));
     const hasPartnerLinked = typeof MeimayPairing !== 'undefined'
         ? !!(MeimayPairing.roomCode && MeimayPairing.partnerUid)
         : false;
 
-    const ownDecorated = ownVisibleItems.map((item, index) => {
+    const ownDecoratedAll = saved.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
         const partnerSelected = hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
@@ -4336,7 +4335,8 @@ function renderSavedScreen() {
             key,
             ownSelected,
             partnerSelected,
-            shared
+            shared,
+            isVisibleOwn: !item?.fromPartner && !item?.approvedFromPartner
         };
     }).sort((a, b) => {
         if (a.ownSelected !== b.ownSelected) return a.ownSelected ? -1 : 1;
@@ -4346,6 +4346,9 @@ function renderSavedScreen() {
         const bTime = new Date(b.item.mainSelectedAt || b.item.savedAt || b.item.timestamp || 0).getTime();
         return bTime - aTime;
     });
+
+    const ownVisibleItems = ownDecoratedAll.filter(entry => entry.isVisibleOwn);
+    const hiddenOwnItems = ownDecoratedAll.filter(entry => !entry.isVisibleOwn);
 
     const partnerDecorated = partnerSaved.map((item, index) => {
         const key = getSavedCandidateKey(item);
@@ -4370,7 +4373,9 @@ function renderSavedScreen() {
         return bTime - aTime;
     });
 
-    let visibleOwn = ownDecorated;
+    // When the regular own list is empty, surface hidden synced/approved items
+    // so the home count and the saved screen stay aligned.
+    let visibleOwn = ownVisibleItems.length > 0 ? ownVisibleItems : hiddenOwnItems;
     let visiblePartner = partnerDecorated;
     if (!hasPartnerLinked) {
         visiblePartner = [];
@@ -4378,7 +4383,7 @@ function renderSavedScreen() {
     if (savedFocus === 'partner' && hasPartnerLinked) {
         visibleOwn = [];
     } else if (savedFocus === 'matched') {
-        visibleOwn = ownDecorated.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
+        visibleOwn = visibleOwn.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
         visiblePartner = [];
     }
 
