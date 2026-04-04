@@ -754,6 +754,11 @@ const MeimayPairing = {
         const role = this._selectedCreateRole || getPreferredPairingRole();
         if (!role) { showToast('先に設定でママ / パパを選んでください', '\u26a0'); return null; }
         if (this._selectedCreateRole !== role) this.selectCreateRole(role);
+        const pairingSurname = getCurrentPairingSurnameState();
+        if (!pairingSurname.surname) {
+            showToast('苗字を入力してください', '\u26a0');
+            return null;
+        }
 
         // 6譁・ｭ励Λ繝ｳ繝繝繧ｳ繝ｼ繝・
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -762,8 +767,12 @@ const MeimayPairing = {
             await firebaseDb.collection('rooms').doc(code).set({
                 memberAUid: user.uid,
                 memberARole: role,
+                memberASurname: pairingSurname.surname,
+                memberASurnameReading: pairingSurname.reading || null,
                 memberBUid: null,
                 memberBRole: null,
+                memberBSurname: null,
+                memberBSurnameReading: null,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
 
@@ -805,6 +814,11 @@ const MeimayPairing = {
         if (this._selectedJoinRole !== role) this.selectJoinRole(role);
         if (!code || code.trim().length < 4) { showToast('コードを入力してください', '\u26a0'); return { success: false }; }
 
+        const pairingSurname = getCurrentPairingSurnameState();
+        if (!pairingSurname.surname) {
+            return { success: false, error: '苗字を入力してください' };
+        }
+
         const upperCode = code.trim().toUpperCase();
 
         try {
@@ -814,6 +828,29 @@ const MeimayPairing = {
             }
 
             const data = roomDoc.data();
+            const partnerSlot = 'memberA';
+            const partnerUid = data[`${partnerSlot}Uid`] || '';
+            const partnerSurnameField = getPairingRoomSurnameField(partnerSlot);
+            const partnerSurnameReadingField = getPairingRoomSurnameReadingField(partnerSlot);
+            let partnerSurname = normalizePairingSurnameValue(data[partnerSurnameField]);
+            let partnerSurnameReading = normalizePairingSurnameValue(data[partnerSurnameReadingField]);
+            if (!partnerSurname && partnerUid) {
+                try {
+                    const partnerDataDoc = await firebaseDb.collection('rooms').doc(upperCode)
+                        .collection('data').doc(partnerUid).get();
+                    if (partnerDataDoc.exists) {
+                        const partnerData = partnerDataDoc.data() || {};
+                        partnerSurname = normalizePairingSurnameValue(
+                            partnerData.surname || partnerData.surnameStr || partnerData?.wizard?.surname || ''
+                        );
+                        partnerSurnameReading = normalizePairingSurnameValue(
+                            partnerData.surnameReading || partnerData?.wizard?.surnameReading || ''
+                        );
+                    }
+                } catch (error) {
+                    console.warn('PAIRING: Partner surname lookup failed', error);
+                }
+            }
 
             if (data.memberAUid === user.uid) {
                 return { success: false, error: '自分のルームです' };
@@ -823,9 +860,15 @@ const MeimayPairing = {
             }
 
             // memberB縺ｨ縺励※蜿ょ刈
+            if (pairingSurname.surname !== partnerSurname) {
+                return { success: false, error: '苗字が一致しません' };
+            }
+
             await firebaseDb.collection('rooms').doc(upperCode).update({
                 memberBUid: user.uid,
-                memberBRole: role
+                memberBRole: role,
+                memberBSurname: pairingSurname.surname,
+                memberBSurnameReading: pairingSurname.reading || null
             });
 
             this.roomCode = upperCode;
@@ -923,6 +966,8 @@ const MeimayPairing = {
             const update = {};
             update[`${slotToClear}Uid`] = null;
             update[`${slotToClear}Role`] = null;
+            update[`${slotToClear}Surname`] = null;
+            update[`${slotToClear}SurnameReading`] = null;
             await roomRef.set(update, { merge: true });
         } catch (e) {
             console.error('PAIRING: Leave room failed', e);
@@ -939,6 +984,7 @@ const MeimayPairing = {
 
         try {
             const hiddenReadings = readNormalizedHiddenReadings();
+            const pairingSurname = getCurrentPairingSurnameState();
             const projectedSections = MeimayFirestorePayload.projectSections({
                 liked: typeof liked !== 'undefined' ? liked : [],
                 savedNames: JSON.parse(localStorage.getItem('meimay_saved') || '[]')
@@ -950,8 +996,19 @@ const MeimayPairing = {
                 liked: projectedSections.liked,
                 savedNames: projectedSections.savedNames,
                 hiddenReadings,
+                surname: pairingSurname.surname,
+                surnameReading: pairingSurname.reading,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
+
+            const roomSurnameField = getPairingRoomSurnameField(this.mySlot);
+            const roomSurnameReadingField = getPairingRoomSurnameReadingField(this.mySlot);
+            if (roomSurnameField) {
+                await firebaseDb.collection('rooms').doc(this.roomCode).set({
+                    [roomSurnameField]: pairingSurname.surname || null,
+                    [roomSurnameReadingField]: pairingSurname.reading || null
+                }, { merge: true });
+            }
 
             console.log('PAIRING: Synced my data to room');
         } catch (e) {
@@ -1579,6 +1636,61 @@ function getWizardNickname() {
     if (typeof WizardData === 'undefined' || typeof WizardData.get !== 'function') return '';
     const wizard = WizardData.get() || {};
     return String(wizard.username || '').trim();
+}
+
+function normalizePairingSurnameValue(value) {
+    return String(value || '').trim();
+}
+
+function getCurrentPairingSurnameState() {
+    const globalSurname = normalizePairingSurnameValue(typeof surnameStr !== 'undefined' ? surnameStr : '');
+    const globalReading = normalizePairingSurnameValue(typeof surnameReading !== 'undefined' ? surnameReading : '');
+    if (globalSurname || globalReading) {
+        return {
+            surname: globalSurname,
+            reading: globalReading
+        };
+    }
+
+    if (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function') {
+        const wizard = WizardData.get() || {};
+        const wizardSurname = normalizePairingSurnameValue(wizard.surname || wizard.surnameStr || '');
+        const wizardReading = normalizePairingSurnameValue(wizard.surnameReading || '');
+        if (wizardSurname || wizardReading) {
+            return {
+                surname: wizardSurname,
+                reading: wizardReading
+            };
+        }
+    }
+
+    try {
+        const settings = JSON.parse(localStorage.getItem('meimay_settings') || '{}');
+        const settingsSurname = normalizePairingSurnameValue(settings.surname || '');
+        const settingsReading = normalizePairingSurnameValue(settings.surnameReading || '');
+        if (settingsSurname || settingsReading) {
+            return {
+                surname: settingsSurname,
+                reading: settingsReading
+            };
+        }
+    } catch (error) {
+        // ignore settings parse failures and fall through to the empty state
+    }
+
+    return { surname: '', reading: '' };
+}
+
+function getPairingRoomSurnameField(slot) {
+    if (slot === 'memberA') return 'memberASurname';
+    if (slot === 'memberB') return 'memberBSurname';
+    return '';
+}
+
+function getPairingRoomSurnameReadingField(slot) {
+    if (slot === 'memberA') return 'memberASurnameReading';
+    if (slot === 'memberB') return 'memberBSurnameReading';
+    return '';
 }
 
 function formatPairingParticipantLabel(name, role, fallbackLabel = '') {
@@ -3251,14 +3363,20 @@ MeimayShare.syncProfileAppearance = async function () {
         const nextThemeId = typeof getProfileThemeId === 'function'
             ? getProfileThemeId(wizard.role)
             : String(wizard.themeId || existingRoomData.themeId || '').trim();
+        const currentPairingSurname = getCurrentPairingSurnameState();
         await roomDataRef.set({
                 role: nextRole,
                 displayName: profileName,
                 username: profileName,
                 nickname: profileName,
                 themeId: nextThemeId,
+                surname: currentPairingSurname.surname,
+                surnameReading: currentPairingSurname.reading,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
+        if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
+            MeimayPairing._autoSyncDebounced('profile-appearance');
+        }
     } catch (e) {
         console.warn('SHARE: Sync profile appearance failed', e);
     }

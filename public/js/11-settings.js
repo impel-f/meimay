@@ -988,6 +988,12 @@ function saveSettings() {
         showInappropriateKanji: showInappropriateKanji
     };
     localStorage.setItem('meimay_settings', JSON.stringify(settings));
+    if (typeof MeimayPairing !== 'undefined'
+        && MeimayPairing
+        && MeimayPairing.roomCode
+        && typeof MeimayPairing._autoSyncDebounced === 'function') {
+        MeimayPairing._autoSyncDebounced('saveSettings');
+    }
     console.log('SETTINGS: Saved', settings);
 }
 
