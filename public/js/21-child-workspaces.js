@@ -568,10 +568,15 @@
 
         buildRootFromLegacyGlobals() {
             const childId = 'child_1';
+            const wizardData = (typeof WizardData !== 'undefined' && WizardData && typeof WizardData.get === 'function' && typeof WizardData.isCompleted === 'function' && WizardData.isCompleted())
+                ? (WizardData.get() || {})
+                : {};
             const child = this.captureCurrentChildRecord({
                 id: childId,
-                birthOrder: 1,
-                gender: normalizeGenderValue(typeof gender !== 'undefined' ? gender : 'neutral'),
+                birthOrder: normalizePositiveInteger(wizardData.birthOrder, 1),
+                gender: normalizeGenderValue(
+                    wizardData.gender || (typeof gender !== 'undefined' ? gender : 'neutral')
+                ),
                 birthGroupId: null,
                 birthGroupIndex: null,
                 twinGroupId: null,
@@ -1483,11 +1488,40 @@
         updateHeaderChildButton() {
             const button = document.getElementById('top-bar-child-button');
             if (!button) return;
+            const wizardCompleted = typeof WizardData !== 'undefined'
+                && WizardData
+                && typeof WizardData.isCompleted === 'function'
+                && WizardData.isCompleted();
+            const activeScreenId = document.querySelector('.screen.active')?.id || '';
+            const shouldShow = this.initialized && !!this.root && wizardCompleted && activeScreenId !== 'scr-wizard';
+            button.hidden = !shouldShow;
+            if (!shouldShow) return;
             const activeChild = this.getActiveChild();
             const label = activeChild ? this.getChildLabel(activeChild.meta.id) : '第一子';
             button.textContent = label;
             button.title = label;
             button.setAttribute('aria-label', label);
+        },
+
+        applyWizardSelection(options = {}) {
+            if (!this.initialized || !this.root) return false;
+            const activeChild = this.getActiveChild();
+            if (!activeChild) return false;
+
+            const nextBirthOrder = normalizePositiveInteger(options.birthOrder, activeChild.meta.birthOrder || 1);
+            const nextGender = normalizeGenderValue(options.gender || activeChild.meta.gender || 'neutral');
+
+            activeChild.meta.birthOrder = nextBirthOrder;
+            activeChild.meta.displayLabel = buildDisplayLabel(nextBirthOrder, activeChild.meta.birthGroupIndex);
+            activeChild.meta.gender = nextGender;
+            activeChild.meta.birthGroupId = activeChild.meta.birthGroupIndex === null ? null : `bg_${nextBirthOrder}`;
+            activeChild.meta.twinGroupId = activeChild.meta.birthGroupId;
+            activeChild.meta.updatedAt = getNowIso();
+
+            if (typeof gender !== 'undefined') gender = nextGender;
+            this.persistActiveChildSnapshot('wizard-selection');
+            this.renderSwitchers();
+            return true;
         },
 
         getAvailableBirthOrders(excludedChildId = null) {

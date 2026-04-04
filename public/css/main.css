@@ -1106,6 +1106,81 @@ body.hide-top-bar #top-bar {
     transform: scale(0.98);
 }
 
+.wiz-birth-order-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1.5px solid rgba(212, 197, 175, 0.34);
+    border-radius: 18px;
+    color: #5d5444;
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: none;
+    outline: none;
+}
+
+.wiz-birth-order-select:focus {
+    border-color: rgba(188, 163, 127, 0.82);
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
+}
+
+.wiz-baby-gender-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.wiz-baby-gender-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 120px;
+    padding: 14px 10px;
+    background: rgba(255, 255, 255, 0.58);
+    border: 1.5px solid rgba(212, 197, 175, 0.34);
+    border-radius: 22px;
+    box-shadow: none;
+    color: #5d5444;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.wiz-baby-gender-btn:active {
+    transform: scale(0.98);
+}
+
+.wiz-baby-gender-btn.selected {
+    border-color: rgba(188, 163, 127, 0.82);
+    background: rgba(255, 249, 236, 0.98);
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
+}
+
+.wiz-baby-gender-emoji {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.wiz-baby-gender-title {
+    display: block;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #5d5444;
+}
+
+.wiz-baby-gender-desc {
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #8b7e66;
+}
+
 .wiz-reading-choice {
     justify-content: space-between;
     gap: 10px;
@@ -1546,6 +1621,24 @@ body.has-ad-banner #universal-footer {
 
     #wiz-step-4 > button {
         margin-bottom: 0;
+    }
+
+    .wiz-birth-order-select {
+        padding: 12px 14px;
+        font-size: 13px;
+    }
+
+    .wiz-baby-gender-btn {
+        min-height: 108px;
+        padding: 12px 8px;
+    }
+
+    .wiz-baby-gender-emoji {
+        font-size: 25px;
+    }
+
+    .wiz-baby-gender-title {
+        font-size: 11px;
     }
 }
 

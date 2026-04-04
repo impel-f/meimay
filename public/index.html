@@ -158,6 +158,7 @@
         <button
             id="top-bar-child-button"
             type="button"
+            hidden
             onclick="if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') { MeimayChildWorkspaces.openManagerModal(); }"
             class="absolute right-4 top-1/2 inline-flex h-[28px] max-w-[44vw] -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-full border border-[#d8c7b0] bg-[linear-gradient(180deg,#fffdf8_0%,#f4eadb_100%)] px-3 text-[10px] font-black leading-none text-[#6a4a2f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_3px_10px_rgba(109,78,51,0.08)] transition-all active:scale-95">
             第一子
@@ -261,33 +262,47 @@
                 <button onclick="wizStartNaming()" class="btn-gold py-4 shadow-lg mb-3">名前をさがす</button>
             </div>
 
-            <!-- Step 3: Gender -->
+            <!-- Step 3: Birth order + Gender -->
             <div id="wiz-step-3" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">赤ちゃんの性別</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">おすすめする名前の傾向です</p>
+                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">赤ちゃんの生まれ順・性別</h1>
+                <p class="text-xs text-[#a6967a] text-center mb-8">おすすめする名前の傾向を整えます</p>
 
-                <div class="flex flex-col gap-3 mb-8">
-                    <button onclick="selectWizGender('male')" class="wiz-gender-btn" data-gender="male">
-                        <span class="text-xl mr-3">👦</span>
-                        <span class="min-w-0 flex-1 text-left">
-                            <span class="block text-base font-bold text-[#5d5444]">男の子</span>
-                            <span class="block mt-1 text-[11px] text-[#a6967a]">男性名＋中性名</span>
-                        </span>
-                    </button>
-                    <button onclick="selectWizGender('female')" class="wiz-gender-btn" data-gender="female">
-                        <span class="text-xl mr-3">👧</span>
-                        <span class="min-w-0 flex-1 text-left">
-                            <span class="block text-base font-bold text-[#5d5444]">女の子</span>
-                            <span class="block mt-1 text-[11px] text-[#a6967a]">女性名＋中性名</span>
-                        </span>
-                    </button>
-                    <button onclick="selectWizGender('neutral')" class="wiz-gender-btn" data-gender="neutral">
-                        <span class="text-xl mr-3">👶</span>
-                        <span class="min-w-0 flex-1 text-left">
-                            <span class="block text-base font-bold text-[#5d5444]">まだわからない</span>
-                            <span class="block mt-1 text-[11px] text-[#a6967a]">中性名</span>
-                        </span>
-                    </button>
+                <div class="mb-7 w-full">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block">生まれ順</label>
+                    <select id="wiz-birth-order" onchange="selectWizBirthOrder(this.value)"
+                        class="wiz-birth-order-select w-full">
+                        <option value="1" selected>第一子</option>
+                        <option value="2">第二子</option>
+                        <option value="3">第三子</option>
+                        <option value="4">第四子</option>
+                        <option value="5">第五子</option>
+                        <option value="6">第六子</option>
+                        <option value="7">第七子</option>
+                        <option value="8">第八子</option>
+                        <option value="9">第九子</option>
+                        <option value="10">第十子</option>
+                    </select>
+                </div>
+
+                <div class="mb-8 w-full">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-3 block">性別</label>
+                    <div class="wiz-baby-gender-grid">
+                        <button type="button" onclick="selectWizGender('male')" class="wiz-baby-gender-btn" data-gender="male" aria-pressed="false">
+                            <span class="wiz-baby-gender-emoji">👦</span>
+                            <span class="wiz-baby-gender-title">男の子</span>
+                            <span class="wiz-baby-gender-desc">男性名＋中性名</span>
+                        </button>
+                        <button type="button" onclick="selectWizGender('female')" class="wiz-baby-gender-btn" data-gender="female" aria-pressed="false">
+                            <span class="wiz-baby-gender-emoji">👧</span>
+                            <span class="wiz-baby-gender-title">女の子</span>
+                            <span class="wiz-baby-gender-desc">女性名＋中性名</span>
+                        </button>
+                        <button type="button" onclick="selectWizGender('neutral')" class="wiz-baby-gender-btn" data-gender="neutral" aria-pressed="false">
+                            <span class="wiz-baby-gender-emoji">👶</span>
+                            <span class="wiz-baby-gender-title">まだわからない</span>
+                            <span class="wiz-baby-gender-desc">中性名</span>
+                        </button>
+                    </div>
                 </div>
 
                 <button onclick="wizNext(3)" class="btn-gold py-4 shadow-lg mb-3">次へ</button>

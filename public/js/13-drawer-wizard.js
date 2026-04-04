@@ -35,7 +35,13 @@ const WizardData = {
 
 let wizRole = '';
 let wizGender = '';
+let wizBirthOrder = 1;
 let wizHasReadingCandidate = null;
+
+function parseWizBirthOrder(value, fallback = 1) {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 // ==========================================
 // WIZARD FUNCTIONS
@@ -52,8 +58,18 @@ function selectWizRole(role) {
 function selectWizGender(gender) {
     wizGender = gender;
     document.querySelectorAll('[data-gender]').forEach(btn => {
-        btn.classList.toggle('selected', btn.getAttribute('data-gender') === gender);
+        const isSelected = btn.getAttribute('data-gender') === gender;
+        btn.classList.toggle('selected', isSelected);
+        btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
+}
+
+function selectWizBirthOrder(order) {
+    wizBirthOrder = parseWizBirthOrder(order, 1);
+    const select = document.getElementById('wiz-birth-order');
+    if (select) {
+        select.value = String(wizBirthOrder);
+    }
 }
 
 function selectWizReadingCandidate(hasCandidate) {
@@ -99,10 +115,16 @@ function wizNext(currentStep) {
             : '';
         if (typeof updateSurnameData === 'function') updateSurnameData();
     }
+    if (currentStep === 3) {
+        const birthOrderSelect = document.getElementById('wiz-birth-order');
+        wizBirthOrder = parseWizBirthOrder(birthOrderSelect && birthOrderSelect.value, wizBirthOrder || 1);
+    }
     if (currentStep === 3 && !wizGender) {
         wizGender = 'neutral';
         document.querySelectorAll('[data-gender]').forEach(btn => {
-            btn.classList.toggle('selected', btn.getAttribute('data-gender') === 'neutral');
+            const isSelected = btn.getAttribute('data-gender') === 'neutral';
+            btn.classList.toggle('selected', isSelected);
+            btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
         });
     }
     if (currentStep === 4 && wizHasReadingCandidate === null) {
@@ -116,6 +138,18 @@ function wizNext(currentStep) {
     // Show next step
     const next = document.getElementById(`wiz-step-${currentStep + 1}`);
     if (next) next.classList.add('active');
+
+    if (currentStep + 1 === 3) {
+        selectWizBirthOrder(wizBirthOrder);
+        if (!wizGender) {
+            wizGender = 'neutral';
+        }
+        document.querySelectorAll('[data-gender]').forEach(btn => {
+            const isSelected = btn.getAttribute('data-gender') === wizGender;
+            btn.classList.toggle('selected', isSelected);
+            btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+    }
 
     // Update dots
     updateWizardDots(currentStep + 1);
@@ -137,11 +171,13 @@ function wizFinish(mode) {
     const surnameReadingInput = document.getElementById('wiz-surname-reading');
     const existingData = WizardData.get() || {};
     const selectedRole = wizRole || existingData.role || '';
+    const birthOrder = parseWizBirthOrder(wizBirthOrder || existingData.birthOrder || 1, 1);
 
     const data = {
         completed: true,
         username: username ? username.value.trim() : '',
         role: selectedRole,
+        birthOrder,
         surname: surname ? surname.value.trim() : '',
         surnameReading: surnameReadingInput && surnameReadingInput.value.trim()
             ? toHira(surnameReadingInput.value.trim())
@@ -159,10 +195,6 @@ function wizFinish(mode) {
     }
 
     WizardData.save(data);
-    if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
-        MeimayShare.syncProfileAppearance();
-    }
-
     // Apply to global state
     if (data.surname) {
         surnameStr = data.surname;
@@ -172,6 +204,18 @@ function wizFinish(mode) {
     surnameReading = data.surnameReading || '';
     if (typeof updateSurnameData === 'function') updateSurnameData();
     gender = data.gender;
+
+    if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+        MeimayShare.syncProfileAppearance();
+    }
+    if (typeof MeimayChildWorkspaces !== 'undefined'
+        && MeimayChildWorkspaces
+        && typeof MeimayChildWorkspaces.applyWizardSelection === 'function') {
+        MeimayChildWorkspaces.applyWizardSelection({
+            birthOrder: data.birthOrder,
+            gender: data.gender
+        });
+    }
 
     // Update drawer profile
     updateDrawerProfile();
@@ -197,6 +241,7 @@ function wizStartNaming() {
 
 window.selectWizReadingCandidate = selectWizReadingCandidate;
 window.selectWizGender = selectWizGender;
+window.selectWizBirthOrder = selectWizBirthOrder;
 window.wizStartNaming = wizStartNaming;
 
 const DRAWER_EDGE_SWIPE_ZONE = 24;
