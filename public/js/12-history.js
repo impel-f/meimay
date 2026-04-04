@@ -209,7 +209,6 @@ function executeSaveWithMessage() {
             !(item.fullName === currentBuildResult.fullName &&
                 JSON.stringify(item.combination) === JSON.stringify(currentBuildResult.combination))
         );
-        localStorage.setItem('meimay_saved', JSON.stringify(filtered));
     }
 
     // 保存データを作成
@@ -232,7 +231,16 @@ function executeSaveWithMessage() {
 
     // グローバル変数を更新
     if (typeof savedNames !== 'undefined') savedNames = updated;
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        if (updated.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
     persistActiveChildWorkspaceSnapshot('save-name-message');
 
     closeSaveMessageModal();
@@ -1418,7 +1426,16 @@ function deleteSavedName(index) {
     // グローバル変数を更新
     if (typeof savedNames !== 'undefined') savedNames = saved;
 
-    localStorage.setItem('meimay_saved', JSON.stringify(saved));
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(saved));
+        if (saved.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
 
     renderSavedScreen();
     console.log('HISTORY: Deleted saved name at index', index);
@@ -1541,6 +1558,11 @@ function getSavedNames() {
         const list = Array.isArray(rawList) ? rawList.filter(item => !item?.fromPartner) : [];
         if (list.length !== rawList.length) {
             localStorage.setItem('meimay_saved', JSON.stringify(list));
+        }
+        if (list.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
         }
         if (typeof savedNames !== 'undefined') savedNames = list;
         return list;
@@ -1665,7 +1687,16 @@ function setSavedMainCandidate(index) {
         };
     });
 
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        if (updated.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
     if (typeof savedNames !== 'undefined') savedNames = updated;
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
@@ -1703,7 +1734,16 @@ function deleteSavedNameBySourceIndex(index, source = 'own') {
 
     saved.splice(ownIndex, 1);
     if (typeof savedNames !== 'undefined') savedNames = saved;
-    localStorage.setItem('meimay_saved', JSON.stringify(saved));
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(saved));
+        if (saved.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
         MeimayPairing._autoSyncDebounced?.();
@@ -1786,8 +1826,17 @@ function likePartnerSavedName(index) {
         updated = [approved, ...updated];
     }
 
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
     if (typeof savedNames !== 'undefined') savedNames = updated;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        if (updated.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
         MeimayPairing._autoSyncDebounced?.();
@@ -1964,8 +2013,17 @@ function setSavedMainCandidate(index) {
         };
     });
 
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
     if (typeof savedNames !== 'undefined') savedNames = updated;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        if (updated.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = selectedKey;
@@ -3913,7 +3971,16 @@ function deleteSavedNameBySourceIndex(index, source = 'own') {
 
     const updated = saved.filter((_, idx) => idx !== ownIndex);
     if (typeof savedNames !== 'undefined') savedNames = updated;
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        if (updated.length === 0) {
+            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+        } else {
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+    }
     persistActiveChildWorkspaceSnapshot('delete-saved-name');
 
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {

@@ -80,13 +80,21 @@ function flattenBuildCombination(pieces) {
 
 function normalizeSingleKanjiStock() {
     if (!Array.isArray(liked)) return;
-
     const cleaned = liked.filter((item) => {
         const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
         return String(kanji).trim().length > 0;
     });
 
-    if (cleaned.length === liked.length) return;
+    if (cleaned.length === liked.length) {
+        if (cleaned.length > 0) {
+            try {
+                localStorage.removeItem('meimay_liked_cleared_at');
+            } catch (error) {
+                console.warn('BUILD: Failed to clear empty-stock marker', error);
+            }
+        }
+        return;
+    }
 
     liked = cleaned;
     try {
@@ -99,6 +107,9 @@ function normalizeSingleKanjiStock() {
         }));
         if (cleaned.length > 0) {
             localStorage.setItem('meimay_liked_backup_v1', serialized);
+            localStorage.removeItem('meimay_liked_cleared_at');
+        } else {
+            localStorage.setItem('meimay_liked_cleared_at', new Date().toISOString());
         }
     } catch (error) {
         console.warn('BUILD: Failed to normalize stock', error);

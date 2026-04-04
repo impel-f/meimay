@@ -10,6 +10,7 @@ const StorageBox = {
     KEY_LIKED_META: 'meimay_liked_meta_v1',
     KEY_LIKED_CLEARED: 'meimay_liked_cleared_at',
     KEY_SAVED: 'meimay_saved',
+    KEY_SAVED_CLEARED: 'meimay_saved_cleared_at',
     KEY_SURNAME: 'naming_app_surname',
     KEY_SEGMENTS: 'naming_app_segments',
     KEY_SETTINGS: 'naming_app_settings',
@@ -40,6 +41,19 @@ const StorageBox = {
     _persistLikedState: function (items) {
         try {
             const safeLiked = Array.isArray(items) ? items : [];
+            const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
+                || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
+                || localStorage.getItem(this.KEY_LIKED_META) !== null
+                || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
+                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
+            if (safeLiked.length === 0 && !hadLikedState) {
+                localStorage.removeItem(this.KEY_LIKED);
+                localStorage.removeItem(this.KEY_LIKED_LEGACY);
+                localStorage.removeItem(this.KEY_LIKED_META);
+                localStorage.removeItem(this.KEY_LIKED_BACKUP);
+                localStorage.removeItem(this.KEY_LIKED_CLEARED);
+                return true;
+            }
             const serialized = JSON.stringify(safeLiked);
             localStorage.setItem(this.KEY_LIKED, serialized);
             localStorage.setItem(this.KEY_LIKED_LEGACY, serialized);
@@ -49,6 +63,12 @@ const StorageBox = {
             }));
             if (safeLiked.length > 0) {
                 localStorage.setItem(this.KEY_LIKED_BACKUP, serialized);
+            }
+            if (safeLiked.length === 0) {
+                if (hadLikedState) {
+                    localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
+                }
+            } else {
                 localStorage.removeItem(this.KEY_LIKED_CLEARED);
             }
             return true;
@@ -95,7 +115,20 @@ const StorageBox = {
                 syncReadingStockFromLiked(liked);
             }
             const likedSaved = this._persistLikedState(liked);
-            localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
+            const safeSavedNames = Array.isArray(savedNames) ? savedNames : [];
+            const hadSavedState = localStorage.getItem(this.KEY_SAVED) !== null
+                || localStorage.getItem(this.KEY_SAVED_CLEARED) !== null;
+            if (safeSavedNames.length === 0 && !hadSavedState) {
+                localStorage.removeItem(this.KEY_SAVED);
+                localStorage.removeItem(this.KEY_SAVED_CLEARED);
+            } else {
+                localStorage.setItem(this.KEY_SAVED, JSON.stringify(safeSavedNames));
+                if (safeSavedNames.length === 0) {
+                    localStorage.setItem(this.KEY_SAVED_CLEARED, new Date().toISOString());
+                } else {
+                    localStorage.removeItem(this.KEY_SAVED_CLEARED);
+                }
+            }
             localStorage.setItem(this.KEY_SURNAME, JSON.stringify({
                 str: surnameStr,
                 data: surnameData,
@@ -139,16 +172,35 @@ const StorageBox = {
             // いいねした漢字
             const likedState = this._loadLikedState();
             liked = Array.isArray(likedState.items) ? likedState.items : [];
+            const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
+                || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
+                || localStorage.getItem(this.KEY_LIKED_META) !== null
+                || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
+                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
             const legacyLikedMissing = localStorage.getItem(this.KEY_LIKED_LEGACY) == null;
             const likedMetaMissing = localStorage.getItem(this.KEY_LIKED_META) == null;
             const likedBackupMissing = liked.length > 0 && localStorage.getItem(this.KEY_LIKED_BACKUP) == null;
             if (likedState.source !== 'primary' || legacyLikedMissing || likedMetaMissing || likedBackupMissing) {
                 this._persistLikedState(liked);
             }
+            if (hadLikedState) {
+                if (Array.isArray(liked) && liked.length === 0) {
+                    localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
+                } else if (Array.isArray(liked)) {
+                    localStorage.removeItem(this.KEY_LIKED_CLEARED);
+                }
+            }
 
             // 保存済み名前
             const s = localStorage.getItem(this.KEY_SAVED);
             if (s) savedNames = JSON.parse(s);
+            if (s) {
+                if (Array.isArray(savedNames) && savedNames.length === 0) {
+                    localStorage.setItem(this.KEY_SAVED_CLEARED, new Date().toISOString());
+                } else if (Array.isArray(savedNames)) {
+                    localStorage.removeItem(this.KEY_SAVED_CLEARED);
+                }
+            }
 
             // 名字
             const n = localStorage.getItem(this.KEY_SURNAME);
@@ -266,10 +318,17 @@ const StorageBox = {
         if (typeof syncReadingStockFromLiked === 'function') {
             syncReadingStockFromLiked(liked);
         }
+        const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
+            || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
+            || localStorage.getItem(this.KEY_LIKED_META) !== null
+            || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
+            || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
         const result = this._persistLikedState(liked);
         try {
             if (Array.isArray(liked) && liked.length === 0) {
-                localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
+                if (hadLikedState) {
+                    localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
+                }
             } else {
                 localStorage.removeItem(this.KEY_LIKED_CLEARED);
             }
@@ -297,7 +356,25 @@ const StorageBox = {
 
     saveSavedNames: function () {
         try {
-            localStorage.setItem(this.KEY_SAVED, JSON.stringify(savedNames));
+            const safeSavedNames = Array.isArray(savedNames) ? savedNames : [];
+            const hadSavedState = localStorage.getItem(this.KEY_SAVED) !== null
+                || localStorage.getItem(this.KEY_SAVED_CLEARED) !== null;
+            if (safeSavedNames.length === 0 && !hadSavedState) {
+                localStorage.removeItem(this.KEY_SAVED);
+                localStorage.removeItem(this.KEY_SAVED_CLEARED);
+                return true;
+            }
+            localStorage.setItem(this.KEY_SAVED, JSON.stringify(safeSavedNames));
+            if (safeSavedNames.length === 0) {
+                if (hadSavedState) {
+                    localStorage.setItem(this.KEY_SAVED_CLEARED, new Date().toISOString());
+                }
+            } else {
+                localStorage.removeItem(this.KEY_SAVED_CLEARED);
+            }
+            if (typeof queuePartnerStockSync === 'function') {
+                queuePartnerStockSync('saveSavedNames');
+            }
             return true;
         } catch (e) {
             console.error("STORAGE: Save savedNames failed", e);
@@ -650,7 +727,17 @@ function receiveSharedData() {
                     });
                 }
             });
-            localStorage.setItem('meimay_saved', JSON.stringify(existing));
+            if (typeof savedNames !== 'undefined') savedNames = existing;
+            if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+                StorageBox.saveSavedNames();
+            } else {
+                localStorage.setItem('meimay_saved', JSON.stringify(existing));
+                if (existing.length === 0) {
+                    localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+                } else {
+                    localStorage.removeItem('meimay_saved_cleared_at');
+                }
+            }
         }
 
         StorageBox.saveLiked();

@@ -1219,8 +1219,17 @@ const MeimayShare = {
                 }
             });
             if (added > 0) {
-                localStorage.setItem('meimay_saved', JSON.stringify(local));
                 if (typeof savedNames !== 'undefined') savedNames = local;
+                if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+                    StorageBox.saveSavedNames();
+                } else {
+                    localStorage.setItem('meimay_saved', JSON.stringify(local));
+                    if (local.length === 0) {
+                        localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+                    } else {
+                        localStorage.removeItem('meimay_saved_cleared_at');
+                    }
+                }
                 if (typeof renderSavedScreen === 'function' &&
                     document.getElementById('scr-saved')?.classList.contains('active')) {
                     renderSavedScreen();
@@ -2946,6 +2955,9 @@ MeimayPairing.syncMyData = async function () {
         const roomDataDoc = await roomDataRef.get();
         const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
         const likedClearFlag = localStorage.getItem('meimay_liked_cleared_at');
+        const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
+            ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
+            : localStorage.getItem('meimay_saved_cleared_at');
         const pickStoredSection = (localItems, existingItems) => {
             if (Array.isArray(localItems) && localItems.length > 0) return localItems;
             if (Array.isArray(existingItems) && existingItems.length > 0) return existingItems;
@@ -2954,7 +2966,9 @@ MeimayPairing.syncMyData = async function () {
         const likedToStore = likedClearFlag
             ? (Array.isArray(projectedSections.liked) ? projectedSections.liked : [])
             : pickStoredSection(projectedSections.liked, existingRoomData.liked);
-        const savedNamesToStore = pickStoredSection(projectedSections.savedNames, existingRoomData.savedNames);
+        const savedNamesToStore = savedClearFlag
+            ? (Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames : [])
+            : pickStoredSection(projectedSections.savedNames, existingRoomData.savedNames);
         const readingStockToStore = pickStoredSection(projectedSections.readingStock, existingRoomData.readingStock);
         const encounteredToStore = pickStoredSection(projectedSections.encounteredReadings, existingRoomData.encounteredReadings);
         const existingProfileName = String(existingRoomData.displayName || existingRoomData.username || existingRoomData.nickname || '').trim();
@@ -4053,12 +4067,16 @@ const MeimayUserBackup = {
         const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
             ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
             : localStorage.getItem('meimay_liked_cleared_at');
+        const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
+            ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
+            : localStorage.getItem('meimay_saved_cleared_at');
         return !!(sections && (
             (Array.isArray(sections.liked) && sections.liked.length > 0) ||
             (Array.isArray(sections.savedNames) && sections.savedNames.length > 0) ||
             (Array.isArray(sections.readingStock) && sections.readingStock.length > 0) ||
             !!sections.childWorkspaceStateV2 ||
-            !!likedClearFlag
+            !!likedClearFlag ||
+            !!savedClearFlag
         ));
     },
 
@@ -4071,16 +4089,24 @@ const MeimayUserBackup = {
             const hiddenReadings = typeof readNormalizedHiddenReadings === 'function'
                 ? readNormalizedHiddenReadings()
                 : [];
+            const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
+                ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
+                : localStorage.getItem('meimay_liked_cleared_at');
+            const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
+                ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
+                : localStorage.getItem('meimay_saved_cleared_at');
             return JSON.stringify({
                 liked: projectedSections.liked || [],
                 savedNames: projectedSections.savedNames || [],
                 readingStock: projectedSections.readingStock || [],
                 pairRoomCode,
                 hiddenReadings,
+                likedClearFlag: !!likedClearFlag,
+                savedClearFlag: !!savedClearFlag,
                 childWorkspaceStateV2: this._getChildWorkspaceStateV2Stamp(sections?.childWorkspaceStateV2)
             });
         } catch (error) {
-            return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}`;
+            return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}:${localStorage.getItem('meimay_liked_cleared_at') ? 1 : 0}:${localStorage.getItem('meimay_saved_cleared_at') ? 1 : 0}`;
         }
     },
 
@@ -4095,6 +4121,9 @@ const MeimayUserBackup = {
         const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
             ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
             : localStorage.getItem('meimay_liked_cleared_at');
+        const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
+            ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
+            : localStorage.getItem('meimay_saved_cleared_at');
         const backup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
@@ -4111,9 +4140,13 @@ const MeimayUserBackup = {
 
         if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
             backup.liked = this._safeClone(projectedSections.liked);
+        } else if (likedClearFlag) {
+            backup.liked = [];
         }
         if (Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0) {
             backup.savedNames = this._safeClone(projectedSections.savedNames);
+        } else if (savedClearFlag) {
+            backup.savedNames = [];
         }
         if (Array.isArray(projectedSections.readingStock) && projectedSections.readingStock.length > 0) {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
@@ -4139,6 +4172,11 @@ const MeimayUserBackup = {
                 ? this._safeClone(projectedSections.liked)
                 : [];
         }
+        if (savedClearFlag) {
+            patch.savedNames = Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0
+                ? this._safeClone(projectedSections.savedNames)
+                : [];
+        }
 
         return patch;
     },
@@ -4153,6 +4191,11 @@ const MeimayUserBackup = {
         try {
             if (typeof liked !== 'undefined') liked = this._safeClone(likedItems);
             if (typeof savedNames !== 'undefined') savedNames = this._safeClone(savedItems);
+            const hadLikedState = localStorage.getItem('meimay_liked') !== null
+                || localStorage.getItem('meimay_liked_cleared_at') !== null
+                || localStorage.getItem('naming_app_liked_chars') !== null
+                || localStorage.getItem('meimay_liked_backup_v1') !== null
+                || localStorage.getItem('meimay_liked_meta_v1') !== null;
 
             if (typeof StorageBox !== 'undefined') {
                 if (typeof StorageBox._persistLikedState === 'function') {
@@ -4169,8 +4212,33 @@ const MeimayUserBackup = {
                 localStorage.setItem('naming_app_liked_chars', JSON.stringify(likedItems));
                 localStorage.setItem('meimay_liked', JSON.stringify(likedItems));
             }
+            if (likedItems.length === 0) {
+                if (hadLikedState) {
+                    localStorage.setItem('meimay_liked_cleared_at', new Date().toISOString());
+                }
+            } else {
+                localStorage.removeItem('meimay_liked_cleared_at');
+            }
+            if (likedItems.length === 0 && !hadLikedState) {
+                localStorage.removeItem('meimay_liked');
+                localStorage.removeItem('naming_app_liked_chars');
+                localStorage.removeItem('meimay_liked_meta_v1');
+                localStorage.removeItem('meimay_liked_backup_v1');
+            }
 
-            localStorage.setItem('meimay_saved', JSON.stringify(savedItems));
+            const hadSavedState = localStorage.getItem('meimay_saved') !== null
+                || localStorage.getItem('meimay_saved_cleared_at') !== null;
+            if (savedItems.length === 0 && !hadSavedState) {
+                localStorage.removeItem('meimay_saved');
+                localStorage.removeItem('meimay_saved_cleared_at');
+            } else {
+                localStorage.setItem('meimay_saved', JSON.stringify(savedItems));
+                if (savedItems.length === 0) {
+                    localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+                } else {
+                    localStorage.removeItem('meimay_saved_cleared_at');
+                }
+            }
             localStorage.setItem('meimay_reading_stock', JSON.stringify(readingStockItems));
 
             if (typeof StorageBox !== 'undefined' && typeof StorageBox.loadAll === 'function') {
@@ -4247,6 +4315,20 @@ const MeimayUserBackup = {
             };
 
             const localSections = this._readCurrentSections();
+            const likedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_CLEARED
+                ? localStorage.getItem(StorageBox.KEY_LIKED_CLEARED)
+                : localStorage.getItem('meimay_liked_cleared_at');
+            const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
+                ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
+                : localStorage.getItem('meimay_saved_cleared_at');
+
+            if (likedClearFlag && (!Array.isArray(localSections.liked) || localSections.liked.length === 0)) {
+                remoteSections.liked = [];
+            }
+            if (savedClearFlag && (!Array.isArray(localSections.savedNames) || localSections.savedNames.length === 0)) {
+                remoteSections.savedNames = [];
+            }
+
             const mergedSections = {
                 liked: this._mergeByKey(localSections.liked, remoteSections.liked, (item) => this._getLikedKey(item)),
                 savedNames: this._mergeByKey(localSections.savedNames, remoteSections.savedNames, (item) => this._getSavedKey(item)),

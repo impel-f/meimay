@@ -924,10 +924,21 @@
 
         syncLegacyLocalStorage(child, family) {
             try {
-                if (typeof StorageBox !== 'undefined' && typeof StorageBox._persistLikedState === 'function') {
+                if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveLiked === 'function') {
+                    StorageBox.saveLiked();
+                } else if (typeof StorageBox !== 'undefined' && typeof StorageBox._persistLikedState === 'function') {
                     StorageBox._persistLikedState(child.libraries.kanjiStock || []);
                 }
-                localStorage.setItem('meimay_saved', JSON.stringify(child.libraries.savedNames || []));
+                if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+                    StorageBox.saveSavedNames();
+                } else {
+                    localStorage.setItem('meimay_saved', JSON.stringify(child.libraries.savedNames || []));
+                    if ((child.libraries.savedNames || []).length === 0) {
+                        localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+                    } else {
+                        localStorage.removeItem('meimay_saved_cleared_at');
+                    }
+                }
                 localStorage.setItem('naming_app_surname', JSON.stringify({ str: family.surnameDefault.kanji || '', data: typeof surnameData !== 'undefined' ? cloneData(surnameData, []) : [], reading: family.surnameDefault.reading || '' }));
                 localStorage.setItem('naming_app_segments', JSON.stringify(child.draft.segments || []));
                 localStorage.setItem('naming_app_settings', JSON.stringify({ gender: child.meta.gender || 'neutral', rule: child.prefs.rule || 'strict', prioritizeFortune: child.prefs.prioritizeFortune === true }));
