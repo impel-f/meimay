@@ -1497,21 +1497,40 @@
         },
 
         updateHeaderChildButton() {
-            const button = document.getElementById('top-bar-child-button');
-            if (!button) return;
+            const slot = document.getElementById('top-bar-child-button-slot');
+            const existingButton = document.getElementById('top-bar-child-button');
             const wizardCompleted = typeof WizardData !== 'undefined'
                 && WizardData
                 && typeof WizardData.isCompleted === 'function'
                 && WizardData.isCompleted();
             const activeScreenId = document.querySelector('.screen.active')?.id || '';
             const shouldShow = this.initialized && !!this.root && wizardCompleted && activeScreenId !== 'scr-wizard';
-            button.hidden = !shouldShow;
             if (!shouldShow) {
-                button.textContent = '';
-                button.title = '';
-                button.setAttribute('aria-label', '');
+                if (existingButton) existingButton.remove();
+                if (slot) slot.replaceChildren();
                 return;
             }
+
+            let button = existingButton;
+            if (!button) {
+                button = document.createElement('button');
+                button.id = 'top-bar-child-button';
+                button.type = 'button';
+                button.className = 'absolute right-4 top-1/2 inline-flex h-[28px] max-w-[44vw] -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-full border border-[#d8c7b0] bg-[linear-gradient(180deg,#fffdf8_0%,#f4eadb_100%)] px-3 text-[10px] font-black leading-none text-[#6a4a2f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_3px_10px_rgba(109,78,51,0.08)] transition-all active:scale-95';
+                button.addEventListener('click', () => {
+                    if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') {
+                        MeimayChildWorkspaces.openManagerModal();
+                    }
+                });
+            }
+
+            if (slot && button.parentElement !== slot) {
+                slot.replaceChildren(button);
+            } else if (!button.parentElement) {
+                const topBar = document.getElementById('top-bar');
+                if (topBar) topBar.appendChild(button);
+            }
+
             const activeChild = this.getActiveChild();
             const label = activeChild ? this.getChildLabel(activeChild.meta.id) : '第一子';
             button.textContent = label;
