@@ -1506,7 +1506,12 @@
             const activeScreenId = document.querySelector('.screen.active')?.id || '';
             const shouldShow = this.initialized && !!this.root && wizardCompleted && activeScreenId !== 'scr-wizard';
             button.hidden = !shouldShow;
-            if (!shouldShow) return;
+            if (!shouldShow) {
+                button.textContent = '';
+                button.title = '';
+                button.setAttribute('aria-label', '');
+                return;
+            }
             const activeChild = this.getActiveChild();
             const label = activeChild ? this.getChildLabel(activeChild.meta.id) : '第一子';
             button.textContent = label;
@@ -1515,7 +1520,11 @@
         },
 
         applyWizardSelection(options = {}) {
-            if (!this.initialized || !this.root) return false;
+            if (!this.root) {
+                this.root = this.loadOrMigrateRoot();
+            }
+            if (!this.root) return false;
+
             const activeChild = this.getActiveChild();
             if (!activeChild) return false;
 
@@ -1530,8 +1539,14 @@
             activeChild.meta.updatedAt = getNowIso();
 
             if (typeof gender !== 'undefined') gender = nextGender;
-            this.persistActiveChildSnapshot('wizard-selection');
-            this.renderSwitchers();
+
+            if (this.initialized) {
+                this.persistActiveChildSnapshot('wizard-selection');
+                this.renderSwitchers();
+                this.refreshVisibleUI('wizard-selection');
+            } else {
+                this.saveRoot(this.root, { reason: 'wizard-selection' });
+            }
             return true;
         },
 
