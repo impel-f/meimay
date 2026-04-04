@@ -223,8 +223,8 @@ function wizFinish(mode) {
     if (typeof renderHomeProfile === 'function') renderHomeProfile();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
-    const nextMode = mode || (data.hasReadingCandidate ? 'reading' : 'sound');
-    if (nextMode === 'reading' || nextMode === 'sound' || nextMode === 'nickname' || nextMode === 'free') {
+    const nextMode = ['reading', 'sound', 'nickname', 'free'].includes(mode) ? mode : null;
+    if (nextMode) {
         startMode(nextMode);
         return;
     }
@@ -233,10 +233,7 @@ function wizFinish(mode) {
 }
 
 function wizStartNaming() {
-    if (wizHasReadingCandidate === null) {
-        wizHasReadingCandidate = false;
-    }
-    wizFinish(wizHasReadingCandidate ? 'reading' : 'sound');
+    wizFinish();
 }
 
 window.selectWizReadingCandidate = selectWizReadingCandidate;
