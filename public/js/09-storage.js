@@ -64,13 +64,12 @@ const StorageBox = {
             }));
             if (safeLiked.length > 0) {
                 localStorage.setItem(this.KEY_LIKED_BACKUP, serialized);
-            }
-            if (safeLiked.length === 0) {
+                localStorage.removeItem(this.KEY_LIKED_CLEARED);
+            } else {
+                localStorage.removeItem(this.KEY_LIKED_BACKUP);
                 if (hadLikedState) {
                     localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
                 }
-            } else {
-                localStorage.removeItem(this.KEY_LIKED_CLEARED);
             }
             return true;
         } catch (e) {

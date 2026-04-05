@@ -1393,11 +1393,15 @@ const MeimayPartnerInsights = {
     getPartnerLikedRaw: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
+        const backupLiked = Array.isArray(backup.liked)
+            && (backup.likedCount === undefined || backup.likedCount === null || Number(backup.likedCount) > 0)
+            ? backup.liked
+            : [];
         if (Array.isArray(snapshot.liked) && snapshot.liked.length > 0) {
             return snapshot.liked;
         }
-        if (Array.isArray(backup.liked) && backup.liked.length > 0) {
-            return backup.liked;
+        if (backupLiked.length > 0) {
+            return backupLiked;
         }
         return [];
     },
@@ -3012,32 +3016,10 @@ function getRoomSyncLikedItems() {
         if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
             const state = StorageBox._loadLikedState();
             const items = filterOwnItems(state?.items);
-            if (items.length > 0) {
-                return items;
-            }
+            return items.length > 0 ? items : [];
         }
     } catch (e) {
         console.warn('PAIRING: Failed to read liked state from StorageBox', e);
-    }
-
-    try {
-        const keys = [
-            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED ? StorageBox.KEY_LIKED : 'naming_app_liked_chars',
-            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_LEGACY ? StorageBox.KEY_LIKED_LEGACY : 'meimay_liked',
-            typeof StorageBox !== 'undefined' && StorageBox.KEY_LIKED_BACKUP ? StorageBox.KEY_LIKED_BACKUP : 'meimay_liked_backup_v1'
-        ];
-
-        for (const key of keys) {
-            const raw = localStorage.getItem(key);
-            if (!raw) continue;
-            const parsed = JSON.parse(raw);
-            const items = filterOwnItems(parsed);
-            if (items.length > 0) {
-                return items;
-            }
-        }
-    } catch (e) {
-        console.warn('PAIRING: Failed to read liked state from localStorage', e);
     }
 
     return [];
@@ -3120,6 +3102,9 @@ MeimayPairing.syncMyData = async function () {
             roomCode: String(this.roomCode || ''),
             ...childWorkspaceStateV2Meta
         };
+        if (likedClearFlag) {
+            roomBackup.liked = [];
+        }
 
         const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
             ? PremiumManager.getPublicPremiumSnapshot()
@@ -3195,13 +3180,17 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
             const roomBackup = data.meimayBackup || data.backup || {};
+            const roomBackupLiked = Array.isArray(roomBackup.liked)
+                && (roomBackup.likedCount === undefined || roomBackup.likedCount === null || Number(roomBackup.likedCount) > 0)
+                ? roomBackup.liked
+                : [];
             let partnerChildWorkspaceStateV2 = data.meimayStateV2
                 || roomBackup.meimayStateV2
                 || roomBackup.childWorkspaceStateV2
                 || null;
 
-            if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
-                likedSource = roomBackup.liked;
+            if (!likedSource.length && roomBackupLiked.length > 0) {
+                likedSource = roomBackupLiked;
             }
             if (!savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
                 savedNamesSource = roomBackup.savedNames;
@@ -4445,6 +4434,10 @@ const MeimayUserBackup = {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
+            const remoteBackupLiked = Array.isArray(remoteBackup?.liked)
+                && (remoteBackup?.likedCount === undefined || remoteBackup?.likedCount === null || Number(remoteBackup.likedCount) > 0)
+                ? remoteBackup.liked
+                : [];
             const remoteChildWorkspaceStateV2 = remoteBackup?.meimayStateV2
                 || remoteBackup?.stateV2
                 || remoteData.meimayStateV2
@@ -4457,7 +4450,7 @@ const MeimayUserBackup = {
                 return this._mergeByKey([], combined, keyGetter);
             };
             const remoteSections = {
-                liked: mergeRemoteItems(remoteBackup?.liked, remoteData.liked, (item) => this._getLikedKey(item)),
+                liked: mergeRemoteItems(remoteBackupLiked, remoteData.liked, (item) => this._getLikedKey(item)),
                 savedNames: mergeRemoteItems(remoteBackup?.savedNames, remoteData.savedNames, (item) => this._getSavedKey(item)),
                 readingStock: mergeRemoteItems(remoteBackup?.readingStock, remoteData.readingStock, (item) => this._getReadingStockKey(item))
             };
@@ -4721,6 +4714,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        const partnerBackupLiked = Array.isArray(partnerBackup.liked)
+                            && (partnerBackup.likedCount === undefined || partnerBackup.likedCount === null || Number(partnerBackup.likedCount) > 0)
+                            ? partnerBackup.liked
+                            : [];
                         if (!partnerChildWorkspaceStateV2) {
                             partnerChildWorkspaceStateV2 = partnerBackup.meimayStateV2
                                 || partnerBackup.childWorkspaceStateV2
@@ -4746,7 +4743,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                                 ? partnerBackup.hiddenReadings
                                 : (Array.isArray(partnerUserData.hiddenReadings) ? partnerUserData.hiddenReadings : [])
                         };
-                        if (!likedSource.length && Array.isArray(partnerUserBackup.liked) && partnerUserBackup.liked.length > 0) {
+                        if (!likedSource.length && partnerBackupLiked.length > 0) {
+                            likedSource = partnerBackupLiked;
+                        }
+                        if (!likedSource.length && Array.isArray(partnerUserBackup.liked)
+                            && (partnerUserBackup.likedCount === undefined || partnerUserBackup.likedCount === null || Number(partnerUserBackup.likedCount) > 0)
+                            && partnerUserBackup.liked.length > 0) {
                             likedSource = partnerUserBackup.liked;
                         }
                         if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {

@@ -92,6 +92,16 @@ function normalizeSingleKanjiStock() {
             } catch (error) {
                 console.warn('BUILD: Failed to clear empty-stock marker', error);
             }
+        } else {
+            try {
+                localStorage.removeItem('meimay_liked_backup_v1');
+                localStorage.setItem('meimay_liked_cleared_at', new Date().toISOString());
+            } catch (error) {
+                console.warn('BUILD: Failed to clear empty-stock backup', error);
+            }
+            if (typeof queuePartnerStockSync === 'function') {
+                queuePartnerStockSync('normalizeSingleKanjiStock');
+            }
         }
         return;
     }
@@ -109,6 +119,7 @@ function normalizeSingleKanjiStock() {
             localStorage.setItem('meimay_liked_backup_v1', serialized);
             localStorage.removeItem('meimay_liked_cleared_at');
         } else {
+            localStorage.removeItem('meimay_liked_backup_v1');
             localStorage.setItem('meimay_liked_cleared_at', new Date().toISOString());
         }
     } catch (error) {
