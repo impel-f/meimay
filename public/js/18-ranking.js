@@ -221,6 +221,10 @@ function isRankingJinmeiKanji(kanjiData) {
     return !!nameReading;
 }
 
+function isRankingKanjiPremiumLocked(kanjiData) {
+    return isRankingJinmeiKanji(kanjiData) && !isRankingPremiumAccessActive();
+}
+
 function renderRankingPremiumBadge() {
     const premiumAccessActive = isRankingPremiumAccessActive();
     const badgeClass = premiumAccessActive
@@ -625,13 +629,29 @@ function renderRankingKanjiCard(item, index) {
     const meaningText = meaning ? (meaning.length > 18 ? `${meaning.slice(0, 18)}…` : meaning) : 'データあり';
     const isStocked = isRankingKanjiStocked(displayKanji);
     const isJinmeiKanji = isRankingJinmeiKanji(rankingKanjiData);
+    const premiumLocked = isRankingKanjiPremiumLocked(rankingKanjiData);
     const jinmeiBadgeHtml = isJinmeiKanji ? renderRankingPremiumBadge() : '';
-    const tone = getRankingCardTone(index);
+    const tone = premiumLocked
+        ? {
+            rankClass: 'text-[10px]',
+            countClass: 'bg-[#ececec] text-[#8b8b8b]'
+        }
+        : getRankingCardTone(index);
     const isTopThree = index < 3;
     const rankLabel = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
     const rankHtml = isTopThree
         ? `<div class="text-[17px] leading-none">${rankLabel}</div>`
         : `<div class="inline-flex items-center justify-center rounded-full px-2.5 py-0.5 ${tone.countClass} ${tone.rankClass} leading-none font-black whitespace-nowrap">${rankLabel}</div>`;
+    const cardBackgroundClass = premiumLocked ? 'bg-[#f4f4f1]' : 'bg-white';
+    const cardTitleClass = premiumLocked ? 'text-[#7a7a7a]' : 'text-[#5d5444]';
+    const cardMutedTextClass = premiumLocked ? 'text-[#8f8f8f]' : 'text-[#8b7e66]';
+    const kanjiTileClass = premiumLocked
+        ? 'bg-gradient-to-br from-[#f0f0ed] to-[#e3e3de] border-[#d9d4ca] text-[#7a7a7a]'
+        : 'bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border-[#eadfce] text-[#5d5444]';
+    const countTextClass = premiumLocked ? 'text-[#8f8f8f]' : 'text-[#e07a7a]';
+    const actionHandler = premiumLocked
+        ? 'if (typeof showPremiumModal === \'function\') showPremiumModal();'
+        : 'openRankingKanjiDetail(this.dataset.kanji);';
 
     return `
         <button type="button"
@@ -639,20 +659,21 @@ function renderRankingKanjiCard(item, index) {
             data-ranking-kind="kanji"
             data-ranking-key="${escapeRankingHtml(displayKanji)}"
             data-ranking-count="${item.count}"
-            onclick="openRankingKanjiDetail(this.dataset.kanji)"
-            class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
+            title="${premiumLocked ? 'プレミアムで詳細を見る' : '詳細を表示'}"
+            onclick="event.stopPropagation();${actionHandler}"
+            class="w-full flex items-center gap-3 ${cardBackgroundClass} rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left ${premiumLocked ? 'hover:bg-[#efefec]' : ''} ${cardTitleClass}">
             <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
                 ${rankHtml}
-                <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
+                <div class="text-[10px] font-black leading-none whitespace-nowrap ${countTextClass}" data-ranking-count-display>❤${item.count}</div>
             </div>
-            <div class="w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br from-[#fff8ed] to-[#f4eadf] border border-[#eadfce] flex items-center justify-center text-[1.45rem] font-black leading-none text-[#5d5444]">
+            <div class="w-12 h-12 shrink-0 rounded-xl border flex items-center justify-center text-[1.45rem] font-black leading-none ${kanjiTileClass}">
                 ${escapeRankingHtml(displayKanji || '・')}
             </div>
             <div class="min-w-0 flex-1">
-                <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight text-[#5d5444] tracking-tight">
+                <div class="truncate whitespace-nowrap text-[15px] font-black leading-tight tracking-tight ${cardTitleClass}">
                     ${escapeRankingHtml(primaryReading || '読みなし')}
                 </div>
-                <div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight text-[#8b7e66]">
+                <div class="mt-0.5 truncate whitespace-nowrap text-[10px] font-bold leading-tight ${cardMutedTextClass}">
                     ${escapeRankingHtml(meaningText)}
                 </div>
             </div>
@@ -772,6 +793,13 @@ function resolveRankingReadingItem(key) {
 function openRankingKanjiDetail(kanjiStr) {
     const data = resolveRankingKanjiData(kanjiStr);
     if (!data) return;
+
+    if (isRankingKanjiPremiumLocked(data)) {
+        if (typeof showPremiumModal === 'function') {
+            showPremiumModal();
+        }
+        return;
+    }
 
     try {
         if (typeof showDetailByData === 'function') {
