@@ -269,6 +269,27 @@
         return matchedLabel ? `${baseLabel} ${genderEmoji}：${matchedLabel}` : `${baseLabel} ${genderEmoji}`;
     }
 
+    function hasChildWorkspaceData(state) {
+        return !!state && typeof state === 'object' && (
+            (state.children && typeof state.children === 'object' && Object.keys(state.children).length > 0)
+            || (state.deletedChildren && typeof state.deletedChildren === 'object' && Object.keys(state.deletedChildren).length > 0)
+            || (Array.isArray(state.deletedChildIds) && state.deletedChildIds.length > 0)
+            || String(state.activeChildId || '').trim()
+            || state.updatedAt
+            || state.createdAt
+        );
+    }
+
+    function getChildWorkspaceSlotKey(child) {
+        const meta = child?.meta || child || {};
+        const birthOrder = normalizePositiveInteger(meta.birthOrder, 1);
+        const rawTwinIndex = meta.birthGroupIndex ?? meta.twinIndex ?? meta.multipleIndex ?? null;
+        const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+            ? null
+            : normalizeNonNegativeInteger(rawTwinIndex, 0);
+        return `${birthOrder}:${twinIndex === null ? 'n' : twinIndex}`;
+    }
+
     function readJsonArray(key) {
         try {
             const parsed = JSON.parse(localStorage.getItem(key) || '[]');
@@ -420,6 +441,7 @@
                 .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:14px;font-weight:700;outline:none}
                 .meimay-child-input:focus,.meimay-child-select:focus{border-color:#bca37f}
                 .meimay-child-field-hint{margin-top:6px;color:#a6967a;font-size:10px;line-height:1.45}
+                .meimay-child-partner-note{margin-top:8px;display:flex;align-items:center;justify-content:center;width:100%;min-height:22px;padding:4px 10px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900;letter-spacing:.04em;text-align:center;white-space:nowrap;box-sizing:border-box}
                 .meimay-child-radio-grid{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-radio-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;cursor:pointer}
                 .meimay-child-radio-option.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
@@ -650,42 +672,41 @@
         },
 
         mergeRootState(localState = null, remoteState = null) {
-            const hasRootData = (state) => !!state && typeof state === 'object' && (
-                (state.children && typeof state.children === 'object' && Object.keys(state.children).length > 0)
-                || (state.deletedChildren && typeof state.deletedChildren === 'object' && Object.keys(state.deletedChildren).length > 0)
-                || (Array.isArray(state.deletedChildIds) && state.deletedChildIds.length > 0)
-                || String(state.activeChildId || '').trim()
-                || state.updatedAt
-                || state.createdAt
-            );
-            const localRoot = hasRootData(localState) ? this.normalizeRoot(localState) : null;
-            const remoteRoot = hasRootData(remoteState) ? this.normalizeRoot(remoteState) : null;
+            const localRoot = hasChildWorkspaceData(localState) ? this.normalizeRoot(localState) : null;
+            const remoteRoot = hasChildWorkspaceData(remoteState) ? this.normalizeRoot(remoteState) : null;
             if (!localRoot && !remoteRoot) return this.normalizeRoot({});
             if (!localRoot) return remoteRoot;
             if (!remoteRoot) return localRoot;
             const mergedDeletedChildren = mergeDeletedChildrenMaps(localRoot.deletedChildren, remoteRoot.deletedChildren);
-            const mergedChildren = {};
+            const mergedChildrenBySlot = new Map();
             const remotePreferred = parseComparableTime(remoteRoot.updatedAt || remoteRoot.createdAt) >= parseComparableTime(localRoot.updatedAt || localRoot.createdAt);
 
             const upsertChild = (child, preferRemote = false) => {
                 if (!child || typeof child !== 'object') return;
                 const childId = String(child?.meta?.id || '').trim();
                 if (!childId || Object.prototype.hasOwnProperty.call(mergedDeletedChildren, childId)) return;
-                const existing = mergedChildren[childId];
                 const childClone = cloneData(child, null);
+                const slotKey = getChildWorkspaceSlotKey(childClone);
+                const existing = mergedChildrenBySlot.get(slotKey);
                 if (!existing) {
-                    mergedChildren[childId] = childClone;
+                    mergedChildrenBySlot.set(slotKey, childClone);
                     return;
                 }
                 const existingTime = parseComparableTime(existing?.meta?.updatedAt || existing?.meta?.createdAt);
                 const incomingTime = parseComparableTime(childClone?.meta?.updatedAt || childClone?.meta?.createdAt);
                 if (incomingTime > existingTime || (incomingTime === existingTime && preferRemote)) {
-                    mergedChildren[childId] = childClone;
+                    mergedChildrenBySlot.set(slotKey, childClone);
                 }
             };
 
             Object.values(localRoot.children || {}).forEach((child) => upsertChild(child, false));
             Object.values(remoteRoot.children || {}).forEach((child) => upsertChild(child, true));
+
+            const mergedChildren = {};
+            mergedChildrenBySlot.forEach((child) => {
+                const childId = String(child?.meta?.id || '').trim();
+                if (childId) mergedChildren[childId] = child;
+            });
 
             const preferredRoot = remotePreferred ? remoteRoot : localRoot;
             const merged = {
@@ -704,9 +725,17 @@
             };
 
             merged.childOrder = this.buildOrderedChildIds(merged);
-            const preferredActiveChildId = [localRoot.activeChildId, remoteRoot.activeChildId]
-                .find((childId) => childId && merged.children[childId]);
-            merged.activeChildId = preferredActiveChildId || merged.childOrder[0] || '';
+            const preferredActiveSlotKey = [
+                localRoot.activeChildId && localRoot.children?.[localRoot.activeChildId]
+                    ? getChildWorkspaceSlotKey(localRoot.children[localRoot.activeChildId])
+                    : '',
+                remoteRoot.activeChildId && remoteRoot.children?.[remoteRoot.activeChildId]
+                    ? getChildWorkspaceSlotKey(remoteRoot.children[remoteRoot.activeChildId])
+                    : ''
+            ].find((slotKey) => slotKey && mergedChildrenBySlot.has(slotKey));
+            merged.activeChildId = preferredActiveSlotKey
+                ? String(mergedChildrenBySlot.get(preferredActiveSlotKey)?.meta?.id || '').trim()
+                : (merged.childOrder[0] || '');
             return this.normalizeRoot(merged);
         },
 
@@ -1484,6 +1513,8 @@
             const modal = document.createElement('div');
             modal.id = 'meimay-child-editor-modal';
             modal.className = 'meimay-child-modal-overlay';
+            modal.dataset.mode = mode;
+            modal.dataset.childId = isEdit ? String(childId || '').trim() : '';
             modal.onclick = (event) => {
                 if (event.target === modal) this.closeChildModal();
             };
@@ -1693,6 +1724,7 @@
                 this.renderSwitchers();
                 this.decorateSettingsChildManagementCard();
                 this.refreshVisibleUI(options.reason || 'remote-root');
+                this.updateChildModalPartnerSelectionHint();
             }
             return true;
         },
@@ -1854,6 +1886,7 @@
                 button.classList.toggle('selected', button.dataset.childModalGender === normalized);
                 button.setAttribute('aria-pressed', button.dataset.childModalGender === normalized ? 'true' : 'false');
             });
+            this.updateChildModalPartnerSelectionHint();
         },
 
         buildChildModalGenderButtons(selectedGender = 'neutral') {
@@ -1873,6 +1906,65 @@
                 return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')"><span class="wiz-baby-gender-emoji">${escapeHtml(emojis[item.value] || '👶')}</span><span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span></button>`;
             }).join('');
         },
+
+        getPartnerWorkspaceRoot() {
+            const snapshot = typeof MeimayShare !== 'undefined' && MeimayShare ? MeimayShare.partnerSnapshot || null : null;
+            const candidates = [
+                snapshot?.meimayStateV2,
+                snapshot?.partnerUserBackup?.meimayStateV2,
+                snapshot?.partnerUserBackup?.childWorkspaceStateV2,
+                snapshot?.backup?.meimayStateV2,
+                snapshot?.backup?.childWorkspaceStateV2,
+                snapshot?.meimayBackup?.meimayStateV2,
+                snapshot?.meimayBackup?.childWorkspaceStateV2
+            ];
+            const rawRoot = candidates.find((state) => hasChildWorkspaceData(state));
+            return rawRoot ? this.normalizeRoot(rawRoot) : null;
+        },
+
+        getPartnerChildBySlotKey(slotKey) {
+            const safeSlotKey = String(slotKey || '').trim();
+            if (!safeSlotKey) return null;
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            if (!partnerRoot) return null;
+            return Object.values(partnerRoot.children || {}).find((child) => getChildWorkspaceSlotKey(child) === safeSlotKey) || null;
+        },
+
+        getPartnerChildForChild(child) {
+            if (!child) return null;
+            return this.getPartnerChildBySlotKey(getChildWorkspaceSlotKey(child));
+        },
+
+        updateChildModalPartnerSelectionHint() {
+            const modal = document.getElementById('meimay-child-editor-modal');
+            const note = document.getElementById('mcw-child-partner-gender-note');
+            if (!note) return;
+            if (!modal || String(modal.dataset.mode || '') !== 'edit') {
+                note.hidden = true;
+                note.textContent = '';
+                return;
+            }
+
+            const childId = String(modal.dataset.childId || '').trim();
+            const child = childId ? this.getChildById(childId) : null;
+            const partnerChild = this.getPartnerChildForChild(child);
+            const localGender = this.getSelectedChildModalGender();
+            const partnerGender = normalizeGenderValue(partnerChild?.meta?.gender);
+            const shouldShow = !!child
+                && !!partnerChild
+                && localGender !== partnerGender
+                && !(localGender === 'neutral' && partnerGender === 'neutral');
+
+            if (!shouldShow) {
+                note.hidden = true;
+                note.textContent = '';
+                return;
+            }
+
+            note.hidden = false;
+            note.textContent = 'パートナーが選択';
+        },
+
         getSelectedChildModalStartMode() {
             return document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
         },
@@ -2088,6 +2180,7 @@
                         <div class="meimay-child-step-label">STEP 2</div>
                         <label class="meimay-child-field-label">性別</label>
                         <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender)}</div>
+                        ${isEdit ? '<div id="mcw-child-partner-gender-note" class="meimay-child-partner-note" aria-live="polite" hidden></div>' : ''}
                     </div>
                     ${isEdit ? '' : `
                         <div class="meimay-child-field">
@@ -2134,6 +2227,7 @@
             this.selectChildModalGender(selectedGender);
             this.updateChildModalStartModeVisibility();
             this.updateChildModalCopySummary();
+            this.updateChildModalPartnerSelectionHint();
         },
         closeChildModal() {
             document.getElementById('meimay-child-editor-modal')?.remove();
