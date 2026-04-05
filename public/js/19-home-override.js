@@ -25,7 +25,7 @@ function getMeimayPartnerViewState() {
     const defaults = {
         savedFocus: 'all',
         readingFocus: 'all',
-        kanjiFocus: 'all'
+        kanjiFocus: 'self'
     };
 
     if (!window.MeimayPartnerViewState || typeof window.MeimayPartnerViewState !== 'object') {
@@ -44,7 +44,7 @@ function setMeimayPartnerViewFocus(nextState = {}, options = {}) {
     const defaults = {
         savedFocus: 'all',
         readingFocus: 'all',
-        kanjiFocus: 'all'
+        kanjiFocus: 'self'
     };
     const baseState = options.resetAll ? { ...defaults } : getMeimayPartnerViewState();
     window.MeimayPartnerViewState = {
@@ -59,7 +59,7 @@ function resetMeimayPartnerViewFocus(keys = []) {
         window.MeimayPartnerViewState = {
             savedFocus: 'all',
             readingFocus: 'all',
-            kanjiFocus: 'all'
+            kanjiFocus: 'self'
         };
         return window.MeimayPartnerViewState;
     }
@@ -67,7 +67,7 @@ function resetMeimayPartnerViewFocus(keys = []) {
     const state = getMeimayPartnerViewState();
     keys.forEach((key) => {
         if (key === 'savedFocus' || key === 'readingFocus' || key === 'kanjiFocus') {
-            state[key] = 'all';
+            state[key] = key === 'kanjiFocus' ? 'self' : 'all';
         }
     });
     return state;
@@ -586,7 +586,7 @@ function getHomeOwnershipSummary() {
     const ownLikedItems = pairInsights?.getOwnLiked
         ? pairInsights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
-            ? liked
+            ? liked.filter(item => !item?.fromPartner)
             : []);
     const ownSavedItems = pairInsights?.getOwnSaved
         ? pairInsights.getOwnSaved()

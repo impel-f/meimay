@@ -1033,7 +1033,7 @@ function clearKanjiPartnerFocus() {
     if (typeof window.resetMeimayPartnerViewFocus === 'function') {
         window.resetMeimayPartnerViewFocus(['kanjiFocus']);
     } else if (typeof window.setMeimayPartnerViewFocus === 'function') {
-        window.setMeimayPartnerViewFocus({ kanjiFocus: 'all' });
+        window.setMeimayPartnerViewFocus({ kanjiFocus: 'self' });
     }
     renderStock();
 }
@@ -1147,8 +1147,7 @@ function getMergedLikedCandidates() {
     const partnerItems = [
         ...(Array.isArray(partnerLikedSource)
             ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
-            : []),
-        ...localLikedItems.filter(item => item.fromPartner)
+            : [])
     ].filter(Boolean);
 
     const ownKanjiKeys = new Set(ownItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
@@ -1215,14 +1214,27 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
         )
         : null;
 
-    let validItems = (Array.isArray(candidatePoolOverride)
-        ? candidatePoolOverride
-        : getMergedLikedCandidates()
-    ).filter((item) => {
+    const sourceItems = focus === 'self'
+        ? (Array.isArray(candidatePoolOverride)
+            ? candidatePoolOverride
+            : (pairInsights?.getOwnLiked
+                ? pairInsights.getOwnLiked()
+                : (typeof liked !== 'undefined' && Array.isArray(liked)
+                    ? liked.filter(item => !item?.fromPartner)
+                    : [])))
+        : (Array.isArray(candidatePoolOverride)
+            ? candidatePoolOverride
+            : getMergedLikedCandidates());
+
+    let validItems = sourceItems.filter((item) => {
         if (focus === 'partner' || focus === 'matched') return true;
         if (item.sessionReading === 'FREE') return true;
         return item.slot >= 0 && item.sessionReading !== 'SEARCH';
     });
+
+    if (focus === 'self') {
+        validItems = validItems.filter(item => item && item.fromPartner !== true);
+    }
 
     if (focus === 'partner') {
         validItems = validItems.filter(item => item.fromPartner);
@@ -1459,8 +1471,10 @@ function renderStock() {
 
     const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
         ? window.getMeimayPartnerViewState()
-        : { kanjiFocus: 'all' };
-    const kanjiFocus = partnerViewState.kanjiFocus || 'all';
+        : { kanjiFocus: 'self' };
+    const kanjiFocus = partnerViewState.kanjiFocus === 'partner' || partnerViewState.kanjiFocus === 'matched'
+        ? partnerViewState.kanjiFocus
+        : 'self';
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const matchedLikedKeys = kanjiFocus === 'matched' && pairInsights?.getMatchedLikedItems
         ? new Set(
@@ -1471,7 +1485,15 @@ function renderStock() {
         )
         : null;
 
-    let validItems = getMergedLikedCandidates().filter(item => {
+    const stockSource = kanjiFocus === 'self'
+        ? (pairInsights?.getOwnLiked
+            ? pairInsights.getOwnLiked().map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
+            : (typeof liked !== 'undefined' && Array.isArray(liked)
+                ? liked.filter(item => !item?.fromPartner).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
+                : []))
+        : getMergedLikedCandidates();
+
+    let validItems = stockSource.filter(item => {
         if (kanjiFocus === 'partner' || kanjiFocus === 'matched') {
             return true;
         }
@@ -1479,9 +1501,13 @@ function renderStock() {
         return item.slot >= 0 && item.sessionReading !== 'SEARCH';
     });
 
-if (kanjiFocus === 'partner') {
-    validItems = validItems.filter(item => item.fromPartner);
-}
+    if (kanjiFocus === 'self') {
+        validItems = validItems.filter(item => item.fromPartner !== true);
+    }
+
+    if (kanjiFocus === 'partner') {
+        validItems = validItems.filter(item => item.fromPartner);
+    }
 
     if (kanjiFocus === 'matched') {
         validItems = validItems.filter(item => {
