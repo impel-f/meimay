@@ -6193,19 +6193,24 @@ function isDailyReadingSwipeLimitedMode(mode) {
 }
 
 function updateDailyRemainingDisplay() {
-    const el = document.getElementById('home-daily-remaining');
-    if (!el) return;
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
-    if (premiumActive) {
-        el.innerText = '漢字スワイプは無制限';
-        return;
-    }
-    const remaining = getDailyRemainingCount();
-    if (remaining === 0) {
-        el.innerText = '本日のスワイプ上限に達しました';
-    } else {
-        el.innerText = `漢字スワイプ 残り ${remaining}回`;
-    }
+    const remaining = premiumActive ? null : getDailyRemainingCount();
+    const homeText = premiumActive
+        ? '漢字スワイプは無制限'
+        : (remaining === 0
+            ? '本日のスワイプ上限に達しました'
+            : `漢字スワイプ 残り ${remaining}回`);
+    const readingText = premiumActive
+        ? '漢字スワイプは無制限'
+        : (remaining === 0
+            ? '本日のスワイプ上限に達しました'
+            : `スワイプ上限:${remaining}回`);
+
+    const homeEl = document.getElementById('home-daily-remaining');
+    if (homeEl) homeEl.innerText = homeText;
+
+    const readingEl = document.getElementById('reading-daily-remaining');
+    if (readingEl) readingEl.innerText = readingText;
 }
 
 function startDirectKanjiSwipe() {

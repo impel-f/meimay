@@ -430,6 +430,9 @@ function changeScreen(id) {
     if (id === 'scr-mode' && typeof renderHomeProfile === 'function') {
         renderHomeProfile();
     }
+    if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
+        updateDailyRemainingDisplay();
+    }
 
     // ナビゲーションハイライト更新
     updateNavHighlight(id);
