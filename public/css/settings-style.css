@@ -630,7 +630,11 @@
 /* スーパーライクの星表示 */
 #stock-list .stock-card .stock-stars {
     display: flex;
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
     gap: 2px;
-    margin-top: 4px;
+    margin-top: 0;
     font-size: 14px;
 }

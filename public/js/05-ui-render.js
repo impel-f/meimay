@@ -526,7 +526,7 @@ async function showKanjiDetail(data) {
         : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
     const aiButtonLabel = aiAvailable
         ? 'AIで漢字の成り立ち・意味を深掘り'
-        : '今日の無料AIは終了しました';
+        : '今日のAI深掘りは終了しました';
     aiSection.innerHTML = `
         <button id="btn-ai-kanji-detail-action" type="button"
                 class="${aiButtonClass}">
@@ -581,7 +581,7 @@ async function showKanjiDetail(data) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 if (typeof showToast === 'function') {
-                    showToast('今日の無料AIは使い切りました', '🌙');
+                    showToast('今日のAI深掘りは終了しました', '🌙');
                 }
                 return;
             }
