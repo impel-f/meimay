@@ -398,7 +398,7 @@
                 .meimay-child-modal-topbar{position:sticky;top:0;z-index:6;display:flex;justify-content:flex-end;align-items:flex-start;height:40px;padding:0;background:transparent}
                 .meimay-child-modal-close{position:relative;width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
                 .meimay-child-modal-close:active{transform:scale(.95)}
-                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-40px;padding:4px 52px 0}
+                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-40px;padding:4px 0 0}
                 .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
                 .meimay-child-modal-desc{margin-top:0;width:100%;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
                 .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86)}
