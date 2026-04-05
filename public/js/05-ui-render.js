@@ -161,14 +161,20 @@ function render() {
         const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
         const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
         const canOfferFlexibleRetry = typeof activeRule !== 'undefined' && activeRule === 'strict';
+        const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-[320px]">
                     <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
                     <p class="text-sm text-[#a6967a] mb-6">設定を変更するか、<br>次の文字に進んでください</p>
                     <div class="mb-4 flex flex-col gap-2">
+                        ${premiumActive ? '' : `
+                            <button onclick="if (typeof showPremiumModal === 'function') showPremiumModal();" class="w-full rounded-2xl border border-[#e6dccb] bg-white px-4 py-3 text-[12px] font-bold text-[#8b7e66] shadow-sm active:scale-95">
+                                人名用漢字も表示する
+                            </button>
+                        `}
                         <button onclick="retrySwipeEmptyState({ includeNoped: true })" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-3 text-[12px] font-bold text-[#8b6f47] active:scale-95">
-                            NOPEした候補も出す
+                            見送った候補を再度表示する
                         </button>
                         ${canOfferFlexibleRetry ? `
                             <button onclick="retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-3 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
