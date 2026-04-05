@@ -423,6 +423,9 @@ function changeScreen(id) {
         }
     }
 
+    if (typeof updateAdLayoutSpacing === 'function') {
+        updateAdLayoutSpacing();
+    }
     // トップ画面の場合、実績・プロファイルを更新
     if (id === 'scr-mode' && typeof renderHomeProfile === 'function') {
         renderHomeProfile();
@@ -556,3 +559,4 @@ function getTagStyle(tag) {
 }
 
 console.log("CORE: Module loaded (v15.3 - Added Tag Scores and Styles)");
+

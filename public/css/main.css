@@ -1476,7 +1476,11 @@ body.hide-top-bar #top-bar {
 
 /* 広告あり: ナビバーが bottom:40px 分上がるため合計 160px で統一 */
 body.has-ad-banner .screen {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.has-ad-banner #scr-mode {
+    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* Keep the footer anchored; the ad banner is lifted above it in JS. */
@@ -2067,3 +2071,4 @@ body.has-ad-banner #universal-footer {
         font-size: 1.24em;
     }
 }
+

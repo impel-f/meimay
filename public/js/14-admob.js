@@ -312,6 +312,58 @@ function getBottomFooterHeight() {
     return height;
 }
 
+const AD_BANNER_GAP = 16;
+const WEB_AD_BANNER_MIN_HEIGHT = 52;
+const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
+let adBannerVisible = false;
+let adBannerMode = null;
+
+function measureAdBannerHeight(container) {
+    if (!container) return 0;
+    const content = container.firstElementChild || container;
+    const rect = content.getBoundingClientRect();
+    return Math.ceil(rect.height || content.offsetHeight || container.offsetHeight || 0);
+}
+
+function updateAdLayoutSpacing(bannerHeight) {
+    if (PremiumManager.isPremium()) {
+        adBannerVisible = false;
+        adBannerMode = null;
+        document.body.style.removeProperty('--ad-screen-safe-space');
+        document.body.classList.remove('has-ad-banner');
+        return 0;
+    }
+
+    const container = document.getElementById('admob-banner');
+    const footerHeight = getBottomFooterHeight();
+    let measuredHeight = typeof bannerHeight === 'number' ? bannerHeight : 0;
+
+    if (adBannerVisible && measuredHeight <= 0) {
+        if (adBannerMode === 'web') {
+            measuredHeight = measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT;
+        } else if (adBannerMode === 'native') {
+            measuredHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
+        }
+    }
+
+    if (adBannerMode === 'web' && container) {
+        container.style.bottom = `${footerHeight}px`;
+    }
+
+    if (measuredHeight > 0) {
+        const safeSpace = Math.max(160, footerHeight + measuredHeight + AD_BANNER_GAP);
+        document.body.style.setProperty('--ad-screen-safe-space', `${safeSpace}px`);
+        document.body.classList.add('has-ad-banner');
+        return safeSpace;
+    }
+
+    document.body.style.removeProperty('--ad-screen-safe-space');
+    if (!container || container.style.display === 'none') {
+        document.body.classList.remove('has-ad-banner');
+    }
+    return 0;
+}
+
 function initAdMob() {
     if (PremiumManager.isPremium()) {
         hideAdBanner();
@@ -350,6 +402,10 @@ function initNativeAdMob(platform) {
             margin: footerHeight,
             isTesting: false
         });
+
+        adBannerVisible = true;
+        adBannerMode = 'native';
+        updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
 
         console.log('ADMOB: Native banner initialized');
     } catch (e) {
@@ -407,6 +463,58 @@ function showAdBanner() {
         showWebAdBanner();
     }
 }
+
+function showWebAdBanner() {
+    const container = document.getElementById('admob-banner');
+    if (!container || PremiumManager.isPremium()) return;
+
+    adBannerVisible = true;
+    adBannerMode = 'web';
+    const footerHeight = getBottomFooterHeight();
+    container.style.bottom = `${footerHeight}px`;
+    container.style.display = 'flex';
+    container.innerHTML = `
+        <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+                <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">AD</span>
+                <div class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">
+                    <span class="block text-[10px] text-[#8b7e66] pr-3">繝｡繧､繝｡繝ｼ繧偵ｂ縺｣縺ｨ蠢ｫ驕ｩ縺ｫ</span>
+                </div>
+            </div>
+            <button onclick="showPremiumModal()" class="shrink-0 px-3 py-1 bg-[#bca37f] text-white rounded-full text-[10px] font-bold hover:bg-[#8b7e66] transition-all">
+                蠎・相繧帝撼陦ｨ遉ｺ
+            </button>
+        </div>
+    `;
+
+    document.body.classList.add('has-ad-banner');
+    updateAdLayoutSpacing(measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT);
+}
+
+function hideAdBanner() {
+    const container = document.getElementById('admob-banner');
+    if (container) {
+        container.style.display = 'none';
+        container.style.bottom = '';
+        container.innerHTML = '';
+    }
+    adBannerVisible = false;
+    adBannerMode = null;
+    document.body.style.removeProperty('--ad-screen-safe-space');
+    document.body.classList.remove('has-ad-banner');
+
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+        try {
+            window.Capacitor.Plugins.AdMob.hideBanner();
+        } catch (e) { console.warn('ADMOB: hideBanner failed', e); }
+    }
+}
+
+window.addEventListener('resize', () => {
+    if (adBannerVisible) {
+        updateAdLayoutSpacing();
+    }
+});
 
 function showPremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
