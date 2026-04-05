@@ -2118,7 +2118,7 @@
                                     <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions()}</select>
                                 </div>
                                 <div class="meimay-child-field">
-                                    <label class="meimay-child-field-label">引き継ぐ内容</label>
+                                    <label class="meimay-child-field-label">引き継ぐ内容（複数選択）</label>
                                     <div class="meimay-child-toggle-grid">${this.buildCopySectionButtons(defaultSections, selectedSourceId)}</div>
                                 </div>
                             </div>
