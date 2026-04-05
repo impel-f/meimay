@@ -1153,16 +1153,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${timeline.steps.map((step, index) => {
                 const cardStyle = step.recommended
-                    ? tone.cardActive
+                    ? tone.cardRecommended
                     : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
                 const badgeStyle = step.recommended
-                    ? tone.badgeActive
+                    ? tone.badgeRecommended
                     : step.done
-                    ? tone.badgeIdle
+                    ? tone.badgeDone
                     : step.active
                         ? tone.badgeActive
                         : tone.badgeIdle;
@@ -1260,16 +1260,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${timeline.steps.map((step, index) => {
                 const cardStyle = step.recommended
-                    ? tone.cardActive
+                    ? tone.cardRecommended
                     : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
                 const badgeStyle = step.recommended
-                    ? tone.badgeActive
+                    ? tone.badgeRecommended
                     : step.done
-                    ? tone.badgeIdle
+                    ? tone.badgeDone
                     : step.active
                         ? tone.badgeActive
                         : tone.badgeIdle;
@@ -2638,16 +2638,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${displayedSteps.map((step, index) => {
                 const cardStyle = step.selected
-                    ? tone.cardActive
+                    ? tone.cardRecommended
                     : step.done
                     ? tone.cardDone
                     : step.active
                         ? tone.cardActive
                         : tone.cardIdle;
                 const badgeStyle = step.selected
-                    ? tone.badgeActive
+                    ? tone.badgeRecommended
                     : step.done
-                    ? tone.badgeIdle
+                    ? tone.badgeDone
                     : step.active
                         ? tone.badgeActive
                         : tone.badgeIdle;
@@ -2975,12 +2975,12 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${displayedSteps.map((step, index) => {
                 const cardStyle = step.selected
-                    ? tone.cardActive
+                    ? tone.cardRecommended
                     : tone.cardIdle;
                 const badgeStyle = step.selected
-                    ? tone.badgeActive
+                    ? tone.badgeRecommended
                     : step.done
-                    ? tone.badgeIdle
+                    ? tone.badgeDone
                     : tone.badgeIdle;
                 return `
                 <button
