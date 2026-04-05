@@ -280,7 +280,7 @@ function startMode(mode) {
 }
 
 function getReadingStockPickerUniqueCount() {
-    const normalizeReadingKey = (item) => getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const normalizeReadingKey = (item) => getReadingBaseReading(resolveReadingStockValue(item));
     const readHiddenSet = () => {
         let removedList = [];
         try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
@@ -341,8 +341,9 @@ function getVisibleOwnLikedReadingsForUI() {
 
     return ownLiked.filter(item => {
         if (!item || item?.fromPartner) return false;
-        const readingKey = getReadingBaseReading(item.sessionReading || item.reading || '');
-        return !readingKey || !removedReadingSet.has(readingKey);
+        if (String(item?.importedFromChildId || '').trim()) return false;
+        const readingKey = getReadingBaseReading(resolveReadingStockValue(item));
+        return !!readingKey && !removedReadingSet.has(readingKey);
     });
 }
 
@@ -367,7 +368,7 @@ function initReadingStockPicker() {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
-    const normalizeReadingKey = (item) => getReadingBaseReading(item?.reading || item?.sessionReading || '');
+    const normalizeReadingKey = (item) => getReadingBaseReading(resolveReadingStockValue(item));
     const isPartnerSource = (item) => !!(item && (
         item.source === 'partner-reading' ||
         item.fromPartner === true ||
@@ -392,9 +393,10 @@ function initReadingStockPicker() {
         });
     };
     const renderButton = (item, badgeText = '') => {
-        const readingLabel = getReadingDisplayLabel(item, { allowSegments: true }) || item?.reading || item?.sessionReading || '';
+        const readingValue = resolveReadingStockValue(item);
+        const readingLabel = getReadingDisplayLabel(item, { allowSegments: true }) || readingValue || '';
         const safeReading = escapeHtml(readingLabel);
-        const encodedReading = encodeURIComponent(item?.reading || item?.sessionReading || readingLabel || '');
+        const encodedReading = encodeURIComponent(readingValue || readingLabel || '');
         const safeBadge = badgeText ? `<span class="inline-flex shrink-0 items-center rounded-full border border-[#e4d6c2] bg-[#faf4ea] px-2 py-0.5 text-[9px] font-black tracking-wide text-[#9b7f5b]">${escapeHtml(badgeText)}</span>` : '';
         return `
             <button onclick="selectReadingFromStock(decodeURIComponent('${encodedReading}'))"
@@ -4332,9 +4334,34 @@ function getReadingStockKey(reading, segments = []) {
     return `${reading || ''}::${Array.isArray(segments) ? segments.join('/') : ''}`;
 }
 
+function resolveReadingStockValue(item) {
+    const candidates = [];
+    if (typeof item === 'string') {
+        candidates.push(item);
+    } else if (item && typeof item === 'object') {
+        candidates.push(item.reading, item.sessionReading);
+        if (typeof item.id === 'string' && item.id) {
+            candidates.push(item.id.split('::')[0]);
+        }
+    }
+
+    for (const candidate of candidates) {
+        const raw = String(candidate || '').trim();
+        if (!raw) continue;
+        const baseReading = getReadingBaseReading(raw);
+        if (!baseReading) continue;
+        if (baseReading === 'INHERITED_LIBRARY' || baseReading === 'SHARED_LIBRARY') continue;
+        return raw;
+    }
+
+    return '';
+}
+
 function normalizeReadingStockItem(item) {
     if (typeof item === 'string') {
-        const readingParts = String(item || '').split('::');
+        const resolvedReading = resolveReadingStockValue(item);
+        if (!resolvedReading) return null;
+        const readingParts = String(resolvedReading || '').split('::');
         const reading = (readingParts[0] || '').trim();
         const displaySegments = readingParts.length > 1
             ? readingParts.slice(1).join('::').split('/').map(part => part.trim()).filter(Boolean)
@@ -4357,7 +4384,9 @@ function normalizeReadingStockItem(item) {
         };
     }
 
-    const readingParts = String(item && item.reading ? item.reading : '').split('::');
+    const resolvedReading = resolveReadingStockValue(item);
+    if (!resolvedReading) return null;
+    const readingParts = String(resolvedReading || '').split('::');
     const reading = (readingParts[0] || '').trim();
     const inferredSegments = readingParts.length > 1
         ? readingParts.slice(1).join('::').split('/').map(part => part.trim()).filter(Boolean)
@@ -4403,7 +4432,7 @@ function normalizeReadingStockItem(item) {
 }
 
 function getReadingDisplayLabel(item, options = {}) {
-    const rawReading = String(item?.reading || item?.sessionReading || '').trim();
+    const rawReading = resolveReadingStockValue(item);
     const readingParts = rawReading.split('::');
     const reading = (readingParts[0] || '').trim();
     const metaDisplay = readingParts.slice(1).join('::').trim();
@@ -4514,11 +4543,11 @@ function findReadingStockItemInStock(stock, target, options = {}) {
     const hiddenReadingSet = includeHidden ? null : getHiddenReadingSet();
     const matches = Array.isArray(stock)
         ? stock.filter(item => {
-            if (!item) return false;
-            if (!includeHidden && !isReadingStockVisible(item, hiddenReadingSet)) return false;
-            const itemReading = normalizeReadingComparisonValue(item.reading || item.sessionReading || '');
-            return (exactTarget && item.id === exactTarget) || itemReading === normalizedTarget;
-        })
+              if (!item) return false;
+              if (!includeHidden && !isReadingStockVisible(item, hiddenReadingSet)) return false;
+              const itemReading = normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item)));
+              return (exactTarget && item.id === exactTarget) || itemReading === normalizedTarget;
+          })
         : [];
     if (matches.length === 0) return null;
     return sortReadingStockMatches(matches)[0] || null;
@@ -4536,7 +4565,7 @@ function getReadingStock() {
     try {
         const data = localStorage.getItem(READING_STOCK_KEY);
         const raw = data ? JSON.parse(data) : [];
-        return Array.isArray(raw) ? raw.map(normalizeReadingStockItem) : [];
+        return Array.isArray(raw) ? raw.map(normalizeReadingStockItem).filter(Boolean) : [];
     } catch (e) {
         return [];
     }
@@ -4544,7 +4573,10 @@ function getReadingStock() {
 
 function saveReadingStock(stock) {
     try {
-        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(stock.map(normalizeReadingStockItem)));
+        const normalizedStock = Array.isArray(stock)
+            ? stock.map(normalizeReadingStockItem).filter(Boolean)
+            : [];
+        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(normalizedStock));
     } catch (e) {
         console.error("STOCK: Failed to save reading stock", e);
     }
@@ -4662,14 +4694,15 @@ function syncReadingStockFromLiked(items = liked) {
     );
     likedItems.forEach(item => {
         if (!item || item.fromPartner) return;
+        if (String(item?.importedFromChildId || '').trim()) return;
         const sessionReading = typeof item.sessionReading === 'string' ? item.sessionReading.trim() : '';
         const fallbackReading = typeof item.reading === 'string'
             ? item.reading.trim()
             : (typeof item['読み'] === 'string' ? item['読み'].trim() : '');
-        const reading = sessionReading && !blockedReadings.has(sessionReading)
-            ? sessionReading
-            : (fallbackReading && !blockedReadings.has(fallbackReading) ? fallbackReading : '');
+        const reading = resolveReadingStockValue(item);
         if (!reading) return;
+        const baseReading = getReadingBaseReading(reading);
+        if (blockedReadings.has(baseReading)) return;
         const normalizedReading = normalizeHiddenReading(reading);
         if (hiddenReadingSet.has(normalizedReading)) return;
         const readingPromoted = !!item.readingPromoted;

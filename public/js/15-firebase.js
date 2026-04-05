@@ -490,7 +490,13 @@ const MeimayFirestorePayload = {
     },
 
     minifyReadingStockItem(item) {
-        const reading = this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const resolvedReading = typeof resolveReadingStockValue === 'function'
+            ? resolveReadingStockValue(item)
+            : this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const reading = this._normalizeString(resolvedReading);
+        if (!reading) return null;
+        const baseReading = typeof getReadingBaseReading === 'function' ? getReadingBaseReading(reading) : reading.split('::')[0].trim();
+        if (baseReading === 'INHERITED_LIBRARY' || baseReading === 'SHARED_LIBRARY') return null;
         const segments = Array.isArray(item?.segments) ? item.segments.filter(Boolean).map((segment) => this._normalizeString(segment)).filter(Boolean) : [];
         return {
             id: this._normalizeString(item?.id || (typeof getReadingStockKey === 'function' ? getReadingStockKey(reading, segments) : '')),
@@ -509,7 +515,13 @@ const MeimayFirestorePayload = {
     },
 
     hydrateReadingStockItem(item) {
-        const reading = this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const resolvedReading = typeof resolveReadingStockValue === 'function'
+            ? resolveReadingStockValue(item)
+            : this._normalizeString(item?.reading || item?.sessionReading || (typeof item?.id === 'string' ? item.id.split('::')[0] : ''));
+        const reading = this._normalizeString(resolvedReading);
+        if (!reading) return null;
+        const baseReading = typeof getReadingBaseReading === 'function' ? getReadingBaseReading(reading) : reading.split('::')[0].trim();
+        if (baseReading === 'INHERITED_LIBRARY' || baseReading === 'SHARED_LIBRARY') return null;
         const segments = Array.isArray(item?.segments) ? item.segments.filter(Boolean).map((segment) => this._normalizeString(segment)).filter(Boolean) : [];
         const source = this._findReadingSource(reading);
         const tags = this._normalizeList(item?.tags).length > 0 ? this._normalizeList(item.tags) : this._normalizeList(source?.tags);
@@ -3398,7 +3410,12 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
         : (Array.isArray(backup.readingStock) ? backup.readingStock : []);
     const hiddenSet = this.getPartnerHiddenReadingSet();
     return Array.isArray(partnerReadings)
-        ? partnerReadings.filter(item => !this._isHiddenReadingItem(item, hiddenSet))
+        ? partnerReadings
+            .map((item) => (typeof normalizeReadingStockItem === 'function'
+                ? normalizeReadingStockItem(this._safeClone(item))
+                : this._safeClone(item)))
+            .filter(Boolean)
+            .filter(item => !this._isHiddenReadingItem(item, hiddenSet))
         : [];
 };
 
@@ -4191,7 +4208,7 @@ const MeimayUserBackup = {
                 return normalizeReadingStockItem(this._safeClone(item));
             }
             return this._safeClone(item);
-        });
+        }).filter(Boolean);
     },
 
     _hasData: function (sections) {

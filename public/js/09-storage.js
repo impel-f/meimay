@@ -534,7 +534,10 @@ const StorageBox = {
                 }
 
                 if (Array.isArray(data.readingStock)) {
-                    localStorage.setItem(this.KEY_READING_STOCK, JSON.stringify(data.readingStock));
+                    const importedReadingStock = data.readingStock
+                        .map((item) => (typeof normalizeReadingStockItem === 'function' ? normalizeReadingStockItem(item) : item))
+                        .filter(Boolean);
+                    localStorage.setItem(this.KEY_READING_STOCK, JSON.stringify(importedReadingStock));
                 }
 
                 if (Array.isArray(data.readingHistory)) {
