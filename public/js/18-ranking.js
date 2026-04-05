@@ -279,6 +279,10 @@ function updateRankingCardState(kind, key, delta = 0, stocked = null) {
         countEl.textContent = `❤${nextCount}`;
     }
 
+    if (card.dataset.rankingPremiumLocked === '1') {
+        return true;
+    }
+
     if (stocked === null) {
         return true;
     }
@@ -652,6 +656,12 @@ function renderRankingKanjiCard(item, index) {
     const actionHandler = premiumLocked
         ? 'if (typeof showPremiumModal === \'function\') showPremiumModal();'
         : 'openRankingKanjiDetail(this.dataset.kanji);';
+    const statusLabelText = premiumLocked
+        ? 'プレミアム'
+        : (isStocked ? 'ストック済み' : '詳細');
+    const statusLabelClass = premiumLocked
+        ? 'bg-[#ececec] text-[#8b8b8b]'
+        : (isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]');
 
     return `
         <button type="button"
@@ -659,6 +669,7 @@ function renderRankingKanjiCard(item, index) {
             data-ranking-kind="kanji"
             data-ranking-key="${escapeRankingHtml(displayKanji)}"
             data-ranking-count="${item.count}"
+            data-ranking-premium-locked="${premiumLocked ? '1' : '0'}"
             title="${premiumLocked ? 'プレミアムで詳細を見る' : '詳細を表示'}"
             onclick="event.stopPropagation();${actionHandler}"
             class="w-full flex items-center gap-3 ${cardBackgroundClass} rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left ${premiumLocked ? 'hover:bg-[#efefec]' : ''} ${cardTitleClass}">
@@ -678,8 +689,8 @@ function renderRankingKanjiCard(item, index) {
                 </div>
             </div>
             <div class="shrink-0 flex flex-col items-center justify-center gap-1">
-                <span class="rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${isStocked ? 'bg-[#fff4db] text-[#b9965b]' : 'bg-[#f8f5ef] text-[#8b7e66]'}" data-ranking-status-label>
-                    ${isStocked ? 'ストック済み' : '詳細'}
+                <span class="rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${statusLabelClass}" data-ranking-status-label>
+                    ${statusLabelText}
                 </span>
                 ${jinmeiBadgeHtml}
             </div>

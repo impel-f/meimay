@@ -472,6 +472,10 @@ function updatePremiumUI() {
     if (typeof renderSettingsScreen === 'function') {
         renderSettingsScreen();
     }
+
+    if (typeof updateKanjiSearchTitle === 'function') {
+        updateKanjiSearchTitle();
+    }
 }
 
 // 初期化
