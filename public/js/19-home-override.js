@@ -2511,10 +2511,11 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
     return config;
 }
 
-function renderHomeNextStagePrimaryButton(cardConfig) {
+function renderHomeNextStagePrimaryButton(cardConfig, options = {}) {
+    const highlightStyle = String(options.highlightStyle || '').trim();
     if (cardConfig.variant === 'icon') {
         return `
-            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left active:scale-[0.98] transition-transform shadow-sm">
+            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left active:scale-[0.98] transition-transform shadow-sm" style="${highlightStyle}">
                 <div class="min-w-0 flex-1">
                     <span class="block text-[1.08rem] font-black leading-tight text-[#5d5444] md:text-[1.14rem]">${cardConfig.title}</span>
                     <span class="mt-2 block text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
@@ -2525,7 +2526,7 @@ function renderHomeNextStagePrimaryButton(cardConfig) {
     }
 
     return `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm">
+        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm" style="${highlightStyle}">
             <div class="wiz-reading-choice-copy">
                 <span class="block text-[1.12rem] font-black leading-tight text-[#5d5444] md:text-[1.18rem]">${cardConfig.title}</span>
                 <span class="block mt-2 text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
@@ -2610,7 +2611,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         variant: 'card',
         icon: ''
     };
-    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig);
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, { highlightStyle: tone.cardRecommended });
     const secondaryDetailHtml = focusKey === 'reading'
         ? '今ある読みのストックを見返します'
         : focusKey === 'kanji'
@@ -2964,7 +2965,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
         variant: 'card',
         icon: ''
     };
-    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig);
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, { highlightStyle: tone.cardRecommended });
     const secondaryButton = focusCopy.secondaryAction
         ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
         : '';
