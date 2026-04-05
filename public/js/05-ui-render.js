@@ -114,6 +114,35 @@ function render() {
     container.innerHTML = '';
 
     // スタック終了チェック
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const freeDailyRemaining = isFreeSwipeMode && !premiumActive && typeof getDailyRemainingCount === 'function'
+        ? getDailyRemainingCount()
+        : null;
+
+    if (isFreeSwipeMode && freeDailyRemaining !== null && freeDailyRemaining <= 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full text-center px-6">
+                <div class="w-full max-w-sm rounded-[32px] border border-[#eadfce] bg-white/95 px-6 py-7 shadow-2xl">
+                    <div class="text-[10px] font-black tracking-[0.35em] text-[#b9965b]">DAILY LIMIT</div>
+                    <p class="mt-3 text-[#bca37f] font-bold text-lg">本日のスワイプ上限に達しました</p>
+                    <p class="mt-3 text-sm text-[#7a6f5a] leading-relaxed">
+                        漢字スワイプは1日30回までです。<br>
+                        プレミアムなら漢字も読みも無制限でスワイプできます。
+                    </p>
+                    <div class="mt-5 flex flex-col gap-3">
+                        <button onclick="isFreeSwipeMode=false; if (typeof openBuildFreeMode === 'function') openBuildFreeMode(); else if (typeof openBuild === 'function') openBuild();" class="btn-gold w-full py-4 shadow-md">
+                            ビルドへ
+                        </button>
+                        <button onclick="if (typeof showPremiumModal === 'function') showPremiumModal();" class="w-full rounded-2xl border border-[#e6dccb] bg-white py-4 text-sm font-bold text-[#8b7e66] shadow-sm">
+                            プレミアムへ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     if (!stack || stack.length === 0 || currentIdx >= stack.length) {
         if (isFreeSwipeMode) {
             container.innerHTML = `
@@ -253,7 +282,11 @@ function updateSwipeCounter() {
 
     if (isFreeSwipeMode) {
         const selected = liked.filter(item => item.sessionReading === 'FREE').length;
-        el.innerText = `選:${selected}`;
+        const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+        const remaining = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : 0;
+        el.innerText = premiumActive
+            ? `選:${selected} / スワイプ上限:無制限`
+            : `選:${selected} / スワイプ上限:${remaining}`;
         return;
     }
 

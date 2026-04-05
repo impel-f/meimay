@@ -177,8 +177,13 @@ function executeSwipe(dir, data) {
         if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
-    if (data && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode && typeof addDailySeenKanji === 'function') {
-        addDailySeenKanji(data['漢字']);
+    if (data && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+        if (typeof addDailySeenKanji === 'function') {
+            addDailySeenKanji(data['漢字']);
+        }
+        if (typeof addDailyKanjiSwipeCount === 'function') {
+            addDailyKanjiSwipeCount();
+        }
         if (typeof updateDailyRemainingDisplay === 'function') updateDailyRemainingDisplay();
     }
 

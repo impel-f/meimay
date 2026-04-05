@@ -363,7 +363,7 @@ function renderSettingsScreen() {
     const dailyRemainingText = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : '-';
     const premiumText = premiumState
         ? premiumState.label
-        : `無料プラン・今日あと ${dailyRemainingText} 枚`;
+        : `無料プラン・今日あと ${dailyRemainingText} 回`;
 
 
     container.innerHTML = `

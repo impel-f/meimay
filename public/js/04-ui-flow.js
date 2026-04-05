@@ -3152,10 +3152,25 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     if (limitedReadingMode && !premiumActive) {
         const remaining = getDailyReadingSwipeRemainingCount();
         if (remaining <= 0) {
-            if (typeof showToast === 'function') {
-                showToast('今日の読みスワイプは使い切りました', '🌙');
-            }
-            if (typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
+            SwipeState.mode = mode;
+            SwipeState.candidates = [];
+            SwipeState.currentIndex = 0;
+            SwipeState.liked = [];
+            SwipeState.selected = [];
+            SwipeState.history = [];
+            SwipeState.config = configOverride;
+            SwipeState.dailyLimitMode = 'reading';
+            SwipeState.soundSession = mode === 'sound' && typeof createSoundSessionState === 'function'
+                ? createSoundSessionState()
+                : null;
+
+            const elTitle = document.getElementById('uni-swipe-title');
+            if (elTitle) elTitle.innerText = configOverride.title || 'スワイプ';
+            const elSubtitle = document.getElementById('uni-swipe-subtitle');
+            if (elSubtitle) elSubtitle.innerText = configOverride.subtitle || '';
+
+            changeScreen('scr-swipe-universal');
+            renderUniversalCard();
             return;
         }
         candidateList = candidateList.slice(0, remaining);
@@ -3208,11 +3223,47 @@ let selectedBaseKanjis = [];
 
 function renderUniversalCard() {
     const container = document.getElementById('uni-stack');
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const dailyRemaining = !premiumActive && SwipeState.dailyLimitMode === 'reading' && typeof getDailyReadingSwipeRemainingCount === 'function'
+        ? getDailyReadingSwipeRemainingCount()
+        : null;
 
     // Counter
     const elCounter = document.getElementById('uni-swipe-counter');
     if (elCounter) {
         elCounter.innerText = `選:${SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length}`;
+    }
+
+    if (elCounter) {
+        const selected = SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length;
+        elCounter.innerText = dailyRemaining !== null
+            ? `選:${selected} / スワイプ上限:${dailyRemaining}`
+            : `選:${selected}`;
+    }
+
+    if (dailyRemaining !== null && dailyRemaining <= 0) {
+        const completionLabel = SwipeState.mode === 'sound' ? '読みストックへ' : '終了';
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-center px-6">
+                <div class="w-full max-w-sm rounded-[32px] border border-[#eadfce] bg-white/95 px-6 py-7 shadow-2xl">
+                    <div class="text-[10px] font-black tracking-[0.35em] text-[#b9965b]">DAILY LIMIT</div>
+                    <p class="mt-3 text-[#bca37f] font-bold text-lg">本日のスワイプ上限に達しました</p>
+                    <p class="mt-3 text-sm text-[#7a6f5a] leading-relaxed">
+                        読みスワイプは1日30回までです。<br>
+                        プレミアムなら漢字も読みも無制限でスワイプできます。
+                    </p>
+                    <div class="mt-5 flex flex-col gap-3">
+                        <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md">${completionLabel}</button>
+                        <button onclick="if (typeof showPremiumModal === 'function') showPremiumModal()" class="w-full rounded-2xl border border-[#e6dccb] bg-white py-4 text-sm font-bold text-[#8b7e66] shadow-sm">
+                            プレミアムへ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        const actionBtns = document.getElementById('uni-swipe-action-btns');
+        if (actionBtns) actionBtns.classList.add('hidden');
+        return;
     }
 
     if (SwipeState.currentIndex >= SwipeState.candidates.length) {
@@ -3797,11 +3848,18 @@ function startFreeSwiping() {
         }
 
         const remaining = getDailyRemainingCount();
-        if (remaining <= 0 || list.length === 0) {
+        if (remaining <= 0) {
+            stack = [];
+            currentIdx = 0;
+            changeScreen('scr-main');
+            if (typeof render === 'function') render();
+            return;
+        }
+
+        if (list.length === 0) {
             changeScreen('scr-mode');
             if (typeof renderHomeProfile === 'function') renderHomeProfile();
             if (typeof showToast === 'function') showToast('今日の直感スワイプはおしまいです', '🌙');
-            if (remaining <= 0 && typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
             return;
         }
 
@@ -6070,8 +6128,33 @@ function addDailySeenKanji(kanji) {
     } catch (e) { }
 }
 
+function _getDailyKanjiSwipeKey() {
+    const d = new Date();
+    return `meimay_daily_kanji_swipe_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+
+function getDailyKanjiSwipeCount() {
+    try {
+        const raw = localStorage.getItem(_getDailyKanjiSwipeKey());
+        const count = Number(raw || 0);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+function addDailyKanjiSwipeCount() {
+    try {
+        const next = getDailyKanjiSwipeCount() + 1;
+        localStorage.setItem(_getDailyKanjiSwipeKey(), String(next));
+        return next;
+    } catch (e) {
+        return getDailyKanjiSwipeCount();
+    }
+}
+
 function getDailyRemainingCount() {
-    return Math.max(0, DAILY_KANJI_LIMIT - getDailySeenKanji().length);
+    return Math.max(0, DAILY_KANJI_LIMIT - getDailyKanjiSwipeCount());
 }
 
 const DAILY_READING_SWIPE_LIMIT = 30;
@@ -6114,14 +6197,14 @@ function updateDailyRemainingDisplay() {
     if (!el) return;
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     if (premiumActive) {
-        el.innerText = '直感スワイプは無制限';
+        el.innerText = '漢字スワイプは無制限';
         return;
     }
     const remaining = getDailyRemainingCount();
     if (remaining === 0) {
-        el.innerText = '直感スワイプは使い切りました';
+        el.innerText = '本日のスワイプ上限に達しました';
     } else {
-        el.innerText = `直感スワイプ 残り ${remaining}枚`;
+        el.innerText = `漢字スワイプ 残り ${remaining}回`;
     }
 }
 
@@ -6133,9 +6216,13 @@ function startDirectKanjiSwipe() {
 
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     if (!premiumActive && typeof getDailyRemainingCount === 'function' && getDailyRemainingCount() <= 0) {
-        if (typeof showToast === 'function') showToast('今日の直感スワイプは使い切りました', '🌙');
-        if (typeof renderHomeProfile === 'function') renderHomeProfile();
-        if (typeof showPremiumModal === 'function') setTimeout(() => showPremiumModal(), 250);
+        appMode = 'free';
+        window.selectedImageTags = ['none'];
+        isFreeSwipeMode = true;
+        stack = [];
+        currentIdx = 0;
+        changeScreen('scr-main');
+        if (typeof render === 'function') render();
         return;
     }
 
