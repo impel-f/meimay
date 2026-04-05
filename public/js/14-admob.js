@@ -297,6 +297,21 @@ function getPlatform() {
     return 'web';
 }
 
+function getBottomFooterHeight() {
+    const candidates = [
+        document.getElementById('bottom-nav'),
+        document.getElementById('universal-footer')
+    ].filter(Boolean);
+
+    let height = 0;
+    candidates.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        height = Math.max(height, Math.ceil(rect.height || el.offsetHeight || 0));
+    });
+
+    return height;
+}
+
 function initAdMob() {
     if (PremiumManager.isPremium()) {
         hideAdBanner();
@@ -317,6 +332,7 @@ function initAdMob() {
 
 function initNativeAdMob(platform) {
     const config = platform === 'ios' ? AdMobConfig.ios : AdMobConfig.android;
+    const footerHeight = getBottomFooterHeight();
 
     try {
         const { AdMob } = window.Capacitor.Plugins;
@@ -331,7 +347,7 @@ function initNativeAdMob(platform) {
             adId: config.bannerId,
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
-            margin: 0,
+            margin: footerHeight,
             isTesting: false
         });
 
@@ -346,6 +362,8 @@ function showWebAdBanner() {
     const container = document.getElementById('admob-banner');
     if (!container || PremiumManager.isPremium()) return;
 
+    const footerHeight = getBottomFooterHeight();
+    container.style.bottom = `${footerHeight}px`;
     container.style.display = 'flex';
     container.innerHTML = `
         <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between">
@@ -367,6 +385,7 @@ function hideAdBanner() {
     const container = document.getElementById('admob-banner');
     if (container) {
         container.style.display = 'none';
+        container.style.bottom = '';
         container.innerHTML = '';
     }
     document.body.classList.remove('has-ad-banner');

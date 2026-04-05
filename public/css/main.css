@@ -1479,9 +1479,10 @@ body.has-ad-banner .screen {
     padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* Keep the footer anchored; the ad banner is lifted above it in JS. */
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
-    bottom: 40px !important;
+    bottom: 0 !important;
 }
 
 
