@@ -487,6 +487,23 @@ function showWebAdBanner() {
         </div>
     `;
 
+    const adBannerRow = container.firstElementChild;
+    if (adBannerRow) {
+        const scrollArea = adBannerRow.querySelector('div.min-w-0.flex-1.overflow-x-auto');
+        if (scrollArea) {
+            scrollArea.style.overflowX = 'hidden';
+        }
+        const spans = adBannerRow.querySelectorAll('span');
+        if (spans.length > 1) {
+            spans[1].textContent = '\u7121\u6599\u4f1a\u54e1\u5411\u3051\u5e83\u544a\u3092\u8868\u793a\u4e2d';
+            spans[1].title = '\u7121\u6599\u4f1a\u54e1\u5411\u3051\u5e83\u544a\u3092\u8868\u793a\u4e2d';
+        }
+        const bannerButton = adBannerRow.querySelector('button');
+        if (bannerButton) {
+            bannerButton.textContent = '\u30d7\u30e9\u30f3\u3092\u898b\u308b';
+        }
+    }
+
     document.body.classList.add('has-ad-banner');
     updateAdLayoutSpacing(measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT);
 }
