@@ -383,11 +383,16 @@
                 .meimay-child-switcher-title,.meimay-child-switcher-subtitle,.meimay-child-switcher-meta,.meimay-child-chip-row,.meimay-child-chip,.meimay-child-chip-add,.meimay-child-chip-sub{display:none}
                 .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
-                .meimay-child-modal-overlay{position:fixed;inset:0;z-index:1400;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-                .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:#fffaf4;border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:22px 18px 18px}
-                .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;text-align:center}
-                .meimay-child-modal-desc{margin-top:6px;color:#8b7e66;font-size:12px;line-height:1.55;text-align:center}
-                .meimay-child-modal-section{margin-top:16px;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.82)}
+                .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+                .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:linear-gradient(180deg,#fffaf4 0%,#fffdf8 100%);border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:20px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
+                .meimay-child-modal-header{display:flex;justify-content:center;align-items:flex-start;position:relative;min-height:40px}
+                .meimay-child-modal-close{width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+                .meimay-child-modal-close:active{transform:scale(.95)}
+                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+                .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
+                .meimay-child-modal-desc{margin-top:0;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
+                .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86)}
+                .meimay-child-step-label{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:9999px;background:#fff3e4;color:#b9965b;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
                 .meimay-child-modal-section-title{color:#5d5444;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
                 .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
                 .meimay-child-card{margin-top:10px;padding:12px;border:1px solid #eee5d8;border-radius:20px;background:#fff}
@@ -396,7 +401,8 @@
                 .meimay-child-card-title{color:#5d5444;font-size:15px;font-weight:900}
                 .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:11px;line-height:1.5}
                 .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900}
-                .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+                .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+                .meimay-child-editor-actions{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(180deg,rgba(255,250,244,0) 0%,#fffaf4 24px);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
                 .meimay-child-field{margin-top:12px}
                 .meimay-child-field-label{display:block;margin-bottom:6px;color:#8b7e66;font-size:11px;font-weight:800}
                 .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:14px;font-weight:700;outline:none}
@@ -404,6 +410,7 @@
                 .meimay-child-field-hint{margin-top:6px;color:#a6967a;font-size:10px;line-height:1.45}
                 .meimay-child-radio-grid{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-radio-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;cursor:pointer}
+                .meimay-child-radio-option.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
                 .meimay-child-radio-option input{margin-top:2px}
                 .meimay-child-radio-title{color:#5d5444;font-size:13px;font-weight:900}
                 .meimay-child-radio-desc{margin-top:3px;color:#8b7e66;font-size:11px;line-height:1.45}
@@ -1137,6 +1144,44 @@
             };
         },
 
+        getDisplayChildSummary(childId) {
+            const child = this.getChildById(childId);
+            const localSummary = this.getChildSummary(childId);
+            if (!child) {
+                return { ...localSummary, summaryLabel: '' };
+            }
+
+            const activeChildId = this.root?.activeChildId || '';
+            if (childId !== activeChildId) {
+                return { ...localSummary, summaryLabel: '' };
+            }
+
+            const pairing = typeof getPairingHomeSummary === 'function'
+                ? getPairingHomeSummary()
+                : null;
+            if (pairing?.hasPartner
+                && typeof getHomeAggregateCounts === 'function'
+                && typeof getHomeOwnershipSummary === 'function') {
+                const ownSummary = getHomeOwnershipSummary();
+                const aggregateCounts = getHomeAggregateCounts(
+                    ownSummary.ownLikedCount,
+                    ownSummary.ownReadingCount,
+                    ownSummary.ownSavedCount,
+                    pairing
+                );
+                return {
+                    readingCount: aggregateCounts.readingStockCount,
+                    kanjiCount: aggregateCounts.likedCount,
+                    savedCount: aggregateCounts.savedCount,
+                    summaryLabel: 'ふたりで集めた候補'
+                };
+            }
+
+            return {
+                ...localSummary,
+                summaryLabel: 'マイ候補'
+            };
+        },
         getSharedSummary() {
             const shared = this.root?.family?.sharedLibraries || createBlankFamilyState().sharedLibraries;
             return {
@@ -1165,22 +1210,24 @@
             const activeChild = this.getActiveChild();
             const activeLabel = activeChild?.meta?.displayLabel || '第一子';
             const activeGender = getGenderLabel(activeChild?.meta?.gender || 'neutral');
-            const summary = this.getChildSummary(activeChild?.meta?.id);
+            const summary = this.getDisplayChildSummary(activeChild?.meta?.id);
             const childButtons = this.buildOrderedChildIds(this.root).map((childId) => {
                 const child = this.getChildById(childId);
-                const childSummary = this.getChildSummary(childId);
+                const childSummary = this.getDisplayChildSummary(childId);
+                const childSummaryLabel = childSummary.summaryLabel ? `${escapeHtml(childSummary.summaryLabel)} ・ ` : '';
                 return `
                     <button type="button" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')" class="meimay-child-chip${childId === this.root.activeChildId ? ' active' : ''}">
                         ${escapeHtml(child.meta.displayLabel)}
-                        <span class="meimay-child-chip-sub">${escapeHtml(getGenderLabel(child.meta.gender))} ・ ${childSummary.savedCount}件保存</span>
+                        <span class="meimay-child-chip-sub">${escapeHtml(getGenderLabel(child.meta.gender))} ・ ${childSummaryLabel}読み ${childSummary.readingCount} / 漢字 ${childSummary.kanjiCount} / 保存 ${childSummary.savedCount}</span>
                     </button>
                 `;
             }).join('');
+            const summaryLabel = summary.summaryLabel ? `${escapeHtml(summary.summaryLabel)} ・ ` : '';
             return `
                 <div class="meimay-child-switcher-header">
                     <div>
-                        <div class="meimay-child-switcher-title">${escapeHtml(activeLabel)} を編集中</div>
-                        <div class="meimay-child-switcher-subtitle">${escapeHtml(activeGender)} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
+                        <div class="meimay-child-switcher-title">${escapeHtml(activeLabel)} を進行中</div>
+                        <div class="meimay-child-switcher-subtitle">${escapeHtml(activeGender)} ・ ${summaryLabel}読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
                     </div>
                     <button type="button" class="meimay-child-inline-btn" onclick="MeimayChildWorkspaces.openManagerModal()">子ども管理</button>
                 </div>
@@ -1188,7 +1235,6 @@
                 ${screenId === 'scr-mode' ? '<div class="meimay-child-switcher-meta">切り替えると今の作業状態を自動保存して、次の子どもの候補へ切り替えます。</div>' : ''}
             `;
         },
-
         decorateSettingsChildManagementCard() {
             const container = document.getElementById('settings-screen-content');
             if (!container) return;
@@ -1462,11 +1508,11 @@
             const deleteButton = document.querySelector('#meimay-child-editor-modal .meimay-child-danger');
             if (!deleteButton) return;
             const canDelete = this.buildOrderedChildIds(this.root).length > 1;
+            deleteButton.hidden = !canDelete;
             deleteButton.disabled = !canDelete;
-            deleteButton.title = canDelete ? '' : '最後の1つは削除できません';
+            deleteButton.title = canDelete ? '' : '最後の1人は削除できません';
             deleteButton.setAttribute('aria-disabled', canDelete ? 'false' : 'true');
         },
-
         saveChildModal(mode = 'create', childId = null) {
             const birthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
             const multipleOrderRaw = String(document.getElementById('mcw-child-multiple-order')?.value || '').trim();
@@ -1788,10 +1834,9 @@
             const normalized = normalizeGenderValue(selectedGender);
             return buttons.map((item) => {
                 const isSelected = item.value === normalized;
-                return `<button type="button" class="meimay-child-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">${escapeHtml(item.label)}</button>`;
+                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')"><span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span></button>`;
             }).join('');
         },
-
         getSelectedChildModalStartMode() {
             return document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
         },
@@ -1841,7 +1886,7 @@
                 : childIds[0];
             return childIds.map((childId) => {
                 const child = this.getChildById(childId);
-                const summary = this.getChildCopySummary(childId);
+                const summary = this.getDisplayChildSummary(childId);
                 const label = `${child?.meta?.displayLabel || '第一子'}（読 ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}）`;
                 return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
@@ -1849,7 +1894,7 @@
 
         buildCopySectionButtons(selectedSections = ['reading', 'kanji', 'saved'], sourceChildId = '') {
             const selected = new Set(Array.isArray(selectedSections) ? selectedSections : []);
-            const summary = this.getChildCopySummary(sourceChildId);
+            const summary = this.getDisplayChildSummary(sourceChildId);
             const sections = [
                 { key: 'reading', label: '読み', count: `${summary.readingCount}件` },
                 { key: 'kanji', label: '漢字', count: `${summary.kanjiCount}字` },
@@ -1868,7 +1913,7 @@
 
         updateChildModalCopySummary() {
             const sourceChildId = this.getSelectedChildModalCopySourceId();
-            const summary = this.getChildCopySummary(sourceChildId);
+            const summary = this.getDisplayChildSummary(sourceChildId);
             const counts = {
                 reading: `${summary.readingCount}件`,
                 kanji: `${summary.kanjiCount}字`,
@@ -1892,16 +1937,21 @@
             const mode = this.getSelectedChildModalStartMode();
             const copyArea = document.getElementById('mcw-child-copy-area');
             if (copyArea) copyArea.style.display = mode === 'copy' ? 'block' : 'none';
+            document.querySelectorAll('[data-start-mode]').forEach((label) => {
+                label.classList.toggle('selected', String(label.dataset.startMode || '') === mode);
+            });
             this.updateChildModalCopySummary();
         },
 
         buildManagerChildCard(childId) {
             const child = this.getChildById(childId);
             if (!child) return '';
-            const summary = this.getChildSummary(childId);
+            const summary = this.getDisplayChildSummary(childId);
             const isActive = childId === this.root?.activeChildId;
             const title = escapeHtml(this.getManagerChildTitle(childId) || child.meta?.displayLabel || '第一子');
-            const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
+            const counts = summary.summaryLabel
+                ? `${summary.summaryLabel} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`
+                : `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
             return `
                 <div class="meimay-child-card${isActive ? ' active' : ''}">
                     <div class="meimay-child-card-head">
@@ -1919,7 +1969,6 @@
                 </div>
             `;
         },
-
         openManagerModal() {
             if (!this.initialized) return;
             this.persistActiveChildSnapshot('open-manager');
@@ -1935,11 +1984,15 @@
             const canAddMore = this.getAvailableBirthOrders().length > 0;
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
-                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeManagerModal()">閉じる</button>
-                    <div class="meimay-child-modal-title">名づけ帳管理</div>
-                    <div class="meimay-child-modal-desc">いま進める子を切り替えたり、新しい子を追加できます。</div>
+                    <div class="meimay-child-modal-header">
+                        <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeManagerModal()">×</button>
+                    </div>
+                    <div class="meimay-child-modal-copy">
+                        <div class="meimay-child-modal-title">名づけ帳管理</div>
+                        <div class="meimay-child-modal-desc">進める子の切り替えや、新しい子の追加ができます。</div>
+                    </div>
                     <div class="meimay-child-modal-section">
-                        <div class="meimay-child-modal-section-title">切り替え</div>
+                        <div class="meimay-child-modal-section-title">進める子を切り替える</div>
                         <div class="meimay-child-modal-stack">${childCards}</div>
                     </div>
                     <div class="meimay-child-modal-section">
@@ -1952,7 +2005,6 @@
             `;
             document.body.appendChild(modal);
         },
-
         closeManagerModal() {
             document.getElementById('meimay-child-manager-modal')?.remove();
         },
@@ -1963,6 +2015,8 @@
             const child = isEdit ? this.getChildById(childId) : null;
             if (isEdit && !child) return;
 
+            const familySurnameDraft = this.getCurrentFamilySurnameDraft();
+            const hasFamilySurname = !!(familySurnameDraft.kanji || familySurnameDraft.reading);
             const selectedGender = isEdit
                 ? normalizeGenderValue(child?.meta?.gender)
                 : normalizeGenderValue(typeof gender !== 'undefined' ? gender : 'neutral');
@@ -1973,6 +2027,10 @@
                 ? this.root.activeChildId
                 : this.buildOrderedChildIds(this.root)[0] || '';
             const defaultSections = ['reading', 'kanji', 'saved'];
+            const showDeleteButton = isEdit && this.buildOrderedChildIds(this.root).length > 1;
+            const createDesc = hasFamilySurname
+                ? '苗字は設定済みなので、生まれ順・性別・はじめ方だけを順に選べます。'
+                : '苗字がまだでも大丈夫です。生まれ順・性別・はじめ方を順に選べます。';
             const modal = document.createElement('div');
             modal.id = 'meimay-child-editor-modal';
             modal.className = 'meimay-child-modal-overlay';
@@ -1981,34 +2039,41 @@
             };
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
-                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeChildModal()">閉じる</button>
-                    <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
-                    <div class="meimay-child-modal-desc">${isEdit ? '順番と性別を変更できます。' : '順番と性別を選んで、新しい子を追加します。'}</div>
+                    <div class="meimay-child-modal-header">
+                        <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeChildModal()">×</button>
+                    </div>
+                    <div class="meimay-child-modal-copy">
+                        <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
+                        <div class="meimay-child-modal-desc">${isEdit ? '生まれ順と性別を見直せます。' : createDesc}</div>
+                    </div>
                     <input type="hidden" id="mcw-child-gender" value="${escapeHtml(selectedGender)}">
                     <div class="meimay-child-field">
-                        <label class="meimay-child-field-label" for="mcw-child-order">順番</label>
-                        <select id="mcw-child-order" class="meimay-child-select">${this.buildBirthOrderOptions(selectedOrder, isEdit ? childId : null)}</select>
+                        <div class="meimay-child-step-label">STEP 1</div>
+                        <label class="meimay-child-field-label" for="mcw-child-order">生まれ順</label>
+                        <select id="mcw-child-order" class="wiz-birth-order-select meimay-child-select">${this.buildBirthOrderOptions(selectedOrder, isEdit ? childId : null)}</select>
                     </div>
                     <div class="meimay-child-field">
+                        <div class="meimay-child-step-label">STEP 2</div>
                         <label class="meimay-child-field-label">性別</label>
-                        <div class="meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender)}</div>
+                        <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender)}</div>
                     </div>
                     ${isEdit ? '' : `
                         <div class="meimay-child-field">
+                            <div class="meimay-child-step-label">STEP 3</div>
                             <label class="meimay-child-field-label">はじめ方</label>
                             <div class="meimay-child-radio-grid">
-                                <label class="meimay-child-radio-option">
+                                <label class="meimay-child-radio-option" data-start-mode="blank">
                                     <input type="radio" name="mcw-start-mode" value="blank" checked onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">
                                     <div>
                                         <div class="meimay-child-radio-title">まっさらから始める</div>
-                                        <div class="meimay-child-radio-desc">読み・漢字・保存した名前を空にしてはじめます。</div>
+                                        <div class="meimay-child-radio-desc">読み・漢字・保存候補を空にしてはじめます。</div>
                                     </div>
                                 </label>
-                                <label class="meimay-child-radio-option">
+                                <label class="meimay-child-radio-option" data-start-mode="copy">
                                     <input type="radio" name="mcw-start-mode" value="copy" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">
                                     <div>
                                         <div class="meimay-child-radio-title">ほかの子の候補をコピーする</div>
-                                        <div class="meimay-child-radio-desc">読み・漢字・保存した名前を引き継いで始めます。</div>
+                                        <div class="meimay-child-radio-desc">読み・漢字・保存候補を引き継いで始めます。</div>
                                     </div>
                                 </label>
                             </div>
@@ -2026,7 +2091,7 @@
                     `}
                     <div class="meimay-child-editor-actions">
                         <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
-                        ${isEdit ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
+                        ${showDeleteButton ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
                     </div>
                 </div>
             `;
@@ -2036,7 +2101,6 @@
             this.updateChildModalStartModeVisibility();
             this.updateChildModalCopySummary();
         },
-
         closeChildModal() {
             document.getElementById('meimay-child-editor-modal')?.remove();
         },
