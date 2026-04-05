@@ -1048,6 +1048,38 @@
             return { items: merged, addedCount };
         },
 
+        cloneKanjiStockForChildCopy(items = []) {
+            return cloneData(Array.isArray(items) ? items : [], []).map((item) => {
+                const next = cloneData(item, {});
+                const sessionReading = String(next.sessionReading || '').trim();
+                const importedFromChildId = String(next.importedFromChildId || '').trim();
+                const isImportedSource = sessionReading === IMPORTED_KANJI_SESSION
+                    || sessionReading === SHARED_KANJI_SESSION
+                    || importedFromChildId.length > 0
+                    || next.fromPartner === true;
+                const shouldResetToFree = isImportedSource
+                    || sessionReading === 'SEARCH'
+                    || !Number.isFinite(Number(next.slot))
+                    || Number(next.slot) < 0;
+                const cloned = {
+                    ...next,
+                    fromPartner: false,
+                    partnerName: '',
+                    partnerAlsoPicked: false,
+                    partnerSuper: false,
+                    importedFromChildId: '',
+                    importedFromChildLabel: ''
+                };
+                if (shouldResetToFree) {
+                    cloned.sessionReading = 'FREE';
+                    cloned.slot = -1;
+                    cloned.sessionSegments = [];
+                    cloned.sessionDisplaySegments = [];
+                }
+                return cloned;
+            });
+        },
+
         getReadingItemKey(item) {
             if (!item) return '';
             const reading = String(item.reading || item.sessionReading || '').trim();
@@ -1456,10 +1488,7 @@
                 return {
                     ...blank,
                     readingStock: cloneData(sourceChild.libraries.readingStock, []),
-                    kanjiStock: this.mergeKanjiLibraries([], sourceChild.libraries.kanjiStock, {
-                        sourceChildId,
-                        sourceLabel: sourceChild.meta.displayLabel
-                    }).items,
+                    kanjiStock: this.cloneKanjiStockForChildCopy(sourceChild.libraries.kanjiStock),
                     savedNames: this.mergeSavedLibraries([], sourceChild.libraries.savedNames, {
                         sourceChildId,
                         sourceLabel: sourceChild.meta.displayLabel
@@ -2354,11 +2383,7 @@
                 next.readingStock = cloneData(sourceChild.libraries?.readingStock, []);
             }
             if (selected.has('kanji')) {
-                next.kanjiStock = cloneData(sourceChild.libraries?.kanjiStock, []).map((item) => ({
-                    ...cloneData(item, {}),
-                    importedFromChildId: '',
-                    importedFromChildLabel: ''
-                }));
+                next.kanjiStock = this.cloneKanjiStockForChildCopy(sourceChild.libraries?.kanjiStock, []);
             }
             if (selected.has('saved')) {
                 next.savedNames = this.mergeSavedLibraries([], sourceChild.libraries?.savedNames, {
