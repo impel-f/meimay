@@ -1443,6 +1443,7 @@
                 </div>
             `;
             document.body.appendChild(modal);
+            this.syncChildModalDeleteButtonState();
             this.updateChildModalSourceVisibility();
         },
 
@@ -1455,6 +1456,15 @@
 
         closeChildModal() {
             document.getElementById('meimay-child-editor-modal')?.remove();
+        },
+
+        syncChildModalDeleteButtonState() {
+            const deleteButton = document.querySelector('#meimay-child-editor-modal .meimay-child-danger');
+            if (!deleteButton) return;
+            const canDelete = this.buildOrderedChildIds(this.root).length > 1;
+            deleteButton.disabled = !canDelete;
+            deleteButton.title = canDelete ? '' : '最後の1つは削除できません';
+            deleteButton.setAttribute('aria-disabled', canDelete ? 'false' : 'true');
         },
 
         saveChildModal(mode = 'create', childId = null) {
@@ -2021,6 +2031,7 @@
                 </div>
             `;
             document.body.appendChild(modal);
+            this.syncChildModalDeleteButtonState();
             this.selectChildModalGender(selectedGender);
             this.updateChildModalStartModeVisibility();
             this.updateChildModalCopySummary();
