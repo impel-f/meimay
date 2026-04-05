@@ -1388,7 +1388,10 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading) {
         StorageBox.saveLiked();
     } else {
         try {
-            localStorage.setItem('meimay_liked', JSON.stringify(liked));
+            const safeLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(liked)
+                : liked;
+            localStorage.setItem('meimay_liked', JSON.stringify(safeLiked));
         } catch (error) {
             console.warn('COMPOUND: Failed to seed kanji stock', error);
         }
@@ -1696,7 +1699,10 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
         StorageBox.saveLiked();
     } else {
         try {
-            localStorage.setItem('meimay_liked', JSON.stringify(liked));
+            const safeLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(liked)
+                : liked;
+            localStorage.setItem('meimay_liked', JSON.stringify(safeLiked));
         } catch (error) {
             console.warn('COMPOUND: Failed to seed kanji stock', error);
         }

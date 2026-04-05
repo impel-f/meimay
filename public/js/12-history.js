@@ -840,7 +840,10 @@ function likeEncounteredKanji(key) {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveLiked === 'function') {
         StorageBox.saveLiked();
     } else {
-        localStorage.setItem('naming_app_liked_chars', JSON.stringify(liked));
+        const safeLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+            ? StorageBox._filterRemovedLikedItems(liked)
+            : liked;
+        localStorage.setItem('naming_app_liked_chars', JSON.stringify(safeLiked));
     }
     if (typeof queuePartnerStockSync === 'function') {
         queuePartnerStockSync('historyStock');

@@ -379,6 +379,9 @@ const MeimayFirestorePayload = {
     },
 
     minifyLikedItem(item) {
+        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._isRemovedLikedItem === 'function' && StorageBox._isRemovedLikedItem(item)) {
+            return null;
+        }
         const kanji = this._normalizeString(item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji);
         if (!kanji) return null;
         return {
@@ -395,6 +398,9 @@ const MeimayFirestorePayload = {
     },
 
     hydrateLikedItem(item, options = {}) {
+        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._isRemovedLikedItem === 'function' && StorageBox._isRemovedLikedItem(item)) {
+            return null;
+        }
         const kanji = this._normalizeString(item?.['漢字'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.['\u8c8d\uff62\u87c4\u30fb'] || item?.kanji);
         if (!kanji) return null;
         const masterItem = this._findKanjiMaster(kanji);
@@ -1139,8 +1145,18 @@ const MeimayShare = {
             .onSnapshot((doc) => {
                 if (!doc.exists) return;
                 const data = doc.data();
+                const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                    ? StorageBox._filterRemovedLikedItems(items)
+                    : (Array.isArray(items) ? items.filter(Boolean) : []);
+                const likedRemovalSource = Array.isArray(data.meimayBackup?.likedRemoved) && data.meimayBackup.likedRemoved.length > 0
+                    ? data.meimayBackup.likedRemoved
+                    : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
+                if (Array.isArray(likedRemovalSource) && likedRemovalSource.length > 0
+                    && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                    StorageBox._persistLikedRemovalState(likedRemovalSource);
+                }
                 this.partnerSnapshot = {
-                    liked: Array.isArray(data.liked) ? data.liked : [],
+                    liked: filterRemoved(Array.isArray(data.liked) ? data.liked : []),
                     savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                     hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
                     role: data.role || null
@@ -1148,8 +1164,9 @@ const MeimayShare = {
                 const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
                 if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
-                if (data.liked && data.liked.length > 0) {
-                    const added = this.mergeSharedLiked(data.liked, partnerLabel);
+                const filteredLiked = filterRemoved(Array.isArray(data.liked) ? data.liked : []);
+                if (filteredLiked.length > 0) {
+                    const added = this.mergeSharedLiked(filteredLiked, partnerLabel);
                     if (added > 0) {
                         showToast(`${partnerLabel}のストック ${added}件を取り込みました`, '\u2713');
                     }
@@ -1201,8 +1218,11 @@ const MeimayShare = {
     mergeSharedLiked: function (items, partnerName) {
         if (typeof liked === 'undefined') return 0;
         const hiddenSet = new Set(readNormalizedHiddenReadingsFromSnapshot(MeimayShare.partnerSnapshot?.hiddenReadings || []));
+        const sourceItems = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+            ? StorageBox._filterRemovedLikedItems(Array.isArray(items) ? items : [])
+            : (Array.isArray(items) ? items : []);
         let added = 0;
-        items.forEach(item => {
+        sourceItems.forEach(item => {
             const readingKey = normalizeHiddenReadingKey(item?.sessionReading || item?.reading || '');
             if (readingKey && hiddenSet.has(readingKey)) return;
             const exists = liked.some(l =>
@@ -1381,7 +1401,10 @@ const MeimayPartnerInsights = {
 
     getOwnLiked: function () {
         const hiddenSet = this.getOwnHiddenReadingSet();
-        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
+        const filteredLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+            ? StorageBox._filterRemovedLikedItems(typeof liked !== 'undefined' ? liked : [])
+            : (typeof liked !== 'undefined' ? liked : []);
+        return filteredLiked.filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
     },
 
     getPartnerLiked: function () {
@@ -1393,12 +1416,16 @@ const MeimayPartnerInsights = {
     getPartnerLikedRaw: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
+        const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+            ? StorageBox._filterRemovedLikedItems(items)
+            : (Array.isArray(items) ? items.filter(Boolean) : []);
         const backupLiked = Array.isArray(backup.liked)
             && (backup.likedCount === undefined || backup.likedCount === null || Number(backup.likedCount) > 0)
-            ? backup.liked
+            ? filterRemoved(backup.liked)
             : [];
-        if (Array.isArray(snapshot.liked) && snapshot.liked.length > 0) {
-            return snapshot.liked;
+        const snapshotLiked = filterRemoved(snapshot.liked);
+        if (snapshotLiked.length > 0) {
+            return snapshotLiked;
         }
         if (backupLiked.length > 0) {
             return backupLiked;
@@ -3006,16 +3033,19 @@ function cleanupLegacyPartnerLocalData() {
 
 function getRoomSyncLikedItems() {
     const filterOwnItems = (items) => (Array.isArray(items) ? items.filter(item => !item?.fromPartner) : []);
+    const filterRemovedItems = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+        ? StorageBox._filterRemovedLikedItems(items)
+        : (Array.isArray(items) ? items.filter(Boolean) : []);
 
     try {
-        const memoryLiked = filterOwnItems(typeof liked !== 'undefined' ? liked : []);
+        const memoryLiked = filterRemovedItems(filterOwnItems(typeof liked !== 'undefined' ? liked : []));
         if (memoryLiked.length > 0) {
             return memoryLiked;
         }
 
         if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
             const state = StorageBox._loadLikedState();
-            const items = filterOwnItems(state?.items);
+            const items = filterRemovedItems(filterOwnItems(state?.items));
             return items.length > 0 ? items : [];
         }
     } catch (e) {
@@ -3059,6 +3089,9 @@ MeimayPairing.syncMyData = async function () {
             encounteredReadings: Array.isArray(encounteredLibrary.readings) ? encounteredLibrary.readings : []
         });
         const hiddenReadings = readNormalizedHiddenReadings();
+        const likedRemoved = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._loadLikedRemovalState === 'function'
+            ? StorageBox._loadLikedRemovalState()
+            : [];
         const childWorkspaceStateV2UpdatedAt = childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object'
             ? String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || Date.now())
             : '';
@@ -3077,7 +3110,9 @@ MeimayPairing.syncMyData = async function () {
             if (Array.isArray(existingItems) && existingItems.length > 0) return existingItems;
             return Array.isArray(localItems) ? localItems : [];
         };
-        const likedToStore = likedClearFlag
+        const likedShouldClear = likedClearFlag
+            || (Array.isArray(likedRemoved) && likedRemoved.length > 0 && (!Array.isArray(projectedSections.liked) || projectedSections.liked.length === 0));
+        const likedToStore = likedShouldClear
             ? (Array.isArray(projectedSections.liked) ? projectedSections.liked : [])
             : pickStoredSection(projectedSections.liked, existingRoomData.liked);
         const savedNamesToStore = savedClearFlag
@@ -3098,11 +3133,13 @@ MeimayPairing.syncMyData = async function () {
             readingStockCount: Array.isArray(readingStockToStore) ? readingStockToStore.length : 0,
             encounteredReadingsCount: Array.isArray(encounteredToStore) ? encounteredToStore.length : 0,
             hiddenReadingsCount: Array.isArray(hiddenReadings) ? hiddenReadings.length : 0,
+            likedRemovedCount: Array.isArray(likedRemoved) ? likedRemoved.length : 0,
+            likedRemoved: Array.isArray(likedRemoved) ? this._safeClone(likedRemoved) : [],
             pairRoomCode: String(this.roomCode || ''),
             roomCode: String(this.roomCode || ''),
             ...childWorkspaceStateV2Meta
         };
-        if (likedClearFlag) {
+        if (likedShouldClear) {
             roomBackup.liked = [];
         }
 
@@ -3122,6 +3159,7 @@ MeimayPairing.syncMyData = async function () {
                 readingStock: readingStockToStore,
                 encounteredReadings: encounteredToStore,
                 hiddenReadings,
+                likedRemoved,
                 ...(childWorkspaceStateV2 ? {
                     meimayStateV2: typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._safeClone === 'function'
                         ? MeimayUserBackup._safeClone(childWorkspaceStateV2)
@@ -3174,15 +3212,25 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
-            let likedSource = Array.isArray(data.liked) ? data.liked : [];
+            const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(items)
+                : (Array.isArray(items) ? items.filter(Boolean) : []);
+            const roomBackup = data.meimayBackup || data.backup || {};
+            const likedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
+                ? roomBackup.likedRemoved
+                : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
+            if (Array.isArray(likedRemovalSource) && likedRemovalSource.length > 0
+                && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                StorageBox._persistLikedRemovalState(likedRemovalSource);
+            }
+            let likedSource = filterRemoved(Array.isArray(data.liked) ? data.liked : []);
             let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
             let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
-            const roomBackup = data.meimayBackup || data.backup || {};
             const roomBackupLiked = Array.isArray(roomBackup.liked)
                 && (roomBackup.likedCount === undefined || roomBackup.likedCount === null || Number(roomBackup.likedCount) > 0)
-                ? roomBackup.liked
+                ? filterRemoved(roomBackup.liked)
                 : [];
             let partnerChildWorkspaceStateV2 = data.meimayStateV2
                 || roomBackup.meimayStateV2
@@ -3234,11 +3282,18 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                             }
                         }
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        const partnerLikedRemovalSource = Array.isArray(partnerBackup?.likedRemoved) && partnerBackup.likedRemoved.length > 0
+                            ? partnerBackup.likedRemoved
+                            : (Array.isArray(partnerUserData.likedRemoved) ? partnerUserData.likedRemoved : []);
+                        if (Array.isArray(partnerLikedRemovalSource) && partnerLikedRemovalSource.length > 0
+                            && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                            StorageBox._persistLikedRemovalState(partnerLikedRemovalSource);
+                        }
                         partnerUserBackup = {
                             ...partnerBackup,
                             liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
-                                ? partnerBackup.liked
-                                : (Array.isArray(partnerUserData.liked) ? partnerUserData.liked : []),
+                                ? filterRemoved(partnerBackup.liked)
+                                : filterRemoved(partnerUserData.liked),
                             savedNames: Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0
                                 ? partnerBackup.savedNames
                                 : (Array.isArray(partnerUserData.savedNames) ? partnerUserData.savedNames : []),
@@ -3253,7 +3308,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                                 : (Array.isArray(partnerUserData.hiddenReadings) ? partnerUserData.hiddenReadings : [])
                         };
                         if (!likedSource.length && Array.isArray(partnerUserBackup.liked) && partnerUserBackup.liked.length > 0) {
-                            likedSource = partnerUserBackup.liked;
+                            likedSource = filterRemoved(partnerUserBackup.liked);
                         }
                         if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {
                             savedNamesSource = partnerUserBackup.savedNames;
@@ -3911,7 +3966,10 @@ const MeimayUserBackup = {
             if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadLikedState === 'function') {
                 const state = StorageBox._loadLikedState();
                 source = Array.isArray(state?.items) ? state.items : [];
-                const filteredState = source
+                const removedFilteredState = typeof StorageBox._filterRemovedLikedItems === 'function'
+                    ? StorageBox._filterRemovedLikedItems(source)
+                    : source;
+                const filteredState = removedFilteredState
                     .filter((item) => item && !item.fromPartner)
                     .map((item) => this._safeClone(item));
                 if (filteredState.length > 0) {
@@ -3925,7 +3983,10 @@ const MeimayUserBackup = {
         }
 
         if (Array.isArray(liked) && liked.length > 0) {
-            const filteredLiked = liked
+            const removedFilteredLiked = typeof StorageBox !== 'undefined' && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(liked)
+                : liked;
+            const filteredLiked = removedFilteredLiked
                 .filter((item) => item && !item.fromPartner)
                 .map((item) => this._safeClone(item));
             if (filteredLiked.length > 0) {
@@ -3947,8 +4008,11 @@ const MeimayUserBackup = {
                 const items = Array.isArray(parsed)
                     ? parsed.filter((item) => item && !item.fromPartner)
                     : [];
-                if (items.length > 0) {
-                    return items.map((item) => this._safeClone(item));
+                const removedFilteredItems = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                    ? StorageBox._filterRemovedLikedItems(items)
+                    : items;
+                if (removedFilteredItems.length > 0) {
+                    return removedFilteredItems.map((item) => this._safeClone(item));
                 }
             }
         } catch (error) {
@@ -4077,6 +4141,9 @@ const MeimayUserBackup = {
             liked: this._ownLikedItems(),
             savedNames: this._ownSavedNames(),
             readingStock: this._ownReadingStock(),
+            likedRemoved: typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._loadLikedRemovalState === 'function'
+                ? StorageBox._loadLikedRemovalState()
+                : [],
             childWorkspaceStateV2: this._readChildWorkspaceStateV2()
         };
     },
@@ -4209,6 +4276,7 @@ const MeimayUserBackup = {
             : localStorage.getItem('meimay_saved_cleared_at');
         return !!(sections && (
             (Array.isArray(sections.liked) && sections.liked.length > 0) ||
+            (Array.isArray(sections.likedRemoved) && sections.likedRemoved.length > 0) ||
             (Array.isArray(sections.savedNames) && sections.savedNames.length > 0) ||
             (Array.isArray(sections.readingStock) && sections.readingStock.length > 0) ||
             !!sections.childWorkspaceStateV2 ||
@@ -4234,6 +4302,7 @@ const MeimayUserBackup = {
                 : localStorage.getItem('meimay_saved_cleared_at');
             return JSON.stringify({
                 liked: projectedSections.liked || [],
+                likedRemoved: Array.isArray(sections?.likedRemoved) ? sections.likedRemoved.length : 0,
                 savedNames: projectedSections.savedNames || [],
                 readingStock: projectedSections.readingStock || [],
                 pairRoomCode,
@@ -4261,12 +4330,19 @@ const MeimayUserBackup = {
         const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
             ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
             : localStorage.getItem('meimay_saved_cleared_at');
+        const likedRemoved = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._loadLikedRemovalState === 'function'
+            ? StorageBox._loadLikedRemovalState()
+            : [];
+        const likedShouldClear = likedClearFlag
+            || (Array.isArray(likedRemoved) && likedRemoved.length > 0 && (!Array.isArray(projectedSections.liked) || projectedSections.liked.length === 0));
         const backup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
             likedCount: Array.isArray(projectedSections.liked) ? projectedSections.liked.length : 0,
             savedNamesCount: Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames.length : 0,
-            readingStockCount: Array.isArray(projectedSections.readingStock) ? projectedSections.readingStock.length : 0
+            readingStockCount: Array.isArray(projectedSections.readingStock) ? projectedSections.readingStock.length : 0,
+            likedRemovedCount: Array.isArray(likedRemoved) ? likedRemoved.length : 0,
+            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : [])
         };
         const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
             ? String(MeimayPairing.roomCode)
@@ -4275,9 +4351,9 @@ const MeimayUserBackup = {
             ? readNormalizedHiddenReadings()
             : [];
 
-        if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0) {
+        if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0 && !likedShouldClear) {
             backup.liked = this._safeClone(projectedSections.liked);
-        } else if (likedClearFlag) {
+        } else if (likedShouldClear) {
             backup.liked = [];
         }
         if (Array.isArray(projectedSections.savedNames) && projectedSections.savedNames.length > 0) {
@@ -4288,7 +4364,6 @@ const MeimayUserBackup = {
         if (Array.isArray(projectedSections.readingStock) && projectedSections.readingStock.length > 0) {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
-
         if (childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object') {
             backup.meimayStateV2 = this._safeClone(childWorkspaceStateV2);
             backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');
@@ -4300,11 +4375,12 @@ const MeimayUserBackup = {
             pairRoomCode,
             roomCode: pairRoomCode,
             hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
+            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : []),
             meimayBackupUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        if (likedClearFlag) {
+        if (likedShouldClear) {
             patch.liked = Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0
                 ? this._safeClone(projectedSections.liked)
                 : [];
@@ -4321,12 +4397,15 @@ const MeimayUserBackup = {
     _applySectionsToLocal: function (sections) {
         const hydratedSections = MeimayFirestorePayload.hydrateSections(sections);
         const likedItems = Array.isArray(hydratedSections?.liked) ? hydratedSections.liked : [];
+        const safeLikedItems = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+            ? StorageBox._filterRemovedLikedItems(likedItems)
+            : likedItems;
         const savedItems = Array.isArray(hydratedSections?.savedNames) ? hydratedSections.savedNames : [];
         const readingStockItems = this._normalizeReadingStockList(Array.isArray(hydratedSections?.readingStock) ? hydratedSections.readingStock : []);
 
         this._restoreInFlight = true;
         try {
-            if (typeof liked !== 'undefined') liked = this._safeClone(likedItems);
+            if (typeof liked !== 'undefined') liked = this._safeClone(safeLikedItems);
             if (typeof savedNames !== 'undefined') savedNames = this._safeClone(savedItems);
             const hadLikedState = localStorage.getItem('meimay_liked') !== null
                 || localStorage.getItem('meimay_liked_cleared_at') !== null
@@ -4336,27 +4415,27 @@ const MeimayUserBackup = {
 
             if (typeof StorageBox !== 'undefined') {
                 if (typeof StorageBox._persistLikedState === 'function') {
-                    StorageBox._persistLikedState(likedItems);
+                    StorageBox._persistLikedState(safeLikedItems);
                 } else {
-                    localStorage.setItem('naming_app_liked_chars', JSON.stringify(likedItems));
-                    localStorage.setItem('meimay_liked', JSON.stringify(likedItems));
+                    localStorage.setItem('naming_app_liked_chars', JSON.stringify(safeLikedItems));
+                    localStorage.setItem('meimay_liked', JSON.stringify(safeLikedItems));
                     localStorage.setItem('meimay_liked_meta_v1', JSON.stringify({
-                        count: likedItems.length,
+                        count: safeLikedItems.length,
                         savedAt: new Date().toISOString()
                     }));
                 }
             } else {
-                localStorage.setItem('naming_app_liked_chars', JSON.stringify(likedItems));
-                localStorage.setItem('meimay_liked', JSON.stringify(likedItems));
+                localStorage.setItem('naming_app_liked_chars', JSON.stringify(safeLikedItems));
+                localStorage.setItem('meimay_liked', JSON.stringify(safeLikedItems));
             }
-            if (likedItems.length === 0) {
+            if (safeLikedItems.length === 0) {
                 if (hadLikedState) {
                     localStorage.setItem('meimay_liked_cleared_at', new Date().toISOString());
                 }
             } else {
                 localStorage.removeItem('meimay_liked_cleared_at');
             }
-            if (likedItems.length === 0 && !hadLikedState) {
+            if (safeLikedItems.length === 0 && !hadLikedState) {
                 localStorage.removeItem('meimay_liked');
                 localStorage.removeItem('naming_app_liked_chars');
                 localStorage.removeItem('meimay_liked_meta_v1');
@@ -4434,9 +4513,19 @@ const MeimayUserBackup = {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
+            const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(items)
+                : (Array.isArray(items) ? items.filter(Boolean) : []);
+            const remoteLikedRemovalSource = Array.isArray(remoteBackup?.likedRemoved) && remoteBackup.likedRemoved.length > 0
+                ? remoteBackup.likedRemoved
+                : (Array.isArray(remoteData.likedRemoved) ? remoteData.likedRemoved : []);
+            if (Array.isArray(remoteLikedRemovalSource) && remoteLikedRemovalSource.length > 0
+                && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                StorageBox._persistLikedRemovalState(remoteLikedRemovalSource);
+            }
             const remoteBackupLiked = Array.isArray(remoteBackup?.liked)
                 && (remoteBackup?.likedCount === undefined || remoteBackup?.likedCount === null || Number(remoteBackup.likedCount) > 0)
-                ? remoteBackup.liked
+                ? filterRemoved(remoteBackup.liked)
                 : [];
             const remoteChildWorkspaceStateV2 = remoteBackup?.meimayStateV2
                 || remoteBackup?.stateV2
@@ -4445,8 +4534,8 @@ const MeimayUserBackup = {
                 || null;
             const mergeRemoteItems = (nestedItems, legacyItems, keyGetter) => {
                 const combined = [];
-                if (Array.isArray(nestedItems)) combined.push(...nestedItems);
-                if (Array.isArray(legacyItems)) combined.push(...legacyItems);
+                if (Array.isArray(nestedItems)) combined.push(...filterRemoved(nestedItems));
+                if (Array.isArray(legacyItems)) combined.push(...filterRemoved(legacyItems));
                 return this._mergeByKey([], combined, keyGetter);
             };
             const remoteSections = {
@@ -4671,19 +4760,29 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
-            let likedSource = Array.isArray(data.liked) ? data.liked : [];
+            const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(items)
+                : (Array.isArray(items) ? items.filter(Boolean) : []);
+            const roomBackup = data.meimayBackup || data.backup || {};
+            const likedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
+                ? roomBackup.likedRemoved
+                : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
+            if (Array.isArray(likedRemovalSource) && likedRemovalSource.length > 0
+                && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                StorageBox._persistLikedRemovalState(likedRemovalSource);
+            }
+            let likedSource = filterRemoved(Array.isArray(data.liked) ? data.liked : []);
             let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
             let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
-            const roomBackup = data.meimayBackup || data.backup || {};
             let partnerChildWorkspaceStateV2 = data.meimayStateV2
                 || roomBackup.meimayStateV2
                 || roomBackup.childWorkspaceStateV2
                 || null;
 
             if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
-                likedSource = roomBackup.liked;
+                likedSource = filterRemoved(roomBackup.liked);
             }
             if (!savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
                 savedNamesSource = roomBackup.savedNames;
@@ -4714,9 +4813,16 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        const partnerLikedRemovalSource = Array.isArray(partnerBackup?.likedRemoved) && partnerBackup.likedRemoved.length > 0
+                            ? partnerBackup.likedRemoved
+                            : (Array.isArray(partnerUserData.likedRemoved) ? partnerUserData.likedRemoved : []);
+                        if (Array.isArray(partnerLikedRemovalSource) && partnerLikedRemovalSource.length > 0
+                            && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
+                            StorageBox._persistLikedRemovalState(partnerLikedRemovalSource);
+                        }
                         const partnerBackupLiked = Array.isArray(partnerBackup.liked)
                             && (partnerBackup.likedCount === undefined || partnerBackup.likedCount === null || Number(partnerBackup.likedCount) > 0)
-                            ? partnerBackup.liked
+                            ? filterRemoved(partnerBackup.liked)
                             : [];
                         if (!partnerChildWorkspaceStateV2) {
                             partnerChildWorkspaceStateV2 = partnerBackup.meimayStateV2
@@ -4728,8 +4834,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                         partnerUserBackup = {
                             ...partnerBackup,
                             liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
-                                ? partnerBackup.liked
-                                : (Array.isArray(partnerUserData.liked) ? partnerUserData.liked : []),
+                                ? filterRemoved(partnerBackup.liked)
+                                : filterRemoved(partnerUserData.liked),
                             savedNames: Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0
                                 ? partnerBackup.savedNames
                                 : (Array.isArray(partnerUserData.savedNames) ? partnerUserData.savedNames : []),
@@ -4749,7 +4855,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                         if (!likedSource.length && Array.isArray(partnerUserBackup.liked)
                             && (partnerUserBackup.likedCount === undefined || partnerUserBackup.likedCount === null || Number(partnerUserBackup.likedCount) > 0)
                             && partnerUserBackup.liked.length > 0) {
-                            likedSource = partnerUserBackup.liked;
+                            likedSource = filterRemoved(partnerUserBackup.liked);
                         }
                         if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {
                             savedNamesSource = partnerUserBackup.savedNames;

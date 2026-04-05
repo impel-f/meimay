@@ -308,6 +308,13 @@
         return master.find((entry) => getKanjiValue(entry) === kanji) || null;
     }
 
+    function filterRemovedLikedItems(items) {
+        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function') {
+            return StorageBox._filterRemovedLikedItems(items);
+        }
+        return Array.isArray(items) ? items.filter(Boolean) : [];
+    }
+
     function createBlankBuildResult() {
         return {
             fullName: '',
@@ -914,7 +921,7 @@
         },
 
         normalizeKanjiLibrary(items, options = {}) {
-            const source = Array.isArray(items) ? items : [];
+            const source = filterRemovedLikedItems(Array.isArray(items) ? items : []);
             const next = source.map((item) => {
                 const kanji = getKanjiValue(item);
                 if (!kanji) return null;
@@ -958,12 +965,12 @@
         },
 
         mergeKanjiLibraries(targetItems = [], sourceItems = [], options = {}) {
-            const merged = cloneData(targetItems, []);
+            const merged = cloneData(filterRemovedLikedItems(targetItems), []);
             const existingKanji = new Set(
                 merged.map((item) => getKanjiValue(item)).filter(Boolean)
             );
             let addedCount = 0;
-            (Array.isArray(sourceItems) ? sourceItems : []).forEach((item) => {
+            filterRemovedLikedItems(sourceItems).forEach((item) => {
                 const kanji = getKanjiValue(item);
                 if (!kanji || existingKanji.has(kanji)) return;
                 const masterItem = findMasterKanjiItem(kanji);
@@ -1071,7 +1078,7 @@
                 if (typeof prioritizeFortune !== 'undefined') prioritizeFortune = child.prefs.prioritizeFortune === true;
                 if (typeof selectedImageTags !== 'undefined') selectedImageTags = cloneData(child.prefs.imageTags, ['none']);
                 if (typeof segments !== 'undefined') segments = cloneData(draft.segments, []);
-                if (typeof liked !== 'undefined') liked = cloneData(child.libraries.kanjiStock, []);
+                if (typeof liked !== 'undefined') liked = cloneData(filterRemovedLikedItems(child.libraries.kanjiStock), []);
                 if (typeof savedNames !== 'undefined') savedNames = cloneData(child.libraries.savedNames, []);
                 if (typeof userTags !== 'undefined') userTags = cloneData(family.preferenceModel.userTags, {});
                 if (typeof noped !== 'undefined') noped = new Set(cloneData(child.libraries.noped, []));

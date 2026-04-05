@@ -26,6 +26,7 @@ const StorageBox = {
     KEY_APP_ACCOUNT_TOKEN: 'meimay_app_account_token',
     KEY_HOME_PAIR_CARD_DISMISSED: 'meimay_home_pair_card_dismissed_v1',
     KEY_BUILD_EXCLUDED: 'meimay_build_excluded',
+    KEY_LIKED_REMOVED: 'meimay_liked_removed_v1',
 
     _readStoredArray: function (key) {
         try {
@@ -39,14 +40,94 @@ const StorageBox = {
         }
     },
 
+    _normalizeLikedRemovalKey: function (value) {
+        return String(value == null ? '' : value).trim();
+    },
+
+    _extractLikedRemovalKeys: function (target) {
+        const keys = new Set();
+        const add = (value) => {
+            const key = this._normalizeLikedRemovalKey(value);
+            if (key) keys.add(key);
+        };
+
+        if (typeof target === 'string' || typeof target === 'number') {
+            add(target);
+            return Array.from(keys);
+        }
+
+        if (!target || typeof target !== 'object') {
+            return [];
+        }
+
+        if (typeof buildLikedCandidateKey === 'function') add(buildLikedCandidateKey(target));
+        if (typeof getLikedCandidateDisplayKey === 'function') add(getLikedCandidateDisplayKey(target));
+        if (typeof getLikedCandidateKanjiKey === 'function') add(getLikedCandidateKanjiKey(target));
+        if (typeof getKanjiValue === 'function') add(getKanjiValue(target));
+        add(target?.['漢字']);
+        add(target?.kanji);
+
+        return Array.from(keys);
+    },
+
+    _loadLikedRemovalState: function () {
+        const removed = this._readStoredArray(this.KEY_LIKED_REMOVED);
+        return Array.isArray(removed)
+            ? [...new Set(removed.map((value) => this._normalizeLikedRemovalKey(value)).filter(Boolean))]
+            : [];
+    },
+
+    _persistLikedRemovalState: function (items) {
+        try {
+            const safeRemoved = Array.isArray(items)
+                ? [...new Set(items.map((value) => this._normalizeLikedRemovalKey(value)).filter(Boolean))]
+                : [];
+            if (safeRemoved.length === 0) {
+                localStorage.removeItem(this.KEY_LIKED_REMOVED);
+                return true;
+            }
+            localStorage.setItem(this.KEY_LIKED_REMOVED, JSON.stringify(safeRemoved));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: Save liked removal mirror failed", e);
+            return false;
+        }
+    },
+
+    _isRemovedLikedItem: function (item, removedSet = null) {
+        if (!item) return false;
+        const normalizedRemoved = removedSet instanceof Set ? removedSet : new Set(this._loadLikedRemovalState());
+        if (normalizedRemoved.size === 0) return false;
+        return this._extractLikedRemovalKeys(item).some((key) => normalizedRemoved.has(key));
+    },
+
+    _filterRemovedLikedItems: function (items) {
+        const safeItems = Array.isArray(items) ? items : [];
+        const removedSet = new Set(this._loadLikedRemovalState());
+        if (removedSet.size === 0) return safeItems;
+        return safeItems.filter((item) => !this._isRemovedLikedItem(item, removedSet));
+    },
+
+    recordRemovedLikedItems: function (target) {
+        try {
+            const next = new Set(this._loadLikedRemovalState());
+            this._extractLikedRemovalKeys(target).forEach((key) => next.add(key));
+            return this._persistLikedRemovalState(Array.from(next));
+        } catch (e) {
+            console.error("STORAGE: Record liked removal failed", e);
+            return false;
+        }
+    },
+
     _persistLikedState: function (items) {
         try {
-            const safeLiked = Array.isArray(items) ? items : [];
+            const safeLiked = this._filterRemovedLikedItems(Array.isArray(items) ? items : []);
             const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
                 || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
                 || localStorage.getItem(this.KEY_LIKED_META) !== null
                 || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
-                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
+                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null
+                || localStorage.getItem(this.KEY_LIKED_REMOVED) !== null;
             if (safeLiked.length === 0 && !hadLikedState) {
                 localStorage.removeItem(this.KEY_LIKED);
                 localStorage.removeItem(this.KEY_LIKED_LEGACY);
@@ -84,24 +165,25 @@ const StorageBox = {
         const legacy = this._readStoredArray(this.KEY_LIKED_LEGACY);
         const backup = this._readStoredArray(this.KEY_LIKED_BACKUP);
         const explicitClear = !!localStorage.getItem(this.KEY_LIKED_CLEARED);
+        const filterLoaded = (items) => this._filterRemovedLikedItems(Array.isArray(items) ? items : []);
 
         if (Array.isArray(primary) && primary.length > 0) {
-            return { items: primary, source: 'primary' };
+            return { items: filterLoaded(primary), source: 'primary' };
         }
         if (!explicitClear && Array.isArray(legacy) && legacy.length > 0) {
-            return { items: legacy, source: 'legacy' };
+            return { items: filterLoaded(legacy), source: 'legacy' };
         }
         if (!explicitClear && Array.isArray(backup) && backup.length > 0) {
-            return { items: backup, source: 'backup' };
+            return { items: filterLoaded(backup), source: 'backup' };
         }
         if (Array.isArray(primary)) {
-            return { items: primary, source: 'primary' };
+            return { items: filterLoaded(primary), source: 'primary' };
         }
         if (Array.isArray(legacy)) {
-            return { items: legacy, source: 'legacy' };
+            return { items: filterLoaded(legacy), source: 'legacy' };
         }
         if (Array.isArray(backup) && primaryRaw == null) {
-            return { items: backup, source: 'backup' };
+            return { items: filterLoaded(backup), source: 'backup' };
         }
         return { items: [], source: 'empty' };
     },
@@ -131,10 +213,11 @@ const StorageBox = {
      */
     saveAll: function () {
         try {
+            const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
             if (typeof syncReadingStockFromLiked === 'function') {
-                syncReadingStockFromLiked(liked);
+                syncReadingStockFromLiked(safeLiked);
             }
-            const likedSaved = this._persistLikedState(liked);
+            const likedSaved = this._persistLikedState(safeLiked);
             this._persistBuildExclusionState(typeof excludedKanjiFromBuild !== 'undefined' ? excludedKanjiFromBuild : []);
             const safeSavedNames = Array.isArray(savedNames) ? savedNames : [];
             const hadSavedState = localStorage.getItem(this.KEY_SAVED) !== null
@@ -193,15 +276,17 @@ const StorageBox = {
             // いいねした漢字
             const likedState = this._loadLikedState();
             liked = Array.isArray(likedState.items) ? likedState.items : [];
+            const likedRemovalState = this._loadLikedRemovalState();
             const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
                 || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
                 || localStorage.getItem(this.KEY_LIKED_META) !== null
                 || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
-                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
+                || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null
+                || localStorage.getItem(this.KEY_LIKED_REMOVED) !== null;
             const legacyLikedMissing = localStorage.getItem(this.KEY_LIKED_LEGACY) == null;
             const likedMetaMissing = localStorage.getItem(this.KEY_LIKED_META) == null;
             const likedBackupMissing = liked.length > 0 && localStorage.getItem(this.KEY_LIKED_BACKUP) == null;
-            if (likedState.source !== 'primary' || legacyLikedMissing || likedMetaMissing || likedBackupMissing) {
+            if (likedState.source !== 'primary' || legacyLikedMissing || likedMetaMissing || likedBackupMissing || likedRemovalState.length > 0) {
                 this._persistLikedState(liked);
             }
             if (hadLikedState) {
@@ -339,15 +424,17 @@ const StorageBox = {
      * 特定データの保存
      */
     saveLiked: function () {
+        const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
         if (typeof syncReadingStockFromLiked === 'function') {
-            syncReadingStockFromLiked(liked);
+            syncReadingStockFromLiked(safeLiked);
         }
         const hadLikedState = localStorage.getItem(this.KEY_LIKED) !== null
             || localStorage.getItem(this.KEY_LIKED_LEGACY) !== null
             || localStorage.getItem(this.KEY_LIKED_META) !== null
             || localStorage.getItem(this.KEY_LIKED_BACKUP) !== null
-            || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null;
-        const result = this._persistLikedState(liked);
+            || localStorage.getItem(this.KEY_LIKED_CLEARED) !== null
+            || localStorage.getItem(this.KEY_LIKED_REMOVED) !== null;
+        const result = this._persistLikedState(safeLiked);
         try {
             if (Array.isArray(liked) && liked.length === 0) {
                 if (hadLikedState) {
@@ -444,9 +531,11 @@ const StorageBox = {
      * エクスポート（将来的な機能）
      */
     exportData: function () {
+        const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
         const data = {
             version: 'meimay-backup-v2',
-            liked: liked,
+            liked: safeLiked,
+            likedRemoved: this._loadLikedRemovalState(),
             savedNames: savedNames,
             surname: { str: surnameStr, data: surnameData, reading: typeof surnameReading !== 'undefined' ? surnameReading : '' },
             segments: segments,
@@ -500,7 +589,10 @@ const StorageBox = {
             try {
                 const data = JSON.parse(e.target.result);
 
-                liked = data.liked || [];
+                if (Array.isArray(data.likedRemoved)) {
+                    this._persistLikedRemovalState(data.likedRemoved);
+                }
+                liked = this._filterRemovedLikedItems(Array.isArray(data.liked) ? data.liked : []);
                 savedNames = data.savedNames || [];
                 surnameStr = data.surname?.str || "";
                 surnameData = data.surname?.data || [];
@@ -614,8 +706,11 @@ window.addEventListener('beforeunload', () => {
  * データをJSON文字列としてエクスポート/インポート
  */
 function shareData() {
+    const safeLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+        ? StorageBox._filterRemovedLikedItems(Array.isArray(liked) ? liked : [])
+        : (Array.isArray(liked) ? liked : []);
     const data = {
-        liked: liked.map(l => ({
+        liked: safeLiked.map(l => ({
             '漢字': l['漢字'],
             '画数': l['画数'],
             slot: l.slot,

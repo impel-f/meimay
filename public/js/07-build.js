@@ -81,12 +81,15 @@ function flattenBuildCombination(pieces) {
 function normalizeSingleKanjiStock() {
     if (!Array.isArray(liked)) return;
     const cleaned = liked.filter((item) => {
-        const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
-        return String(kanji).trim().length > 0;
+        const kanji = String(item?.kanji || '').trim();
+        return kanji.length > 0;
     });
+    const safeLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+        ? StorageBox._filterRemovedLikedItems(cleaned)
+        : cleaned;
 
-    if (cleaned.length === liked.length) {
-        if (cleaned.length > 0) {
+    if (safeLiked.length === liked.length) {
+        if (safeLiked.length > 0) {
             try {
                 localStorage.removeItem('meimay_liked_cleared_at');
             } catch (error) {
@@ -106,16 +109,16 @@ function normalizeSingleKanjiStock() {
         return;
     }
 
-    liked = cleaned;
+    liked = safeLiked;
     try {
-        const serialized = JSON.stringify(cleaned);
+        const serialized = JSON.stringify(safeLiked);
         localStorage.setItem('naming_app_liked_chars', serialized);
         localStorage.setItem('meimay_liked', serialized);
         localStorage.setItem('meimay_liked_meta_v1', JSON.stringify({
-            count: cleaned.length,
+            count: safeLiked.length,
             savedAt: new Date().toISOString()
         }));
-        if (cleaned.length > 0) {
+        if (safeLiked.length > 0) {
             localStorage.setItem('meimay_liked_backup_v1', serialized);
             localStorage.removeItem('meimay_liked_cleared_at');
         } else {
@@ -2872,6 +2875,9 @@ function removeKanjiFromStock(target) {
     const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
     const targetKey = targetItem ? getLikedCandidateDisplayKey(targetItem) : targetLabel;
     rememberBuildCandidateExclusions(targetItem || targetLabel);
+    if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox.recordRemovedLikedItems === 'function') {
+        StorageBox.recordRemovedLikedItems(targetItem || targetLabel);
+    }
     const hydrateForTarget = (item) => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true });
     const removedItems = liked.filter(item => matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
     const initialCount = liked.length;
