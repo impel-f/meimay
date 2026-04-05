@@ -177,7 +177,8 @@ function executeSwipe(dir, data) {
         if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
-    if (data && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (data && !premiumActive) {
         if (typeof addDailySeenKanji === 'function') {
             addDailySeenKanji(data['漢字']);
         }
