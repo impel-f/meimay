@@ -688,6 +688,43 @@
             const mergedChildrenBySlot = new Map();
             const remotePreferred = parseComparableTime(remoteRoot.updatedAt || remoteRoot.createdAt) >= parseComparableTime(localRoot.updatedAt || localRoot.createdAt);
 
+            const mergeChildSlotRecords = (baseChild, incomingChild, preferIncoming = false) => {
+                if (!baseChild) return cloneData(incomingChild, null);
+                if (!incomingChild) return cloneData(baseChild, null);
+
+                const baseClone = cloneData(baseChild, null);
+                const incomingClone = cloneData(incomingChild, null);
+                const mergedClone = cloneData(baseClone, null);
+                const baseLibraries = baseClone?.libraries || createBlankChildLibraries();
+                const incomingLibraries = incomingClone?.libraries || createBlankChildLibraries();
+
+                mergedClone.meta = {
+                    ...cloneData(baseClone.meta, {}),
+                    updatedAt: String(
+                        preferIncoming
+                            ? (incomingClone?.meta?.updatedAt || incomingClone?.meta?.createdAt || baseClone?.meta?.updatedAt || baseClone?.meta?.createdAt || getNowIso())
+                            : (baseClone?.meta?.updatedAt || baseClone?.meta?.createdAt || incomingClone?.meta?.updatedAt || incomingClone?.meta?.createdAt || getNowIso())
+                    )
+                };
+                mergedClone.prefs = cloneData(baseClone.prefs, cloneData(incomingClone.prefs, {}));
+                mergedClone.draft = cloneData(baseClone.draft, cloneData(incomingClone.draft, createBlankChildDraft()));
+                mergedClone.libraries = {
+                    readingStock: this.mergeReadingLibraries(baseLibraries.readingStock, incomingLibraries.readingStock).items,
+                    kanjiStock: this.mergeKanjiLibraries(baseLibraries.kanjiStock, incomingLibraries.kanjiStock, {
+                        sourceChildId: incomingClone?.meta?.id || '',
+                        sourceLabel: incomingClone?.meta?.displayLabel || ''
+                    }).items,
+                    savedNames: this.mergeSavedLibraries(baseLibraries.savedNames, incomingLibraries.savedNames, {
+                        sourceChildId: incomingClone?.meta?.id || '',
+                        sourceLabel: incomingClone?.meta?.displayLabel || ''
+                    }).items,
+                    readingHistory: cloneData(baseLibraries.readingHistory, []),
+                    hiddenReadings: cloneData(baseLibraries.hiddenReadings, []),
+                    noped: cloneData(baseLibraries.noped, [])
+                };
+                return mergedClone;
+            };
+
             const upsertChild = (child, preferRemote = false) => {
                 if (!child || typeof child !== 'object') return;
                 const childId = String(child?.meta?.id || '').trim();
@@ -701,9 +738,10 @@
                 }
                 const existingTime = parseComparableTime(existing?.meta?.updatedAt || existing?.meta?.createdAt);
                 const incomingTime = parseComparableTime(childClone?.meta?.updatedAt || childClone?.meta?.createdAt);
-                if (incomingTime > existingTime || (incomingTime === existingTime && preferRemote)) {
-                    mergedChildrenBySlot.set(slotKey, childClone);
-                }
+                mergedChildrenBySlot.set(
+                    slotKey,
+                    mergeChildSlotRecords(existing, childClone, incomingTime > existingTime || (incomingTime === existingTime && preferRemote))
+                );
             };
 
             Object.values(localRoot.children || {}).forEach((child) => upsertChild(child, false));
