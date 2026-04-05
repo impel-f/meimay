@@ -1048,7 +1048,8 @@
             return { items: merged, addedCount };
         },
 
-        cloneKanjiStockForChildCopy(items = []) {
+        cloneKanjiStockForChildCopy(items = [], options = {}) {
+            const keepSessionReading = options?.keepSessionReading === true;
             return cloneData(Array.isArray(items) ? items : [], []).map((item) => {
                 const next = cloneData(item, {});
                 const sessionReading = String(next.sessionReading || '').trim();
@@ -1057,7 +1058,8 @@
                     || sessionReading === SHARED_KANJI_SESSION
                     || importedFromChildId.length > 0
                     || next.fromPartner === true;
-                const shouldResetToFree = isImportedSource
+                const shouldResetToFree = !keepSessionReading
+                    || isImportedSource
                     || sessionReading === 'SEARCH'
                     || !Number.isFinite(Number(next.slot))
                     || Number(next.slot) < 0;
@@ -2383,7 +2385,9 @@
                 next.readingStock = cloneData(sourceChild.libraries?.readingStock, []);
             }
             if (selected.has('kanji')) {
-                next.kanjiStock = this.cloneKanjiStockForChildCopy(sourceChild.libraries?.kanjiStock, []);
+                next.kanjiStock = this.cloneKanjiStockForChildCopy(sourceChild.libraries?.kanjiStock, {
+                    keepSessionReading: selected.has('reading')
+                });
             }
             if (selected.has('saved')) {
                 next.savedNames = this.mergeSavedLibraries([], sourceChild.libraries?.savedNames, {
