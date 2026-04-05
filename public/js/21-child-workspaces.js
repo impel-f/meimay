@@ -385,8 +385,8 @@
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
                 .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:linear-gradient(180deg,#fffaf4 0%,#fffdf8 100%);border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:20px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
-                .meimay-child-modal-header{display:flex;justify-content:center;align-items:flex-start;position:relative;min-height:40px}
-                .meimay-child-modal-close{width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+                .meimay-child-modal-header{position:relative;min-height:40px}
+                .meimay-child-modal-close{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
                 .meimay-child-modal-close:active{transform:scale(.95)}
                 .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
                 .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
@@ -1141,6 +1141,16 @@
                 readingCount: Array.isArray(child.libraries?.readingStock) ? child.libraries.readingStock.length : 0,
                 kanjiCount: new Set((child.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean)).size,
                 savedCount: (child.libraries?.savedNames || []).filter((item) => item?.fromPartner !== true).length
+            };
+        },
+
+        getCurrentFamilySurnameDraft() {
+            const wizard = (typeof WizardData !== 'undefined' && WizardData && typeof WizardData.get === 'function')
+                ? (WizardData.get() || {})
+                : {};
+            return {
+                kanji: String((typeof surnameStr !== 'undefined' ? surnameStr : wizard.surname || wizard.surnameStr || '') || '').trim(),
+                reading: String((typeof surnameReading !== 'undefined' ? surnameReading : wizard.surnameReading || '') || '').trim()
             };
         },
 
