@@ -285,7 +285,7 @@ function updateSwipeCounter() {
     if (isFreeSwipeMode) {
         const selected = liked.filter(item => item.sessionReading === 'FREE').length;
         el.innerText = premiumActive
-            ? `選:${selected} / スワイプ上限:無制限`
+            ? `選:${selected}`
             : `選:${selected} / スワイプ上限:${remaining}`;
         return;
     }
@@ -297,7 +297,7 @@ function updateSwipeCounter() {
     ).length;
 
     el.innerText = premiumActive
-        ? `選:${selected} / スワイプ上限:無制限`
+        ? `選:${selected}`
         : `選:${selected} / スワイプ上限:${remaining}`;
 }
 

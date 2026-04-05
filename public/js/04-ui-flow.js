@@ -6196,12 +6196,12 @@ function updateDailyRemainingDisplay() {
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     const remaining = premiumActive ? null : getDailyRemainingCount();
     const homeText = premiumActive
-        ? '漢字スワイプは無制限'
+        ? '漢字スワイプ'
         : (remaining === 0
             ? '本日のスワイプ上限に達しました'
             : `漢字スワイプ 残り ${remaining}回`);
     const readingText = premiumActive
-        ? '選:0 / スワイプ上限:無制限'
+        ? '選:0'
         : `選:0 / スワイプ上限:${remaining}`;
 
     const homeEl = document.getElementById('home-daily-remaining');
