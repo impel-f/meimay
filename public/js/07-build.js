@@ -122,6 +122,113 @@ function normalizeSingleKanjiStock() {
 
 normalizeSingleKanjiStock();
 
+function isImportedKanjiLibraryItem(item) {
+    const sessionReading = String(item?.sessionReading || '').trim();
+    return sessionReading === 'INHERITED_LIBRARY'
+        || sessionReading === 'SHARED_LIBRARY'
+        || String(item?.importedFromChildId || '').trim().length > 0;
+}
+
+function isVisibleOwnKanjiBuildItem(item) {
+    if (!item || isImportedKanjiLibraryItem(item)) return false;
+    if (item.sessionReading === 'FREE') return true;
+    return Number(item.slot) >= 0 && item.sessionReading !== 'SEARCH';
+}
+
+function getVisibleOwnKanjiBuildCandidates() {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const source = pairInsights?.getOwnLiked
+        ? pairInsights.getOwnLiked()
+        : (Array.isArray(liked)
+            ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item))
+            : []);
+
+    return source
+        .map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true }))
+        .filter(item => !!item && isVisibleOwnKanjiBuildItem(item));
+}
+
+function rememberBuildCandidateExclusions(target) {
+    if (!Array.isArray(excludedKanjiFromBuild)) {
+        excludedKanjiFromBuild = [];
+    }
+
+    const keys = new Set();
+    const addKey = (value) => {
+        const key = String(value || '').trim();
+        if (key) keys.add(key);
+    };
+    const item = target && typeof target === 'object' ? target : null;
+
+    if (item) {
+        addKey(getLikedCandidateDisplayKey(item));
+        addKey(buildLikedCandidateKey(item));
+        addKey(getLikedCandidateKanjiKey(item));
+        addKey(item?.kanji);
+        addKey(item?.sessionReading);
+        addKey(item?.importedFromChildId);
+        addKey(item?.importedFromChildLabel);
+    }
+
+    addKey(target);
+
+    let changed = false;
+    keys.forEach((key) => {
+        if (!excludedKanjiFromBuild.includes(key)) {
+            excludedKanjiFromBuild.push(key);
+            changed = true;
+        }
+    });
+
+    return changed;
+}
+
+function persistBuildCandidateExclusions() {
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveLiked === 'function') {
+        StorageBox.saveLiked();
+        return true;
+    }
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveAll === 'function') {
+        StorageBox.saveAll();
+        return true;
+    }
+    return false;
+}
+
+function rebuildFbChoiceMarks() {
+    fbChoicesUseMark = {};
+    if (!Array.isArray(fbChoices)) return;
+    fbChoices.forEach((kanji, idx) => {
+        fbChoicesUseMark[idx] = idx > 0 && fbChoices[idx - 1] === kanji;
+    });
+}
+
+function pruneExcludedFreeBuildChoices() {
+    if (buildMode !== 'free' || !Array.isArray(fbChoices) || fbChoices.length === 0) return false;
+    const allowedChoices = new Set(
+        getVisibleOwnKanjiBuildCandidates()
+            .map((item) => String(item?.kanji || item?.['漢字'] || '').trim())
+            .filter(Boolean)
+    );
+    const excludedSet = new Set(Array.isArray(excludedKanjiFromBuild) ? excludedKanjiFromBuild : []);
+
+    let changed = false;
+    fbChoices = fbChoices.map((choice) => {
+        const normalizedChoice = String(choice || '').trim();
+        if (normalizedChoice && (!allowedChoices.has(normalizedChoice) || excludedSet.has(normalizedChoice))) {
+            changed = true;
+            return null;
+        }
+        return choice;
+    });
+
+    if (!changed) return false;
+
+    rebuildFbChoiceMarks();
+    persistBuildCandidateExclusions();
+    return true;
+}
+
 function isCompoundSlotPlaceholder(seg) {
     return typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg);
 }
@@ -370,6 +477,9 @@ function openFreeBuild() {
     fbSelectedReading = null;
     currentFbRecommendedReadings = [];
     selectedPieces = [];
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+    }
     renderBuildSelection();
     changeScreen('scr-build');
 }
@@ -572,9 +682,7 @@ function renderFbFortune(choices) {
 
 // 自由ビルド確定
 function getFreeBuildRankingCandidatePool() {
-    const source = typeof getMergedLikedCandidates === 'function'
-        ? getMergedLikedCandidates()
-        : (Array.isArray(liked) ? liked : []);
+    const source = getVisibleOwnKanjiBuildCandidates();
     const seen = new Set();
     const pool = [];
 
@@ -1220,7 +1328,7 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
             : (pairInsights?.getOwnLiked
                 ? pairInsights.getOwnLiked()
                 : (typeof liked !== 'undefined' && Array.isArray(liked)
-                    ? liked.filter(item => !item?.fromPartner)
+                    ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item))
                     : [])))
         : (Array.isArray(candidatePoolOverride)
             ? candidatePoolOverride
@@ -1297,7 +1405,9 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
 function getVisibleKanjiStockItemCount(candidatePoolOverride = null) {
     const source = Array.isArray(candidatePoolOverride)
         ? candidatePoolOverride
-        : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
+        : (typeof liked !== 'undefined' && Array.isArray(liked)
+            ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item))
+            : []);
 
     return source.filter(item => {
         if (!item) return false;
@@ -1319,7 +1429,10 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     }
 
     const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
-    return getMergedLikedCandidates().filter((item) => {
+    const source = (partnerOnly || matchedOnly) && typeof getMergedLikedCandidates === 'function'
+        ? getMergedLikedCandidates()
+        : getVisibleOwnKanjiBuildCandidates();
+    return source.filter((item) => {
         const slotMatch = item.slot === idx;
         const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
         const isPartnerVisible = item.fromPartner;
@@ -1488,8 +1601,8 @@ function renderStock() {
     const stockSource = kanjiFocus === 'self'
         ? (pairInsights?.getOwnLiked
             ? pairInsights.getOwnLiked().map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
-            : (typeof liked !== 'undefined' && Array.isArray(liked)
-                ? liked.filter(item => !item?.fromPartner).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
+        : (typeof liked !== 'undefined' && Array.isArray(liked)
+                ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
                 : []))
         : getMergedLikedCandidates();
 
@@ -1669,6 +1782,9 @@ function openBuild() {
     buildMode = 'reading';
     fbChoices = []; fbChoicesUseMark = {};
     excludedKanjiFromBuild = []; // 除外リストをリセット
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+    }
     renderBuildSelection();
     changeScreen('scr-build');
     if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
@@ -1709,6 +1825,9 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
     fbSelectedReading = reading || null;
     excludedKanjiFromBuild = [];
 
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+    }
     currentFbRecommendedReadings = fbSelectedReading
         ? [{ reading: fbSelectedReading, score: 999999 }]
         : [];
@@ -1738,6 +1857,9 @@ function setBuildMode(mode) {
             hydrateCompoundBuildSelections();
         }
         excludedKanjiFromBuild = []; // モード切替時にリセット
+    }
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
@@ -1933,8 +2055,9 @@ function renderBuildSelection() {
     const container = document.getElementById('build-selection');
     const headerContainer = document.getElementById('build-header-sticky');
     if (!container || !headerContainer) return;
+    pruneExcludedFreeBuildChoices();
 
-    if (buildMode === 'free' && fbChoices.length === 0) {
+    if (buildMode === 'free' && !fbChoices.some(Boolean)) {
         fbSelectedReading = null;
         currentFbRecommendedReadings = [];
     }
@@ -2244,6 +2367,9 @@ function selectReadingForBuild(reading) {
     const caret = document.getElementById('reading-mode-caret');
     if (caret) caret.textContent = '▼';
     excludedKanjiFromBuild = []; // 読みを変更した際も除外リストをリセット
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+    }
     if (typeof openBuildFromReading === 'function') {
         openBuildFromReading(reading);
     }
@@ -2259,9 +2385,7 @@ window.selectReadingForBuild = selectReadingForBuild;
 function renderBuildFreeMode(container) {
     const seen = new Set();
     const allKanji = [];
-    const freeModeSource = typeof getMergedLikedCandidates === 'function'
-        ? getMergedLikedCandidates()
-        : (liked || []);
+    const freeModeSource = getVisibleOwnKanjiBuildCandidates();
     const pushCandidate = (item) => {
         if (!item) return;
         if (isBuildCandidateExcluded(item)) return;
@@ -2522,8 +2646,9 @@ function promptManualFbReading() {
 function executeFbBuild() {
     const resultArea = document.getElementById('build-result-area');
     if (!resultArea) return;
+    pruneExcludedFreeBuildChoices();
 
-    if (fbChoices.length === 0) {
+    if (!fbChoices.some(Boolean)) {
         resultArea.innerHTML = '';
         return;
     }
@@ -2685,15 +2810,12 @@ function removeFromBuildCandidates(slotIdx, target) {
     const targetLabel = String(target || '').trim();
     const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
     const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
-
-    // ????????
-    if (targetLabel && !excludedKanjiFromBuild.includes(targetLabel)) {
-        excludedKanjiFromBuild.push(targetLabel);
-    }
+    rememberBuildCandidateExclusions(targetItem || targetLabel);
 
     if (buildMode === 'free') {
         fbChoices[slotIdx] = null;
         fbSelectedReading = null;
+        rebuildFbChoiceMarks();
         withScrollPreservation(() => {
             renderBuildSelection();
             executeFbBuild();
@@ -2709,6 +2831,7 @@ function removeFromBuildCandidates(slotIdx, target) {
         updateNamePreview();
         renderBuildSelection();
     }
+    persistBuildCandidateExclusions();
     showToast(`?${kanji}?????????????`, '?');
     closeKanjiActionMenu();
 }
@@ -2737,40 +2860,40 @@ function removeKanjiFromStock(target) {
     const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
     const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
     const targetKey = targetItem ? getLikedCandidateDisplayKey(targetItem) : targetLabel;
+    rememberBuildCandidateExclusions(targetItem || targetLabel);
     const hydrateForTarget = (item) => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true });
     const removedItems = liked.filter(item => matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
     const initialCount = liked.length;
     liked = liked.filter(item => !matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
 
-    if (liked.length < initialCount) {
-        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
-            StorageBox.saveLiked();
-        }
-
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-            removedItems.forEach(item => {
-                MeimayStats.recordKanjiUnlike(kanji, item.gender || gender || 'neutral');
-            });
-        }
-
-        fbChoices = fbChoices.map(c => c === kanji ? null : c);
-        // ????????????
-        if (typeof selectedPieces !== 'undefined') {
-            selectedPieces = selectedPieces.map((p) => {
-                if (!p) return p;
-                const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
-                return matchesLikedCandidateTarget(hydrated, targetKey) ? null : p;
-            });
-        }
-
-        showToast(`?${kanji}???????????`, '?');
-
-        withScrollPreservation(() => {
-            renderBuildSelection();
-            if (buildMode === 'free') executeFbBuild();
-            else updateNamePreview();
+    if (liked.length < initialCount && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        removedItems.forEach(item => {
+            MeimayStats.recordKanjiUnlike(kanji, item.gender || gender || 'neutral');
         });
     }
+
+    fbChoices = fbChoices.map(c => c === kanji ? null : c);
+    rebuildFbChoiceMarks();
+    // ????????????
+    if (typeof selectedPieces !== 'undefined') {
+        selectedPieces = selectedPieces.map((p) => {
+            if (!p) return p;
+            const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
+            return matchesLikedCandidateTarget(hydrated, targetKey) ? null : p;
+        });
+    }
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+
+    showToast(`?${kanji}???????????`, '?');
+
+    withScrollPreservation(() => {
+        renderBuildSelection();
+        if (buildMode === 'free') executeFbBuild();
+        else updateNamePreview();
+    });
 }
 
 window.openKanjiActionMenu = openKanjiActionMenu;

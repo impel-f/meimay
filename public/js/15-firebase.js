@@ -1359,9 +1359,17 @@ const MeimayPartnerInsights = {
         return !!reading && hiddenSet.has(reading);
     },
 
+    _isImportedLibraryItem: function (item) {
+        const sessionReading = this.normalizeReading(item?.sessionReading || item?.reading || '');
+        const importedFromChildId = String(item?.importedFromChildId || '').trim();
+        return sessionReading === 'INHERITED_LIBRARY'
+            || sessionReading === 'SHARED_LIBRARY'
+            || importedFromChildId.length > 0;
+    },
+
     getOwnLiked: function () {
         const hiddenSet = this.getOwnHiddenReadingSet();
-        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet));
+        return (typeof liked !== 'undefined' ? liked : []).filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
     },
 
     getPartnerLiked: function () {

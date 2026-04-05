@@ -25,6 +25,7 @@ const StorageBox = {
     KEY_PREMIUM: 'meimay_premium',
     KEY_APP_ACCOUNT_TOKEN: 'meimay_app_account_token',
     KEY_HOME_PAIR_CARD_DISMISSED: 'meimay_home_pair_card_dismissed_v1',
+    KEY_BUILD_EXCLUDED: 'meimay_build_excluded',
 
     _readStoredArray: function (key) {
         try {
@@ -106,6 +107,26 @@ const StorageBox = {
         return { items: [], source: 'empty' };
     },
 
+    _persistBuildExclusionState: function (items) {
+        try {
+            const safeExcluded = Array.isArray(items)
+                ? [...new Set(items.map((value) => String(value || '').trim()).filter(Boolean))]
+                : [];
+            localStorage.setItem(this.KEY_BUILD_EXCLUDED, JSON.stringify(safeExcluded));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: Save build exclusion mirror failed", e);
+            return false;
+        }
+    },
+
+    _loadBuildExclusionState: function () {
+        const excluded = this._readStoredArray(this.KEY_BUILD_EXCLUDED);
+        return Array.isArray(excluded)
+            ? [...new Set(excluded.map((value) => String(value || '').trim()).filter(Boolean))]
+            : [];
+    },
+
     /**
      * 全状態を保存
      */
@@ -115,6 +136,7 @@ const StorageBox = {
                 syncReadingStockFromLiked(liked);
             }
             const likedSaved = this._persistLikedState(liked);
+            this._persistBuildExclusionState(typeof excludedKanjiFromBuild !== 'undefined' ? excludedKanjiFromBuild : []);
             const safeSavedNames = Array.isArray(savedNames) ? savedNames : [];
             const hadSavedState = localStorage.getItem(this.KEY_SAVED) !== null
                 || localStorage.getItem(this.KEY_SAVED_CLEARED) !== null;
@@ -291,6 +313,9 @@ const StorageBox = {
             } else if (typeof normalizeSoundPreferenceData === 'function' && typeof soundPreferenceData !== 'undefined') {
                 soundPreferenceData = normalizeSoundPreferenceData(soundPreferenceData);
             }
+            if (typeof excludedKanjiFromBuild !== 'undefined') {
+                excludedKanjiFromBuild = this._loadBuildExclusionState();
+            }
 
             // いいねだけ残っている旧データから読みストックを復元する
             if (Array.isArray(liked) && liked.length > 0 && typeof syncReadingStockFromLiked === 'function') {
@@ -335,6 +360,7 @@ const StorageBox = {
         } catch (e) {
             console.warn("STORAGE: Failed to update liked clear marker", e);
         }
+        this._persistBuildExclusionState(typeof excludedKanjiFromBuild !== 'undefined' ? excludedKanjiFromBuild : []);
         if (typeof queuePartnerStockSync === 'function') {
             queuePartnerStockSync('saveLiked');
         }
