@@ -44,6 +44,36 @@ function getReadingStockSoundFilter() {
     return null;
 }
 
+function getEncounteredSoundReadingSet() {
+    const library = typeof getEncounteredLibrary === 'function' ? getEncounteredLibrary() : null;
+    const readings = Array.isArray(library?.readings) ? library.readings : [];
+    const seen = new Set();
+
+    readings.forEach((entry) => {
+        const reading = normalizeReadingStockSoundValue(entry?.reading || entry?.key || entry?.sessionReading || '');
+        if (reading) seen.add(reading);
+    });
+
+    return seen;
+}
+
+function filterEncounteredSoundCandidates(candidates) {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (list.length === 0) return [];
+
+    const encounteredReadings = getEncounteredSoundReadingSet();
+    const seen = new Set();
+
+    return list.filter((item) => {
+        const reading = normalizeReadingStockSoundValue(item?.reading || item?.sessionReading || '');
+        if (!reading) return false;
+        if (seen.has(reading)) return false;
+        if (encounteredReadings.has(reading)) return false;
+        seen.add(reading);
+        return true;
+    });
+}
+
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
     { id: 'none', label: 'こだわらない', icon: '⚪' },
@@ -3109,6 +3139,9 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
 
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     let candidateList = Array.isArray(candidates) ? candidates.slice() : [];
+    if (mode === 'sound' && typeof filterEncounteredSoundCandidates === 'function') {
+        candidateList = filterEncounteredSoundCandidates(candidateList);
+    }
     const limitedReadingMode = isDailyReadingSwipeLimitedMode(mode);
     if (limitedReadingMode && !premiumActive) {
         const remaining = getDailyReadingSwipeRemainingCount();
@@ -9764,7 +9797,7 @@ function aiReorderCandidates(candidates) {
 }
 
 function prepareAdaptiveReadingCandidates(candidates) {
-    return aiReorderCandidates(Array.isArray(candidates) ? candidates : []);
+    return aiReorderCandidates(filterEncounteredSoundCandidates(Array.isArray(candidates) ? candidates : []));
 }
 
 async function startNicknameCandidateSwipe(baseReading) {
