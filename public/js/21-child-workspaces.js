@@ -35,6 +35,68 @@
         }
     }
 
+    function parseComparableTime(value) {
+        const time = new Date(String(value || '').trim() || 0).getTime();
+        return Number.isFinite(time) ? time : 0;
+    }
+
+    function normalizeDeletedChildrenMap(value) {
+        const next = {};
+        if (!value) return next;
+
+        const assignDeletedAt = (childId, deletedAt = '') => {
+            const safeId = String(childId || '').trim();
+            if (!safeId) return;
+            next[safeId] = String(deletedAt || '').trim();
+        };
+
+        if (Array.isArray(value)) {
+            value.forEach((entry) => {
+                if (!entry) return;
+                if (typeof entry === 'string' || typeof entry === 'number') {
+                    assignDeletedAt(entry, '');
+                    return;
+                }
+                assignDeletedAt(
+                    entry?.id || entry?.childId || entry?.meta?.id || '',
+                    entry?.deletedAt || entry?.removedAt || entry?.updatedAt || entry?.createdAt || ''
+                );
+            });
+            return next;
+        }
+
+        if (typeof value === 'object') {
+            Object.entries(value).forEach(([key, entry]) => {
+                if (typeof entry === 'string' || typeof entry === 'number') {
+                    assignDeletedAt(key, entry);
+                    return;
+                }
+                assignDeletedAt(
+                    key || entry?.id || entry?.childId || '',
+                    entry?.deletedAt || entry?.removedAt || entry?.updatedAt || entry?.createdAt || ''
+                );
+            });
+        }
+
+        return next;
+    }
+
+    function mergeDeletedChildrenMaps(localMap = {}, remoteMap = {}) {
+        const merged = normalizeDeletedChildrenMap(localMap);
+        const incoming = normalizeDeletedChildrenMap(remoteMap);
+        Object.entries(incoming).forEach(([childId, deletedAt]) => {
+            const existingAt = merged[childId];
+            if (!existingAt) {
+                merged[childId] = deletedAt;
+                return;
+            }
+            if (parseComparableTime(deletedAt) > parseComparableTime(existingAt)) {
+                merged[childId] = deletedAt;
+            }
+        });
+        return merged;
+    }
+
     function escapeHtml(value) {
         return String(value ?? '')
             .replace(/&/g, '&amp;')
@@ -526,18 +588,20 @@
         },
 
         normalizeRoot(root) {
+            const deletedChildren = normalizeDeletedChildrenMap(root?.deletedChildren || root?.deletedChildIds || {});
             const next = {
                 version: ROOT_VERSION,
                 activeChildId: String(root?.activeChildId || '').trim(),
                 childOrder: Array.isArray(root?.childOrder) ? root.childOrder.map((id) => String(id || '').trim()).filter(Boolean) : [],
                 family: this.normalizeFamily(root?.family),
                 children: {},
+                deletedChildren,
                 createdAt: String(root?.createdAt || getNowIso()),
                 updatedAt: String(root?.updatedAt || getNowIso())
             };
             Object.entries(root?.children || {}).forEach(([childId, childRecord], index) => {
                 const normalized = this.normalizeChildRecord(childId, childRecord, index + 1);
-                if (normalized) next.children[normalized.meta.id] = normalized;
+                if (normalized && !Object.prototype.hasOwnProperty.call(deletedChildren, normalized.meta.id)) next.children[normalized.meta.id] = normalized;
             });
             if (Object.keys(next.children).length === 0) {
                 const fallback = this.buildDefaultChildRecord('child_1', 1);
@@ -566,6 +630,67 @@
             return migrated;
         },
 
+        mergeRootState(localState = null, remoteState = null) {
+            const hasRootData = (state) => !!state && typeof state === 'object' && (
+                (state.children && typeof state.children === 'object' && Object.keys(state.children).length > 0)
+                || (state.deletedChildren && typeof state.deletedChildren === 'object' && Object.keys(state.deletedChildren).length > 0)
+                || (Array.isArray(state.deletedChildIds) && state.deletedChildIds.length > 0)
+                || String(state.activeChildId || '').trim()
+                || state.updatedAt
+                || state.createdAt
+            );
+            const localRoot = hasRootData(localState) ? this.normalizeRoot(localState) : null;
+            const remoteRoot = hasRootData(remoteState) ? this.normalizeRoot(remoteState) : null;
+            if (!localRoot && !remoteRoot) return this.normalizeRoot({});
+            if (!localRoot) return remoteRoot;
+            if (!remoteRoot) return localRoot;
+            const mergedDeletedChildren = mergeDeletedChildrenMaps(localRoot.deletedChildren, remoteRoot.deletedChildren);
+            const mergedChildren = {};
+            const remotePreferred = parseComparableTime(remoteRoot.updatedAt || remoteRoot.createdAt) >= parseComparableTime(localRoot.updatedAt || localRoot.createdAt);
+
+            const upsertChild = (child, preferRemote = false) => {
+                if (!child || typeof child !== 'object') return;
+                const childId = String(child?.meta?.id || '').trim();
+                if (!childId || Object.prototype.hasOwnProperty.call(mergedDeletedChildren, childId)) return;
+                const existing = mergedChildren[childId];
+                const childClone = cloneData(child, null);
+                if (!existing) {
+                    mergedChildren[childId] = childClone;
+                    return;
+                }
+                const existingTime = parseComparableTime(existing?.meta?.updatedAt || existing?.meta?.createdAt);
+                const incomingTime = parseComparableTime(childClone?.meta?.updatedAt || childClone?.meta?.createdAt);
+                if (incomingTime > existingTime || (incomingTime === existingTime && preferRemote)) {
+                    mergedChildren[childId] = childClone;
+                }
+            };
+
+            Object.values(localRoot.children || {}).forEach((child) => upsertChild(child, false));
+            Object.values(remoteRoot.children || {}).forEach((child) => upsertChild(child, true));
+
+            const preferredRoot = remotePreferred ? remoteRoot : localRoot;
+            const merged = {
+                version: Math.max(
+                    normalizePositiveInteger(localRoot.version, 0),
+                    normalizePositiveInteger(remoteRoot.version, 0),
+                    ROOT_VERSION
+                ),
+                activeChildId: '',
+                childOrder: [],
+                family: cloneData(preferredRoot.family || createBlankFamilyState(), createBlankFamilyState()),
+                children: mergedChildren,
+                deletedChildren: mergedDeletedChildren,
+                createdAt: String(preferredRoot.createdAt || localRoot.createdAt || remoteRoot.createdAt || getNowIso()),
+                updatedAt: String(preferredRoot.updatedAt || localRoot.updatedAt || remoteRoot.updatedAt || getNowIso())
+            };
+
+            merged.childOrder = this.buildOrderedChildIds(merged);
+            const preferredActiveChildId = [localRoot.activeChildId, remoteRoot.activeChildId]
+                .find((childId) => childId && merged.children[childId]);
+            merged.activeChildId = preferredActiveChildId || merged.childOrder[0] || '';
+            return this.normalizeRoot(merged);
+        },
+
         buildRootFromLegacyGlobals() {
             const childId = 'child_1';
             const wizardData = (typeof WizardData !== 'undefined' && WizardData && typeof WizardData.get === 'function' && typeof WizardData.isCompleted === 'function' && WizardData.isCompleted())
@@ -589,6 +714,7 @@
                 activeChildId: childId,
                 childOrder: [childId],
                 family: this.captureCurrentFamilyState(),
+                deletedChildren: {},
                 children: { [childId]: child },
                 createdAt: getNowIso(),
                 updatedAt: getNowIso()
@@ -678,7 +804,8 @@
 
         buildOrderedChildIds(root) {
             const childMap = root?.children || {};
-            const knownIds = Object.keys(childMap);
+            const deletedChildren = normalizeDeletedChildrenMap(root?.deletedChildren || root?.deletedChildIds || {});
+            const knownIds = Object.keys(childMap).filter((id) => !Object.prototype.hasOwnProperty.call(deletedChildren, id));
             const ordered = Array.isArray(root?.childOrder) ? root.childOrder.filter((id) => knownIds.includes(id)) : [];
             const missing = knownIds.filter((id) => !ordered.includes(id));
             return [...ordered, ...missing].sort((leftId, rightId) => {
@@ -697,7 +824,21 @@
         },
 
         getChildById(childId) {
-            return this.root?.children?.[childId] || null;
+            const safeId = String(childId || '').trim();
+            if (!safeId) return null;
+            if (this.isChildDeleted(safeId)) return null;
+            return this.root?.children?.[safeId] || null;
+        },
+
+        getDeletedChildMap(root = this.root) {
+            return normalizeDeletedChildrenMap(root?.deletedChildren || root?.deletedChildIds || {});
+        },
+
+        isChildDeleted(childId, root = this.root) {
+            const safeId = String(childId || '').trim();
+            if (!safeId) return false;
+            const deletedMap = this.getDeletedChildMap(root);
+            return Object.prototype.hasOwnProperty.call(deletedMap, safeId);
         },
 
         getActiveChild() {
@@ -1082,7 +1223,7 @@
         },
 
         switchChild(childId) {
-            if (!this.root || !this.root.children[childId] || this.root.activeChildId === childId) return;
+            if (!this.root || !this.getChildById(childId) || this.root.activeChildId === childId) return;
             const activeScreen = document.querySelector('.screen.active')?.id || '';
             const shouldConfirm = activeScreen === 'scr-main' || activeScreen === 'scr-swipe-universal';
             if (shouldConfirm && !confirm('今の作業状態を保存して切り替えます。続けますか？')) return;
@@ -1424,7 +1565,7 @@
         },
 
         deleteChild(childId) {
-            if (!this.root || !this.root.children[childId]) return;
+            if (!this.root || !this.getChildById(childId)) return;
             if (this.buildOrderedChildIds(this.root).length <= 1) {
                 this.notify('最後の1人は削除できません。', '!');
                 return;
@@ -1432,6 +1573,9 @@
             const child = this.getChildById(childId);
             if (!confirm(`${child.meta.displayLabel} を削除しますか？ この子の読み・漢字・保存候補は消えます。`)) return;
             this.persistActiveChildSnapshot('before-delete-child');
+            this.root.deletedChildren = mergeDeletedChildrenMaps(this.root.deletedChildren, {
+                [childId]: getNowIso()
+            });
             delete this.root.children[childId];
             this.root.childOrder = this.buildOrderedChildIds(this.root);
             if (this.root.activeChildId === childId) this.root.activeChildId = this.root.childOrder[0];
@@ -1454,9 +1598,9 @@
 
         applyRemoteRootSnapshot(snapshot, options = {}) {
             if (!snapshot) return false;
-            const normalized = this.normalizeRoot(snapshot);
-            this.root = normalized;
-            this.saveRoot(normalized, { skipRemoteSync: true });
+            const merged = this.mergeRootState(this.root, snapshot);
+            this.root = merged;
+            this.saveRoot(merged, { skipRemoteSync: true });
             if (this.initialized) {
                 this.applyActiveChildToGlobals({ reason: options.reason || 'remote-root' });
                 this.renderSwitchers();

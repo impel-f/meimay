@@ -4025,12 +4025,17 @@ const MeimayUserBackup = {
     _shouldApplyRemoteChildWorkspaceStateV2: function (localState = null, remoteState = null) {
         if (!remoteState || typeof remoteState !== 'object') return false;
         if (!localState || typeof localState !== 'object') return true;
-        if (this._hasChildWorkspaceStructureDelta(localState, remoteState)) return true;
+        const parseStamp = (value) => {
+            const time = new Date(String(value || '').trim() || 0).getTime();
+            return Number.isFinite(time) ? time : 0;
+        };
 
-        const remoteStamp = this._getChildWorkspaceStateV2Stamp(remoteState);
-        const localStamp = this._getChildWorkspaceStateV2Stamp(localState);
-        if (!localStamp) return true;
-        return remoteStamp >= localStamp;
+        const remoteStamp = parseStamp(this._getChildWorkspaceStateV2Stamp(remoteState));
+        const localStamp = parseStamp(this._getChildWorkspaceStateV2Stamp(localState));
+        if (remoteStamp > 0 || localStamp > 0) {
+            return remoteStamp >= localStamp;
+        }
+        return this._hasChildWorkspaceStructureDelta(localState, remoteState);
     },
 
     _applyChildWorkspaceStateV2: function (state = null) {
