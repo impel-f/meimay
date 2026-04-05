@@ -414,7 +414,7 @@
                 .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:11px;line-height:1.5}
                 .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900}
                 .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-                .meimay-child-editor-actions{position:sticky;bottom:0;padding-top:12px;background:linear-gradient(180deg,rgba(255,250,244,0) 0%,#fffaf4 24px);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+                .meimay-child-editor-actions{position:static;padding-top:12px}
                 .meimay-child-field{margin-top:12px}
                 .meimay-child-field-label{display:block;margin-bottom:6px;color:#8b7e66;font-size:11px;font-weight:800}
                 .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:14px;font-weight:700;outline:none}
@@ -1919,8 +1919,7 @@
                 : childIds[0];
             return childIds.map((childId) => {
                 const child = this.getChildById(childId);
-                const summary = this.getDisplayChildSummary(childId);
-                const label = `${getChildHeaderLabel(child, this.root?.activeChildId)}（読 ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}）`;
+                const label = getChildHeaderLabel(child, this.root?.activeChildId);
                 return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
         },
