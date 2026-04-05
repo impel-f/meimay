@@ -279,11 +279,11 @@ function render() {
 function updateSwipeCounter() {
     const el = document.getElementById('swipe-counter');
     if (!el || !stack) return;
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    const remaining = premiumActive ? null : (typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : 0);
 
     if (isFreeSwipeMode) {
         const selected = liked.filter(item => item.sessionReading === 'FREE').length;
-        const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
-        const remaining = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : 0;
         el.innerText = premiumActive
             ? `選:${selected} / スワイプ上限:無制限`
             : `選:${selected} / スワイプ上限:${remaining}`;
@@ -296,7 +296,9 @@ function updateSwipeCounter() {
         (!item.sessionReading || item.sessionReading === currentReading)
     ).length;
 
-    el.innerText = `選:${selected}`;
+    el.innerText = premiumActive
+        ? `選:${selected} / スワイプ上限:無制限`
+        : `選:${selected} / スワイプ上限:${remaining}`;
 }
 
 /**
