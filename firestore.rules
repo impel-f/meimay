@@ -63,7 +63,8 @@ service cloud.firestore {
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
-          'memberAUid', 'memberARole', 'memberBUid', 'memberBRole', 'createdAt'
+          'memberAUid', 'memberARole', 'memberASurname', 'memberASurnameReading',
+          'memberBUid', 'memberBRole', 'memberBSurname', 'memberBSurnameReading', 'createdAt'
         ])
         && request.resource.data.memberAUid == request.auth.uid
         && isRole(request.resource.data.memberARole)
@@ -72,7 +73,8 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && request.resource.data.keys().hasOnly([
-          'memberAUid', 'memberARole', 'memberBUid', 'memberBRole', 'createdAt'
+          'memberAUid', 'memberARole', 'memberASurname', 'memberASurnameReading',
+          'memberBUid', 'memberBRole', 'memberBSurname', 'memberBSurnameReading', 'createdAt'
         ])
         && (
           (
@@ -98,6 +100,28 @@ service cloud.firestore {
             && request.resource.data.memberAUid == resource.data.memberAUid
             && request.resource.data.memberARole == resource.data.memberARole
             && request.resource.data.createdAt == resource.data.createdAt
+          ) ||
+          (
+            resource.data.memberAUid == request.auth.uid
+            && request.resource.data.memberAUid == resource.data.memberAUid
+            && request.resource.data.memberARole == resource.data.memberARole
+            && request.resource.data.memberBUid == resource.data.memberBUid
+            && request.resource.data.memberBRole == resource.data.memberBRole
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              'memberASurname', 'memberASurnameReading'
+            ])
+          ) ||
+          (
+            resource.data.memberBUid == request.auth.uid
+            && request.resource.data.memberAUid == resource.data.memberAUid
+            && request.resource.data.memberARole == resource.data.memberARole
+            && request.resource.data.memberBUid == resource.data.memberBUid
+            && request.resource.data.memberBRole == resource.data.memberBRole
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              'memberBSurname', 'memberBSurnameReading'
+            ])
           )
         );
 
