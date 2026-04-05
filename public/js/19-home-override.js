@@ -2575,7 +2575,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const readingStock = Array.isArray(options.readingStock)
         ? options.readingStock
         : (typeof getReadingStock === 'function' ? getReadingStock() : []);
-    const focusKey = getHomeStageFocus(options.recommendedKey || timeline.activeKey);
+    const initialFocusKey = options.recommendedKey || timeline.activeKey;
+    const focusKey = getHomeStageFocus(initialFocusKey);
     const focusCopy = getHomeStageFocusCopy(focusKey, likedCount, readingStockCount, savedCount, pairing, {
         buildCount,
         readingStock
@@ -2611,7 +2612,9 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         variant: 'card',
         icon: ''
     };
-    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, { highlightStyle: tone.cardRecommended });
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, {
+        highlightStyle: focusKey === initialFocusKey ? tone.cardRecommended : ''
+    });
     const secondaryDetailHtml = focusKey === 'reading'
         ? '今ある読みのストックを見返します'
         : focusKey === 'kanji'
@@ -2915,7 +2918,8 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
     const readingStock = Array.isArray(options.readingStock)
         ? options.readingStock
         : (typeof getReadingStock === 'function' ? getReadingStock() : []);
-    const selectedTabKey = getHomeStageFocus(options.recommendedKey || timeline.activeKey);
+    const initialFocusKey = options.recommendedKey || timeline.activeKey;
+    const selectedTabKey = getHomeStageFocus(initialFocusKey);
     const focusCopy = getHomeStagePanelCopy(selectedTabKey, likedCount, readingStockCount, savedCount, pairing, {
         buildCount,
         readingStock
@@ -2965,7 +2969,9 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
         variant: 'card',
         icon: ''
     };
-    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, { highlightStyle: tone.cardRecommended });
+    const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, {
+        highlightStyle: selectedTabKey === initialFocusKey ? tone.cardRecommended : ''
+    });
     const secondaryButton = focusCopy.secondaryAction
         ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
         : '';
