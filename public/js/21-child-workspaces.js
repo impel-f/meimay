@@ -2354,10 +2354,11 @@
                 next.readingStock = cloneData(sourceChild.libraries?.readingStock, []);
             }
             if (selected.has('kanji')) {
-                next.kanjiStock = this.mergeKanjiLibraries([], sourceChild.libraries?.kanjiStock, {
-                    sourceChildId,
-                    sourceLabel: sourceChild.meta?.displayLabel || '第一子'
-                }).items;
+                next.kanjiStock = cloneData(sourceChild.libraries?.kanjiStock, []).map((item) => ({
+                    ...cloneData(item, {}),
+                    importedFromChildId: '',
+                    importedFromChildLabel: ''
+                }));
             }
             if (selected.has('saved')) {
                 next.savedNames = this.mergeSavedLibraries([], sourceChild.libraries?.savedNames, {

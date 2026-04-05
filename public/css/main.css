@@ -1483,6 +1483,11 @@ body.has-ad-banner #scr-mode {
     padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* Build screen: keep the save button above the ad banner for free users */
+body.has-ad-banner #scr-build > div {
+    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 /* Keep the footer anchored; the ad banner is lifted above it in JS. */
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
