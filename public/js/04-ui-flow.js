@@ -6201,15 +6201,13 @@ function updateDailyRemainingDisplay() {
             ? '本日のスワイプ上限に達しました'
             : `漢字スワイプ 残り ${remaining}回`);
     const readingText = premiumActive
-        ? '漢字スワイプは無制限'
-        : (remaining === 0
-            ? '本日のスワイプ上限に達しました'
-            : `スワイプ上限:${remaining}回`);
+        ? '選:0 / スワイプ上限:無制限'
+        : `選:0 / スワイプ上限:${remaining}`;
 
     const homeEl = document.getElementById('home-daily-remaining');
     if (homeEl) homeEl.innerText = homeText;
 
-    const readingEl = document.getElementById('reading-daily-remaining');
+    const readingEl = document.getElementById('reading-swipe-counter');
     if (readingEl) readingEl.innerText = readingText;
 }
 
