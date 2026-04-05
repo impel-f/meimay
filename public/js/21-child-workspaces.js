@@ -256,8 +256,17 @@
         }
     }
 
-    function getChildHeaderLabel(child) {
-        return child?.meta?.displayLabel || '第一子';
+    function getGenderEmoji(gender) {
+        return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '👶';
+    }
+
+    function getChildHeaderLabel(child, activeChildId = '') {
+        const baseLabel = child?.meta?.displayLabel || '第一子';
+        const genderEmoji = getGenderEmoji(child?.meta?.gender);
+        const matchedLabel = child?.meta?.id && child.meta.id === activeChildId
+            ? getMatchedSavedNameLabel()
+            : '';
+        return matchedLabel ? `${baseLabel} ${genderEmoji}：${matchedLabel}` : `${baseLabel} ${genderEmoji}`;
     }
 
     function readJsonArray(key) {
@@ -393,6 +402,8 @@
                 .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
                 .meimay-child-modal-desc{margin-top:0;width:100%;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
                 .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86)}
+                .meimay-child-copy-panel{margin-top:12px;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86);display:grid;gap:12px}
+                .meimay-child-copy-panel .meimay-child-field{margin-top:0}
                 .meimay-child-step-label{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:9999px;background:#fff3e4;color:#b9965b;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
                 .meimay-child-modal-section-title{color:#5d5444;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
                 .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
@@ -1895,10 +1906,7 @@
         getManagerChildTitle(childId) {
             const child = this.getChildById(childId);
             if (!child) return '';
-            const baseLabel = child.meta?.displayLabel || '第一子';
-            if (childId !== this.root?.activeChildId) return baseLabel;
-            const matchedLabel = getMatchedSavedNameLabel();
-            return matchedLabel ? `${baseLabel}：${matchedLabel}` : baseLabel;
+            return getChildHeaderLabel(child, this.root?.activeChildId);
         },
 
         buildCopySourceOptions(excludedChildId = '') {
@@ -1912,7 +1920,7 @@
             return childIds.map((childId) => {
                 const child = this.getChildById(childId);
                 const summary = this.getDisplayChildSummary(childId);
-                const label = `${child?.meta?.displayLabel || '第一子'}（読 ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}）`;
+                const label = `${getChildHeaderLabel(child, this.root?.activeChildId)}（読 ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}）`;
                 return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
         },
@@ -2104,13 +2112,15 @@
                             </div>
                         </div>
                         <div id="mcw-child-copy-area" style="display:none">
-                            <div class="meimay-child-field">
-                                <label class="meimay-child-field-label" for="mcw-child-copy-source">コピー元</label>
-                                <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions()}</select>
-                            </div>
-                            <div class="meimay-child-field">
-                                <label class="meimay-child-field-label">引き継ぐ内容</label>
-                                <div class="meimay-child-toggle-grid">${this.buildCopySectionButtons(defaultSections, selectedSourceId)}</div>
+                            <div class="meimay-child-copy-panel">
+                                <div class="meimay-child-field">
+                                    <label class="meimay-child-field-label" for="mcw-child-copy-source">コピー元</label>
+                                    <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions()}</select>
+                                </div>
+                                <div class="meimay-child-field">
+                                    <label class="meimay-child-field-label">引き継ぐ内容</label>
+                                    <div class="meimay-child-toggle-grid">${this.buildCopySectionButtons(defaultSections, selectedSourceId)}</div>
+                                </div>
                             </div>
                         </div>
                     `}
