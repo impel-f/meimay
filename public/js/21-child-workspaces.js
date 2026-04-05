@@ -385,12 +385,13 @@
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
                 .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:linear-gradient(180deg,#fffaf4 0%,#fffdf8 100%);border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:20px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
-                .meimay-child-modal-header{position:sticky;top:0;z-index:6;min-height:60px;padding:4px 0 12px;background:linear-gradient(180deg,#fffaf4 0%,#fffdf8 100%)}
-                .meimay-child-modal-close{position:absolute;right:0;top:0;width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
+                .meimay-child-modal-header{position:relative;display:flex;flex-direction:column;gap:10px}
+                .meimay-child-modal-topbar{position:sticky;top:0;z-index:6;display:flex;justify-content:flex-end;align-items:flex-start;padding:0 0 2px;background:transparent}
+                .meimay-child-modal-close{position:relative;width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
                 .meimay-child-modal-close:active{transform:scale(.95)}
-                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;padding:0 52px;box-sizing:border-box}
+                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box}
                 .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
-                .meimay-child-modal-desc{margin-top:0;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
+                .meimay-child-modal-desc{margin-top:0;width:100%;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
                 .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86)}
                 .meimay-child-step-label{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:9999px;background:#fff3e4;color:#b9965b;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
                 .meimay-child-modal-section-title{color:#5d5444;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
@@ -2009,11 +2010,13 @@
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
                     <div class="meimay-child-modal-header">
+                        <div class="meimay-child-modal-topbar">
+                            <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeManagerModal()">×</button>
+                        </div>
                         <div class="meimay-child-modal-copy">
                             <div class="meimay-child-modal-title">名づけ帳管理</div>
                             <div class="meimay-child-modal-desc">進める子の切り替えや、新しい子の追加ができます</div>
                         </div>
-                        <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeManagerModal()">×</button>
                     </div>
                     <div class="meimay-child-modal-section">
                         <div class="meimay-child-modal-section-title">進める子を切り替える</div>
@@ -2060,11 +2063,13 @@
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
                     <div class="meimay-child-modal-header">
+                        <div class="meimay-child-modal-topbar">
+                            <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeChildModal()">×</button>
+                        </div>
                         <div class="meimay-child-modal-copy">
                             <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
                             <div class="meimay-child-modal-desc">${isEdit ? '生まれ順と性別を見直せます。' : createDesc}</div>
                         </div>
-                        <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeChildModal()">×</button>
                     </div>
                     <input type="hidden" id="mcw-child-gender" value="${escapeHtml(selectedGender)}">
                     <div class="meimay-child-field">
