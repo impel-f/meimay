@@ -167,6 +167,22 @@ function executeSwipe(dir, data) {
         return;
     }
 
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (data && !premiumActive && typeof getDailyRemainingCount === 'function' && getDailyRemainingCount() <= 0) {
+        if (typeof showKanjiSwipeDailyLimitPrompt === 'function') {
+            showKanjiSwipeDailyLimitPrompt();
+        } else {
+            appMode = 'free';
+            window.selectedImageTags = ['none'];
+            isFreeSwipeMode = true;
+            stack = [];
+            currentIdx = 0;
+            changeScreen('scr-main');
+            if (typeof render === 'function') render();
+        }
+        return;
+    }
+
     // アニメーション開始
     el.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
     el.classList.add('swipe-' + dir);
@@ -177,7 +193,6 @@ function executeSwipe(dir, data) {
         if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
     }
 
-    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     if (data && !premiumActive) {
         if (typeof addDailySeenKanji === 'function') {
             addDailySeenKanji(data['漢字']);

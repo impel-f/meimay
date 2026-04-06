@@ -6211,6 +6211,17 @@ function updateDailyRemainingDisplay() {
     if (readingEl) readingEl.innerText = readingText;
 }
 
+function showKanjiSwipeDailyLimitPrompt() {
+    appMode = 'free';
+    window.selectedImageTags = ['none'];
+    isFreeSwipeMode = true;
+    stack = [];
+    currentIdx = 0;
+    changeScreen('scr-main');
+    if (typeof render === 'function') render();
+    if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+}
+
 function startDirectKanjiSwipe() {
     if (!master || master.length === 0) {
         alert('漢字データを読み込み中です。しばらくお待ちください。');
@@ -6219,13 +6230,9 @@ function startDirectKanjiSwipe() {
 
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     if (!premiumActive && typeof getDailyRemainingCount === 'function' && getDailyRemainingCount() <= 0) {
-        appMode = 'free';
-        window.selectedImageTags = ['none'];
-        isFreeSwipeMode = true;
-        stack = [];
-        currentIdx = 0;
-        changeScreen('scr-main');
-        if (typeof render === 'function') render();
+        if (typeof showKanjiSwipeDailyLimitPrompt === 'function') {
+            showKanjiSwipeDailyLimitPrompt();
+        }
         return;
     }
 
@@ -6284,6 +6291,7 @@ window.renderFreeBuild = renderFreeBuild;
 window.getReadingStock = getReadingStock;
 window.addReadingToStock = addReadingToStock;
 window.syncReadingStockFromLiked = syncReadingStockFromLiked;
+window.showKanjiSwipeDailyLimitPrompt = showKanjiSwipeDailyLimitPrompt;
 window.startDirectKanjiSwipe = startDirectKanjiSwipe;
 window.updateDailyRemainingDisplay = updateDailyRemainingDisplay;
 window.getDailyRemainingCount = getDailyRemainingCount;
