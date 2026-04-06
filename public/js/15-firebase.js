@@ -1420,7 +1420,6 @@ const MeimayPartnerInsights = {
             ? StorageBox._filterRemovedLikedItems(items)
             : (Array.isArray(items) ? items.filter(Boolean) : []);
         const backupLiked = Array.isArray(backup.liked)
-            && (backup.likedCount === undefined || backup.likedCount === null || Number(backup.likedCount) > 0)
             ? filterRemoved(backup.liked)
             : [];
         const snapshotLiked = filterRemoved(snapshot.liked);
@@ -3253,7 +3252,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
             const roomBackupLiked = Array.isArray(roomBackup.liked)
-                && (roomBackup.likedCount === undefined || roomBackup.likedCount === null || Number(roomBackup.likedCount) > 0)
                 ? filterRemoved(roomBackup.liked)
                 : [];
             let partnerChildWorkspaceStateV2 = data.meimayStateV2
@@ -4548,7 +4546,6 @@ const MeimayUserBackup = {
                 StorageBox._persistLikedRemovalState(remoteLikedRemovalSource);
             }
             const remoteBackupLiked = Array.isArray(remoteBackup?.liked)
-                && (remoteBackup?.likedCount === undefined || remoteBackup?.likedCount === null || Number(remoteBackup.likedCount) > 0)
                 ? filterRemoved(remoteBackup.liked)
                 : [];
             const remoteChildWorkspaceStateV2 = remoteBackup?.meimayStateV2
@@ -4845,7 +4842,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                             StorageBox._persistLikedRemovalState(partnerLikedRemovalSource);
                         }
                         const partnerBackupLiked = Array.isArray(partnerBackup.liked)
-                            && (partnerBackup.likedCount === undefined || partnerBackup.likedCount === null || Number(partnerBackup.likedCount) > 0)
                             ? filterRemoved(partnerBackup.liked)
                             : [];
                         if (!partnerChildWorkspaceStateV2) {
@@ -4877,7 +4873,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                             likedSource = partnerBackupLiked;
                         }
                         if (!likedSource.length && Array.isArray(partnerUserBackup.liked)
-                            && (partnerUserBackup.likedCount === undefined || partnerUserBackup.likedCount === null || Number(partnerUserBackup.likedCount) > 0)
                             && partnerUserBackup.liked.length > 0) {
                             likedSource = filterRemoved(partnerUserBackup.liked);
                         }
