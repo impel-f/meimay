@@ -370,6 +370,10 @@ function updateSurnameData() {
     if (fortuneModal && fortuneModal.classList.contains('active') && typeof showFortuneDetail === 'function') {
         showFortuneDetail();
     }
+
+    if (typeof syncPairingSurnameDisplay === 'function') {
+        syncPairingSurnameDisplay();
+    }
 }
 
 /**

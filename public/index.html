@@ -975,6 +975,21 @@
                 <p class="text-xs text-[#a6967a]">コードを共有してふたりで名前を選ぼう</p>
             </div>
 
+            <!-- 苗字 -->
+            <div id="pairing-surname-card" class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-black text-[#8b7e66] mb-1">連携に使う苗字</p>
+                        <p id="pairing-surname-display" class="text-[15px] font-black text-[#5d5444] leading-snug">未設定</p>
+                        <p id="pairing-surname-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">連携時に使う苗字です</p>
+                    </div>
+                    <button type="button" onclick="if(typeof openSurnameInput==='function'){openSurnameInput();} else if(typeof changeScreen==='function'){changeScreen('scr-surname-settings');}"
+                        class="shrink-0 px-4 py-2 rounded-full border border-[#eadfce] bg-[#fdfaf5] text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
+                        <span id="pairing-surname-action-label">入力する</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 未連携状態 -->
             <div id="pairing-not-linked">
                 <!-- ルームを作る -->
@@ -1928,7 +1943,7 @@
     <!-- Module 02.5: Generator -->
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=25.15"></script>
+    <script src="/js/01-core.js?v=25.16"></script>
 <script src="/js/02-engine.js?v=25.21"></script>
     <script src="/js/03-fortune.js?v=25.12"></script>
 <script src="/js/04-ui-flow.js?v=25.96"></script>
@@ -1942,7 +1957,7 @@
     <script src="/js/12-history.js?v=25.43"></script>
     <script src="/js/13-drawer-wizard.js?v=25.18"></script>
     <script src="/js/14-admob.js?v=25.23"></script>
-    <script src="/js/15-firebase.js?v=25.92"></script>
+    <script src="/js/15-firebase.js?v=25.93"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>

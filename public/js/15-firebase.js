@@ -1732,6 +1732,29 @@ function getCurrentPairingSurnameState() {
     return { surname: '', reading: '' };
 }
 
+function syncPairingSurnameDisplay() {
+    const current = getCurrentPairingSurnameState();
+    const surname = String(current.surname || '').trim();
+    const reading = String(current.reading || '').trim();
+
+    const displayEl = document.getElementById('pairing-surname-display');
+    if (displayEl) {
+        displayEl.textContent = surname || '未設定';
+    }
+
+    const subtextEl = document.getElementById('pairing-surname-subtext');
+    if (subtextEl) {
+        subtextEl.textContent = surname
+            ? (reading ? `読み: ${reading}` : '入力済みの苗字です')
+            : '連携時に使う苗字です';
+    }
+
+    const actionEl = document.getElementById('pairing-surname-action-label');
+    if (actionEl) {
+        actionEl.textContent = surname ? '変更する' : '入力する';
+    }
+}
+
 function getPairingRoomSurnameField(slot) {
     if (slot === 'memberA') return 'memberASurname';
     if (slot === 'memberB') return 'memberBSurname';
@@ -1791,6 +1814,7 @@ function updatePairingUI() {
     const inRoom = !!MeimayPairing.roomCode;
     const hasPartner = !!MeimayPairing.partnerUid;
     syncPairingRoleSelectionFromProfile();
+    syncPairingSurnameDisplay();
 
     const pairingNotLinked = document.getElementById('pairing-not-linked');
     const pairingLinked = document.getElementById('pairing-linked');
