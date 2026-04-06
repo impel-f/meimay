@@ -666,7 +666,7 @@
             const raw = localStorage.getItem(ROOT_KEY);
             if (raw) {
                 try {
-                    const normalized = this.normalizeRoot(JSON.parse(raw));
+                    const normalized = this.repairRootFromLegacyGlobals(this.normalizeRoot(JSON.parse(raw)));
                     this.saveRoot(normalized, { skipRemoteSync: true });
                     return normalized;
                 } catch (error) {
@@ -678,9 +678,39 @@
             return migrated;
         },
 
-        mergeRootState(localState = null, remoteState = null) {
+        repairRootFromLegacyGlobals(root) {
+            const normalized = this.normalizeRoot(root);
+            const activeChildId = String(normalized?.activeChildId || '').trim();
+            const activeChild = activeChildId ? normalized.children?.[activeChildId] : null;
+            if (!activeChild) return normalized;
+
+            const localSnapshot = this.captureCurrentChildRecord(activeChild.meta || {});
+            const hasRootData = (
+                Array.isArray(activeChild.libraries?.readingStock) && activeChild.libraries.readingStock.length > 0
+            ) || (
+                Array.isArray(activeChild.libraries?.kanjiStock) && activeChild.libraries.kanjiStock.length > 0
+            ) || (
+                Array.isArray(activeChild.libraries?.savedNames) && activeChild.libraries.savedNames.length > 0
+            );
+            const hasLegacyData = (
+                Array.isArray(localSnapshot.libraries?.readingStock) && localSnapshot.libraries.readingStock.length > 0
+            ) || (
+                Array.isArray(localSnapshot.libraries?.kanjiStock) && localSnapshot.libraries.kanjiStock.length > 0
+            ) || (
+                Array.isArray(localSnapshot.libraries?.savedNames) && localSnapshot.libraries.savedNames.length > 0
+            );
+
+            if (hasRootData || !hasLegacyData) return normalized;
+
+            normalized.children[activeChildId] = localSnapshot;
+            normalized.updatedAt = getNowIso();
+            return normalized;
+        },
+
+        mergeRootState(localState = null, remoteState = null, options = {}) {
             const localRoot = hasChildWorkspaceData(localState) ? this.normalizeRoot(localState) : null;
             const remoteRoot = hasChildWorkspaceData(remoteState) ? this.normalizeRoot(remoteState) : null;
+            const structureOnly = options?.structureOnly === true;
             if (!localRoot && !remoteRoot) return this.normalizeRoot({});
             if (!localRoot) return remoteRoot;
             if (!remoteRoot) return localRoot;
@@ -688,8 +718,22 @@
             const mergedChildrenBySlot = new Map();
             const remotePreferred = parseComparableTime(remoteRoot.updatedAt || remoteRoot.createdAt) >= parseComparableTime(localRoot.updatedAt || localRoot.createdAt);
 
+            const cloneStructureOnlyChild = (child) => {
+                if (!child || typeof child !== 'object') return null;
+                return {
+                    meta: cloneData(child.meta, {}),
+                    prefs: cloneData(child.prefs, { rule: 'strict', prioritizeFortune: false, imageTags: ['none'] }),
+                    draft: createBlankChildDraft(),
+                    libraries: createBlankChildLibraries()
+                };
+            };
+
             const mergeChildSlotRecords = (baseChild, incomingChild, preferIncoming = false) => {
-                if (!baseChild) return cloneData(incomingChild, null);
+                if (!baseChild) {
+                    return structureOnly
+                        ? cloneStructureOnlyChild(incomingChild)
+                        : cloneData(incomingChild, null);
+                }
                 if (!incomingChild) return cloneData(baseChild, null);
 
                 const baseClone = cloneData(baseChild, null);
@@ -700,24 +744,41 @@
 
                 mergedClone.meta = {
                     ...cloneData(baseClone.meta, {}),
+                    ...(preferIncoming ? {
+                        gender: normalizeGenderValue(incomingClone?.meta?.gender || baseClone?.meta?.gender),
+                        birthGroupId: incomingClone?.meta?.birthGroupId || incomingClone?.meta?.twinGroupId || baseClone?.meta?.birthGroupId || baseClone?.meta?.twinGroupId || null,
+                        birthGroupIndex: incomingClone?.meta?.birthGroupIndex ?? incomingClone?.meta?.twinIndex ?? baseClone?.meta?.birthGroupIndex ?? baseClone?.meta?.twinIndex ?? null,
+                        twinGroupId: incomingClone?.meta?.twinGroupId || incomingClone?.meta?.birthGroupId || baseClone?.meta?.twinGroupId || baseClone?.meta?.birthGroupId || null,
+                        twinIndex: incomingClone?.meta?.twinIndex ?? incomingClone?.meta?.birthGroupIndex ?? baseClone?.meta?.twinIndex ?? baseClone?.meta?.birthGroupIndex ?? null
+                    } : {}),
                     updatedAt: String(
                         preferIncoming
                             ? (incomingClone?.meta?.updatedAt || incomingClone?.meta?.createdAt || baseClone?.meta?.updatedAt || baseClone?.meta?.createdAt || getNowIso())
                             : (baseClone?.meta?.updatedAt || baseClone?.meta?.createdAt || incomingClone?.meta?.updatedAt || incomingClone?.meta?.createdAt || getNowIso())
                     )
                 };
-                mergedClone.prefs = cloneData(baseClone.prefs, cloneData(incomingClone.prefs, {}));
-                mergedClone.draft = cloneData(baseClone.draft, cloneData(incomingClone.draft, createBlankChildDraft()));
+                mergedClone.prefs = preferIncoming
+                    ? cloneData({ ...cloneData(baseClone.prefs, {}), ...cloneData(incomingClone.prefs, {}) }, {})
+                    : cloneData({ ...cloneData(incomingClone.prefs, {}), ...cloneData(baseClone.prefs, {}) }, {});
+                mergedClone.draft = structureOnly
+                    ? cloneData(baseClone.draft, createBlankChildDraft())
+                    : cloneData(baseClone.draft, cloneData(incomingClone.draft, createBlankChildDraft()));
                 mergedClone.libraries = {
-                    readingStock: this.mergeReadingLibraries(baseLibraries.readingStock, incomingLibraries.readingStock).items,
-                    kanjiStock: this.mergeKanjiLibraries(baseLibraries.kanjiStock, incomingLibraries.kanjiStock, {
-                        sourceChildId: incomingClone?.meta?.id || '',
-                        sourceLabel: incomingClone?.meta?.displayLabel || ''
-                    }).items,
-                    savedNames: this.mergeSavedLibraries(baseLibraries.savedNames, incomingLibraries.savedNames, {
-                        sourceChildId: incomingClone?.meta?.id || '',
-                        sourceLabel: incomingClone?.meta?.displayLabel || ''
-                    }).items,
+                    readingStock: structureOnly
+                        ? cloneData(baseLibraries.readingStock, [])
+                        : this.mergeReadingLibraries(baseLibraries.readingStock, incomingLibraries.readingStock).items,
+                    kanjiStock: structureOnly
+                        ? cloneData(baseLibraries.kanjiStock, [])
+                        : this.mergeKanjiLibraries(baseLibraries.kanjiStock, incomingLibraries.kanjiStock, {
+                            sourceChildId: incomingClone?.meta?.id || '',
+                            sourceLabel: incomingClone?.meta?.displayLabel || ''
+                        }).items,
+                    savedNames: structureOnly
+                        ? cloneData(baseLibraries.savedNames, [])
+                        : this.mergeSavedLibraries(baseLibraries.savedNames, incomingLibraries.savedNames, {
+                            sourceChildId: incomingClone?.meta?.id || '',
+                            sourceLabel: incomingClone?.meta?.displayLabel || ''
+                        }).items,
                     readingHistory: cloneData(baseLibraries.readingHistory, []),
                     hiddenReadings: cloneData(baseLibraries.hiddenReadings, []),
                     noped: cloneData(baseLibraries.noped, [])
@@ -762,7 +823,7 @@
                 ),
                 activeChildId: '',
                 childOrder: [],
-                family: cloneData(preferredRoot.family || createBlankFamilyState(), createBlankFamilyState()),
+                family: cloneData((structureOnly ? localRoot.family : preferredRoot.family) || createBlankFamilyState(), createBlankFamilyState()),
                 children: mergedChildren,
                 deletedChildren: mergedDeletedChildren,
                 createdAt: String(preferredRoot.createdAt || localRoot.createdAt || remoteRoot.createdAt || getNowIso()),
@@ -778,9 +839,11 @@
                     ? getChildWorkspaceSlotKey(remoteRoot.children[remoteRoot.activeChildId])
                     : ''
             ].find((slotKey) => slotKey && mergedChildrenBySlot.has(slotKey));
-            merged.activeChildId = preferredActiveSlotKey
-                ? String(mergedChildrenBySlot.get(preferredActiveSlotKey)?.meta?.id || '').trim()
-                : (merged.childOrder[0] || '');
+            merged.activeChildId = structureOnly
+                ? ((localRoot.activeChildId && merged.children?.[localRoot.activeChildId]) ? localRoot.activeChildId : (merged.childOrder[0] || ''))
+                : (preferredActiveSlotKey
+                    ? String(mergedChildrenBySlot.get(preferredActiveSlotKey)?.meta?.id || '').trim()
+                    : (merged.childOrder[0] || ''));
             return this.normalizeRoot(merged);
         },
 
@@ -1809,7 +1872,10 @@
 
         applyRemoteRootSnapshot(snapshot, options = {}) {
             if (!snapshot) return false;
-            const merged = this.mergeRootState(this.root, snapshot);
+            if (!this.root) {
+                this.root = this.loadOrMigrateRoot();
+            }
+            const merged = this.mergeRootState(this.root, snapshot, options);
             this.root = merged;
             this.saveRoot(merged, { skipRemoteSync: true });
             if (this.initialized) {

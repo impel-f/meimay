@@ -5019,13 +5019,19 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerChildWorkspaceStateV2
                 && typeof MeimayUserBackup !== 'undefined'
                 && MeimayUserBackup
-                && typeof MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2 === 'function'
-                && typeof MeimayUserBackup._applyChildWorkspaceStateV2 === 'function') {
+                && typeof MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2 === 'function') {
                 const localWorkspaceStateV2 = typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
                     ? MeimayUserBackup._readChildWorkspaceStateV2()
                     : null;
                 if (MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2(localWorkspaceStateV2, partnerChildWorkspaceStateV2)) {
-                    MeimayUserBackup._applyChildWorkspaceStateV2(partnerChildWorkspaceStateV2);
+                    if (typeof MeimayChildWorkspaces !== 'undefined'
+                        && MeimayChildWorkspaces
+                        && typeof MeimayChildWorkspaces.applyRemoteRootSnapshot === 'function') {
+                        MeimayChildWorkspaces.applyRemoteRootSnapshot(partnerChildWorkspaceStateV2, {
+                            reason: 'partner-child-structure',
+                            structureOnly: true
+                        });
+                    }
                 }
             }
 
