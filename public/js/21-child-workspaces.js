@@ -1440,20 +1440,18 @@
             const childButtons = this.buildOrderedChildIds(this.root).map((childId) => {
                 const child = this.getChildById(childId);
                 const childSummary = this.getDisplayChildSummary(childId);
-                const childSummaryLabel = childSummary.summaryLabel ? `${escapeHtml(childSummary.summaryLabel)} ・ ` : '';
                 return `
                     <button type="button" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')" class="meimay-child-chip${childId === this.root.activeChildId ? ' active' : ''}">
                         ${escapeHtml(child.meta.displayLabel)}
-                        <span class="meimay-child-chip-sub">${escapeHtml(getGenderLabel(child.meta.gender))} ・ ${childSummaryLabel}読み ${childSummary.readingCount} / 漢字 ${childSummary.kanjiCount} / 保存 ${childSummary.savedCount}</span>
+                        <span class="meimay-child-chip-sub">${escapeHtml(getGenderLabel(child.meta.gender))} ・ 読み ${childSummary.readingCount} / 漢字 ${childSummary.kanjiCount} / 保存 ${childSummary.savedCount}</span>
                     </button>
                 `;
             }).join('');
-            const summaryLabel = summary.summaryLabel ? `${escapeHtml(summary.summaryLabel)} ・ ` : '';
             return `
                 <div class="meimay-child-switcher-header">
                     <div>
                         <div class="meimay-child-switcher-title">${escapeHtml(activeLabel)} を進行中</div>
-                        <div class="meimay-child-switcher-subtitle">${escapeHtml(activeGender)} ・ ${summaryLabel}読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
+                        <div class="meimay-child-switcher-subtitle">${escapeHtml(activeGender)} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
                     </div>
                     <button type="button" class="meimay-child-inline-btn" onclick="MeimayChildWorkspaces.openManagerModal()">子ども管理</button>
                 </div>
@@ -2352,9 +2350,7 @@
             const summary = this.getDisplayChildSummary(childId);
             const isActive = childId === this.root?.activeChildId;
             const title = escapeHtml(this.getManagerChildTitle(childId) || child.meta?.displayLabel || '第一子');
-            const counts = summary.summaryLabel
-                ? `${summary.summaryLabel} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`
-                : `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
+            const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
             return `
                 <div class="meimay-child-card${isActive ? ' active' : ''}">
                     <div class="meimay-child-card-head">
