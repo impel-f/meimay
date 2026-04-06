@@ -461,6 +461,13 @@
                 .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
                 .meimay-child-toggle-count{color:#a6967a;font-size:11px;font-weight:800}
                 .meimay-child-danger{border-color:#f5c8c8;background:#fff6f6;color:#c45d5d}
+                .meimay-child-leave{border-color:#f0e0b8;background:#fffbf0;color:#a87c30}
+                .meimay-child-accept{border-color:#b8d8c8;background:#f0faf4;color:#2e7d57}
+                .meimay-partner-child-card{border:2px dashed #c8ddb8;background:rgba(220,245,220,0.28)}
+                .mcw-partner-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:8px;background:linear-gradient(135deg,#6b9e7c,#4a7a8e);color:#fff;font-size:10px;font-weight:900;letter-spacing:0.02em;vertical-align:middle;margin-left:5px}
+                .wiz-baby-gender-btn.partner-picked{border-color:#6b9e7c;background:rgba(107,158,124,0.09);position:relative}
+                .wiz-baby-gender-btn.partner-picked.selected{border-color:#6b9e7c;background:linear-gradient(180deg,rgba(107,158,124,0.18) 0%,rgba(107,158,124,0.12) 100%)}
+
             `;
             document.head.appendChild(style);
         },
@@ -1845,6 +1852,11 @@
                 return;
             }
             const child = this.getChildById(childId);
+            // パートナーが作った子は削除不可（離脱のみ）
+            if (child?.meta?.createdByPartner) {
+                this.notify('パートナーが追加した子は削除できません。「参加をやめる」で離脱してください。', '!');
+                return;
+            }
             if (!confirm(`${child.meta.displayLabel} を削除しますか？ この子の読み・漢字・保存候補は消えます。`)) return;
             this.persistActiveChildSnapshot('before-delete-child');
             this.root.deletedChildren = mergeDeletedChildrenMaps(this.root.deletedChildren, {
@@ -1859,6 +1871,105 @@
             this.applyActiveChildToGlobals({ reason: 'delete-child' });
             this.refreshVisibleUI('delete-child');
             this.notify('子どもを削除しました', '✓');
+        },
+
+        // パートナーが作った子の「参加をやめる」（ライブラリは残して非アクティブ化）
+        leavePartnerChild(childId) {
+            if (!this.root || !this.getChildById(childId)) return;
+            const child = this.getChildById(childId);
+            if (!child?.meta?.createdByPartner) return;
+            if (this.buildOrderedChildIds(this.root).length <= 1) {
+                this.notify('最後の1人は離脱できません。', '!');
+                return;
+            }
+            const label = child.meta.displayLabel || '子ども';
+            if (!confirm(`${label} の参加をやめますか？ また「参加する」ボタンで参加できます。`)) return;
+            this.persistActiveChildSnapshot('before-leave-partner-child');
+            // 子を削除リストへ（パートナーが再送信すれば再参加可能にする）
+            this.root.deletedChildren = mergeDeletedChildrenMaps(this.root.deletedChildren, {
+                [childId]: getNowIso()
+            });
+            delete this.root.children[childId];
+            this.root.childOrder = this.buildOrderedChildIds(this.root);
+            if (this.root.activeChildId === childId) this.root.activeChildId = this.root.childOrder[0];
+            this.saveRoot(this.root);
+            this.closeChildModal();
+            this.closeManagerModal();
+            this.applyActiveChildToGlobals({ reason: 'leave-partner-child' });
+            this.refreshVisibleUI('leave-partner-child');
+            this.notify(`${label} から離脱しました`, '✓');
+        },
+
+        // パートナーが追加した子で、自分側にまだない子のリストを返す
+        getUnacceptedPartnerChildren() {
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            if (!partnerRoot) return [];
+            const ownSlotKeys = new Set(
+                this.buildOrderedChildIds(this.root)
+                    .map((id) => getChildWorkspaceSlotKey(this.getChildById(id)))
+                    .filter(Boolean)
+            );
+            return Object.values(partnerRoot.children || {}).filter((partnerChild) => {
+                const slotKey = getChildWorkspaceSlotKey(partnerChild);
+                return slotKey && !ownSlotKeys.has(slotKey);
+            });
+        },
+
+        // パートナーの子を自分の名づけ帳に追加（ライブラリは空でスタート）
+        acceptPartnerChild(partnerChildSlotKey) {
+            if (!partnerChildSlotKey || !this.root) return;
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            const partnerChild = Object.values(partnerRoot?.children || {}).find(
+                (c) => getChildWorkspaceSlotKey(c) === partnerChildSlotKey
+            );
+            if (!partnerChild) {
+                this.notify('パートナーの子どもが見つかりませんでした。', '!');
+                return;
+            }
+            const birthOrder = normalizePositiveInteger(partnerChild.meta?.birthOrder, 1);
+            if (this.isBirthOrderTaken(birthOrder)) {
+                this.notify('その生まれ順はすでに使われています。', '!');
+                return;
+            }
+            const newId = `child_${Date.now()}`;
+            const newChild = {
+                meta: {
+                    id: newId,
+                    birthOrder,
+                    displayLabel: buildDisplayLabel(birthOrder, partnerChild.meta?.birthGroupIndex ?? null),
+                    gender: normalizeGenderValue(partnerChild.meta?.gender || 'neutral'),
+                    birthGroupId: partnerChild.meta?.birthGroupId || null,
+                    birthGroupIndex: partnerChild.meta?.birthGroupIndex ?? null,
+                    twinGroupId: partnerChild.meta?.twinGroupId || null,
+                    twinIndex: partnerChild.meta?.twinIndex ?? null,
+                    createdAt: getNowIso(),
+                    updatedAt: getNowIso(),
+                    createdByPartner: true // パートナーが作ったフラグ
+                },
+                prefs: {
+                    rule: typeof rule !== 'undefined' ? rule : 'strict',
+                    prioritizeFortune: false,
+                    imageTags: ['none']
+                },
+                draft: {},
+                libraries: {
+                    kanjiStock: [],
+                    readingStock: [],
+                    savedNames: [],
+                    readingHistory: [],
+                    hiddenReadings: [],
+                    noped: []
+                }
+            };
+            this.persistActiveChildSnapshot('before-accept-partner-child');
+            this.root.children[newId] = newChild;
+            this.root.childOrder = this.buildOrderedChildIds(this.root);
+            this.saveRoot(this.root);
+            this.closeManagerModal();
+            this.switchChild(newId);
+            this.refreshVisibleUI('accept-partner-child');
+            const label = newChild.meta.displayLabel;
+            this.notify(`${label} に参加しました`, '✓');
         },
 
         notify(message, icon = '✓') {
@@ -2048,7 +2159,7 @@
             this.updateChildModalPartnerSelectionHint();
         },
 
-        buildChildModalGenderButtons(selectedGender = 'neutral') {
+        buildChildModalGenderButtons(selectedGender = 'neutral', partnerGender = null) {
             const buttons = [
                 { value: 'male', label: '男の子' },
                 { value: 'female', label: '女の子' },
@@ -2060,9 +2171,18 @@
                 neutral: '👶'
             };
             const normalized = normalizeGenderValue(selectedGender);
+            const normalizedPartner = partnerGender ? normalizeGenderValue(partnerGender) : null;
             return buttons.map((item) => {
                 const isSelected = item.value === normalized;
-                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')"><span class="wiz-baby-gender-emoji">${escapeHtml(emojis[item.value] || '👶')}</span><span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span></button>`;
+                const isPartnerPicked = normalizedPartner && item.value === normalizedPartner;
+                const partnerBadge = isPartnerPicked
+                    ? `<span class="mcw-partner-badge">パートナー</span>`
+                    : '';
+                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}${isPartnerPicked ? ' partner-picked' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">
+                    <span class="wiz-baby-gender-emoji">${escapeHtml(emojis[item.value] || '👶')}</span>
+                    <span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span>
+                    ${partnerBadge}
+                </button>`;
             }).join('');
         },
 
@@ -2265,6 +2385,35 @@
             };
             const childCards = this.buildOrderedChildIds(this.root).map((childId) => this.buildManagerChildCard(childId)).join('');
             const canAddMore = this.getAvailableBirthOrders().length > 0;
+
+            // パートナーの未承認子を表示
+            const unacceptedPartnerChildren = typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerUid
+                ? this.getUnacceptedPartnerChildren()
+                : [];
+            const partnerChildrenHtml = unacceptedPartnerChildren.length > 0
+                ? `<div class="meimay-child-modal-section">
+                    <div class="meimay-child-modal-section-title">パートナーが追加した子</div>
+                    <div class="meimay-child-modal-desc" style="margin-bottom:8px">一緒に候補を探せます。「参加する」で追加してください。</div>
+                    <div class="meimay-child-modal-stack">
+                        ${unacceptedPartnerChildren.map((partnerChild) => {
+                            const slotKey = getChildWorkspaceSlotKey(partnerChild);
+                            const label = partnerChild.meta?.displayLabel || '第一子';
+                            const gender = partnerChild.meta?.gender === 'male' ? '男の子'
+                                : partnerChild.meta?.gender === 'female' ? '女の子' : '指定なし';
+                            return `<div class="meimay-child-card meimay-partner-child-card">
+                                <div class="meimay-child-card-info">
+                                    <div class="meimay-child-card-title">${escapeHtml(label)} <span class="mcw-partner-badge">パートナーが追加</span></div>
+                                    <div class="meimay-child-card-meta">${escapeHtml(gender)}</div>
+                                </div>
+                                <div class="meimay-child-card-actions">
+                                    <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.acceptPartnerChild('${escapeHtml(slotKey)}')">参加する</button>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`
+                : '';
+
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
                     <div class="meimay-child-modal-header">
@@ -2280,6 +2429,7 @@
                         <div class="meimay-child-modal-section-title">進める子を切り替える</div>
                         <div class="meimay-child-modal-stack">${childCards}</div>
                     </div>
+                    ${partnerChildrenHtml}
                     <div class="meimay-child-modal-section">
                         <div class="meimay-child-modal-section-title">新しい子を追加</div>
                         <div class="meimay-child-card-actions" style="margin-top:12px">
@@ -2290,6 +2440,7 @@
             `;
             document.body.appendChild(modal);
         },
+
         closeManagerModal() {
             document.getElementById('meimay-child-manager-modal')?.remove();
         },
@@ -2310,7 +2461,8 @@
                 ? this.root.activeChildId
                 : this.buildOrderedChildIds(this.root)[0] || '';
             const defaultSections = ['reading', 'kanji', 'saved'];
-            const showDeleteButton = isEdit && this.buildOrderedChildIds(this.root).length > 1;
+            const showDeleteButton = isEdit && this.buildOrderedChildIds(this.root).length > 1 && !child?.meta?.createdByPartner;
+            const showLeaveButton = isEdit && !!child?.meta?.createdByPartner;
             const createDesc = '生まれ順・性別・はじめ方を選んでください';
             const modal = document.createElement('div');
             modal.id = 'meimay-child-editor-modal';
@@ -2338,7 +2490,7 @@
                     <div class="meimay-child-field">
                         <div class="meimay-child-step-label">STEP 2</div>
                         <label class="meimay-child-field-label">性別</label>
-                        <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender)}</div>
+                        <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender, isEdit ? (this.getPartnerChildForChild(child)?.meta?.gender || null) : null)}</div>
                         ${isEdit ? '<div id="mcw-child-partner-gender-note" class="meimay-child-partner-note" aria-live="polite" hidden></div>' : ''}
                     </div>
                     ${isEdit ? '' : `
@@ -2378,6 +2530,7 @@
                     <div class="meimay-child-editor-actions">
                         <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
                         ${showDeleteButton ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
+                        ${showLeaveButton ? `<button type="button" class="meimay-child-modal-btn meimay-child-leave" onclick="MeimayChildWorkspaces.leavePartnerChild('${escapeHtml(childId)}')">参加をやめる</button>` : ''}
                     </div>
                 </div>
             `;
