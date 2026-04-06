@@ -100,6 +100,12 @@ body.hide-top-bar .screen-header-shell {
     top: 0;
 }
 
+#scr-stock .screen-header-shell,
+#scr-build .screen-header-shell,
+#scr-ranking .screen-header-shell {
+    top: 0;
+}
+
 #stock-header-sticky,
 #encountered-header-sticky {
     padding-top: 0.5rem;
