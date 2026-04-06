@@ -1373,11 +1373,62 @@ const MeimayPartnerInsights = {
         return `${fullName}::${combinationKey}::${reading}`;
     },
 
+    _safeClone: function (value) {
+        if (value == null || typeof value !== 'object') return value;
+        try {
+            return JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            if (Array.isArray(value)) {
+                return value.map((item) => this._safeClone(item));
+            }
+            return { ...value };
+        }
+    },
+
     getOwnHiddenReadingSet: function () {
         return new Set(readNormalizedHiddenReadings());
     },
 
+    _getPartnerChildRecord: function () {
+        const manager = typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces
+            ? MeimayChildWorkspaces
+            : null;
+        if (!manager) return null;
+
+        try {
+            if (typeof manager.getActiveChild === 'function' && typeof manager.getPartnerChildForChild === 'function') {
+                const activeChild = manager.getActiveChild();
+                const partnerChild = activeChild ? manager.getPartnerChildForChild(activeChild) : null;
+                if (partnerChild && typeof partnerChild === 'object') return partnerChild;
+            }
+
+            if (typeof manager.getPartnerWorkspaceRoot === 'function') {
+                const partnerRoot = manager.getPartnerWorkspaceRoot();
+                const activeChildId = String(partnerRoot?.activeChildId || '').trim();
+                const partnerChild = activeChildId && partnerRoot?.children?.[activeChildId]
+                    ? partnerRoot.children[activeChildId]
+                    : null;
+                if (partnerChild && typeof partnerChild === 'object') return partnerChild;
+            }
+        } catch (error) {
+            console.warn('PAIRING: Failed to resolve partner child libraries', error);
+        }
+
+        return null;
+    },
+
+    _getPartnerChildLibraries: function () {
+        const partnerChild = this._getPartnerChildRecord();
+        return partnerChild?.libraries && typeof partnerChild.libraries === 'object'
+            ? partnerChild.libraries
+            : null;
+    },
+
     getPartnerHiddenReadingSet: function () {
+        const partnerLibraries = this._getPartnerChildLibraries();
+        if (partnerLibraries && Array.isArray(partnerLibraries.hiddenReadings)) {
+            return new Set(readNormalizedHiddenReadingsFromSnapshot(partnerLibraries.hiddenReadings));
+        }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         const hiddenReadings = Array.isArray(snapshot.hiddenReadings) && snapshot.hiddenReadings.length > 0
@@ -1419,6 +1470,10 @@ const MeimayPartnerInsights = {
         const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
             ? StorageBox._filterRemovedLikedItems(items)
             : (Array.isArray(items) ? items.filter(Boolean) : []);
+        const partnerLibraries = this._getPartnerChildLibraries();
+        if (partnerLibraries && Array.isArray(partnerLibraries.kanjiStock)) {
+            return filterRemoved(partnerLibraries.kanjiStock);
+        }
         const backupLiked = Array.isArray(backup.liked)
             ? filterRemoved(backup.liked)
             : [];
@@ -1440,6 +1495,10 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerSaved: function () {
+        const partnerLibraries = this._getPartnerChildLibraries();
+        if (partnerLibraries && Array.isArray(partnerLibraries.savedNames)) {
+            return partnerLibraries.savedNames;
+        }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         if (Array.isArray(snapshot.savedNames) && snapshot.savedNames.length > 0) {
@@ -1565,6 +1624,12 @@ const MeimayPartnerInsights = {
         if (overrideKey) {
             const overrideItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
             if (overrideItem) return overrideItem;
+        }
+
+        const partnerChildCanvasKey = String(this._getPartnerChildRecord()?.draft?.savedCanvas?.ownKey || '').trim();
+        if (partnerChildCanvasKey) {
+            const childWorkspaceItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === partnerChildCanvasKey);
+            if (childWorkspaceItem) return childWorkspaceItem;
         }
 
         const workspaceStateCandidates = [
@@ -3469,11 +3534,14 @@ MeimayShare.syncProfileAppearance = async function () {
 };
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
+    const partnerLibraries = this._getPartnerChildLibraries();
     const snapshot = MeimayShare.partnerSnapshot || {};
     const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
-    const partnerReadings = Array.isArray(snapshot.readingStock) && snapshot.readingStock.length > 0
-        ? snapshot.readingStock
-        : (Array.isArray(backup.readingStock) ? backup.readingStock : []);
+    const partnerReadings = partnerLibraries && Array.isArray(partnerLibraries.readingStock)
+        ? partnerLibraries.readingStock
+        : (Array.isArray(snapshot.readingStock) && snapshot.readingStock.length > 0
+            ? snapshot.readingStock
+            : (Array.isArray(backup.readingStock) ? backup.readingStock : []));
     const hiddenSet = this.getPartnerHiddenReadingSet();
     return Array.isArray(partnerReadings)
         ? partnerReadings
