@@ -912,7 +912,30 @@ function getHomeUnresolvedReadingCount(readingStock = null) {
     const stock = Array.isArray(readingStock)
         ? readingStock
         : (typeof getReadingStock === 'function' ? getReadingStock() : []);
-    return stock.reduce((count, item) => count + (isReadingStockPromoted(item) ? 0 : 1), 0);
+    const visibleLiked = typeof getVisibleOwnLikedReadingsForUI === 'function'
+        ? getVisibleOwnLikedReadingsForUI()
+        : (typeof liked !== 'undefined' ? liked : []);
+    const completedReadingSet = new Set(
+        visibleLiked
+            .filter(item =>
+                item?.sessionReading &&
+                item.sessionReading !== 'FREE' &&
+                item.sessionReading !== 'SEARCH' &&
+                item.slot >= 0
+            )
+            .map(item => typeof getReadingBaseReading === 'function'
+                ? getReadingBaseReading(item.sessionReading)
+                : String(item.sessionReading || '').trim())
+            .filter(Boolean)
+    );
+
+    return stock.reduce((count, item) => {
+        const readingKey = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(item?.reading || item?.sessionReading || '')
+            : String(item?.reading || item?.sessionReading || '').trim();
+        if (!readingKey || completedReadingSet.has(readingKey)) return count;
+        return count + (isReadingStockPromoted(item) ? 0 : 1);
+    }, 0);
 }
 
 function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
