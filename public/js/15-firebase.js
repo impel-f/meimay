@@ -3769,7 +3769,7 @@ MeimayPartnerInsights.getSummary = function () {
     const matchedSavedItems = this.getMatchedSavedItems();
     const partnerName = this.getPartnerDisplayName();
     const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : ownLikedItems.length;
-    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('partner') : partnerLikedItems.length;
+    const partnerKanjiCount = partnerLikedItems.length;
     const matchedKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('matched') : matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),

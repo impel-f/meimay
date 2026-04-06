@@ -1801,7 +1801,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         : [];
     const partnerLikedItemsVisible = partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
-    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('partner') : Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
     const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
     const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
