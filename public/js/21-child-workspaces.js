@@ -1264,6 +1264,58 @@
             };
         },
 
+        getPairedChildSummary(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return null;
+
+            const partnerChild = this.getPartnerChildForChild(child);
+            if (!partnerChild) return null;
+
+            const ownReadingKeys = new Set(
+                (child.libraries?.readingStock || [])
+                    .map((item) => this.getReadingItemKey(item))
+                    .filter(Boolean)
+            );
+            const partnerReadingKeys = new Set(
+                (partnerChild.libraries?.readingStock || [])
+                    .map((item) => this.getReadingItemKey(item))
+                    .filter(Boolean)
+            );
+            const matchedReadingCount = Array.from(ownReadingKeys).filter((key) => partnerReadingKeys.has(key)).length;
+
+            const ownKanjiSet = new Set((child.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean));
+            const partnerKanjiSet = new Set((partnerChild.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean));
+
+            const buildSavedKey = (item) => {
+                if (!item) return '';
+                const pairInsights = typeof window !== 'undefined' ? window.MeimayPartnerInsights : null;
+                if (pairInsights && typeof pairInsights.buildSavedMatchKey === 'function') {
+                    return String(pairInsights.buildSavedMatchKey(item) || '').trim();
+                }
+                return this.getSavedItemKey(item);
+            };
+
+            const ownSavedKeys = new Set(
+                (child.libraries?.savedNames || [])
+                    .filter((item) => item?.fromPartner !== true)
+                    .map((item) => buildSavedKey(item))
+                    .filter(Boolean)
+            );
+            const partnerSavedKeys = new Set(
+                (partnerChild.libraries?.savedNames || [])
+                    .filter((item) => item?.fromPartner !== true)
+                    .map((item) => buildSavedKey(item))
+                    .filter(Boolean)
+            );
+
+            return {
+                readingCount: ownReadingKeys.size + partnerReadingKeys.size - matchedReadingCount,
+                kanjiCount: new Set([...ownKanjiSet, ...partnerKanjiSet]).size,
+                savedCount: new Set([...ownSavedKeys, ...partnerSavedKeys]).size,
+                summaryLabel: 'ふたりで集めた候補'
+            };
+        },
+
         getCurrentFamilySurnameDraft() {
             const wizard = (typeof WizardData !== 'undefined' && WizardData && typeof WizardData.get === 'function')
                 ? (WizardData.get() || {})
@@ -1281,45 +1333,10 @@
                 return { ...localSummary, summaryLabel: '' };
             }
 
-            const activeChildId = this.root?.activeChildId || '';
-            if (childId !== activeChildId) {
-                return { ...localSummary, summaryLabel: '' };
-            }
+            const pairedSummary = this.getPairedChildSummary(childId);
+            if (pairedSummary) return pairedSummary;
 
-            const ownSummary = typeof getHomeOwnershipSummary === 'function'
-                ? getHomeOwnershipSummary()
-                : null;
-            const pairing = typeof getPairingHomeSummary === 'function'
-                ? getPairingHomeSummary()
-                : null;
-            if (ownSummary && pairing?.hasPartner && typeof getHomeAggregateCounts === 'function') {
-                const aggregateCounts = getHomeAggregateCounts(
-                    ownSummary.ownLikedCount,
-                    ownSummary.ownReadingCount,
-                    ownSummary.ownSavedCount,
-                    pairing
-                );
-                return {
-                    readingCount: aggregateCounts.readingStockCount,
-                    kanjiCount: aggregateCounts.likedCount,
-                    savedCount: aggregateCounts.savedCount,
-                    summaryLabel: 'ふたりで集めた候補'
-                };
-            }
-
-            if (ownSummary) {
-                return {
-                    readingCount: ownSummary.ownReadingCount,
-                    kanjiCount: ownSummary.ownLikedCount,
-                    savedCount: ownSummary.ownSavedCount,
-                    summaryLabel: 'マイ候補'
-                };
-            }
-
-            return {
-                ...localSummary,
-                summaryLabel: 'マイ候補'
-            };
+            return { ...localSummary, summaryLabel: 'マイ候補' };
         },
         getSharedSummary() {
             const shared = this.root?.family?.sharedLibraries || createBlankFamilyState().sharedLibraries;
