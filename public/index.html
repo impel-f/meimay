@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="/css/main.css?v=25.41">
+<link rel="stylesheet" href="/css/main.css?v=25.42">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.12">
 
     <!-- Google AdSense -->
@@ -364,9 +364,9 @@
                             <div id="home-pair-quick-role" class="hidden text-[10px] font-bold text-[#8b7e66]">ママとして参加</div>
                         </div>
                         <div id="home-pair-join-row" class="hidden mt-2">
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 min-w-0">
                                 <input type="text" id="home-pair-quick-input" placeholder="コードを入力"
-                                    class="flex-1 px-3 py-2.5 bg-white rounded-2xl text-[12px] border border-[#eadfce] uppercase font-black text-[#5d5444] tracking-[0.22em] focus:outline-none focus:border-[#b9965b]">
+                                    class="min-w-0 flex-1 px-3 py-2.5 bg-white rounded-2xl text-[12px] border border-[#eadfce] uppercase font-black text-[#5d5444] tracking-[0.22em] focus:outline-none focus:border-[#b9965b]">
                                 <button onclick="handleHomePairQuickJoin(event)"
                                     class="shrink-0 px-4 py-2.5 bg-[#8b7e66] text-white rounded-2xl text-[11px] font-bold active:scale-95 transition-transform">
                                     参加
@@ -1018,11 +1018,11 @@
                             🌊 パパ
                         </button>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 min-w-0">
                         <input type="text" id="pairing-code-input" placeholder="コードを入力"
-                            class="flex-1 px-3 py-2.5 bg-white rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
+                            class="min-w-0 flex-1 px-3 py-2.5 bg-white rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
                         <button onclick="handleEnterCode()"
-                            class="px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all">参加</button>
+                            class="shrink-0 px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all">参加</button>
                     </div>
                 </div>
             </div>

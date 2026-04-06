@@ -51,6 +51,12 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+@supports (height: 100dvh) {
+    body {
+        height: 100dvh;
+    }
+}
+
 /* ============================================================
    SCREEN MANAGEMENT
    ============================================================ */
@@ -82,12 +88,16 @@ body {
 
 .screen-header-shell {
     position: sticky;
-    top: 0;
+    top: 48px;
     z-index: 50;
     background: #fdfaf5;
     margin-left: -1rem;
     margin-right: -1rem;
     padding: 1rem 1rem 0;
+}
+
+body.hide-top-bar .screen-header-shell {
+    top: 0;
 }
 
 #stock-header-sticky,
