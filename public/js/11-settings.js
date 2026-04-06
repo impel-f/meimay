@@ -590,26 +590,68 @@ function openDueDateInput() {
 /**
  * 苗字入力
  */
+function syncSurnameInputsToState() {
+    const surnameInput = document.getElementById('in-surname');
+    if (surnameInput) surnameInput.value = surnameStr || '';
+
+    const diagSurnameInput = document.getElementById('diag-surname');
+    if (diagSurnameInput) diagSurnameInput.value = surnameStr || '';
+}
+
+function rebuildSurnameDataFromState() {
+    const chars = String(surnameStr || '').trim().split('');
+    surnameData = chars.map((char) => {
+        const found = Array.isArray(master) ? master.find((item) => item['漢字'] === char) : null;
+        let strokes = 0;
+        if (typeof strokeData !== 'undefined' && strokeData && strokeData[char]) {
+            strokes = strokeData[char];
+        } else if (found) {
+            strokes = parseInt(found['画数'], 10) || 0;
+        }
+        return {
+            kanji: char,
+            strokes
+        };
+    });
+}
+
 function openSurnameInput() {
     showSurnameModal(surnameStr, surnameReading, (kanji, reading) => {
         surnameStr = kanji || '';
         surnameReading = reading || '';
-        if (typeof updateSurnameData === 'function') {
-            const input = document.getElementById('in-surname');
-            if (input) {
-                input.value = surnameStr;
-                updateSurnameData();
-            }
+        syncSurnameInputsToState();
+
+        if (typeof updateSurnameData === 'function' && document.getElementById('in-surname')) {
+            updateSurnameData();
+        } else {
+            rebuildSurnameDataFromState();
+            if (typeof syncPairingSurnameDisplay === 'function') syncPairingSurnameDisplay();
         }
-        // WizardDataにも反映してドロワー表示を同期
+
         if (typeof WizardData !== 'undefined') {
             const data = WizardData.get() || {};
             data.surname = surnameStr;
+            data.surnameReading = surnameReading;
             WizardData.save(data);
         }
+
+        try {
+            const surnameStorageKey = (typeof StorageBox !== 'undefined' && StorageBox && StorageBox.KEY_SURNAME)
+                ? StorageBox.KEY_SURNAME
+                : 'naming_app_surname';
+            localStorage.setItem(surnameStorageKey, JSON.stringify({
+                str: surnameStr,
+                data: Array.isArray(surnameData) ? surnameData : [],
+                reading: surnameReading || ''
+            }));
+        } catch (error) {
+            console.warn('SETTINGS: Failed to persist surname state', error);
+        }
+
         if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
         saveSettings();
         renderSettingsScreen();
+        if (typeof renderHomeProfile === 'function') renderHomeProfile();
     });
 }
 
