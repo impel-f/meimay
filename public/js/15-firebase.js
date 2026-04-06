@@ -4177,22 +4177,44 @@ const MeimayUserBackup = {
         if (!remoteState || typeof remoteState !== 'object') return false;
         if (!localState || typeof localState !== 'object') return true;
 
+        const toPositiveInt = (value, fallback = 1) => {
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+        };
+        const toNonNegativeInt = (value, fallback = 0) => {
+            const parsed = parseInt(value, 10);
+            return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+        };
+        const getSlotKey = (child) => {
+            const meta = child?.meta || child || {};
+            const birthOrder = toPositiveInt(meta.birthOrder, 1);
+            const rawTwinIndex = meta.birthGroupIndex ?? meta.twinIndex ?? meta.multipleIndex ?? null;
+            const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                ? null
+                : toNonNegativeInt(rawTwinIndex, 0);
+            return `${birthOrder}:${twinIndex === null ? 'n' : twinIndex}`;
+        };
+
         const localChildren = localState.children && typeof localState.children === 'object'
             ? localState.children
             : {};
         const remoteChildren = remoteState.children && typeof remoteState.children === 'object'
             ? remoteState.children
             : {};
-        const localChildIds = Object.keys(localChildren);
-        const remoteChildIds = Object.keys(remoteChildren);
+        const localSlots = new Set(Object.values(localChildren).map((child) => getSlotKey(child)).filter(Boolean));
+        const remoteSlots = new Set(Object.values(remoteChildren).map((child) => getSlotKey(child)).filter(Boolean));
 
-        if (remoteChildIds.length !== localChildIds.length) return true;
-        return remoteChildIds.some((childId) => !Object.prototype.hasOwnProperty.call(localChildren, childId));
+        if (remoteSlots.size !== localSlots.size) return true;
+        for (const slotKey of remoteSlots) {
+            if (!localSlots.has(slotKey)) return true;
+        }
+        return false;
     },
 
     _shouldApplyRemoteChildWorkspaceStateV2: function (localState = null, remoteState = null) {
         if (!remoteState || typeof remoteState !== 'object') return false;
         if (!localState || typeof localState !== 'object') return true;
+        if (this._hasChildWorkspaceStructureDelta(localState, remoteState)) return true;
         const parseStamp = (value) => {
             const time = new Date(String(value || '').trim() || 0).getTime();
             return Number.isFinite(time) ? time : 0;
@@ -4203,7 +4225,7 @@ const MeimayUserBackup = {
         if (remoteStamp > 0 || localStamp > 0) {
             return remoteStamp >= localStamp;
         }
-        return this._hasChildWorkspaceStructureDelta(localState, remoteState);
+        return false;
     },
 
     _applyChildWorkspaceStateV2: function (state = null) {
