@@ -1972,7 +1972,7 @@ function renderHomeProfile() {
 
     if (entryDivider) entryDivider.classList.add('hidden');
     if (entryGrid) entryGrid.classList.add('hidden');
-    if (utilityGrid) utilityGrid.classList.remove('hidden');
+    if (utilityGrid) utilityGrid.classList.add('hidden');
     if (toolGrid) toolGrid.classList.remove('hidden');
 
 
