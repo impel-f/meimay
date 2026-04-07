@@ -3401,6 +3401,7 @@ MeimayPairing.syncMyData = async function () {
         const profileThemeId = typeof rawProfileThemeId === 'string'
             ? rawProfileThemeId.trim() || null
             : null;
+        const cloneRoomArray = (items) => safeJsonCloneForRoomSync(Array.isArray(items) ? items : [], []);
         const roomBackup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
@@ -3410,7 +3411,7 @@ MeimayPairing.syncMyData = async function () {
             encounteredReadingsCount: Array.isArray(encounteredToStore) ? encounteredToStore.length : 0,
             hiddenReadingsCount: Array.isArray(hiddenReadings) ? hiddenReadings.length : 0,
             likedRemovedCount: Array.isArray(likedRemoved) ? likedRemoved.length : 0,
-            likedRemoved: Array.isArray(likedRemoved) ? this._safeClone(likedRemoved) : [],
+            likedRemoved: cloneRoomArray(likedRemoved),
             pairRoomCode: String(this.roomCode || ''),
             roomCode: String(this.roomCode || ''),
             ...childWorkspaceStateV2Meta
@@ -3429,12 +3430,12 @@ MeimayPairing.syncMyData = async function () {
             username: profileName,
             nickname: profileName,
             themeId: profileThemeId,
-            liked: this._safeClone(Array.isArray(likedToStore) ? likedToStore : []),
-            savedNames: this._safeClone(Array.isArray(savedNamesToStore) ? savedNamesToStore : []),
-            readingStock: this._safeClone(Array.isArray(readingStockToStore) ? readingStockToStore : []),
-            encounteredReadings: this._safeClone(Array.isArray(encounteredToStore) ? encounteredToStore : []),
-            hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
-            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : []),
+            liked: cloneRoomArray(likedToStore),
+            savedNames: cloneRoomArray(savedNamesToStore),
+            readingStock: cloneRoomArray(readingStockToStore),
+            encounteredReadings: cloneRoomArray(encounteredToStore),
+            hiddenReadings: cloneRoomArray(hiddenReadings),
+            likedRemoved: cloneRoomArray(likedRemoved),
             meimayBackup: roomBackup,
             backup: roomBackup,
             isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
