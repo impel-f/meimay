@@ -214,6 +214,62 @@ function readNormalizedHiddenReadingsFromSnapshot(values) {
         : [];
 }
 
+function getPairingSavedNameCombinationKey(item) {
+    if (!item) return '';
+    if (Array.isArray(item.combination) && item.combination.length > 0) {
+        return item.combination.map((part) => part?.['漢字'] || part?.kanji || '').join('').trim();
+    }
+    return Array.isArray(item.combinationKeys)
+        ? item.combinationKeys.join('').trim()
+        : '';
+}
+
+function getPairingSavedNameGivenName(item) {
+    if (!item) return '';
+    const direct = String(item.givenName || '').trim();
+    if (direct) return direct;
+    const combinationKey = getPairingSavedNameCombinationKey(item);
+    if (combinationKey) return combinationKey;
+    const fullName = String(item.fullName || '').trim();
+    if (!fullName) return '';
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : fullName;
+}
+
+function getPairingSavedNameGivenReading(item) {
+    if (!item) return '';
+    const direct = String(item.givenReading || item.givenNameReading || '').trim();
+    const reading = direct || String(item.reading || '').trim();
+    if (!reading) return '';
+    const parts = reading.split(/\s+/).filter(Boolean);
+    const target = parts.length > 1 ? parts[parts.length - 1] : reading;
+    return (typeof toHira === 'function' ? toHira(target) : target).replace(/\s+/g, '');
+}
+
+function buildPairingSavedNameKey(item) {
+    if (!item) return '';
+    const combinationKey = getPairingSavedNameCombinationKey(item);
+    const givenName = getPairingSavedNameGivenName(item) || combinationKey;
+    const givenReading = getPairingSavedNameGivenReading(item) || givenName;
+    return `${givenName}::${combinationKey}::${givenReading}`.trim();
+}
+
+function canonicalizePairingSavedNameKey(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const parts = raw.split('::');
+    if (parts.length < 2) return raw;
+    const rawName = String(parts[0] || '').trim();
+    const combinationKey = String(parts[1] || '').trim();
+    const rawReading = String(parts.slice(2).join('::') || '').trim();
+    const nameParts = rawName.split(/\s+/).filter(Boolean);
+    const readingParts = rawReading.split(/\s+/).filter(Boolean);
+    const givenName = combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+    const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
+    const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
+    return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
+}
+
 function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
     const canvas = extractSavedCanvasStateFromWorkspaceState(state);
     return String(canvas?.activeKey || canvas?.selectedKey || canvas?.ownKey || canvas?.partnerKey || '').trim();
@@ -228,12 +284,12 @@ function extractSavedCanvasStateFromWorkspaceState(state) {
     const normalizeCanvas = (canvas) => {
         if (!canvas || typeof canvas !== 'object') return null;
         const blank = canvas.blank === true;
-        const ownKey = String(canvas.ownKey || '').trim();
-        const partnerKey = String(canvas.partnerKey || '').trim();
+        const ownKey = canonicalizePairingSavedNameKey(canvas.ownKey);
+        const partnerKey = canonicalizePairingSavedNameKey(canvas.partnerKey);
         let selectedSource = canvas.selectedSource === 'partner'
             ? 'partner'
             : (canvas.selectedSource === 'own' ? 'own' : '');
-        const rawSelectedKey = String(canvas.selectedKey || '').trim();
+        const rawSelectedKey = canonicalizePairingSavedNameKey(canvas.selectedKey);
         const selectedKey = rawSelectedKey
             || (selectedSource === 'partner' ? partnerKey : (selectedSource === 'own' ? ownKey : ''));
         if (!selectedSource && selectedKey) {
@@ -428,12 +484,7 @@ function getSavedSelectionKeyForSync(item) {
         return String(pairInsights.buildSavedMatchKey(item) || '').trim();
     }
 
-    const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
-        ? item.combination.map((part) => part?.['漢字'] || part?.kanji || '').join('')
-        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
-    const fullName = String(item.fullName || item.givenName || combinationKey || '').trim();
-    const reading = String(item.reading || item.givenName || '').trim();
-    return `${fullName}::${combinationKey}::${reading}`.trim();
+    return buildPairingSavedNameKey(item);
 }
 
 function canonicalizeSavedNamesForSync(items, workspaceState) {
@@ -577,7 +628,7 @@ const MeimayFirestorePayload = {
             savedAt: item?.savedAt || item?.timestamp || null,
             fromPartner: item?.fromPartner === true,
             approvedFromPartner: item?.approvedFromPartner === true,
-            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            approvedPartnerSavedKey: canonicalizePairingSavedNameKey(this._normalizeString(item?.approvedPartnerSavedKey)),
             partnerName: this._normalizeString(item?.partnerName),
             mainSelected: item?.mainSelected === true,
             mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
@@ -623,7 +674,7 @@ const MeimayFirestorePayload = {
             fortune,
             fromPartner: item?.fromPartner === true,
             approvedFromPartner: item?.approvedFromPartner === true,
-            approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
+            approvedPartnerSavedKey: canonicalizePairingSavedNameKey(this._normalizeString(item?.approvedPartnerSavedKey)),
             partnerName: this._normalizeString(item?.partnerName),
             mainSelected: item?.mainSelected === true,
             mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
@@ -1496,13 +1547,7 @@ const MeimayPartnerInsights = {
     },
 
     buildSavedMatchKey: function (item) {
-        if (!item) return '';
-        const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
-            ? item.combination.map(part => part['漢字'] || part.kanji || '').join('')
-            : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
-        const fullName = item.fullName || item.givenName || combinationKey;
-        const reading = this.normalizeReading(item.reading || item.givenName || '');
-        return `${fullName}::${combinationKey}::${reading}`;
+        return buildPairingSavedNameKey(item);
     },
 
     _safeClone: function (value) {
@@ -1730,9 +1775,9 @@ const MeimayPartnerInsights = {
         if (blankCanvas) return null;
         const ownItems = this.getOwnSaved();
         const partnerItems = this.getPartnerSaved();
-        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
+        const overrideKey = canonicalizePairingSavedNameKey(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
             ? window.__meimaySavedCanvasOwnKey
-            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : ''));
         if (overrideKey) {
             const overrideItem = ownItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey)
                 || partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
@@ -1755,15 +1800,15 @@ const MeimayPartnerInsights = {
         );
         if (blankCanvas) return null;
         const partnerItems = this.getPartnerSaved();
-        const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
+        const overrideKey = canonicalizePairingSavedNameKey(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
             ? window.__meimaySavedCanvasPartnerKey
-            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : ''));
         if (overrideKey) {
             const overrideItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === overrideKey);
             if (overrideItem) return overrideItem;
         }
 
-        const partnerChildCanvasKey = String(this._getPartnerChildRecord()?.draft?.savedCanvas?.ownKey || '').trim();
+        const partnerChildCanvasKey = canonicalizePairingSavedNameKey(this._getPartnerChildRecord()?.draft?.savedCanvas?.ownKey);
         if (partnerChildCanvasKey) {
             const childWorkspaceItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === partnerChildCanvasKey);
             if (childWorkspaceItem) return childWorkspaceItem;
@@ -1779,7 +1824,7 @@ const MeimayPartnerInsights = {
             MeimayShare?.partnerSnapshot?.meimayBackup?.childWorkspaceStateV2
         ];
         for (const candidate of workspaceStateCandidates) {
-            const workspaceKey = extractSavedCanvasOwnKeyFromWorkspaceState(candidate);
+            const workspaceKey = canonicalizePairingSavedNameKey(extractSavedCanvasOwnKeyFromWorkspaceState(candidate));
             if (!workspaceKey) continue;
             const workspaceItem = partnerItems.slice().reverse().find(item => this.buildSavedMatchKey(item) === workspaceKey);
             if (workspaceItem) return workspaceItem;
@@ -1818,9 +1863,9 @@ const MeimayPartnerInsights = {
         const partnerMain = this.getPartnerMainSavedItem();
         const ownKey = this.buildSavedMatchKey(ownMain);
         const partnerKey = this.buildSavedMatchKey(partnerMain);
-        const selectedKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string' && window.__meimaySavedCanvasSelectedKey
+        const selectedKey = canonicalizePairingSavedNameKey(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string' && window.__meimaySavedCanvasSelectedKey
             ? window.__meimaySavedCanvasSelectedKey
-            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : '');
+            : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : ''));
         const selectedSource = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedSource === 'string'
             ? window.__meimaySavedCanvasSelectedSource
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_source') || '') : '');
@@ -3733,14 +3778,14 @@ MeimayPartnerInsights.getPartnerDisplayName = function () {
 MeimayPartnerInsights.getOwnApprovedSavedKeys = function () {
     return new Set(this.getOwnSaved()
         .filter(item => item?.approvedFromPartner)
-        .map(item => item.approvedPartnerSavedKey || this.buildSavedMatchKey(item))
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean));
 };
 
 MeimayPartnerInsights.getPartnerApprovedSavedKeys = function () {
     return new Set(this.getPartnerSaved()
         .filter(item => item?.approvedFromPartner)
-        .map(item => item.approvedPartnerSavedKey || this.buildSavedMatchKey(item))
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean));
 };
 

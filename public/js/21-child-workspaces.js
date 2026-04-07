@@ -174,8 +174,94 @@
         return getJapaneseOrderLabel(order);
     }
 
+    function getWorkspaceSavedCombinationKey(item) {
+        if (!item) return '';
+        if (Array.isArray(item.combination) && item.combination.length > 0) {
+            return item.combination.map((part) => part?.['漢字'] || part?.kanji || '').join('').trim();
+        }
+        return Array.isArray(item.combinationKeys)
+            ? item.combinationKeys.join('').trim()
+            : '';
+    }
+
+    function getWorkspaceSavedGivenName(item) {
+        if (!item) return '';
+        const direct = String(item.givenName || '').trim();
+        if (direct) return direct;
+        const combinationKey = getWorkspaceSavedCombinationKey(item);
+        if (combinationKey) return combinationKey;
+        const fullName = String(item.fullName || '').trim();
+        if (!fullName) return '';
+        const parts = fullName.split(/\s+/).filter(Boolean);
+        return parts.length > 1 ? parts[parts.length - 1] : fullName;
+    }
+
+    function getWorkspaceSavedGivenReading(item) {
+        if (!item) return '';
+        const direct = String(item.givenReading || item.givenNameReading || '').trim();
+        const reading = direct || String(item.reading || '').trim();
+        if (!reading) return '';
+        const parts = reading.split(/\s+/).filter(Boolean);
+        const target = parts.length > 1 ? parts[parts.length - 1] : reading;
+        return (typeof toHira === 'function' ? toHira(target) : target).replace(/\s+/g, '');
+    }
+
+    function buildWorkspaceSavedKey(item) {
+        if (!item) return '';
+        const combinationKey = getWorkspaceSavedCombinationKey(item);
+        const givenName = getWorkspaceSavedGivenName(item) || combinationKey;
+        const givenReading = getWorkspaceSavedGivenReading(item) || givenName;
+        return `${givenName}::${combinationKey}::${givenReading}`.trim();
+    }
+
+    function canonicalizeWorkspaceSavedKey(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        const parts = raw.split('::');
+        if (parts.length < 2) return raw;
+        const rawName = String(parts[0] || '').trim();
+        const combinationKey = String(parts[1] || '').trim();
+        const rawReading = String(parts.slice(2).join('::') || '').trim();
+        const nameParts = rawName.split(/\s+/).filter(Boolean);
+        const readingParts = rawReading.split(/\s+/).filter(Boolean);
+        const givenName = combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+        const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
+        const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
+        return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
+    }
+
+    function normalizeWorkspaceSavedCanvasState(state = {}) {
+        const blank = state?.blank === true;
+        const ownKey = blank ? '' : canonicalizeWorkspaceSavedKey(state?.ownKey);
+        const partnerKey = blank ? '' : canonicalizeWorkspaceSavedKey(state?.partnerKey);
+        let selectedSource = blank
+            ? ''
+            : (state?.selectedSource === 'partner' ? 'partner' : (state?.selectedSource === 'own' ? 'own' : ''));
+        let selectedKey = blank ? '' : canonicalizeWorkspaceSavedKey(state?.selectedKey);
+        if (!selectedKey) {
+            selectedKey = selectedSource === 'partner'
+                ? partnerKey
+                : (selectedSource === 'own' ? ownKey : '');
+        }
+        if (!selectedSource && selectedKey) {
+            if (selectedKey === partnerKey && selectedKey !== ownKey) {
+                selectedSource = 'partner';
+            } else if (selectedKey === ownKey && selectedKey !== partnerKey) {
+                selectedSource = 'own';
+            }
+        }
+        return {
+            blank,
+            ownKey,
+            partnerKey,
+            selectedKey,
+            selectedSource,
+            selectedAt: blank ? '' : String(state?.selectedAt || '').trim()
+        };
+    }
+
     function getSavedNameLabel(item) {
-        return String(item?.givenName || item?.fullName || '').trim();
+        return String(getWorkspaceSavedGivenName(item) || item?.fullName || '').trim();
     }
 
     function getSavedCanvasStateSnapshot() {
@@ -201,16 +287,17 @@
         const selectedAt = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedAt === 'string'
             ? window.__meimaySavedCanvasSelectedAt
             : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_at') || '') : '');
-        return { blank: blankFlag, ownKey, partnerKey, selectedKey, selectedSource, selectedAt };
+        return normalizeWorkspaceSavedCanvasState({ blank: blankFlag, ownKey, partnerKey, selectedKey, selectedSource, selectedAt });
     }
 
     function setSavedCanvasStateSnapshot(state = {}) {
-        const blank = state?.blank === true;
-        const ownKey = blank ? '' : String(state?.ownKey || '').trim();
-        const partnerKey = blank ? '' : String(state?.partnerKey || '').trim();
-        const selectedKey = blank ? '' : String(state?.selectedKey || '').trim();
-        const selectedSource = blank ? '' : String(state?.selectedSource || '').trim();
-        const selectedAt = blank ? '' : String(state?.selectedAt || '').trim();
+        const normalizedState = normalizeWorkspaceSavedCanvasState(state);
+        const blank = normalizedState.blank;
+        const ownKey = normalizedState.ownKey;
+        const partnerKey = normalizedState.partnerKey;
+        const selectedKey = normalizedState.selectedKey;
+        const selectedSource = normalizedState.selectedSource;
+        const selectedAt = normalizedState.selectedAt;
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasBlank = blank;
             window.__meimaySavedCanvasOwnKey = ownKey;
@@ -308,9 +395,9 @@
         return master.find((entry) => getKanjiValue(entry) === kanji) || null;
     }
 
-    function filterRemovedLikedItems(items) {
+    function filterRemovedLikedItems(items, removalSource = null) {
         if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function') {
-            return StorageBox._filterRemovedLikedItems(items);
+            return StorageBox._filterRemovedLikedItems(items, removalSource);
         }
         return Array.isArray(items) ? items.filter(Boolean) : [];
     }
@@ -560,7 +647,7 @@
             } catch (error) { }
         },
 
-        normalizeFamily(family) {
+        normalizeFamily(family, options = {}) {
             const base = createBlankFamilyState();
             return {
                 surnameDefault: {
@@ -573,7 +660,10 @@
                 },
                 sharedLibraries: {
                     readingStock: this.normalizeReadingLibrary(family?.sharedLibraries?.readingStock),
-                    kanjiStock: this.normalizeKanjiLibrary(family?.sharedLibraries?.kanjiStock, { genericOnly: true })
+                    kanjiStock: this.normalizeKanjiLibrary(family?.sharedLibraries?.kanjiStock, {
+                        genericOnly: true,
+                        likedRemovalSource: options.likedRemovalSource
+                    })
                 },
                 appSettings: {
                     shareMode: String(family?.appSettings?.shareMode || base.appSettings.shareMode).trim() || 'auto',
@@ -582,7 +672,7 @@
             };
         },
 
-        normalizeChildRecord(childId, childRecord, fallbackBirthOrder = 1) {
+        normalizeChildRecord(childId, childRecord, fallbackBirthOrder = 1, options = {}) {
             const safeId = String(childRecord?.meta?.id || childId || '').trim();
             if (!safeId) return null;
             const rawMultipleIndex = childRecord?.meta?.multipleIndex ?? childRecord?.meta?.twinIndex ?? null;
@@ -592,6 +682,8 @@
             const createdAt = String(childRecord?.meta?.createdAt || getNowIso());
             const updatedAt = String(childRecord?.meta?.updatedAt || createdAt);
             const birthGroupId = String(childRecord?.meta?.birthGroupId || childRecord?.meta?.twinGroupId || (twinIndex === null ? '' : `bg_${birthOrder}`)).trim() || null;
+            const draft = { ...createBlankChildDraft(), ...cloneData(childRecord?.draft, {}) };
+            draft.savedCanvas = normalizeWorkspaceSavedCanvasState(draft.savedCanvas || {});
             return {
                 meta: {
                     id: safeId,
@@ -610,10 +702,12 @@
                     prioritizeFortune: childRecord?.prefs?.prioritizeFortune === true,
                     imageTags: Array.isArray(childRecord?.prefs?.imageTags) && childRecord.prefs.imageTags.length > 0 ? cloneData(childRecord.prefs.imageTags, ['none']) : ['none']
                 },
-                draft: { ...createBlankChildDraft(), ...cloneData(childRecord?.draft, {}) },
+                draft,
                 libraries: {
                     readingStock: this.normalizeReadingLibrary(childRecord?.libraries?.readingStock),
-                    kanjiStock: this.normalizeKanjiLibrary(childRecord?.libraries?.kanjiStock),
+                    kanjiStock: this.normalizeKanjiLibrary(childRecord?.libraries?.kanjiStock, {
+                        likedRemovalSource: options.likedRemovalSource
+                    }),
                     savedNames: this.normalizeSavedLibrary(childRecord?.libraries?.savedNames),
                     readingHistory: cloneData(childRecord?.libraries?.readingHistory, []),
                     hiddenReadings: cloneData(childRecord?.libraries?.hiddenReadings, []),
@@ -642,20 +736,20 @@
             };
         },
 
-        normalizeRoot(root) {
+        normalizeRoot(root, options = {}) {
             const deletedChildren = normalizeDeletedChildrenMap(root?.deletedChildren || root?.deletedChildIds || {});
             const next = {
                 version: ROOT_VERSION,
                 activeChildId: String(root?.activeChildId || '').trim(),
                 childOrder: Array.isArray(root?.childOrder) ? root.childOrder.map((id) => String(id || '').trim()).filter(Boolean) : [],
-                family: this.normalizeFamily(root?.family),
+                family: this.normalizeFamily(root?.family, options),
                 children: {},
                 deletedChildren,
                 createdAt: String(root?.createdAt || getNowIso()),
                 updatedAt: String(root?.updatedAt || getNowIso())
             };
             Object.entries(root?.children || {}).forEach(([childId, childRecord], index) => {
-                const normalized = this.normalizeChildRecord(childId, childRecord, index + 1);
+                const normalized = this.normalizeChildRecord(childId, childRecord, index + 1, options);
                 if (normalized && !Object.prototype.hasOwnProperty.call(deletedChildren, normalized.meta.id)) next.children[normalized.meta.id] = normalized;
             });
             if (Object.keys(next.children).length === 0) {
@@ -1029,7 +1123,7 @@
         },
 
         normalizeKanjiLibrary(items, options = {}) {
-            const source = filterRemovedLikedItems(Array.isArray(items) ? items : []);
+            const source = filterRemovedLikedItems(Array.isArray(items) ? items : [], options.likedRemovalSource);
             const next = source.map((item) => {
                 const kanji = getKanjiValue(item);
                 if (!kanji) return null;
@@ -1048,7 +1142,8 @@
                 return this.mergeKanjiLibraries([], next, {
                     sourceChildId: 'family',
                     sourceLabel: '家族共通',
-                    genericOnly: true
+                    genericOnly: true,
+                    likedRemovalSource: options.likedRemovalSource
                 }).items;
             }
             return cloneData(next, []);
@@ -1073,12 +1168,12 @@
         },
 
         mergeKanjiLibraries(targetItems = [], sourceItems = [], options = {}) {
-            const merged = cloneData(filterRemovedLikedItems(targetItems), []);
+            const merged = cloneData(filterRemovedLikedItems(targetItems, options.likedRemovalSource), []);
             const existingKanji = new Set(
                 merged.map((item) => getKanjiValue(item)).filter(Boolean)
             );
             let addedCount = 0;
-            filterRemovedLikedItems(sourceItems).forEach((item) => {
+            filterRemovedLikedItems(sourceItems, options.likedRemovalSource).forEach((item) => {
                 const kanji = getKanjiValue(item);
                 if (!kanji || existingKanji.has(kanji)) return;
                 const masterItem = findMasterKanjiItem(kanji);
@@ -1163,14 +1258,7 @@
         },
 
         getSavedItemKey(item) {
-            if (!item) return '';
-            const fullName = String(item.fullName || item.givenName || '').trim();
-            const combinationKeys = Array.isArray(item.combinationKeys) && item.combinationKeys.length > 0
-                ? item.combinationKeys
-                : Array.isArray(item.combination)
-                    ? item.combination.map((part) => getKanjiValue(part)).filter(Boolean)
-                    : [];
-            return `${fullName}::${combinationKeys.join('')}`;
+            return buildWorkspaceSavedKey(item);
         },
 
         persistActiveChildSnapshot(reason = 'manual') {
@@ -1191,16 +1279,7 @@
             const family = this.root?.family || createBlankFamilyState();
             const child = this.normalizeChildRecord(activeChild.meta.id, activeChild);
             const draft = { ...createBlankChildDraft(), ...cloneData(child.draft, {}) };
-            const nextSavedCanvas = child?.draft?.savedCanvas && typeof child.draft.savedCanvas === 'object'
-                ? {
-                    blank: child.draft.savedCanvas.blank === true,
-                    ownKey: String(child.draft.savedCanvas.ownKey || '').trim(),
-                    partnerKey: String(child.draft.savedCanvas.partnerKey || '').trim(),
-                    selectedKey: String(child.draft.savedCanvas.selectedKey || '').trim(),
-                    selectedSource: String(child.draft.savedCanvas.selectedSource || '').trim(),
-                    selectedAt: String(child.draft.savedCanvas.selectedAt || '').trim()
-                }
-                : { blank: false, ownKey: '', partnerKey: '', selectedKey: '', selectedSource: '', selectedAt: '' };
+            const nextSavedCanvas = normalizeWorkspaceSavedCanvasState(child?.draft?.savedCanvas || {});
             if (!nextSavedCanvas.selectedKey) {
                 const source = nextSavedCanvas.selectedSource === 'partner'
                     ? 'partner'
@@ -1406,7 +1485,7 @@
             const pairedSummary = this.getPairedChildSummary(childId);
             if (pairedSummary) return pairedSummary;
 
-            return { ...localSummary, summaryLabel: 'マイ候補' };
+            return { ...localSummary, summaryLabel: '' };
         },
         getSharedSummary() {
             const shared = this.root?.family?.sharedLibraries || createBlankFamilyState().sharedLibraries;
@@ -2196,7 +2275,14 @@
                 snapshot?.meimayBackup?.childWorkspaceStateV2
             ];
             const rawRoot = candidates.find((state) => hasChildWorkspaceData(state));
-            return rawRoot ? this.normalizeRoot(rawRoot) : null;
+            const likedRemovalSource = Array.isArray(snapshot?.likedRemoved) && snapshot.likedRemoved.length > 0
+                ? snapshot.likedRemoved
+                : (Array.isArray(snapshot?.partnerUserBackup?.likedRemoved) && snapshot.partnerUserBackup.likedRemoved.length > 0
+                    ? snapshot.partnerUserBackup.likedRemoved
+                    : (Array.isArray(snapshot?.backup?.likedRemoved) && snapshot.backup.likedRemoved.length > 0
+                        ? snapshot.backup.likedRemoved
+                        : (Array.isArray(snapshot?.meimayBackup?.likedRemoved) ? snapshot.meimayBackup.likedRemoved : [])));
+            return rawRoot ? this.normalizeRoot(rawRoot, { likedRemovalSource }) : null;
         },
 
         getPartnerChildBySlotKey(slotKey) {

@@ -1104,15 +1104,11 @@ function showSavedNameDetail(index, source = 'own') {
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
     const f = item.fortune;
 
-    // 苗字・名前のパース
-    const nameParts = (item.fullName || '').split(' ');
-    const surStr = nameParts[0] || '';
-    const givStr = nameParts[1] || item.givenName || '';
-
-    // ふりがなのパース
-    const readingParts = (item.reading || '').split(' ');
-    const surRead = readingParts[0] || '';
-    const givRead = readingParts[1] || (readingParts.length === 1 ? readingParts[0] : '');
+    const displayParts = getSavedCandidateDisplayParts(item);
+    const surStr = displayParts.surname || '';
+    const givStr = displayParts.givenName || '';
+    const surRead = displayParts.surnameReading || '';
+    const givRead = displayParts.givenReading || '';
 
     // 文字数に応じたフォントサイズ調整 (07-build.js と同期)
     const totalChars = surStr.length + givStr.length;
@@ -3778,17 +3774,103 @@ window.setSavedMainCandidate = setSavedMainCandidate;
 window.deleteSavedName = deleteSavedNameBySourceIndex;
 */
 
+function getSavedCandidateCombinationKeyLocal(item) {
+    if (!item) return '';
+    if (Array.isArray(item.combination) && item.combination.length > 0) {
+        return item.combination.map(part => part?.['漢字'] || part?.kanji || '').join('').trim();
+    }
+    return Array.isArray(item.combinationKeys)
+        ? item.combinationKeys.join('').trim()
+        : '';
+}
+
+function getSavedCandidateGivenNameLocal(item) {
+    if (!item) return '';
+    const direct = String(item.givenName || '').trim();
+    if (direct) return direct;
+    const combinationKey = getSavedCandidateCombinationKeyLocal(item);
+    if (combinationKey) return combinationKey;
+    const fullName = String(item.fullName || '').trim();
+    if (!fullName) return '';
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : fullName;
+}
+
+function getSavedCandidateGivenReadingLocal(item) {
+    if (!item) return '';
+    const direct = String(item.givenReading || item.givenNameReading || '').trim();
+    const reading = direct || String(item.reading || '').trim();
+    if (!reading) return '';
+    const parts = reading.split(/\s+/).filter(Boolean);
+    const target = parts.length > 1 ? parts[parts.length - 1] : reading;
+    return (typeof toHira === 'function' ? toHira(target) : target).replace(/\s+/g, '');
+}
+
+function buildSavedCandidateStableKeyLocal(item) {
+    if (!item) return '';
+    const combinationKey = getSavedCandidateCombinationKeyLocal(item);
+    const givenName = getSavedCandidateGivenNameLocal(item) || combinationKey;
+    const givenReading = getSavedCandidateGivenReadingLocal(item) || givenName;
+    return `${givenName}::${combinationKey}::${givenReading}`;
+}
+
+function canonicalizeSavedCandidateKeyValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const parts = raw.split('::');
+    if (parts.length < 2) return raw;
+    const rawName = String(parts[0] || '').trim();
+    const combinationKey = String(parts[1] || '').trim();
+    const rawReading = String(parts.slice(2).join('::') || '').trim();
+    const nameParts = rawName.split(/\s+/).filter(Boolean);
+    const readingParts = rawReading.split(/\s+/).filter(Boolean);
+    const givenName = combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+    const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
+    const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
+    return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`;
+}
+
+function getSavedCandidateDisplayParts(item) {
+    const storedFullName = String(item?.fullName || '').trim();
+    const storedFullNameParts = storedFullName.split(/\s+/).filter(Boolean);
+    const storedReading = String(item?.reading || '').trim();
+    const storedReadingParts = storedReading.split(/\s+/).filter(Boolean);
+    const givenName = getSavedCandidateGivenNameLocal(item);
+    const givenReading = getSavedCandidateGivenReadingLocal(item);
+    const currentSurname = String(typeof surnameStr !== 'undefined' ? surnameStr : '').trim()
+        || (storedFullNameParts.length > 1 ? storedFullNameParts.slice(0, -1).join(' ') : '');
+    const currentSurnameReading = String(typeof surnameReading !== 'undefined' ? surnameReading : '').trim()
+        || (storedReadingParts.length > 1 ? storedReadingParts.slice(0, -1).join(' ') : '');
+    const fullName = currentSurname
+        ? (givenName ? `${currentSurname} ${givenName}` : currentSurname)
+        : (givenName || storedFullName);
+    const reading = currentSurnameReading
+        ? (givenReading ? `${currentSurnameReading} ${givenReading}` : currentSurnameReading)
+        : (givenReading || storedReading);
+    return {
+        surname: currentSurname,
+        givenName: givenName || storedFullName,
+        fullName,
+        surnameReading: currentSurnameReading,
+        givenReading: givenReading || storedReading,
+        reading
+    };
+}
+
+function getSavedCandidateDisplayName(item) {
+    return getSavedCandidateDisplayParts(item).fullName;
+}
+
+function getSavedCandidateDisplayReading(item) {
+    return getSavedCandidateDisplayParts(item).reading;
+}
+
 function getSavedCandidateKey(item) {
     if (!item) return '';
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     if (pairInsights?.buildSavedMatchKey) return pairInsights.buildSavedMatchKey(item);
 
-    const combinationKey = Array.isArray(item.combination) && item.combination.length > 0
-        ? item.combination.map(part => part?.['漢字'] || part?.kanji || '').join('')
-        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('') : '');
-    const fullName = item.fullName || item.givenName || combinationKey;
-    const reading = String(item.reading || item.givenName || '').trim();
-    return `${fullName}::${combinationKey}::${reading}`;
+    return buildSavedCandidateStableKeyLocal(item);
 }
 
 function getSavedCandidateCreatorMeta(item, source = 'own', partnerName = '') {
@@ -3834,15 +3916,15 @@ function getSavedCanvasState() {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const saved = getSavedNames();
     const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
-    const overrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
+    const overrideKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string' && window.__meimaySavedCanvasOwnKey
         ? window.__meimaySavedCanvasOwnKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
-    const partnerOverrideKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : ''));
+    const partnerOverrideKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string' && window.__meimaySavedCanvasPartnerKey
         ? window.__meimaySavedCanvasPartnerKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
-    const selectedKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string'
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : ''));
+    const selectedKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedKey === 'string'
         ? window.__meimaySavedCanvasSelectedKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : '');
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_key') || '') : ''));
     const selectedSource = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasSelectedSource === 'string'
         ? window.__meimaySavedCanvasSelectedSource
         : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_selected_source') || '') : '');
@@ -3905,9 +3987,9 @@ function setSavedMainCandidate(index) {
     if (!selectedKey) return false;
 
     const now = new Date().toISOString();
-    const existingPartnerKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
+    const existingPartnerKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
         ? window.__meimaySavedCanvasPartnerKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : '');
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : ''));
     const updated = saved.map((item) => {
         const isSelected = getSavedCandidateKey(item) === selectedKey;
         return {
@@ -4014,9 +4096,9 @@ function votePartnerSavedName(index) {
             : 'パートナー');
 
     const now = new Date().toISOString();
-    const existingOwnKey = typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
+    const existingOwnKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
         ? window.__meimaySavedCanvasOwnKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : '');
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : ''));
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = existingOwnKey;
@@ -4523,7 +4605,8 @@ function renderSavedScreen() {
             : hasPartnerLinked && !!canvasState.partnerKey && key === canvasState.partnerKey;
         const borderWidthClass = selected ? 'border-2' : 'border';
         const borderColor = selected ? theme.ring : theme.border;
-        const reading = escapeHtml(item.reading || '');
+        const reading = escapeHtml(getSavedCandidateDisplayReading(item));
+        const displayName = escapeHtml(getSavedCandidateDisplayName(item));
         const surfaceStyle = selected ? theme.surfaceSelected : theme.surface;
 
         return `
@@ -4533,7 +4616,7 @@ function renderSavedScreen() {
                     <div class="flex flex-col items-center text-center">
                         ${reading ? `<div class="${canvasReadingClass}" style="${labelStyle}">${reading}</div>` : ''}
                         <div data-fit-saved-name="split" class="${reading ? 'mt-1.5' : 'mt-1'} w-full overflow-hidden text-center text-[22px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
-                            ${escapeHtml(item.fullName || item.givenName || '')}
+                            ${displayName}
                         </div>
                     </div>
                 </div>
@@ -4546,9 +4629,9 @@ function renderSavedScreen() {
         ? `
             <div class="relative rounded-[26px] p-[2px] shadow-[0_18px_35px_-28px_rgba(123,104,83,0.45)]" style="background:${matchedFrameGradient};">
                 <div class="rounded-[24px] ${canvasCardMinHeight} px-3.5 pt-2.5 pb-2 text-center shadow-sm" style="background:${canvasTheme.matched.surface};">
-                    ${mainItem.reading ? `<div class="${canvasReadingClass} mt-1" style="color:${canvasTheme.matched.label};">${escapeHtml(mainItem.reading)}</div>` : ''}
+                    ${getSavedCandidateDisplayReading(mainItem) ? `<div class="${canvasReadingClass} mt-1" style="color:${canvasTheme.matched.label};">${escapeHtml(getSavedCandidateDisplayReading(mainItem))}</div>` : ''}
                     <div data-fit-saved-name="canvas" class="mt-1.5 w-full overflow-hidden text-center text-[23px] font-black leading-[1.02] whitespace-nowrap text-[#5d5444]">
-                        ${escapeHtml(mainItem.fullName || mainItem.givenName || '')}
+                        ${escapeHtml(getSavedCandidateDisplayName(mainItem))}
                     </div>
                 </div>
             </div>
@@ -4596,7 +4679,7 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
-        const selected = entry.ownSelected;
+        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
         const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
@@ -4607,8 +4690,8 @@ function renderSavedScreen() {
         const cardActive = entry.ownSelected || entry.partnerSelected;
         const cardMatched = entry.ownSelected && entry.partnerSelected;
         const theme = source === 'own' ? canvasTheme.own : canvasTheme.partner;
-        const nameText = escapeHtml(item.fullName || item.givenName || '');
-        const readingText = escapeHtml(item.reading || '');
+        const nameText = escapeHtml(getSavedCandidateDisplayName(item));
+        const readingText = escapeHtml(getSavedCandidateDisplayReading(item));
         const messageText = item.message ? escapeHtml(item.message) : '';
         const surfaceStyle = cardMatched
             ? canvasTheme.matched.surface
