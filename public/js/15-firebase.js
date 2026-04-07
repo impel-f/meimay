@@ -284,6 +284,141 @@ function extractSavedCanvasStateFromWorkspaceState(state) {
     return emptyCanvas;
 }
 
+const ROOM_SYNC_PAYLOAD_MAX_BYTES = 850 * 1024;
+
+function safeJsonCloneForRoomSync(value, fallback = null) {
+    if (value === undefined) return fallback;
+    try {
+        return JSON.parse(JSON.stringify(value));
+    } catch (error) {
+        return fallback;
+    }
+}
+
+function estimateSerializedSizeBytes(value) {
+    try {
+        const json = JSON.stringify(value);
+        if (typeof TextEncoder !== 'undefined') {
+            return new TextEncoder().encode(json).length;
+        }
+        if (typeof Blob !== 'undefined') {
+            return new Blob([json], { type: 'application/json' }).size;
+        }
+        return json.length * 2;
+    } catch (error) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+}
+
+function buildRoomSyncWorkspaceState(state) {
+    const source = safeJsonCloneForRoomSync(state, null);
+    if (!source || typeof source !== 'object') return null;
+
+    const normalizeSavedCanvas = (savedCanvas) => {
+        if (!savedCanvas || typeof savedCanvas !== 'object') return null;
+        const ownKey = String(savedCanvas.ownKey || '').trim();
+        const partnerKey = String(savedCanvas.partnerKey || '').trim();
+        const selectedKey = String(savedCanvas.selectedKey || '').trim();
+        if (!(savedCanvas.blank === true || ownKey || partnerKey || selectedKey)) return null;
+        return {
+            blank: savedCanvas.blank === true,
+            ownKey,
+            partnerKey,
+            selectedKey,
+            selectedSource: String(savedCanvas.selectedSource || '').trim(),
+            selectedAt: String(savedCanvas.selectedAt || '').trim()
+        };
+    };
+
+    const children = {};
+    Object.entries(source.children || {}).forEach(([rawChildId, child]) => {
+        const childId = String(rawChildId || child?.meta?.id || '').trim();
+        if (!childId) return;
+        const savedCanvas = normalizeSavedCanvas(child?.draft?.savedCanvas);
+        children[childId] = {
+            meta: safeJsonCloneForRoomSync(child?.meta, {}),
+            prefs: safeJsonCloneForRoomSync(child?.prefs, {}),
+            ...(savedCanvas ? { draft: { savedCanvas } } : {}),
+            libraries: {
+                readingStock: safeJsonCloneForRoomSync(child?.libraries?.readingStock, []),
+                kanjiStock: safeJsonCloneForRoomSync(child?.libraries?.kanjiStock, []),
+                savedNames: safeJsonCloneForRoomSync(child?.libraries?.savedNames, []),
+                hiddenReadings: safeJsonCloneForRoomSync(child?.libraries?.hiddenReadings, [])
+            }
+        };
+    });
+
+    const childOrder = Array.isArray(source.childOrder)
+        ? source.childOrder
+            .map((childId) => String(childId || '').trim())
+            .filter((childId) => childId && Object.prototype.hasOwnProperty.call(children, childId))
+        : [];
+    Object.keys(children).forEach((childId) => {
+        if (!childOrder.includes(childId)) childOrder.push(childId);
+    });
+
+    return {
+        version: Number.isFinite(Number(source.version)) ? Number(source.version) : 2,
+        activeChildId: String(source.activeChildId || childOrder[0] || '').trim(),
+        childOrder,
+        family: {
+            surnameDefault: {
+                kanji: String(source.family?.surnameDefault?.kanji || '').trim(),
+                reading: String(source.family?.surnameDefault?.reading || '').trim()
+            },
+            appSettings: {
+                shareMode: String(source.family?.appSettings?.shareMode || 'auto').trim() || 'auto',
+                showInappropriateKanji: source.family?.appSettings?.showInappropriateKanji === true
+            }
+        },
+        deletedChildren: safeJsonCloneForRoomSync(source.deletedChildren, {}),
+        children,
+        createdAt: String(source.createdAt || '').trim(),
+        updatedAt: String(source.updatedAt || source.savedAt || source.createdAt || '').trim()
+    };
+}
+
+function attachRoomSyncWorkspaceState(payload, workspaceState, workspaceStateUpdatedAt) {
+    const basePayload = workspaceStateUpdatedAt
+        ? { ...payload, meimayStateV2UpdatedAt: workspaceStateUpdatedAt }
+        : { ...payload };
+    const variants = [];
+
+    if (workspaceState && typeof workspaceState === 'object') {
+        const compactWorkspaceState = buildRoomSyncWorkspaceState(workspaceState);
+        if (compactWorkspaceState) {
+            variants.push({
+                ...basePayload,
+                meimayStateV2: compactWorkspaceState
+            });
+        }
+    }
+
+    variants.push(basePayload);
+
+    if (Array.isArray(basePayload.encounteredReadings) && basePayload.encounteredReadings.length > 0) {
+        variants.push({
+            ...basePayload,
+            encounteredReadings: []
+        });
+    }
+
+    for (const variant of variants) {
+        if (estimateSerializedSizeBytes(variant) <= ROOM_SYNC_PAYLOAD_MAX_BYTES) {
+            return variant;
+        }
+    }
+
+    if (variants.length > 1) {
+        console.warn('PAIRING: Room sync payload too large, trimming room sync fields');
+    }
+
+    return variants[variants.length - 1] || {
+        ...payload,
+        meimayStateV2UpdatedAt: workspaceStateUpdatedAt
+    };
+}
+
 function getSavedSelectionKeyForSync(item) {
     if (!item) return '';
     const pairInsights = typeof window !== 'undefined' && window.MeimayPartnerInsights
@@ -3260,9 +3395,12 @@ MeimayPairing.syncMyData = async function () {
         const encounteredToStore = pickStoredSection(projectedSections.encounteredReadings, existingRoomData.encounteredReadings);
         const existingProfileName = String(existingRoomData.displayName || existingRoomData.username || existingRoomData.nickname || '').trim();
         const profileName = String(wizard.username || existingProfileName || '').trim();
-        const profileThemeId = typeof getProfileThemeId === 'function'
+        const rawProfileThemeId = typeof getProfileThemeId === 'function'
             ? getProfileThemeId(wizard.role)
             : (wizard.themeId || existingRoomData.themeId || null);
+        const profileThemeId = typeof rawProfileThemeId === 'string'
+            ? rawProfileThemeId.trim() || null
+            : null;
         const roomBackup = {
             schemaVersion: 1,
             syncedAtMs: Date.now(),
@@ -3285,50 +3423,46 @@ MeimayPairing.syncMyData = async function () {
             ? PremiumManager.getPublicPremiumSnapshot()
             : null;
         const premiumFields = publicPremiumState || {};
+        const roomPayloadBase = {
+            role: this.myRole || null,
+            displayName: profileName,
+            username: profileName,
+            nickname: profileName,
+            themeId: profileThemeId,
+            liked: this._safeClone(Array.isArray(likedToStore) ? likedToStore : []),
+            savedNames: this._safeClone(Array.isArray(savedNamesToStore) ? savedNamesToStore : []),
+            readingStock: this._safeClone(Array.isArray(readingStockToStore) ? readingStockToStore : []),
+            encounteredReadings: this._safeClone(Array.isArray(encounteredToStore) ? encounteredToStore : []),
+            hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
+            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : []),
+            meimayBackup: roomBackup,
+            backup: roomBackup,
+            isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
+            subscriptionStatus: typeof premiumFields.subscriptionStatus === 'string'
+                ? premiumFields.subscriptionStatus
+                : null,
+            premiumStatus: typeof premiumFields.premiumStatus === 'string'
+                ? premiumFields.premiumStatus
+                : (typeof premiumFields.subscriptionStatus === 'string' ? premiumFields.subscriptionStatus : null),
+            appStoreExpiresAt: premiumFields.appStoreExpiresAt || null,
+            premiumExpiresAt: premiumFields.premiumExpiresAt || premiumFields.appStoreExpiresAt || null,
+            appStoreProductId: typeof premiumFields.appStoreProductId === 'string'
+                ? premiumFields.appStoreProductId
+                : null,
+            premiumProductId: typeof premiumFields.premiumProductId === 'string'
+                ? premiumFields.premiumProductId
+                : (typeof premiumFields.appStoreProductId === 'string' ? premiumFields.appStoreProductId : null),
+            appStoreLastNotificationType: typeof premiumFields.appStoreLastNotificationType === 'string'
+                ? premiumFields.appStoreLastNotificationType
+                : null,
+            latestNotificationType: typeof premiumFields.latestNotificationType === 'string'
+                ? premiumFields.latestNotificationType
+                : (typeof premiumFields.appStoreLastNotificationType === 'string' ? premiumFields.appStoreLastNotificationType : null)
+        };
+        const roomPayload = attachRoomSyncWorkspaceState(roomPayloadBase, childWorkspaceStateV2, childWorkspaceStateV2UpdatedAt);
+        roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
-        await roomDataRef.set({
-                role: this.myRole,
-                displayName: profileName,
-                username: profileName,
-                nickname: profileName,
-                themeId: profileThemeId,
-                liked: likedToStore,
-                savedNames: savedNamesToStore,
-                readingStock: readingStockToStore,
-                encounteredReadings: encounteredToStore,
-                hiddenReadings,
-                likedRemoved,
-                ...(childWorkspaceStateV2 ? {
-                    meimayStateV2: typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._safeClone === 'function'
-                        ? MeimayUserBackup._safeClone(childWorkspaceStateV2)
-                        : childWorkspaceStateV2,
-                    meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt
-                } : {}),
-                meimayBackup: roomBackup,
-                backup: roomBackup,
-                isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
-                subscriptionStatus: typeof premiumFields.subscriptionStatus === 'string'
-                    ? premiumFields.subscriptionStatus
-                    : null,
-                premiumStatus: typeof premiumFields.premiumStatus === 'string'
-                    ? premiumFields.premiumStatus
-                    : (typeof premiumFields.subscriptionStatus === 'string' ? premiumFields.subscriptionStatus : null),
-                appStoreExpiresAt: premiumFields.appStoreExpiresAt || null,
-                premiumExpiresAt: premiumFields.premiumExpiresAt || premiumFields.appStoreExpiresAt || null,
-                appStoreProductId: typeof premiumFields.appStoreProductId === 'string'
-                    ? premiumFields.appStoreProductId
-                    : null,
-                premiumProductId: typeof premiumFields.premiumProductId === 'string'
-                    ? premiumFields.premiumProductId
-                    : (typeof premiumFields.appStoreProductId === 'string' ? premiumFields.appStoreProductId : null),
-                appStoreLastNotificationType: typeof premiumFields.appStoreLastNotificationType === 'string'
-                    ? premiumFields.appStoreLastNotificationType
-                    : null,
-                latestNotificationType: typeof premiumFields.latestNotificationType === 'string'
-                    ? premiumFields.latestNotificationType
-                    : (typeof premiumFields.appStoreLastNotificationType === 'string' ? premiumFields.appStoreLastNotificationType : null),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+        await roomDataRef.set(roomPayload, { merge: true });
 
         console.log('PAIRING: Synced my data to room');
     } catch (e) {
@@ -3383,13 +3517,16 @@ MeimayShare.syncProfileAppearance = async function () {
         const nextThemeId = typeof getProfileThemeId === 'function'
             ? getProfileThemeId(wizard.role)
             : String(wizard.themeId || existingRoomData.themeId || '').trim();
+        const safeThemeId = typeof nextThemeId === 'string'
+            ? nextThemeId.trim() || null
+            : null;
         const currentPairingSurname = getCurrentPairingSurnameState();
         await roomDataRef.set({
                 role: nextRole,
                 displayName: profileName,
                 username: profileName,
                 nickname: profileName,
-                themeId: nextThemeId,
+                themeId: safeThemeId,
                 surname: currentPairingSurname.surname,
                 surnameReading: currentPairingSurname.reading,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -4885,25 +5022,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             this.partnerUserSnapshot = partnerPremiumSnapshot;
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();
-            }
-
-            if (partnerChildWorkspaceStateV2
-                && typeof MeimayUserBackup !== 'undefined'
-                && MeimayUserBackup
-                && typeof MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2 === 'function') {
-                const localWorkspaceStateV2 = typeof MeimayUserBackup._readChildWorkspaceStateV2 === 'function'
-                    ? MeimayUserBackup._readChildWorkspaceStateV2()
-                    : null;
-                if (MeimayUserBackup._shouldApplyRemoteChildWorkspaceStateV2(localWorkspaceStateV2, partnerChildWorkspaceStateV2)) {
-                    if (typeof MeimayChildWorkspaces !== 'undefined'
-                        && MeimayChildWorkspaces
-                        && typeof MeimayChildWorkspaces.applyRemoteRootSnapshot === 'function') {
-                        MeimayChildWorkspaces.applyRemoteRootSnapshot(partnerChildWorkspaceStateV2, {
-                            reason: 'partner-child-structure',
-                            structureOnly: true
-                        });
-                    }
-                }
             }
 
             if (typeof updatePairingUI === 'function') {
