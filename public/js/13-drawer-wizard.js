@@ -620,8 +620,7 @@ function renderDrawerMenu() {
             items: [
                 { id: 'drawer-home', target: 'home', icon: '🏠', label: 'ホーム' },
                 { id: 'drawer-mode-sound', target: 'mode-sound', icon: '🪄', label: '響き・読みを探す' },
-                { id: 'drawer-mode-reading', target: 'mode-reading', icon: '🔤', label: '読みから漢字を探す' },
-                { id: 'drawer-direct-swipe', target: 'direct-swipe', icon: '👆', label: '直感スワイプ' }
+                { id: 'drawer-mode-reading', target: 'mode-reading', icon: '🔤', label: '読みから漢字を探す' }
             ]
         },
         {
@@ -637,8 +636,7 @@ function renderDrawerMenu() {
             title: 'ツール',
             items: [
                 { id: 'drawer-search', target: 'search', icon: '📖', label: '漢字検索' },
-                { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' },
-                { id: 'drawer-diagnosis', target: 'diagnosis', icon: '🔮', label: '姓名判断' }
+                { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' }
             ]
         },
         {

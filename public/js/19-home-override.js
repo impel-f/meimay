@@ -1972,19 +1972,8 @@ function renderHomeProfile() {
 
     if (entryDivider) entryDivider.classList.add('hidden');
     if (entryGrid) entryGrid.classList.add('hidden');
-    if (utilityGrid) utilityGrid.classList.add('hidden');
-    if (toolGrid) {
-        toolGrid.classList.remove('hidden');
-        const toolButtons = toolGrid.querySelectorAll('button');
-        const encounteredButton = toolButtons[2];
-        if (encounteredButton) {
-            encounteredButton.setAttribute('onclick', "openEncounteredLibrary('kanji')");
-            encounteredButton.innerHTML = `
-                <span class="text-xl">🗂️</span>
-                <span class="text-[10px] font-bold text-[#5d5444]">出会った候補</span>
-            `;
-        }
-    }
+    if (utilityGrid) utilityGrid.classList.remove('hidden');
+    if (toolGrid) toolGrid.classList.remove('hidden');
 
 
     const elPrefSummary = document.getElementById('home-preference-summary');

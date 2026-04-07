@@ -58,34 +58,38 @@
 
     function renderPremiumComparisonMatrix() {
         const rows = [
-            { item: '使える漢字', free: '常用漢字のみ', premium: '常用漢字\n＋人名用漢字' },
+            { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字' },
             { item: '広告', free: 'あり', premium: 'なし' },
-            { item: '読みスワイプ', free: '1日30回まで', premium: '無制限' },
-            { item: '漢字スワイプ', free: '1日30回まで', premium: '無制限' },
-            { item: 'AI漢字深掘り', free: '1日1回まで', premium: '無制限' }
+            { item: '読みスワイプ', free: '1日30回', premium: '無制限' },
+            { item: '漢字スワイプ', free: '1日30回', premium: '無制限' },
+            { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' }
         ];
 
         return `
-            <div class="overflow-hidden rounded-[22px] border border-[#e4d9c6] bg-[#fffdf7]">
-                <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] gap-x-2 border-b border-[#eadfcd] bg-[#f6eddb] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">
-                    <div class="flex items-center">項目</div>
-                    <div class="flex items-center justify-center">無料</div>
-                    <div class="flex items-center justify-center">
-                        <span class="inline-flex items-center justify-center rounded-full border-2 border-[#d7b57c] bg-[#fff5df] px-3 py-1 text-[#8e6c36] shadow-sm">プレミアム</span>
-                    </div>
-                </div>
-                <div class="divide-y divide-[#efe5d3]">
-                    ${rows.map(({ item, free, premium }) => `
-                        <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">
-                            <div class="flex items-center font-bold">${formatPremiumMatrixCell(item)}</div>
-                            <div class="flex items-center justify-center text-center">
-                                <span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] bg-white px-2 py-2 font-semibold text-[#5d5444]">${formatPremiumMatrixCell(free)}</span>
-                            </div>
-                            <div class="flex items-center justify-center text-center">
-                                <span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-[#e3d0aa] bg-[#fff7e8] px-2 py-2 font-black text-[#5b4f3f] shadow-[inset_0_0_0_1px_rgba(215,181,124,0.16)]">${formatPremiumMatrixCell(premium)}</span>
-                            </div>
+            <div class="relative overflow-hidden rounded-[22px] border border-[#e4d9c6] bg-[#fffdf7]">
+                <div class="pointer-events-none absolute z-0 rounded-[18px] border-2 border-[#d7b57c] bg-[linear-gradient(180deg,rgba(255,247,232,0.96),rgba(255,252,243,0.92))] shadow-[0_10px_28px_rgba(183,145,85,0.12)]"
+                    style="top:8px;bottom:8px;left:calc(61.31% + 6px);right:8px;"></div>
+                <div class="relative z-10">
+                    <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] gap-x-2 border-b border-[#eadfcd] bg-[#f6eddb] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">
+                        <div class="flex items-center">項目</div>
+                        <div class="flex items-center justify-center">無料</div>
+                        <div class="flex items-center justify-center">
+                            <span class="inline-flex items-center justify-center rounded-full bg-[#fff5df] px-3 py-1 text-[#8e6c36] shadow-sm">プレミアム</span>
                         </div>
-                    `).join('')}
+                    </div>
+                    <div class="divide-y divide-[#efe5d3]">
+                        ${rows.map(({ item, free, premium }) => `
+                            <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">
+                                <div class="flex items-center font-bold">${formatPremiumMatrixCell(item)}</div>
+                                <div class="flex items-center justify-center text-center">
+                                    <span class="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-[14px] bg-white px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-[#5d5444]">${formatPremiumMatrixCell(free)}</span>
+                                </div>
+                                <div class="flex items-center justify-center text-center">
+                                    <span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] bg-transparent px-2 py-2 font-black text-[#5b4f3f]">${formatPremiumMatrixCell(premium)}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
