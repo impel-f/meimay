@@ -101,9 +101,15 @@ const StorageBox = {
         return this._extractLikedRemovalKeys(item).some((key) => normalizedRemoved.has(key));
     },
 
-    _filterRemovedLikedItems: function (items) {
+    _filterRemovedLikedItems: function (items, removedSource = null) {
         const safeItems = Array.isArray(items) ? items : [];
-        const removedSet = new Set(this._loadLikedRemovalState());
+        const removedSet = removedSource instanceof Set
+            ? removedSource
+            : new Set(
+                Array.isArray(removedSource)
+                    ? removedSource.map((value) => this._normalizeLikedRemovalKey(value)).filter(Boolean)
+                    : this._loadLikedRemovalState()
+            );
         if (removedSet.size === 0) return safeItems;
         return safeItems.filter((item) => !this._isRemovedLikedItem(item, removedSet));
     },

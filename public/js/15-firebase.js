@@ -1082,7 +1082,7 @@ const MeimayPairing = {
         localStorage.removeItem('meimay_my_role');
 
         if (typeof MeimayShare !== 'undefined') {
-            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
         }
 
         if (typeof changeScreen === 'function') {
@@ -1280,26 +1280,23 @@ const MeimayShare = {
             .onSnapshot((doc) => {
                 if (!doc.exists) return;
                 const data = doc.data();
-                const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
-                    ? StorageBox._filterRemovedLikedItems(items)
-                    : (Array.isArray(items) ? items.filter(Boolean) : []);
                 const likedRemovalSource = Array.isArray(data.meimayBackup?.likedRemoved) && data.meimayBackup.likedRemoved.length > 0
                     ? data.meimayBackup.likedRemoved
                     : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
-                if (Array.isArray(likedRemovalSource) && likedRemovalSource.length > 0
-                    && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
-                    StorageBox._persistLikedRemovalState(likedRemovalSource);
-                }
+                const filterRemoved = (items, removalSource = likedRemovalSource) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                    ? StorageBox._filterRemovedLikedItems(items, removalSource)
+                    : (Array.isArray(items) ? items.filter(Boolean) : []);
                 this.partnerSnapshot = {
-                    liked: filterRemoved(Array.isArray(data.liked) ? data.liked : []),
+                    liked: filterRemoved(Array.isArray(data.liked) ? data.liked : [], likedRemovalSource),
                     savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                     hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
+                    likedRemoved: Array.isArray(likedRemovalSource) ? likedRemovalSource : [],
                     role: data.role || null
                 };
                 const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
                 if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
 
-                const filteredLiked = filterRemoved(Array.isArray(data.liked) ? data.liked : []);
+                const filteredLiked = filterRemoved(Array.isArray(data.liked) ? data.liked : [], likedRemovalSource);
                 if (filteredLiked.length > 0) {
                     const added = this.mergeSharedLiked(filteredLiked, partnerLabel);
                     if (added > 0) {
@@ -1325,7 +1322,7 @@ const MeimayShare = {
             this._partnerUnsub();
             this._partnerUnsub = null;
         }
-        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
+        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
 
@@ -1602,8 +1599,11 @@ const MeimayPartnerInsights = {
     getPartnerLikedRaw: function () {
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
+        const likedRemovalSource = Array.isArray(snapshot.likedRemoved) && snapshot.likedRemoved.length > 0
+            ? snapshot.likedRemoved
+            : (Array.isArray(backup.likedRemoved) ? backup.likedRemoved : []);
         const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
-            ? StorageBox._filterRemovedLikedItems(items)
+            ? StorageBox._filterRemovedLikedItems(items, likedRemovalSource)
             : (Array.isArray(items) ? items.filter(Boolean) : []);
         const partnerLibraries = this._getPartnerChildLibraries();
         // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
@@ -4880,18 +4880,15 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
             cleanupLegacyPartnerLocalData();
-            const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
-                ? StorageBox._filterRemovedLikedItems(items)
-                : (Array.isArray(items) ? items.filter(Boolean) : []);
             const roomBackup = data.meimayBackup || data.backup || {};
-            const likedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
+            const roomLikedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
                 ? roomBackup.likedRemoved
                 : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
-            if (Array.isArray(likedRemovalSource) && likedRemovalSource.length > 0
-                && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
-                StorageBox._persistLikedRemovalState(likedRemovalSource);
-            }
-            let likedSource = filterRemoved(Array.isArray(data.liked) ? data.liked : []);
+            let partnerLikedRemovalSource = Array.isArray(roomLikedRemovalSource) ? roomLikedRemovalSource : [];
+            const filterRemoved = (items, removalSource = partnerLikedRemovalSource) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
+                ? StorageBox._filterRemovedLikedItems(items, removalSource)
+                : (Array.isArray(items) ? items.filter(Boolean) : []);
+            let likedSource = filterRemoved(Array.isArray(data.liked) ? data.liked : [], partnerLikedRemovalSource);
             let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
             let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
@@ -4933,15 +4930,18 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
-                        const partnerLikedRemovalSource = Array.isArray(partnerBackup?.likedRemoved) && partnerBackup.likedRemoved.length > 0
+                        const remoteLikedRemovalSource = Array.isArray(partnerBackup?.likedRemoved) && partnerBackup.likedRemoved.length > 0
                             ? partnerBackup.likedRemoved
                             : (Array.isArray(partnerUserData.likedRemoved) ? partnerUserData.likedRemoved : []);
-                        if (Array.isArray(partnerLikedRemovalSource) && partnerLikedRemovalSource.length > 0
-                            && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._persistLikedRemovalState === 'function') {
-                            StorageBox._persistLikedRemovalState(partnerLikedRemovalSource);
+                        const effectiveLikedRemovalSource = Array.isArray(remoteLikedRemovalSource) && remoteLikedRemovalSource.length > 0
+                            ? remoteLikedRemovalSource
+                            : partnerLikedRemovalSource;
+                        if ((!Array.isArray(partnerLikedRemovalSource) || partnerLikedRemovalSource.length === 0)
+                            && Array.isArray(remoteLikedRemovalSource) && remoteLikedRemovalSource.length > 0) {
+                            partnerLikedRemovalSource = remoteLikedRemovalSource;
                         }
                         const partnerBackupLiked = Array.isArray(partnerBackup.liked)
-                            ? filterRemoved(partnerBackup.liked)
+                            ? filterRemoved(partnerBackup.liked, effectiveLikedRemovalSource)
                             : [];
                         if (!partnerChildWorkspaceStateV2) {
                             partnerChildWorkspaceStateV2 = partnerBackup.meimayStateV2
@@ -4952,9 +4952,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                         }
                         partnerUserBackup = {
                             ...partnerBackup,
+                            likedRemoved: Array.isArray(effectiveLikedRemovalSource) ? effectiveLikedRemovalSource : [],
                             liked: Array.isArray(partnerBackup.liked) && partnerBackup.liked.length > 0
-                                ? filterRemoved(partnerBackup.liked)
-                                : filterRemoved(partnerUserData.liked),
+                                ? filterRemoved(partnerBackup.liked, effectiveLikedRemovalSource)
+                                : filterRemoved(partnerUserData.liked, effectiveLikedRemovalSource),
                             savedNames: Array.isArray(partnerBackup.savedNames) && partnerBackup.savedNames.length > 0
                                 ? partnerBackup.savedNames
                                 : (Array.isArray(partnerUserData.savedNames) ? partnerUserData.savedNames : []),
@@ -4973,7 +4974,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                         }
                         if (!likedSource.length && Array.isArray(partnerUserBackup.liked)
                             && partnerUserBackup.liked.length > 0) {
-                            likedSource = filterRemoved(partnerUserBackup.liked);
+                            likedSource = filterRemoved(partnerUserBackup.liked, effectiveLikedRemovalSource);
                         }
                         if (!savedNamesSource.length && Array.isArray(partnerUserBackup.savedNames) && partnerUserBackup.savedNames.length > 0) {
                             savedNamesSource = partnerUserBackup.savedNames;
@@ -5012,6 +5013,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 username: String(data.username || '').trim(),
                 nickname: String(data.nickname || '').trim(),
                 themeId: String(data.themeId || '').trim(),
+                likedRemoved: Array.isArray(partnerLikedRemovalSource) ? partnerLikedRemovalSource : [],
                 meimayStateV2: partnerChildWorkspaceStateV2,
                 meimayStateV2UpdatedAt: partnerChildWorkspaceStateV2 && typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._getChildWorkspaceStateV2Stamp === 'function'
                     ? MeimayUserBackup._getChildWorkspaceStateV2Stamp(partnerChildWorkspaceStateV2)
@@ -5050,7 +5052,7 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub();
         this._partnerUserUnsub = null;
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     this.partnerUserSnapshot = null;
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
