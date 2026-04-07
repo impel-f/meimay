@@ -1403,14 +1403,31 @@
             return child?.meta?.displayLabel || '第一子';
         },
 
+        getSummaryLibrariesForChild(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return {};
+            if (this.root?.activeChildId === childId) {
+                const liveRecord = this.captureCurrentChildRecord(child.meta);
+                return liveRecord?.libraries || child.libraries || {};
+            }
+            return child.libraries || {};
+        },
+
+        summarizeChildLibraries(libraries = {}) {
+            const readingItems = this.normalizeReadingLibrary(libraries?.readingStock);
+            const kanjiItems = this.normalizeKanjiLibrary(libraries?.kanjiStock, { likedRemovalSource: 'child-summary' });
+            const savedItems = this.normalizeSavedLibrary(libraries?.savedNames).filter((item) => item?.fromPartner !== true);
+            return {
+                readingCount: readingItems.length,
+                kanjiCount: new Set(kanjiItems.map((item) => getKanjiValue(item)).filter(Boolean)).size,
+                savedCount: savedItems.length
+            };
+        },
+
         getChildSummary(childId) {
             const child = this.getChildById(childId);
             if (!child) return { readingCount: 0, kanjiCount: 0, savedCount: 0 };
-            return {
-                readingCount: Array.isArray(child.libraries?.readingStock) ? child.libraries.readingStock.length : 0,
-                kanjiCount: new Set((child.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean)).size,
-                savedCount: (child.libraries?.savedNames || []).filter((item) => item?.fromPartner !== true).length
-            };
+            return this.summarizeChildLibraries(this.getSummaryLibrariesForChild(childId));
         },
 
         getPairedChildSummary(childId) {
@@ -1476,15 +1493,7 @@
         },
 
         getDisplayChildSummary(childId) {
-            const child = this.getChildById(childId);
             const localSummary = this.getChildSummary(childId);
-            if (!child) {
-                return { ...localSummary, summaryLabel: '' };
-            }
-
-            const pairedSummary = this.getPairedChildSummary(childId);
-            if (pairedSummary) return pairedSummary;
-
             return { ...localSummary, summaryLabel: '' };
         },
         getSharedSummary() {
@@ -2349,13 +2358,7 @@
             if (!child) {
                 return { readingCount: 0, kanjiCount: 0, savedCount: 0 };
             }
-            return {
-                readingCount: Array.isArray(child.libraries?.readingStock) ? child.libraries.readingStock.length : 0,
-                kanjiCount: new Set((child.libraries?.kanjiStock || []).map((item) => getKanjiValue(item)).filter(Boolean)).size,
-                savedCount: Array.isArray(child.libraries?.savedNames)
-                    ? child.libraries.savedNames.filter((item) => item?.fromPartner !== true).length
-                    : 0
-            };
+            return this.summarizeChildLibraries(this.getSummaryLibrariesForChild(childId));
         },
 
         getManagerChildTitle(childId) {

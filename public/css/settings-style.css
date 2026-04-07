@@ -122,35 +122,48 @@
 
 .profile-appearance-sheet {
     width: min(100%, 420px);
-    padding: 26px 18px 18px;
-    max-height: min(84vh, 560px);
+    padding: 22px 16px 16px;
+    max-height: min(86vh, 520px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .profile-appearance-sheet .modal-title {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .profile-appearance-sheet .modal-body {
-    margin-bottom: 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    padding-right: 2px;
 }
 
 .profile-appearance-sheet .modal-footer {
     gap: 0;
+    margin-top: auto;
+    padding-top: 8px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(180deg, rgba(253, 250, 245, 0) 0%, #fdfaf5 24px);
 }
 
 .profile-appearance-sheet .btn-modal-primary {
-    padding: 14px 16px;
+    padding: 12px 16px;
+    font-size: 15px;
 }
 
 .profile-appearance-sheet .modal-input-large {
-    font-size: 28px;
-    padding: 8px 0;
+    font-size: 24px;
+    padding: 6px 0;
     font-family: 'Zen Maru Gothic', sans-serif;
 }
 
 .profile-appearance-desc {
-    font-size: 12px;
-    margin-bottom: 16px;
+    font-size: 11px;
+    margin-bottom: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -169,20 +182,20 @@
 .profile-theme-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
+    gap: 6px;
 }
 
 .profile-theme-option {
     border: 1px solid #eee6da;
-    border-radius: 16px;
+    border-radius: 14px;
     background: #fff;
-    padding: 10px 8px;
+    padding: 8px 6px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    min-height: 92px;
+    gap: 4px;
+    min-height: 76px;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -204,8 +217,8 @@
 }
 
 .profile-theme-swatch {
-    width: 34px;
-    height: 34px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     display: block;
 }
@@ -216,7 +229,7 @@
 
 .profile-theme-name {
     color: #5d5444;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1.2;
 }
@@ -522,10 +535,30 @@
         font-size: 28px;
     }
 
-    .profile-theme-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .profile-appearance-sheet {
+        padding: 20px 14px 14px;
+        max-height: min(88vh, 500px);
     }
-    
+
+    .profile-theme-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+    }
+
+    .profile-theme-option {
+        min-height: 72px;
+        padding: 7px 5px;
+    }
+
+    .profile-theme-swatch {
+        width: 24px;
+        height: 24px;
+    }
+
+    .profile-theme-name {
+        font-size: 9px;
+    }
+
     .current-reading-value {
         font-size: 40px;
     }

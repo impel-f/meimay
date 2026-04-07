@@ -44,28 +44,46 @@
         window.addEventListener('meimay:stock-changed', window.refreshRankingOnStockChange);
     }
 
+    function formatPremiumMatrixCell(value) {
+        const escape = typeof escapePremiumHtml === 'function'
+            ? escapePremiumHtml
+            : (input) => String(input ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        return escape(value).replace(/\n/g, '<br>');
+    }
+
     function renderPremiumComparisonMatrix() {
         const rows = [
-            ['使える漢字', '常用漢字のみ', '常用漢字 + 人名用漢字'],
-            ['広告', 'あり', 'なし'],
-            ['読みスワイプ', '1日30回まで', '無制限'],
-            ['漢字スワイプ', '1日30回まで', '無制限'],
-            ['AI漢字深掘り', '1日1回まで', '無制限']
+            { item: '使える漢字', free: '常用漢字のみ', premium: '常用漢字\n＋人名用漢字' },
+            { item: '広告', free: 'あり', premium: 'なし' },
+            { item: '読みスワイプ', free: '1日30回まで', premium: '無制限' },
+            { item: '漢字スワイプ', free: '1日30回まで', premium: '無制限' },
+            { item: 'AI漢字深掘り', free: '1日1回まで', premium: '無制限' }
         ];
 
         return `
             <div class="overflow-hidden rounded-[22px] border border-[#e4d9c6] bg-[#fffdf7]">
-                <div class="grid grid-cols-[1.1fr_0.8fr_1.15fr] gap-x-1.5 border-b border-[#eadfcd] bg-[#f6eddb] px-3 py-2 text-[9px] font-black text-[#5b4f3f]">
-                    <div>項目</div>
-                    <div class="text-center">無料</div>
-                    <div class="text-center">プレミアム</div>
+                <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] gap-x-2 border-b border-[#eadfcd] bg-[#f6eddb] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">
+                    <div class="flex items-center">項目</div>
+                    <div class="flex items-center justify-center">無料</div>
+                    <div class="flex items-center justify-center">
+                        <span class="inline-flex items-center justify-center rounded-full border-2 border-[#d7b57c] bg-[#fff5df] px-3 py-1 text-[#8e6c36] shadow-sm">プレミアム</span>
+                    </div>
                 </div>
                 <div class="divide-y divide-[#efe5d3]">
-                    ${rows.map(([item, free, premium]) => `
-                        <div class="grid grid-cols-[1.1fr_0.8fr_1.15fr] gap-x-1.5 px-3 py-2 text-[9px] leading-[1.35] text-[#2f271e]">
-                            <div class="font-bold">${escapePremiumHtml(item)}</div>
-                            <div class="text-center">${escapePremiumHtml(free)}</div>
-                            <div class="text-center">${escapePremiumHtml(premium)}</div>
+                    ${rows.map(({ item, free, premium }) => `
+                        <div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">
+                            <div class="flex items-center font-bold">${formatPremiumMatrixCell(item)}</div>
+                            <div class="flex items-center justify-center text-center">
+                                <span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] bg-white px-2 py-2 font-semibold text-[#5d5444]">${formatPremiumMatrixCell(free)}</span>
+                            </div>
+                            <div class="flex items-center justify-center text-center">
+                                <span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] border border-[#e3d0aa] bg-[#fff7e8] px-2 py-2 font-black text-[#5b4f3f] shadow-[inset_0_0_0_1px_rgba(215,181,124,0.16)]">${formatPremiumMatrixCell(premium)}</span>
+                            </div>
                         </div>
                     `).join('')}
                 </div>
@@ -86,16 +104,16 @@
             <div class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">
                 <button class="modal-close-btn" onclick="closePremiumModal()">×</button>
                 <div class="space-y-3">
-                    <div>
+                    <div class="text-center">
                         <div class="text-[9px] font-black text-[#b9965b] tracking-[0.35em] uppercase">Premium Plan</div>
-                        <h3 class="mt-1 text-[1.15rem] sm:text-[1.45rem] font-black text-[#5b4f3f]">プレミアム案内</h3>
+                        <h3 class="mt-1 text-[1.2rem] sm:text-[1.5rem] font-black text-[#5b4f3f]">👑 プレミアム案内</h3>
                     </div>
 
                     ${renderPremiumComparisonMatrix()}
 
-                    <div class="rounded-[18px] border border-[#e4d9c6] bg-[#fffaf1] px-3 py-2.5">
-                        <div class="text-[12px] font-black text-[#2f271e] mb-0.5">パートナー特典</div>
-                        <p class="text-[10px] leading-[1.55] text-[#5d5444]">どちらか1人がプレミアムに加入すると、連携中の相手もプレミアム機能を利用できます。</p>
+                    <div class="rounded-[18px] border border-[#e4d9c6] bg-[#fffaf1] px-3 py-3">
+                        <div class="text-[13px] sm:text-[15px] font-black text-[#2f271e] mb-1">パートナー特典</div>
+                        <p class="text-[12px] sm:text-[14px] leading-[1.65] text-[#5d5444]">どちらか1人がプレミアムに加入すると、連携中の相手もプレミアム機能を利用できます。</p>
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">

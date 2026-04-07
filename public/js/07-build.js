@@ -2095,7 +2095,7 @@ function renderBuildSelection() {
             : 'text-[#a6967a]'}">
                 <span class="inline-flex items-center justify-center gap-1.5 min-w-0 w-full">
                     <span style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${readingBtnLabel}</span>
-                    <span id="reading-mode-caret" class="text-[11px] leading-none">?</span>
+                    <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
                 </span>
             </button>
             <button onclick="setBuildMode('free')"
