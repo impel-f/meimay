@@ -135,6 +135,16 @@ function getReadingSegmentRuleState(part) {
 }
 
 function getMasterKanjiReadings(item) {
+    if (typeof getKanjiReadingBuckets === 'function') {
+        const buckets = getKanjiReadingBuckets(item);
+        if (Array.isArray(buckets?.allStrictReadings) && buckets.allStrictReadings.length > 0) {
+            return buckets.allStrictReadings;
+        }
+        if (Array.isArray(buckets?.allReadings)) {
+            return buckets.allReadings;
+        }
+    }
+
     const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
         .split(/[、,\/\s]+/)
         .map(x => normalizeReadingComparisonValue(x))
@@ -711,7 +721,6 @@ function loadStack() {
     const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
     window._includeNopedForSlot = null;
     const normalizedTarget = normalizeReadingComparisonValue(target);
-    const targetSokuon = normalizedTarget;
     console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${normalizedTarget !== target ? ` (→ "${normalizedTarget}")` : ''}`);
 
     // --- Free Stock Auto-Matching ---
@@ -723,16 +732,15 @@ function loadStack() {
         );
         if (isDuplicateLocal) return;
 
-        const majorReadings = ((freeItem['音'] || '') + ',' + (freeItem['訓'] || ''))
-            .split(/[、,，\s/]+/)
-            .map(x => normalizeReadingComparisonValue(x))
-            .filter(Boolean);
-        const minorReadings = (freeItem['伝統名のり'] || '')
-            .split(/[、,，\s/]+/)
-            .map(x => normalizeReadingComparisonValue(x))
-            .filter(Boolean);
-        const readings = [...majorReadings, ...minorReadings];
-        const normalizedReadings = readings.map(x => normalizeReadingComparisonValue(x)).filter(Boolean);
+        const readingBuckets = typeof getKanjiReadingBuckets === 'function'
+            ? getKanjiReadingBuckets(freeItem)
+            : null;
+        const normalizedReadings = Array.isArray(readingBuckets?.allStrictReadings) && readingBuckets.allStrictReadings.length > 0
+            ? readingBuckets.allStrictReadings
+            : (((freeItem['音'] || '') + ',' + (freeItem['訓'] || '') + ',' + (freeItem['伝統名のり'] || ''))
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean));
 
         const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(normalizedTarget)) : normalizedTarget;
         const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
@@ -866,33 +874,41 @@ function loadStack() {
 
         // 読みデータの取得（メジャー/マイナー区分）
         // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
-        const majorReadings = ((k['音'] || '') + ',' + (k['訓'] || ''))
-            .split(/[、,，\s/]+/)
-            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
-            .filter(x => x);
-        const minorReadings = (k['伝統名のり'] || '')
-            .split(/[、,，\s/]+/)
-            .map(x => toHira(x).replace(/[^ぁ-んー]/g, ''))
-            .filter(x => x);
-        const readings = [...majorReadings, ...minorReadings];
+        const readingBuckets = typeof getKanjiReadingBuckets === 'function'
+            ? getKanjiReadingBuckets(k)
+            : null;
+        const majorReadings = Array.isArray(readingBuckets?.majorReadings)
+            ? readingBuckets.majorReadings
+            : ((k['音'] || '') + ',' + (k['訓'] || ''))
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean);
+        const minorReadings = Array.isArray(readingBuckets?.minorReadings)
+            ? readingBuckets.minorReadings
+            : (k['伝統名のり'] || '')
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean);
+        const majorStrictReadings = Array.isArray(readingBuckets?.majorStrictReadings) && readingBuckets.majorStrictReadings.length > 0
+            ? readingBuckets.majorStrictReadings
+            : majorReadings;
+        const minorStrictReadings = Array.isArray(readingBuckets?.minorStrictReadings) && readingBuckets.minorStrictReadings.length > 0
+            ? readingBuckets.minorStrictReadings
+            : minorReadings;
 
         // 読みマッチング判定
         // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
         // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
-        const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-        const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(target, targetSeion);
-
-        // 促音一致: きっ→きつ、てっ→てつ 等（targetSokuon は loadStack 冒頭で定義済み）
-        const isMajorExact = majorReadings.includes(target) ||
-            (targetSokuon !== target && majorReadings.includes(targetSokuon));
-        const isMinorExact = minorReadings.includes(target) ||
-            (targetSokuon !== target && minorReadings.includes(targetSokuon));
+        const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : normalizedTarget;
+        const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
+        const isMajorExact = majorStrictReadings.includes(normalizedTarget);
+        const isMinorExact = minorStrictReadings.includes(normalizedTarget);
         const isExact = isMajorExact || isMinorExact;
         // 清音化一致：メジャー読みのみを対象（名乗りは除外）
-        const isSeionMatch = allowVoicedFallback && majorReadings.includes(targetSeion);
+        const isSeionMatch = allowVoicedFallback && majorStrictReadings.includes(targetSeion);
         // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
-        const isPartial = majorReadings.some(r => r.startsWith(target)) || (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion))) ||
-            (targetSokuon !== target && majorReadings.some(r => r.startsWith(targetSokuon)));
+        const isPartial = majorReadings.some(r => r.startsWith(normalizedTarget)) ||
+            (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion)));
 
         if (isMajorExact) {
             k.priority = 1;      // メジャー読み完全一致（最優先）

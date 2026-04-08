@@ -2160,39 +2160,44 @@ function getReadingBucketsForKanji(item) {
         return getKanjiReadingBuckets(item);
     }
 
-    const majorReadings = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''))
-        .split(/[、,，\s/]+/)
-        .map(value => normalizeReadingComparisonValue(value))
-        .filter(Boolean);
-    const minorReadings = (item?.['伝統名のり'] || '')
-        .split(/[、,，\s/]+/)
-        .map(value => normalizeReadingComparisonValue(value))
-        .filter(Boolean);
+    const majorSource = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''));
+    const minorSource = item?.['伝統名のり'] || '';
+    const majorReadings = getFullReadings(majorSource);
+    const minorReadings = getFullReadings(minorSource);
+    const majorStrictReadings = getReadingVariants(majorSource);
+    const minorStrictReadings = getReadingVariants(minorSource);
 
     return {
         majorReadings,
         minorReadings,
-        allReadings: [...majorReadings, ...minorReadings]
+        allReadings: [...new Set([...majorReadings, ...minorReadings])],
+        majorStrictReadings,
+        minorStrictReadings,
+        allStrictReadings: [...new Set([...majorStrictReadings, ...minorStrictReadings])]
     };
 }
 
 function getStrictReadingMatch(item, segment) {
-    const target = toHira(segment || '');
+    const target = normalizeReadingComparisonValue(segment);
     if (!target || !item) return null;
 
-    const targetSeion = typeof toSeion === 'function' ? toSeion(target) : target;
-    const targetSokuon = target.replace(/\u3063$/, '\u3064');
-    const { majorReadings, minorReadings } = getReadingBucketsForKanji(item);
+    const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
+    const {
+        majorReadings,
+        minorReadings,
+        majorStrictReadings = majorReadings,
+        minorStrictReadings = minorReadings
+    } = getReadingBucketsForKanji(item);
 
-    if (majorReadings.includes(target) || (targetSokuon !== target && majorReadings.includes(targetSokuon))) {
+    if (majorStrictReadings.includes(target)) {
         return { tier: 1 };
     }
 
-    if (minorReadings.includes(target) || (targetSokuon !== target && minorReadings.includes(targetSokuon))) {
+    if (minorStrictReadings.includes(target)) {
         return { tier: 2 };
     }
 
-    if (target !== targetSeion && majorReadings.includes(targetSeion)) {
+    if (target !== targetSeion && majorStrictReadings.includes(targetSeion)) {
         return { tier: 3 };
     }
 
@@ -6309,17 +6314,22 @@ function getStrictReadingMatch(item, segment, options = {}) {
 
     const allowVoicedFallback = options.segmentIndex > 0;
     const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
-    const { majorReadings, minorReadings } = getReadingBucketsForKanji(item);
+    const {
+        majorReadings,
+        minorReadings,
+        majorStrictReadings = majorReadings,
+        minorStrictReadings = minorReadings
+    } = getReadingBucketsForKanji(item);
 
-    if (majorReadings.includes(target)) {
+    if (majorStrictReadings.includes(target)) {
         return { tier: 1 };
     }
 
-    if (minorReadings.includes(target)) {
+    if (minorStrictReadings.includes(target)) {
         return { tier: 2 };
     }
 
-    if (allowVoicedFallback && target !== targetSeion && majorReadings.includes(targetSeion)) {
+    if (allowVoicedFallback && target !== targetSeion && majorStrictReadings.includes(targetSeion)) {
         return { tier: 3 };
     }
 
@@ -8507,15 +8517,21 @@ function setClassFilter(val) {
  * 例: か.わる → ['かわる'] ※ 語幹の'か'は含まない
  */
 function getFullReadings(rawStr) {
+    if (typeof getKanjiReadingForms === 'function') {
+        return getKanjiReadingForms(rawStr);
+    }
     if (!rawStr) return [];
     return rawStr.split(/[、,，\s/]+/).map(raw => {
         if (!raw.trim()) return null;
-        const full = toHira(raw.trim()).replace(/[^ぁ-んー]/g, '');
+        const full = normalizeReadingComparisonValue(raw.trim());
         return full || null;
     }).filter(Boolean);
 }
 
 function getReadingVariants(rawStr) {
+    if (typeof getKanjiReadingForms === 'function') {
+        return getKanjiReadingForms(rawStr, { includeStem: true });
+    }
     if (!rawStr) return [];
     return rawStr.split(/[、,，\s/]+/).flatMap(raw => {
         if (!raw.trim()) return [];
@@ -8552,8 +8568,8 @@ function executeKanjiSearch() {
         return;
     }
 
-    const query = input ? toHira(input.value.trim()) : '';
     const rawQuery = input ? input.value.trim() : '';
+    const query = normalizeReadingComparisonValue(rawQuery);
 
     // フィルターが何も設定されていない場合はメッセージ表示
     if (!query && !rawQuery && !searchClassFilter) {
@@ -8576,19 +8592,16 @@ function executeKanjiSearch() {
         const matchKanji = k['漢字'] === rawQuery;
 
         if (query || rawQuery) {
-            // 1. 完全一致 (Tier 1) - 送り仮名等を除去した形
-            const onFull = getFullReadings(k['音'] || '');
-            const kunFull = getFullReadings(k['訓'] || '');
-            const noriFull = getFullReadings(k['伝統名のり'] || '');
-            const allFull = [...onFull, ...kunFull, ...noriFull];
-            const isExact = allFull.some(r => r === query);
+            // 1. 完全一致 (Tier 1) - 厳格モードでも送り仮名は無視する
+            const onVariants = getReadingVariants(k['音'] || '');
+            const kunVariants = getReadingVariants(k['訓'] || '');
+            const noriVariants = getReadingVariants(k['伝統名のり'] || '');
+            const isExact = [...onVariants, ...kunVariants, ...noriVariants].some(r => r === query);
 
             if (isExact || matchKanji) {
                 tier = 1;
             } else if (searchFlexibleMode) {
                 // 2. 語幹一致 (Tier 2) - 柔軟モードのみ
-                const onVariants = getReadingVariants(k['音'] || '');
-                const kunVariants = getReadingVariants(k['訓'] || '');
                 const isStem = [...onVariants, ...kunVariants].some(r => r === query);
 
                 if (isStem) {

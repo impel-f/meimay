@@ -60,6 +60,54 @@ function normalizeReadingComparisonValue(value) {
         .replace(/[^\u3041-\u3093\u30fc]/g, '');
 }
 
+function splitKanjiReadingEntries(value) {
+    return String(value || '')
+        .split(/[、,，\s/]+/)
+        .map(entry => String(entry || '').trim())
+        .filter(Boolean);
+}
+
+function getKanjiReadingForms(value, options = {}) {
+    const includeStem = options && options.includeStem === true;
+    const forms = new Set();
+
+    splitKanjiReadingEntries(value).forEach((entry) => {
+        const hira = typeof toHira === 'function' ? toHira(entry) : entry;
+        const full = normalizeReadingComparisonValue(hira);
+        if (full) forms.add(full);
+
+        if (!includeStem) return;
+
+        const stemBreaks = ['.', '（', '(']
+            .map(marker => hira.indexOf(marker))
+            .filter(index => index > 0);
+        if (stemBreaks.length === 0) return;
+
+        const stem = normalizeReadingComparisonValue(hira.slice(0, Math.min(...stemBreaks)));
+        if (stem) forms.add(stem);
+    });
+
+    return [...forms];
+}
+
+function getKanjiReadingBuckets(item) {
+    const majorSource = ((item?.['音'] || '') + ',' + (item?.['訓'] || ''));
+    const minorSource = item?.['伝統名のり'] || '';
+    const majorReadings = getKanjiReadingForms(majorSource);
+    const minorReadings = getKanjiReadingForms(minorSource);
+    const majorStrictReadings = getKanjiReadingForms(majorSource, { includeStem: true });
+    const minorStrictReadings = getKanjiReadingForms(minorSource, { includeStem: true });
+
+    return {
+        majorReadings,
+        minorReadings,
+        allReadings: [...new Set([...majorReadings, ...minorReadings])],
+        majorStrictReadings,
+        minorStrictReadings,
+        allStrictReadings: [...new Set([...majorStrictReadings, ...minorStrictReadings])]
+    };
+}
+
 function setReadingSegmentRules(nextRules) {
     const approvedSegments = {};
     const rawApproved = nextRules && typeof nextRules.approvedSegments === 'object'
@@ -161,11 +209,8 @@ window.onload = () => {
 
             // 読みデータのインデックス作成
             master.forEach(k => {
-                const readings = (k['音'] + ',' + k['訓'] + ',' + k['伝統名のり'])
-                    .split(/[、,，\s/]+/)
-                    .map(normalizeReadingComparisonValue)
-                    .filter(Boolean);
-                readings.forEach(r => validReadingsSet.add(r));
+                const buckets = getKanjiReadingBuckets(k);
+                buckets.allStrictReadings.forEach(reading => validReadingsSet.add(reading));
             });
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
