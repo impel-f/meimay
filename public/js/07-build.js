@@ -1162,16 +1162,26 @@ function clearKanjiPartnerFocus() {
 
 function buildLikedCandidateKey(item) {
     if (!item) return '';
-    const kanji = item['漢字'] || item.kanji || '';
+    const kanji = resolveLikedCandidateKanji(item);
     const slot = Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1;
     const reading = item.sessionReading || '';
     const segmentsKey = Array.isArray(item.sessionSegments) ? item.sessionSegments.join('/') : '';
     return `${reading}::${slot}::${kanji}::${segmentsKey}`;
 }
 
-function getLikedCandidateKanjiKey(item) {
+function resolveLikedCandidateKanji(item) {
     if (!item) return '';
-    return item?.['\u6f22\u5b57'] || item?.kanji || '';
+    return String(
+        item?.['漢字']
+        || item?.['貍｢蟄・']
+        || item?.['貌｡蟄･']
+        || item?.kanji
+        || ''
+    ).trim();
+}
+
+function getLikedCandidateKanjiKey(item) {
+    return resolveLikedCandidateKanji(item);
 }
 
 function getLikedCandidateDisplayKey(item) {
@@ -1188,7 +1198,7 @@ function matchesLikedCandidateTarget(item, target) {
     const displayKey = getLikedCandidateDisplayKey(item);
     const baseKey = buildLikedCandidateKey(item);
     const kanjiKey = getLikedCandidateKanjiKey(item);
-    const rawKanji = String(item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '').trim();
+    const rawKanji = resolveLikedCandidateKanji(item);
 
     return displayKey === normalizedTarget
         || baseKey === normalizedTarget
@@ -1221,12 +1231,12 @@ function isBuildCandidateExcluded(item) {
     const displayKey = getLikedCandidateDisplayKey(item);
     const baseKey = buildLikedCandidateKey(item);
     const kanjiKey = getLikedCandidateKanjiKey(item);
-    const rawKanji = String(item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '').trim();
+    const rawKanji = resolveLikedCandidateKanji(item);
     return [displayKey, baseKey, kanjiKey, rawKanji].some((key) => key && excludedKanjiFromBuild.includes(key));
 }
 
 function hydrateLikedCandidate(item, options = {}) {
-    const kanji = item?.['\u6f22\u5b57'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.kanji || '';
+    const kanji = resolveLikedCandidateKanji(item);
     if (!kanji) return null;
     if (Array.from(kanji).length > 1) return null;
 

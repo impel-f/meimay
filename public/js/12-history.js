@@ -4679,7 +4679,9 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
-        const selected = source === 'own' ? entry.ownSelected : entry.partnerSelected;
+        const selected = source === 'own'
+            ? entry.ownSelected && canvasState.selectedSource !== 'partner'
+            : (canvasState.selectedSource === 'partner' && entry.key === canvasState.selectedKey);
         const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
