@@ -564,14 +564,32 @@ const MeimayFirestorePayload = {
         }) || null;
     },
 
+    _resolveLikedKanji(item) {
+        if (typeof item === 'string') return this._normalizeString(item);
+        if (Array.isArray(item) && item.length > 0 && (typeof item[0] === 'string' || typeof item[0] === 'number')) {
+            return this._normalizeString(item[0]);
+        }
+        return this._normalizeString(
+            item?.['漢字']
+            || item?.['貌｡蟄･']
+            || item?.['貍｢蟄・']
+            || item?.kanji
+            || item?.value
+            || item?.char
+            || item?.character
+            || item?.label
+        );
+    },
+
     minifyLikedItem(item) {
         if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._isRemovedLikedItem === 'function' && StorageBox._isRemovedLikedItem(item)) {
             return null;
         }
-        const kanji = this._normalizeString(item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji);
+        const kanji = this._resolveLikedKanji(item);
         if (!kanji) return null;
         return {
             '漢字': kanji,
+            kanji,
             slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
             sessionReading: this._normalizeString(item?.sessionReading),
             sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments.slice(0, 12) : [],
@@ -584,31 +602,35 @@ const MeimayFirestorePayload = {
     },
 
     hydrateLikedItem(item, options = {}) {
-        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._isRemovedLikedItem === 'function' && StorageBox._isRemovedLikedItem(item)) {
+        if (options.checkRemoved !== false && typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._isRemovedLikedItem === 'function' && StorageBox._isRemovedLikedItem(item)) {
             return null;
         }
-        const kanji = this._normalizeString(item?.['漢字'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.['\u8c8d\uff62\u87c4\u30fb'] || item?.kanji);
+        const kanji = this._resolveLikedKanji(item);
         if (!kanji) return null;
+        const sourceItem = item && typeof item === 'object' && !Array.isArray(item)
+            ? item
+            : { kanji };
         const masterItem = this._findKanjiMaster(kanji);
         return {
             ...(masterItem || {}),
-            ...(item || {}),
+            ...sourceItem,
             '漢字': kanji,
-            '画数': item?.['画数'] ?? item?.strokes ?? masterItem?.['画数'] ?? 1,
-            '分類': item?.['分類'] ?? item?.category ?? masterItem?.['分類'] ?? '',
-            kanji_reading: this._normalizeString(item?.kanji_reading || masterItem?.kanji_reading),
-            slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
-            sessionReading: this._normalizeString(item?.sessionReading),
-            sessionSegments: Array.isArray(item?.sessionSegments) ? [...item.sessionSegments] : [],
-            sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : [],
-            isSuper: !!item?.isSuper,
-            ownSuper: options.fromPartner ? false : !!item?.ownSuper || !!item?.isSuper,
-            partnerSuper: options.fromPartner ? !!item?.partnerSuper || !!item?.isSuper : !!item?.partnerSuper,
+            kanji,
+            '画数': sourceItem?.['画数'] ?? sourceItem?.strokes ?? masterItem?.['画数'] ?? 1,
+            '分類': sourceItem?.['分類'] ?? sourceItem?.category ?? masterItem?.['分類'] ?? '',
+            kanji_reading: this._normalizeString(sourceItem?.kanji_reading || masterItem?.kanji_reading),
+            slot: Number.isFinite(Number(sourceItem?.slot)) ? Number(sourceItem.slot) : -1,
+            sessionReading: this._normalizeString(sourceItem?.sessionReading),
+            sessionSegments: Array.isArray(sourceItem?.sessionSegments) ? [...sourceItem.sessionSegments] : [],
+            sessionDisplaySegments: Array.isArray(sourceItem?.sessionDisplaySegments) ? [...sourceItem.sessionDisplaySegments] : [],
+            isSuper: !!sourceItem?.isSuper,
+            ownSuper: options.fromPartner ? false : !!sourceItem?.ownSuper || !!sourceItem?.isSuper,
+            partnerSuper: options.fromPartner ? !!sourceItem?.partnerSuper || !!sourceItem?.isSuper : !!sourceItem?.partnerSuper,
             fromPartner: !!options.fromPartner,
             partnerAlsoPicked: !!options.partnerAlsoPicked,
-            partnerName: options.partnerName || item?.partnerName || '',
-            gender: this._normalizeString(item?.gender || masterItem?.gender || 'neutral') || 'neutral',
-            timestamp: item?.timestamp || item?.addedAt || item?.likedAt || null
+            partnerName: options.partnerName || sourceItem?.partnerName || '',
+            gender: this._normalizeString(sourceItem?.gender || masterItem?.gender || 'neutral') || 'neutral',
+            timestamp: sourceItem?.timestamp || sourceItem?.addedAt || sourceItem?.likedAt || null
         };
     },
 
@@ -1650,15 +1672,36 @@ const MeimayPartnerInsights = {
         const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
             ? StorageBox._filterRemovedLikedItems(items, likedRemovalSource)
             : (Array.isArray(items) ? items.filter(Boolean) : []);
+        const normalizeLikedItems = (items, sourceLabel) => {
+            const filtered = filterRemoved(items);
+            const normalized = filtered.map((item) => {
+                if (typeof MeimayFirestorePayload !== 'undefined' && MeimayFirestorePayload && typeof MeimayFirestorePayload.hydrateLikedItem === 'function') {
+                    return MeimayFirestorePayload.hydrateLikedItem(item, { fromPartner: true, checkRemoved: false });
+                }
+                return item;
+            }).filter((item) => {
+                if (!item) return false;
+                const kanji = String(item?.kanji || item?.['漢字'] || '').trim();
+                return !!kanji && Array.from(kanji).length === 1;
+            });
+            if (filtered.length > 0 && normalized.length === 0) {
+                console.warn('PAIRING: Partner liked items could not be normalized for stock view', {
+                    source: sourceLabel,
+                    count: filtered.length,
+                    sample: filtered.slice(0, 3)
+                });
+            }
+            return normalized;
+        };
         const partnerLibraries = this._getPartnerChildLibraries();
         // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
         if (partnerLibraries && Array.isArray(partnerLibraries.kanjiStock) && partnerLibraries.kanjiStock.length > 0) {
-            return filterRemoved(partnerLibraries.kanjiStock);
+            return normalizeLikedItems(partnerLibraries.kanjiStock, 'child-library');
         }
         const backupLiked = Array.isArray(backup.liked)
-            ? filterRemoved(backup.liked)
+            ? normalizeLikedItems(backup.liked, 'backup-liked')
             : [];
-        const snapshotLiked = filterRemoved(snapshot.liked);
+        const snapshotLiked = normalizeLikedItems(snapshot.liked, 'snapshot-liked');
         if (snapshotLiked.length > 0) {
             return snapshotLiked;
         }

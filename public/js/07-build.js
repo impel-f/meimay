@@ -1171,11 +1171,19 @@ function buildLikedCandidateKey(item) {
 
 function resolveLikedCandidateKanji(item) {
     if (!item) return '';
+    if (typeof item === 'string') return String(item).trim();
+    if (Array.isArray(item) && item.length > 0 && (typeof item[0] === 'string' || typeof item[0] === 'number')) {
+        return String(item[0] || '').trim();
+    }
     return String(
         item?.['漢字']
         || item?.['貍｢蟄・']
         || item?.['貌｡蟄･']
         || item?.kanji
+        || item?.value
+        || item?.char
+        || item?.character
+        || item?.label
         || ''
     ).trim();
 }
@@ -1240,7 +1248,10 @@ function hydrateLikedCandidate(item, options = {}) {
     if (!kanji) return null;
     if (Array.from(kanji).length > 1) return null;
 
-    const fromPartner = options.fromPartner ?? item?.fromPartner === true;
+    const sourceItem = item && typeof item === 'object' && !Array.isArray(item)
+        ? item
+        : { kanji };
+    const fromPartner = options.fromPartner ?? sourceItem?.fromPartner === true;
 
     const masterItem = typeof master !== 'undefined' && Array.isArray(master)
         ? master.find(entry => entry['\u6f22\u5b57'] === kanji)
@@ -1248,21 +1259,22 @@ function hydrateLikedCandidate(item, options = {}) {
 
     return {
         ...(masterItem || {}),
-        ...(item || {}),
+        ...sourceItem,
         '\u6f22\u5b57': kanji,
-        '\u753b\u6570': item?.['\u753b\u6570'] ?? item?.strokes ?? masterItem?.['\u753b\u6570'] ?? 0,
-        '\u5206\u985e': item?.['\u5206\u985e'] ?? item?.category ?? masterItem?.['\u5206\u985e'] ?? '',
-        kanji_reading: item?.kanji_reading || masterItem?.kanji_reading || '',
-        slot: Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1,
-        sessionReading: item?.sessionReading || '',
-        sessionSegments: Array.isArray(item?.sessionSegments) ? item.sessionSegments : [],
-        sessionDisplaySegments: Array.isArray(item?.sessionDisplaySegments) ? item.sessionDisplaySegments : [],
-        isSuper: !!item?.isSuper,
-        ownSuper: fromPartner ? false : !!item?.isSuper,
-        partnerSuper: fromPartner ? !!item?.isSuper : false,
+        kanji,
+        '\u753b\u6570': sourceItem?.['\u753b\u6570'] ?? sourceItem?.strokes ?? masterItem?.['\u753b\u6570'] ?? 0,
+        '\u5206\u985e': sourceItem?.['\u5206\u985e'] ?? sourceItem?.category ?? masterItem?.['\u5206\u985e'] ?? '',
+        kanji_reading: sourceItem?.kanji_reading || masterItem?.kanji_reading || '',
+        slot: Number.isFinite(Number(sourceItem?.slot)) ? Number(sourceItem.slot) : -1,
+        sessionReading: sourceItem?.sessionReading || '',
+        sessionSegments: Array.isArray(sourceItem?.sessionSegments) ? sourceItem.sessionSegments : [],
+        sessionDisplaySegments: Array.isArray(sourceItem?.sessionDisplaySegments) ? sourceItem.sessionDisplaySegments : [],
+        isSuper: !!sourceItem?.isSuper,
+        ownSuper: fromPartner ? false : !!sourceItem?.isSuper,
+        partnerSuper: fromPartner ? !!sourceItem?.isSuper : false,
         fromPartner,
-        partnerAlsoPicked: !!options.partnerAlsoPicked || !!item?.partnerAlsoPicked,
-        partnerName: options.partnerName || item?.partnerName || ''
+        partnerAlsoPicked: !!options.partnerAlsoPicked || !!sourceItem?.partnerAlsoPicked,
+        partnerName: options.partnerName || sourceItem?.partnerName || ''
     };
 }
 

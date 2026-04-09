@@ -4096,28 +4096,43 @@ function votePartnerSavedName(index) {
             : 'パートナー');
 
     const now = new Date().toISOString();
-    const existingOwnKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasOwnKey === 'string'
-        ? window.__meimaySavedCanvasOwnKey
-        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_own_key') || '') : ''));
+    const existingPartnerKey = canonicalizeSavedCandidateKeyValue(typeof window !== 'undefined' && typeof window.__meimaySavedCanvasPartnerKey === 'string'
+        ? window.__meimaySavedCanvasPartnerKey
+        : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : ''));
+    const saved = getSavedNames();
+    const updated = saved.map((item) => {
+        const isSelected = getSavedCandidateKey(item) === sourceKey;
+        return {
+            ...item,
+            mainSelected: isSelected,
+            mainSelectedAt: isSelected ? now : ''
+        };
+    });
+    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (typeof savedNames !== 'undefined') savedNames = updated;
     try {
         if (typeof window !== 'undefined') {
-            window.__meimaySavedCanvasOwnKey = existingOwnKey;
-            window.__meimaySavedCanvasPartnerKey = sourceKey;
+            window.__meimaySavedCanvasOwnKey = sourceKey;
+            window.__meimaySavedCanvasPartnerKey = existingPartnerKey;
             window.__meimaySavedCanvasSelectedKey = sourceKey;
-            window.__meimaySavedCanvasSelectedSource = 'partner';
+            window.__meimaySavedCanvasSelectedSource = 'own';
             window.__meimaySavedCanvasSelectedAt = now;
             window.__meimaySavedCanvasBlank = false;
         }
         localStorage.setItem('meimay_saved_canvas_blank', '0');
-        if (existingOwnKey) localStorage.setItem('meimay_saved_canvas_own_key', existingOwnKey);
-        else localStorage.removeItem('meimay_saved_canvas_own_key');
-        localStorage.setItem('meimay_saved_canvas_partner_key', sourceKey);
+        localStorage.setItem('meimay_saved_canvas_own_key', sourceKey);
+        if (existingPartnerKey) localStorage.setItem('meimay_saved_canvas_partner_key', existingPartnerKey);
+        else localStorage.removeItem('meimay_saved_canvas_partner_key');
         localStorage.setItem('meimay_saved_canvas_selected_key', sourceKey);
-        localStorage.setItem('meimay_saved_canvas_selected_source', 'partner');
+        localStorage.setItem('meimay_saved_canvas_selected_source', 'own');
         localStorage.setItem('meimay_saved_canvas_selected_at', now);
         persistActiveChildWorkspaceSnapshot('vote-partner-saved-name');
     } catch (error) {
         console.warn('SAVED: Persist own main key from partner candidate failed', error);
+    }
+
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
     }
 
     renderSavedScreen();
@@ -4679,9 +4694,7 @@ function renderSavedScreen() {
     const renderCard = (entry, source) => {
         const item = entry.item;
         const detailSource = source === 'own' ? 'own' : 'partner';
-        const selected = source === 'own'
-            ? entry.ownSelected && canvasState.selectedSource !== 'partner'
-            : (canvasState.selectedSource === 'partner' && entry.key === canvasState.selectedKey);
+        const selected = !!entry.ownSelected;
         const buttonText = selected ? '本命中' : '本命にする';
         const buttonAction = source === 'own'
             ? `setSavedMainCandidate(${entry.index})`
