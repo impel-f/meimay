@@ -1588,31 +1588,91 @@ const MeimayPartnerInsights = {
         return new Set(readNormalizedHiddenReadings());
     },
 
-    _getPartnerChildRecord: function () {
+    _getPartnerChildContext: function () {
         const manager = typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces
             ? MeimayChildWorkspaces
             : null;
-        if (!manager) return null;
+        const context = {
+            manager,
+            activeChild: null,
+            partnerRoot: null,
+            partnerChild: null,
+            partnerChildCount: 0,
+            localChildCount: 0,
+            requiresScopedChild: false
+        };
+        if (!manager) return context;
 
         try {
-            if (typeof manager.getActiveChild === 'function' && typeof manager.getPartnerChildForChild === 'function') {
-                const activeChild = manager.getActiveChild();
-                const partnerChild = activeChild ? manager.getPartnerChildForChild(activeChild) : null;
-                if (partnerChild && typeof partnerChild === 'object') return partnerChild;
-            }
+            const localRoot = manager.root && typeof manager.root === 'object'
+                ? manager.root
+                : (typeof manager.getRootSnapshot === 'function' ? manager.getRootSnapshot() : null);
+            const localChildren = localRoot?.children && typeof localRoot.children === 'object'
+                ? localRoot.children
+                : {};
+            const localChildCount = Array.isArray(localRoot?.childOrder) && localRoot.childOrder.length > 0
+                ? localRoot.childOrder.length
+                : Object.keys(localChildren).length;
+            const activeChild = typeof manager.getActiveChild === 'function'
+                ? manager.getActiveChild()
+                : null;
+            const partnerRoot = typeof manager.getPartnerWorkspaceRoot === 'function'
+                ? manager.getPartnerWorkspaceRoot()
+                : null;
+            const partnerChildren = partnerRoot?.children && typeof partnerRoot.children === 'object'
+                ? partnerRoot.children
+                : {};
+            const partnerChildCount = Array.isArray(partnerRoot?.childOrder) && partnerRoot.childOrder.length > 0
+                ? partnerRoot.childOrder.length
+                : Object.keys(partnerChildren).length;
+            const partnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
+                ? manager.getPartnerChildForChild(activeChild)
+                : null;
+            const activeBirthOrder = Number(activeChild?.meta?.birthOrder || activeChild?.birthOrder || 1);
+            const activeTwinIndex = activeChild?.meta?.birthGroupIndex
+                ?? activeChild?.meta?.twinIndex
+                ?? activeChild?.birthGroupIndex
+                ?? activeChild?.twinIndex
+                ?? null;
 
-            if (typeof manager.getPartnerWorkspaceRoot === 'function') {
-                const partnerRoot = manager.getPartnerWorkspaceRoot();
-                const activeChildId = String(partnerRoot?.activeChildId || '').trim();
-                const partnerChild = activeChildId && partnerRoot?.children?.[activeChildId]
-                    ? partnerRoot.children[activeChildId]
-                    : null;
-                if (partnerChild && typeof partnerChild === 'object') return partnerChild;
-            }
+            return {
+                manager,
+                activeChild,
+                partnerRoot,
+                partnerChild,
+                partnerChildCount,
+                localChildCount,
+                requiresScopedChild: !!activeChild && (
+                    localChildCount > 1
+                    || activeBirthOrder > 1
+                    || !(activeTwinIndex === null || activeTwinIndex === undefined || activeTwinIndex === '')
+                )
+            };
         } catch (error) {
-            console.warn('PAIRING: Failed to resolve partner child libraries', error);
+            console.warn('PAIRING: Failed to resolve partner child context', error);
+            return context;
         }
+    },
 
+    _shouldSuppressUnscopedPartnerFallback: function () {
+        const context = this._getPartnerChildContext();
+        return !!(context.requiresScopedChild && !context.partnerChild);
+    },
+
+    _shouldUseScopedPartnerChildOnly: function () {
+        const context = this._getPartnerChildContext();
+        return !!(context.requiresScopedChild && context.partnerChild && context.partnerChildCount > 1);
+    },
+
+    _getPartnerChildRecord: function () {
+        const context = this._getPartnerChildContext();
+        if (context.partnerChild && typeof context.partnerChild === 'object') return context.partnerChild;
+        if (context.requiresScopedChild) return null;
+        const activeChildId = String(context.partnerRoot?.activeChildId || '').trim();
+        const partnerChild = activeChildId && context.partnerRoot?.children?.[activeChildId]
+            ? context.partnerRoot.children[activeChildId]
+            : null;
+        if (partnerChild && typeof partnerChild === 'object') return partnerChild;
         return null;
     },
 
@@ -1625,8 +1685,14 @@ const MeimayPartnerInsights = {
 
     getPartnerHiddenReadingSet: function () {
         const partnerLibraries = this._getPartnerChildLibraries();
+        if (this._shouldUseScopedPartnerChildOnly()) {
+            return new Set(readNormalizedHiddenReadingsFromSnapshot(partnerLibraries?.hiddenReadings || []));
+        }
         if (partnerLibraries && Array.isArray(partnerLibraries.hiddenReadings)) {
             return new Set(readNormalizedHiddenReadingsFromSnapshot(partnerLibraries.hiddenReadings));
+        }
+        if (this._shouldSuppressUnscopedPartnerFallback()) {
+            return new Set();
         }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
@@ -1664,6 +1730,9 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerLikedRaw: function () {
+        if (this._shouldSuppressUnscopedPartnerFallback()) {
+            return [];
+        }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
         const likedRemovalSource = Array.isArray(snapshot.likedRemoved) && snapshot.likedRemoved.length > 0
@@ -1694,6 +1763,9 @@ const MeimayPartnerInsights = {
             return normalized;
         };
         const partnerLibraries = this._getPartnerChildLibraries();
+        if (this._shouldUseScopedPartnerChildOnly()) {
+            return normalizeLikedItems(partnerLibraries?.kanjiStock || [], 'child-library');
+        }
         // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
         if (partnerLibraries && Array.isArray(partnerLibraries.kanjiStock) && partnerLibraries.kanjiStock.length > 0) {
             return normalizeLikedItems(partnerLibraries.kanjiStock, 'child-library');
@@ -1720,9 +1792,15 @@ const MeimayPartnerInsights = {
 
     getPartnerSaved: function () {
         const partnerLibraries = this._getPartnerChildLibraries();
+        if (this._shouldUseScopedPartnerChildOnly()) {
+            return Array.isArray(partnerLibraries?.savedNames) ? partnerLibraries.savedNames : [];
+        }
         // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
         if (partnerLibraries && Array.isArray(partnerLibraries.savedNames) && partnerLibraries.savedNames.length > 0) {
             return partnerLibraries.savedNames;
+        }
+        if (this._shouldSuppressUnscopedPartnerFallback()) {
+            return [];
         }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
@@ -3630,6 +3708,20 @@ MeimayShare.syncProfileAppearance = async function () {
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
     const partnerLibraries = this._getPartnerChildLibraries();
+    if (this._shouldUseScopedPartnerChildOnly()) {
+        const hiddenSet = this.getPartnerHiddenReadingSet();
+        return Array.isArray(partnerLibraries?.readingStock)
+            ? partnerLibraries.readingStock
+                .map((item) => (typeof normalizeReadingStockItem === 'function'
+                    ? normalizeReadingStockItem(this._safeClone(item))
+                    : this._safeClone(item)))
+                .filter(Boolean)
+                .filter(item => !this._isHiddenReadingItem(item, hiddenSet))
+            : [];
+    }
+    if (!partnerLibraries && this._shouldSuppressUnscopedPartnerFallback()) {
+        return [];
+    }
     const snapshot = MeimayShare.partnerSnapshot || {};
     const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
     // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
@@ -3670,6 +3762,9 @@ MeimayPartnerInsights.getOwnEncounteredReadings = function () {
 };
 
 MeimayPartnerInsights.getPartnerEncounteredReadings = function () {
+    if (this._shouldSuppressUnscopedPartnerFallback()) {
+        return [];
+    }
     const snapshot = MeimayShare?.partnerSnapshot || {};
     const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
     const readings = Array.isArray(snapshot.encounteredReadings) && snapshot.encounteredReadings.length > 0

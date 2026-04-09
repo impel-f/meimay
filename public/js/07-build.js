@@ -1634,13 +1634,30 @@ function renderStock() {
         )
         : null;
 
-    const stockSource = kanjiFocus === 'self'
+    let stockSource = kanjiFocus === 'self'
         ? (pairInsights?.getOwnLiked
             ? pairInsights.getOwnLiked().map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
         : (typeof liked !== 'undefined' && Array.isArray(liked)
                 ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
                 : []))
         : getMergedLikedCandidates();
+
+    if (kanjiFocus === 'partner' && pairInsights) {
+        const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
+        const directPartnerSource = typeof pairInsights.getPartnerLiked === 'function'
+            ? pairInsights.getPartnerLiked().map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
+            : [];
+        const mergedPartnerCount = Array.isArray(stockSource)
+            ? stockSource.filter(item => item?.fromPartner).length
+            : 0;
+        if (mergedPartnerCount === 0 && directPartnerSource.length > 0) {
+            console.warn('PAIRING: Falling back to direct partner stock render', {
+                directPartnerCount: directPartnerSource.length,
+                mergedPartnerCount
+            });
+            stockSource = directPartnerSource;
+        }
+    }
 
     let validItems = stockSource.filter(item => {
         if (kanjiFocus === 'partner' || kanjiFocus === 'matched') {
@@ -1663,6 +1680,40 @@ function renderStock() {
             const key = pairInsights?.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '';
             return key && matchedLikedKeys?.has(key);
         });
+    }
+
+    if (kanjiFocus === 'partner' && pairInsights) {
+        const partnerRawCount = typeof pairInsights.getPartnerLikedRaw === 'function'
+            ? pairInsights.getPartnerLikedRaw().length
+            : 0;
+        const mergedPartnerCount = stockSource.filter(item => item?.fromPartner).length;
+        const partnerChildContext = typeof pairInsights._getPartnerChildContext === 'function'
+            ? pairInsights._getPartnerChildContext()
+            : null;
+        const suppressUnscopedFallback = typeof pairInsights._shouldSuppressUnscopedPartnerFallback === 'function'
+            ? pairInsights._shouldSuppressUnscopedPartnerFallback()
+            : false;
+        if (partnerRawCount > 0 && mergedPartnerCount === 0) {
+            console.warn('PAIRING: Partner liked items did not reach stock render', {
+                focus: kanjiFocus,
+                partnerRawCount,
+                mergedPartnerCount,
+                requiresScopedChild: !!partnerChildContext?.requiresScopedChild,
+                hasPartnerChild: !!partnerChildContext?.partnerChild,
+                partnerChildCount: Number(partnerChildContext?.partnerChildCount || 0)
+            });
+        }
+        if ((partnerRawCount > 0 || suppressUnscopedFallback) && validItems.length === 0) {
+            console.warn('PAIRING: Partner kanji stock is empty on render', {
+                focus: kanjiFocus,
+                partnerRawCount,
+                mergedPartnerCount,
+                suppressUnscopedFallback,
+                requiresScopedChild: !!partnerChildContext?.requiresScopedChild,
+                hasPartnerChild: !!partnerChildContext?.partnerChild,
+                partnerChildCount: Number(partnerChildContext?.partnerChildCount || 0)
+            });
+        }
     }
 
     if (kanjiFocus === 'matched' || kanjiFocus === 'partner') {
