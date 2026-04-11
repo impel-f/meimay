@@ -579,10 +579,14 @@
                 this.wrapStorageMethod('saveLiked');
                 this.wrapStorageMethod('saveSavedNames');
             }
-            this.wrapNamedFunction('saveSettings');
+             this.wrapNamedFunction('saveSettings');
             this.wrapNamedFunction('saveReadingStock');
             this.wrapNamedFunction('executeSaveWithMessage');
             this.wrapNamedFunction('deleteSavedName');
+            this.wrapNamedFunction('deleteSavedNameBySourceIndex');
+            this.wrapNamedFunction('setSavedMainCandidate');
+            this.wrapNamedFunction('votePartnerSavedName');
+            this.wrapNamedFunction('likePartnerSavedName');
             this.wrapNamedFunction('clearReadingHistory');
         },
 
