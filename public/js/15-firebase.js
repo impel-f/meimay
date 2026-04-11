@@ -1465,10 +1465,12 @@ const MeimayShare = {
                 ? surnameData
                 : [{ kanji: typeof surnameStr !== 'undefined' ? surnameStr : '', strokes: 0 }];
             let added = 0;
+            let updated = 0;
             items.forEach(item => {
                 const itemKey = this.buildSavedMatchKey(item);
-                const exists = itemKey ? local.some(l => this.buildSavedMatchKey(l) === itemKey) : false;
-                if (!exists) {
+                const localIndex = itemKey ? local.findIndex(l => this.buildSavedMatchKey(l) === itemKey) : -1;
+                
+                if (localIndex === -1) {
                     let combination = [];
                     if (item.combinationKeys && typeof master !== 'undefined') {
                         combination = item.combinationKeys.map(k => {
@@ -1493,16 +1495,30 @@ const MeimayShare = {
                         message: item.message,
                         savedAt: item.savedAt,
                         fromPartner: true,
-                        partnerName: partnerName || '繝代・繝医リ繝ｼ',
+                        partnerName: partnerName || 'パートナー',
                         approvedFromPartner: item?.approvedFromPartner === true,
                         approvedPartnerSavedKey: this._normalizeString(item?.approvedPartnerSavedKey),
                         mainSelected: item?.mainSelected === true,
                         mainSelectedAt: this._normalizeString(item?.mainSelectedAt)
                     });
                     added++;
+                } else {
+                    const existing = local[localIndex];
+                    let changed = false;
+                    if (item?.mainSelected !== undefined && existing.mainSelected !== item.mainSelected) {
+                        existing.mainSelected = !!item.mainSelected;
+                        existing.mainSelectedAt = this._normalizeString(item.mainSelectedAt);
+                        changed = true;
+                    }
+                    if (item?.approvedFromPartner !== undefined && existing.approvedFromPartner !== item.approvedFromPartner) {
+                        existing.approvedFromPartner = !!item.approvedFromPartner;
+                        existing.approvedPartnerSavedKey = this._normalizeString(item.approvedPartnerSavedKey);
+                        changed = true;
+                    }
+                    if (changed) updated++;
                 }
             });
-            if (added > 0) {
+            if (added > 0 || updated > 0) {
                 if (typeof savedNames !== 'undefined') savedNames = local;
                 if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
                     // skipPartnerSync: true でパートナー同期ループを防止
