@@ -1359,12 +1359,23 @@ const MeimayShare = {
                 const filterRemoved = (items, removalSource = likedRemovalSource) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
                     ? StorageBox._filterRemovedLikedItems(items, removalSource)
                     : (Array.isArray(items) ? items.filter(Boolean) : []);
+                const prevSnapshot = this.partnerSnapshot || {};
                 this.partnerSnapshot = {
                     liked: filterRemoved(Array.isArray(data.liked) ? data.liked : [], likedRemovalSource),
                     savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
                     hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
                     likedRemoved: Array.isArray(likedRemovalSource) ? likedRemovalSource : [],
-                    role: data.role || null
+                    role: data.role || null,
+                    // 子ワークスペース情報は上書きせず引き継ぐ（applyRemoteRootSnapshot等で設定される）
+                    meimayStateV2: data.meimayStateV2 || prevSnapshot.meimayStateV2 || null,
+                    meimayBackup: data.meimayBackup || prevSnapshot.meimayBackup || null,
+                    backup: data.meimayBackup || prevSnapshot.backup || null,
+                    partnerUserBackup: prevSnapshot.partnerUserBackup || null,
+                    premiumState: prevSnapshot.premiumState || null,
+                    displayName: String(data.displayName || prevSnapshot.displayName || '').trim(),
+                    username: String(data.username || prevSnapshot.username || '').trim(),
+                    nickname: String(data.nickname || prevSnapshot.nickname || '').trim(),
+                    themeId: String(data.themeId || prevSnapshot.themeId || '').trim()
                 };
                 const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
                 if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
@@ -1419,52 +1430,31 @@ const MeimayShare = {
         if (!silent) showToast('保存候補を共有しました', '\u2713');
     },
 
-    // 蜿嶺ｿ｡繧ｹ繝医ャ繧ｯ繧偵Ο繝ｼ繧ｫ繝ｫ縺ｫ繝槭・繧ｸ
+    // パートナーの共有likedを受けリpartnerSnapshotに反映する。
+    // 小注意: 以前は liked 配列に直接插入していたが、
+    //   - sync₊④⑥renderの無限ループ「 mergeSharedLiked → StorageBox.saveLiked
+    //     → queuePartnerStockSync → syncMyData → Firestore更新
+    //     → listenPartnerData再発火 → mergeSharedLiked 」の原因だった
+    //   - liked配列にパートナーデータを混入すると子ワークスペース切替時に消える
+    //   - getMergedLikedCandidates() が partnerSnapshot.liked を直接参照するのでマージ不要
     mergeSharedLiked: function (items, partnerName) {
         if (typeof liked === 'undefined') return 0;
         const hiddenSet = new Set(readNormalizedHiddenReadingsFromSnapshot(MeimayShare.partnerSnapshot?.hiddenReadings || []));
         const sourceItems = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
             ? StorageBox._filterRemovedLikedItems(Array.isArray(items) ? items : [])
             : (Array.isArray(items) ? items : []);
-        let added = 0;
-        sourceItems.forEach(item => {
+        // partnerSnapshotを更新するのみ。liked配列からは完全に分離する。
+        // UI側は getMergedLikedCandidates() で partnerSnapshot.liked を参照する。
+        const validPartnerItems = sourceItems.filter(item => {
+            if (!item) return false;
             const readingKey = normalizeHiddenReadingKey(item?.sessionReading || item?.reading || '');
-            if (readingKey && hiddenSet.has(readingKey)) return;
-            const exists = liked.some(l =>
-                l['漢字'] === item['漢字'] &&
-                l.slot === item.slot &&
-                l.sessionReading === item.sessionReading
-            );
-            if (!exists) {
-                let fullKanji = typeof master !== 'undefined'
-                    ? master.find(m => m['漢字'] === item['漢字'])
-                    : null;
-                let hydratedItem = fullKanji ? {
-                    ...fullKanji,
-                    slot: item.slot !== undefined ? item.slot : -1,
-                    sessionReading: item.sessionReading || 'UNKNOWN',
-                    sessionSegments: item.sessionSegments || null,
-                    isSuper: item.isSuper || false,
-                    gender: item.gender || fullKanji.gender || gender || 'neutral'
-                } : item;
-                if (!hydratedItem.gender) {
-                    hydratedItem.gender = item.gender || fullKanji?.gender || gender || 'neutral';
-                }
-                hydratedItem.fromPartner = true;
-                hydratedItem.partnerName = partnerName || '繝代・繝医リ繝ｼ';
-                liked.push(hydratedItem);
-                added++;
-            }
+            if (readingKey && hiddenSet.has(readingKey)) return false;
+            return true;
         });
-        if (added > 0) {
-            if (typeof StorageBox !== 'undefined') StorageBox.saveLiked();
-            if (typeof renderStock === 'function' &&
-                document.getElementById('scr-stock')?.classList.contains('active')) {
-                renderStock();
-            }
-        }
+        // partnerSnapshotのlikesは listenPartnerData内で設定済みなので追加のカウント返回は不要
+        // renderStock側で partnerFocus機能により表示するので、ここでは 0 を返す
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-        return added;
+        return 0;
     },
 
     // 蜿嶺ｿ｡菫晏ｭ伜錐蜑阪ｒ繝ｭ繝ｼ繧ｫ繝ｫ縺ｫ繝槭・繧ｸ
@@ -1515,7 +1505,8 @@ const MeimayShare = {
             if (added > 0) {
                 if (typeof savedNames !== 'undefined') savedNames = local;
                 if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
-                    StorageBox.saveSavedNames();
+                    // skipPartnerSync: true でパートナー同期ループを防止
+                    StorageBox.saveSavedNames({ skipPartnerSync: true });
                 } else {
                     localStorage.setItem('meimay_saved', JSON.stringify(local));
                     if (local.length === 0) {

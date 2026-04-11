@@ -429,7 +429,7 @@ const StorageBox = {
     /**
      * 特定データの保存
      */
-    saveLiked: function () {
+    saveLiked: function (options = {}) {
         const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
         if (typeof syncReadingStockFromLiked === 'function') {
             syncReadingStockFromLiked(safeLiked);
@@ -453,7 +453,8 @@ const StorageBox = {
             console.warn("STORAGE: Failed to update liked clear marker", e);
         }
         this._persistBuildExclusionState(typeof excludedKanjiFromBuild !== 'undefined' ? excludedKanjiFromBuild : []);
-        if (typeof queuePartnerStockSync === 'function') {
+        // skipPartnerSync: true の場合はパートナー同期を呼ばない（無限ループ防止）
+        if (!options.skipPartnerSync && typeof queuePartnerStockSync === 'function') {
             queuePartnerStockSync('saveLiked');
         }
         if (result && typeof notifyStockStateChanged === 'function') {
@@ -472,7 +473,7 @@ const StorageBox = {
         }
     },
 
-    saveSavedNames: function () {
+    saveSavedNames: function (options = {}) {
         try {
             const safeSavedNames = Array.isArray(savedNames) ? savedNames : [];
             const hadSavedState = localStorage.getItem(this.KEY_SAVED) !== null
@@ -490,7 +491,8 @@ const StorageBox = {
             } else {
                 localStorage.removeItem(this.KEY_SAVED_CLEARED);
             }
-            if (typeof queuePartnerStockSync === 'function') {
+            // skipPartnerSync: true の場合はパートナー同期を呼ばない（無限ループ防止）
+            if (!options.skipPartnerSync && typeof queuePartnerStockSync === 'function') {
                 queuePartnerStockSync('saveSavedNames');
             }
             return true;
