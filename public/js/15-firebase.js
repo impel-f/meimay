@@ -2239,10 +2239,16 @@ function updatePairingUI() {
 async function handleGenerateCode() {
     const btn = document.getElementById('btn-generate-code');
     if (btn) btn.disabled = true;
-    const code = await MeimayPairing.createRoom();
-    if (btn) btn.disabled = false;
-    if (code) {
-        showToast('ルームを作成しました', '\u2713');
+    try {
+        const code = await MeimayPairing.createRoom();
+        if (btn) btn.disabled = false;
+        if (code) {
+            showToast('ルームを作成しました', '\u2713');
+        }
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        console.error('ルーム生成エラー:', e);
+        alert('ルームの作成中にエラーが発生しました。\n' + (e.message || e));
     }
 }
 async function handleEnterCode() {
