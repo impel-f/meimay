@@ -1985,7 +1985,7 @@ function updateNamePreview() {
             selectedPieces.forEach((item, i) => {
                 if (item) {
                     chosen.push(item['漢字']);
-                    const seg = (item.sessionSegments && item.sessionSegments[i]) || segments[i] || '';
+                    const seg = segments[i] || (item.sessionSegments && item.sessionSegments[i]) || '';
                     if (!String(seg).startsWith('__compound_slot_')) {
                         chosenReads.push(seg);
                     }
