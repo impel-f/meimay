@@ -60,8 +60,8 @@
         const rows = [
             { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字' },
             { item: '広告', free: 'あり', premium: 'なし' },
-            { item: '読みスワイプ', free: '1日30回', premium: '無制限' },
-            { item: '漢字スワイプ', free: '1日30回', premium: '無制限' },
+            { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
+            { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
             { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' }
         ];
 

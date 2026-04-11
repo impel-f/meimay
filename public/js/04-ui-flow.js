@@ -3254,7 +3254,7 @@ function renderUniversalCard() {
                     <div class="text-[10px] font-black tracking-[0.35em] text-[#b9965b]">DAILY LIMIT</div>
                     <p class="mt-3 text-[#bca37f] font-bold text-lg">本日のスワイプ上限に達しました</p>
                     <p class="mt-3 text-sm text-[#7a6f5a] leading-relaxed">
-                        読みスワイプは1日30回までです。<br>
+                        読みスワイプは1日100回までです。<br>
                         プレミアムなら漢字も読みも無制限でスワイプできます。
                     </p>
                     <div class="mt-5 flex flex-col gap-3">
@@ -6109,7 +6109,7 @@ function navSearchAction() {
 // 直感スワイプ – 1日30枚制限
 // ==========================================
 
-const DAILY_KANJI_LIMIT = 30;
+const DAILY_KANJI_LIMIT = 100;
 
 function _getDailyKey() {
     const d = new Date();
@@ -6162,7 +6162,7 @@ function getDailyRemainingCount() {
     return Math.max(0, DAILY_KANJI_LIMIT - getDailyKanjiSwipeCount());
 }
 
-const DAILY_READING_SWIPE_LIMIT = 30;
+const DAILY_READING_SWIPE_LIMIT = 100;
 
 function _getDailyReadingSwipeKey() {
     const d = new Date();

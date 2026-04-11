@@ -126,7 +126,7 @@ function render() {
                     <div class="text-[10px] font-black tracking-[0.35em] text-[#b9965b]">DAILY LIMIT</div>
                     <p class="mt-3 text-[#bca37f] font-bold text-lg">本日のスワイプ上限に達しました</p>
                     <p class="mt-3 text-sm text-[#7a6f5a] leading-relaxed">
-                        漢字スワイプは1日30回までです。<br>
+                        漢字スワイプは1日100回までです。<br>
                         プレミアムなら漢字も読みも無制限でスワイプできます。
                     </p>
                     <div class="mt-5 flex flex-col gap-3">
