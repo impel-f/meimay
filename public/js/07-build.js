@@ -989,150 +989,10 @@ window.switchStockTab = switchStockTab;
  * セグメント読み（はる / と / き）単位でグループ化し、
  * 同じ漢字は複数の読みセッションをまたいで1回だけ表示する
  */
-function renderStock() {
-    const container = document.getElementById('stock-list');
-    if (!container) return;
+// (Duplicate renderStock removed)
 
-    container.innerHTML = '';
 
-    // SEARCH/slot<0 を除いた有効アイテムのみ対象 (FREEは含める)
-    const validItems = liked.filter(item => {
-        if (item.sessionReading === 'FREE') return true;
-        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
-    });
 
-    if (validItems.length === 0) {
-        container.innerHTML = `
-    <div class="col-span-5 text-center py-20" >
-                <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
-                <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
-            </div>
-    `;
-        return;
-    }
-
-    // 履歴からセグメント情報を取得
-    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const readingToSegments = {};
-    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
-    const historyLookup = getLatestReadingHistoryLookup();
-
-    // セグメント読みでグループ化（重複排除）
-    const segGroups = {}; // { "はる": [item, ...], "と": [...] }
-    validItems.forEach(item => {
-        // 1. 自身のデータに保存されたセグメント配列を優先 (v23.9以降)
-        // 2. 履歴からのセグメント参照
-        // 3. 古いデータで履歴にもない場合は、完全な読み方(sessionReading)をフォールバックとして使用。
-        // （現在のグローバル segments へのフォールバックは他人の読みに混入するバグの元なので廃止）
-
-        let segRaw = '不明';
-        if (item.sessionReading === 'FREE') {
-            segRaw = 'FREE';
-        } else if (item.sessionSegments && item.sessionSegments[item.slot]) {
-            segRaw = item.sessionSegments[item.slot];
-        } else if (readingToSegments[item.sessionReading] && readingToSegments[item.sessionReading][item.slot]) {
-            segRaw = readingToSegments[item.sessionReading][item.slot];
-        } else if (item.sessionReading) {
-            segRaw = item.sessionReading; // 読み全体をそのままグループ名にする
-        }
-
-        const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
-        if (!segGroups[seg]) segGroups[seg] = [];
-
-        const dup = segGroups[seg].find(e => e['漢字'] === item['漢字']);
-        if (!dup) {
-            segGroups[seg].push(item);
-        } else if (item.isSuper && !dup.isSuper) {
-            // スーパーライクで上書き
-            dup.isSuper = true;
-        }
-    });
-
-    // グループキーをソート（FREEは必ず最後に配置する）
-    const sortedKeys = Object.keys(segGroups).sort((a, b) => {
-        if (a === 'FREE') return 1;
-        if (b === 'FREE') return -1;
-        return a.localeCompare(b, 'ja');
-    });
-
-    // セグメントごとに表示
-    sortedKeys.forEach(seg => {
-        const items = segGroups[seg];
-        if (items.length === 0) return;
-
-        // スーパーライク優先ソート
-        items.sort((a, b) => {
-            if (a.isSuper && !b.isSuper) return -1;
-            if (!a.isSuper && b.isSuper) return 1;
-            return 0;
-        });
-
-        // 識別用の安全なID生成
-        const safeId = seg === 'FREE' ? 'FREE' : encodeURIComponent(seg).replace(/%/g, '');
-
-        // セグメントヘッダー
-        const segHeader = document.createElement('div');
-        segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
-        segHeader.onclick = () => toggleReadingGroup(safeId);
-        segHeader.innerHTML = `
-    <div class="flex items-center gap-3" >
-                <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
-                    <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
-                    ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}個)</span>
-                </span>
-                <div class="h-px flex-1 bg-[#d4c5af]"></div>
-            </div>
-    `;
-        container.appendChild(segHeader);
-
-        // 5列グリッド
-        const cardsGrid = document.createElement('div');
-        cardsGrid.id = `group-${safeId}`;
-        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
-
-        items.forEach(item => {
-            const card = document.createElement('div');
-            const hasStockStars = !!item?.isSuper || !!item?.ownSuper || !!item?.partnerSuper;
-            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}`;
-            card.onclick = () => showDetailByData(item);
-
-            // Hydrate values from master if missing (due to data minification)
-            let displayStrokes = item['画数'];
-            if (displayStrokes === undefined && typeof master !== 'undefined') {
-                const m = master.find(k => k['漢字'] === item['漢字']);
-                if (m) displayStrokes = m['画数'];
-            }
-
-            // タグ色の取得
-            const unifiedTags = (typeof getUnifiedTags === 'function') ? getUnifiedTags(item['分類'] || '') : [];
-            const bgGradient = (typeof getGradientFromTags === 'function') ? getGradientFromTags(unifiedTags) : '';
-            if (bgGradient) {
-               card.style.border = 'none';
-               card.style.padding = '2px';
-               card.style.backgroundImage = `linear-gradient(white, white), ${bgGradient}`;
-               card.style.backgroundOrigin = 'border-box';
-               card.style.backgroundClip = 'content-box, border-box';
-            }
-
-            const partnerBadge = item.partnerAlsoPicked
-                ? getPartnerChipHTML({ partnerAlsoPicked: true })
-                : item.fromPartner
-                    ? getPartnerChipHTML({ fromPartner: true })
-                    : '';
-
-            card.innerHTML = `
-                ${item.isSuper ? '<div class="stock-stars">★</div>' : ''}
-                <div class="stock-kanji">${item['漢字']}</div>
-                <div class="stock-strokes">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
-                ${partnerBadge ? `<div class="mt-1 flex justify-center">${partnerBadge}</div>` : ''}
-`;
-            cardsGrid.appendChild(card);
-        });
-
-        container.appendChild(cardsGrid);
-    });
-}
 
 /**
  * 読み方グループの折りたたみトグル
@@ -1618,143 +1478,32 @@ function renderStock() {
 
     container.innerHTML = '';
 
-    const partnerViewState = typeof window.getMeimayPartnerViewState === 'function'
-        ? window.getMeimayPartnerViewState()
-        : { kanjiFocus: 'self' };
-    const kanjiFocus = partnerViewState.kanjiFocus === 'partner' || partnerViewState.kanjiFocus === 'matched'
-        ? partnerViewState.kanjiFocus
-        : 'self';
+    // パートナー連携状態の確認
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const matchedLikedKeys = kanjiFocus === 'matched' && pairInsights?.getMatchedLikedItems
-        ? new Set(
-            pairInsights
-                .getMatchedLikedItems()
-                .map(item => pairInsights.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '')
-                .filter(Boolean)
-        )
-        : null;
+    const isPaired = !!(pairInsights && typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode);
 
-    let stockSource = kanjiFocus === 'self'
-        ? (pairInsights?.getOwnLiked
-            ? pairInsights.getOwnLiked().map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
+    // デフォルトでマージされた候補を取得（連携時）
+    let stockSource = isPaired
+        ? getMergedLikedCandidates()
         : (typeof liked !== 'undefined' && Array.isArray(liked)
-                ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
-                : []))
-        : getMergedLikedCandidates();
+            ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)).map(item => hydrateLikedCandidate(item, { fromPartner: false })).filter(Boolean)
+            : []);
 
-    if (kanjiFocus === 'partner' && pairInsights) {
-        const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
-        const directPartnerSource = typeof pairInsights.getPartnerLiked === 'function'
-            ? pairInsights.getPartnerLiked().map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
-            : [];
-        const mergedPartnerCount = Array.isArray(stockSource)
-            ? stockSource.filter(item => item?.fromPartner).length
-            : 0;
-        if (mergedPartnerCount === 0 && directPartnerSource.length > 0) {
-            console.warn('PAIRING: Falling back to direct partner stock render', {
-                directPartnerCount: directPartnerSource.length,
-                mergedPartnerCount
-            });
-            stockSource = directPartnerSource;
-        }
-    }
-
+    // フィルタリング（SEARCHや無効なスロットを除外、FREEは含める）
     let validItems = stockSource.filter(item => {
-        if (kanjiFocus === 'partner' || kanjiFocus === 'matched') {
-            return true;
-        }
+        if (!item) return false;
         if (item.sessionReading === 'FREE') return true;
-        return item.slot >= 0 && item.sessionReading !== 'SEARCH';
+        // パートナーの候補、または有効なスロットを持つ自分の候補を残す
+        return item.fromPartner || (item.slot >= 0 && item.sessionReading !== 'SEARCH');
     });
 
-    if (kanjiFocus === 'self') {
-        validItems = validItems.filter(item => item.fromPartner !== true);
-    }
-
-    if (kanjiFocus === 'partner') {
-        validItems = validItems.filter(item => item.fromPartner);
-    }
-
-    if (kanjiFocus === 'matched') {
-        validItems = validItems.filter(item => {
-            const key = pairInsights?.buildLikedMatchKey ? pairInsights.buildLikedMatchKey(item) : '';
-            return key && matchedLikedKeys?.has(key);
-        });
-    }
-
-    if (kanjiFocus === 'partner' && pairInsights) {
-        const partnerRawCount = typeof pairInsights.getPartnerLikedRaw === 'function'
-            ? pairInsights.getPartnerLikedRaw().length
-            : 0;
-        const mergedPartnerCount = stockSource.filter(item => item?.fromPartner).length;
-        const partnerChildContext = typeof pairInsights._getPartnerChildContext === 'function'
-            ? pairInsights._getPartnerChildContext()
-            : null;
-        const suppressUnscopedFallback = typeof pairInsights._shouldSuppressUnscopedPartnerFallback === 'function'
-            ? pairInsights._shouldSuppressUnscopedPartnerFallback()
-            : false;
-        if (partnerRawCount > 0 && mergedPartnerCount === 0) {
-            console.warn('PAIRING: Partner liked items did not reach stock render', {
-                focus: kanjiFocus,
-                partnerRawCount,
-                mergedPartnerCount,
-                requiresScopedChild: !!partnerChildContext?.requiresScopedChild,
-                hasPartnerChild: !!partnerChildContext?.partnerChild,
-                partnerChildCount: Number(partnerChildContext?.partnerChildCount || 0)
-            });
-        }
-        if ((partnerRawCount > 0 || suppressUnscopedFallback) && validItems.length === 0) {
-            console.warn('PAIRING: Partner kanji stock is empty on render', {
-                focus: kanjiFocus,
-                partnerRawCount,
-                mergedPartnerCount,
-                suppressUnscopedFallback,
-                requiresScopedChild: !!partnerChildContext?.requiresScopedChild,
-                hasPartnerChild: !!partnerChildContext?.partnerChild,
-                partnerChildCount: Number(partnerChildContext?.partnerChildCount || 0)
-            });
-        }
-    }
-
-    if (kanjiFocus === 'matched' || kanjiFocus === 'partner') {
-        const banner = document.createElement('div');
-        banner.className = 'col-span-5 rounded-2xl border border-[#eee5d8] bg-[#fffaf5] px-4 py-3 mb-4';
-        banner.innerHTML = `
-            <div class="flex items-center justify-between gap-3">
-                <div>
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">${kanjiFocus === 'matched' ? 'Matched' : 'Partner'}</div>
-                    <div class="mt-1 text-sm font-bold text-[#4f4639]">${kanjiFocus === 'matched' ? 'おふたりで一致した漢字' : 'パートナーの漢字候補'}</div>
-                    <div class="mt-1 text-[11px] text-[#8b7e66]">${kanjiFocus === 'matched' ? '共通で気になっている漢字だけを表示しています。' : '相手が選んだ漢字を、ストックの中で見ています。'}</div>
-                </div>
-                    <button onclick="clearKanjiPartnerFocus()" class="shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
-                    通常表示
-                </button>
+    if (validItems.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-5 text-center py-20">
+                <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
+                <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
             </div>
         `;
-        container.appendChild(banner);
-    }
-
-    if (validItems.length === 0) {
-        container.innerHTML += kanjiFocus === 'matched'
-            ? `
-                <div class="col-span-5 text-center py-20">
-                    <p class="text-[#bca37f] italic text-lg mb-2">まだ一致した漢字はありません</p>
-                    <p class="text-sm text-[#a6967a]">お互いに気になる漢字が増えると、ここに共通候補が並びます</p>
-                </div>
-            `
-            : kanjiFocus === 'partner'
-                ? `
-                <div class="col-span-5 text-center py-20">
-                    <p class="text-[#bca37f] italic text-lg mb-2">パートナーの漢字候補はまだありません</p>
-                    <p class="text-sm text-[#a6967a]">相手が漢字を選ぶと、ここで同じストック内に見られます</p>
-                </div>
-            `
-            : `
-                <div class="col-span-5 text-center py-20">
-                    <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
-                    <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
-                </div>
-            `;
         return;
     }
 
