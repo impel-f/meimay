@@ -1228,6 +1228,7 @@ const MeimayPairing = {
                 role: this.myRole,
                 liked: projectedSections.liked,
                 savedNames: projectedSections.savedNames,
+                meimayStateV2: typeof MeimayUserBackup !== 'undefined' ? MeimayUserBackup._readChildWorkspaceStateV2() : null,
                 hiddenReadings,
                 surname: pairingSurname.surname,
                 surnameReading: pairingSurname.reading,
@@ -4834,11 +4835,6 @@ const MeimayUserBackup = {
         if (this._remoteBackupDisabled) return false;
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return false;
         if (this._restoreInFlight) return false;
-        
-        // 起動時・再読込時に最新情報を取得していることを明示
-        if (typeof showToast === 'function') showToast('最新の同期情報を取得中...', '🔄', 2000);
-        // 少しだけ待機してトーストを表示させる
-        await new Promise(resolve => setTimeout(resolve, 200));
 
         try {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
@@ -4908,8 +4904,6 @@ const MeimayUserBackup = {
 
             const refreshedSections = this._readCurrentSections();
             await this.syncLocalToRemote(currentUser, { sections: refreshedSections, force: true });
-
-            if (typeof showToast === 'function') showToast('最新の状態に同期しました', '✅', 1500);
             return true;
         } catch (error) {
             if (this._isPermissionDeniedError(error)) {
