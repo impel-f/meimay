@@ -264,7 +264,7 @@ function canonicalizePairingSavedNameKey(value) {
     const rawReading = String(parts.slice(2).join('::') || '').trim();
     const nameParts = rawName.split(/\s+/).filter(Boolean);
     const readingParts = rawReading.split(/\s+/).filter(Boolean);
-    const givenName = combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+    const givenName = rawName || combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
     const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
     const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
     return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
@@ -484,7 +484,7 @@ function getSavedSelectionKeyForSync(item) {
         return String(pairInsights.buildSavedMatchKey(item) || '').trim();
     }
 
-    return buildPairingSavedNameKey(item);
+    return canonicalizePairingSavedNameKey(buildPairingSavedNameKey(item));
 }
 
 function canonicalizeSavedNamesForSync(items, workspaceState) {
@@ -498,13 +498,19 @@ function canonicalizeSavedNamesForSync(items, workspaceState) {
         }));
     }
 
+    // パートナーが選択中の場合は、リスト側の個別の本命フラグはそのままにする（送信時に勝手に消さない）
     if (canvas.selectedSource === 'partner') return list;
 
     const selectedKey = canvas.selectedKey || canvas.activeKey || '';
     if (!selectedKey) return list;
 
     const hasSelectedItem = list.some((item) => getSavedSelectionKeyForSync(item) === selectedKey);
+    // もしキャンバス側のキーがリストに見つからない場合でも、リスト側の本命フラグが既にあるなら
+    // それを尊重して消去しないように緩和する（破壊的同期の防止）
     if (!hasSelectedItem) {
+        const alreadyHasMain = list.some(item => item.mainSelected);
+        if (alreadyHasMain) return list;
+
         return list.map((item) => ({
             ...item,
             mainSelected: false,
@@ -516,6 +522,7 @@ function canonicalizeSavedNamesForSync(items, workspaceState) {
     return list.map((item) => {
         const itemKey = getSavedSelectionKeyForSync(item);
         const isSelected = itemKey === selectedKey;
+        // 指定されたキーと一致するものだけを本命とし、他を落とす
         return {
             ...item,
             mainSelected: isSelected,

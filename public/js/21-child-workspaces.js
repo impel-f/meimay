@@ -224,7 +224,7 @@
         const rawReading = String(parts.slice(2).join('::') || '').trim();
         const nameParts = rawName.split(/\s+/).filter(Boolean);
         const readingParts = rawReading.split(/\s+/).filter(Boolean);
-        const givenName = combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+        const givenName = rawName || combinationKey || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
         const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
         const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
         return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
