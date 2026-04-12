@@ -867,7 +867,9 @@
                     : cloneData({ ...cloneData(incomingClone.prefs, {}), ...cloneData(baseClone.prefs, {}) }, {});
                 mergedClone.draft = structureOnly
                     ? cloneData(baseClone.draft, createBlankChildDraft())
-                    : cloneData(baseClone.draft, cloneData(incomingClone.draft, createBlankChildDraft()));
+                    : (preferIncoming 
+                        ? cloneData(incomingClone.draft, cloneData(baseClone.draft, createBlankChildDraft()))
+                        : cloneData(baseClone.draft, cloneData(incomingClone.draft, createBlankChildDraft())));
                 mergedClone.libraries = {
                     readingStock: structureOnly
                         ? cloneData(baseLibraries.readingStock, [])
