@@ -1352,62 +1352,6 @@ const MeimayShare = {
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
 
     // 繝代・繝医リ繝ｼ縺ｮ繝・・繧ｿ繧偵Μ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡
-    listenPartnerData: function (partnerUid) {
-        if (!partnerUid || !MeimayPairing.roomCode) return;
-        this.stopListening();
-
-        this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
-            .collection('data').doc(partnerUid)
-            .onSnapshot((doc) => {
-                if (!doc.exists) return;
-                const data = doc.data();
-                const likedRemovalSource = Array.isArray(data.meimayBackup?.likedRemoved) && data.meimayBackup.likedRemoved.length > 0
-                    ? data.meimayBackup.likedRemoved
-                    : (Array.isArray(data.likedRemoved) ? data.likedRemoved : []);
-                const filterRemoved = (items, removalSource = likedRemovalSource) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
-                    ? StorageBox._filterRemovedLikedItems(items, removalSource)
-                    : (Array.isArray(items) ? items.filter(Boolean) : []);
-                const prevSnapshot = this.partnerSnapshot || {};
-                this.partnerSnapshot = {
-                    liked: filterRemoved(Array.isArray(data.liked) ? data.liked : [], likedRemovalSource),
-                    savedNames: Array.isArray(data.savedNames) ? data.savedNames : [],
-                    hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(data.hiddenReadings),
-                    likedRemoved: Array.isArray(likedRemovalSource) ? likedRemovalSource : [],
-                    role: data.role || null,
-                    // 子ワークスペース情報は上書きせず引き継ぐ（applyRemoteRootSnapshot等で設定される）
-                    meimayStateV2: data.meimayStateV2 || prevSnapshot.meimayStateV2 || null,
-                    meimayBackup: data.meimayBackup || prevSnapshot.meimayBackup || null,
-                    backup: data.meimayBackup || prevSnapshot.backup || null,
-                    partnerUserBackup: prevSnapshot.partnerUserBackup || null,
-                    premiumState: prevSnapshot.premiumState || null,
-                    displayName: String(data.displayName || prevSnapshot.displayName || '').trim(),
-                    username: String(data.username || prevSnapshot.username || '').trim(),
-                    nickname: String(data.nickname || prevSnapshot.nickname || '').trim(),
-                    themeId: String(data.themeId || prevSnapshot.themeId || '').trim()
-                };
-                const partnerLabel = data.role === 'mama' ? 'ママ' : 'パパ';
-                if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
-
-                const filteredLiked = filterRemoved(Array.isArray(data.liked) ? data.liked : [], likedRemovalSource);
-                if (filteredLiked.length > 0) {
-                    const added = this.mergeSharedLiked(filteredLiked, partnerLabel);
-                    if (added > 0) {
-                        showToast(`${partnerLabel}のストック ${added}件を取り込みました`, '\u2713');
-                    }
-                }
-
-                if (data.savedNames && data.savedNames.length > 0) {
-                    const added = this.mergeSharedSaved(data.savedNames, partnerLabel);
-                    if (added > 0) {
-                        showToast(`${partnerLabel}の保存候補 ${added}件を取り込みました`, '\u2713');
-                    }
-                }
-            }, (e) => {
-                console.warn('SHARE: Listen partner data error', e);
-            });
-
-        console.log('SHARE: Listening for partner data');
-    },
 
     stopListening: function () {
         if (this._partnerUnsub) {
@@ -5237,6 +5181,11 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 updatePairingUI();
             } else if (typeof refreshPartnerAwareUI === 'function') {
                 refreshPartnerAwareUI();
+            }
+
+            // 子ワークスペース状態（本命選択など）をリアルタイムに反映
+            if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
+                MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
             }
                 } catch (error) {
                     console.warn('SHARE: Listen partner data error', error);

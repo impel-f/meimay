@@ -2091,6 +2091,43 @@
             return true;
         },
 
+        /* 繝代・繝医リ繝ｼ縺ｮ譛ｬ蜻ｽ驕ｸ謚槭ｒ繝ｪ繧｢繝ｫ繧ｿ繧､繝縺ｧ蜿榊ｰ */
+        applyPartnerRootSnapshot(partnerSnapshot, options = {}) {
+            if (!partnerSnapshot || typeof partnerSnapshot !== 'object' || !this.root) return false;
+            
+            let changed = false;
+            const partnerChildren = partnerSnapshot.children || {};
+            
+            // 蜷せ繝ｭ繝繝医＃縺ｨ縺ｫ繝代・繝医リ繝ｼ縺ｮ ownKey (驕ｸ謚樒憾諷) 繧貞叙繧願ｾｼ繧
+            Object.values(this.root.children || {}).forEach((localChild) => {
+                const slotKey = getChildWorkspaceSlotKey(localChild);
+                if (!slotKey) return;
+                
+                // 繝代・繝医リ繝ｼ蛛ｴ縺ｮ蜷悟繧ｹ繝ｭ繝繝医ｒ謗｢縺
+                const partnerChild = Object.values(partnerChildren).find(pc => getChildWorkspaceSlotKey(pc) === slotKey);
+                if (!partnerChild) return;
+                
+                const partnerSelectedKey = extractSavedCanvasOwnKeyFromWorkspaceState(partnerChild);
+                if (localChild.draft?.savedCanvas) {
+                    if (localChild.draft.savedCanvas.partnerKey !== partnerSelectedKey) {
+                        localChild.draft.savedCanvas.partnerKey = partnerSelectedKey;
+                        changed = true;
+                    }
+                } else if (partnerSelectedKey) {
+                    if (!localChild.draft) localChild.draft = createBlankChildDraft();
+                    localChild.draft.savedCanvas = normalizeWorkspaceSavedCanvasState({ partnerKey: partnerSelectedKey });
+                    changed = true;
+                }
+            });
+            
+            if (changed) {
+                this.saveRoot(this.root, { reason: 'partner-status-sync', skipRemoteSync: true });
+                this.applyActiveChildToGlobals({ reason: 'partner-status-sync' });
+                this.refreshVisibleUI('partner-status-sync');
+            }
+            return changed;
+        },
+
         saveRoot(root = this.root, options = {}) {
             if (!root) return;
             const nextRoot = root;
