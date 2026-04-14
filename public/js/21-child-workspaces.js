@@ -1518,20 +1518,26 @@
             };
         },
 
-        renderSwitchers(screenIds = KNOWN_SCREENS) {
+        renderSwitchers() {
             if (!this.initialized || !this.root) return;
-            const ids = Array.isArray(screenIds) ? screenIds : KNOWN_SCREENS;
-            ids.forEach((screenId) => {
+            
+            // 縺吶∋縺ｦ縺ｮ繧ｹ繧､繝繧√繝｣繧ｯ繝ｪ繧｢                document.querySelectorAll('.meimay-child-switcher').forEach((node) => node.remove());
+            
+            KNOWN_SCREENS.forEach((screenId) => {
                 const host = document.querySelector(SCREEN_HOST_SELECTORS[screenId]);
                 if (!host) return;
-                const existing = host.querySelector(`.meimay-child-switcher[data-screen-id="${screenId}"]`);
-                if (existing) existing.remove();
                 const element = document.createElement('div');
                 element.className = `meimay-child-switcher${screenId === 'scr-build' || screenId === 'scr-settings' ? ' compact' : ''}`;
                 element.dataset.screenId = screenId;
                 element.innerHTML = this.buildSwitcherMarkup(screenId);
                 host.prepend(element);
             });
+            
+            // 繝倥ャ繝繝ｼ繝懊ち繝ｳ縺ｮ譖ｴ譁
+            this.updateHeaderChildButton();
+            
+            // 險ｭ螳夂判髱｢縺ｮ繧ｫ繝ｼ繝峨ョ繧ｳ繝ｬ繝ｼ繧ｷ繝ｧ繝ｳ
+            this.decorateSettingsChildManagementCard();
         },
 
         buildSwitcherMarkup(screenId) {
@@ -2829,6 +2835,29 @@
                     options.copySections
                 )
             };
+        },
+
+        decorateSettingsChildManagementCard() {
+            const container = document.getElementById('settings-screen-content');
+            if (!container) return;
+            const titleNodes = Array.from(container.querySelectorAll('.item-title-unified'));
+            const target = titleNodes.find((node) => String(node.textContent || '').trim() === '赤ちゃんの子性別' || String(node.textContent || '').trim() === '子ども管理');
+            if (!target) return;
+            const item = target.closest('.settings-item-unified');
+            const activeChild = this.getActiveChild();
+            if (!item || !activeChild) return;
+            
+            const valueNode = item.querySelector('.item-value-unified');
+            const iconNode = item.querySelector('.item-icon-circle span');
+            
+            const label = this.getFormattedChildLabel(activeChild.meta.id);
+            
+            target.textContent = '子ども管理';
+            if (valueNode) {
+                valueNode.textContent = label + (label.includes('：') ? '' : ` ・ ${getGenderLabel(activeChild.meta.gender)}`);
+            }
+            if (iconNode) iconNode.textContent = '👶';
+            item.onclick = () => this.openManagerModal();
         }
     };
 
