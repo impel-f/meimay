@@ -174,6 +174,10 @@
         return getJapaneseOrderLabel(order);
     }
 
+    function getGenderEmoji(gender) {
+        return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '';
+    }
+
     function getWorkspaceSavedCombinationKey(item) {
         if (!item) return '';
         if (Array.isArray(item.combination) && item.combination.length > 0) {
@@ -1409,6 +1413,22 @@
             return child?.meta?.displayLabel || '第一子';
         },
 
+        getMatchedNameForChild(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return null;
+            const savedCanvas = child.draft?.savedCanvas;
+            if (!savedCanvas || savedCanvas.blank) return null;
+            
+            const ownKey = canonicalizeWorkspaceSavedKey(savedCanvas.ownKey);
+            const partnerKey = canonicalizeWorkspaceSavedKey(savedCanvas.partnerKey);
+            
+            if (ownKey && partnerKey && ownKey === partnerKey) {
+                const parts = ownKey.split('::');
+                return String(parts[0] || '').trim();
+            }
+            return null;
+        },
+
         getSummaryLibrariesForChild(childId) {
             const child = this.getChildById(childId);
             if (!child) return {};
@@ -1499,6 +1519,11 @@
         },
 
         getDisplayChildSummary(childId) {
+            const isPaired = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode;
+            if (isPaired) {
+                const pairedSummary = this.getPairedChildSummary(childId);
+                if (pairedSummary) return pairedSummary;
+            }
             const localSummary = this.getChildSummary(childId);
             return { ...localSummary, summaryLabel: '' };
         },
@@ -1528,23 +1553,34 @@
 
         buildSwitcherMarkup(screenId) {
             const activeChild = this.getActiveChild();
+            const activeId = activeChild?.meta?.id || '';
             const activeLabel = activeChild?.meta?.displayLabel || '第一子';
+            const matchedName = this.getMatchedNameForChild(activeId);
+            const emoji = getGenderEmoji(activeChild?.meta?.gender);
+            
             const activeGender = getGenderLabel(activeChild?.meta?.gender || 'neutral');
-            const summary = this.getDisplayChildSummary(activeChild?.meta?.id);
+            const summary = this.getDisplayChildSummary(activeId);
             const childButtons = this.buildOrderedChildIds(this.root).map((childId) => {
                 const child = this.getChildById(childId);
                 const childSummary = this.getDisplayChildSummary(childId);
+                const cMatchedName = this.getMatchedNameForChild(childId);
+                const cEmoji = getGenderEmoji(child?.meta?.gender);
                 return `
                     <button type="button" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')" class="meimay-child-chip${childId === this.root.activeChildId ? ' active' : ''}">
-                        ${escapeHtml(child.meta.displayLabel)}
+                        ${escapeHtml(child.meta.displayLabel)}${cEmoji}${cMatchedName ? '：' + escapeHtml(cMatchedName) : ''}
                         <span class="meimay-child-chip-sub">${escapeHtml(getGenderLabel(child.meta.gender))} ・ 読み ${childSummary.readingCount} / 漢字 ${childSummary.kanjiCount} / 保存 ${childSummary.savedCount}</span>
                     </button>
                 `;
             }).join('');
+            
+            const titleHtml = matchedName
+                ? `${escapeHtml(activeLabel)}${emoji}：${escapeHtml(matchedName)}`
+                : `${escapeHtml(activeLabel)}${emoji} を進行中`;
+                
             return `
                 <div class="meimay-child-switcher-header">
                     <div>
-                        <div class="meimay-child-switcher-title">${escapeHtml(activeLabel)} を進行中</div>
+                        <div class="meimay-child-switcher-title">${titleHtml}</div>
                         <div class="meimay-child-switcher-subtitle">${escapeHtml(activeGender)} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
                     </div>
                     <button type="button" class="meimay-child-inline-btn" onclick="MeimayChildWorkspaces.openManagerModal()">子ども管理</button>
@@ -1564,8 +1600,16 @@
             if (!item || !activeChild) return;
             const valueNode = item.querySelector('.item-value-unified');
             const iconNode = item.querySelector('.item-icon-circle span');
+            
+            const matchedName = this.getMatchedNameForChild(activeChild.meta.id);
+            const emoji = getGenderEmoji(activeChild.meta.gender);
+            
             target.textContent = '子ども管理';
-            if (valueNode) valueNode.textContent = `${activeChild.meta.displayLabel} ・ ${getGenderLabel(activeChild.meta.gender)}`;
+            if (valueNode) {
+                valueNode.textContent = matchedName
+                    ? `${activeChild.meta.displayLabel}${emoji}：${matchedName}`
+                    : `${activeChild.meta.displayLabel}${emoji} ・ ${getGenderLabel(activeChild.meta.gender)}`;
+            }
             if (iconNode) iconNode.textContent = '👶';
             item.onclick = () => this.openManagerModal();
         },
@@ -1688,13 +1732,20 @@
             const sharedSummary = this.getSharedSummary();
             const childCards = this.buildOrderedChildIds(this.root).map((childId) => {
                 const child = this.getChildById(childId);
-                const summary = this.getChildSummary(childId);
+                const summary = this.getDisplayChildSummary(childId);
+                const matchedName = this.getMatchedNameForChild(childId);
+                const emoji = getGenderEmoji(child?.meta?.gender);
                 const isActive = childId === activeId;
+                
+                const titleHtml = matchedName
+                    ? `${escapeHtml(child.meta.displayLabel)}${emoji}：${escapeHtml(matchedName)}`
+                    : `${escapeHtml(child.meta.displayLabel)}${emoji}`;
+
                 return `
                     <div class="meimay-child-card${isActive ? ' active' : ''}">
                         <div class="meimay-child-card-head">
                             <div>
-                                <div class="meimay-child-card-title">${escapeHtml(child.meta.displayLabel)}</div>
+                                <div class="meimay-child-card-title">${titleHtml}</div>
                                 <div class="meimay-child-card-meta">${escapeHtml(getGenderLabel(child.meta.gender))} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
                             </div>
                             ${isActive ? '<span class="meimay-child-badge">編集中</span>' : ''}
@@ -2153,10 +2204,6 @@
             this.updateHeaderChildButton();
         },
 
-        getChildLabel(childId) {
-            const child = this.getChildById(childId);
-            return child?.meta?.displayLabel || '第一子';
-        },
 
         updateHeaderChildButton() {
             const slot = document.getElementById('top-bar-child-button-slot');
