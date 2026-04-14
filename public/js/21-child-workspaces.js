@@ -2433,9 +2433,7 @@
         },
 
         getManagerChildTitle(childId) {
-            const child = this.getChildById(childId);
-            if (!child) return '';
-            return getChildHeaderLabel(child, this.root?.activeChildId);
+            return this.getFormattedChildLabel(childId);
         },
 
         buildCopySourceOptions(excludedChildId = '') {
@@ -2447,8 +2445,7 @@
                 ? this.root.activeChildId
                 : childIds[0];
             return childIds.map((childId) => {
-                const child = this.getChildById(childId);
-                const label = getChildHeaderLabel(child, this.root?.activeChildId);
+                const label = this.getFormattedChildLabel(childId);
                 return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
         },
