@@ -1439,6 +1439,16 @@
             return this.summarizeChildLibraries(this.getSummaryLibrariesForChild(childId));
         },
 
+        resolveMergedGender(localGender, partnerGender) {
+            const l = normalizeGenderValue(localGender);
+            const p = normalizeGenderValue(partnerGender);
+            if (l === p) return l;
+            if (l === 'neutral') return p;
+            if (p === 'neutral') return l;
+            // Male vs Female conflict
+            return 'neutral';
+        },
+
         getPairedChildSummary(childId) {
             const child = this.getChildById(childId);
             if (!child) return null;
@@ -2130,15 +2140,16 @@
             let changed = false;
             const partnerChildren = partnerSnapshot.children || {};
             
-            // 蜷せ繝ｭ繝繝医＃縺ｨ縺ｫ繝代・繝医リ繝ｼ縺ｮ ownKey (驕ｸ謚樒憾諷) 繧貞叙繧願ｾｼ繧
+            // 各スロットごとにパートナーの ownKey (選択状態) と性別を取り込む
             Object.values(this.root.children || {}).forEach((localChild) => {
                 const slotKey = getChildWorkspaceSlotKey(localChild);
                 if (!slotKey) return;
                 
-                // 繝代・繝医リ繝ｼ蛛ｴ縺ｮ蜷悟繧ｹ繝ｭ繝繝医ｒ謗｢縺
+                // パートナー側の同スロットを探す
                 const partnerChild = Object.values(partnerChildren).find(pc => getChildWorkspaceSlotKey(pc) === slotKey);
                 if (!partnerChild) return;
                 
+                // 1. 本命選択の同期
                 const partnerSelectedKey = extractSavedCanvasOwnKeyFromWorkspaceState(partnerChild);
                 if (localChild.draft?.savedCanvas) {
                     if (localChild.draft.savedCanvas.partnerKey !== partnerSelectedKey) {
@@ -2148,6 +2159,14 @@
                 } else if (partnerSelectedKey) {
                     if (!localChild.draft) localChild.draft = createBlankChildDraft();
                     localChild.draft.savedCanvas = normalizeWorkspaceSavedCanvasState({ partnerKey: partnerSelectedKey });
+                    changed = true;
+                }
+
+                // 2. 性別の同期（マージルール適用）
+                const mergedGender = this.resolveMergedGender(localChild.meta?.gender, partnerChild.meta?.gender);
+                if (normalizeGenderValue(localChild.meta?.gender) !== mergedGender) {
+                    localChild.meta.gender = mergedGender;
+                    localChild.meta.updatedAt = getNowIso();
                     changed = true;
                 }
             });
