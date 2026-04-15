@@ -2670,24 +2670,38 @@
             const birthOrder = selectedOrder || this.getSuggestedBirthOrder();
             const genderValue = this.getSelectedChildModalGender();
             if (mode === 'edit' && childId) {
-                if (this.isBirthOrderTaken(birthOrder, childId)) {
-                    this.notify('その順番はすでに使われています。', '!');
+                if (this.isDisplayLabelTaken(displayLabel, childId)) {
+                    this.notify('同じ表示ラベルの子どもがいます。多胎なら 1, 2, 3... の順番を分けてください。', '!');
                     return;
                 }
+                
+                // 1. まず現在の作業状態をバックアップ（この際、Active Child のオブジェクトが作り替えられる可能性がある）
+                this.persistActiveChildSnapshot('before-edit-child');
+                
+                // 2. 作り替えられた可能性があるため、最新の参照を取得し直す
                 const child = this.getChildById(childId);
                 if (!child) return;
-                this.persistActiveChildSnapshot('before-edit-child');
+
+                // 3. メタデータを更新
                 child.meta.birthOrder = birthOrder;
-                child.meta.displayLabel = buildDisplayLabel(birthOrder);
+                child.meta.birthGroupIndex = twinIndex;
+                child.meta.twinIndex = twinIndex;
+                child.meta.birthGroupId = twinIndex === null ? null : `bg_${birthOrder}`;
+                child.meta.twinGroupId = child.meta.birthGroupId;
+                child.meta.displayLabel = displayLabel;
                 child.meta.gender = genderValue;
-                child.meta.birthGroupId = null;
-                child.meta.birthGroupIndex = null;
-                child.meta.twinGroupId = null;
-                child.meta.twinIndex = null;
                 child.meta.updatedAt = getNowIso();
+
+                // 4. 重要: 保存 (saveRoot) する前にグローバル変数を更新する！
+                // これにより、saveRoot がフックされて再度 Snapshot が走っても、正しい値が読み込まれるようになる
+                if (childId === this.root.activeChildId) {
+                    this.applyActiveChildToGlobals({ reason: 'edit-child-sync' });
+                }
+
+                // 5. 最終的な状態を保存
                 this.root.childOrder = this.buildOrderedChildIds(this.root);
                 this.saveRoot(this.root);
-                if (childId === this.root.activeChildId) this.applyActiveChildToGlobals({ reason: 'edit-child' });
+
                 this.closeChildModal();
                 this.closeManagerModal();
                 this.refreshVisibleUI('edit-child');
