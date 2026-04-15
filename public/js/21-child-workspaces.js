@@ -2135,10 +2135,21 @@
 
         /* 繝代・繝医リ繝ｼ縺ｮ譛ｬ蜻ｽ驕ｸ謚槭ｒ繝ｪ繧｢繝ｫ繧ｿ繧､繝縺ｧ蜿榊ｰ */
         applyPartnerRootSnapshot(partnerSnapshot, options = {}) {
-            if (!partnerSnapshot || typeof partnerSnapshot !== 'object' || !this.root) return false;
+            if (!partnerSnapshot || !this.root) return false;
             
+            let snapshot = partnerSnapshot;
+            if (typeof snapshot === 'string') {
+                try {
+                    snapshot = JSON.parse(snapshot);
+                } catch (e) {
+                    console.warn('CHILD_WORKSPACES: Failed to parse partner snapshot', e);
+                    return false;
+                }
+            }
+            if (typeof snapshot !== 'object') return false;
+
             let changed = false;
-            const partnerChildren = partnerSnapshot.children || {};
+            const partnerChildren = snapshot.children || {};
             
             // 各スロットごとにパートナーの ownKey (選択状態) と性別を取り込む
             Object.values(this.root.children || {}).forEach((localChild) => {
