@@ -2666,9 +2666,13 @@
         },
 
         saveChildModal(mode = 'create', childId = null) {
-            const selectedOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 0);
-            const birthOrder = selectedOrder || this.getSuggestedBirthOrder();
+            const birthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
+            const multipleOrderRaw = String(document.getElementById('mcw-child-multiple-order')?.value || '').trim();
+            const parsedMultipleOrder = multipleOrderRaw ? parseInt(multipleOrderRaw, 10) : NaN;
+            const twinIndex = Number.isFinite(parsedMultipleOrder) && parsedMultipleOrder > 0 ? parsedMultipleOrder - 1 : null;
             const genderValue = this.getSelectedChildModalGender();
+            const displayLabel = buildDisplayLabel(birthOrder, twinIndex);
+
             if (mode === 'edit' && childId) {
                 if (this.isDisplayLabelTaken(displayLabel, childId)) {
                     this.notify('同じ表示ラベルの子どもがいます。多胎なら 1, 2, 3... の順番を分けてください。', '!');
