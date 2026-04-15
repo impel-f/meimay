@@ -2358,17 +2358,11 @@
                 neutral: '👶'
             };
             const normalized = normalizeGenderValue(selectedGender);
-            const normalizedPartner = partnerGender ? normalizeGenderValue(partnerGender) : null;
             return buttons.map((item) => {
                 const isSelected = item.value === normalized;
-                const isPartnerPicked = normalizedPartner && item.value === normalizedPartner;
-                const partnerBadge = isPartnerPicked
-                    ? `<span class="mcw-partner-badge">パートナー</span>`
-                    : '';
-                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}${isPartnerPicked ? ' partner-picked' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">
+                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">
                     <span class="wiz-baby-gender-emoji">${escapeHtml(emojis[item.value] || '👶')}</span>
                     <span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span>
-                    ${partnerBadge}
                 </button>`;
             }).join('');
         },
@@ -2409,33 +2403,11 @@
         },
 
         updateChildModalPartnerSelectionHint() {
-            const modal = document.getElementById('meimay-child-editor-modal');
             const note = document.getElementById('mcw-child-partner-gender-note');
-            if (!note) return;
-            if (!modal || String(modal.dataset.mode || '') !== 'edit') {
+            if (note) {
                 note.hidden = true;
                 note.textContent = '';
-                return;
             }
-
-            const childId = String(modal.dataset.childId || '').trim();
-            const child = childId ? this.getChildById(childId) : null;
-            const partnerChild = this.getPartnerChildForChild(child);
-            const localGender = this.getSelectedChildModalGender();
-            const partnerGender = normalizeGenderValue(partnerChild?.meta?.gender);
-            const shouldShow = !!child
-                && !!partnerChild
-                && localGender !== partnerGender
-                && !(localGender === 'neutral' && partnerGender === 'neutral');
-
-            if (!shouldShow) {
-                note.hidden = true;
-                note.textContent = '';
-                return;
-            }
-
-            note.hidden = false;
-            note.textContent = 'パートナーが選択';
         },
 
         getSelectedChildModalStartMode() {
