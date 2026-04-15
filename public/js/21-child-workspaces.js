@@ -1872,56 +1872,6 @@
             deleteButton.title = canDelete ? '' : '最後の1人は削除できません';
             deleteButton.setAttribute('aria-disabled', canDelete ? 'false' : 'true');
         },
-        saveChildModal(mode = 'create', childId = null) {
-            const birthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
-            const multipleOrderRaw = String(document.getElementById('mcw-child-multiple-order')?.value || '').trim();
-            const parsedMultipleOrder = multipleOrderRaw ? parseInt(multipleOrderRaw, 10) : NaN;
-            const twinIndex = Number.isFinite(parsedMultipleOrder) && parsedMultipleOrder > 0 ? parsedMultipleOrder - 1 : null;
-            const genderValue = normalizeGenderValue(document.getElementById('mcw-child-gender')?.value || 'neutral');
-            const displayLabel = buildDisplayLabel(birthOrder, twinIndex);
-            if (this.isDisplayLabelTaken(displayLabel, childId)) {
-                this.notify('同じ表示ラベルの子どもがいます。多胎なら 1, 2, 3... の順番を分けてください。', '!');
-                return;
-            }
-            if (mode === 'edit' && childId) {
-                this.persistActiveChildSnapshot('before-edit-child');
-                const child = this.getChildById(childId);
-                if (!child) return;
-                child.meta.birthOrder = birthOrder;
-                child.meta.birthGroupIndex = twinIndex;
-                child.meta.twinIndex = twinIndex;
-                child.meta.birthGroupId = twinIndex === null ? null : `bg_${birthOrder}`;
-                child.meta.twinGroupId = child.meta.birthGroupId;
-                child.meta.displayLabel = displayLabel;
-                child.meta.gender = genderValue;
-                child.meta.updatedAt = getNowIso();
-                this.root.childOrder = this.buildOrderedChildIds(this.root);
-                this.saveRoot(this.root);
-                if (childId === this.root.activeChildId) this.applyActiveChildToGlobals({ reason: 'edit-child' });
-                this.closeChildModal();
-                this.closeManagerModal();
-                this.refreshVisibleUI('edit-child');
-                this.notify('子どもの設定を更新しました', '✓');
-                return;
-            }
-            const startMode = document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
-            const sourceChildId = document.getElementById('mcw-child-copy-source')?.value || '';
-            if (startMode === 'copy' && (!sourceChildId || !this.getChildById(sourceChildId))) {
-                this.notify('コピー元の子どもを選んでください。', '!');
-                return;
-            }
-            this.persistActiveChildSnapshot('before-create-child');
-            const nextId = this.generateChildId();
-            this.root.children[nextId] = this.buildChildRecordForCreate({ id: nextId, birthOrder, multipleIndex: twinIndex, gender: genderValue, startMode, sourceChildId });
-            this.root.childOrder = this.buildOrderedChildIds(this.root);
-            this.root.activeChildId = nextId;
-            this.saveRoot(this.root);
-            this.closeChildModal();
-            this.closeManagerModal();
-            this.applyActiveChildToGlobals({ reason: 'create-child' });
-            this.refreshVisibleUI('create-child');
-            this.notify(`${this.getChildLabel(nextId)} を追加しました`, '✓');
-        },
 
         copyAllFromChild(sourceChildId) {
             const sourceChild = this.getChildById(sourceChildId);
