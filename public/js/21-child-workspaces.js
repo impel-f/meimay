@@ -2173,12 +2173,27 @@
                     changed = true;
                 }
 
-                // 2. 性別の同期（マージルール適用）
-                const mergedGender = this.resolveMergedGender(localChild.meta?.gender, partnerChild.meta?.gender);
-                if (normalizeGenderValue(localChild.meta?.gender) !== mergedGender) {
-                    localChild.meta.gender = mergedGender;
-                    localChild.meta.updatedAt = getNowIso();
-                    changed = true;
+                // 2. 性別の同期（最後に更新した方の値を優先する）
+                const localGender = normalizeGenderValue(localChild.meta?.gender);
+                const partnerGender = normalizeGenderValue(partnerChild.meta?.gender);
+
+                if (localGender !== partnerGender) {
+                    const localTime = parseComparableTime(localChild.meta?.updatedAt);
+                    const partnerTime = parseComparableTime(partnerChild.meta?.updatedAt);
+
+                    // パートナーの更新日時が新しい、または自分が「指定なし」の場合は、パートナーに従う
+                    if (partnerTime > localTime || (localGender === 'neutral' && partnerGender !== 'neutral')) {
+                        localChild.meta.gender = partnerGender;
+                        localChild.meta.updatedAt = partnerChild.meta.updatedAt;
+                        changed = true;
+                    } 
+                    // 自分が新しい場合はそのまま（自分の保存内容が優先される）
+                    // もし「男 vs 女」で更新日時が完全に同一（稀）な場合はリセットする
+                    else if (localTime === partnerTime && localGender !== 'neutral' && partnerGender !== 'neutral') {
+                        localChild.meta.gender = 'neutral';
+                        localChild.meta.updatedAt = getNowIso();
+                        changed = true;
+                    }
                 }
             });
             
