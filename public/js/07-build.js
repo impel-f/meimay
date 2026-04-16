@@ -162,6 +162,44 @@ function getVisibleOwnKanjiBuildCandidates() {
         .filter(item => !!item && isVisibleOwnKanjiBuildItem(item));
 }
 
+/**
+ * 自由組み立て用：自分＋パートナー両方の漢字候補を返す
+ */
+function getVisibleAllKanjiBuildCandidates() {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const isPaired = !!(pairInsights && typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode);
+
+    if (!isPaired) {
+        // 未連携時は自分のストックのみ
+        return getVisibleOwnKanjiBuildCandidates();
+    }
+
+    // 自分の候補
+    const ownItems = getVisibleOwnKanjiBuildCandidates();
+
+    // パートナーの候補
+    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
+    const partnerLikedSource = pairInsights?.getPartnerLiked
+        ? pairInsights.getPartnerLiked()
+        : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
+    const partnerItems = Array.isArray(partnerLikedSource)
+        ? partnerLikedSource
+            .map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName }))
+            .filter(item => !!item && !isImportedKanjiLibraryItem(item)
+                && (item.sessionReading === 'FREE' || item.fromPartner || Number(item.slot) >= 0)
+                && item.sessionReading !== 'SEARCH')
+        : [];
+
+    // 重複チェック（同じ漢字が自分にもある場合はownItemsを優先）
+    const ownKanjiSet = new Set(ownItems.map(item => String(item?.['漢字'] || item?.kanji || '').trim()).filter(Boolean));
+    const uniquePartnerItems = partnerItems.filter(item => {
+        const k = String(item?.['漢字'] || item?.kanji || '').trim();
+        return k && !ownKanjiSet.has(k);
+    });
+
+    return [...ownItems, ...uniquePartnerItems];
+}
+
 function rememberBuildCandidateExclusions(target) {
     if (!Array.isArray(excludedKanjiFromBuild)) {
         excludedKanjiFromBuild = [];
@@ -220,7 +258,7 @@ function rebuildFbChoiceMarks() {
 function pruneExcludedFreeBuildChoices() {
     if (buildMode !== 'free' || !Array.isArray(fbChoices) || fbChoices.length === 0) return false;
     const allowedChoices = new Set(
-        getVisibleOwnKanjiBuildCandidates()
+        getVisibleAllKanjiBuildCandidates()
             .map((item) => String(item?.kanji || item?.['漢字'] || '').trim())
             .filter(Boolean)
     );
@@ -2221,7 +2259,7 @@ window.selectReadingForBuild = selectReadingForBuild;
 function renderBuildFreeMode(container) {
     const seen = new Set();
     const allKanji = [];
-    const freeModeSource = getVisibleOwnKanjiBuildCandidates();
+    const freeModeSource = getVisibleAllKanjiBuildCandidates();
     const pushCandidate = (item) => {
         if (!item) return;
         if (isBuildCandidateExcluded(item)) return;
@@ -2230,11 +2268,18 @@ function renderBuildFreeMode(container) {
         seen.add(key);
         allKanji.push({ ...item, _buildTarget: key });
     };
+    // スーパーライク優先（自分→パートナー）
     freeModeSource.forEach(item => {
-        if (item.isSuper) pushCandidate(item);
+        if (item.isSuper && !item.fromPartner) pushCandidate(item);
     });
     freeModeSource.forEach(item => {
-        if (!item.isSuper) pushCandidate(item);
+        if (item.isSuper && item.fromPartner) pushCandidate(item);
+    });
+    freeModeSource.forEach(item => {
+        if (!item.isSuper && !item.fromPartner) pushCandidate(item);
+    });
+    freeModeSource.forEach(item => {
+        if (!item.isSuper && item.fromPartner) pushCandidate(item);
     });
 
     if (allKanji.length === 0) {
@@ -2277,11 +2322,15 @@ function renderBuildFreeMode(container) {
                 if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
                 const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
                 const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
+                const partnerBadge = item.fromPartner
+                    ? `<div style="position:absolute;top:-6px;right:-4px;background:#f7b2a7;color:#fff;font-size:9px;font-weight:900;line-height:1;padding:2px 5px;border-radius:99px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.15);">相手</div>`
+                    : '';
                 return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                         oncontextmenu='event.preventDefault(); openKanjiActionMenu(${JSON.stringify(buildTarget)}, ${slotIdx}, true)'
                         data-slot="${slotIdx}" data-kanji="${k}"
                         class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                         style="${buttonStyles.join('')}">
+                        ${partnerBadge}
                         <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
                         <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}\u753b</div>
                         ${renderBuildSuperStars(item)}
