@@ -2375,6 +2375,21 @@
             }
         },
 
+        updateChildModalDateVisibility() {
+            const dateType = document.querySelector('input[name="mcw-date-type"]:checked')?.value || 'unknown';
+            const dateInput = document.getElementById('mcw-child-date-input');
+            if (dateInput) dateInput.style.display = dateType !== 'unknown' ? 'block' : 'none';
+        },
+
+        getSelectedChildModalDateInfo() {
+            const dateType = document.querySelector('input[name="mcw-date-type"]:checked')?.value || 'unknown';
+            const dateValue = document.getElementById('mcw-child-date-value')?.value || '';
+            return {
+                dueDate: dateType === 'due' ? dateValue : '',
+                birthDate: dateType === 'birth' ? dateValue : ''
+            };
+        },
+
         getSelectedChildModalStartMode() {
             return document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
         },
@@ -2513,17 +2528,17 @@
             const partnerChildrenHtml = unacceptedPartnerChildren.length > 0
                 ? `<div class="meimay-child-modal-section">
                     <div class="meimay-child-modal-section-title">パートナーが追加した子</div>
-                    <div class="meimay-child-modal-desc" style="margin-bottom:8px">一緒に候補を探せます。「参加する」で追加してください。</div>
+                    <div class="meimay-child-modal-desc" style="margin-bottom:8px">参加すると一緒に候補を探せます</div>
                     <div class="meimay-child-modal-stack">
                         ${unacceptedPartnerChildren.map((partnerChild) => {
                             const slotKey = getChildWorkspaceSlotKey(partnerChild);
-                            const label = partnerChild.meta?.displayLabel || '第一子';
-                            const gender = partnerChild.meta?.gender === 'male' ? '男の子'
-                                : partnerChild.meta?.gender === 'female' ? '女の子' : '指定なし';
+                            const genderVal = partnerChild.meta?.gender;
+                            const genderEmoji = genderVal === 'male' ? '👦' : genderVal === 'female' ? '👧' : '👶';
+                            const label = (partnerChild.meta?.displayLabel || '第一子') + genderEmoji;
                             return `<div class="meimay-child-card meimay-partner-child-card">
-                                <div class="meimay-child-card-info">
-                                    <div class="meimay-child-card-title">${escapeHtml(label)} <span class="mcw-partner-badge">パートナーが追加</span></div>
-                                    <div class="meimay-child-card-meta">${escapeHtml(gender)}</div>
+                                <div class="meimay-child-card-head" style="justify-content:space-between;align-items:center;">
+                                    <div class="meimay-child-card-title" style="margin:0;">${escapeHtml(label)}</div>
+                                    <span class="mcw-partner-badge" style="flex-shrink:0;">パートナーが追加</span>
                                 </div>
                                 <div class="meimay-child-card-actions">
                                     <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.acceptPartnerChild('${escapeHtml(slotKey)}')">参加する</button>
@@ -2590,6 +2605,11 @@
             modal.onclick = (event) => {
                 if (event.target === modal) this.closeChildModal();
             };
+            const savedDueDate = isEdit ? (child?.meta?.dueDate || '') : '';
+            const savedBirthDate = isEdit ? (child?.meta?.birthDate || '') : '';
+            const dueDateType = isEdit
+                ? (savedBirthDate ? 'birth' : (savedDueDate ? 'due' : 'unknown'))
+                : 'unknown';
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
                     <div class="meimay-child-modal-header">
@@ -2611,11 +2631,31 @@
                         <div class="meimay-child-step-label">STEP 2</div>
                         <label class="meimay-child-field-label">性別</label>
                         <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender, isEdit ? (this.getPartnerChildForChild(child)?.meta?.gender || null) : null)}</div>
-                        ${isEdit ? '<div id="mcw-child-partner-gender-note" class="meimay-child-partner-note" aria-live="polite" hidden></div>' : ''}
+                    </div>
+                    <div class="meimay-child-field">
+                        <div class="meimay-child-step-label">STEP 3</div>
+                        <label class="meimay-child-field-label">予定日・誕生日</label>
+                        <div class="meimay-child-radio-grid" style="margin-bottom:10px">
+                            <label class="meimay-child-radio-option" data-date-type="unknown">
+                                <input type="radio" name="mcw-date-type" value="unknown" ${dueDateType === 'unknown' ? 'checked' : ''} onchange="MeimayChildWorkspaces.updateChildModalDateVisibility()">
+                                <div><div class="meimay-child-radio-title">未定</div></div>
+                            </label>
+                            <label class="meimay-child-radio-option" data-date-type="due">
+                                <input type="radio" name="mcw-date-type" value="due" ${dueDateType === 'due' ? 'checked' : ''} onchange="MeimayChildWorkspaces.updateChildModalDateVisibility()">
+                                <div><div class="meimay-child-radio-title">予定日</div></div>
+                            </label>
+                            <label class="meimay-child-radio-option" data-date-type="birth">
+                                <input type="radio" name="mcw-date-type" value="birth" ${dueDateType === 'birth' ? 'checked' : ''} onchange="MeimayChildWorkspaces.updateChildModalDateVisibility()">
+                                <div><div class="meimay-child-radio-title">誕生日</div></div>
+                            </label>
+                        </div>
+                        <div id="mcw-child-date-input" style="display:${dueDateType !== 'unknown' ? 'block' : 'none'}">
+                            <input type="date" id="mcw-child-date-value" class="meimay-child-select" style="width:100%;" value="${escapeHtml(savedBirthDate || savedDueDate)}">
+                        </div>
                     </div>
                     ${isEdit ? '' : `
                         <div class="meimay-child-field">
-                            <div class="meimay-child-step-label">STEP 3</div>
+                            <div class="meimay-child-step-label">STEP 4</div>
                             <label class="meimay-child-field-label">はじめ方</label>
                             <div class="meimay-child-radio-grid">
                                 <label class="meimay-child-radio-option" data-start-mode="blank">
@@ -2660,6 +2700,7 @@
             this.updateChildModalStartModeVisibility();
             this.updateChildModalCopySummary();
             this.updateChildModalPartnerSelectionHint();
+            this.updateChildModalDateVisibility();
         },
         closeChildModal() {
             document.getElementById('meimay-child-editor-modal')?.remove();
@@ -2694,6 +2735,9 @@
                 child.meta.twinGroupId = child.meta.birthGroupId;
                 child.meta.displayLabel = displayLabel;
                 child.meta.gender = genderValue;
+                const dateInfo = this.getSelectedChildModalDateInfo();
+                child.meta.dueDate = dateInfo.dueDate;
+                child.meta.birthDate = dateInfo.birthDate;
                 child.meta.updatedAt = getNowIso();
 
                 // 4. 重要: 保存 (saveRoot) する前にグローバル変数を更新する！
