@@ -2322,15 +2322,11 @@ function renderBuildFreeMode(container) {
                 if (surfaceStyle?.button) buttonStyles.push(surfaceStyle.button);
                 const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
                 const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
-                const partnerBadge = item.fromPartner
-                    ? `<div style="position:absolute;top:-6px;right:-4px;background:#f7b2a7;color:#fff;font-size:9px;font-weight:900;line-height:1;padding:2px 5px;border-radius:99px;white-space:nowrap;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.15);">相手</div>`
-                    : '';
                 return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
                         oncontextmenu='event.preventDefault(); openKanjiActionMenu(${JSON.stringify(buildTarget)}, ${slotIdx}, true)'
                         data-slot="${slotIdx}" data-kanji="${k}"
                         class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                         style="${buttonStyles.join('')}">
-                        ${partnerBadge}
                         <div class="build-kanji-text ${k && k.length > 1 ? 'is-compound' : ''}"${kanjiStyle}>${k}</div>
                         <div class="text-[10px] font-bold mt-1"${strokesStyle}>${strokes}\u753b</div>
                         ${renderBuildSuperStars(item)}
