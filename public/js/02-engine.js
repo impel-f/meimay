@@ -1151,39 +1151,6 @@ function prevChar() {
     }
 }
 
-/**
- * 次の文字へ進む（または完了）
- */
-function nextChar() {
-    if (currentPos < segments.length - 1) {
-        // 次のスロットへ進む前に、引き継ぎ候補のチェックとモーダル表示を行う（04-ui-flow.jsで定義）
-        if (typeof checkInheritForSlot === 'function') {
-            checkInheritForSlot(currentPos + 1, () => {
-                currentPos++;
-                currentIdx = 0;
-                swipes = 0;
-                loadStack();
-            });
-        } else {
-            // 定義されていなければそのまま進む
-            currentPos++;
-            currentIdx = 0;
-            swipes = 0;
-            loadStack();
-        }
-    } else {
-        // 最後の文字ならストック確認してビルドへ
-        if (liked.length === 0) {
-            if (!confirm('まだストックがありませんが、名前作成に進みますか？')) return;
-        }
-
-        if (typeof openBuild === 'function') {
-            openBuild();
-        } else {
-            console.error("ENGINE: openBuild function not found");
-        }
-    }
-}
 
 // グローバル公開
 window.loadStack = loadStack;

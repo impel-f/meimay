@@ -3356,10 +3356,12 @@ function checkInheritForSlot(slotIdx, onDone) {
         if (!item.sessionReading || item.sessionReading === currentReading) return false;
         if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
         if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
-        if (item.slot !== slotIdx) return false;
+        
         const itemSegs = readingToSegments[item.sessionReading];
-        if (!itemSegs) return false;
-        return itemSegs[slotIdx] === seg;
+        if (!itemSegs || !Array.isArray(itemSegs)) return false;
+        // スロット番号（何番目の文字か）が違っても、選ばれた際の読み（セグメント）が
+        // 現在のスロットの読みと一致していれば引き継ぎ対象とする
+        return itemSegs[item.slot] === seg;
     });
 
     // 既に現在セッションで選ばれているか除外
