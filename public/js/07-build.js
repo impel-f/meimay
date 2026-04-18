@@ -1978,15 +1978,7 @@ function renderBuildSelection() {
         return;
     }
 
-    console.log('=== BUILD DEBUG START ===');
-    console.log('Current reading:', currentReading);
-    console.log('Segments:', segments);
-    console.log('Total liked items:', liked.length);
-    console.log('Liked items:', liked.map(item => ({
-        kanji: item['\u6f22\u5b57'],
-        slot: item.slot,
-        sessionReading: item.sessionReading
-    })));
+    // ログ出力を抑制してパフォーマンス改善
 
     segments.forEach((seg, idx) => {
         const row = document.createElement('div');
@@ -2865,16 +2857,22 @@ window.removeFbChoice = function (slotIdx) {
 function sortByFortune(items, slotIndex) {
     if (!surnameData || surnameData.length === 0) return items;
 
+    // 各スロットの基準画数を事前に取得（ループ内での liked.filter を避ける）
+    const slotBaseStrokes = segments.map((_, idx) => {
+        if (idx === slotIndex) return 0;
+        const sel = selectedPieces[idx];
+        if (sel) return parseInt(sel['画数'] || sel.strokes) || 0;
+        const slotItems = liked.filter(i => i.slot === idx);
+        return slotItems.length > 0 ? (parseInt(slotItems[0]['画数'] || slotItems[0].strokes) || 0) : 0;
+    });
+
     const scored = items.map(item => {
-        const tempCombination = segments.map((seg, idx) => {
+        const itemStrokes = parseInt(item['画数'] || item.strokes) || 0;
+        const tempCombination = slotBaseStrokes.map((s, idx) => {
             if (idx === slotIndex) {
-                return { kanji: item['漢字'], strokes: parseInt(item['画数']) || 0 };
+                return { kanji: item['漢字'], strokes: itemStrokes };
             }
-            const slotItems = liked.filter(i => i.slot === idx);
-            if (slotItems.length > 0) {
-                return { kanji: slotItems[0]['漢字'], strokes: parseInt(slotItems[0]['画数']) || 0 };
-            }
-            return { kanji: '', strokes: 0 };
+            return { kanji: '', strokes: s };
         });
 
         let score = 0;
