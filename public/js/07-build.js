@@ -3653,6 +3653,17 @@ function addMoreToSlot(slotIdx) {
     if (getCompoundFixedPieceForSlot(slotIdx)) {
         return;
     }
+
+    // すでに選択されている漢字がある場合、確認を挟む
+    const currentPiece = selectedPieces[slotIdx];
+    if (currentPiece) {
+        const kanji = currentPiece['漢字'] || currentPiece['\u6f22\u5b57'] || '';
+        const seg = segments[slotIdx] || '';
+        if (!confirm(`「${seg}」の候補として「${kanji}」が選ばれています。追加で他の候補を探しますか？`)) {
+            return;
+        }
+    }
+
     currentPos = slotIdx;
     currentIdx = 0;
     // ビルドからの「追加する」は常に読みモードで動作させる
