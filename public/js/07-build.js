@@ -1182,7 +1182,7 @@ function getMergedLikedCandidates() {
         : [];
     const ownItems = localLikedItems.filter(item => !item.fromPartner);
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : '\u30d1\u30fc\u30c8\u30ca\u30fc';
+    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
     const partnerLikedSource = pairInsights?.getPartnerLiked
         ? pairInsights.getPartnerLiked()
         : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
@@ -1192,55 +1192,47 @@ function getMergedLikedCandidates() {
             : [])
     ].filter(Boolean);
 
+    const merged = new Map();
     const ownKanjiKeys = new Set(ownItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
     const partnerKanjiKeys = new Set(partnerItems.map(item => getLikedCandidateKanjiKey(item)).filter(Boolean));
-    const ownSuperKanjiKeys = new Set(
-        ownItems
-            .filter(item => !!item?.ownSuper || !!item?.isSuper)
-            .map(item => getLikedCandidateKanjiKey(item))
-            .filter(Boolean)
-    );
-    const partnerSuperKanjiKeys = new Set(
-        partnerItems
-            .filter(item => !!item?.partnerSuper || !!item?.isSuper)
-            .map(item => getLikedCandidateKanjiKey(item))
-            .filter(Boolean)
-    );
 
-    const ownMerged = new Map();
-    ownItems.forEach((item) => {
-        const key = getLikedCandidateDisplayKey(item);
-        if (!key || ownMerged.has(key)) return;
-        const kanjiKey = getLikedCandidateKanjiKey(item);
-        const partnerAlsoPicked = partnerKanjiKeys.has(kanjiKey);
-        const partnerSuper = partnerSuperKanjiKeys.has(kanjiKey);
-        ownMerged.set(key, {
-            ...item,
-            fromPartner: false,
-            partnerAlsoPicked,
-            partnerSuper,
-            isSuper: !!item.ownSuper || partnerSuper
-        });
-    });
+    const processItem = (item, isFromPartner) => {
+        const baseKey = buildLikedCandidateKey(item);
+        if (!baseKey) return;
+        
+        if (merged.has(baseKey)) {
+            const existing = merged.get(baseKey);
+            existing.partnerAlsoPicked = true;
+            if (isFromPartner) {
+                existing.partnerSuper = existing.partnerSuper || !!item.isSuper || !!item.partnerSuper;
+                existing.partnerName = existing.partnerName || item.partnerName || '';
+            } else {
+                existing.ownSuper = existing.ownSuper || !!item.isSuper || !!item.ownSuper;
+            }
+            existing.isSuper = existing.ownSuper || existing.partnerSuper;
+        } else {
+            const newItem = { ...item };
+            const kanjiKey = getLikedCandidateKanjiKey(item);
+            if (isFromPartner) {
+                newItem.fromPartner = true;
+                newItem.partnerSuper = !!item.isSuper || !!item.partnerSuper;
+                newItem.ownSuper = false;
+                newItem.partnerAlsoPicked = ownKanjiKeys.has(kanjiKey);
+            } else {
+                newItem.fromPartner = false;
+                newItem.ownSuper = !!item.isSuper || !!item.ownSuper;
+                newItem.partnerSuper = false;
+                newItem.partnerAlsoPicked = partnerKanjiKeys.has(kanjiKey);
+            }
+            newItem.isSuper = newItem.ownSuper || newItem.partnerSuper;
+            merged.set(baseKey, newItem);
+        }
+    };
 
-    const partnerMerged = new Map();
-    partnerItems.forEach((item) => {
-        const key = getLikedCandidateDisplayKey(item);
-        if (!key || partnerMerged.has(key)) return;
-        const kanjiKey = getLikedCandidateKanjiKey(item);
-        const ownAlsoPicked = ownKanjiKeys.has(kanjiKey);
-        const ownSuper = ownSuperKanjiKeys.has(kanjiKey);
-        partnerMerged.set(key, {
-            ...item,
-            fromPartner: true,
-            partnerAlsoPicked: ownAlsoPicked,
-            ownSuper,
-            partnerSuper: !!item.partnerSuper || !!item.isSuper,
-            isSuper: ownSuper || !!item.partnerSuper || !!item.isSuper
-        });
-    });
+    ownItems.forEach(item => processItem(item, false));
+    partnerItems.forEach(item => processItem(item, true));
 
-    return [...ownMerged.values(), ...partnerMerged.values()];
+    return [...merged.values()];
 }
 
 
@@ -1566,7 +1558,7 @@ function renderStock() {
         const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
-const dup = segGroups[seg].find(e => getLikedCandidateDisplayKey(e) === getLikedCandidateDisplayKey(item));
+const dup = segGroups[seg].find(e => buildLikedCandidateKey(e) === buildLikedCandidateKey(item));
 if (!dup) {
     segGroups[seg].push(item);
 } else {
@@ -2034,7 +2026,7 @@ function renderBuildSelection() {
 
         const seen = new Set();
         items = items.filter(item => {
-            const buildKey = getLikedCandidateDisplayKey(item);
+            const buildKey = buildLikedCandidateKey(item);
             if (seen.has(buildKey)) return false;
             seen.add(buildKey);
             return true;
@@ -2263,7 +2255,7 @@ function renderBuildFreeMode(container) {
     const pushCandidate = (item) => {
         if (!item) return;
         if (isBuildCandidateExcluded(item)) return;
-        const key = getLikedCandidateDisplayKey(item);
+        const key = buildLikedCandidateKey(item);
         if (!key || seen.has(key)) return;
         seen.add(key);
         allKanji.push({ ...item, _buildTarget: key });
