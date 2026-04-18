@@ -3654,30 +3654,28 @@ function addMoreToSlot(slotIdx) {
         return;
     }
 
-    // すでに選択されている漢字がある場合、確認を挟む
-    const currentPiece = selectedPieces[slotIdx];
-    if (currentPiece) {
-        const kanji = currentPiece['漢字'] || currentPiece['\u6f22\u5b57'] || '';
-        const seg = segments[slotIdx] || '';
-        if (!confirm(`「${seg}」の候補として「${kanji}」が選ばれています。追加で他の候補を探しますか？`)) {
-            return;
-        }
+    function beginSwiping() {
+        if (typeof loadStack === 'function') loadStack();
+        changeScreen('scr-main');
+        // フッターを明示的に表示（消える問題の対策）
+        const nav = document.querySelector('.nav-bar');
+        if (nav) nav.style.display = 'flex';
     }
 
     currentPos = slotIdx;
     currentIdx = 0;
     // ビルドからの「追加する」は常に読みモードで動作させる
-    // （FREEモードのままだとsessionReading:'FREE'でストックされてしまうバグ防止）
     isFreeSwipeMode = false;
     window._addMoreFromBuild = true; // HUDに「ビルドへ」ボタンを表示するフラグ
-    if (typeof loadStack === 'function') loadStack();
-    changeScreen('scr-main');
 
-    // フッターを明示的に表示（消える問題の対策）
-    const nav = document.querySelector('.nav-bar');
-    if (nav) nav.style.display = 'flex';
+    if (typeof checkInheritForSlot === 'function') {
+        // 過去のストックや履歴からの引き継ぎチェック
+        checkInheritForSlot(slotIdx, beginSwiping);
+    } else {
+        beginSwiping();
+    }
 
-    console.log(`BUILD: Adding more to slot ${slotIdx} (keeping current selections)`);
+    console.log(`BUILD: Adding more to slot ${slotIdx} (checking inheritance)`);
 }
 
 /**
