@@ -1384,7 +1384,9 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         const itemSegHira = typeof toHira === 'function' && itemSeg ? toHira(itemSeg) : itemSeg || '';
         const segmentMatch = !!(targetSegHira && itemSegHira && targetSegHira === itemSegHira);
 
-        const baseMatch = (slotMatch && readingMatch) || freeMatch || segmentMatch;
+        // スロット番号が一致していても、読み（セグメント）が異なる場合は候補に出さないように修正
+        // （例：「そ/う/すけ」の0番目「そ」で選んだ礎が、「そう/すけ」の0番目「そう」に出てこないようにする）
+        const baseMatch = segmentMatch || freeMatch;
         if (!baseMatch || !isNotExcluded) return false;
         if (partnerOnly && !isPartnerVisible) return false;
         if (matchedOnly && !isMatched) return false;
@@ -2056,8 +2058,13 @@ function renderBuildSelection() {
                     : '';
                 const itemKey = getLikedCandidateDisplayKey(item);
                 const isSelected = selectedKey && selectedKey === itemKey;
+                const isUsed = !isSelected && selectedPieces.some(p => {
+                    if (!p) return false;
+                    const pk = getLikedCandidateDisplayKey(p);
+                    return pk === itemKey;
+                });
                 const buildTarget = itemKey;
-                btn.className = 'build-piece-btn relative';
+                btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}`;
                 btn._buildPieceData = item;
                 btn._buildPieceTarget = buildTarget;
 

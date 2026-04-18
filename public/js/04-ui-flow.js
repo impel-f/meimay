@@ -4071,7 +4071,27 @@ function openBuildFromReading(reading, preferredSegments = []) {
         const preferred = getPreferredReadingSegments(normalizedReading || reading);
         segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
     }
+    const oldSelected = (Array.isArray(selectedPieces) ? [...selectedPieces] : []).filter(Boolean);
+    const oldSegments = (Array.isArray(segments) ? [...segments] : []).filter(Boolean);
+
     if (typeof openBuild === 'function') openBuild();
+
+    // 区切り変更時に選択状態を引き継ぐ試み
+    if (oldSelected.length > 0 && Array.isArray(segments) && Array.isArray(selectedPieces)) {
+        segments.forEach((seg, idx) => {
+            if (selectedPieces[idx]) return; // すでに固定などで埋まっている場合はスキップ
+            const hSeg = typeof toHira === 'function' ? toHira(seg) : seg;
+            // 前の構成で、同じ読みの部分に選んでいた漢字があればセット
+            const match = oldSelected.find((p, pIdx) => {
+                const pSeg = oldSegments[pIdx] || '';
+                const hPSeg = typeof toHira === 'function' ? toHira(pSeg) : pSeg;
+                return hPSeg === hSeg;
+            });
+            if (match) {
+                selectedPieces[idx] = { ...match };
+            }
+        });
+    }
 }
 
 function addMoreForReading(reading, preferredSegments = []) {
