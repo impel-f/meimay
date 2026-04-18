@@ -1259,7 +1259,11 @@
             this.root.children[activeChild.meta.id] = this.captureCurrentChildRecord(activeChild.meta);
             this.root.family = this.captureCurrentFamilyState();
             this.root.childOrder = this.buildOrderedChildIds(this.root);
-            this.saveRoot(this.root);
+            const shouldSkipSync = (reason === 'storage-load' || reason === 'interval' || (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight));
+            this.saveRoot(this.root, { 
+                skipRemoteSync: shouldSkipSync,
+                reason: reason
+            });
         },
 
         applyActiveChildToGlobals(options = {}) {
@@ -1992,11 +1996,17 @@
 
         saveRoot(root = this.root, options = {}) {
             if (!root) return;
+            
+            // 復元中、あるいは明示的なスキップ指定がある場合は同期しない
+            const isRestoring = typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight;
+            const skipSync = !!options.skipRemoteSync || isRestoring;
+
             const nextRoot = root;
             nextRoot.updatedAt = getNowIso();
             if (!nextRoot.createdAt) nextRoot.createdAt = nextRoot.updatedAt;
             localStorage.setItem(ROOT_KEY, JSON.stringify(root));
-            if (!options.skipRemoteSync) {
+
+            if (!skipSync) {
                 if (typeof window.MeimayUserBackup !== 'undefined' && window.MeimayUserBackup && typeof window.MeimayUserBackup.scheduleSync === 'function') {
                     window.MeimayUserBackup.scheduleSync(options.reason || 'child-root-save');
                 }

@@ -2276,7 +2276,11 @@ async function handleEnterCode() {
 })();
 MeimayPairing._autoSyncDebounced = (function () {
     let timer = null;
-    return function () {
+    return function (reason = 'unknown') {
+        // 復元中はデバウンスされた実行もスキップ
+        if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
+            return;
+        }
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => MeimayPairing.syncMyData(), 1200);
     };
