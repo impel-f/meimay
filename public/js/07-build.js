@@ -2461,7 +2461,7 @@ function suggestReadingsForKanji(choices, container) {
     // UI 描画
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・✏️）' : ''}</p>`;
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
 
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
