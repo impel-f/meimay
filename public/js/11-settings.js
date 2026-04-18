@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    MODULE 11: SETTINGS (V6.0 - 別画面版)
    設定画面（ストック・ビルドと同レベル）
    ============================================================ */
@@ -312,7 +312,7 @@ function getDueDateDisplayText(dueDate) {
     const label = `${target.getFullYear()}/${String(target.getMonth() + 1).padStart(2, '0')}/${String(target.getDate()).padStart(2, '0')}`;
 
     if (diffDays > 0) return `${label} ・ あと${diffDays}日`;
-    if (diffDays === 0) return `${label} ・ 予定日`;
+    if (diffDays === 0) return `${label} ・ 予定日・誕生日`;
     return `${label} ・ ${Math.abs(diffDays)}日経過`;
 }
 
@@ -397,7 +397,7 @@ function renderSettingsScreen() {
                     <span style="color: #f59e0b;">📅</span>
                 </div>
                 <div class="item-content-unified">
-                    <div class="item-title-unified">予定日</div>
+                    <div class="item-title-unified">予定日・誕生日</div>
                     <div class="item-value-unified">${dueDateText}</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
@@ -576,7 +576,7 @@ function openRoleInput() {
 function openDueDateInput() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const current = wizData?.dueDate || '';
-    showInputModal('予定日を入力', 'date', current, '', (value) => {
+    showInputModal('予定日・誕生日を入力', 'date', current, '', (value) => {
         if (typeof WizardData !== 'undefined') {
             const data = WizardData.get() || {};
             data.dueDate = value || '';

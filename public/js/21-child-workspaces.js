@@ -1967,7 +1967,7 @@
                     }
                 }
 
-                // 3. 予定日の同期
+                // 3. 予定日・誕生日の同期
                 const localDueDate = String(localChild.meta?.dueDate || '').trim();
                 const partnerDueDate = String(partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '').trim();
                 if (localDueDate !== partnerDueDate) {
@@ -2449,7 +2449,7 @@
                     </div>
                     <div class="meimay-child-field">
                         <div class="meimay-child-step-label">STEP 3</div>
-                        <label class="meimay-child-field-label" for="mcw-child-date-value">予定日</label>
+                        <label class="meimay-child-field-label" for="mcw-child-date-value">予定日・誕生日</label>
                         <input type="date" id="mcw-child-date-value" class="meimay-child-select" style="width:100%;" value="${escapeHtml(savedDueDate)}" placeholder="未定">
                         <div class="meimay-child-field-hint">未定の場合は空欄のままにしてください</div>
                     </div>
