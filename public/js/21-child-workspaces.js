@@ -677,7 +677,9 @@
                     twinGroupId: birthGroupId,
                     twinIndex,
                     createdAt,
-                    updatedAt
+                    updatedAt,
+                    dueDate: String(childRecord?.meta?.dueDate || childRecord?.meta?.birthDate || '').trim(),
+                    birthDate: ''
                 },
                 prefs: {
                     rule: String(childRecord?.prefs?.rule || 'strict').trim() || 'strict',
@@ -832,7 +834,8 @@
                         birthGroupId: incomingClone?.meta?.birthGroupId || incomingClone?.meta?.twinGroupId || baseClone?.meta?.birthGroupId || baseClone?.meta?.twinGroupId || null,
                         birthGroupIndex: incomingClone?.meta?.birthGroupIndex ?? incomingClone?.meta?.twinIndex ?? baseClone?.meta?.birthGroupIndex ?? baseClone?.meta?.twinIndex ?? null,
                         twinGroupId: incomingClone?.meta?.twinGroupId || incomingClone?.meta?.birthGroupId || baseClone?.meta?.twinGroupId || baseClone?.meta?.birthGroupId || null,
-                        twinIndex: incomingClone?.meta?.twinIndex ?? incomingClone?.meta?.birthGroupIndex ?? baseClone?.meta?.twinIndex ?? baseClone?.meta?.birthGroupIndex ?? null
+                        twinIndex: incomingClone?.meta?.twinIndex ?? incomingClone?.meta?.birthGroupIndex ?? baseClone?.meta?.twinIndex ?? baseClone?.meta?.birthGroupIndex ?? null,
+                        dueDate: incomingClone?.meta?.dueDate || baseClone?.meta?.dueDate || ''
                     } : {}),
                     updatedAt: String(
                         preferIncoming
@@ -1006,7 +1009,9 @@
                     twinGroupId: existingMeta.twinGroupId || existingMeta.birthGroupId || (birthGroupIndex === null ? null : `bg_${normalizePositiveInteger(existingMeta.birthOrder, 1)}`),
                     twinIndex: birthGroupIndex,
                     createdAt: existingMeta.createdAt || getNowIso(),
-                    updatedAt: getNowIso()
+                    updatedAt: getNowIso(),
+                    dueDate: String(existingMeta.dueDate || existingMeta.birthDate || '').trim(),
+                    birthDate: ''
                 },
                 prefs: {
                     rule: typeof rule !== 'undefined' ? rule : 'strict',
@@ -1585,30 +1590,7 @@
                 ${screenId === 'scr-mode' ? '<div class="meimay-child-switcher-meta">切り替えると今の作業状態を自動保存して、次の子どもの候補へ切り替えます。</div>' : ''}
             `;
         },
-        decorateSettingsChildManagementCard() {
-            const container = document.getElementById('settings-screen-content');
-            if (!container) return;
-            const titleNodes = Array.from(container.querySelectorAll('.item-title-unified'));
-            const target = titleNodes.find((node) => String(node.textContent || '').trim() === '赤ちゃんの性別');
-            if (!target) return;
-            const item = target.closest('.settings-item-unified');
-            const activeChild = this.getActiveChild();
-            if (!item || !activeChild) return;
-            const valueNode = item.querySelector('.item-value-unified');
-            const iconNode = item.querySelector('.item-icon-circle span');
-            
-            const matchedName = this.getMatchedNameForChild(activeChild.meta.id);
-            const emoji = getGenderEmoji(activeChild.meta.gender);
-            
-            target.textContent = '子ども管理';
-            if (valueNode) {
-                valueNode.textContent = matchedName
-                    ? `${activeChild.meta.displayLabel}${emoji}：${matchedName}`
-                    : `${activeChild.meta.displayLabel}${emoji} ・ ${getGenderLabel(activeChild.meta.gender)}`;
-            }
-            if (iconNode) iconNode.textContent = '👶';
-            item.onclick = () => this.openManagerModal();
-        },
+
 
         refreshVisibleUI(reason = 'refresh') {
             const activeScreen = document.querySelector('.screen.active')?.id || '';
@@ -1682,7 +1664,9 @@
                     twinGroupId: twinIndex === null ? null : `bg_${birthOrder}`,
                     twinIndex,
                     createdAt: getNowIso(),
-                    updatedAt: getNowIso()
+                    updatedAt: getNowIso(),
+                    dueDate: String(options.dueDate || ''),
+                    birthDate: ''
                 },
                 prefs: {
                     rule: String(prefs.rule || 'strict'),
@@ -1694,174 +1678,9 @@
             };
         },
 
-        buildInitialLibrariesForCreate(startMode = 'blank', sourceChildId = '') {
-            const blank = createBlankChildLibraries();
-            if (startMode === 'shared') {
-                return {
-                    ...blank,
-                    readingStock: cloneData(this.root?.family?.sharedLibraries?.readingStock, []),
-                    kanjiStock: cloneData(this.root?.family?.sharedLibraries?.kanjiStock, [])
-                };
-            }
-            if (startMode === 'copy') {
-                const sourceChild = this.getChildById(sourceChildId);
-                if (!sourceChild) return blank;
-                return {
-                    ...blank,
-                    readingStock: cloneData(sourceChild.libraries.readingStock, []),
-                    kanjiStock: this.cloneKanjiStockForChildCopy(sourceChild.libraries.kanjiStock),
-                    savedNames: this.mergeSavedLibraries([], sourceChild.libraries.savedNames, {
-                        sourceChildId,
-                        sourceLabel: sourceChild.meta.displayLabel
-                    }).items
-                };
-            }
-            return blank;
-        },
 
-        openManagerModal() {
-            if (!this.initialized) return;
-            this.persistActiveChildSnapshot('open-manager');
-            this.closeManagerModal();
-            const activeChild = this.getActiveChild();
-            const activeId = activeChild?.meta?.id || '';
-            const sharedSummary = this.getSharedSummary();
-            const childCards = this.buildOrderedChildIds(this.root).map((childId) => {
-                const child = this.getChildById(childId);
-                const summary = this.getDisplayChildSummary(childId);
-                const label = this.getFormattedChildLabel(childId);
-                const isActive = childId === activeId;
 
-                return `
-                    <div class="meimay-child-card${isActive ? ' active' : ''}">
-                        <div class="meimay-child-card-head">
-                            <div>
-                                <div class="meimay-child-card-title">${escapeHtml(label)}</div>
-                                <div class="meimay-child-card-meta">${escapeHtml(getGenderLabel(child.meta.gender))} ・ 読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}</div>
-                            </div>
-                            ${isActive ? '<span class="meimay-child-badge">編集中</span>' : ''}
-                        </div>
-                        <div class="meimay-child-card-actions">
-                            ${!isActive ? `<button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')">切り替える</button>` : ''}
-                            ${!isActive ? `<button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.copyAllFromChild('${escapeHtml(childId)}')">候補をコピー</button>` : ''}
-                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('edit', '${escapeHtml(childId)}')">設定を編集</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
 
-            const modal = document.createElement('div');
-            modal.id = 'meimay-child-manager-modal';
-            modal.className = 'meimay-child-modal-overlay';
-            modal.onclick = (event) => {
-                if (event.target === modal) this.closeManagerModal();
-            };
-            modal.innerHTML = `
-                <div class="meimay-child-modal-sheet">
-                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeManagerModal()">閉じる</button>
-                    <div class="meimay-child-modal-title">子ども管理</div>
-                    <div class="meimay-child-modal-desc">v1では切替時に今の状態を保存して、既存の単一子ロジックへ hydrate します。多胎は A, B, C... の順で扱えます。</div>
-                    <div class="meimay-child-modal-section">
-                        <div class="meimay-child-modal-section-title">子ども一覧</div>
-                        ${childCards}
-                        <div class="meimay-child-card">
-                            <div class="meimay-child-card-head">
-                                <div>
-                                    <div class="meimay-child-card-title">新しい子を追加</div>
-                                    <div class="meimay-child-card-meta">第一子・第二子・三つ子以上も、同じ順番入力で扱えます。</div>
-                                </div>
-                            </div>
-                            <div class="meimay-child-card-actions">
-                                <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('create')">追加する</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="meimay-child-modal-section">
-                        <div class="meimay-child-modal-section-title">家族共通の素材</div>
-                        <div class="meimay-child-card-meta" style="margin-top:8px">読み ${sharedSummary.readingCount} / 漢字 ${sharedSummary.kanjiCount}</div>
-                        <div class="meimay-child-shared-actions">
-                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.applySharedLibrariesToActiveChild()">この子に取り込む</button>
-                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.promoteActiveReadingsToShared()">今の読みを共通へ</button>
-                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.promoteActiveKanjiToShared()">今の漢字を共通へ</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        },
-
-        closeManagerModal() {
-            document.getElementById('meimay-child-manager-modal')?.remove();
-        },
-
-        openChildModal(mode = 'create', childId = null) {
-            this.closeChildModal();
-            const isEdit = mode === 'edit' && childId;
-            const child = isEdit ? this.getChildById(childId) : null;
-            const defaultBirthOrder = isEdit ? child?.meta?.birthOrder || 1 : this.getSuggestedBirthOrder();
-            const defaultMultipleOrder = isEdit && child?.meta?.birthGroupIndex !== null && child?.meta?.birthGroupIndex !== undefined
-                ? normalizePositiveInteger(child.meta.birthGroupIndex, 0) + 1
-                : '';
-            const selectedGender = isEdit ? child?.meta?.gender || 'neutral' : (typeof gender !== 'undefined' ? normalizeGenderValue(gender) : 'neutral');
-            const copySourceOptions = this.buildOrderedChildIds(this.root).map((id) => {
-                const record = this.getChildById(id);
-                return `<option value="${escapeHtml(id)}">${escapeHtml(record.meta.displayLabel)}</option>`;
-            }).join('');
-            const modal = document.createElement('div');
-            modal.id = 'meimay-child-editor-modal';
-            modal.className = 'meimay-child-modal-overlay';
-            modal.dataset.mode = mode;
-            modal.dataset.childId = isEdit ? String(childId || '').trim() : '';
-            modal.onclick = (event) => {
-                if (event.target === modal) this.closeChildModal();
-            };
-            modal.innerHTML = `
-                <div class="meimay-child-modal-sheet">
-                    <button type="button" class="meimay-child-inline-btn" style="float:right" onclick="MeimayChildWorkspaces.closeChildModal()">閉じる</button>
-                    <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
-                    <div class="meimay-child-modal-desc">順番・多胎内の順番・性別を持たせて、切替時に既存 state へ戻します。</div>
-                    <div class="meimay-child-field"><label class="meimay-child-field-label" for="mcw-child-order">順番</label><input id="mcw-child-order" class="meimay-child-input" type="number" min="1" value="${defaultBirthOrder}"></div>
-                    <div class="meimay-child-field">
-                        <label class="meimay-child-field-label" for="mcw-child-multiple-order">多胎内の順番</label>
-                        <input id="mcw-child-multiple-order" class="meimay-child-input" type="number" min="1" step="1" value="${defaultMultipleOrder}">
-                        <div class="meimay-child-field-hint">未入力なら単胎です。1 = A, 2 = B, 3 = C... と自動表示します。</div>
-                    </div>
-                    <div class="meimay-child-field"><label class="meimay-child-field-label" for="mcw-child-gender">性別</label><select id="mcw-child-gender" class="meimay-child-select"><option value="male" ${selectedGender === 'male' ? 'selected' : ''}>男の子</option><option value="female" ${selectedGender === 'female' ? 'selected' : ''}>女の子</option><option value="neutral" ${selectedGender === 'neutral' ? 'selected' : ''}>指定なし</option></select></div>
-                    ${isEdit ? '' : `
-                        <div class="meimay-child-field">
-                            <label class="meimay-child-field-label">はじめ方</label>
-                            <div class="meimay-child-radio-grid">
-                                <label class="meimay-child-radio-option"><input type="radio" name="mcw-start-mode" value="blank" checked onchange="MeimayChildWorkspaces.updateChildModalSourceVisibility()"><div><div class="meimay-child-radio-title">まっさらではじめる</div><div class="meimay-child-radio-desc">読み・漢字・保存候補は空で開始します。</div></div></label>
-                                <label class="meimay-child-radio-option"><input type="radio" name="mcw-start-mode" value="shared" onchange="MeimayChildWorkspaces.updateChildModalSourceVisibility()"><div><div class="meimay-child-radio-title">家族共通の素材を使う</div><div class="meimay-child-radio-desc">family.sharedLibraries の読み・漢字だけを取り込みます。</div></div></label>
-                                <label class="meimay-child-radio-option"><input type="radio" name="mcw-start-mode" value="copy" onchange="MeimayChildWorkspaces.updateChildModalSourceVisibility()"><div><div class="meimay-child-radio-title">他の子の候補をコピーする</div><div class="meimay-child-radio-desc">読み・漢字・保存候補を複製して開始します。</div></div></label>
-                            </div>
-                        </div>
-                        <div class="meimay-child-field" id="mcw-child-copy-source-wrap" style="display:none">
-                            <label class="meimay-child-field-label" for="mcw-child-copy-source">コピー元</label>
-                            <select id="mcw-child-copy-source" class="meimay-child-select">${copySourceOptions}</select>
-                        </div>
-                    `}
-                    <div class="meimay-child-editor-actions">
-                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
-                        ${isEdit ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            this.syncChildModalDeleteButtonState();
-            this.updateChildModalSourceVisibility();
-        },
-
-        updateChildModalSourceVisibility() {
-            const sourceWrap = document.getElementById('mcw-child-copy-source-wrap');
-            if (!sourceWrap) return;
-            const mode = document.querySelector('input[name="mcw-start-mode"]:checked')?.value || 'blank';
-            sourceWrap.style.display = mode === 'copy' ? 'block' : 'none';
-        },
-
-        closeChildModal() {
-            document.getElementById('meimay-child-editor-modal')?.remove();
-        },
 
         syncChildModalDeleteButtonState() {
             const deleteButton = document.querySelector('#meimay-child-editor-modal .meimay-child-danger');
@@ -2028,6 +1847,8 @@
                     twinIndex: partnerChild.meta?.twinIndex ?? null,
                     createdAt: getNowIso(),
                     updatedAt: getNowIso(),
+                    dueDate: partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '',
+                    birthDate: '',
                     createdByPartner: true // パートナーが作ったフラグ
                 },
                 prefs: {
@@ -2145,6 +1966,20 @@
                         changed = true;
                     }
                 }
+
+                // 3. 予定日の同期
+                const localDueDate = String(localChild.meta?.dueDate || '').trim();
+                const partnerDueDate = String(partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '').trim();
+                if (localDueDate !== partnerDueDate) {
+                    const localTime = parseComparableTime(localChild.meta?.updatedAt);
+                    const partnerTime = parseComparableTime(partnerChild.meta?.updatedAt);
+
+                    if (partnerTime > localTime || (!localDueDate && partnerDueDate)) {
+                        localChild.meta.dueDate = partnerDueDate;
+                        localChild.meta.updatedAt = partnerChild.meta.updatedAt;
+                        changed = true;
+                    }
+                }
             });
             
             if (changed) {
@@ -2171,14 +2006,7 @@
             }
         },
 
-        renderSwitchers() {
-            document.querySelectorAll('.meimay-child-switcher').forEach((node) => node.remove());
-            this.updateHeaderChildButton();
-        },
 
-        decorateSettingsChildManagementCard() {
-            this.updateHeaderChildButton();
-        },
 
 
         updateHeaderChildButton() {
@@ -2744,10 +2572,12 @@
 
             this.persistActiveChildSnapshot('before-create-child');
             const nextId = this.generateChildId();
+            const createDateInfo = this.getSelectedChildModalDateInfo();
             this.root.children[nextId] = this.buildChildRecordForCreate({
                 id: nextId,
                 birthOrder,
                 gender: genderValue,
+                dueDate: createDateInfo.dueDate,
                 startMode,
                 sourceChildId,
                 copySections
@@ -2785,53 +2615,6 @@
                 }).items;
             }
             return next;
-        },
-
-        buildChildRecordForCreate(options = {}) {
-            const id = String(options.id || this.generateChildId());
-            const birthOrder = normalizePositiveInteger(options.birthOrder, this.getSuggestedBirthOrder());
-            const genderValue = normalizeGenderValue(options.gender || 'neutral');
-            const activeChild = this.getActiveChild();
-            const prefs = cloneData(activeChild?.prefs, {
-                rule: typeof rule !== 'undefined' ? rule : 'strict',
-                prioritizeFortune: typeof prioritizeFortune !== 'undefined' ? prioritizeFortune === true : false,
-                imageTags: typeof selectedImageTags !== 'undefined' ? cloneData(selectedImageTags, ['none']) : ['none']
-            });
-            return {
-                meta: {
-                    id,
-                    birthOrder,
-                    displayLabel: buildDisplayLabel(birthOrder),
-                    gender: genderValue,
-                    birthGroupId: null,
-                    birthGroupIndex: null,
-                    twinGroupId: null,
-                    twinIndex: null,
-                    createdAt: getNowIso(),
-                    updatedAt: getNowIso()
-                },
-                prefs: {
-                    rule: String(prefs.rule || 'strict'),
-                    prioritizeFortune: prefs.prioritizeFortune === true,
-                    imageTags: Array.isArray(prefs.imageTags) && prefs.imageTags.length > 0 ? cloneData(prefs.imageTags, ['none']) : ['none']
-                },
-                draft: {
-                    ...createBlankChildDraft(),
-                    savedCanvas: {
-                        blank: true,
-                        ownKey: '',
-                        partnerKey: '',
-                        selectedKey: '',
-                        selectedSource: '',
-                        selectedAt: ''
-                    }
-                },
-                libraries: this.buildInitialLibrariesForCreate(
-                    options.startMode,
-                    options.sourceChildId,
-                    options.copySections
-                )
-            };
         },
 
         decorateSettingsChildManagementCard() {
