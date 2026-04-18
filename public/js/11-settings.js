@@ -299,22 +299,7 @@ function saveProfileAppearance(nextValues = {}) {
     syncProfileAppearance({ rerenderSettings: !!nextValues.rerenderSettings });
 }
 
-function getDueDateDisplayText(dueDate) {
-    if (!dueDate) return '未設定';
 
-    const target = new Date(dueDate);
-    if (Number.isNaN(target.getTime())) return '未設定';
-
-    const now = new Date();
-    target.setHours(0, 0, 0, 0);
-    now.setHours(0, 0, 0, 0);
-    const diffDays = Math.round((target.getTime() - now.getTime()) / 86400000);
-    const label = `${target.getFullYear()}/${String(target.getMonth() + 1).padStart(2, '0')}/${String(target.getDate()).padStart(2, '0')}`;
-
-    if (diffDays > 0) return `${label} ・ あと${diffDays}日`;
-    if (diffDays === 0) return `${label} ・ 予定日・誕生日`;
-    return `${label} ・ ${Math.abs(diffDays)}日経過`;
-}
 
 /**
  * 設定画面を開く（別画面として）
@@ -346,7 +331,7 @@ function renderSettingsScreen() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ👨' : wizData?.role === 'mama' ? 'ママ👩' : '未設定';
-    const dueDateText = getDueDateDisplayText(wizData?.dueDate || '');
+
 
     // Partner linking status
     let pairingStatusText = '未連携';
@@ -392,16 +377,7 @@ function renderSettingsScreen() {
                 <div class="item-arrow-unified">›</div>
             </div>
 
-            <div class="settings-item-unified" onclick="openDueDateInput()">
-                <div class="item-icon-circle" style="background: #fff7ed;">
-                    <span style="color: #f59e0b;">📅</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">予定日・誕生日</div>
-                    <div class="item-value-unified">${dueDateText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
+
 
             <!-- 苗字 -->
             <div class="settings-item-unified" onclick="openSurnameInput()">
@@ -573,19 +549,7 @@ function openRoleInput() {
     });
 }
 
-function openDueDateInput() {
-    const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
-    const current = wizData?.dueDate || '';
-    showInputModal('予定日・誕生日を入力', 'date', current, '', (value) => {
-        if (typeof WizardData !== 'undefined') {
-            const data = WizardData.get() || {};
-            data.dueDate = value || '';
-            WizardData.save(data);
-        }
-        renderSettingsScreen();
-        if (typeof renderHomeProfile === 'function') renderHomeProfile();
-    });
-}
+
 
 /**
  * 苗字入力
