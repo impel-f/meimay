@@ -1799,15 +1799,17 @@ function updateNamePreview() {
 
     let fortuneData = null;
     if (surnameStr && givenKanji && isComplete && typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
-        const chars = givenKanji.split('');
-        const givArr = chars.map(ch => {
+        const chars = Array.from(givenKanji);
+        const givArr = chars.map((ch, i) => {
+            if (ch === '々') return { kanji: ch, strokes: 3 };
+
             if (typeof selectedPieces !== 'undefined' && selectedPieces) {
-                const found = selectedPieces.find(p => p && p['\u6f22\u5b57'] === ch);
-                if (found) return { kanji: ch, strokes: parseInt(found['\u753b\u6570']) || 0 };
+                const found = selectedPieces.find(p => p && (p['漢字'] || p['\u6f22\u5b57']) === ch);
+                if (found) return { kanji: ch, strokes: parseInt(found['画数'] || found['\u753b\u6570']) || 0 };
             }
             if (typeof master !== 'undefined' && master) {
-                const m = master.find(m => m['\u6f22\u5b57'] === ch);
-                if (m) return { kanji: ch, strokes: parseInt(m['\u753b\u6570']) || 0 };
+                const m = master.find(m => m['漢字'] === ch || m['\u6f22\u5b57'] === ch);
+                if (m) return { kanji: ch, strokes: parseInt(m['画数'] || m['\u753b\u6570']) || 0 };
             }
             return { kanji: ch, strokes: 0 };
         });
@@ -2387,7 +2389,10 @@ function suggestReadingsForKanji(choices, container) {
     const selectedName = choices.join('');
 
     // 各漢字の可能な読み一覧を取得
-    function getKanjiReadings(kanji, mode = 'all') {
+    function getKanjiReadings(kanji, idx, mode = 'all') {
+        if (kanji === '々' && idx > 0) {
+            return getKanjiReadings(choices[idx - 1], idx - 1, mode);
+        }
         const rec = master.find(m => m['漢字'] === kanji);
         if (!rec) return [];
         const raw = mode === 'on'
@@ -2410,7 +2415,7 @@ function suggestReadingsForKanji(choices, container) {
     }
 
     let scored = [];
-    const readingArrays = choices.map(getKanjiReadings);
+    const readingArrays = choices.map((c, i) => getKanjiReadings(c, i));
 
     // 読みが取得できている場合のみ計算
     if (!readingArrays.some(a => a.length === 0)) {
@@ -2527,10 +2532,14 @@ function executeFbBuild() {
     }
 
     const givenName = fbChoices.map((c, i) => getFbDisplayKanji(i) || '').join('');
-    const combination = fbChoices.map(k => {
-        const fromLiked = (liked || []).find(l => l['漢字'] === k);
+    const combination = fbChoices.map((k, i) => {
+        const displayK = getFbDisplayKanji(i);
+        if (displayK === '々') {
+            return { '漢字': '々', '画数': 3, isMark: true, originalKanji: k };
+        }
+        const fromLiked = (liked || []).find(l => (l['漢字'] || l['\u6f22\u5b57']) === k);
         if (fromLiked) return fromLiked;
-        const fromMaster = typeof master !== 'undefined' ? master?.find(m => m['漢字'] === k) : null;
+        const fromMaster = typeof master !== 'undefined' ? master?.find(m => (m['漢字'] || m['\u6f22\u5b57']) === k) : null;
         return fromMaster || { '漢字': k, '画数': 1 };
     });
 
@@ -2781,14 +2790,32 @@ window.removeKanjiFromStock = removeKanjiFromStock;
 
 window.selectFbKanji = function (slotIdx, kanji) {
     withScrollPreservation(() => {
-        if (fbChoices[slotIdx] === kanji) {
-            if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) {
+        let targetKanji = kanji;
+        let useMark = false;
+
+        if (kanji === '々') {
+            if (slotIdx > 0 && fbChoices[slotIdx - 1]) {
+                targetKanji = fbChoices[slotIdx - 1];
+                useMark = true;
+            } else if (slotIdx === 0 && surnameStr) {
+                // 名字の末尾を繰り返す（オプション）
+                targetKanji = Array.from(surnameStr).pop();
+                useMark = true; // ただしidx=0の表示ロジックで々は出ない設定なので実質無効
+            }
+        }
+
+        if (fbChoices[slotIdx] === targetKanji) {
+            if (slotIdx > 0 && fbChoices[slotIdx - 1] === targetKanji) {
                 fbChoicesUseMark[slotIdx] = !fbChoicesUseMark[slotIdx];
             }
         } else {
-            fbChoices[slotIdx] = kanji;
-            if (slotIdx > 0 && fbChoices[slotIdx - 1] === kanji) fbChoicesUseMark[slotIdx] = true;
-            else fbChoicesUseMark[slotIdx] = false;
+            fbChoices[slotIdx] = targetKanji;
+            if (useMark) {
+                fbChoicesUseMark[slotIdx] = true;
+            } else {
+                if (slotIdx > 0 && fbChoices[slotIdx - 1] === targetKanji) fbChoicesUseMark[slotIdx] = true;
+                else fbChoicesUseMark[slotIdx] = false;
+            }
         }
         fbSelectedReading = null; // 漢字変更時は読み選択をリセット
         const buildScreen = document.getElementById('scr-build');
@@ -2969,13 +2996,14 @@ function getFortuneBadgeClass(label) {
 
 function getFortuneStrokeValue(item) {
     if (item == null) return 0;
+    if (item === '々' || (item && typeof item === 'object' && (item['漢字'] === '々' || item['\u6f22\u5b57'] === '々'))) return 3;
     if (typeof item === 'number') return Number.isFinite(item) ? item : 0;
     if (typeof item === 'string') {
         const parsed = parseInt(item, 10);
         return Number.isFinite(parsed) ? parsed : 0;
     }
 
-    const raw = item.strokes ?? item['画数'] ?? item['逕ｻ謨ｰ'];
+    const raw = item.strokes ?? item['画数'] ?? item['逕ｻ謨ｰ'] ?? item['\u753b\u6570'];
     const parsed = parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : 0;
 }
