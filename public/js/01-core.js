@@ -95,8 +95,8 @@ function getKanjiReadingBuckets(item) {
     const minorSource = item?.['伝統名のり'] || '';
     const majorReadings = getKanjiReadingForms(majorSource);
     const minorReadings = getKanjiReadingForms(minorSource);
-    const majorStrictReadings = getKanjiReadingForms(majorSource, { includeStem: true });
-    const minorStrictReadings = getKanjiReadingForms(minorSource, { includeStem: true });
+    const majorStrictReadings = getKanjiReadingForms(majorSource, { includeStem: false });
+    const minorStrictReadings = getKanjiReadingForms(minorSource, { includeStem: false });
 
     return {
         majorReadings,

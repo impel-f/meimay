@@ -6109,22 +6109,24 @@ function executeKanjiSearch() {
 
         if (query || rawQuery) {
             // 1. 完全一致 (Tier 1) - 厳格モードでも送り仮名は無視する
-            const onVariants = getReadingVariants(k['音'] || '');
-            const kunVariants = getReadingVariants(k['訓'] || '');
-            const noriVariants = getReadingVariants(k['伝統名のり'] || '');
-            const isExact = [...onVariants, ...kunVariants, ...noriVariants].some(r => r === query);
+            const onFull = getFullReadings(k['音'] || '');
+            const kunFull = getFullReadings(k['訓'] || '');
+            const noriFull = getFullReadings(k['伝統名のり'] || '');
+            const isExact = [...onFull, ...kunFull, ...noriFull].some(r => r === query);
 
             if (isExact || matchKanji) {
                 tier = 1;
             } else if (searchFlexibleMode) {
                 // 2. 語幹一致 (Tier 2) - 柔軟モードのみ
-                const isStem = [...onVariants, ...kunVariants].some(r => r === query);
+                const onVar = getReadingVariants(k['音'] || '');
+                const kunVar = getReadingVariants(k['訓'] || '');
+                const isStem = [...onVar, ...kunVar].some(r => r === query);
 
                 if (isStem) {
                     tier = 2;
                 } else {
                     // 3. 前方一致 (Tier 3) - 柔軟モードのみ
-                    const isPrefix = [...onVariants, ...kunVariants].some(r => r.startsWith(query));
+                    const isPrefix = [...onVar, ...kunVar].some(r => r.startsWith(query));
                     if (isPrefix) tier = 3;
                 }
             }

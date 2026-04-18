@@ -2076,8 +2076,8 @@ function renderBuildSelection() {
                 };
                 btn.oncontextmenu = (e) => {
                     e.preventDefault();
-                    if (typeof openKanjiActionMenu === 'function') {
-                        openKanjiActionMenu(buildTarget, idx, false);
+                    if (typeof openKanjiDetailFromBuild === 'function') {
+                        openKanjiDetailFromBuild(buildTarget);
                     }
                 };
 
@@ -2323,7 +2323,7 @@ function renderBuildFreeMode(container) {
                 const kanjiStyle = surfaceStyle?.kanjiColor ? ` style="color:${surfaceStyle.kanjiColor}"` : '';
                 const strokesStyle = surfaceStyle?.strokesColor ? ` style="color:${surfaceStyle.strokesColor}"` : '';
                 return `<button onclick="selectFbKanji(${slotIdx}, '${k}')"
-                        oncontextmenu='event.preventDefault(); openKanjiActionMenu(${JSON.stringify(buildTarget)}, ${slotIdx}, true)'
+                        oncontextmenu='event.preventDefault(); openKanjiDetailFromBuild(${JSON.stringify(buildTarget)})'
                         data-slot="${slotIdx}" data-kanji="${k}"
                         class="build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}"
                         style="${buttonStyles.join('')}">
@@ -2633,18 +2633,17 @@ function closeKanjiActionMenu() {
 }
 
 function openKanjiDetailFromBuild(target) {
+    const kanjiStr = typeof resolveLikedCandidateKanji === 'function' ? resolveLikedCandidateKanji(target) : String(target || '').trim();
     const likedItem = findLikedCandidateByTarget(target) || null;
-    const masterItem = likedItem && likedItem['??'] && typeof master !== 'undefined' && Array.isArray(master)
-        ? master.find(item => item['??'] === likedItem['??'])
-        : (typeof master !== 'undefined' && Array.isArray(master)
-            ? master.find(item => item['??'] === String(target || '').trim())
-            : null);
+    const masterItem = (typeof master !== 'undefined' && Array.isArray(master))
+        ? master.find(item => item['漢字'] === kanjiStr)
+        : null;
     const detailItem = { ...(masterItem || {}), ...(likedItem || {}) };
 
     closeKanjiActionMenu();
 
-    if (!detailItem || !detailItem['??']) {
-        if (typeof showToast === 'function') showToast('?????????????', '!');
+    if (!detailItem || !detailItem['漢字']) {
+        if (typeof showToast === 'function') showToast('漢字データが見つかりません', '!');
         return;
     }
 
@@ -2658,7 +2657,7 @@ function openKanjiDetailFromBuild(target) {
         return;
     }
 
-    if (typeof showToast === 'function') showToast('?????????????', '!');
+    if (typeof showToast === 'function') showToast('詳細を表示できません', '!');
 }
 
 /**
