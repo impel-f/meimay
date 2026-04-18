@@ -2461,7 +2461,7 @@ function suggestReadingsForKanji(choices, container) {
     // UI 描画
     const section = document.createElement('div');
     section.className = 'mt-4 pt-3 border-t border-[#ede5d8]';
-    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・手入力）' : ''}</p>`;
+    section.innerHTML = `<p class="text-[10px] font-bold text-[#a6967a] mb-2">読み方の候補${scored.length > 0 ? '（おすすめ・✏️）' : ''}</p>`;
 
     const chipRow = document.createElement('div');
     chipRow.className = 'flex flex-wrap gap-2';
@@ -2470,7 +2470,7 @@ function suggestReadingsForKanji(choices, container) {
         const chip = document.createElement('button');
         const isActive = fbSelectedReading === r.reading;
         // 手入力したものはアイコンをつける
-        const label = r.isManual ? `手入力 ${r.reading}` : r.reading;
+        const label = r.isManual ? `✏️ ${r.reading}` : r.reading;
 
         chip.className = `px-3 py-1.5 text-sm font-bold rounded-full border transition-all active:scale-95
             ${isActive
