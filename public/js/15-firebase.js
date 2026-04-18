@@ -3414,6 +3414,12 @@ function getRoomSyncLikedItems() {
 MeimayPairing.syncMyData = async function () {
     const user = MeimayAuth.getCurrentUser();
     if (!user || !this.roomCode) return;
+    
+    // パートナーからのデータ反映（復元）中は、ループ防止のため送信をスキップ
+    if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
+        console.log('PAIRING: Sync skipped (restore in flight)');
+        return;
+    }
 
     try {
         // 送信前にアクティブ子の現在状態を meimayStateV2 へ書き込む
