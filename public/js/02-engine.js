@@ -830,14 +830,17 @@ function calcSegments() {
     const kanaOption = document.createElement('div');
     kanaOption.className = `w-[92%] mx-auto mt-1 mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm text-left ${hasOneCharPath ? '' : 'opacity-50'}`;
     kanaOption.innerHTML = `
-        <div class="space-y-2">
-            <label class="flex items-center gap-3 ${hasOneCharPath ? 'cursor-pointer' : ''}">
-                <input id="seg-include-hiragana" type="checkbox" class="h-4 w-4 accent-[#b9965b]" ${kanaSettings.hiragana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
-                <span class="text-sm font-black text-[#5d5444]">ひらがなを候補に入れる</span>
+        <div class="mb-2 text-sm font-black text-[#5d5444]">かな表記も候補に出す</div>
+        <div class="grid grid-cols-2 gap-2">
+            <label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : ''}">
+                <input id="seg-include-hiragana" type="checkbox" class="peer sr-only" ${kanaSettings.hiragana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
+                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
+                <span class="text-[13px] font-black text-[#6b6254] transition-colors peer-checked:text-[#5d5444]">ひらがな</span>
             </label>
-            <label class="flex items-center gap-3 ${hasOneCharPath ? 'cursor-pointer' : ''}">
-                <input id="seg-include-katakana" type="checkbox" class="h-4 w-4 accent-[#b9965b]" ${kanaSettings.katakana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
-                <span class="text-sm font-black text-[#5d5444]">カタカナを候補に入れる</span>
+            <label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : ''}">
+                <input id="seg-include-katakana" type="checkbox" class="peer sr-only" ${kanaSettings.katakana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
+                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
+                <span class="text-[13px] font-black text-[#6b6254] transition-colors peer-checked:text-[#5d5444]">カタカナ</span>
             </label>
         </div>
         <div class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">一文字ずつの分け方で使えます。</div>
