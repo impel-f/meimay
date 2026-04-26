@@ -7172,7 +7172,7 @@ function openReadingStockModal(reading) {
     btnAdd.style.display = '';
     btnRemove.style.display = '';
 
-    btnBuild.textContent = isPromotedReading ? '組み立てる' : '漢字を選ぶ';
+    btnBuild.textContent = isPromotedReading ? 'ビルドする' : '漢字を選ぶ';
     btnBuild.onclick = () => {
         closeModal('modal-reading-detail');
         if (isPromotedReading) {
@@ -7553,7 +7553,7 @@ function renderReadingStockSectionV2() {
                     <button onclick='event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})'
                         class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
-                        組み立てる
+                        ビルドする
                     </button>
                 </div>`;
         });
@@ -7593,7 +7593,7 @@ function renderReadingStockSectionV2() {
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
                         const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
                         const tone = getReadingCardToneV2(kind);
-                        const actionLabel = isPromoted ? '組み立てる' : '漢字を選ぶ';
+                        const actionLabel = isPromoted ? 'ビルドする' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})">
