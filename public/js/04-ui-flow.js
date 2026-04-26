@@ -3443,10 +3443,31 @@ function startSwiping() {
  * チュートリアル制御
  */
 let tutorialInterval;
-let tutorialStep = 1; // 1: Swipe, 2: Detail, 3: Build
+let tutorialStep = 1; // 1: ホーム, 2: スワイプ, 3: ビルド
 
-function showTutorial() {
-    localStorage.setItem('meimay_tutorial_shown_v2', 'true');
+function showTutorial(options = {}) {
+    const modal = document.getElementById('modal-tutorial');
+    if (!modal) return;
+
+    tutorialStep = 1;
+    modal.classList.add('active');
+    updateTutorialScene();
+
+    if (options.markShown !== false) {
+        try {
+            localStorage.setItem('meimay_tutorial_shown_v2', 'true');
+        } catch (e) { }
+    }
+}
+
+function maybeShowFirstRunTutorial() {
+    try {
+        if (localStorage.getItem('meimay_tutorial_shown_v2') === 'true') return;
+    } catch (e) {
+        return;
+    }
+
+    setTimeout(() => showTutorial(), 420);
 }
 
 function nextTutorialStep() {
@@ -3478,42 +3499,10 @@ function updateTutorialScene() {
         }
     });
 
-    // Reset Animations
-    if (tutorialInterval) clearInterval(tutorialInterval);
-
-    // Start Scene Specific Animation
-    if (tutorialStep === 1) startScene1Anim();
-    else if (tutorialStep === 2) startScene2Anim();
-    else if (tutorialStep === 3) startScene3Anim();
-}
-
-function startScene1Anim() {
-    const scene = document.getElementById('tut-scene-1');
-    if (!scene) return;
-
-    let step = 0;
-    const update = () => {
-        scene.classList.remove('anim-swipe-right', 'anim-swipe-left', 'anim-swipe-up');
-        const s = step % 3;
-        if (s === 0) scene.classList.add('anim-swipe-right');
-        else if (s === 1) scene.classList.add('anim-swipe-left');
-        else scene.classList.add('anim-swipe-up');
-        step++;
-    };
-    update();
-    tutorialInterval = setInterval(update, 2000);
-}
-
-function startScene2Anim() {
-    const scene = document.getElementById('tut-scene-2');
-    if (!scene) return;
-    scene.classList.add('anim-tap');
-}
-
-function startScene3Anim() {
-    const scene = document.getElementById('tut-scene-3');
-    if (!scene) return;
-    scene.classList.add('anim-fly');
+    if (tutorialInterval) {
+        clearInterval(tutorialInterval);
+        tutorialInterval = null;
+    }
 }
 
 function closeTutorial() {
@@ -5070,6 +5059,7 @@ window.setGender = setGender;
 window.setRule = setRule;
 window.goBack = goBack;
 window.showTutorial = showTutorial;
+window.maybeShowFirstRunTutorial = maybeShowFirstRunTutorial;
 window.closeTutorial = closeTutorial;
 window.nextTutorialStep = nextTutorialStep;
 window.processNickname = processNickname;

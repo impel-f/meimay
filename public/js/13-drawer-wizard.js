@@ -233,6 +233,9 @@ function wizFinish(mode) {
     }
 
     changeScreen('scr-mode');
+    if (typeof maybeShowFirstRunTutorial === 'function') {
+        maybeShowFirstRunTutorial();
+    }
 }
 
 function wizStartNaming() {

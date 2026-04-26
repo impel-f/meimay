@@ -431,6 +431,17 @@ function renderSettingsScreen() {
                 </div>
             </div>
 
+            <div class="settings-item-unified" onclick="showGuide()">
+                <div class="item-icon-circle" style="background: #f0f9ff;">
+                    <span style="color: #3b82f6;">📘</span>
+                </div>
+                <div class="item-content-unified">
+                    <div class="item-title-unified">使い方ガイド</div>
+                    <div class="item-value-unified">ホーム、スワイプ、ビルドの流れを確認</div>
+                </div>
+                <div class="item-arrow-unified">›</div>
+            </div>
+
             <div class="settings-item-unified" onclick="if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
                 <div class="item-icon-circle" style="background: #f8fafc;">
                     <span style="color: #64748b;">📄</span>
@@ -813,7 +824,9 @@ function triggerBackupImport() {
  * 使い方ガイド
  */
 function showGuide() {
-    alert('使い方ガイドは今後実装予定です');
+    if (typeof showTutorial === 'function') {
+        showTutorial({ markShown: false });
+    }
 }
 
 /**
@@ -1041,5 +1054,6 @@ window.selectProfileThemeOption = selectProfileThemeOption;
 window.saveProfileAppearanceModal = saveProfileAppearanceModal;
 window.closeProfileAppearanceModal = closeProfileAppearanceModal;
 window.saveProfileAppearance = saveProfileAppearance;
+window.showGuide = showGuide;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");

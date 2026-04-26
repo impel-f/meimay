@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="/css/main.css?v=25.43">
+<link rel="stylesheet" href="/css/main.css?v=25.44">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.12">
 
     <!-- Google AdSense -->
@@ -1310,470 +1310,142 @@
                 <div id="tut-dot-3" class="w-2 h-2 rounded-full bg-white opacity-30 transition-opacity"></div>
             </div>
 
-            <!-- SCENE 1: SWIPE -->
+            <!-- 1: ホーム -->
             <div id="tut-scene-1" class="tutorial-scene flex flex-col items-center justify-center w-full">
-                <div class="relative w-64 h-80 mb-6">
-                    <div id="tut-card-1"
-                        class="w-full h-full bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center relative border-4 border-white/50">
-                        <div class="absolute inset-0 bg-gradient-to-br from-[#fdfaf5] to-white opacity-50"></div>
-                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">選</div>
-                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">15画</div>
-
-                        <div id="tut-badge-like"
-                            class="absolute top-4 left-4 border-4 border-[#81c995] text-[#81c995] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20">
-                            候補</div>
-                        <div id="tut-badge-nope"
-                            class="absolute top-4 right-4 border-4 border-[#f28b82] text-[#f28b82] font-black text-2xl px-2 py-1 rounded opacity-0 transform rotate-12 z-20">
-                            見送り</div>
-                        <div id="tut-badge-super"
-                            class="absolute bottom-10 left-1/2 -translate-x-1/2 border-4 border-[#8ab4f8] text-[#8ab4f8] font-black text-2xl px-2 py-1 rounded opacity-0 transform -rotate-12 z-20 whitespace-nowrap">
-                            本命</div>
+                <div class="w-full max-w-[340px] rounded-[28px] bg-[#fdfaf5] p-3 shadow-2xl">
+                    <div class="rounded-[24px] overflow-hidden border border-[#eadfce] bg-white">
+                        <div class="bg-[#f3e9d8] px-4 py-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">ホーム</div>
+                                    <div class="mt-1 text-[18px] font-black leading-tight text-[#4f4639]">いまの名づけ状況</div>
+                                </div>
+                                <div class="rounded-full bg-[#ffd7c2] px-5 py-2 text-[11px] font-black text-[#7d5f4d]">マイ候補</div>
+                            </div>
+                        </div>
+                        <div class="space-y-3 px-4 py-4">
+                            <div class="grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center gap-1 text-center">
+                                <div class="rounded-[16px] border-2 border-[#b9965b] bg-[#fffaf2] px-1 py-2">
+                                    <div class="text-[9px] font-black text-[#5d5444]">● 読み</div>
+                                    <div class="mt-1 text-[16px] font-black text-[#5d5444]">0<span class="text-[8px]">件</span></div>
+                                </div>
+                                <div class="text-[#b9965b]">▶</div>
+                                <div class="rounded-[16px] border border-[#eadfce] bg-white px-1 py-2">
+                                    <div class="text-[9px] font-black text-[#5d5444]">漢字</div>
+                                    <div class="mt-1 text-[16px] font-black text-[#5d5444]">0<span class="text-[8px]">字</span></div>
+                                </div>
+                                <div class="text-[#b9965b]">▶</div>
+                                <div class="rounded-[16px] border border-[#eadfce] bg-white px-1 py-2">
+                                    <div class="text-[9px] font-black text-[#5d5444]">ビルド</div>
+                                    <div class="mt-1 text-[16px] font-black text-[#5d5444]">0<span class="text-[8px]">通り</span></div>
+                                </div>
+                                <div class="text-[#b9965b]">▶</div>
+                                <div class="rounded-[16px] border border-[#eadfce] bg-white px-1 py-2">
+                                    <div class="text-[9px] font-black text-[#5d5444]">保存</div>
+                                    <div class="mt-1 text-[16px] font-black text-[#5d5444]">0<span class="text-[8px]">件</span></div>
+                                </div>
+                            </div>
+                            <div class="rounded-[24px] border border-[#eadfce] bg-white px-5 py-4 text-left">
+                                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">今の状況</div>
+                                <div class="mt-2 text-[13px] leading-[1.8] text-[#4f4639]">まずは好きな響きや呼びたい音から、読み候補を探しましょう。</div>
+                            </div>
+                            <div class="rounded-[22px] border-2 border-[#b9965b] bg-white px-5 py-4 text-left">
+                                <div class="text-[18px] font-black text-[#5d5444]">響きを探す</div>
+                                <div class="mt-1 text-[12px] leading-relaxed text-[#8b7e66]">好きな響きから読み候補を探します</div>
+                            </div>
+                        </div>
                     </div>
-                    <div id="tut-hand-1" class="absolute bottom-10 right-10 text-6xl drop-shadow-xl z-50">👆</div>
                 </div>
 
-                <div class="w-full text-center text-white">
-                    <p class="text-xl font-bold mb-2">直感でスワイプ！</p>
-                    <p class="text-sm opacity-90">右で候補、左で見送り</p>
-                    <p class="text-sm opacity-90 text-[#8ab4f8] font-bold mt-1">上スワイプで本命！</p>
-                    <p class="text-xs mt-6 opacity-60 animate-pulse">画面をタップして次へ</p>
+                <div class="w-full text-center text-white mt-6">
+                    <p class="text-xl font-bold mb-2">ホームで次の一手を見る</p>
+                    <p class="text-sm opacity-90">読み、漢字、ビルド、保存のどこにいるかを確認できます。</p>
+                    <p class="text-xs mt-5 opacity-60 animate-pulse">画面をタップして次へ</p>
                 </div>
             </div>
 
-            <!-- SCENE 2: DETAIL -->
+            <!-- 2: スワイプ -->
             <div id="tut-scene-2" class="tutorial-scene hidden flex flex-col items-center justify-center w-full">
-                <div class="relative w-64 h-80 mb-6">
-                    <div id="tut-card-2"
-                        class="w-full h-full bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center relative border-4 border-white/50">
-                        <div class="absolute inset-0 bg-gradient-to-br from-[#fdfaf5] to-white opacity-50"></div>
-                        <div class="text-6xl font-black text-[#5d5444] mb-2 relative z-10">詳</div>
-                        <div class="text-[#bca37f] font-bold text-lg mb-2 relative z-10">13画</div>
-
-                        <!-- Detail Popover -->
-                        <div id="tut-detail-pop"
-                            class="absolute bottom-4 left-4 right-4 bg-black/80 text-white p-3 rounded-xl text-xs opacity-0">
-                            <div class="font-bold mb-1">意味: つまびらか。くわしい。</div>
-                            <div class="opacity-80">読み: ショウ、くわしい</div>
+                <div class="w-full max-w-[340px] rounded-[28px] bg-[#fdfaf5] p-3 shadow-2xl">
+                    <div class="rounded-full bg-white px-4 py-3 shadow-sm flex items-center justify-between">
+                        <div class="rounded-full border-2 border-[#b9965b] px-3 py-1.5 text-[12px] font-black text-[#b9965b]">戻る</div>
+                        <div class="text-center">
+                            <div class="text-[13px] font-black text-[#5d5444]">響きで選ぶ</div>
+                            <div class="text-[9px] font-bold text-[#a6967a]">選:0 / スワイプ上限:100</div>
+                        </div>
+                        <div class="rounded-full border-2 border-[#b9965b] px-3 py-1.5 text-[12px] font-black text-[#b9965b]">完了</div>
+                    </div>
+                    <div id="tut-current-swipe-card" class="mt-4 rounded-[26px] border border-[#eadfce] bg-[#fffaf4] px-6 py-8 shadow-lg text-center">
+                        <div class="mx-auto inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#5d5444]">#力強い</div>
+                        <div class="mt-5 text-[44px] font-black leading-none text-[#5d5444]">たいせい</div>
+                        <div class="mx-auto mt-5 rounded-[20px] bg-white px-5 py-4 shadow-sm">
+                            <div class="text-[11px] font-black text-[#8b7e66]">漢字の例</div>
+                            <div class="mt-2 flex justify-center gap-4 text-[13px] font-black text-[#5d5444]">
+                                <span>太誠</span><span>泰成</span><span>大誠</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="tut-hand-2" class="absolute bottom-20 right-20 text-6xl drop-shadow-xl z-50">👆</div>
+                    <div class="mt-5 flex items-center justify-center gap-5">
+                        <div class="h-16 w-16 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-[#f28b82]">
+                            <div class="text-xl leading-none">×</div><div class="text-[9px] font-black">見送り</div>
+                        </div>
+                        <div class="h-16 w-16 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-[#8ab4f8]">
+                            <div class="text-xl leading-none">★</div><div class="text-[9px] font-black">本命</div>
+                        </div>
+                        <div class="h-16 w-16 rounded-full bg-white shadow-lg flex flex-col items-center justify-center text-[#81c995]">
+                            <div class="text-xl leading-none">♥</div><div class="text-[9px] font-black">候補</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="w-full text-center text-white">
-                    <p class="text-xl font-bold mb-2">タップで詳細表示</p>
-                    <p class="text-sm opacity-90">意味や読み方を確認できます</p>
-                    <p class="text-xs mt-6 opacity-60 animate-pulse">画面をタップして次へ</p>
+                <div class="w-full text-center text-white mt-6">
+                    <p class="text-xl font-bold mb-2">スワイプで候補を選ぶ</p>
+                    <p class="text-sm opacity-90">右は候補、左は見送り、上は本命。下のボタンでも選べます。</p>
+                    <p class="text-xs mt-5 opacity-60 animate-pulse">画面をタップして次へ</p>
                 </div>
             </div>
 
-            <!-- SCENE 3: STOCK & BUILD -->
-            <div id="tut-scene-3" class="tutorial-scene hidden flex flex-col items-center justify-center w-full h-full">
-                <!-- Stack of cards area -->
-                <div class="relative w-full flex-1 flex items-center justify-center min-h-[300px]">
-                    <div id="tut-card-fly"
-                        class="absolute w-32 h-40 bg-white rounded-xl shadow-lg flex flex-col items-center justify-center z-20 border-2 border-[#81c995]">
-                        <span class="text-4xl text-[#5d5444]">好</span>
-                        <div class="absolute -top-2 -right-2 bg-[#81c995] text-white rounded-full p-1 text-[10px]">❤️
+            <!-- 3: ビルドと保存 -->
+            <div id="tut-scene-3" class="tutorial-scene hidden flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-[340px] rounded-[28px] bg-[#fdfaf5] p-3 shadow-2xl">
+                    <div class="rounded-[22px] border border-[#eadfce] bg-white p-1 flex text-center text-[13px] font-black text-[#8b7e66]">
+                        <div class="flex-1 rounded-[16px] bg-[#fff8e8] py-2">読みを選ぶ</div>
+                        <div class="flex-1 py-2">自由ビルド</div>
+                    </div>
+                    <div class="mt-4 flex items-stretch gap-2">
+                        <div class="flex-1 rounded-[20px] border border-dashed border-[#d4c5af] bg-white px-4 py-5 text-center">
+                            <div class="text-[11px] font-black text-[#bca37f]">命名キャンバス</div>
+                            <div class="mt-3 flex justify-center gap-2">
+                                <div class="rounded-[14px] border border-[#eadfce] bg-[#fffaf4] px-4 py-3 text-2xl font-black text-[#5d5444]">陽</div>
+                                <div class="rounded-[14px] border border-[#eadfce] bg-[#fffaf4] px-4 py-3 text-2xl font-black text-[#5d5444]">斗</div>
+                            </div>
+                            <div class="mt-2 text-[10px] font-bold text-[#a6967a]">はると</div>
+                        </div>
+                        <div class="w-[62px] flex flex-col gap-2">
+                            <div class="flex-1 rounded-[14px] border border-[#eadfce] bg-[#fffaf4] flex flex-col items-center justify-center text-[8px] font-black text-[#5d5444]">
+                                <span class="text-base">🏆</span><span>運勢TOP10</span>
+                            </div>
+                            <div class="flex-1 rounded-[14px] border border-[#eadfce] bg-[#fffaf4] flex flex-col items-center justify-center text-[9px] font-black text-[#5d5444]">
+                                <span class="text-base">🔮</span><span>運勢</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 rounded-[22px] border border-[#eadfce] bg-white px-5 py-4 flex items-center justify-center gap-2 text-[#5d5444]">
+                        <span class="text-xl">💾</span>
+                        <div>
+                            <div class="text-sm font-black">保存</div>
+                            <div class="text-[10px] text-[#a6967a]">気になる名前を残す</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Bottom Bar Simulation (Matching Production) -->
-                <div
-                    class="w-full max-w-sm bg-white/90 rounded-t-3xl pb-6 pt-4 px-6 flex justify-around items-center backdrop-blur-md border-t border-[#e6dccb/30] shadow-[0_-4px_20px_rgba(0,0,0,0.2)]">
-                    <div class="flex flex-col items-center gap-1 opacity-50">
-                        <span class="text-2xl">🔍</span>
-                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">探す</span>
-                    </div>
-
-                    <div id="tut-icon-stock" class="flex flex-col items-center gap-1 relative z-10">
-                        <div class="relative">
-                            <span class="text-2xl">📋</span>
-                            <div id="tut-stock-badge"
-                                class="absolute -top-1 -right-1 bg-[#f28b82] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center opacity-0 scale-0 shadow-sm">
-                                1</div>
-                        </div>
-                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ストック</span>
-                    </div>
-
-                    <div id="tut-icon-build" class="flex flex-col items-center gap-1 opacity-50">
-                        <span class="text-2xl">⚒️</span>
-                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">ビルド</span>
-                    </div>
-
-                    <div class="flex flex-col items-center gap-1 opacity-50">
-                        <span class="text-2xl">⚙️</span>
-                        <span class="text-[9px] font-black text-[#a6967a] uppercase tracking-tighter">設定</span>
-                    </div>
-                </div>
-
-                <div class="w-full text-center text-white mt-8 mb-4">
-                    <p class="text-xl font-bold mb-2">ためて、つくる</p>
-                    <p class="text-sm opacity-90">キープした漢字で名前を作成</p>
-                    <p class="text-xs mt-4 opacity-60 animate-pulse">画面をタップしてスタート！</p>
+                <div class="w-full text-center text-white mt-6">
+                    <p class="text-xl font-bold mb-2">ビルドして保存する</p>
+                    <p class="text-sm opacity-90">集めた読みと漢字から名前を作り、気になる候補を保存します。</p>
+                    <p class="text-xs mt-5 opacity-60 animate-pulse">画面をタップして閉じる</p>
                 </div>
             </div>
 
-            <style>
-                /* Scene 1 Animations */
-                .anim-swipe-right #tut-card-1 {
-                    animation: tutorial-card-right 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-right #tut-hand-1 {
-                    animation: tutorial-swipe-right 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-right #tut-badge-like {
-                    animation: badge-fade 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-left #tut-card-1 {
-                    animation: tutorial-card-left 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-left #tut-hand-1 {
-                    animation: tutorial-swipe-left 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-left #tut-badge-nope {
-                    animation: badge-fade 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-up #tut-card-1 {
-                    animation: tutorial-card-up 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-up #tut-hand-1 {
-                    animation: tutorial-swipe-up 1.5s ease-in-out infinite;
-                }
-
-                .anim-swipe-up #tut-badge-super {
-                    animation: badge-fade 1.5s ease-in-out infinite;
-                }
-
-                /* Scene 2 Animations */
-                .anim-tap #tut-hand-2 {
-                    animation: tutorial-tap 2s ease-in-out infinite;
-                }
-
-                .anim-tap #tut-card-2 {
-                    animation: tutorial-tap-card 2s ease-in-out infinite;
-                }
-
-                .anim-tap #tut-detail-pop {
-                    animation: tutorial-pop-show 2s ease-in-out infinite;
-                }
-
-                @keyframes tutorial-tap {
-
-                    0%,
-                    100% {
-                        transform: scale(1);
-                    }
-
-                    40% {
-                        transform: scale(0.9) translate(-5px, 5px);
-                    }
-
-                    /* Tap down */
-                    60% {
-                        transform: scale(1);
-                    }
-                }
-
-                @keyframes tutorial-tap-card {
-
-                    0%,
-                    100% {
-                        transform: scale(1);
-                    }
-
-                    40% {
-                        transform: scale(0.98);
-                    }
-
-                    /* Pressed */
-                    45% {
-                        transform: scale(1.02);
-                    }
-
-                    60% {
-                        transform: scale(1);
-                    }
-                }
-
-                @keyframes tutorial-pop-show {
-
-                    0%,
-                    30% {
-                        opacity: 0;
-                        transform: translateY(10px);
-                    }
-
-                    40% {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-
-                    80% {
-                        opacity: 1;
-                    }
-
-                    90% {
-                        opacity: 0;
-                    }
-                }
-
-                /* Scene 3 Animations */
-                .anim-fly #tut-card-fly {
-                    animation: tutorial-fly-stock 3s ease-in-out infinite;
-                }
-
-                .anim-fly #tut-stock-badge {
-                    animation: tutorial-badge-pop 3s ease-in-out infinite;
-                }
-
-                .anim-fly #tut-icon-build {
-                    animation: tutorial-build-glow 3s ease-in-out infinite;
-                }
-
-                @keyframes tutorial-fly-stock {
-                    0% {
-                        transform: translate(0, 0) scale(1) rotate(0deg);
-                        opacity: 1;
-                    }
-
-                    20% {
-                        transform: translate(0, 0) scale(1.1) rotate(5deg);
-                    }
-
-                    60% {
-                        transform: translate(var(--stock-x, 15px), var(--stock-y, 140px)) scale(0.1);
-                        opacity: 0.5;
-                    }
-
-                    70% {
-                        opacity: 0;
-                    }
-
-                    100% {
-                        opacity: 0;
-                    }
-                }
-
-                @keyframes tutorial-badge-pop {
-
-                    0%,
-                    60% {
-                        opacity: 0;
-                        transform: scale(0);
-                    }
-
-                    65% {
-                        opacity: 1;
-                        transform: scale(1.2);
-                    }
-
-                    75% {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-
-                    100% {
-                        opacity: 1;
-                        transform: scale(1);
-                    }
-                }
-
-                @keyframes tutorial-build-glow {
-
-                    0%,
-                    70% {
-                        text-shadow: none;
-                        transform: scale(1);
-                        opacity: 0.5;
-                    }
-
-                    80% {
-                        text-shadow: 0 0 10px #f28b82;
-                        transform: scale(1.2);
-                        opacity: 1;
-                    }
-
-                    100% {
-                        text-shadow: none;
-                        transform: scale(1);
-                        opacity: 0.5;
-                    }
-                }
-
-                /* Transition Resets for keyframes */
-                @keyframes tutorial-swipe-right {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: translate(10px, 10px) rotate(0deg);
-                    }
-
-                    50% {
-                        transform: translate(120px, 20px) rotate(15deg);
-                    }
-
-                    60% {
-                        transform: translate(120px, 20px) rotate(15deg);
-                        opacity: 0;
-                    }
-
-                    61% {
-                        transform: translate(0, 0) rotate(0deg);
-                        opacity: 0;
-                    }
-
-                    70% {
-                        opacity: 1;
-                    }
-                }
-
-                @keyframes tutorial-card-right {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: scale(0.98);
-                    }
-
-                    50% {
-                        transform: translate(100px, 10px) rotate(10deg);
-                    }
-
-                    60% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-                }
-
-                @keyframes tutorial-swipe-left {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: translate(-10px, 10px) rotate(0deg);
-                    }
-
-                    50% {
-                        transform: translate(-120px, 20px) rotate(-15deg);
-                    }
-
-                    60% {
-                        transform: translate(-120px, 20px) rotate(-15deg);
-                        opacity: 0;
-                    }
-
-                    61% {
-                        transform: translate(0, 0) rotate(0deg);
-                        opacity: 0;
-                    }
-
-                    70% {
-                        opacity: 1;
-                    }
-                }
-
-                @keyframes tutorial-card-left {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: scale(0.98);
-                    }
-
-                    50% {
-                        transform: translate(-100px, 10px) rotate(-10deg);
-                    }
-
-                    60% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-                }
-
-                @keyframes tutorial-swipe-up {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: translate(0, 10px) rotate(0deg);
-                    }
-
-                    50% {
-                        transform: translate(0, -120px) rotate(0deg);
-                    }
-
-                    60% {
-                        transform: translate(0, -120px) rotate(0deg);
-                        opacity: 0;
-                    }
-
-                    61% {
-                        transform: translate(0, 0) rotate(0deg);
-                        opacity: 0;
-                    }
-
-                    70% {
-                        opacity: 1;
-                    }
-                }
-
-                @keyframes tutorial-card-up {
-
-                    0%,
-                    100% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-
-                    20% {
-                        transform: scale(0.95);
-                    }
-
-                    50% {
-                        transform: translate(0, -100px) rotate(0deg);
-                    }
-
-                    60% {
-                        transform: translate(0, 0) rotate(0deg);
-                    }
-                }
-
-                @keyframes badge-fade {
-
-                    0%,
-                    20%,
-                    60%,
-                    100% {
-                        opacity: 0;
-                    }
-
-                    40%,
-                    50% {
-                        opacity: 1;
-                    }
-                }
-            </style>
         </div>
     </div>
 
@@ -1909,16 +1581,16 @@
     <script src="/js/01-core.js?v=26.01"></script>
 <script src="/js/02-engine.js?v=25.21"></script>
     <script src="/js/03-fortune.js?v=25.12"></script>
-<script src="/js/04-ui-flow.js?v=25.96"></script>
+<script src="/js/04-ui-flow.js?v=25.97"></script>
 <script src="/js/05-ui-render.js?v=25.26"></script>
     <script src="/js/06-ui-physics.js?v=25.13"></script>
     <script src="/js/07-build.js?v=25.36"></script>
 <script src="/js/08-origin.js?v=25.43"></script>
     <script src="/js/09-storage.js?v=26.01"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.15"></script>
+    <script src="/js/11-settings.js?v=25.16"></script>
     <script src="/js/12-history.js?v=25.43"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.18"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.19"></script>
     <script src="/js/14-admob.js?v=25.25"></script>
 <script src="/js/15-firebase.js?v=26.02"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
