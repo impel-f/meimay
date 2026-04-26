@@ -111,8 +111,13 @@ const MeimayAuth = {
 // ============================================================
 // AUTH STATE LISTENER
 // ============================================================
+let _lastAuthUid = null;
 if (firebaseAuth) {
     firebaseAuth.onAuthStateChanged(async (user) => {
+        // UIDが変わっていない場合は重複処理を避ける（コネクション断続による再発火対策）
+        if (user && user.uid === _lastAuthUid) return;
+        _lastAuthUid = user?.uid || null;
+
         MeimayAuth.currentUser = user;
         if (user) {
             console.log(`FIREBASE: Anonymous user ready (${user.uid})`);
@@ -122,7 +127,7 @@ if (firebaseAuth) {
             if (window.MeimayUserBackup && typeof window.MeimayUserBackup.bootstrapForUser === 'function') {
                 await window.MeimayUserBackup.bootstrapForUser(user);
             }
-            // 菫晏ｭ俶ｸ医∩繝ｫ繝ｼ繝縺後≠繧後・蜀肴磁邯・
+            // 保存済みルームがあれば再接続
             await MeimayPairing.resumeRoom();
             seedReadingStatsFromLocalHistory();
         } else {
@@ -1254,11 +1259,11 @@ const MeimayPairing = {
     shareCode: function () {
         if (!this.roomCode) return;
         const partnerRoleLabel = this.myRole === 'mama' ? 'パパ' : 'ママ';
-        const text = `メイメイで名前づけのコードを共有します。\n${partnerRoleLabel}はこのコードを入力してください。\n\nルームコード: ${this.roomCode}`;
+        const text = `メイメーで一緒に赤ちゃんの名前を考えませんか？\n${partnerRoleLabel}はこのコードをコピーして、アプリに入力してください。\n\nルームコード: ${this.roomCode}`;
 
         if (navigator.share) {
             navigator.share({
-                title: 'メイメイ - 名前づけのコードを共有',
+                title: 'メイメー - ルームコードの共有',
                 text: text
             }).catch(() => {});
         } else {
@@ -1496,22 +1501,6 @@ const MeimayShare = {
         }
     }
 };
-
-function refreshPartnerAwareUI() {
-    if (typeof applyProfileTheme === 'function') applyProfileTheme();
-    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-        renderHomeProfile();
-    }
-    if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
-        MeimayChildWorkspaces.renderSwitchers();
-    }
-    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
-        renderSavedScreen();
-    }
-    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
-        renderSettingsScreen();
-    }
-}
 
 const MeimayPartnerInsights = {
     normalizeReading: function (value) {
@@ -2224,10 +2213,8 @@ async function handleEnterCode() {
     const code = input?.value?.trim();
     const result = await MeimayPairing.joinRoom(code);
     if (result.success) {
-        showToast('パートナーと連携しました', '\u2713');
         if (input) input.value = '';
     } else if (result.error) {
-        showToast(result.error, '!');
     }
 }
 (function hookStorageSync() {
@@ -2320,62 +2307,13 @@ if (typeof window !== 'undefined') {
     });
 }
 
-// ============================================================
-// TOAST NOTIFICATION
-// ============================================================
-function showToast(message, icon = '\u2728', onAction = null) {
-    const existing = document.getElementById('meimay-toast');
-    if (existing) existing.remove();
-
-    const toast = document.createElement('div');
-    toast.id = 'meimay-toast';
-    toast.style.cssText = `
-        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-        background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
-        border-radius: 16px; font-size: 13px; font-weight: 700;
-        z-index: 99999; display: flex; align-items: center; gap: 8px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(12px);
-        animation: toastIn 0.3s ease-out;
-        max-width: 90vw;
-    `;
-
-    let html = `<span style="font-size:18px">${icon}</span><span>${message}</span>`;
-    if (onAction) {
-        html += `<button onclick="this.parentElement._onAction?.(); this.parentElement.remove()" style="
-            margin-left:8px; padding:4px 12px; background:rgba(255,255,255,0.2);
-            border:none; color:white; border-radius:8px; font-size:11px; font-weight:900; cursor:pointer;
-        ">蜿悶ｊ霎ｼ繧</button>`;
-    }
-    toast.innerHTML = html;
-    if (onAction) toast._onAction = onAction;
-
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.style.animation = 'toastOut 0.3s ease-in forwards';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, onAction ? 10000 : 4000);
-}
-
-// Toast CSS
-(function addToastCSS() {
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-        @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(-20px); } }
-    `;
-    document.head.appendChild(style);
-})();
-
 // Global exports
 window.MeimayAuth = MeimayAuth;
 window.MeimayPairing = MeimayPairing;
 window.MeimayShare = MeimayShare;
 window.handleGenerateCode = handleGenerateCode;
 window.handleEnterCode = handleEnterCode;
-window.showToast = showToast;
+if (typeof showToast === 'function') window.showToast = showToast;
 
 // ============================================================
 // STATS - 莠ｺ豌励Λ繝ｳ繧ｭ繝ｳ繧ｰ逕ｨ髮・ｨ医Δ繧ｸ繝･繝ｼ繝ｫ・亥､画峩縺ｪ縺暦ｼ・// ============================================================
@@ -3419,12 +3357,16 @@ MeimayPairing.syncMyData = async function () {
     const user = MeimayAuth.getCurrentUser();
     if (!user || !this.roomCode) return;
     
+    // 二重送信防止
+    if (this._syncInProgress) return;
+
     // パートナーからのデータ反映（復元）中は、ループ防止のため送信をスキップ
     if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
         console.log('PAIRING: Sync skipped (restore in flight)');
         return;
     }
 
+    this._syncInProgress = true;
     try {
         // 送信前にアクティブ子の現在状態を meimayStateV2 へ書き込む
         if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && MeimayChildWorkspaces.initialized) {
@@ -3604,11 +3546,27 @@ MeimayPairing.syncMyData = async function () {
         const roomPayload = attachRoomSyncWorkspaceState(roomPayloadBase, childWorkspaceStateV2, childWorkspaceStateV2UpdatedAt);
         roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
-        await roomDataRef.set(roomPayload, { merge: true });
+        // 変化がある場合のみ送信（指紋チェック）
+        // updatedAtを除外して純粋なコンテンツの変化を確認
+        const contentFingerprint = JSON.stringify({
+            liked: roomPayload.liked,
+            savedNames: roomPayload.savedNames,
+            readingStock: roomPayload.readingStock,
+            meimayStateV2UpdatedAt: roomPayload.meimayStateV2UpdatedAt,
+            meimayStateV2: roomPayload.meimayStateV2
+        });
 
-        console.log('PAIRING: Synced my data to room');
+        if (this._lastContentFingerprint !== contentFingerprint) {
+            await roomDataRef.set(roomPayload, { merge: true });
+            this._lastContentFingerprint = contentFingerprint;
+            console.log('PAIRING: Synced my data to room');
+        } else {
+            // console.log('PAIRING: Sync skipped (no content change)');
+        }
     } catch (e) {
         console.error('PAIRING: Sync data failed', e);
+    } finally {
+        this._syncInProgress = false;
     }
 };
 
@@ -4162,13 +4120,16 @@ window.renderMeimaySuperStars = renderMeimaySuperStars;
 function refreshPartnerAwareUI() {
     if (typeof applyProfileTheme === 'function') applyProfileTheme();
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-        renderHomeProfile();
+        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile();
     }
     if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
         renderSavedScreen();
     }
     if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
         renderSettingsScreen();
+    }
+    if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
+        MeimayChildWorkspaces.renderSwitchers();
     }
     if (document.getElementById('scr-stock')?.classList.contains('active')) {
         if (typeof renderStock === 'function') renderStock();

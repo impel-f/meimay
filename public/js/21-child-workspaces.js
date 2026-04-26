@@ -1997,9 +1997,10 @@
         saveRoot(root = this.root, options = {}) {
             if (!root) return;
             
-            // 復元中、あるいは明示的なスキップ指定がある場合は同期しない
+            // 復元中、あるいは送信中、あるいは明示的なスキップ指定がある場合は同期しない
             const isRestoring = typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight;
-            const skipSync = !!options.skipRemoteSync || isRestoring;
+            const isSyncing = typeof MeimayPairing !== 'undefined' && MeimayPairing._syncInProgress;
+            const skipSync = !!options.skipRemoteSync || isRestoring || isSyncing;
 
             const nextRoot = root;
             nextRoot.updatedAt = getNowIso();

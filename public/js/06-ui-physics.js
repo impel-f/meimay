@@ -221,10 +221,18 @@ function executeSwipe(dir, data) {
                 });
             }
         } else {
-            // 重複チェック：既に同じ漢字が同じスロットに存在しないか確認
-            const isDuplicate = liked.some(item =>
-                item.slot === currentPos && item['漢字'] === data['漢字']
-            );
+            // 修正：同じ「読み」で同じ「漢字」が既にストックに存在するか確認
+            const currentReadingRaw = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+            const currentReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(currentReadingRaw)
+                : currentReadingRaw.trim();
+
+            const isDuplicate = liked.some(item => {
+                const itemReading = typeof normalizeReadingComparisonValue === 'function'
+                    ? normalizeReadingComparisonValue(item.sessionReading || '')
+                    : (item.sessionReading || '').trim();
+                return itemReading === currentReadingNormalized && (item['漢字'] || item.kanji) === data['漢字'];
+            });
 
             if (!isDuplicate) {
                 seen.add(data['漢字']);
@@ -232,11 +240,11 @@ function executeSwipe(dir, data) {
                     ...data,
                     slot: currentPos,
                     isSuper: (dir === 'up'),
-                    sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''), // どの読み方で選ばれたかを記録
-                    sessionSegments: [...segments] // セグメント配列も記録してグループ化バグを防ぐ
+                    sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
+                    sessionSegments: [...segments]
                 });
             } else {
-                console.log(`PHYSICS: Duplicate detected - ${data['漢字']} already in slot ${currentPos}`);
+                console.log(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);
             }
         }
     }

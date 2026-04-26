@@ -260,7 +260,7 @@ const StorageBox = {
             }
             localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(normalizedSoundPreferenceData));
 
-            console.log("STORAGE: State saved successfully");
+            // console.log("STORAGE: State saved successfully");
             if (typeof queuePartnerStockSync === 'function') {
                 queuePartnerStockSync('saveAll');
             }

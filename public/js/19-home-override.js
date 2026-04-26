@@ -78,7 +78,10 @@ function openSavedNamesWithPartnerFocus(savedFocus) {
         savedFocus: savedFocus || 'all'
     }, { resetAll: true });
     if (typeof changeScreen === 'function') changeScreen('scr-saved');
-    if (typeof renderSavedScreen === 'function') renderSavedScreen();
+    // 描画を後回しにしてレスポンス優先
+    setTimeout(() => {
+        if (typeof renderSavedScreen === 'function') renderSavedScreen();
+    }, 10);
 }
 
 function openStockWithPartnerFocus(tab, focusKey, focusValue) {
@@ -91,11 +94,15 @@ function openStockWithPartnerFocus(tab, focusKey, focusValue) {
     }
     if (typeof changeScreen === 'function') changeScreen('scr-stock');
     if (typeof switchStockTab === 'function') switchStockTab(tab || 'kanji');
-    if ((tab || 'kanji') === 'reading') {
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-    } else if (typeof renderStock === 'function') {
-        renderStock();
-    }
+
+    // 描画処理を後回しにして、画面遷移を即座に行う
+    setTimeout(() => {
+        if ((tab || 'kanji') === 'reading') {
+            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        } else if (typeof renderStock === 'function') {
+            renderStock();
+        }
+    }, 10);
 }
 
 function getHomeRecommendedEntry(readingStockCount, likedCount, savedCount) {
@@ -159,113 +166,6 @@ function getHomePairSummaryText(pairing) {
     if (!pairing?.inRoom) return '未連携';
     if (!pairing?.hasPartner) return '連携待ち';
     return `${pairing.partnerDisplayName || pairing.partnerLabel || 'パートナー'}と連携中`;
-}
-
-function getHomeBuildPatternCount(candidatePoolOverride) {
-    // 1. プールの取得
-    const pool = Array.isArray(candidatePoolOverride)
-        ? candidatePoolOverride
-        : typeof getMergedLikedCandidates === 'function'
-            ? getMergedLikedCandidates()
-            : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked : []);
-    
-    if (!pool || pool.length === 0) return 0;
-
-    // 2. ヘルパー：正規化
-    const clean = (s) => {
-        let t = String(s || '').trim();
-        if (typeof toHira === 'function') t = toHira(t);
-        else if (typeof window.toHira === 'function') t = window.toHira(t);
-        return t.replace(/[・．／\/ 　]/g, '');
-    };
-
-    // 3. カウント対象となる「読みパターン（読み＋セグメント構成）」の収集
-    const patterns = new Map(); // key: rBase -> { segments, reading }
-
-    // (A) 読みストックからパターンを抽出
-    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    stock.forEach(r => {
-        const base = clean(r.reading);
-        if (!base) return;
-        if (!patterns.has(base)) {
-            patterns.set(base, {
-                reading: r.reading,
-                segments: (Array.isArray(r.segments) && r.segments.length > 0) ? r.segments.map(s => clean(s)) : null
-            });
-        }
-    });
-
-    // (B) 候補漢字のセッション情報からパターンを抽出（ストック外のパターンも救済）
-    pool.forEach(c => {
-        const sRead = clean(c.sessionReading);
-        if (!sRead || ['free', 'search', 'ranking', 'shared', 'unknown'].includes(sRead)) return;
-        if (!patterns.has(sRead)) {
-            patterns.set(sRead, {
-                reading: c.sessionReading,
-                segments: (Array.isArray(c.sessionSegments) && c.sessionSegments.length > 0) ? c.sessionSegments.map(s => clean(s)) : null
-            });
-        }
-    });
-
-    // 4. 各パターンについて実際の組み合わせを計算
-    let total = 0;
-    patterns.forEach((pattern, rBase) => {
-        const slotData = new Map(); // slotIndex -> Set of unique characters
-
-        pool.forEach(c => {
-            const kanji = c['漢字'] || c.kanji;
-            if (!kanji) return;
-
-            const cSession = clean(c.sessionReading);
-            const cReadingRaw = c.kanji_reading || c.reading || '';
-            const cReadings = cReadingRaw.split(/[,、，]/).map(r => clean(r));
-
-            let matchedSlot = -1;
-
-            // 判定1: 明示的なセッション・スロット一致
-            if (cSession === rBase && c.slot >= 0) {
-                matchedSlot = c.slot;
-            }
-            // 判定2: セグメントベースのマッチ（FREEモード等）
-            else if (pattern.segments) {
-                for (let i = 0; i < pattern.segments.length; i++) {
-                    const seg = pattern.segments[i];
-                    if (seg && cReadings.includes(seg)) {
-                        matchedSlot = i;
-                        break;
-                    }
-                }
-            }
-
-            if (matchedSlot >= 0) {
-                if (!slotData.has(matchedSlot)) slotData.set(matchedSlot, new Set());
-                slotData.get(matchedSlot).add(kanji);
-            }
-        });
-
-        // スロット数の決定: セグメント数、または使用されている最大スロット番号
-        let slotCount = pattern.segments ? pattern.segments.length : 0;
-        const usedSlotIndices = Array.from(slotData.keys());
-        if (usedSlotIndices.length > 0) {
-            slotCount = Math.max(slotCount, Math.max(...usedSlotIndices) + 1);
-        }
-
-        if (slotCount <= 0) return;
-
-        // すべてのスロットで1つ以上の漢字がある場合のみ組み合わせを計算
-        let combos = 1;
-        for (let i = 0; i < slotCount; i++) {
-            const count = slotData.has(i) ? slotData.get(i).size : 0;
-            if (count === 0) {
-                combos = 0;
-                break;
-            }
-            combos *= count;
-        }
-        total += combos;
-    });
-
-    return total;
 }
 
 function normalizeHomeBuildReadingValue(value) {
@@ -343,6 +243,9 @@ function normalizeHomeBuildPool(candidatePoolOverride) {
         .filter(Boolean);
 }
 
+// 高速化のためのキャッシュとインデックス
+const _homeBuildPatternCountCache = new Map();
+
 function getHomeBuildHiddenReadingSet() {
     let removedList = [];
     try {
@@ -358,6 +261,19 @@ function getHomeBuildHiddenReadingSet() {
     );
 }
 
+function getHomeDataStateFingerprint(pool, readingStock) {
+    // タイムスタンプ(updatedAt)に依存すると、保存のたびにキャッシュが壊れる可能性があるため、
+    // データの「件数」と「IDの並び」をベースにした、より安定した指紋を使用する。
+    const poolCount = Array.isArray(pool) ? pool.length : 0;
+    const readingCount = Array.isArray(readingStock) ? readingStock.length : 0;
+
+    // 内容のハッシュ代わりとして、最初と最後の要素の情報を少し混ぜる
+    const poolHint = poolCount > 0 ? (pool[0]?.['漢字'] || pool[0]?.kanji || '') + (pool[poolCount-1]?.['漢字'] || '') : '';
+    const readingHint = readingCount > 0 ? (readingStock[0]?.reading || '') + (readingStock[readingCount-1]?.reading || '') : '';
+
+    return `v2_${poolCount}_${readingCount}_${poolHint}_${readingHint}`;
+}
+
 function getHomeBuildPatternKey(reading, segments) {
     const normalizedReading = normalizeHomeBuildReadingValue(reading);
     const normalizedSegments = sanitizeHomeBuildSegments(segments)
@@ -366,12 +282,24 @@ function getHomeBuildPatternKey(reading, segments) {
     return `${normalizedReading}::${normalizedSegments.join('/')}`;
 }
 
-function getHomeBuildSlotCandidateCount(pool, segment, slotIndex, reading) {
-    const matchedKanji = new Set();
+function getHomeBuildSlotCandidateCount(pool, segment, slotIndex, reading, poolIndex) {
     const normalizedReading = normalizeHomeBuildReadingValue(reading);
     const normalizedSegment = normalizeHomeBuildReadingValue(segment);
     if (!normalizedSegment) return 0;
 
+    // インデックスがあればそれを使用（超高速）
+    if (poolIndex) {
+        const slotKey = `${slotIndex}::${normalizedReading}`;
+        const slotMatches = poolIndex.bySlot.get(slotKey) || new Set();
+        const segmentMatches = poolIndex.bySegment.get(normalizedSegment) || new Set();
+
+        // 和集合のサイズを計算（重複を排除）
+        const combined = new Set([...slotMatches, ...segmentMatches]);
+        return combined.size;
+    }
+
+    // インデックスがない場合のフォールバック（低速）
+    const matchedKanji = new Set();
     pool.forEach((item) => {
         const kanji = item?.['漢字'] || item?.kanji || '';
         if (!kanji) return;
@@ -411,11 +339,62 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
             ? getReadingStock()
             : [];
 
-    // 組み合わせ数は「現在の読みストック」を基準に数える。
-    // 漢字候補だけ残っていても、読みをストックから外していれば件数には含めない。
     if (!Array.isArray(readingStock) || readingStock.length === 0 || pool.length === 0) {
         return 0;
     }
+
+    // キャッシュチェック
+    const fingerprint = getHomeDataStateFingerprint(pool, readingStock);
+    const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}`;
+    if (_homeBuildPatternCountCache.has(cacheKey)) {
+        return _homeBuildPatternCountCache.get(cacheKey);
+    }
+
+    // プールのインデックス化（一度だけ実行して使い回す）
+    const poolIndex = {
+        bySlot: new Map(), // Map<slotKey, Set<kanji>>
+        bySegment: new Map() // Map<segment, Set<kanji>>
+    };
+
+    pool.forEach(item => {
+        const kanji = item?.['漢字'] || item?.kanji || '';
+        if (!kanji) return;
+
+        // 1. スロット一致用
+        const itemReading = normalizeHomeBuildReadingValue(item?.sessionReading || '');
+        const itemSlot = Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1;
+        if (itemSlot >= 0) {
+            const slotKey = `${itemSlot}::${itemReading}`;
+            if (!poolIndex.bySlot.has(slotKey)) poolIndex.bySlot.set(slotKey, new Set());
+            poolIndex.bySlot.get(slotKey).add(kanji);
+        }
+
+        // 2. セグメント一致用
+        const itemSegments = Array.isArray(item?.sessionSegments) ? item.sessionSegments : [];
+        const itemSegment = itemSlot >= 0 && itemSlot < itemSegments.length
+            ? itemSegments[itemSlot]
+            : (item?.sessionReading && !String(item.sessionReading).includes('::') && !String(item.sessionReading).includes('/')
+                ? item.sessionReading
+                : '');
+        const normalizedItemSegment = normalizeHomeBuildReadingValue(itemSegment);
+        if (normalizedItemSegment) {
+            if (!poolIndex.bySegment.has(normalizedItemSegment)) poolIndex.bySegment.set(normalizedItemSegment, new Set());
+            poolIndex.bySegment.get(normalizedItemSegment).add(kanji);
+        }
+
+        // 3. 汎用読み用
+        const rawReadings = String(item?.kanji_reading || item?.reading || '')
+            .split(/[、,，\s/]+/)
+            .map(value => normalizeHomeBuildReadingValue(value))
+            .filter(Boolean);
+        const generalSource = ['free', 'search', 'ranking', 'shared', 'unknown'].includes(itemReading);
+        if (generalSource) {
+            rawReadings.forEach(r => {
+                if (!poolIndex.bySegment.has(r)) poolIndex.bySegment.set(r, new Set());
+                poolIndex.bySegment.get(r).add(kanji);
+            });
+        }
+    });
 
     const hiddenReadingSet = Array.isArray(readingStockOverride)
         ? new Set()
@@ -434,19 +413,14 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
 
         const key = getHomeBuildPatternKey(baseReading, segments);
         if (!patterns.has(key)) {
-            patterns.set(key, {
-                reading: baseReading,
-                segments
-            });
+            patterns.set(key, { reading: baseReading, segments });
         }
     };
 
-    (Array.isArray(readingStock) ? readingStock : []).forEach((item) => {
+    readingStock.forEach((item) => {
         registerPattern(
             item?.reading || item?.sessionReading || '',
-            Array.isArray(item?.segments) && item.segments.length > 0
-                ? item.segments
-                : item?.sessionSegments
+            Array.isArray(item?.segments) && item.segments.length > 0 ? item.segments : item?.sessionSegments
         );
     });
 
@@ -455,7 +429,8 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
         let combinations = 1;
         for (let index = 0; index < pattern.segments.length; index++) {
             const segment = pattern.segments[index];
-            const candidateCount = getHomeBuildSlotCandidateCount(pool, segment, index, pattern.reading);
+            // 高速化したインデックス版を使用
+            const candidateCount = getHomeBuildSlotCandidateCount(pool, segment, index, pattern.reading, poolIndex);
             if (candidateCount === 0) {
                 combinations = 0;
                 break;
@@ -464,6 +439,10 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
         }
         total += combinations;
     });
+
+    // キャッシュに保存
+    if (_homeBuildPatternCountCache.size > 50) _homeBuildPatternCountCache.clear();
+    _homeBuildPatternCountCache.set(cacheKey, total);
 
     return total;
 }
@@ -954,135 +933,6 @@ function getHomeUnresolvedReadingCount(readingStock = null) {
     }, 0);
 }
 
-function getHomeStageFocusCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
-    const buildCount = Number.isFinite(Number(options.buildCount))
-        ? Number(options.buildCount)
-        : getHomeBuildPatternCount();
-    const matchedReadingCount = Number.isFinite(Number(pairing?.matchedReadingCount))
-        ? Number(pairing.matchedReadingCount)
-        : 0;
-    const matchedSavedCount = Number.isFinite(Number(pairing?.matchedNameCount))
-        ? Number(pairing.matchedNameCount)
-        : 0;
-    const unresolvedReadingCount = Number.isFinite(Number(options.unresolvedReadingCount))
-        ? Number(options.unresolvedReadingCount)
-        : getHomeUnresolvedReadingCount(options.readingStock);
-
-    const copy = {
-        stageLabel: '',
-        mainText: '',
-        chips: [],
-        primaryAction: 'sound',
-        primaryLabel: '響きをさがす',
-        secondaryAction: '',
-        secondaryLabel: ''
-    };
-
-    if (stageKey === 'reading') {
-        copy.stageLabel = '読み';
-        copy.primaryAction = 'sound';
-        copy.primaryLabel = '響きをさがす';
-        if (readingStockCount > 0) {
-            copy.secondaryAction = 'stock-reading';
-            copy.secondaryLabel = 'ストックした読みを見る';
-        }
-        copy.chips = [
-            { label: 'ストック', value: readingStockCount, unit: '件' },
-            { label: '一致', value: matchedReadingCount, unit: '件' }
-        ];
-        if (readingStockCount === 0) {
-            copy.mainText = 'まだ読み候補はありません。まずは響きから、気になる読みを探していきましょう。';
-        } else if (readingStockCount <= 3) {
-            copy.mainText = `読み候補を ${readingStockCount}件 ストックしています。今ある候補を見返しながら、さらに読みを探すこともできます。`;
-        } else if (readingStockCount <= 9) {
-            copy.mainText = `読み候補が ${readingStockCount}件 集まっています。方向性を見比べながら、さらに候補を広げられます。`;
-        } else {
-            copy.mainText = `読み候補が十分に集まっています。今ある ${readingStockCount}件 を見返しつつ、さらに読みを探すこともできます。`;
-        }
-        if (matchedReadingCount > 0) {
-            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あります。`;
-        }
-        return copy;
-    }
-
-    if (stageKey === 'kanji') {
-        copy.stageLabel = '漢字';
-        copy.primaryAction = 'reading';
-        copy.primaryLabel = '漢字をさがす';
-        if (likedCount > 0) {
-            copy.secondaryAction = 'stock';
-            copy.secondaryLabel = 'ストックした漢字を見る';
-        }
-        copy.chips = [
-            { label: 'ストック', value: likedCount, unit: '字' },
-            { label: '未選択', value: unresolvedReadingCount, unit: '件' },
-            { label: '一致', value: matchedReadingCount, unit: '件' }
-        ];
-        if (likedCount === 0) {
-            copy.mainText = 'まだ漢字候補はありません。気になる読みに合う漢字を集めていきましょう。';
-        } else if (likedCount <= 4) {
-            copy.mainText = `漢字を ${likedCount}字 ストックしています。読みの候補に合う漢字を、ここから少しずつ増やしていけます。`;
-        } else if (likedCount <= 9) {
-            copy.mainText = `漢字候補が ${likedCount}字 集まっています。読みごとの違いを見ながら、候補の幅を広げられます。`;
-        } else {
-            copy.mainText = `漢字候補が十分に集まっています。今ある ${likedCount}字 を見返しながら、まだ漢字を選んでいない読みも進められます。`;
-        }
-        if (unresolvedReadingCount > 0) {
-            copy.mainText += ` まだ漢字を選んでいない読みが ${unresolvedReadingCount}件 あります。`;
-        }
-        if (matchedReadingCount > 0) {
-            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あり、共通の方向から漢字を広げられます。`;
-        }
-        return copy;
-    }
-
-    if (stageKey === 'build') {
-        copy.stageLabel = 'ビルド';
-        copy.primaryAction = 'build';
-        copy.primaryLabel = '組み立てる';
-        copy.chips = [
-            { label: '読み', value: readingStockCount, unit: '件' },
-            { label: '漢字', value: likedCount, unit: '字' },
-            { label: 'ビルド', value: buildCount, unit: '通り' },
-            { label: '一致', value: matchedReadingCount, unit: '件' }
-        ];
-        if (buildCount === 0) {
-            copy.mainText = 'まだ名前は組み立てていません。集めた読みと漢字から、名前候補を作り始められます。';
-        } else if (buildCount <= 2) {
-            copy.mainText = `${buildCount}通り を組み立てています。候補を見ながら、さらに組み合わせを試していけます。`;
-        } else if (buildCount <= 5) {
-            copy.mainText = `${buildCount}通り の候補ができています。比較しながら、気になる組み合わせをさらに広げられます。`;
-        } else {
-            copy.mainText = `組み立て候補が十分にできています。今ある ${buildCount}通り を見比べながら、方向性を整えられます。`;
-        }
-        if (matchedReadingCount > 0) {
-            copy.mainText += ` パートナーと一致した読みが ${matchedReadingCount}件 あり、共通の方向から広げられます。`;
-        }
-        return copy;
-    }
-
-    copy.stageLabel = '保存';
-    copy.primaryAction = 'saved';
-    copy.primaryLabel = '候補を見る';
-    copy.chips = [
-        { label: '保存', value: savedCount, unit: '件' },
-        { label: '一致', value: matchedSavedCount, unit: '件' }
-    ];
-    if (savedCount === 0) {
-        copy.mainText = 'まだ保存した名前はありません。組み立てた候補の中から、残したい名前を選んでいきましょう。';
-    } else if (savedCount === 1) {
-        copy.mainText = '名前候補を 1件 保存しています。ここを基準にしながら、次の候補を見比べていけます。';
-    } else if (savedCount <= 3) {
-        copy.mainText = `名前候補を ${savedCount}件 保存しています。見比べながら、方向性を絞り込んでいけます。`;
-    } else {
-        copy.mainText = `保存した候補がしっかり集まっています。今ある ${savedCount}件 を見比べながら、残したい名前を整理できます。`;
-    }
-    if (matchedSavedCount > 0) {
-        copy.mainText += ` パートナーと一致した候補が ${matchedSavedCount}件 あります。`;
-    }
-    return copy;
-}
-
 function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCount, options = {}) {
     const buildPatternCount = Number.isFinite(Number(options.buildCount))
         ? Number(options.buildCount)
@@ -1176,100 +1026,6 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
 
 function closeHomePartnerHub() {
     document.getElementById('home-partner-hub-modal')?.remove();
-}
-
-function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
-    const stageTrack = ensureHomeStageTrack();
-    if (!stageTrack) return;
-
-    const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
-    const tone = getHomeStageTrackTone(options.mode);
-    const recommendedChoice = getHomeSearchChoiceRecommended(readingStockCount);
-    const heroCard = document.getElementById('home-hero-card');
-    const summaryPanel = document.getElementById('home-summary-panel');
-
-    if (heroCard) {
-        heroCard.style.cssText = tone.panel;
-    }
-    if (summaryPanel) {
-        summaryPanel.classList.remove('hidden');
-        summaryPanel.style.cssText = 'background:transparent;border:none;';
-    }
-
-    stageTrack.style.cssText = '';
-    stageTrack.innerHTML = `
-        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
-            ${timeline.steps.map((step, index) => {
-                const cardStyle = step.recommended
-                    ? tone.cardRecommended
-                    : step.done
-                    ? tone.cardDone
-                    : step.active
-                        ? tone.cardActive
-                        : tone.cardIdle;
-                const badgeStyle = step.recommended
-                    ? tone.badgeRecommended
-                    : step.done
-                    ? tone.badgeDone
-                    : step.active
-                        ? tone.badgeActive
-                        : tone.badgeIdle;
-                return `
-                <button
-                    type="button"
-                    data-home-stage-button="true"
-                    onclick="event.stopPropagation(); runHomeAction('${step.action}')"
-                    class="min-h-[74px] rounded-[1.2rem] border px-1 py-1 text-center active:scale-[0.98] transition-transform md:min-h-[122px] md:rounded-[1.7rem] md:px-1.5 md:py-2.5"
-                    style="${cardStyle}">
-                    <div class="flex h-full flex-col items-center justify-start">
-                        <div class="flex items-center justify-center gap-1 text-[8px] font-black leading-tight text-center md:gap-1.5 md:text-[11px]" style="color:${tone.text};">
-                            <span class="inline-flex h-[18px] w-[18px] items-center justify-center rounded-full text-[11px] font-black leading-none md:h-6 md:w-6 md:text-[15px]" style="${badgeStyle}">-</span>
-                            <span>${step.label}</span>
-                        </div>
-                        <div class="mt-1 whitespace-nowrap text-[15px] font-black leading-none md:mt-2 md:text-[22px]" style="color:${tone.text};">
-                            <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[8px] md:ml-1 md:text-[13px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
-                        </div>
-                        <div class="mt-auto pt-2 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-3 md:text-[10px]" style="color:${tone.sub};">${step.metric.actionText}</div>
-                    </div>
-                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
-            `;
-            }).join('')}
-        </div>
-        <div class="mt-4 rounded-[24px] border border-[#eadfce] bg-white/74 px-3 py-3">
-            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
-            <div class="mt-1 text-sm font-black text-[#4f4639]">次はここから</div>
-            <div class="mt-3 flex flex-col gap-3 text-left">
-                <button type="button" onclick="runHomeAction('reading')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'reading' ? ' selected' : ''}">
-                    <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">読み候補がある</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>理想の漢字をさがします</span>
-                    </div>
-                    <div class="wiz-mini-preview" aria-hidden="true">
-                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
-                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
-                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
-                    </div>
-                </button>
-                <button type="button" onclick="runHomeAction('sound')" class="wiz-gender-btn wiz-reading-choice${recommendedChoice === 'sound' ? ' selected' : ''}">
-                    <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">まだない</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">響きから<br>読みの候補をさがします</span>
-                    </div>
-                    <div class="wiz-mini-preview" aria-hidden="true">
-                        <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
-                        <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">び</div>
-                        <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">き</div>
-                    </div>
-                </button>
-            </div>
-        </div>
-    `;
-
-    Array.from(stageTrack.querySelectorAll('[data-home-stage-button]')).forEach((button, index) => {
-        const badge = button.querySelector('span');
-        if (!badge) return;
-        badge.textContent = timeline.steps[index]?.done ? '✓' : '-';
-    });
 }
 
 function runHomeAction(action) {
@@ -1747,14 +1503,13 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
     const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
     const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
-    const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
-    const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
-    const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
-    const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
 
+    let result = null;
     if (mode === 'shared') {
+        const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
+        const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
-        return {
+        result = {
             mode,
             readingStockCount: aggregateCounts.readingStockCount,
             likedCount: aggregateCounts.likedCount,
@@ -1773,10 +1528,9 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
                 save: '候補を見る＞'
             }
         };
-    }
-
-    if (mode === 'partner') {
-        return {
+    } else if (mode === 'partner') {
+        const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
+        result = {
             mode,
             readingStockCount: partnerReadingCount,
             likedCount: partnerKanjiCount,
@@ -1795,22 +1549,26 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
                 save: '候補を見る＞'
             }
         };
+    } else {
+        const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
+        const selfFallbackAction = (ownReadingCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
+        result = {
+            mode: 'self',
+            readingStockCount: ownReadingCount,
+            likedCount: ownKanjiCount,
+            savedCount: ownSavedCount,
+            buildCount: ownBuildCount,
+            actions: {
+                reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
+                kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
+                build: ownBuildCount > 0 ? 'build' : selfFallbackAction,
+                save: ownSavedCount > 0 ? 'saved' : (ownBuildCount > 0 ? 'build' : selfFallbackAction)
+            }
+        };
     }
-
-    const selfFallbackAction = (ownReadingCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
-    return {
-        mode: 'self',
-        readingStockCount: ownReadingCount,
-        likedCount: ownKanjiCount,
-        savedCount: ownSavedCount,
-        buildCount: ownBuildCount,
-        actions: {
-            reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
-            kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
-            build: ownBuildCount > 0 ? 'build' : selfFallbackAction,
-            save: ownSavedCount > 0 ? 'saved' : (ownBuildCount > 0 ? 'build' : selfFallbackAction)
-        }
-    };
+    // aggregateCountsを後続で使えるように付与しておく
+    result.aggregateCounts = aggregateCounts;
+    return result;
 }
 
 function renderHomeProfile() {
@@ -1984,7 +1742,12 @@ function setHomeOverviewMode(mode) {
     if (previousMode !== mode) {
         window.MeimayHomeStageFocusSource = 'auto';
     }
-    if (typeof renderHomeProfile === 'function') renderHomeProfile();
+    // 即時ではなく予約実行にする
+    if (typeof requestRenderHomeProfile === 'function') {
+        requestRenderHomeProfile();
+    } else if (typeof renderHomeProfile === 'function') {
+        renderHomeProfile();
+    }
 }
 
 function getHomeOverviewTone(mode) {
@@ -2026,28 +1789,16 @@ function getHomeOverviewTone(mode) {
     };
 }
 
-function getHomeOverviewModel(pairing, nextStep) {
+function getHomeOverviewModel(pairing, nextStep, aggregateCounts) {
     const mode = getHomeOverviewMode(pairing);
     const counts = pairing?.counts || {
-        own: {
-            reading: 0,
-            kanji: 0,
-            saved: 0
-        },
-        partner: {
-            reading: 0,
-            kanji: 0,
-            saved: 0
-        },
-        matched: {
-            reading: pairing?.matchedReadingCount || 0,
-            kanji: pairing?.matchedKanjiCount || 0,
-            saved: pairing?.matchedNameCount || 0
-        }
+        own: { reading: 0, kanji: 0, saved: 0 },
+        partner: { reading: 0, kanji: 0, saved: 0 },
+        matched: { reading: pairing?.matchedReadingCount || 0, kanji: pairing?.matchedKanjiCount || 0, saved: pairing?.matchedNameCount || 0 }
     };
     const tone = getHomeOverviewTone(mode);
 
-    if (mode === 'shared') {
+    if (mode === 'shared' && aggregateCounts) {
         const sharedReadingCount = aggregateCounts.readingStockCount;
         const sharedKanjiCount = aggregateCounts.likedCount;
         const sharedSavedCount = aggregateCounts.savedCount;
@@ -2165,7 +1916,7 @@ function renderHomeProfileV2() {
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
 
-    const overview = getHomeOverviewModel(pairing, nextStep);
+    const overview = getHomeOverviewModel(pairing, nextStep, stageSnapshot.aggregateCounts);
     const mode = overview.mode;
     const isShared = mode === 'shared';
     const stage = getHomeStageTrackTimeline(
@@ -2632,207 +2383,6 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         const step = displayedSteps[index];
         badge.textContent = step?.selected ? '●' : (step?.done ? '✓' : '-');
     });
-}
-
-function getHomeStagePanelCopy(stageKey, likedCount, readingStockCount, savedCount, pairing, options = {}) {
-    const buildCount = Number.isFinite(Number(options.buildCount))
-        ? Number(options.buildCount)
-        : getHomeBuildPatternCount();
-    const matchedReadingCount = Number.isFinite(Number(pairing?.matchedReadingCount))
-        ? Number(pairing.matchedReadingCount)
-        : 0;
-    const matchedSavedCount = Number.isFinite(Number(pairing?.matchedNameCount))
-        ? Number(pairing.matchedNameCount)
-        : 0;
-    const unresolvedReadingCount = Number.isFinite(Number(options.unresolvedReadingCount))
-        ? Number(options.unresolvedReadingCount)
-        : getHomeUnresolvedReadingCount(options.readingStock);
-
-    const copy = {
-        mainText: '',
-        statusLines: [],
-        chips: [],
-        primaryAction: 'sound',
-        primaryLabel: '響きをさがす',
-        secondaryAction: '',
-        secondaryLabel: ''
-    };
-
-    if (stageKey === 'reading') {
-        copy.primaryAction = 'sound';
-        copy.primaryLabel = '響きをさがす';
-        if (readingStockCount > 0) {
-            copy.secondaryAction = 'stock-reading';
-            copy.secondaryLabel = 'ストックした読みを見る';
-        }
-        if (readingStockCount === 0) {
-            copy.statusLines = [
-                'まだ読み候補はありません。',
-                'まずは響きから、気になる読みを探していきましょう。'
-            ];
-        } else if (readingStockCount <= 3) {
-            copy.statusLines = [
-                `読み候補を ${readingStockCount}件 ストックしています。`,
-                '今ある候補を見返しながら、さらに読みを広げられます。'
-            ];
-        } else if (readingStockCount <= 9) {
-            copy.statusLines = [
-                '読み候補が集まってきています。',
-                '見比べながら、さらに方向を広げられます。'
-            ];
-        } else {
-            copy.statusLines = [
-                '読み候補はしっかり集まっています。',
-                '今ある候補を見返しながら、さらに読みを探すこともできます。'
-            ];
-        }
-        copy.chips = [
-            { label: '読み', value: readingStockCount, unit: '件' }
-        ];
-        if (matchedReadingCount > 0) {
-            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
-        }
-        copy.mainText = copy.statusLines.join('\n');
-        return copy;
-    }
-
-    if (stageKey === 'kanji') {
-        copy.primaryAction = 'reading';
-        copy.primaryLabel = '漢字をさがす';
-        if (likedCount > 0) {
-            copy.secondaryAction = 'stock';
-            copy.secondaryLabel = 'ストックした漢字を見る';
-        }
-        if (likedCount === 0) {
-            copy.statusLines = [
-                'まだ漢字候補はありません。',
-                '気になる読みに合う漢字を集めていきましょう。'
-            ];
-        } else if (likedCount <= 4) {
-            copy.statusLines = [
-                '漢字候補を集め始めています。',
-                '読みに合う漢字を増やしながら、候補を広げられます。'
-            ];
-        } else if (likedCount <= 14) {
-            if (unresolvedReadingCount > 0) {
-                copy.statusLines = [
-                    '漢字候補が集まってきています。',
-                    'まだ漢字を選んでいない読みから進めるのがおすすめです。'
-                ];
-            } else {
-                copy.statusLines = [
-                    '漢字候補が集まってきています。',
-                    '集めた漢字を見返しながら、さらに候補を広げられます。'
-                ];
-            }
-        } else if (unresolvedReadingCount > 0) {
-            copy.statusLines = [
-                '漢字候補はしっかり集まっています。',
-                'まだ漢字を選んでいない読みがあれば、そこから候補を広げられます。'
-            ];
-        } else {
-            copy.statusLines = [
-                '漢字候補はしっかり集まっています。',
-                '今ある候補を見返しながら、組み立てに進めます。'
-            ];
-        }
-        copy.chips = [
-            { label: '漢字', value: likedCount, unit: '字' }
-        ];
-        if (unresolvedReadingCount > 0) {
-            copy.chips.push({ label: '未選択', value: unresolvedReadingCount, unit: '件' });
-        }
-        if (matchedReadingCount > 0) {
-            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
-        }
-        copy.mainText = copy.statusLines.join('\n');
-        return copy;
-    }
-
-    if (stageKey === 'build') {
-        copy.primaryAction = 'build';
-        copy.primaryLabel = '組み立てる';
-        if (buildCount === 0) {
-            copy.statusLines = [
-                'まだ名前は組み立てていません。',
-                '集めた読みと漢字から、候補を作り始められます。'
-            ];
-        } else if (buildCount <= 2) {
-            copy.statusLines = [
-                '組み立てを始めています。',
-                '今ある組み合わせを見ながら、さらに候補を広げられます。'
-            ];
-        } else if (buildCount <= 5) {
-            copy.statusLines = [
-                '候補ができてきています。',
-                '比較しながら、気になる組み合わせをさらに試せます。'
-            ];
-        } else {
-            copy.statusLines = [
-                '組み立て候補はしっかりできています。',
-                '今ある候補を見比べながら、方向性を整えられます。'
-            ];
-        }
-        copy.chips = [
-            { label: '読み', value: readingStockCount, unit: '件' },
-            { label: '漢字', value: likedCount, unit: '字' },
-            { label: 'ビルド', value: buildCount, unit: '通り' }
-        ];
-        if (buildCount > 0 && matchedReadingCount > 0) {
-            copy.chips.push({ label: '読み一致', value: matchedReadingCount, unit: '件' });
-        }
-        copy.mainText = copy.statusLines.join('\n');
-        return copy;
-    }
-
-    copy.primaryAction = 'saved';
-    copy.primaryLabel = '候補を見る';
-    copy.chips = [
-        { label: '保存', value: savedCount, unit: '件' }
-    ];
-    if (savedCount === 0) {
-        copy.statusLines = [
-            'まだ保存した名前はありません。',
-            '組み立てた候補の中から、残したい名前を選んでいきましょう。'
-        ];
-    } else if (matchedSavedCount > 0) {
-        if (savedCount === 1) {
-            copy.statusLines = [
-                '保存した候補の中に、ふたりで一致した名前があります。',
-                'この候補を基準にしながら、方向性を固めていけます。'
-            ];
-        } else if (savedCount <= 3) {
-            copy.statusLines = [
-                '保存した候補が集まってきています。',
-                'ふたりで一致した候補も見比べながら、方向性を絞れます。'
-            ];
-        } else {
-            copy.statusLines = [
-                '保存した候補はしっかり集まっています。',
-                'ふたりで一致した候補を軸に、残したい名前を整理できます。'
-            ];
-        }
-    } else if (savedCount === 1) {
-        copy.statusLines = [
-            '保存した候補ができています。',
-            'この候補を基準にしながら、さらに見比べていけます。'
-        ];
-    } else if (savedCount <= 3) {
-        copy.statusLines = [
-            '保存した候補が集まってきています。',
-            '見比べながら、方向性を絞り込んでいけます。'
-        ];
-    } else {
-        copy.statusLines = [
-            '保存した候補はしっかり集まっています。',
-            '今ある候補を見比べながら、残したい名前を整理できます。'
-        ];
-    }
-    if (matchedSavedCount > 0) {
-        copy.chips.push({ label: '候補一致', value: matchedSavedCount, unit: '件' });
-    }
-    copy.mainText = copy.statusLines.join('\n');
-    return copy;
 }
 
 function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, options = {}) {

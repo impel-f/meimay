@@ -331,7 +331,10 @@ function openSavedNames(options = {}) {
         window.resetMeimayPartnerViewFocus();
     }
     changeScreen('scr-saved');
-    renderSavedScreen();
+    // 描画処理を遅延させてレスポンスを改善
+    setTimeout(() => {
+        if (typeof renderSavedScreen === 'function') renderSavedScreen();
+    }, 10);
 }
 
 /**

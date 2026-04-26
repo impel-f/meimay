@@ -23,6 +23,83 @@ let surnameReading = ""; // 苗字のふりがな（任意）
 let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];
+
+// ============================================================
+// TOAST UTILITY
+// ============================================================
+function showToast(message, icon = '✨', onAction = null) {
+    if (!document.getElementById('meimay-toast-style')) {
+        const style = document.createElement('style');
+        style.id = 'meimay-toast-style';
+        style.textContent = `
+            @keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+            @keyframes toastOut { from { opacity:1; transform:translateX(-50%) translateY(0); } to { opacity:0; transform:translateX(-50%) translateY(-20px); } }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const existing = document.getElementById('meimay-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'meimay-toast';
+    toast.style.cssText = `
+        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+        background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
+        border-radius: 16px; font-size: 13px; font-weight: 700;
+        z-index: 99999; display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(12px);
+        animation: toastIn 0.3s ease-out;
+        max-width: 90vw;
+    `;
+
+    const iconEl = document.createElement('span');
+    iconEl.style.fontSize = '18px';
+    iconEl.textContent = icon;
+    const messageEl = document.createElement('span');
+    messageEl.textContent = message;
+    toast.appendChild(iconEl);
+    toast.appendChild(messageEl);
+
+    if (onAction) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = '取り込む';
+        button.style.cssText = `
+            margin-left:8px; padding:4px 12px; background:rgba(255,255,255,0.2);
+            border:none; color:white; border-radius:8px; font-size:11px; font-weight:900; cursor:pointer;
+        `;
+        button.addEventListener('click', () => {
+            onAction();
+            toast.remove();
+        });
+        toast.appendChild(button);
+    }
+
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        if (!toast.parentElement) return;
+        toast.style.animation = 'toastOut 0.3s ease-in forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, onAction ? 10000 : 4000);
+}
+window.showToast = showToast;
+
+let _homeRenderRequest = null;
+/**
+ * ホーム画面の更新を予約（連打防止・GPU負荷軽減）
+ */
+function requestRenderHomeProfile() {
+    if (_homeRenderRequest) return;
+    _homeRenderRequest = requestAnimationFrame(() => {
+        _homeRenderRequest = null;
+        if (typeof renderHomeProfile === 'function') {
+            renderHomeProfile();
+        }
+    });
+}
+window.requestRenderHomeProfile = requestRenderHomeProfile;
+
 let yomiSearchData = [];
 let readingsData = []; // 追加: 読み(タグ付き)詳細データ
 let compoundReadingsData = []; // まとめ読み候補データ
@@ -437,6 +514,7 @@ function toggleFortunePriority() {
 function changeScreen(id) {
     console.log(`CORE: Screen transition -> ${id}`);
 
+    // 1. [最優先] 画面の表示切り替えを即座に実行
     // 開いているモーダルを全て閉じる
     const modals = document.querySelectorAll('.overlay.active');
     modals.forEach(m => m.classList.remove('active'));
@@ -455,36 +533,45 @@ function changeScreen(id) {
         return;
     }
 
-    // フッターの表示制御（ウィザードや入力フローでは非表示にする）
-    const footer = document.getElementById('bottom-nav');
-    const wizardScreens = [
-        'scr-wizard',
-        'scr-gender',
-        'scr-vibe',
-        'scr-akinator'
-    ];
-
-    if (footer) {
-        if (wizardScreens.includes(id)) {
-            footer.classList.add('hidden');
-        } else {
-            footer.classList.remove('hidden');
-        }
-    }
-
-    if (typeof updateAdLayoutSpacing === 'function') {
-        updateAdLayoutSpacing();
-    }
-    // トップ画面の場合、実績・プロファイルを更新
-    if (id === 'scr-mode' && typeof renderHomeProfile === 'function') {
-        renderHomeProfile();
-    }
-    if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
-        updateDailyRemainingDisplay();
-    }
-
-    // ナビゲーションハイライト更新
+    // ナビゲーションハイライト更新（これは高速なので即時実行）
     updateNavHighlight(id);
+
+    // 2. [後回し] 重いレンダリングや集計処理を非同期で実行（画面遷移をブロックしない）
+    setTimeout(() => {
+        // フッターの表示制御（ウィザードや入力フローでは非表示にする）
+        const footer = document.getElementById('bottom-nav');
+        const wizardScreens = [
+            'scr-wizard',
+            'scr-gender',
+            'scr-vibe',
+            'scr-akinator'
+        ];
+
+        if (footer) {
+            if (wizardScreens.includes(id)) {
+                footer.classList.add('hidden');
+            } else {
+                footer.classList.remove('hidden');
+            }
+        }
+
+        if (typeof updateAdLayoutSpacing === 'function') {
+            updateAdLayoutSpacing();
+        }
+
+        // ホーム画面の場合、実績・プロファイルを更新
+        if (id === 'scr-mode') {
+            requestRenderHomeProfile();
+        }
+        if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
+            updateDailyRemainingDisplay();
+        }
+
+        // 歴史画面のスクロール位置復元など
+        if (id === 'scr-history' && typeof restoreHistoryScroll === 'function') {
+            restoreHistoryScroll();
+        }
+    }, 0);
 }
 
 /**

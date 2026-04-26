@@ -42,14 +42,6 @@ function hydrateCompoundBuildSelections() {
     });
 }
 
-function getBuildSlotDisplayLabel(seg, idx) {
-    const flow = getActiveCompoundBuildFlow();
-    if (flow && Array.isArray(flow.slotLabels) && flow.slotLabels[idx]) {
-        return flow.slotLabels[idx];
-    }
-    return `${idx + 1}文字目: ${seg}`;
-}
-
 function flattenBuildCombination(pieces) {
     const flattened = [];
 
@@ -494,24 +486,28 @@ function openStock(tab, options = {}) {
     changeScreen('scr-stock');
     const targetTab = tab || currentStockTab || 'kanji';
     switchStockTab(targetTab);
-    try {
-        if (targetTab === 'reading') {
-            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-        } else {
-            renderStock();
+
+    // 描画処理を遅延させて、画面遷移のレスポンスを最優先にする
+    setTimeout(() => {
+        try {
+            if (targetTab === 'reading') {
+                if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+            } else {
+                renderStock();
+            }
+        } catch (error) {
+            console.error('BUILD: Failed to render stock screen', error);
+            const container = document.getElementById('stock-list');
+            if (container && targetTab !== 'reading') {
+                container.innerHTML = `
+                    <div class="col-span-5 text-center py-20">
+                        <p class="text-[#bca37f] italic text-lg mb-2">ストックの表示で問題が起きました</p>
+                        <p class="text-sm text-[#a6967a]">もう一度開くと直ることがあります。</p>
+                    </div>
+                `;
+            }
         }
-    } catch (error) {
-        console.error('BUILD: Failed to render stock screen', error);
-        const container = document.getElementById('stock-list');
-        if (container && targetTab !== 'reading') {
-            container.innerHTML = `
-                <div class="col-span-5 text-center py-20">
-                    <p class="text-[#bca37f] italic text-lg mb-2">ストックの表示で問題が起きました</p>
-                    <p class="text-sm text-[#a6967a]">もう一度開くと直ることがあります。</p>
-                </div>
-            `;
-        }
-    }
+    }, 10);
 }
 
 /**
@@ -1061,10 +1057,15 @@ function clearKanjiPartnerFocus() {
 function buildLikedCandidateKey(item) {
     if (!item) return '';
     const kanji = resolveLikedCandidateKanji(item);
-    const slot = Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1;
-    const reading = item.sessionReading || '';
-    const segmentsKey = Array.isArray(item.sessionSegments) ? item.sessionSegments.join('/') : '';
-    return `${reading}::${slot}::${kanji}::${segmentsKey}`;
+    // 読み方を正規化（ひらがな化、空白削除）して比較のズレをなくす
+    const rawReading = item.sessionReading || '';
+    const reading = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(rawReading)
+        : rawReading.trim();
+
+    // スロット番号も、自由モード(-1)と通常(0,1,2)で極力統合されるように調整
+    // ※ ユーザーの要望「み と よし は別」を叶えつつ、「同じ み なら合体」を確実にします
+    return `${reading}::${kanji}`;
 }
 
 function resolveLikedCandidateKanji(item) {
@@ -1522,12 +1523,24 @@ function renderStock() {
             : []);
 
     // フィルタリング（SEARCHや無効なスロットを除外、FREEは含める）
-    let validItems = stockSource.filter(item => {
+    let filteredItems = stockSource.filter(item => {
         if (!item) return false;
         if (item.sessionReading === 'FREE') return true;
         // パートナーの候補、または有効なスロットを持つ自分の候補を残す
         return item.fromPartner || (item.slot >= 0 && item.sessionReading !== 'SEARCH');
     });
+
+    // 修正：表示上の重複除去（「読み＋漢字」が同じなら1つにまとめる）
+    const uniqueMap = new Map();
+    filteredItems.forEach(item => {
+        const key = typeof buildLikedCandidateKey === 'function'
+            ? buildLikedCandidateKey(item)
+            : `${item.sessionReading || ''}::${item['漢字'] || item.kanji}`;
+        if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, item);
+        }
+    });
+    let validItems = Array.from(uniqueMap.values());
 
     if (validItems.length === 0) {
         container.innerHTML = `
