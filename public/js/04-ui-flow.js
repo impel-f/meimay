@@ -1166,6 +1166,7 @@ function getAdaptiveReadingHeadingStyle(reading, options = {}) {
     const minSize = Number.isFinite(options.minSize) ? options.minSize : 26;
     const maxChars = Number.isFinite(options.maxChars) ? options.maxChars : 4;
     const shrinkStep = Number.isFinite(options.shrinkStep) ? options.shrinkStep : 4;
+    const lineHeight = Number.isFinite(options.lineHeight) ? options.lineHeight : 1.05;
     const charCount = Array.from(String(reading ?? '').trim()).length || 1;
     const shrinkCount = Math.max(0, charCount - maxChars);
     const fontSize = Math.max(minSize, baseSize - (shrinkCount * shrinkStep));
@@ -1181,7 +1182,7 @@ function getAdaptiveReadingHeadingStyle(reading, options = {}) {
 
     return [
         `font-size:${fontSize}px`,
-        'line-height:1.05',
+        `line-height:${lineHeight}`,
         `letter-spacing:${letterSpacing}`,
         'width:100%',
         'max-width:100%',
@@ -5553,23 +5554,23 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
 function renderReadingSwipeCard(item) {
     const preview = getReadingFullNamePreview(item.reading);
     const topLine = preview.ruby && preview.ruby !== item.reading
-        ? `<div class="text-[12px] font-bold text-[#8b7e66] mb-2 tracking-wide text-center">${preview.ruby}</div>`
+        ? `<div class="reading-swipe-ruby">${escapeHtmlText(preview.ruby)}</div>`
         : '';
 
     return `
-        <div class="w-full px-5 py-6">
-        ${topLine}
-        ${renderReadingTagBadges(item.tags)}
-        ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, className: 'mb-5' })}
-        <div class="w-full mt-2">
-            <div class="mx-auto max-w-[286px] rounded-[26px] border px-4 py-3 shadow-[0_10px_24px_rgba(93,84,68,0.08)]"
-                style="background:#ffffff;border-color:#ffffff;">
-                <p class="text-[10px] text-[#6b6254] text-center mb-3 font-bold tracking-[0.08em]">漢字の例</p>
-                <div class="flex justify-center flex-wrap gap-2 text-[#3f382f] font-bold text-base px-2">
+        <div class="reading-swipe-card-content">
+            <div class="reading-swipe-top">
+                ${topLine}
+                ${renderReadingTagBadges(item.tags)}
+            </div>
+            ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, lineHeight: 1.2, className: 'reading-swipe-heading-main' })}
+            <div class="reading-swipe-example-card">
+                <p class="reading-swipe-example-label">漢字の例</p>
+                <div class="reading-swipe-example-list">
                     ${getSampleKanjiHtml(item)}
                 </div>
             </div>
-        </div>
+            <div class="reading-swipe-hint">タップで詳細 / スワイプで選択</div>
         </div>
     `;
 }

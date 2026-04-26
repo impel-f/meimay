@@ -878,6 +878,84 @@ body.hide-top-bar .screen-header-shell {
     line-height: 1;
 }
 
+.reading-swipe-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    gap: clamp(8px, 1.5vh, 14px);
+    padding: clamp(14px, 2.8vh, 24px) clamp(18px, 5vw, 26px);
+}
+
+.reading-swipe-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 0;
+}
+
+.reading-swipe-ruby {
+    color: #8b7e66;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: 0;
+}
+
+.reading-swipe-heading-main {
+    margin: clamp(14px, 2vh, 18px) 0 clamp(2px, 0.6vh, 6px);
+    padding: 6px 0 8px;
+    flex-shrink: 0;
+}
+
+.reading-swipe-example-card {
+    width: 100%;
+    max-width: 286px;
+    border: 1px solid #fff;
+    border-radius: 26px;
+    background: #fff;
+    padding: clamp(10px, 1.8vh, 14px) 16px;
+    box-shadow: 0 10px 24px rgba(93, 84, 68, 0.08);
+}
+
+.reading-swipe-example-label {
+    margin: 0 0 10px;
+    color: #6b6254;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: 0;
+}
+
+.reading-swipe-example-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 8px;
+    color: #3f382f;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.reading-swipe-hint {
+    color: #d4c5af;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.82;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
 /* ============================================================
    FORTUNE DISPLAY
    ============================================================ */
