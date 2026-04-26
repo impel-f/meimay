@@ -2440,6 +2440,325 @@ function notifyRankingCardState(kind, key, delta = 0, stocked = null) {
     return window.updateRankingCardState(kind, key, delta, stocked);
 }
 
+const LOCAL_STATS_STORAGE_KEY = 'meimay_local_stats_v1';
+
+function isLocalStatsRuntime() {
+    if (typeof window === 'undefined' || typeof location === 'undefined') return false;
+    if (window.MEIMAY_FORCE_REMOTE_STATS === true) return false;
+    if (window.MEIMAY_FORCE_LOCAL_STATS === true) return true;
+
+    const host = String(location.hostname || '').toLowerCase();
+    return location.protocol === 'file:'
+        || host === 'localhost'
+        || host === '127.0.0.1'
+        || host === '[::1]'
+        || host === '::1';
+}
+
+function normalizeLocalStatsReading(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw
+        .replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
+        .replace(/[^\u3041-\u3093\u30fc]/g, '');
+}
+
+function normalizeLocalStatsValue(kind, value) {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return normalizedKind === 'reading'
+        ? normalizeLocalStatsReading(raw)
+        : (/[\u4e00-\u9fff]/.test(raw) ? raw : '');
+}
+
+function readLocalStatsStore() {
+    try {
+        const raw = localStorage.getItem(LOCAL_STATS_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (parsed && parsed.version === 1 && parsed.buckets && typeof parsed.buckets === 'object') {
+            return parsed;
+        }
+    } catch (error) {
+        console.warn('STATS: local ranking store read failed', error);
+    }
+
+    return {
+        version: 1,
+        buckets: {}
+    };
+}
+
+function writeLocalStatsStore(store) {
+    try {
+        localStorage.setItem(LOCAL_STATS_STORAGE_KEY, JSON.stringify(store));
+        return true;
+    } catch (error) {
+        console.warn('STATS: local ranking store write failed', error);
+        return false;
+    }
+}
+
+function getLocalStatsPeriods(periodValue) {
+    const normalized = periodValue === 'allTime' || periodValue === 'monthly' || periodValue === 'weekly'
+        ? periodValue
+        : 'all';
+    return normalized === 'all' ? ['allTime', 'weekly', 'monthly'] : [normalized];
+}
+
+function getLocalStatsGenderTargetsForWrite(genderValue, scopeValue) {
+    const scope = normalizeStatsScopeValue(scopeValue);
+    const targets = [];
+
+    if (scope !== 'gender') {
+        targets.push('all');
+    }
+
+    if (scope !== 'global') {
+        getStatsGenderTargets(genderValue).forEach((target) => targets.push(target));
+    }
+
+    if (targets.length === 0) {
+        targets.push('all');
+    }
+
+    return Array.from(new Set(targets));
+}
+
+function getLocalStatsGenderTargetsForRead(genderValue) {
+    const normalized = normalizeStatsGenderValue(genderValue);
+    if (normalized === 'all') return ['all'];
+    const targets = getStatsGenderTargets(normalized);
+    return targets.length > 0 ? targets : ['all'];
+}
+
+function getLocalStatsMetric(kind, metricValue) {
+    if (kind !== 'reading') return 'all';
+    return metricValue === 'like' || metricValue === 'direct' ? metricValue : 'all';
+}
+
+function getLocalStatsBucketKey(kind, metric, period, genderValue) {
+    return [kind === 'reading' ? 'reading' : 'kanji', getLocalStatsMetric(kind, metric), period, genderValue || 'all'].join('|');
+}
+
+function getLocalStatsMonthKey(date) {
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Tokyo',
+            year: 'numeric',
+            month: '2-digit'
+        }).formatToParts(date);
+        const year = parts.find((part) => part.type === 'year')?.value;
+        const month = parts.find((part) => part.type === 'month')?.value;
+        if (year && month) return `${year}_${month}`;
+    } catch (error) {
+        // Fallback below keeps local rankings usable in older runtimes.
+    }
+
+    const offsetMs = 9 * 60 * 60 * 1000;
+    const shifted = new Date(date.getTime() + offsetMs);
+    return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function getLocalStatsWeekKey(date) {
+    const d = new Date(date.getTime());
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return `${d.getUTCFullYear()}_${String(weekNo).padStart(2, '0')}`;
+}
+
+function isLocalStatsDateInPeriod(dateValue, period) {
+    if (period === 'allTime') return true;
+    const date = dateValue ? new Date(dateValue) : null;
+    if (!date || Number.isNaN(date.getTime())) return false;
+
+    const now = new Date();
+    if (period === 'monthly') {
+        return getLocalStatsMonthKey(date) === getLocalStatsMonthKey(now);
+    }
+    if (period === 'weekly') {
+        return getLocalStatsWeekKey(date) === getLocalStatsWeekKey(now);
+    }
+    return true;
+}
+
+function isLocalStatsGenderMatched(entryGender, targetGender) {
+    const normalizedTarget = normalizeStatsGenderValue(targetGender);
+    if (normalizedTarget === 'all') return true;
+    const targets = getStatsGenderTargets(entryGender);
+    return targets.includes(normalizedTarget);
+}
+
+function addLocalStatsTotal(totals, key, count = 1) {
+    if (!key) return;
+    const nextCount = (Number(totals.get(key)) || 0) + (Number(count) || 0);
+    if (nextCount > 0) totals.set(key, nextCount);
+}
+
+function extractLocalStatsKanjiValue(item) {
+    if (!item || typeof item !== 'object' || item.isKanaCandidate) return '';
+    if (typeof item.kanji === 'string' && /[\u4e00-\u9fff]/.test(item.kanji)) return item.kanji.trim();
+
+    return Object.keys(item)
+        .map((key) => item[key])
+        .find((value) => typeof value === 'string'
+            && /[\u4e00-\u9fff]/.test(value)
+            && value.trim().length <= 4) || '';
+}
+
+function extractLocalStatsSavedKanjiValues(item) {
+    if (!item || typeof item !== 'object') return [];
+
+    if (Array.isArray(item.combination) && item.combination.length > 0) {
+        return item.combination
+            .map((part) => extractLocalStatsKanjiValue(part))
+            .filter((value) => /[\u4e00-\u9fff]/.test(value));
+    }
+
+    const givenName = typeof getPairingSavedNameGivenName === 'function'
+        ? getPairingSavedNameGivenName(item)
+        : String(item.givenName || '').trim();
+
+    return Array.from(String(givenName || ''))
+        .filter((char) => /[\u4e00-\u9fff]/.test(char));
+}
+
+function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderValue) {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedMetric = getLocalStatsMetric(normalizedKind, metric);
+    const normalizedGender = normalizeStatsGenderValue(genderValue);
+    const currentGender = typeof gender !== 'undefined' ? gender : 'all';
+    const savedList = typeof getSavedNames === 'function' ? getSavedNames() : [];
+
+    if (normalizedKind === 'reading') {
+        if (normalizedMetric === 'direct' || normalizedMetric === 'all') {
+            const readingHistory = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+            readingHistory.forEach((entry) => {
+                if (!isLocalStatsDateInPeriod(entry?.searchedAt, period)) return;
+                if (!isLocalStatsGenderMatched(entry?.settings?.gender || entry?.gender || currentGender, normalizedGender)) return;
+                addLocalStatsTotal(totals, normalizeLocalStatsReading(entry?.reading || ''));
+            });
+        }
+
+        if (normalizedMetric === 'like' || normalizedMetric === 'all') {
+            const readingStock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+            readingStock.forEach((entry) => {
+                if (entry && entry.statsTracked === false) return;
+                if (!isLocalStatsDateInPeriod(entry?.addedAt, period)) return;
+                if (!isLocalStatsGenderMatched(entry?.gender || entry?.settings?.gender || currentGender, normalizedGender)) return;
+                addLocalStatsTotal(totals, normalizeLocalStatsReading(entry?.reading || entry?.key || ''));
+            });
+
+            savedList.forEach((item) => {
+                if (!isLocalStatsDateInPeriod(item?.savedAt || item?.updatedAt || item?.createdAt, period)) return;
+                if (!isLocalStatsGenderMatched(item?.gender || item?.settings?.gender || currentGender, normalizedGender)) return;
+                const savedReading = typeof getPairingSavedNameGivenReading === 'function'
+                    ? getPairingSavedNameGivenReading(item)
+                    : String(item?.givenReading || item?.reading || '').trim();
+                addLocalStatsTotal(totals, normalizeLocalStatsReading(savedReading));
+            });
+        }
+        return;
+    }
+
+    const ownLikedItems = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getOwnLiked === 'function'
+        ? MeimayPartnerInsights.getOwnLiked()
+        : (Array.isArray(liked) ? liked.filter((item) => !item?.fromPartner) : []);
+
+    ownLikedItems.forEach((item) => {
+        const kanjiValue = extractLocalStatsKanjiValue(item);
+        if (!kanjiValue) return;
+        if (!isLocalStatsDateInPeriod(item?.addedAt || item?.timestamp || item?.likedAt, period)) return;
+        if (!isLocalStatsGenderMatched(item?.gender || item?.settings?.gender || currentGender, normalizedGender)) return;
+        addLocalStatsTotal(totals, kanjiValue);
+    });
+
+    savedList.forEach((item) => {
+        if (!isLocalStatsDateInPeriod(item?.savedAt || item?.updatedAt || item?.createdAt, period)) return;
+        if (!isLocalStatsGenderMatched(item?.gender || item?.settings?.gender || currentGender, normalizedGender)) return;
+        extractLocalStatsSavedKanjiValues(item).forEach((kanjiValue) => addLocalStatsTotal(totals, kanjiValue));
+    });
+}
+
+function updateLocalStatsFromBody(body = {}) {
+    if (!isLocalStatsRuntime()) return false;
+
+    const kind = body.kind === 'reading' ? 'reading' : 'kanji';
+    const value = normalizeLocalStatsValue(kind, kind === 'reading' ? (body.reading || body.key) : (body.kanji || body.key));
+    const delta = Number(body.delta);
+    if (!value || !Number.isInteger(delta) || delta === 0) return false;
+
+    const metric = getLocalStatsMetric(kind, body.metric);
+    const periods = getLocalStatsPeriods(body.period);
+    const genders = getLocalStatsGenderTargetsForWrite(body.gender, body.scope);
+    const store = readLocalStatsStore();
+
+    periods.forEach((period) => {
+        genders.forEach((genderValue) => {
+            const bucketKey = getLocalStatsBucketKey(kind, metric, period, genderValue);
+            const bucket = store.buckets[bucketKey] && typeof store.buckets[bucketKey] === 'object'
+                ? store.buckets[bucketKey]
+                : {};
+            const nextCount = Math.max(0, (Number(bucket[value]) || 0) + delta);
+            if (nextCount > 0) {
+                bucket[value] = nextCount;
+            } else {
+                delete bucket[value];
+            }
+            store.buckets[bucketKey] = bucket;
+        });
+    });
+
+    return writeLocalStatsStore(store);
+}
+
+function fetchLocalStatsRankings(type = 'allTime', kind = 'kanji', metric = 'all', genderValue = 'all') {
+    if (!isLocalStatsRuntime()) return null;
+
+    const normalizedPeriod = type === 'monthly' || type === 'weekly' ? type : 'allTime';
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedMetric = getLocalStatsMetric(normalizedKind, metric);
+    const normalizedGender = normalizeStatsGenderValue(genderValue);
+    const metrics = normalizedKind === 'reading' && normalizedMetric === 'all'
+        ? ['direct', 'like']
+        : [normalizedMetric];
+    const genderTargets = getLocalStatsGenderTargetsForRead(normalizedGender);
+    const store = readLocalStatsStore();
+    const totals = new Map();
+
+    metrics.forEach((metricName) => {
+        genderTargets.forEach((targetGender) => {
+            const bucketKey = getLocalStatsBucketKey(normalizedKind, metricName, normalizedPeriod, targetGender);
+            const bucket = store.buckets[bucketKey] && typeof store.buckets[bucketKey] === 'object'
+                ? store.buckets[bucketKey]
+                : {};
+
+            Object.keys(bucket).forEach((key) => {
+                const normalizedKey = normalizeLocalStatsValue(normalizedKind, key);
+                const count = Number(bucket[key]) || 0;
+                if (!normalizedKey || count <= 0) return;
+                totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
+            });
+        });
+    });
+
+    collectLocalStatsSnapshotTotals(totals, normalizedKind, normalizedMetric, normalizedPeriod, normalizedGender);
+
+    return Array.from(totals.entries())
+        .map(([key, count]) => normalizedKind === 'reading'
+            ? { reading: key, count }
+            : { kanji: key, count })
+        .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
+        .sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+            return aKey.localeCompare(bKey, 'ja');
+        })
+        .slice(0, 100);
+}
+
 const MeimayStats = {
     getCurrentWeekKey: function () {
         const d = new Date();
@@ -2487,6 +2806,11 @@ const MeimayStats = {
             if (normalizedPeriod) {
                 body.period = normalizedPeriod;
             }
+            if (isLocalStatsRuntime()) {
+                const localSaved = updateLocalStatsFromBody(body);
+                if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+                return localSaved;
+            }
             const response = await fetch('/api/stats', {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
@@ -2520,6 +2844,11 @@ const MeimayStats = {
             if (normalizedPeriod) {
                 body.period = normalizedPeriod;
             }
+            if (isLocalStatsRuntime()) {
+                const localSaved = updateLocalStatsFromBody(body);
+                if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+                return localSaved;
+            }
             const response = await fetch('/api/stats', {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
@@ -2550,6 +2879,11 @@ const MeimayStats = {
             }, genderOrOptions);
             if (normalizedPeriod !== 'all') {
                 body.period = normalizedPeriod;
+            }
+            if (isLocalStatsRuntime()) {
+                const localSaved = updateLocalStatsFromBody(body);
+                if (localSaved) notifyRankingCardState('reading', normalizedReading, normalizedDelta, null);
+                return localSaved;
             }
 
             const response = await fetch('/api/stats', {
@@ -2583,6 +2917,11 @@ const MeimayStats = {
             if (normalizedPeriod !== 'all') {
                 body.period = normalizedPeriod;
             }
+            if (isLocalStatsRuntime()) {
+                const localSaved = updateLocalStatsFromBody(body);
+                if (localSaved) notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+                return localSaved;
+            }
 
             const response = await fetch('/api/stats', {
                 method: 'POST',
@@ -2615,6 +2954,11 @@ const MeimayStats = {
             if (normalizedPeriod !== 'all') {
                 body.period = normalizedPeriod;
             }
+            if (isLocalStatsRuntime()) {
+                const localSaved = updateLocalStatsFromBody(body);
+                if (localSaved) notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+                return localSaved;
+            }
 
             const response = await fetch('/api/stats', {
                 method: 'POST',
@@ -2632,6 +2976,7 @@ const MeimayStats = {
 
     bootstrapReadingStatsCollections: async function () {
         if (this._readingStatsBootstrapPromise) return this._readingStatsBootstrapPromise;
+        if (isLocalStatsRuntime()) return true;
 
         const run = async () => {
             try {
@@ -3194,6 +3539,8 @@ const MeimayStats = {
             ? (metric === 'direct' || metric === 'like' ? metric : 'all')
             : 'all';
         const normalizedGender = normalizeStatsGenderValue(gender);
+        const localItems = fetchLocalStatsRankings(normalizedType, normalizedKind, normalizedMetric, normalizedGender);
+        if (Array.isArray(localItems)) return localItems;
 
         try {
             const query = new URLSearchParams({
