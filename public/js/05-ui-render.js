@@ -1232,6 +1232,62 @@ function getWizardHomeState() {
     };
 }
 
+function parseHomeChildDate(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+        const year = Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
+            return date;
+        }
+        return null;
+    }
+
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatHomeChildDate(date) {
+    return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function getHomeActiveChildDateValue() {
+    try {
+        if (typeof MeimayChildWorkspaces !== 'undefined'
+            && MeimayChildWorkspaces
+            && typeof MeimayChildWorkspaces.getActiveChild === 'function') {
+            const activeChild = MeimayChildWorkspaces.getActiveChild();
+            const childDate = String(activeChild?.meta?.dueDate || activeChild?.meta?.birthDate || '').trim();
+            if (childDate) return childDate;
+        }
+    } catch (e) { }
+
+    return getWizardHomeState().dueDate || '';
+}
+
+function getHomeChildDateLabel() {
+    const date = parseHomeChildDate(getHomeActiveChildDateValue());
+    if (!date) return '';
+
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const label = dateStart.getTime() > todayStart.getTime() ? '予定日' : '誕生日';
+    return `${label} ${formatHomeChildDate(dateStart)}`;
+}
+
+function renderHomeChildDateLabel() {
+    const labelEl = document.getElementById('home-child-date-label');
+    if (!labelEl) return;
+
+    const label = getHomeChildDateLabel();
+    labelEl.textContent = label;
+    labelEl.classList.toggle('hidden', !label);
+}
+
 function getMeimayPartnerViewState() {
     const defaults = {
         savedFocus: 'all',
@@ -2783,6 +2839,7 @@ function renderHomeProfile() {
     if (heroCard) heroCard.style.cssText = '';
 
     renderHomeOverviewSwitch(pairing);
+    renderHomeChildDateLabel();
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
     const elSaved = document.getElementById('home-liked-name-count');
@@ -3096,6 +3153,7 @@ function renderHomeProfileV2() {
     if (restoreBtn) restoreBtn.classList.add('hidden');
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
+    renderHomeChildDateLabel();
 
     const overview = getHomeOverviewModel(pairing, nextStep, stageSnapshot.aggregateCounts);
     const mode = overview.mode;
