@@ -239,22 +239,28 @@ function updateSwipeCounter() {
     const remaining = premiumActive ? null : (typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : 0);
 
     if (isFreeSwipeMode) {
-        const selected = liked.filter(item => item.sessionReading === 'FREE').length;
-        el.innerText = premiumActive
-            ? `選:${selected}`
-            : `選:${selected} / スワイプ上限:${remaining}`;
+        const selectedItems = liked.filter(item => item.sessionReading === 'FREE');
+        const superCount = selectedItems.filter(item => item.isSuper).length;
+        el.innerText = formatSwipeProgressText({
+            kept: selectedItems.length,
+            superCount,
+            remaining
+        });
         return;
     }
 
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
-    const selected = liked.filter(item =>
+    const selectedItems = liked.filter(item =>
         item.slot === currentPos &&
         (!item.sessionReading || item.sessionReading === currentReading)
-    ).length;
+    );
+    const superCount = selectedItems.filter(item => item.isSuper).length;
 
-    el.innerText = premiumActive
-        ? `選:${selected}`
-        : `選:${selected} / スワイプ上限:${remaining}`;
+    el.innerText = formatSwipeProgressText({
+        kept: selectedItems.length,
+        superCount,
+        remaining
+    });
 }
 
 /**

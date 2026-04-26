@@ -651,7 +651,7 @@ function renderSoundEntryScreen() {
                     </div>
                 </div>
             </div>
-            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 screen-wide-btn">響きを見て探す</button>
+            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 screen-wide-btn">響きを見ながら探す</button>
             <button onclick="goBack()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
         </div>
     `;
@@ -695,7 +695,7 @@ function updateSoundEntryModeUI() {
     }
 
     if (submitBtn) {
-        submitBtn.textContent = isInputMode ? 'この音で探す' : '響きを見て探す';
+        submitBtn.textContent = isInputMode ? 'この音で探す' : '響きを見ながら探す';
     }
 
     const posLabels = document.querySelectorAll('.sound-entry-pos-label');
@@ -2354,14 +2354,13 @@ function renderUniversalCard() {
     // Counter
     const elCounter = document.getElementById('uni-swipe-counter');
     if (elCounter) {
-        elCounter.innerText = `選:${SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length}`;
-    }
-
-    if (elCounter) {
-        const selected = SwipeState.history.filter(h => h.action === 'like' || h.action === 'super').length;
-        elCounter.innerText = dailyRemaining !== null
-            ? `選:${selected} / スワイプ上限:${dailyRemaining}`
-            : `選:${selected}`;
+        const selectedItems = SwipeState.history.filter(h => h.action === 'like' || h.action === 'super');
+        const superCount = selectedItems.filter(h => h.action === 'super').length;
+        elCounter.innerText = formatSwipeProgressText({
+            kept: selectedItems.length,
+            superCount,
+            remaining: dailyRemaining
+        });
     }
 
     if (dailyRemaining !== null && dailyRemaining <= 0) {
@@ -5032,8 +5031,8 @@ function updateDailyRemainingDisplay() {
             ? '本日のスワイプ上限に達しました'
             : `漢字スワイプ 残り ${remaining}回`);
     const readingText = premiumActive
-        ? '選:0'
-        : `選:0 / スワイプ上限:${remaining}`;
+        ? formatSwipeProgressText({ kept: 0, superCount: 0 })
+        : formatSwipeProgressText({ kept: 0, superCount: 0, remaining });
 
     const homeEl = document.getElementById('home-daily-remaining');
     if (homeEl) homeEl.innerText = homeText;

@@ -24,6 +24,24 @@ let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];
 
+function formatSwipeProgressText(options = {}) {
+    const toCount = (value) => {
+        const count = Number(value);
+        return Number.isFinite(count) ? Math.max(0, count) : 0;
+    };
+    const kept = toCount(options.kept);
+    const superCount = Math.max(0, Math.min(kept, toCount(options.superCount)));
+    const candidateCount = Math.max(0, kept - superCount);
+    const parts = [`本命${superCount}件`, `候補${candidateCount}件`];
+    const remaining = options.remaining;
+
+    if (remaining !== null && remaining !== undefined && Number.isFinite(Number(remaining))) {
+        parts.push(`残り${toCount(remaining)}回`);
+    }
+
+    return parts.join('・');
+}
+
 // ============================================================
 // TOAST UTILITY
 // ============================================================
