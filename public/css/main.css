@@ -419,6 +419,7 @@ body.hide-top-bar .screen-header-shell {
     font-size: clamp(14px, 2vh, 18px);
     font-weight: 900;
     line-height: 1;
+    margin-top: clamp(3px, 0.7vh, 7px);
     flex-shrink: 0;
 }
 
