@@ -406,7 +406,7 @@ body.hide-top-bar .screen-header-shell {
 
 .kanji-swipe-kanji {
     color: #5d5444;
-    font-size: clamp(82px, 20vh, 132px);
+    font-size: clamp(80px, 18vh, 110px);
     font-weight: 900;
     line-height: 0.9;
     max-width: 100%;
@@ -424,14 +424,55 @@ body.hide-top-bar .screen-header-shell {
 
 .kanji-swipe-readings {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    align-content: flex-start;
-    gap: 6px;
+    align-items: center;
+    gap: 5px;
     width: 100%;
-    max-height: clamp(36px, 8vh, 68px);
+    max-height: 34px;
     overflow: hidden;
+    padding: 2px 3px;
     flex-shrink: 1;
+}
+
+.kanji-reading-chip,
+.kanji-reading-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 4px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.62);
+    color: #7a6f5a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(93, 84, 68, 0.08);
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kanji-reading-more {
+    background: transparent;
+    color: #bca37f;
+    box-shadow: none;
+    font-size: 11px;
+    padding-inline: 4px;
+}
+
+.kanji-reading-chip[hidden],
+.kanji-reading-more[hidden] {
+    display: none !important;
+}
+
+.kanji-reading-chip-active {
+    background: #bca37f;
+    color: #fff;
+    box-shadow:
+        inset 0 0 0 2px rgba(255, 255, 255, 0.82),
+        0 0 0 2px #bca37f,
+        0 3px 8px rgba(93, 84, 68, 0.12);
 }
 
 .kanji-swipe-meaning {

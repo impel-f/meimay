@@ -162,23 +162,12 @@ function render() {
         .map(x => clean(x))
         .filter(x => x);
 
-    // カードは最大6個（読みが多い漢字でレイアウト崩れを防ぐ）
-    const MAX_CARD_READINGS = 6;
-    const cardReadings = allReadings.slice(0, MAX_CARD_READINGS);
-    // マッチした読みが6個以内にない場合は6個目と入れ替え
-    if (currentSearchReading) {
-        const inCard = cardReadings.some(r => normalizeKana(r) === normalizeKana(currentSearchReading));
-        if (!inCard) {
-            const matchIdx = allReadings.findIndex(r => normalizeKana(r) === normalizeKana(currentSearchReading));
-            if (matchIdx >= MAX_CARD_READINGS) cardReadings[MAX_CARD_READINGS - 1] = allReadings[matchIdx];
-        }
-    }
-    const moreCount = Math.max(0, allReadings.length - MAX_CARD_READINGS);
-    const readingsHTML = cardReadings.length > 0 ?
-        cardReadings.map(r => {
+    // 読みは実幅に合わせて1行に収め、マッチした読みは必ず残す
+    const readingsHTML = allReadings.length > 0 ?
+        allReadings.map(r => {
             const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
-            return `<span class="px-2 py-1 ${isMatch ? 'bg-[#bca37f] text-white shadow-md ring-2 ring-[#bca37f] ring-offset-1' : 'bg-white bg-opacity-60 text-[#7a6f5a]'} rounded-lg text-xs font-bold transition-all shadow-sm">${r}</span>`;
-        }).join(' ') + (moreCount > 0 ? ` <span class="text-[10px] text-[#bca37f] font-bold">他${moreCount}個</span>` : '') :
+            return `<span class="kanji-reading-chip ${isMatch ? 'kanji-reading-chip-active' : ''}">${r}</span>`;
+        }).join(' ') + `<span class="kanji-reading-more" hidden></span>` :
         '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
@@ -226,11 +215,54 @@ function render() {
     }
 
     container.appendChild(card);
+    fitKanjiSwipeReadings(card);
     fitKanjiSwipeCard(card);
-    requestAnimationFrame(() => fitKanjiSwipeCard(card));
+    requestAnimationFrame(() => {
+        fitKanjiSwipeReadings(card);
+        fitKanjiSwipeCard(card);
+    });
     console.log("RENDER: Card appended to container");
 
     updateSwipeCounter();
+}
+
+function fitKanjiSwipeReadings(card) {
+    const container = card?.querySelector('.kanji-swipe-readings');
+    if (!container) return;
+
+    const chips = Array.from(container.querySelectorAll('.kanji-reading-chip'));
+    const more = container.querySelector('.kanji-reading-more');
+    if (chips.length === 0 || !more) return;
+
+    const activeChip = chips.find(chip => chip.classList.contains('kanji-reading-chip-active'));
+    const showChips = (visibleChips) => {
+        const visibleSet = new Set(visibleChips);
+        chips.forEach(chip => {
+            chip.hidden = !visibleSet.has(chip);
+        });
+
+        const hiddenCount = chips.length - visibleChips.length;
+        more.hidden = hiddenCount <= 0;
+        more.textContent = hiddenCount > 0 ? `他${hiddenCount}個` : '';
+    };
+
+    const chooseChips = (limit) => {
+        const visible = chips.slice(0, limit);
+        if (activeChip && !visible.includes(activeChip)) {
+            visible[limit - 1] = activeChip;
+            visible.sort((a, b) => chips.indexOf(a) - chips.indexOf(b));
+        }
+        return visible;
+    };
+
+    showChips(chips);
+    if (container.scrollWidth <= container.clientWidth + 1) return;
+
+    for (let limit = chips.length - 1; limit >= 1; limit--) {
+        const visible = chooseChips(limit);
+        showChips(visible);
+        if (container.scrollWidth <= container.clientWidth + 1) return;
+    }
 }
 
 function fitKanjiSwipeCard(card) {
