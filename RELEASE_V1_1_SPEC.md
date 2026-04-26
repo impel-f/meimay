@@ -1,32 +1,32 @@
-# Meimay v1.1 Release Spec
+# Meimay v1.1 リリース仕様書
 
-Updated: 2026-04-26
+更新日: 2026-04-26
 
-Goal: 課金、初回体験、法務、ストア提出素材までそろえた状態で v1.1 としてリリースする。
+目的: 課金、初回体験、法務、ストア提出素材までそろえた状態で、Meimay v1.1 としてリリースできる形にする。
 
 ## 1. v1.1 の前提
 
 - iOS / Android のストア配布を前提にする。
-- Web/PWA の現資産を活かし、ネイティブ化は Capacitor を第一候補にする。
+- Web / PWA の現資産を活かし、ネイティブ化は Capacitor を第一候補にする。
 - デジタル機能の解放は実課金にする。
 - ダミー課金、localStorage だけの有料判定、後読みの override JS はリリース対象から外す。
 - ユーザーが初回から「今なにをしているか」「次に何をすればいいか」を迷わない体験にする。
 
 ## 2. 課金方針
 
-### Store Requirement
+### ストア審査上の前提
 
-- iOS: デジタル機能や広告非表示の解放は StoreKit / In-App Purchase を使う。
-- Android: Google Play 配布では Google Play Billing を使う。
+- iOS では、デジタル機能や広告非表示の解放に StoreKit / In-App Purchase を使う。
+- Android の Google Play 配布では、Google Play Billing を使う。
 - 根拠:
   - Apple App Review Guidelines: https://developer.apple.com/app-store/review/guidelines
   - Google Play Payments policy: https://support.google.com/googleplay/android-developer/answer/10281818
 
-### Entitlement Source
+### 有料権限の管理元
 
 最終的な有料判定は Firestore の `users/{uid}` を正とする。
 
-Required fields:
+必要なフィールド:
 
 - `isPremium`
 - `subscriptionStatus`
@@ -36,28 +36,28 @@ Required fields:
 - `appAccountToken`
 - `updatedAt`
 
-Client behavior:
+アプリ側の動き:
 
 - アプリ起動時に Firebase Auth の `uid` と `appAccountToken` をリンクする。
 - StoreKit / Play Billing の購入・復元後にサーバー検証を行う。
 - Firestore の `users/{uid}` を購読して UI を更新する。
-- localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI からは購入操作として見せない。
+- localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI では購入操作として見せない。
 
-### Product
+### 商品設計
 
 まずは 1 商品に絞る。
 
-- Product: `meimay_premium_monthly`
-- Type: auto-renewing subscription
+- 商品ID: `meimay_premium_monthly`
+- 種別: 自動更新サブスクリプション
 - v1.1 では買い切りプランを入れない。
 
 理由:
 
 - 審査と実装の分岐を減らす。
 - 復元、期限切れ、返金、請求リトライの確認範囲を絞る。
-- 初期の課金価値を検証しやすい。
+- 初期の課金価値を検証しやすくする。
 
-## 3. Free / Premium Boundary
+## 3. 無料と有料の境界
 
 無料で残す:
 
@@ -65,13 +65,13 @@ Client behavior:
 - 響き検索
 - 基本の直感スワイプ
 - 漢字検索の基本
-- 名前ビルド
+- 名前の組み立て
 - 姓名判断の基本
 - 保存の基本
 - ペアリング基本
 - 今日の一字
 
-Premium で解放する:
+プレミアムで解放する:
 
 - 広告非表示
 - 読みスワイプの 1 日上限解除
@@ -82,18 +82,18 @@ Premium で解放する:
 - 最終候補管理
 - メモ / コメント
 
-v1.1 に入れない:
+v1.1 では入れない:
 
 - 複数課金プラン
 - 外部決済
 - PDF / 画像エクスポート
 - 高度な占い・診断の多段メニュー
 
-## 4. First Run UX
+## 4. 初回体験
 
 長い説明型チュートリアルではなく、短い初回導入と画面内の文脈ガイドで進める。
 
-### Initial Guide
+### 初回ガイド
 
 初回だけ 4 ステップで見せる。
 
@@ -102,25 +102,25 @@ v1.1 に入れない:
 3. 名前を組み立てる
 4. 保存して二人で比べる
 
-Rules:
+ルール:
 
 - 30 秒以内で終わる。
 - いつでもスキップできる。
 - 設定から再表示できる。
 - 説明文を増やしすぎず、次のボタン名を具体的にする。
 
-### Home
+### ホーム
 
 ホームはメニューではなく「次の一手」を出す。
 
-State examples:
+状態ごとの表示例:
 
 - 何もない: `まずは響きから探しましょう` / `響きを探す`
 - 読みがある: `気になる読みに合う漢字を集めましょう` / `漢字を探す`
 - 漢字がある: `集めた漢字で名前を作れます` / `名前を組み立てる`
 - 保存名がある: `候補を見比べて絞り込みましょう` / `候補を見る`
 
-### Swipe
+### スワイプ
 
 スワイプ画面には常に以下を出す。
 
@@ -129,99 +129,99 @@ State examples:
 - 残り: `あと12枚`
 - 区切り: `3字ストックしました。次は2文字目を選びます`
 
-## 5. Legal / Store Assets
+## 5. 法務とストア素材
 
-Required public pages:
+外部公開が必要なページ:
 
-- Privacy Policy
-- Terms
-- Support
-- Data deletion instructions
+- プライバシーポリシー
+- 利用規約
+- サポート
+- データ削除手順
 
-Store submission:
+ストア提出で必要なもの:
 
-- App name
-- Subtitle / short description
-- Full description
-- Keywords
-- Screenshots
-- Review notes
-- Test account or review path
+- アプリ名
+- サブタイトル / 短い説明
+- 詳細説明
+- キーワード
+- スクリーンショット
+- 審査メモ
+- テストアカウント、または審査用の操作手順
 
-Privacy must mention:
+プライバシーポリシーに明記するもの:
 
 - Firebase Auth
 - Firestore
-- Pairing data
-- Saved names and preferences
-- Gemini / AI request handling
-- AdMob / advertising SDK
-- Purchase status and subscription metadata
-- Data deletion request flow
+- ペアリングデータ
+- 保存名と好みのデータ
+- Gemini / AI リクエストの扱い
+- AdMob / 広告 SDK
+- 購入状態とサブスクリプション情報
+- データ削除依頼の流れ
 
-## 6. Implementation Order
+## 6. 実装順
 
-### Phase 0: Repo Hygiene
+### フェーズ 0: コード整理
 
-- No override files.
-- No duplicate live definitions in the same JS file.
-- `rg` works and is the default search tool.
-- Touched JS files pass syntax check.
+- override ファイルを作らない。
+- 同じ JS ファイル内に生きている重複定義を残さない。
+- `rg` を通常の検索ツールとして使える状態にする。
+- 変更した JS は構文チェックを通す。
 
-### Phase 1: Entitlement Contract
+### フェーズ 1: 有料権限の契約
 
-- Define final `users/{uid}` premium schema.
-- Remove user-facing dummy premium activation.
-- Keep premium UI as read-only until real StoreKit / Play Billing is wired.
-- Add tests or scripts for premium state mapping where practical.
+- `users/{uid}` のプレミアム用スキーマを確定する。
+- ユーザー向けのダミー課金有効化を消す。
+- StoreKit / Play Billing がつながるまで、プレミアム UI は購入状態の表示と確認に寄せる。
+- 可能ならプレミアム状態変換のテスト、または確認用スクリプトを用意する。
 
-### Phase 2: Native Shell
+### フェーズ 2: ネイティブ化
 
-- Add Capacitor.
-- Create iOS / Android projects.
-- Fix bundle id / package name.
-- Confirm Firebase and deep link behavior in native shells.
+- Capacitor を追加する。
+- iOS / Android プロジェクトを作る。
+- bundle id / package name を固定する。
+- ネイティブ環境で Firebase とリンク導線を確認する。
 
-### Phase 3: Billing
+### フェーズ 3: 課金
 
-- iOS StoreKit purchase and restore.
-- App Store Server Notifications verification.
-- Android Play Billing purchase and restore.
-- Server-side verification and Firestore entitlement update.
-- Expired / refunded / billing retry states.
+- iOS の StoreKit 購入と復元を実装する。
+- App Store Server Notifications の検証を確認する。
+- Android の Play Billing 購入と復元を実装する。
+- サーバー検証後に Firestore の有料権限を更新する。
+- 期限切れ、返金、請求リトライ状態を確認する。
 
-### Phase 4: UX Brush-up
+### フェーズ 4: 体験のブラッシュアップ
 
-- Home next-action UI.
-- Swipe purpose and gesture labels.
-- Empty states that tell the next action.
-- Settings entry to replay guide.
-- Button labels changed from nouns to actions.
+- ホームに「次の一手」を出す。
+- スワイプ画面に目的、操作、残り枚数を出す。
+- 空状態では次の行動がわかる文言を出す。
+- 設定から初回ガイドを再表示できるようにする。
+- ボタン名を名詞ではなく行動にする。
 
-### Phase 5: Legal and Store
+### フェーズ 5: 法務とストア
 
-- Publish legal/support pages.
-- Fill App Store privacy and Google Play Data Safety consistently.
-- Prepare screenshots and review notes.
+- 法務 / サポートページを外部公開する。
+- App Store のプライバシー項目と Google Play の Data Safety を本文と一致させる。
+- スクリーンショットと審査メモを用意する。
 
-### Phase 6: QA
+### フェーズ 6: QA
 
-- New user first run.
-- Existing user with saved data.
-- Free user limits.
-- Premium active.
-- Premium expired.
-- Purchase restore.
-- Offline / slow network.
-- Pairing disconnected / connected.
-- iPhone small / large.
-- Android small / large.
+- 新規ユーザーの初回起動
+- 保存データがある既存ユーザー
+- 無料ユーザーの上限
+- プレミアム有効状態
+- プレミアム期限切れ状態
+- 購入復元
+- オフライン / 低速通信
+- ペアリング未接続 / 接続済み
+- iPhone 小型 / 大型
+- Android 小型 / 大型
 
-## 7. Immediate Next Tasks
+## 7. 直近でやること
 
-1. Finish premium code cleanup and verify no duplicate live definitions.
-2. Implement Home next-action state.
-3. Implement Swipe purpose labels and remaining count.
-4. Decide exact premium limits for free users.
-5. Add Capacitor and native app identifiers.
-6. Wire real StoreKit first, then Play Billing.
+1. プレミアム周りのコード整理を完了し、重複定義がない状態を維持する。
+2. ホームの「次の一手」表示を実装する。
+3. スワイプ画面に目的、操作、残り枚数を出す。
+4. 無料ユーザーの具体的な上限値を決める。
+5. Capacitor とネイティブアプリ識別子を追加する。
+6. まず StoreKit を実課金に接続し、その後 Play Billing を接続する。
