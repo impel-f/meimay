@@ -952,9 +952,6 @@ async function handleHomePairAction() {
     if (typeof showToast === 'function') showToast('候補をパートナーに同期しました', '📤');
 }
 
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
-
 function closeKanjiDetail() {
     const modal = document.getElementById('modal-kanji-detail');
     if (modal) modal.classList.remove('active');
@@ -975,25 +972,6 @@ function closeKanjiDetail() {
 }
 
 window.closeKanjiDetail = closeKanjiDetail;
-
-
-window.toggleHomePairJoinRow = toggleHomePairJoinRow;
-window.handleHomePairQuickJoin = handleHomePairQuickJoin;
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
-
-
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
-
-
-window.renderHomeProfile = renderHomeProfile;
-
-
-window.renderHomeProfile = renderHomeProfile;
-
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.closeHomeInsightsModal = closeHomeInsightsModal;
 window.handleHomePairAction = handleHomePairAction;
 window.handleHomeNextStepAction = handleHomeNextStepAction;
@@ -1135,13 +1113,7 @@ function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairin
 }
 
 window.updateSwipeMainState = updateSwipeMainState;
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
 
-
-window.renderHomeProfile = renderHomeProfile;
-
-window.renderHomeProfile = renderHomeProfile;
 function getDefaultHomePairJoinRole() {
     if (typeof MeimayPairing !== 'undefined' && (MeimayPairing.myRole === 'mama' || MeimayPairing.myRole === 'papa')) {
         return MeimayPairing.myRole;
@@ -1231,10 +1203,6 @@ async function handleHomePairQuickJoin(event) {
 
 window.toggleHomePairJoinRow = toggleHomePairJoinRow;
 window.handleHomePairQuickJoin = handleHomePairQuickJoin;
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
-window.renderHomeProfile = renderHomeProfile;
-window.openHomeInsightsModal = openHomeInsightsModal;
 
 /* ============================================================
    HOME SCREEN
@@ -1856,84 +1824,77 @@ function getHomeOwnershipSummary() {
 
 function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     const wizard = getWizardHomeState();
+    const buildCount = typeof getHomeBuildPatternCount === 'function' ? getHomeBuildPatternCount() : 0;
 
     if ((pairing?.matchedNameCount || 0) >= 1) {
         return {
-            title: '一致した候補がある',
-            detail: 'おふたりで同じ候補が見つかっています。',
-            actionLabel: '一致した候補を見る',
+            title: '二人とも気になっている名前があります',
+            detail: '保存した名前の中に一致候補があります。まずは二人で残した候補を見比べましょう。',
+            actionLabel: '一致した名前を見る',
             action: 'matched-saved'
         };
     }
-
     if ((pairing?.matchedReadingCount || 0) >= 1) {
         return {
-            title: '一致した読みがある',
-            detail: 'ふたりで同じ読みから、次の候補を広げやすい状態です。',
+            title: '二人とも気になっている読みがあります',
+            detail: '同じ読みから名前を広げられます。まずは一致した読みを確認しましょう。',
             actionLabel: '一致した読みを見る',
             action: 'matched-reading'
         };
     }
-
     if ((pairing?.matchedKanjiCount || 0) >= 1) {
         return {
-            title: '一致した漢字がある',
-            detail: '共通で気になった漢字から名前候補を広げられます。',
+            title: '二人とも残した漢字があります',
+            detail: '共通して気になった漢字から、名前候補を組み立てやすくなっています。',
             actionLabel: '一致した漢字を見る',
             action: 'matched-liked'
         };
     }
-
     if (savedCount > 0) {
         return {
-            title: '保存した候補を見る',
-            detail: '保存した候補が十分にたまっています。見比べながら、方向性を絞っていきましょう。',
+            title: '保存した候補を見比べましょう',
+            detail: '候補が残っています。響き、漢字、印象を見比べながら絞り込めます。',
             actionLabel: '候補を見る',
             action: 'saved'
         };
     }
-
-    if (readingStockCount === 0 && wizard.hasReadingCandidate) {
+    if (buildCount > 0) {
         return {
-            title: '読み候補があるので漢字を探せます',
-            detail: '候補の読みを起点に、名前に使いたい漢字を集めます。',
-            actionLabel: '漢字をさがす',
-            action: 'reading'
-        };
-    }
-
-    if (readingStockCount === 0) {
-        return {
-            title: '読み候補を集める',
-            detail: 'まずは響きやイメージから、気になる読みを見つけましょう。',
-            actionLabel: '響きをさがす',
-            action: 'sound'
-        };
-    }
-
-    if (likedCount < 2) {
-        return {
-            title: '漢字材料を集める',
-            detail: '読み候補があるので、次は漢字を広げる段階です。',
-            actionLabel: '漢字をさがす',
-            action: 'reading'
-        };
-    }
-
-    if (savedCount === 0) {
-        return {
-            title: '組み立てる',
-            detail: '集まった読みと漢字から、名前候補を保存していきましょう。',
-            actionLabel: 'ビルドへ',
+            title: '組み立てた名前を保存しましょう',
+            detail: '名前候補ができています。残したいものを保存すると、あとで比較しやすくなります。',
+            actionLabel: '名前を組み立てる',
             action: 'build'
         };
     }
-
+    if (readingStockCount === 0 && wizard.hasReadingCandidate) {
+        return {
+            title: '読み候補から漢字を探しましょう',
+            detail: '候補にしている読みを起点に、名前に使いたい漢字を集めます。',
+            actionLabel: '漢字を探す',
+            action: 'reading'
+        };
+    }
+    if (readingStockCount === 0) {
+        return {
+            title: 'まずは響きから探しましょう',
+            detail: '好きな響きや呼びたい音から、名前の読み候補を集めます。',
+            actionLabel: '響きを探す',
+            action: 'sound'
+        };
+    }
+    if (likedCount < 2) {
+        return {
+            title: '読み候補に合う漢字を集めましょう',
+            detail: '気になる読みができています。次はその読みで使える漢字を選びます。',
+            actionLabel: '漢字を探す',
+            action: 'reading'
+        };
+    }
     return {
-        title: '候補を見る',
-        detail: '保存済みから第一候補を絞りやすい段階です。',
-        actionLabel: '候補を見る',
-        action: 'saved'
+        title: '集めた漢字で名前を組み立てましょう',
+        detail: '読みと漢字がそろってきました。組み合わせを作って、残したい名前を保存します。',
+        actionLabel: '名前を組み立てる',
+        action: 'build'
     };
 }
 
@@ -2186,28 +2147,28 @@ function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCo
         return {
             countNumber: String(readingStockCount),
             countUnit: '件',
-            actionText: actionLabels.reading || (readingStockCount > 0 ? '読みを見る＞' : '読みを探す＞')
+            actionText: actionLabels.reading || (readingStockCount > 0 ? '読みを見る' : '読みを探す')
         };
     }
     if (stepKey === 'kanji') {
         return {
             countNumber: String(likedCount),
             countUnit: '字',
-            actionText: actionLabels.kanji || (likedCount > 0 ? '漢字を見る＞' : '漢字を探す＞')
+            actionText: actionLabels.kanji || (likedCount > 0 ? '漢字を見る' : '漢字を探す')
         };
     }
     if (stepKey === 'build') {
         return {
             countNumber: String(buildPatternCount),
             countUnit: '通り',
-            actionText: actionLabels.build || '組み立てる＞',
+            actionText: actionLabels.build || '組み立てる',
             compact: true
         };
     }
     return {
         countNumber: String(savedCount),
         countUnit: '件',
-        actionText: actionLabels.save || '候補を見る＞'
+        actionText: actionLabels.save || '候補を見る'
     };
 }
 
@@ -2216,37 +2177,25 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
         ? Number(options.buildCount)
         : getHomeBuildPatternCount();
     const steps = [
-        {
-            key: 'reading',
-            label: '読み',
-            done: readingStockCount >= 1
-        },
-        {
-            key: 'kanji',
-            label: '漢字',
-            done: likedCount >= 2
-        },
-        {
-            key: 'build',
-            label: 'ビルド',
-            done: buildPatternCount >= 1
-        },
-        {
-            key: 'save',
-            label: '保存',
-            done: savedCount >= 1
-        }
+        { key: 'reading', label: '読み', done: readingStockCount >= 1 },
+        { key: 'kanji', label: '漢字', done: likedCount >= 2 },
+        { key: 'build', label: '組み立て', done: buildPatternCount >= 1 },
+        { key: 'save', label: '保存', done: savedCount >= 1 }
     ];
-    const activeKey =
-        savedCount >= 1 ? 'save' :
-        buildPatternCount >= 1 ? 'build' :
-        likedCount >= 2 ? 'kanji' :
-        'reading';
-    const stageTitle =
-        activeKey === 'save' ? '候補を見る段階です' :
-        activeKey === 'build' ? '組み立てる段階です' :
-        activeKey === 'kanji' ? '漢字材料を集める段階です' :
-        '読み候補を探す段階です';
+    const activeKey = savedCount >= 1
+        ? 'save'
+        : buildPatternCount >= 1
+            ? 'build'
+            : likedCount >= 2
+                ? 'kanji'
+                : 'reading';
+    const stageTitle = activeKey === 'save'
+        ? '候補を見比べる段階'
+        : activeKey === 'build'
+            ? '名前を組み立てる段階'
+            : activeKey === 'kanji'
+                ? '漢字を集める段階'
+                : '読みを探す段階';
 
     return {
         stageTitle,
@@ -2263,9 +2212,6 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
         }))
     };
 }
-
-
-
 
 function closeHomePartnerHub() {
     document.getElementById('home-partner-hub-modal')?.remove();
@@ -2553,19 +2499,12 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
     const buildPatternCount = Number.isFinite(Number(buildCount))
         ? Number(buildCount)
         : getHomeBuildPatternCount();
-    if (savedCount > 0) {
-        return '保存した候補を見比べながら、絞り込んでいるところです。';
-    }
-    if (buildPatternCount > 0) {
-        return '組み立てた候補を見ながら、保存する名前を選ぶ段階です。';
-    }
-    if (likedCount > 0) {
-        return '集めた漢字をもとに、名前の組み合わせを広げていく段階です。';
-    }
-    if (readingStockCount > 0) {
-        return '読み候補をもとに、合う漢字を集めているところです。';
-    }
-    return 'まずは読み候補を集めて、方向を決めていきましょう。';
+
+    if (savedCount > 0) return '保存した候補を見比べながら、残したい名前を絞り込んでいます。';
+    if (buildPatternCount > 0) return '組み立てた候補を確認し、保存する名前を選ぶ段階です。';
+    if (likedCount > 0) return '集めた漢字をもとに、名前の組み合わせを広げていく段階です。';
+    if (readingStockCount > 0) return '読み候補をもとに、合う漢字を集めているところです。';
+    return 'まずは読み候補を集めて、名前の方向性を見つけましょう。';
 }
 
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
@@ -2959,7 +2898,6 @@ window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
-window.renderHomeProfile = renderHomeProfile;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -3190,7 +3128,7 @@ function renderHomeProfileV2() {
                         <div class="mt-2 text-[11px] leading-relaxed text-[#8b7e66]">${overview.description}</div>
                     </div>
                     <div class="shrink-0 rounded-[20px] px-3 py-3 text-center min-w-[72px]" style="background:${isShared ? 'rgba(255,255,255,0.74)' : overview.tone.chipBg}; border:1px solid rgba(255,255,255,0.62);">
-                        <div class="text-[9px] font-black tracking-[0.16em] uppercase" style="color:${overview.tone.sub}">Stage</div>
+                        <div class="text-[9px] font-black tracking-[0.16em]" style="color:${overview.tone.sub}">段階</div>
                         <div class="mt-2 text-[13px] font-black leading-tight text-[#4f4639]">${stage.stageTitle}</div>
                     </div>
                 </div>
@@ -3205,7 +3143,7 @@ function renderHomeProfileV2() {
                 </div>
 
                 <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Next</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">次にやること</div>
                     <div class="mt-1 text-sm font-black text-[#4f4639]">${nextStep?.title || '次に進める候補を育てよう'}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${nextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
                     <div class="mt-3 flex items-center gap-2">
@@ -3220,7 +3158,7 @@ function renderHomeProfileV2() {
             </div>
             <div class="mt-3 flex items-center justify-between px-1">
                 <div>
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">Progress</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">進み具合</div>
                     <div class="mt-1 text-sm font-bold text-[#4f4639]">いまどの段階か</div>
                 </div>
 
@@ -3299,7 +3237,7 @@ function getHomeNextStagePreviewHtml(stageKey) {
 function formatHomeStatusBodyText(text) {
     return String(text ?? '')
         .trim()
-        .replace(/\s+/g, ' ')
+        .replace(/[ \t]+/g, ' ')
         .replace(/。/g, '。\n')
         .trimEnd();
 }
@@ -3781,19 +3719,13 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
         ? window.MeimayPartnerInsights.getSavedNameCanvasState()
         : null;
-
-    const readingZeroLines = [
-        'まだ読み候補はありません。',
-        'まずは気になる響きから、読みを探していきましょう。'
-    ];
-
     const copy = {
         stageLabel: '',
         mainText: '',
         statusLines: [],
         chips: [],
         primaryAction: 'sound',
-        primaryLabel: '響きをさがす',
+        primaryLabel: '響きを探す',
         secondaryAction: '',
         secondaryLabel: ''
     };
@@ -3810,81 +3742,73 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         return copy;
     };
 
+    const readingEmptyLines = [
+        'まだ読み候補はありません。',
+        'まずは好きな響きや呼びたい音から、読み候補を探しましょう。'
+    ];
+
     if (stageKey === 'reading') {
         const statusLines = readingCount === 0
-            ? readingZeroLines
+            ? readingEmptyLines
             : readingCount <= 9
                 ? [
                     '読み候補が集まってきています。',
-                    '今ある候補を見返しながら、さらに読みを広げていきましょう。'
+                    '気になる読みを見返しながら、さらに候補を広げられます。'
                 ]
                 : [
                     '読み候補はしっかり集まっています。',
-                    '今ある候補を見返しながら、方向性を整えていきましょう。'
+                    '次は使いたい読みを選び、漢字探しに進みましょう。'
                 ];
 
         return setCopy(
             '読み',
             'sound',
-            '響きをさがす',
+            '響きを探す',
             statusLines,
-            [
-                { label: '読み', value: readingCount, unit: '件' }
-            ],
+            [{ label: '読み', value: readingCount, unit: '件' }],
             readingCount > 0 ? 'stock-reading' : '',
-            'ストックした読みを見る'
+            '集めた読みを見る'
         );
     }
 
     if (stageKey === 'kanji') {
         const statusLines = (() => {
-            if (readingCount === 0 && kanjiCount === 0) {
-                return readingZeroLines;
-            }
+            if (readingCount === 0 && kanjiCount === 0) return readingEmptyLines;
             if (readingCount === 0 && kanjiCount > 0) {
                 return [
-                    'まだ読み候補はありません。',
-                    '集めた漢字を活かすために、まずは読みを探していきましょう。'
+                    '漢字候補はありますが、読み候補がまだありません。',
+                    '読みを決めると、集めた漢字を名前作りに活かしやすくなります。'
                 ];
             }
-            if (readingCount > 0 && kanjiCount === 0 && unresolvedReadingCount > 0) {
+            if (readingCount > 0 && kanjiCount === 0) {
                 return [
                     'まだ漢字候補はありません。',
-                    `漢字がまだ決まっていない読みが${unresolvedReadingCount}件あるので、そこから候補を広げていきましょう。`
+                    '気になる読みから、名前に使いたい漢字を集めましょう。'
                 ];
             }
-            if (readingCount > 0 && kanjiCount > 0 && unresolvedReadingCount > 0) {
+            if (unresolvedReadingCount > 0) {
                 return [
                     '漢字候補が集まってきています。',
-                    `漢字がまだ決まっていない読みが${unresolvedReadingCount}件あるので、そこから候補を広げていきましょう。`
+                    `まだ漢字を選んでいない読みが${unresolvedReadingCount}件あります。そこから候補を広げましょう。`
                 ];
             }
-            if (readingCount > 0 && unresolvedReadingCount === 0 && kanjiCount > 0) {
-                return [
-                    '漢字候補はしっかり集まっています。',
-                    '今ある候補を見返しながら、組み立てに進めます。'
-                ];
-            }
-            if (readingCount > 0 && unresolvedReadingCount === 0 && kanjiCount === 0) {
-                return [
-                    'まだ漢字候補はありません。',
-                    '気になる読みに合う漢字を集めていきましょう。'
-                ];
-            }
-            return readingZeroLines;
+            return [
+                '漢字候補はしっかり集まっています。',
+                '次は読みと漢字を組み合わせて、名前候補を作りましょう。'
+            ];
         })();
 
         return setCopy(
             '漢字',
             'reading',
-            '漢字をさがす',
+            '漢字を探す',
             statusLines,
             [
                 { label: '漢字', value: kanjiCount, unit: '字' },
-                { label: '未選択', value: unresolvedReadingCount, unit: '件' }
+                { label: '未選択の読み', value: unresolvedReadingCount, unit: '件' }
             ],
             kanjiCount > 0 ? 'stock' : '',
-            'ストックした漢字を見る'
+            '集めた漢字を見る'
         );
     }
 
@@ -3892,40 +3816,40 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         const statusLines = (() => {
             if (buildCount >= 6) {
                 return [
-                    '組み立て候補はしっかりできています。',
-                    '今ある候補を見比べながら、方向性を整えていきましょう。'
+                    '名前候補をしっかり組み立てられています。',
+                    '候補を見比べながら、残したい名前を保存しましょう。'
                 ];
             }
             if (buildCount >= 1) {
                 return [
-                    '候補ができてきています。',
-                    '今ある組み合わせを見比べながら、さらに候補を広げていきましょう。'
+                    '名前候補ができています。',
+                    'さらに組み合わせを増やすか、気になる名前を保存しましょう。'
                 ];
             }
             if (readingCount > 0 && kanjiCount > 0) {
                 return [
-                    'まだ名前は組み立てていません。',
-                    '集めた読みと漢字から、名前候補を作り始められます。'
+                    '読みと漢字がそろってきました。',
+                    '集めた材料から、名前候補を組み立てられます。'
                 ];
             }
             if (readingCount > 0 && kanjiCount === 0) {
                 return [
-                    'まだ漢字候補はありません。',
-                    '先に読みに合う漢字を集めてから、組み立てに進んでいきましょう。'
+                    'まだ漢字候補がありません。',
+                    '先に読みへ合う漢字を集めると、名前を組み立てられます。'
                 ];
             }
-            return readingZeroLines;
+            return readingEmptyLines;
         })();
 
         return setCopy(
-            'ビルド',
+            '組み立て',
             'build',
-            '組み立てる',
+            '名前を組み立てる',
             statusLines,
             [
                 { label: '読み', value: readingCount, unit: '件' },
                 { label: '漢字', value: kanjiCount, unit: '字' },
-                { label: 'ビルド', value: buildCount, unit: '通り' }
+                { label: '組み合わせ', value: buildCount, unit: '通り' }
             ]
         );
     }
@@ -3933,41 +3857,41 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     const statusLines = (() => {
         if (savedCanvasState?.matched) {
             return [
-                'ふたりの本命が一致しました。',
-                '大切な名前が決まりました。'
+                '二人の本命が一致しています。',
+                '大切な候補として、理由や印象も一緒に見返しましょう。'
             ];
         }
         if (savedTotal >= 4) {
             return [
-                '保存した候補はしっかり集まっています。',
-                '今ある候補を見返しながら、残したい名前を整理していきましょう。'
+                '保存した候補がしっかり集まっています。',
+                '似た響きや漢字を見比べながら、残したい名前を整理しましょう。'
             ];
         }
         if (savedTotal >= 1) {
             return [
-                '保存した候補が集まってきています。',
-                '見比べながら、方向性を絞り込んでいきましょう。'
+                '保存した候補があります。',
+                '比較しながら、もう少し候補を増やすか絞り込むかを決められます。'
             ];
         }
         if (buildCount > 0) {
             return [
                 'まだ保存した名前はありません。',
-                '組み立てた候補の中から、残したい名前を選んでいきましょう。'
+                '組み立てた候補の中から、残したい名前を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount > 0) {
             return [
-                'まだ名前は組み立てていません。',
-                'まずは候補を組み立ててから、保存する名前を選んでいきましょう。'
+                'まだ保存した名前はありません。',
+                'まずは名前を組み立てて、残したい候補を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount === 0) {
             return [
-                'まだ漢字候補はありません。',
-                '先に読みに合う漢字を集めて、候補作りを進めていきましょう。'
+                'まだ保存した名前はありません。',
+                '先に読みへ合う漢字を集めて、候補作りに進みましょう。'
             ];
         }
-        return readingZeroLines;
+        return readingEmptyLines;
     })();
 
     return setCopy(
@@ -3975,9 +3899,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         'saved',
         '候補を見る',
         statusLines,
-        [
-            { label: '保存', value: savedTotal, unit: '件' }
-        ]
+        [{ label: '保存', value: savedTotal, unit: '件' }]
     );
 }
 
