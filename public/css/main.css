@@ -362,12 +362,27 @@ body.hide-top-bar .screen-header-shell {
     margin-top: clamp(24px, 3.4vh, 34px);
 }
 
+#scr-swipe-universal #uni-swipe-container {
+    width: min(86vw, 340px) !important;
+    max-width: min(86vw, 340px) !important;
+    margin-top: clamp(24px, 3.4vh, 34px);
+}
+
 #scr-main .card {
     top: clamp(46px, 6.2vh, 66px);
     bottom: clamp(0px, 0.6vh, 8px);
     padding: clamp(8px, 1.6vh, 14px);
     border-radius: clamp(34px, 8vh, 70px);
     box-shadow: 0 14px 28px -24px rgba(93, 84, 68, 0.26);
+    overflow: hidden;
+}
+
+#scr-swipe-universal .card {
+    top: clamp(46px, 6.2vh, 66px);
+    bottom: clamp(0px, 0.6vh, 8px);
+    padding: clamp(8px, 1.6vh, 14px);
+    border-radius: clamp(34px, 8vh, 70px) !important;
+    box-shadow: 0 14px 28px -24px rgba(93, 84, 68, 0.26) !important;
     overflow: hidden;
 }
 
@@ -516,7 +531,8 @@ body.hide-top-bar .screen-header-shell {
     z-index: 1205;
 }
 
-#swipe-action-btns {
+#swipe-action-btns,
+#uni-swipe-action-btns {
     align-items: center !important;
     margin-top: clamp(8px, 1.8vh, 18px);
     padding-top: clamp(2px, 0.6vh, 6px) !important;
@@ -529,7 +545,8 @@ body.hide-top-bar .screen-header-shell {
     z-index: 1;
 }
 
-#swipe-action-btns button {
+#swipe-action-btns button,
+#uni-swipe-action-btns button {
     width: clamp(56px, 9.5vh, 72px) !important;
     height: clamp(56px, 9.5vh, 72px) !important;
 }
@@ -920,7 +937,7 @@ body.hide-top-bar .screen-header-shell {
     border: 1px solid #fff;
     border-radius: 26px;
     background: #fff;
-    padding: clamp(10px, 1.8vh, 14px) 16px;
+    padding: clamp(10px, 1.8vh, 14px) 10px;
     box-shadow: 0 10px 24px rgba(93, 84, 68, 0.08);
 }
 
@@ -938,10 +955,10 @@ body.hide-top-bar .screen-header-shell {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px;
-    padding: 0 8px;
+    gap: 7px;
+    padding: 0;
     color: #3f382f;
-    font-size: 16px;
+    font-size: clamp(14px, 3.8vw, 15px);
     font-weight: 700;
     line-height: 1.25;
 }
