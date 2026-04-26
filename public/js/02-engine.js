@@ -1250,7 +1250,33 @@ function loadStack() {
         const prev = segments[currentPos - 1];
 
         if (cur === prev || isDakutenMatch(cur, prev)) {
-            const prevChoices = liked.filter(item => item.slot === currentPos - 1);
+            const currentReadingRaw = typeof getCurrentSessionReading === 'function'
+                ? getCurrentSessionReading()
+                : segments.join('');
+            const currentReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(currentReadingRaw)
+                : String(currentReadingRaw || '').trim();
+            const prevNormalized = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(prev)
+                : String(prev || '').trim();
+            const prevChoices = liked.filter(item => {
+                if (item.slot !== currentPos - 1 || item.isKanaCandidate || item['漢字'] === '々') return false;
+
+                const itemReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+                    ? normalizeReadingComparisonValue(item.sessionReading || '')
+                    : String(item.sessionReading || '').trim();
+                if (!currentReadingNormalized || itemReadingNormalized !== currentReadingNormalized) return false;
+
+                if (Array.isArray(item.sessionSegments)) {
+                    const itemPrevSegment = item.sessionSegments[item.slot] || '';
+                    const itemPrevNormalized = typeof normalizeReadingComparisonValue === 'function'
+                        ? normalizeReadingComparisonValue(itemPrevSegment)
+                        : String(itemPrevSegment || '').trim();
+                    if (prevNormalized && itemPrevNormalized && itemPrevNormalized !== prevNormalized) return false;
+                }
+
+                return true;
+            });
 
             if (prevChoices.length > 0) {
                 stack.push({
