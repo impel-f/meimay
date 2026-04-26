@@ -12,6 +12,15 @@ let fbSelectedReading = null;
 let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
 
+function escapeBuildHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /**
  * ストック画面を開く
  */
@@ -1756,6 +1765,31 @@ function syncBuildSaveButton(canSave) {
     if (!btn) return;
     btn.disabled = !canSave;
     btn.setAttribute('aria-disabled', String(!canSave));
+
+    const titleEl = btn.querySelector('.build-save-btn-title');
+    const detailEl = btn.querySelector('.build-save-btn-detail');
+    const missingSlots = buildMode === 'reading' && Array.isArray(segments)
+        ? segments
+            .map((seg, idx) => ({ seg, idx, selected: !!selectedPieces[idx] }))
+            .filter(item => !item.selected)
+        : [];
+
+    if (titleEl) {
+        titleEl.textContent = canSave
+            ? '💾 保存'
+            : (missingSlots.length > 0 ? `保存まであと${missingSlots.length}文字` : '保存できません');
+    }
+
+    if (detailEl) {
+        if (canSave) {
+            detailEl.textContent = '今の名前を保存';
+        } else if (missingSlots.length > 0) {
+            const next = missingSlots[0];
+            detailEl.textContent = `${next.idx + 1}文字目「${next.seg}」を選ぶ`;
+        } else {
+            detailEl.textContent = '漢字を選ぶと保存できます';
+        }
+    }
 }
 
 /**
@@ -1795,16 +1829,44 @@ function updateNamePreview() {
     const surname = surnameStr || '';
     const surnameRuby = typeof surnameReading !== 'undefined' && surnameReading ? surnameReading :
         (surnameData && surnameData.length > 0 ? surnameData.map(s => s['読み'] || '').join('') : '');
+    const readingPreviewSlots = buildMode === 'reading' && Array.isArray(segments) && segments.length > 0
+        ? segments.map((seg, idx) => {
+            const item = selectedPieces[idx];
+            return {
+                kanji: item ? (item['漢字'] || item.kanji || '') : '?',
+                missing: !item,
+                reading: String(seg || '')
+            };
+        })
+        : [];
+    const hasAnyReadingPreviewSelection = readingPreviewSlots.some(slot => !slot.missing);
+    const shouldShowReadingSlotPreview = readingPreviewSlots.length > 0 && (hasAnyReadingPreviewSelection || !!surname);
+
+    const renderReadingSlotPreview = (fontClass) => {
+        if (!shouldShowReadingSlotPreview) return '';
+        const slotHtml = readingPreviewSlots.map((slot) => {
+            const baseClass = slot.missing
+                ? 'text-[#d4c5af] border-b-2 border-dashed border-[#d4c5af] px-1'
+                : 'text-[#5d5444]';
+            return `<span class="${baseClass}">${escapeBuildHtml(slot.kanji)}</span>`;
+        }).join('');
+
+        return `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${escapeBuildHtml(givenReading || '')}</p>
+            <p class="font-black tracking-widest ${fontClass} inline-flex items-baseline gap-0.5">${slotHtml}</p>
+        </div>`;
+    };
 
     const renderSurname = surname ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
-            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${surname}</p>
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${escapeBuildHtml(surnameRuby || '')}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${escapeBuildHtml(surname)}</p>
         </div>` : '';
 
     const renderGiven = givenKanji ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${givenReading || ''}</p>
-            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${givenKanji}</p>
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${escapeBuildHtml(givenReading || '')}</p>
+            <p class="text-3xl font-black text-[#5d5444] tracking-widest">${escapeBuildHtml(givenKanji)}</p>
         </div>` : '';
+    const renderGivenPreview = shouldShowReadingSlotPreview ? renderReadingSlotPreview('text-3xl') : renderGiven;
 
     // --- 運勢・保存ボタン（常に表示、条件で無効化） ---
     // 読みモードは全スロットが埋まったときのみ有効
@@ -1875,7 +1937,7 @@ function updateNamePreview() {
 
     const canvasClasses = 'relative flex items-center justify-center min-h-[88px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-3 py-3 flex-1 overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none';
 
-    if (!renderSurname && !renderGiven) {
+    if (!renderSurname && !renderGivenPreview) {
         preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">
                 <div class="flex flex-col items-center z-10">
@@ -1889,7 +1951,7 @@ function updateNamePreview() {
         return;
     }
 
-    if (renderSurname && !renderGiven) {
+    if (renderSurname && !renderGivenPreview) {
         preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">
                 <div class="flex items-end gap-2 z-10 min-w-0 flex-wrap justify-center">
@@ -1910,13 +1972,15 @@ function updateNamePreview() {
     const totalChars = (surnameStr || '').length + (givenKanji || '').length;
     const nameFontClass = totalChars >= 7 ? 'text-xl' : totalChars >= 6 ? 'text-2xl' : 'text-3xl';
     const renderSurnameScaled = surname ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${surnameRuby || ''}</p>
-            <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${surname}</p>
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${escapeBuildHtml(surnameRuby || '')}</p>
+            <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${escapeBuildHtml(surname)}</p>
         </div>` : '';
-    const renderGivenScaled = givenKanji ? `<div class="flex flex-col items-center">
-            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${givenReading || ''}</p>
-            <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${givenKanji}</p>
-        </div>` : '';
+    const renderGivenScaled = shouldShowReadingSlotPreview
+        ? renderReadingSlotPreview(nameFontClass)
+        : (givenKanji ? `<div class="flex flex-col items-center">
+            <p class="text-[10px] text-[#a6967a] h-3.5 mb-0.5">${escapeBuildHtml(givenReading || '')}</p>
+            <p class="font-black text-[#5d5444] tracking-widest ${nameFontClass}">${escapeBuildHtml(givenKanji)}</p>
+        </div>` : '');
 
     preview.innerHTML = `<div class="flex items-stretch gap-2 mt-1 mb-3 px-1">
             <div class="${canvasClasses}">

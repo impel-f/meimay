@@ -1881,6 +1881,14 @@ body.has-ad-banner #universal-footer {
     transform: none !important;
 }
 
+#build-save-btn .build-save-btn-title,
+#build-save-btn .build-save-btn-detail {
+    max-width: calc(100% - 20px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .build-right-actions > button:nth-child(2) {
     display: none !important;
 }
