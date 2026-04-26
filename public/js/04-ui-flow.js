@@ -880,8 +880,11 @@ function saveEncounteredLibrary(library, options = {}) {
         };
         localStorage.setItem(ENCOUNTERED_LIBRARY_KEY, JSON.stringify(safeLibrary));
 
-        if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
-            MeimayPairing._autoSyncDebounced();
+        if (options.syncPartner === true
+            && typeof MeimayPairing !== 'undefined'
+            && MeimayPairing.roomCode
+            && typeof MeimayPairing._autoSyncDebounced === 'function') {
+            MeimayPairing._autoSyncDebounced('encountered-library');
         }
 
     } catch (error) {

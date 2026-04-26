@@ -1099,17 +1099,22 @@
             const source = Array.isArray(items) ? items : [];
             const normalized = source.map((item) => {
                 if (!item) return null;
+                const hydrated = typeof window !== 'undefined'
+                    && window.MeimayFirestorePayload
+                    && typeof window.MeimayFirestorePayload.hydrateReadingStockItem === 'function'
+                    ? window.MeimayFirestorePayload.hydrateReadingStockItem(item)
+                    : item;
                 if (typeof normalizeReadingStockItem === 'function') {
-                    return normalizeReadingStockItem(item);
+                    return normalizeReadingStockItem(hydrated);
                 }
-                const reading = String(item?.reading || item?.sessionReading || '').trim();
+                const reading = String(hydrated?.reading || hydrated?.sessionReading || '').trim();
                 if (!reading) return null;
                 return {
-                    ...cloneData(item, {}),
-                    id: String(item?.id || `${reading}::${(item?.segments || []).join('/')}`),
+                    ...cloneData(hydrated, {}),
+                    id: String(hydrated?.id || `${reading}::${(hydrated?.segments || []).join('/')}`),
                     reading,
-                    segments: Array.isArray(item?.segments) ? cloneData(item.segments, []) : [],
-                    gender: normalizeGenderValue(item?.gender)
+                    segments: Array.isArray(hydrated?.segments) ? cloneData(hydrated.segments, []) : [],
+                    gender: normalizeGenderValue(hydrated?.gender)
                 };
             }).filter(Boolean);
             return this.mergeReadingLibraries([], normalized).items;
@@ -1143,7 +1148,15 @@
         },
 
         normalizeSavedLibrary(items) {
-            return this.mergeSavedLibraries([], Array.isArray(items) ? items : []).items;
+            const source = Array.isArray(items) ? items : [];
+            const hydrated = source.map((item) => (
+                typeof window !== 'undefined'
+                    && window.MeimayFirestorePayload
+                    && typeof window.MeimayFirestorePayload.hydrateSavedItem === 'function'
+                    ? window.MeimayFirestorePayload.hydrateSavedItem(item)
+                    : item
+            )).filter(Boolean);
+            return this.mergeSavedLibraries([], hydrated).items;
         },
 
         mergeReadingLibraries(targetItems = [], sourceItems = []) {

@@ -371,6 +371,37 @@ function estimateSerializedSizeBytes(value) {
     }
 }
 
+function projectWorkspaceLibrariesForRemote(libraries = {}) {
+    const safeLibraries = libraries && typeof libraries === 'object' ? libraries : {};
+    const fallback = {
+        liked: safeJsonCloneForRoomSync(safeLibraries.kanjiStock, []),
+        savedNames: safeJsonCloneForRoomSync(safeLibraries.savedNames, []),
+        readingStock: safeJsonCloneForRoomSync(safeLibraries.readingStock, [])
+    };
+
+    if (typeof MeimayFirestorePayload === 'undefined'
+        || !MeimayFirestorePayload
+        || typeof MeimayFirestorePayload.projectSections !== 'function') {
+        return fallback;
+    }
+
+    try {
+        const projected = MeimayFirestorePayload.projectSections({
+            liked: Array.isArray(safeLibraries.kanjiStock) ? safeLibraries.kanjiStock : [],
+            savedNames: Array.isArray(safeLibraries.savedNames) ? safeLibraries.savedNames : [],
+            readingStock: Array.isArray(safeLibraries.readingStock) ? safeLibraries.readingStock : []
+        });
+        return {
+            liked: Array.isArray(projected.liked) ? projected.liked : [],
+            savedNames: Array.isArray(projected.savedNames) ? projected.savedNames : [],
+            readingStock: Array.isArray(projected.readingStock) ? projected.readingStock : []
+        };
+    } catch (error) {
+        console.warn('PAIRING: Failed to project workspace libraries for remote sync', error);
+        return fallback;
+    }
+}
+
 function buildRoomSyncWorkspaceState(state) {
     const source = safeJsonCloneForRoomSync(state, null);
     if (!source || typeof source !== 'object') return null;
@@ -396,14 +427,15 @@ function buildRoomSyncWorkspaceState(state) {
         const childId = String(rawChildId || child?.meta?.id || '').trim();
         if (!childId) return;
         const savedCanvas = normalizeSavedCanvas(child?.draft?.savedCanvas);
+        const projectedLibraries = projectWorkspaceLibrariesForRemote(child?.libraries || {});
         children[childId] = {
             meta: safeJsonCloneForRoomSync(child?.meta, {}),
             prefs: safeJsonCloneForRoomSync(child?.prefs, {}),
             ...(savedCanvas ? { draft: { savedCanvas } } : {}),
             libraries: {
-                readingStock: safeJsonCloneForRoomSync(child?.libraries?.readingStock, []),
-                kanjiStock: safeJsonCloneForRoomSync(child?.libraries?.kanjiStock, []),
-                savedNames: safeJsonCloneForRoomSync(child?.libraries?.savedNames, []),
+                readingStock: safeJsonCloneForRoomSync(projectedLibraries.readingStock, []),
+                kanjiStock: safeJsonCloneForRoomSync(projectedLibraries.liked, []),
+                savedNames: safeJsonCloneForRoomSync(projectedLibraries.savedNames, []),
                 hiddenReadings: safeJsonCloneForRoomSync(child?.libraries?.hiddenReadings, [])
             }
         };
@@ -2221,9 +2253,10 @@ async function handleEnterCode() {
     const waitForStorageBox = setInterval(() => {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveAll) {
             const originalSaveAll = StorageBox.saveAll.bind(StorageBox);
-            StorageBox.saveAll = function () {
-                const result = originalSaveAll();
-                if (MeimayPairing.roomCode) {
+            StorageBox.saveAll = function (...args) {
+                const result = originalSaveAll(...args);
+                const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                if (!options.skipPartnerSync && MeimayPairing.roomCode) {
                     // 繝・ヰ繧ｦ繝ｳ繧ｹ縺励※閾ｪ蜍募酔譛・
                     MeimayPairing._autoSyncDebounced?.();
                 }
@@ -2231,9 +2264,10 @@ async function handleEnterCode() {
             };
 
             const originalSaveLiked = StorageBox.saveLiked.bind(StorageBox);
-            StorageBox.saveLiked = function () {
-                const result = originalSaveLiked();
-                if (MeimayPairing.roomCode) {
+            StorageBox.saveLiked = function (...args) {
+                const result = originalSaveLiked(...args);
+                const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                if (!options.skipPartnerSync && MeimayPairing.roomCode) {
                     MeimayPairing._autoSyncDebounced?.();
                 }
                 return result;
@@ -4954,7 +4988,12 @@ const MeimayUserBackup = {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
         if (childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object') {
-            backup.meimayStateV2 = this._safeClone(childWorkspaceStateV2);
+            const compactChildWorkspaceStateV2 = typeof buildRoomSyncWorkspaceState === 'function'
+                ? buildRoomSyncWorkspaceState(childWorkspaceStateV2)
+                : this._safeClone(childWorkspaceStateV2);
+            if (compactChildWorkspaceStateV2) {
+                backup.meimayStateV2 = this._safeClone(compactChildWorkspaceStateV2);
+            }
             backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');
         }
 
@@ -4964,7 +5003,6 @@ const MeimayUserBackup = {
             pairRoomCode,
             roomCode: pairRoomCode,
             hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
-            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : []),
             meimayBackupUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };

@@ -140,7 +140,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
-          'savedNames', 'readingStock', 'encounteredReadings'
+          'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved'
         ])
         && isValidBackupRoom(request.resource.data.pairRoomCode);
 
@@ -148,12 +148,17 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
-          'savedNames', 'readingStock', 'encounteredReadings'
+          'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved',
+          'isPremium', 'premiumSource', 'subscriptionStatus', 'premiumStatus', 'latestNotificationType', 'latestNotificationUUID',
+          'appStoreLastNotificationType', 'appStoreLastSubtype', 'appStoreEnvironment', 'appStoreProductId',
+          'premiumProductId', 'appStoreOriginalTransactionId', 'originalTransactionId', 'appStoreTransactionId',
+          'appStoreExpiresAt', 'premiumExpiresAt', 'appStoreLastEventAt', 'appStoreLastEventAtMs',
+          'appStoreLastVerifiedAt', 'lastVerifiedAt', 'appStoreUpdatedAt'
         ])
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
-          'savedNames', 'readingStock', 'encounteredReadings'
+          'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved'
         ])
         && isValidBackupRoom(request.resource.data.pairRoomCode);
 

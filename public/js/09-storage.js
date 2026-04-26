@@ -217,7 +217,7 @@ const StorageBox = {
     /**
      * 全状態を保存
      */
-    saveAll: function () {
+    saveAll: function (options = {}) {
         try {
             const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
             if (typeof syncReadingStockFromLiked === 'function') {
@@ -261,7 +261,7 @@ const StorageBox = {
             localStorage.setItem(this.KEY_SOUND_PREFERENCES, JSON.stringify(normalizedSoundPreferenceData));
 
             // console.log("STORAGE: State saved successfully");
-            if (typeof queuePartnerStockSync === 'function') {
+            if (!options.skipPartnerSync && typeof queuePartnerStockSync === 'function') {
                 queuePartnerStockSync('saveAll');
             }
             if (likedSaved && typeof notifyStockStateChanged === 'function') {
@@ -700,7 +700,7 @@ const StorageBox = {
 // 定期的な自動保存（30秒ごと）
 setInterval(() => {
     if (liked.length > 0 || savedNames.length > 0) {
-        StorageBox.saveAll();
+        StorageBox.saveAll({ skipPartnerSync: true });
     }
 }, 30000);
 
