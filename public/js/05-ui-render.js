@@ -196,20 +196,22 @@ function render() {
 
     // カード全体をクリック可能に
     card.innerHTML = `
-        <div class="flex-1 flex flex-col justify-center items-center px-4 w-full">
-            ${tagsHTML ? `<div class="flex gap-2 mb-2 flex-wrap justify-center">${tagsHTML}</div>` : ''}
-            
-            <div class="text-[clamp(80px,18vh,110px)] font-black text-[#5d5444] leading-none mb-1">${data['漢字']}</div>
-            
-            <div class="text-[#bca37f] font-black text-lg mb-2">${data['画数']}画</div>
-            
-            ${readingsHTML ? `<div class="w-full flex gap-1.5 mb-2 flex-wrap justify-center content-start">${readingsHTML}</div>` : ''}
-            
-            <div class="w-full max-w-xs bg-white bg-opacity-70 rounded-2xl px-3 py-2 shadow-sm overflow-hidden min-h-0 flex items-center justify-center mt-auto mb-3 shrink-0">
-                <p class="text-xs leading-relaxed text-[#7a6f5a] text-center line-clamp-3">${shortMeaning || '意味情報なし'}</p>
+        <div class="kanji-swipe-content">
+            ${tagsHTML ? `<div class="kanji-swipe-tags">${tagsHTML}</div>` : ''}
+
+            <div class="kanji-swipe-main">
+                <div class="kanji-swipe-kanji">${data['漢字']}</div>
+
+                <div class="kanji-swipe-strokes">${data['画数']}画</div>
+
+                ${readingsHTML ? `<div class="kanji-swipe-readings">${readingsHTML}</div>` : ''}
+
+                <div class="kanji-swipe-meaning">
+                    <p>${shortMeaning || '意味情報なし'}</p>
+                </div>
             </div>
 
-            <div class="text-[9px] text-[#d4c5af] font-bold tracking-widest pb-1 opacity-80">タップで詳細 / スワイプで選択</div>
+            <div class="kanji-swipe-hint">タップで詳細 / スワイプで選択</div>
         </div>
     `;
 
@@ -224,9 +226,32 @@ function render() {
     }
 
     container.appendChild(card);
+    fitKanjiSwipeCard(card);
+    requestAnimationFrame(() => fitKanjiSwipeCard(card));
     console.log("RENDER: Card appended to container");
 
     updateSwipeCounter();
+}
+
+function fitKanjiSwipeCard(card) {
+    const main = card?.querySelector('.kanji-swipe-main');
+    const kanji = card?.querySelector('.kanji-swipe-kanji');
+    if (!main || !kanji) return;
+
+    kanji.style.removeProperty('font-size');
+    let size = parseFloat(window.getComputedStyle(kanji).fontSize) || 96;
+    const minSize = 64;
+    let guard = 0;
+
+    while (
+        guard < 14 &&
+        size > minSize &&
+        main.scrollHeight > main.clientHeight + 1
+    ) {
+        size -= 4;
+        kanji.style.fontSize = `${size}px`;
+        guard++;
+    }
 }
 
 /**

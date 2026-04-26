@@ -347,16 +347,159 @@ body.hide-top-bar .screen-header-shell {
     z-index: 1000;
 }
 
+#main-session-content {
+    min-height: 0;
+    overflow: hidden;
+}
+
+#scr-main {
+    padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+#scr-main #stack-container {
+    width: min(86vw, 340px) !important;
+    max-width: min(86vw, 340px) !important;
+    margin-top: clamp(24px, 3.4vh, 34px);
+}
+
+#scr-main .card {
+    top: clamp(46px, 6.2vh, 66px);
+    bottom: clamp(0px, 0.6vh, 8px);
+    padding: clamp(8px, 1.6vh, 14px);
+    border-radius: clamp(34px, 8vh, 70px);
+    box-shadow: 0 14px 28px -24px rgba(93, 84, 68, 0.26);
+    overflow: hidden;
+}
+
+.kanji-swipe-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    gap: clamp(3px, 0.8vh, 8px);
+    padding: 0 clamp(4px, 1.6vw, 12px) 0;
+}
+
+.kanji-swipe-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    max-height: clamp(30px, 5vh, 40px);
+    overflow: hidden;
+    flex-shrink: 1;
+}
+
+.kanji-swipe-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(7px, 1.3vh, 14px);
+    width: 100%;
+    min-height: 0;
+}
+
+.kanji-swipe-kanji {
+    color: #5d5444;
+    font-size: clamp(82px, 20vh, 132px);
+    font-weight: 900;
+    line-height: 0.9;
+    max-width: 100%;
+    text-align: center;
+    flex-shrink: 1;
+}
+
+.kanji-swipe-strokes {
+    color: #bca37f;
+    font-size: clamp(14px, 2vh, 18px);
+    font-weight: 900;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.kanji-swipe-readings {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 6px;
+    width: 100%;
+    max-height: clamp(36px, 8vh, 68px);
+    overflow: hidden;
+    flex-shrink: 1;
+}
+
+.kanji-swipe-meaning {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: clamp(7px, 1.2vh, 10px) 12px;
+    box-shadow: 0 8px 18px rgba(93, 84, 68, 0.06);
+    overflow: hidden;
+    min-height: 0;
+    flex-shrink: 1;
+}
+
+.kanji-swipe-meaning p {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    margin: 0;
+    overflow: hidden;
+    color: #7a6f5a;
+    font-size: 12px;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.kanji-swipe-hint {
+    color: #d4c5af;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.82;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
 #swipe-action-btns,
 #uni-swipe-action-btns {
     position: relative;
     z-index: 1205;
 }
 
+#swipe-action-btns {
+    align-items: center !important;
+    margin-top: clamp(8px, 1.8vh, 18px);
+    padding-top: clamp(2px, 0.6vh, 6px) !important;
+    padding-bottom: 0 !important;
+}
+
 #swipe-action-btns button,
 #uni-swipe-action-btns button {
     position: relative;
     z-index: 1;
+}
+
+#swipe-action-btns button {
+    width: clamp(56px, 9.5vh, 72px) !important;
+    height: clamp(56px, 9.5vh, 72px) !important;
+}
+
+@media (max-height: 720px) {
+    .kanji-swipe-hint {
+        font-size: 8px;
+    }
+
+    .kanji-swipe-meaning p {
+        -webkit-line-clamp: 1;
+    }
 }
 
 .glass-card {
