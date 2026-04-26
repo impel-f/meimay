@@ -184,6 +184,15 @@ function getReadingHistoryEntryByReading(reading, preferredSegments = []) {
         null;
 }
 
+function restoreKanaCandidateSettingForReadingEntry(entry, segmentPath = segments) {
+    const enabled = !!(entry && entry.settings && entry.settings.includeKanaCandidates);
+    if (typeof window.setKanaCandidatesEnabledForSegments === 'function') {
+        window.setKanaCandidatesEnabledForSegments(enabled, Array.isArray(segmentPath) ? segmentPath : []);
+    } else {
+        window.includeKanaCandidatesForSegments = enabled;
+    }
+}
+
 function shouldRebuildCompoundFlow(flow) {
     if (!flow || !Array.isArray(flow.segments) || flow.segments.length === 0) return true;
     const placeholderCount = flow.segments.filter(seg => typeof seg === 'string' && /^__compound_slot_\d+__$/.test(seg)).length;
@@ -4103,6 +4112,7 @@ function openBuildFromReading(reading, preferredSegments = []) {
         const preferred = getPreferredReadingSegments(normalizedReading || reading);
         segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
     }
+    restoreKanaCandidateSettingForReadingEntry(entry, segments);
     const oldSelected = (Array.isArray(selectedPieces) ? [...selectedPieces] : []).filter(Boolean);
     const oldSegments = (Array.isArray(segments) ? [...segments] : []).filter(Boolean);
 
@@ -4152,6 +4162,7 @@ function addMoreForReading(reading, preferredSegments = []) {
         const preferred = getPreferredReadingSegments(normalizedReading || reading);
         segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
     }
+    restoreKanaCandidateSettingForReadingEntry(entry, segments);
     window._addMoreFromBuild = false;
     if (typeof updateSurnameData === 'function') updateSurnameData();
     const compoundFlow = getCompoundBuildFlow();

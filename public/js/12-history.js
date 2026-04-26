@@ -279,7 +279,8 @@ function addToReadingHistory() {
             rule: rule,
             imageTags: selectedImageTags || [],
             prioritizeFortune: prioritizeFortune,
-            surname: surnameStr
+            surname: surnameStr,
+            includeKanaCandidates: !!window.includeKanaCandidatesForSegments
         },
         compoundFlow: compoundFlow && compoundFlow.reading === reading
             ? JSON.parse(JSON.stringify(compoundFlow))

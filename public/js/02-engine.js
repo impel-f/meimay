@@ -55,6 +55,232 @@ function filterKanjiByCurrentMembership(items) {
     return (Array.isArray(items) ? items : []).filter(isKanjiAccessibleForCurrentMembership);
 }
 
+if (typeof window !== 'undefined' && typeof window.includeKanaCandidatesForSegments === 'undefined') {
+    window.includeKanaCandidatesForSegments = false;
+}
+
+const KANA_VOICED_MAP = {
+    'か': 'が', 'き': 'ぎ', 'く': 'ぐ', 'け': 'げ', 'こ': 'ご',
+    'さ': 'ざ', 'し': 'じ', 'す': 'ず', 'せ': 'ぜ', 'そ': 'ぞ',
+    'た': 'だ', 'ち': 'ぢ', 'つ': 'づ', 'て': 'で', 'と': 'ど',
+    'は': 'ば', 'ひ': 'び', 'ふ': 'ぶ', 'へ': 'べ', 'ほ': 'ぼ',
+    'う': 'ゔ'
+};
+
+const KANA_BASE_STROKES = {
+    'あ': 3, 'い': 2, 'う': 2, 'え': 2, 'お': 3,
+    'か': 3, 'き': 4, 'く': 1, 'け': 3, 'こ': 2,
+    'さ': 3, 'し': 1, 'す': 2, 'せ': 3, 'そ': 1,
+    'た': 4, 'ち': 2, 'つ': 1, 'て': 1, 'と': 2,
+    'な': 4, 'に': 3, 'ぬ': 2, 'ね': 2, 'の': 1,
+    'は': 3, 'ひ': 1, 'ふ': 4, 'へ': 1, 'ほ': 4,
+    'ま': 3, 'み': 2, 'む': 3, 'め': 2, 'も': 3,
+    'や': 3, 'ゆ': 2, 'よ': 2,
+    'ら': 2, 'り': 2, 'る': 1, 'れ': 2, 'ろ': 1,
+    'わ': 2, 'ゐ': 2, 'ゑ': 3, 'を': 3, 'ん': 1,
+    'ぁ': 3, 'ぃ': 2, 'ぅ': 2, 'ぇ': 2, 'ぉ': 3,
+    'ゃ': 3, 'ゅ': 2, 'ょ': 2, 'っ': 1,
+    'ー': 1, 'ゝ': 1, 'ゞ': 3, 'ヽ': 1, 'ヾ': 3
+};
+
+function toKataKanaForKanaCandidate(value) {
+    return String(value || '').replace(/[\u3041-\u3096]/g, (char) =>
+        String.fromCharCode(char.charCodeAt(0) + 0x60)
+    );
+}
+
+function voiceKanaChar(char) {
+    const hira = typeof toHira === 'function' ? toHira(char || '') : String(char || '');
+    return KANA_VOICED_MAP[hira] || hira;
+}
+
+function expandKanaIterationMarks(value) {
+    const hira = typeof toHira === 'function' ? toHira(value || '') : String(value || '');
+    let result = '';
+    let previousKana = '';
+
+    Array.from(hira).forEach((char) => {
+        if (char === 'ゝ' || char === 'ヽ') {
+            const repeated = previousKana || '';
+            result += repeated;
+            previousKana = repeated || previousKana;
+            return;
+        }
+        if (char === 'ゞ' || char === 'ヾ') {
+            const repeated = previousKana ? voiceKanaChar(previousKana) : '';
+            result += repeated;
+            previousKana = repeated || previousKana;
+            return;
+        }
+        result += char;
+        previousKana = char;
+    });
+
+    return result;
+}
+
+function getKanaStrokeCount(char) {
+    const display = String(char || '');
+    if (!display) return 1;
+    if (Object.prototype.hasOwnProperty.call(KANA_BASE_STROKES, display)) {
+        return KANA_BASE_STROKES[display];
+    }
+
+    const hira = typeof toHira === 'function' ? toHira(display) : display;
+    const seion = typeof toSeion === 'function' ? toSeion(hira) : hira;
+    const base = KANA_BASE_STROKES[seion] || KANA_BASE_STROKES[hira] || 1;
+    if (hira !== seion) {
+        return base + (/^[ぱぴぷぺぽ]$/.test(hira) ? 1 : 2);
+    }
+    return base;
+}
+
+function normalizeKanaCandidateSegment(segment) {
+    const expanded = typeof toHira === 'function'
+        ? toHira(expandKanaIterationMarks(segment))
+        : expandKanaIterationMarks(segment);
+    return String(expanded || '')
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(/[^\u3041-\u3096\u30fc]/g, '');
+}
+
+function isOneCharSegmentPath(path) {
+    return Array.isArray(path)
+        && path.length > 0
+        && path.every((segment) => Array.from(normalizeKanaCandidateSegment(segment)).length === 1);
+}
+
+function setKanaCandidatesEnabledForSegments(enabled, segmentPath = segments) {
+    const nextValue = !!enabled && isOneCharSegmentPath(segmentPath);
+    window.includeKanaCandidatesForSegments = nextValue;
+    return nextValue;
+}
+
+function isKanaCandidatesEnabledForSegments(segmentPath = segments) {
+    return !!(window.includeKanaCandidatesForSegments && isOneCharSegmentPath(segmentPath));
+}
+
+function getKanaCandidateSessionReading(options = {}) {
+    if (typeof options.currentReading === 'string' && options.currentReading) return options.currentReading;
+    if (typeof getCurrentSessionReading === 'function') return getCurrentSessionReading();
+    return Array.isArray(segments) ? segments.join('') : '';
+}
+
+function createKanaCandidate(display, reading, slotIdx, options = {}) {
+    const strokes = getKanaStrokeCount(display);
+    const type = options.type || 'hiragana';
+    const label = type.includes('iteration')
+        ? '前のかなをくり返す表記'
+        : (type === 'katakana' ? 'カタカナの表記' : 'ひらがなの表記');
+    const sessionSegments = Array.isArray(options.segments)
+        ? [...options.segments]
+        : (Array.isArray(segments) ? [...segments] : []);
+    const sessionReading = getKanaCandidateSessionReading(options);
+
+    return {
+        '\u6f22\u5b57': display,
+        '\u753b\u6570': strokes,
+        '\u97f3': '',
+        '\u8a13': reading,
+        '\u4f1d\u7d71\u540d\u306e\u308a': '',
+        '\u610f\u5473': label,
+        '\u5206\u985e': '#かな',
+        '\u540d\u524d\u306e\u30a4\u30e1\u30fc\u30b8': label,
+        '\u304a\u3059\u3059\u3081\u5ea6': 60,
+        '\u7537\u306e\u304a\u3059\u3059\u3081\u5ea6': 60,
+        '\u5973\u306e\u304a\u3059\u3059\u3081\u5ea6': 60,
+        '\u4e0d\u9069\u5207\u30d5\u30e9\u30b0': 0,
+        kanji: display,
+        strokes,
+        kanji_reading: reading,
+        reading,
+        gender: gender || 'neutral',
+        priority: 1,
+        readingTier: 1,
+        score: 1000000 - Math.max(0, slotIdx || 0),
+        isKanaCandidate: true,
+        kanaCandidateType: type,
+        slot: Number.isInteger(slotIdx) ? slotIdx : -1,
+        sessionReading,
+        sessionSegments
+    };
+}
+
+function getKanaIterationCandidatesForSegment(reading, slotIdx, segmentPath = segments, options = {}) {
+    if (!Number.isInteger(slotIdx) || slotIdx <= 0 || !Array.isArray(segmentPath)) return [];
+
+    const previous = normalizeKanaCandidateSegment(segmentPath[slotIdx - 1]);
+    const current = normalizeKanaCandidateSegment(reading);
+    if (!previous || !current) return [];
+
+    const candidates = [];
+    if (current === previous) {
+        candidates.push(createKanaCandidate('ゝ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
+        candidates.push(createKanaCandidate('ヽ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+    }
+
+    if (current === voiceKanaChar(previous)) {
+        candidates.push(createKanaCandidate('ゞ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
+        candidates.push(createKanaCandidate('ヾ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+    }
+
+    return candidates;
+}
+
+function getKanaCandidatesForSegment(segment, slotIdx = currentPos, options = {}) {
+    const segmentPath = Array.isArray(options.segments)
+        ? options.segments
+        : (Array.isArray(segments) ? segments : []);
+    if (!options.force && !isKanaCandidatesEnabledForSegments(segmentPath)) return [];
+
+    const reading = normalizeKanaCandidateSegment(segment);
+    if (!reading || Array.from(reading).length !== 1) return [];
+
+    const hira = reading;
+    const kata = toKataKanaForKanaCandidate(hira);
+    const candidates = [
+        createKanaCandidate(hira, reading, slotIdx, { ...options, type: 'hiragana', segments: segmentPath })
+    ];
+    if (kata && kata !== hira) {
+        candidates.push(createKanaCandidate(kata, reading, slotIdx, { ...options, type: 'katakana', segments: segmentPath }));
+    }
+    candidates.push(...getKanaIterationCandidatesForSegment(reading, slotIdx, segmentPath, { ...options, segments: segmentPath }));
+
+    const seenDisplays = new Set();
+    return candidates.filter((item) => {
+        const display = item['\u6f22\u5b57'] || item.kanji || '';
+        if (!display || seenDisplays.has(display)) return false;
+        seenDisplays.add(display);
+        return true;
+    });
+}
+
+function getSwipeKanaCandidatesForCurrentSlot(target, slotIdx = currentPos) {
+    const currentReading = getKanaCandidateSessionReading();
+    return getKanaCandidatesForSegment(target, slotIdx, {
+        currentReading,
+        segments: Array.isArray(segments) ? segments : []
+    }).filter((candidate) => {
+        const display = candidate['\u6f22\u5b57'] || candidate.kanji || '';
+        if (!display) return false;
+        const alreadyLiked = Array.isArray(liked) && liked.some((item) =>
+            item
+            && item.slot === slotIdx
+            && (item['\u6f22\u5b57'] || item.kanji) === display
+            && (!item.sessionReading || item.sessionReading === currentReading)
+        );
+        if (alreadyLiked) return false;
+        if (typeof noped !== 'undefined' && noped && noped.has && noped.has(display)) return false;
+        return true;
+    });
+}
+
+window.expandKanaIterationMarks = expandKanaIterationMarks;
+window.setKanaCandidatesEnabledForSegments = setKanaCandidatesEnabledForSegments;
+window.isKanaCandidatesEnabledForSegments = isKanaCandidatesEnabledForSegments;
+window.getKanaCandidatesForSegment = getKanaCandidatesForSegment;
+
 function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
     const units = splitReadingIntoMoraUnits(rawReading);
     if (!units.length) return [];
@@ -240,8 +466,8 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
 }
 
 function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
-    const nameReading = toHira((rawReading || '').trim());
-    if (!nameReading || !/^[ぁ-ん]+$/.test(nameReading)) {
+    const nameReading = expandKanaIterationMarks(toHira((rawReading || '').trim()));
+    if (!nameReading || !/^[ぁ-ゖー]+$/.test(nameReading)) {
         return [];
     }
 
@@ -476,7 +702,7 @@ function calcSegments() {
     }
 
     const rawVal = inputEl.value.trim();
-    const nameReading = toHira(rawVal);
+    const nameReading = expandKanaIterationMarks(toHira(rawVal));
 
     // 入力チェック
     if (!nameReading) {
@@ -484,9 +710,13 @@ function calcSegments() {
         return;
     }
 
-    if (!/^[ぁ-ん]+$/.test(nameReading)) {
+    if (!/^[ぁ-ゖー]+$/.test(nameReading)) {
         alert("ひらがなのみで入力してください。");
         return;
+    }
+
+    if (/[ゝゞヽヾ]/.test(rawVal) && inputEl.value !== nameReading) {
+        inputEl.value = nameReading;
     }
 
     // データ読み込みチェック
@@ -547,6 +777,18 @@ function calcSegments() {
     normalSection.className = 'mb-6';
     normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
 
+    const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
+    const kanaOption = document.createElement('label');
+    kanaOption.className = `w-[92%] mx-auto mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm flex items-start gap-3 text-left ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : 'opacity-50'}`;
+    kanaOption.innerHTML = `
+        <input id="seg-include-kana" type="checkbox" class="mt-1 h-4 w-4 accent-[#b9965b]" ${window.includeKanaCandidatesForSegments ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
+        <span class="min-w-0">
+            <span class="block text-sm font-black text-[#5d5444]">ひらがな・カタカナも候補に入れる</span>
+            <span class="mt-1 block text-[11px] leading-relaxed text-[#a6967a]">一文字ずつの分け方で使えます。例: み / す / ず から「みすゞ」も選べます。</span>
+        </span>
+    `;
+    normalSection.appendChild(kanaOption);
+
     if (uniquePaths.length > 0) {
         uniquePaths.forEach((path, idx) => {
             const btn = document.createElement('button');
@@ -565,7 +807,12 @@ function calcSegments() {
                     ${displayParts}
                 </div>
             `;
-            btn.onclick = () => selectSegment(path);
+            btn.onclick = () => {
+                const includeKanaInput = document.getElementById('seg-include-kana');
+                selectSegment(path, {
+                    includeKana: !!(includeKanaInput && includeKanaInput.checked)
+                });
+            };
 
             if (idx === 0) {
                 btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
@@ -613,6 +860,7 @@ function calcSegments() {
                 </div>
             `;
             btn.onclick = () => {
+                setKanaCandidatesEnabledForSegments(false, []);
                 if (typeof startCompoundReadingFlow === 'function') {
                     startCompoundReadingFlow(option, {
                         reading: nameReading,
@@ -657,12 +905,13 @@ function getActiveCompoundSwipeFlow() {
     return flow;
 }
 
-function selectSegment(path) {
+function selectSegment(path, options = {}) {
     console.log("ENGINE: Selected segments ->", path);
     if (typeof clearCompoundBuildFlow === 'function') {
         clearCompoundBuildFlow();
     }
     segments = path;
+    setKanaCandidatesEnabledForSegments(!!options.includeKana, segments);
     swipes = 0;
     currentPos = 0; // Reset position
 
@@ -987,6 +1236,11 @@ function loadStack() {
         // 次に総合スコア（降順）
         return b.score - a.score;
     });
+
+    const kanaCandidates = getSwipeKanaCandidatesForCurrentSlot(target, currentPos);
+    if (kanaCandidates.length > 0) {
+        stack = [...kanaCandidates, ...stack];
+    }
 
     console.log(`ENGINE: Stack loaded with ${stack.length} candidates`);
 

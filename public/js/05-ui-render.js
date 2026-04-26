@@ -769,7 +769,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             }
         }
 
-        if (removedCount > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        if (removedCount > 0 && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
             MeimayStats.recordKanjiUnlike(data['漢字'], data.gender || gender || 'neutral');
         }
 
@@ -813,7 +813,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
 
         liked.push(likeData);
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
-        if (data && data['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+        if (data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');
         }
 

@@ -1461,7 +1461,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const source = (partnerOnly || matchedOnly) && typeof getMergedLikedCandidates === 'function'
         ? getMergedLikedCandidates()
         : getVisibleOwnKanjiBuildCandidates();
-    return source.filter((item) => {
+    const stockCandidates = source.filter((item) => {
         const slotMatch = item.slot === idx;
         const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
         const isPartnerVisible = item.fromPartner;
@@ -1495,6 +1495,38 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         if (matchedOnly && !isMatched) return false;
         return true;
     });
+
+    if (partnerOnly || matchedOnly || typeof window.getKanaCandidatesForSegment !== 'function') {
+        return stockCandidates;
+    }
+
+    const kanaCandidates = window.getKanaCandidatesForSegment(seg, idx, {
+        currentReading,
+        segments: Array.isArray(segments) ? segments : []
+    });
+    if (kanaCandidates.length === 0) return stockCandidates;
+
+    const stockKeys = new Set();
+    stockCandidates.forEach((item) => {
+        const displayKey = getLikedCandidateDisplayKey(item);
+        const baseKey = buildLikedCandidateKey(item);
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        [displayKey, baseKey, kanjiKey].forEach((key) => {
+            if (key) stockKeys.add(key);
+        });
+    });
+
+    const filteredKanaCandidates = kanaCandidates.filter((item) => {
+        const displayKey = getLikedCandidateDisplayKey(item);
+        const baseKey = buildLikedCandidateKey(item);
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        const rawKanji = resolveLikedCandidateKanji(item);
+        const excludedByRequest = [displayKey, baseKey, kanjiKey, rawKanji].some((key) => key && excludeSet.has(key));
+        const alreadyInStock = [displayKey, baseKey, kanjiKey].some((key) => key && stockKeys.has(key));
+        return !excludedByRequest && !alreadyInStock;
+    });
+
+    return [...filteredKanaCandidates, ...stockCandidates];
 }
 
 window.getMergedLikedCandidates = getMergedLikedCandidates;
@@ -2309,7 +2341,9 @@ function deleteStockGroup(reading) {
     liked = liked.filter(item => item.sessionReading !== reading);
 
     if (removedItems.length > 0 && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
-        removedItems.forEach(item => MeimayStats.recordKanjiUnlike(item['漢字'], item.gender || gender || 'neutral'));
+        removedItems
+            .filter(item => !item.isKanaCandidate)
+            .forEach(item => MeimayStats.recordKanjiUnlike(item['漢字'], item.gender || gender || 'neutral'));
     }
 
     if (liked.length < initialCount) {
@@ -2941,6 +2975,7 @@ function removeKanjiFromStock(target) {
 
     if (liked.length < initialCount && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
         removedItems.forEach(item => {
+            if (item.isKanaCandidate) return;
             MeimayStats.recordKanjiUnlike(kanji, item.gender || gender || 'neutral');
         });
     }
@@ -3784,7 +3819,7 @@ function restartBuildSlotSelection(slotIdx, options = {}) {
 
     toRemove.forEach(item => {
         seen.delete(item['漢字']);
-        if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        if (!item.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
             MeimayStats.recordKanjiUnlike(item['漢字'], item.gender || gender || 'neutral');
         }
     });
