@@ -719,6 +719,7 @@ function updateTopBarTitle(screenId) {
         'scr-saved': '保存済み',
         'scr-history': '検索履歴',
         'scr-encountered': '出会った候補',
+        'scr-login': 'パートナー連携',
         'scr-akinator': 'AIおすすめ'
     };
 

@@ -437,7 +437,7 @@ function renderSettingsScreen() {
                 </div>
                 <div class="item-content-unified">
                     <div class="item-title-unified">使い方ガイド</div>
-                    <div class="item-value-unified">ホーム、スワイプ、ビルドの流れを確認</div>
+                    <div class="item-value-unified">探す、ビルド、保存までの流れを確認</div>
                 </div>
                 <div class="item-arrow-unified">›</div>
             </div>

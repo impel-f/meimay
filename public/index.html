@@ -120,7 +120,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v25.63
+            メイメー v25.64
         </div>
     </aside>
 
@@ -1314,7 +1314,11 @@
                 <div id="tut-dot-1" class="w-2 h-2 rounded-full bg-white opacity-100 transition-opacity"></div>
                 <div id="tut-dot-2" class="w-2 h-2 rounded-full bg-white opacity-30 transition-opacity"></div>
                 <div id="tut-dot-3" class="w-2 h-2 rounded-full bg-white opacity-30 transition-opacity"></div>
+                <div id="tut-dot-4" class="w-2 h-2 rounded-full bg-white opacity-30 transition-opacity"></div>
             </div>
+
+            <button type="button" class="absolute right-5 top-5 z-50 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-white backdrop-blur"
+                onclick="event.stopPropagation(); closeTutorial();">閉じる</button>
 
             <!-- 1: ホーム -->
             <div id="tut-scene-1" class="tutorial-scene flex flex-col items-center justify-center w-full">
@@ -1411,7 +1415,7 @@
                 </div>
             </div>
 
-            <!-- 3: ビルドと保存 -->
+            <!-- 3: ビルド -->
             <div id="tut-scene-3" class="tutorial-scene hidden flex flex-col items-center justify-center w-full">
                 <div class="w-full max-w-[340px] rounded-[28px] bg-[#fdfaf5] p-3 shadow-2xl">
                     <div class="rounded-[22px] border border-[#eadfce] bg-white p-1 flex text-center text-[13px] font-black text-[#8b7e66]">
@@ -1446,8 +1450,41 @@
                 </div>
 
                 <div class="w-full text-center text-white mt-6">
-                    <p class="text-xl font-bold mb-2">ビルドして保存する</p>
-                    <p class="text-sm opacity-90">集めた読みと漢字から名前を作り、気になる候補を保存します。</p>
+                    <p class="text-xl font-bold mb-2">名前を組み立てる</p>
+                    <p class="text-sm opacity-90">集めた読みと漢字から名前を作り、運勢や字面を確認できます。</p>
+                    <p class="text-xs mt-5 opacity-60 animate-pulse">画面をタップして次へ</p>
+                </div>
+            </div>
+
+            <!-- 4: 保存して比べる -->
+            <div id="tut-scene-4" class="tutorial-scene hidden flex flex-col items-center justify-center w-full">
+                <div class="w-full max-w-[340px] rounded-[28px] bg-[#fdfaf5] p-3 shadow-2xl">
+                    <div class="rounded-[24px] overflow-hidden border border-[#eadfce] bg-white px-4 py-4">
+                        <div class="rounded-[22px] border border-[#eadfce] bg-[#fffaf4] px-4 py-4 text-center">
+                            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">保存済み</div>
+                            <div class="mt-2 text-[22px] font-black text-[#5d5444]">山田 陽斗</div>
+                            <div class="mt-1 text-[11px] font-bold text-[#a6967a]">やまだ はると</div>
+                            <div class="mt-4 rounded-[18px] bg-white px-4 py-3 text-left shadow-sm">
+                                <div class="text-[10px] font-black text-[#b9965b]">マイ本命</div>
+                                <div class="mt-1 text-[12px] leading-relaxed text-[#5d5444]">最後に残した候補を見比べて、本命を選べます。</div>
+                            </div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-2 text-center text-[11px] font-black text-[#5d5444]">
+                            <div class="rounded-[18px] border border-[#eadfce] bg-[#f8fbff] px-3 py-3">
+                                <div class="text-[#8ab4f8]">自分の候補</div>
+                                <div class="mt-1 text-lg">1件</div>
+                            </div>
+                            <div class="rounded-[18px] border border-[#eadfce] bg-[#fff8f8] px-3 py-3">
+                                <div class="text-[#e07a7a]">相手の候補</div>
+                                <div class="mt-1 text-lg">連携後</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full text-center text-white mt-6">
+                    <p class="text-xl font-bold mb-2">保存して比べる</p>
+                    <p class="text-sm opacity-90">保存済みで候補を見返し、パートナー連携後は二人の候補も比べられます。</p>
                     <p class="text-xs mt-5 opacity-60 animate-pulse">画面をタップして閉じる</p>
                 </div>
             </div>
@@ -1587,17 +1624,17 @@
     <script src="/js/01-core.js?v=26.02"></script>
 <script src="/js/02-engine.js?v=25.27"></script>
     <script src="/js/03-fortune.js?v=25.12"></script>
-<script src="/js/04-ui-flow.js?v=26.06"></script>
+<script src="/js/04-ui-flow.js?v=26.07"></script>
 <script src="/js/05-ui-render.js?v=25.37"></script>
     <script src="/js/06-ui-physics.js?v=25.15"></script>
     <script src="/js/07-build.js?v=25.39"></script>
 <script src="/js/08-origin.js?v=25.43"></script>
     <script src="/js/09-storage.js?v=26.01"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.16"></script>
+    <script src="/js/11-settings.js?v=25.17"></script>
     <script src="/js/12-history.js?v=25.48"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.20"></script>
-    <script src="/js/14-admob.js?v=25.25"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.21"></script>
+    <script src="/js/14-admob.js?v=25.26"></script>
 <script src="/js/15-firebase.js?v=26.06"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>

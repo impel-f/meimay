@@ -16,6 +16,7 @@ const AdMobConfig = {
 
 const PremiumManager = {
     KEY: 'meimay_premium',
+    DEV_FALLBACK_KEY: 'meimay_allow_local_premium',
     TOKEN_KEY: 'meimay_app_account_token',
     _remotePremium: null,
     _remoteStatus: null,
@@ -39,7 +40,7 @@ const PremiumManager = {
         const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
         const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt);
         const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
-        let isPremium = this.getLocalPremiumState();
+        let isPremium = isLocalPremiumFallbackAllowed() ? this.getLocalPremiumState() : false;
 
         if (this._remotePremium === true) {
             isPremium = !remoteExpired;
@@ -226,6 +227,25 @@ function escapePremiumHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function isLocalPremiumFallbackAllowed() {
+    try {
+        const locationInfo = window.location || {};
+        const protocol = String(locationInfo.protocol || '').toLowerCase();
+        const hostname = String(locationInfo.hostname || '').toLowerCase();
+        const isLocalHost = protocol === 'file:'
+            || hostname === 'localhost'
+            || hostname === '127.0.0.1'
+            || hostname === '::1';
+        if (!isLocalHost) return false;
+
+        const params = new URLSearchParams(String(locationInfo.search || ''));
+        return params.get('localPremium') === '1'
+            || localStorage.getItem(PremiumManager.DEV_FALLBACK_KEY) === 'true';
+    } catch (e) {
+        return false;
+    }
 }
 
 function buildPremiumState(source, activeHint, status, expiresAt) {
@@ -558,9 +578,14 @@ function buildPremiumMembershipState(record, source, options = {}) {
         if (expiresLabel && !expiredByDate) {
             label += '\n' + expiresLabel + 'まで';
         }
-        detail = isPartner
-            ? '連携中のパートナーのプレミアム特典を利用できます。'
-            : 'このアカウントでプレミアム特典を利用できます。';
+        if (localFallbackActive) {
+            label = '開発用プレミアム有効';
+            detail = 'ローカル確認用のプレミアム状態です。本番では購入情報を確認します。';
+        } else {
+            detail = isPartner
+                ? '連携中のパートナーのプレミアム特典を利用できます。'
+                : 'このアカウントでプレミアム特典を利用できます。';
+        }
     } else if (expired) {
         label = 'プレミアム期限切れ';
         detail = expiresLabel
@@ -594,7 +619,7 @@ function getSelfPremiumMembershipState() {
         localPremium: typeof PremiumManager.getLocalPremiumState === 'function'
             ? PremiumManager.getLocalPremiumState()
             : false,
-        allowLocalFallback: true
+        allowLocalFallback: isLocalPremiumFallbackAllowed()
     });
 }
 
@@ -765,7 +790,7 @@ function showPremiumModal() {
         + '<button class="modal-close-btn" onclick="closePremiumModal()">×</button>'
         + '<div class="space-y-3">'
         + '<div class="text-center">'
-        + '<div class="text-[9px] font-black text-[#b9965b] tracking-[0.35em] uppercase">Premium Plan</div>'
+        + '<div class="text-[9px] font-black text-[#b9965b] tracking-[0.18em]">プレミアムプラン</div>'
         + '<h3 class="mt-1 text-[1.2rem] sm:text-[1.5rem] font-black text-[#5b4f3f]">プレミアム機能</h3>'
         + '</div>'
         + renderPremiumComparisonMatrix()
@@ -790,6 +815,7 @@ window.formatPremiumMembershipDate = formatPremiumMembershipDate;
 window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
 window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
 window.buildPremiumMembershipState = buildPremiumMembershipState;
+window.isLocalPremiumFallbackAllowed = isLocalPremiumFallbackAllowed;
 window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;

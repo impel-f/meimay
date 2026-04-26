@@ -3497,7 +3497,8 @@ function startSwiping() {
  * チュートリアル制御
  */
 let tutorialInterval;
-let tutorialStep = 1; // 1: ホーム, 2: スワイプ, 3: ビルド
+let tutorialStep = 1; // 1: ホーム, 2: スワイプ, 3: ビルド, 4: 保存
+const TUTORIAL_STEP_COUNT = 4;
 
 function showTutorial(options = {}) {
     const modal = document.getElementById('modal-tutorial');
@@ -3526,7 +3527,7 @@ function maybeShowFirstRunTutorial() {
 
 function nextTutorialStep() {
     tutorialStep++;
-    if (tutorialStep > 3) {
+    if (tutorialStep > TUTORIAL_STEP_COUNT) {
         closeTutorial();
     } else {
         updateTutorialScene();
@@ -3538,20 +3539,20 @@ function updateTutorialScene() {
     if (!modal) return;
 
     // Dots
-    [1, 2, 3].forEach(i => {
+    for (let i = 1; i <= TUTORIAL_STEP_COUNT; i++) {
         const dot = document.getElementById(`tut-dot-${i}`);
         if (dot) dot.classList.toggle('opacity-100', i === tutorialStep);
         if (dot) dot.classList.toggle('opacity-30', i !== tutorialStep);
-    });
+    }
 
     // Scenes
-    [1, 2, 3].forEach(i => {
+    for (let i = 1; i <= TUTORIAL_STEP_COUNT; i++) {
         const scene = document.getElementById(`tut-scene-${i}`);
         if (scene) {
             if (i === tutorialStep) scene.classList.remove('hidden');
             else scene.classList.add('hidden');
         }
-    });
+    }
 
     if (tutorialInterval) {
         clearInterval(tutorialInterval);
