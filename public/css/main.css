@@ -102,6 +102,7 @@ body.hide-top-bar .screen-header-shell {
 
 #scr-stock .screen-header-shell,
 #scr-build .screen-header-shell,
+#scr-encountered .screen-header-shell,
 #scr-ranking .screen-header-shell {
     top: 0;
 }
@@ -109,6 +110,16 @@ body.hide-top-bar .screen-header-shell {
 #stock-header-sticky,
 #encountered-header-sticky {
     padding-top: 0.5rem;
+}
+
+#encountered-header-sticky {
+    position: relative;
+    top: auto;
+    padding-bottom: 0.75rem;
+}
+
+#encountered-list-content {
+    padding-top: 0.75rem !important;
 }
 
 .screen.active {
