@@ -89,6 +89,27 @@ const KANA_BASE_STROKES = {
     'ー': 1, 'ゝ': 1, 'ゞ': 3, 'ヽ': 1, 'ヾ': 3
 };
 
+const KATAKANA_BASE_STROKES = {
+    'ア': 2, 'イ': 2, 'ウ': 3, 'エ': 3, 'オ': 3,
+    'カ': 2, 'キ': 3, 'ク': 2, 'ケ': 3, 'コ': 2,
+    'サ': 3, 'シ': 3, 'ス': 2, 'セ': 2, 'ソ': 2,
+    'タ': 3, 'チ': 3, 'ツ': 3, 'テ': 3, 'ト': 2,
+    'ナ': 2, 'ニ': 2, 'ヌ': 2, 'ネ': 4, 'ノ': 1,
+    'ハ': 2, 'ヒ': 2, 'フ': 1, 'ヘ': 1, 'ホ': 4,
+    'マ': 2, 'ミ': 3, 'ム': 2, 'メ': 2, 'モ': 3,
+    'ヤ': 2, 'ユ': 2, 'ヨ': 3,
+    'ラ': 2, 'リ': 2, 'ル': 2, 'レ': 1, 'ロ': 3,
+    'ワ': 2, 'ヰ': 2, 'ヱ': 3, 'ヲ': 3, 'ン': 2,
+    'ァ': 2, 'ィ': 2, 'ゥ': 3, 'ェ': 3, 'ォ': 3,
+    'ャ': 2, 'ュ': 2, 'ョ': 3, 'ッ': 3,
+    'ヵ': 2, 'ヶ': 3, 'ヮ': 2,
+    'ー': 1, 'ヽ': 1, 'ヾ': 3
+};
+
+function isKatakanaForKanaStroke(char) {
+    return /^[ァ-ヺヽヾ]$/.test(String(char || ''));
+}
+
 function toKataKanaForKanaCandidate(value) {
     return String(value || '').replace(/[\u3041-\u3096]/g, (char) =>
         String.fromCharCode(char.charCodeAt(0) + 0x60)
@@ -128,13 +149,24 @@ function expandKanaIterationMarks(value) {
 function getKanaStrokeCount(char) {
     const display = String(char || '');
     if (!display) return 1;
+    const chars = Array.from(display);
+    if (chars.length > 1) {
+        return chars.reduce((sum, part) => sum + getKanaStrokeCount(part), 0);
+    }
+    if (Object.prototype.hasOwnProperty.call(KATAKANA_BASE_STROKES, display)) {
+        return KATAKANA_BASE_STROKES[display];
+    }
     if (Object.prototype.hasOwnProperty.call(KANA_BASE_STROKES, display)) {
         return KANA_BASE_STROKES[display];
     }
 
     const hira = typeof toHira === 'function' ? toHira(display) : display;
     const seion = typeof toSeion === 'function' ? toSeion(hira) : hira;
-    const base = KANA_BASE_STROKES[seion] || KANA_BASE_STROKES[hira] || 1;
+    const isKatakana = isKatakanaForKanaStroke(display);
+    const seionKata = isKatakana ? toKataKanaForKanaCandidate(seion) : '';
+    const base = isKatakana
+        ? (KATAKANA_BASE_STROKES[seionKata] || KATAKANA_BASE_STROKES[display] || 1)
+        : (KANA_BASE_STROKES[seion] || KANA_BASE_STROKES[hira] || 1);
     if (hira !== seion) {
         return base + (/^[ぱぴぷぺぽ]$/.test(hira) ? 1 : 2);
     }

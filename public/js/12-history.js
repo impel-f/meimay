@@ -380,10 +380,14 @@ function escapeEncounteredHtml(value) {
 }
 
 function formatEncounteredDayLabel(value) {
-    if (!value) return '最近';
+    if (!value) return '日付なし';
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '最近';
-    return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+    if (Number.isNaN(date.getTime())) return '日付なし';
+    const now = new Date();
+    const options = date.getFullYear() === now.getFullYear()
+        ? { month: 'long', day: 'numeric' }
+        : { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('ja-JP', options);
 }
 
 function getEncounteredDateSource(item) {
@@ -417,6 +421,21 @@ function normalizeEncounteredReadingText(value) {
     return raw
         .replace(/[ァ-ヶ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
         .replace(/[^ぁ-ゖーゝゞ]/g, '');
+}
+
+function isEncounteredKanaCharacter(value) {
+    const chars = Array.from(String(value || ''));
+    return chars.length === 1 && /^[ぁ-ゖァ-ヺーゝゞヽヾ]$/.test(chars[0]);
+}
+
+function resolveEncounteredKanjiStrokes(item) {
+    const display = item?.kanji || item?.snapshot?.['漢字'] || '';
+    if (isEncounteredKanaCharacter(display) && typeof getKanaStrokeCount === 'function') {
+        return getKanaStrokeCount(display);
+    }
+
+    const raw = item?.snapshot?.['画数'] ?? item?.strokes;
+    return Number.isFinite(Number(raw)) ? Number(raw) : '−';
 }
 
 function renderEncounteredStateBadge({ isLiked = false, isMatched = false, isNope = false }) {
@@ -474,7 +493,10 @@ function renderEncounteredLibrary() {
             <div class="space-y-4 pb-32 pt-2">
                 ${groups.map(group => `
                     <section>
-                        <div class="text-[11px] font-bold text-[#a6967a] px-1 mb-2">${escapeEncounteredHtml(group.label)}</div>
+                        <div class="mb-3 flex items-center gap-2 px-1">
+                            <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[12px] font-black text-[#8b7e66] shadow-sm">${escapeEncounteredHtml(group.label)}</span>
+                            <span class="h-px flex-1 bg-[#eee5d8]"></span>
+                        </div>
                         <div class="grid grid-cols-4 gap-2">
                             ${group.items.map(item => {
                                 const isLiked = Array.isArray(liked)
@@ -482,7 +504,7 @@ function renderEncounteredLibrary() {
                                     : false;
                                 const isMatched = false;
                                 const isNope = !isLiked && item.lastAction === 'nope';
-                                const strokes = Number.isFinite(Number(item.strokes)) ? Number(item.strokes) : '−';
+                                const strokes = resolveEncounteredKanjiStrokes(item);
                                 const readings = String(item.kanjiReading || item.snapshot?.kanji_reading || '')
                                     .split(/[、,\s/]+/)
                                     .map(part => part.trim())
@@ -522,7 +544,10 @@ function renderEncounteredLibrary() {
         <div class="space-y-4 pb-32 pt-2">
             ${groups.map(group => `
                 <section>
-                    <div class="text-[11px] font-bold text-[#a6967a] px-1 mb-2">${escapeEncounteredHtml(group.label)}</div>
+                    <div class="mb-3 flex items-center gap-2 px-1">
+                        <span class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[12px] font-black text-[#8b7e66] shadow-sm">${escapeEncounteredHtml(group.label)}</span>
+                        <span class="h-px flex-1 bg-[#eee5d8]"></span>
+                    </div>
                     <div class="grid grid-cols-2 gap-2">
                         ${group.items.map(item => {
                             const displayReading = normalizeEncounteredReadingText(item.reading);
@@ -695,7 +720,7 @@ function openEncounteredKanjiDetail(key) {
         showDetailByData({
             ...snapshot,
             '漢字': targetKanji,
-            '画数': snapshot['画数'] ?? item.strokes ?? 1,
+            '画数': resolveEncounteredKanjiStrokes(item),
             'カテゴリ': snapshot['カテゴリ'] || item.category || '',
             kanji_reading: snapshot.kanji_reading || item.kanjiReading || ''
         });
@@ -718,7 +743,7 @@ function likeEncounteredKanji(key) {
     const payload = {
         ...snapshot,
         '漢字': item.kanji,
-        '画数': snapshot['画数'] ?? item.strokes ?? 1,
+        '画数': resolveEncounteredKanjiStrokes(item),
         'カテゴリ': snapshot['カテゴリ'] || item.category || '',
         kanji_reading: snapshot.kanji_reading || item.kanjiReading || '',
         slot: Number.isFinite(Number(snapshot.slot)) ? Number(snapshot.slot) : -1,
@@ -974,7 +999,7 @@ function showSavedNameDetail(index, source = 'own') {
 
                     <!-- 漢字詳細用カード (🔍アイコン付き) -->
                     <div class="mb-10">
-                        <label class="text-[10px] font-black text-[#a6967a] mb-4 block uppercase tracking-wider text-center">漢字の構成（タップで詳細）</label>
+                        <label class="text-[10px] font-black text-[#a6967a] mb-4 block uppercase tracking-wider text-center">文字の構成（タップで詳細）</label>
                         <div class="flex gap-3 justify-center flex-wrap">
                             ${(item.combination || []).map(kanji => {
         const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];

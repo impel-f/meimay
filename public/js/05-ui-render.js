@@ -448,6 +448,12 @@ async function showKanjiDetail(data) {
 
     if (!kanjiEl || !yojijukugoEl) return;
 
+    const isKanaDetail = !!data.isKanaCandidate;
+    const yojijukugoSection = yojijukugoEl.parentElement;
+    if (yojijukugoSection) {
+        yojijukugoSection.classList.toggle('hidden', isKanaDetail);
+    }
+
     // 基本情報を表示
     kanjiEl.innerText = data['漢字'];
 
@@ -490,10 +496,11 @@ async function showKanjiDetail(data) {
         .filter(x => x);
 
     if (headerReadingEl) {
+        const readingLabel = isKanaDetail ? '読み' : '読み・名乗り';
         headerReadingEl.innerHTML = `
             <div class="flex flex-col">
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
-                    <span>📖</span> 読み・名乗り
+                    <span>📖</span> ${readingLabel}
                 </div>
                 <div class="text-xs text-[#5d5444] leading-normal tracking-wider break-keep mt-[1px]">
                     ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
@@ -544,139 +551,143 @@ async function showKanjiDetail(data) {
     const existingAiBtn = modal.querySelector('#btn-ai-kanji-detail');
     if (existingAiBtn) existingAiBtn.remove();
 
-    // 現在の読み（名乗り）を特定
-    // scr-main アクティブ（スワイプ中）の場合のみ segments[currentPos] を信頼する。
-    // それ以外（ストック/検索等から開いた場合）は liked 配列からその漢字の読みを引く。
-    let currentReadingForAI = null;
-    const mainSwipeScreen = document.getElementById('scr-main');
-    const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
-
-    if (inActiveSwipe && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
-        // フリーモード時の名乗り漏れを防ぐ
-        currentReadingForAI = null;
-    } else if (inActiveSwipe && segments && segments[currentPos]) {
-        currentReadingForAI = segments[currentPos];
-    } else if (typeof liked !== 'undefined') {
-        const likedItem = liked.find(l =>
-            l['漢字'] === data['漢字'] && l.slot >= 0 &&
-            l.sessionReading && l.sessionReading !== 'FREE' &&
-            l.sessionReading !== 'SEARCH' && l.sessionReading !== 'SHARED'
-        );
-        if (likedItem) {
-            const segs = (typeof readingToSegments !== 'undefined') ? readingToSegments[likedItem.sessionReading] : null;
-            if (segs && segs[likedItem.slot]) {
-                currentReadingForAI = segs[likedItem.slot];
-            }
-        }
-    }
-
-    const aiSection = document.createElement('div');
-    aiSection.id = 'btn-ai-kanji-detail';
-    aiSection.className = 'mb-4';
-    const aiPremiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
-    const aiAvailable = aiPremiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
-    const aiButtonClass = aiAvailable
-        ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
-        : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
-    const aiButtonLabel = aiAvailable
-        ? 'AIで漢字の成り立ち・意味を深掘り'
-        : '今日のAI深掘りは終了しました';
-    aiSection.innerHTML = `
-        <button id="btn-ai-kanji-detail-action" type="button"
-                class="${aiButtonClass}">
-            <span>🤖</span> ${aiButtonLabel}
-        </button>
-        ${aiAvailable ? '' : '<p class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
-        <div id="ai-kanji-result" class="mt-3"></div>
-    `;
-
-    // 四字熟語の上に挿入
-    const yojiWrapperAi = yojijukugoEl.parentNode;
-    if (yojiWrapperAi && yojiWrapperAi.parentNode) {
-        yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
-    }
-
-    const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
-    if (aiActionButton) {
-        let longPressTimer = null;
-        let longPressTriggered = false;
-        const clearLongPress = () => {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-        };
-        const startLongPress = () => {
-            clearLongPress();
-            longPressTriggered = false;
-            longPressTimer = setTimeout(async () => {
-                longPressTriggered = true;
-                if (typeof resetKanjiDetailCache === 'function') {
-                    await resetKanjiDetailCache(data['漢字'], currentReadingForAI);
-                }
-            }, 5000);
-        };
-
-        aiActionButton.addEventListener('mousedown', startLongPress);
-        aiActionButton.addEventListener('touchstart', startLongPress, { passive: true });
-        aiActionButton.addEventListener('mouseup', clearLongPress);
-        aiActionButton.addEventListener('mouseleave', clearLongPress);
-        aiActionButton.addEventListener('touchend', clearLongPress);
-        aiActionButton.addEventListener('touchcancel', clearLongPress);
-        aiActionButton.addEventListener('click', async (event) => {
-            if (longPressTriggered) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                longPressTriggered = false;
-                return;
-            }
-
-            if (!aiAvailable) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                if (typeof showToast === 'function') {
-                    showToast('今日のAI深掘りは終了しました', '🌙');
-                }
-                return;
-            }
-
-            await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
-        }, true);
-    }
-
-    // 四字熟語・ことわざ表示
-    if (window.idiomsData && window.idiomsData.length > 0) {
-        const kanji = data['漢字'];
-        // 漢字を含むものを検索
-        const matches = window.idiomsData.filter(item => {
-            return item['漢字'] && item['漢字'].includes(kanji);
-        });
-
-        if (matches.length > 0) {
-            const listHtml = matches.map(m => {
-                const mainText = m['漢字'];
-                const reading = m['読み'] || '';
-                const meaning = m['意味'] || '';
-                return `
-                    <div class="bg-white p-3 rounded-lg border border-[#eee5d8] shadow-sm mb-2">
-                        <div class="flex justify-between items-center mb-1">
-                            <div class="font-bold text-[#5d5444] text-lg">${mainText}</div>
-                            <span class="text-[9px] font-bold text-[#bca37f] bg-[#fdfaf5] px-2 py-0.5 rounded-full">${m['type'] || '縁起の良い言葉'}</span>
-                        </div>
-                        ${reading ? `<div class="text-xs text-[#a6967a] mb-1 font-bold">${reading}</div>` : ''}
-                        ${meaning ? `<div class="text-xs text-[#7a6f5a] leading-relaxed">${meaning}</div>` : ''}
-                    </div>
-                `;
-            }).join('');
-
-            yojijukugoEl.innerHTML = `
-                ${listHtml}
-            `;
-        } else {
-            yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af] italic">登録されている四字熟語やことわざはありません。</p>';
-        }
+    if (isKanaDetail) {
+        yojijukugoEl.innerHTML = '';
     } else {
-        yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af]">データ読み込み中...</p>';
+        // 現在の読み（名乗り）を特定
+        // scr-main アクティブ（スワイプ中）の場合のみ segments[currentPos] を信頼する。
+        // それ以外（ストック/検索等から開いた場合）は liked 配列からその漢字の読みを引く。
+        let currentReadingForAI = null;
+        const mainSwipeScreen = document.getElementById('scr-main');
+        const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
+
+        if (inActiveSwipe && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+            // フリーモード時の名乗り漏れを防ぐ
+            currentReadingForAI = null;
+        } else if (inActiveSwipe && segments && segments[currentPos]) {
+            currentReadingForAI = segments[currentPos];
+        } else if (typeof liked !== 'undefined') {
+            const likedItem = liked.find(l =>
+                l['漢字'] === data['漢字'] && l.slot >= 0 &&
+                l.sessionReading && l.sessionReading !== 'FREE' &&
+                l.sessionReading !== 'SEARCH' && l.sessionReading !== 'SHARED'
+            );
+            if (likedItem) {
+                const segs = (typeof readingToSegments !== 'undefined') ? readingToSegments[likedItem.sessionReading] : null;
+                if (segs && segs[likedItem.slot]) {
+                    currentReadingForAI = segs[likedItem.slot];
+                }
+            }
+        }
+
+        const aiSection = document.createElement('div');
+        aiSection.id = 'btn-ai-kanji-detail';
+        aiSection.className = 'mb-4';
+        const aiPremiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+        const aiAvailable = aiPremiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
+        const aiButtonClass = aiAvailable
+            ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
+            : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
+        const aiButtonLabel = aiAvailable
+            ? 'AIで漢字の成り立ち・意味を深掘り'
+            : '今日のAI深掘りは終了しました';
+        aiSection.innerHTML = `
+            <button id="btn-ai-kanji-detail-action" type="button"
+                    class="${aiButtonClass}">
+                <span>🤖</span> ${aiButtonLabel}
+            </button>
+            ${aiAvailable ? '' : '<p class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
+            <div id="ai-kanji-result" class="mt-3"></div>
+        `;
+
+        // 四字熟語の上に挿入
+        const yojiWrapperAi = yojijukugoEl.parentNode;
+        if (yojiWrapperAi && yojiWrapperAi.parentNode) {
+            yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
+        }
+
+        const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
+        if (aiActionButton) {
+            let longPressTimer = null;
+            let longPressTriggered = false;
+            const clearLongPress = () => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            };
+            const startLongPress = () => {
+                clearLongPress();
+                longPressTriggered = false;
+                longPressTimer = setTimeout(async () => {
+                    longPressTriggered = true;
+                    if (typeof resetKanjiDetailCache === 'function') {
+                        await resetKanjiDetailCache(data['漢字'], currentReadingForAI);
+                    }
+                }, 5000);
+            };
+
+            aiActionButton.addEventListener('mousedown', startLongPress);
+            aiActionButton.addEventListener('touchstart', startLongPress, { passive: true });
+            aiActionButton.addEventListener('mouseup', clearLongPress);
+            aiActionButton.addEventListener('mouseleave', clearLongPress);
+            aiActionButton.addEventListener('touchend', clearLongPress);
+            aiActionButton.addEventListener('touchcancel', clearLongPress);
+            aiActionButton.addEventListener('click', async (event) => {
+                if (longPressTriggered) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    longPressTriggered = false;
+                    return;
+                }
+
+                if (!aiAvailable) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    if (typeof showToast === 'function') {
+                        showToast('今日のAI深掘りは終了しました', '🌙');
+                    }
+                    return;
+                }
+
+                await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
+            }, true);
+        }
+
+        // 四字熟語・ことわざ表示
+        if (window.idiomsData && window.idiomsData.length > 0) {
+            const kanji = data['漢字'];
+            // 漢字を含むものを検索
+            const matches = window.idiomsData.filter(item => {
+                return item['漢字'] && item['漢字'].includes(kanji);
+            });
+
+            if (matches.length > 0) {
+                const listHtml = matches.map(m => {
+                    const mainText = m['漢字'];
+                    const reading = m['読み'] || '';
+                    const meaning = m['意味'] || '';
+                    return `
+                        <div class="bg-white p-3 rounded-lg border border-[#eee5d8] shadow-sm mb-2">
+                            <div class="flex justify-between items-center mb-1">
+                                <div class="font-bold text-[#5d5444] text-lg">${mainText}</div>
+                                <span class="text-[9px] font-bold text-[#bca37f] bg-[#fdfaf5] px-2 py-0.5 rounded-full">${m['type'] || '縁起の良い言葉'}</span>
+                            </div>
+                            ${reading ? `<div class="text-xs text-[#a6967a] mb-1 font-bold">${reading}</div>` : ''}
+                            ${meaning ? `<div class="text-xs text-[#7a6f5a] leading-relaxed">${meaning}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                yojijukugoEl.innerHTML = `
+                    ${listHtml}
+                `;
+            } else {
+                yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af] italic">登録されている四字熟語やことわざはありません。</p>';
+            }
+        } else {
+            yojijukugoEl.innerHTML = '<p class="text-xs text-[#d4c5af]">データ読み込み中...</p>';
+        }
     }
 
     // モーダル表示

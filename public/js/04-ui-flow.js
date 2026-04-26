@@ -948,17 +948,22 @@ function recordEncounteredSwipeItem(item, action) {
     if (!item) return;
 
     if (item['漢字']) {
+        const encounteredStrokes = item.isKanaCandidate && typeof getKanaStrokeCount === 'function'
+            ? getKanaStrokeCount(item['漢字'])
+            : (item['画数'] ?? item.strokes ?? null);
         updateEncounteredLibraryEntry('kanji', item['漢字'], {
             kanji: item['漢字'],
-            strokes: item['画数'] ?? item.strokes ?? null,
+            strokes: encounteredStrokes,
             category: item['カテゴリ'] || item.category || '',
             kanjiReading: item.kanji_reading || '',
             tags: Array.isArray(item.tags) ? [...item.tags] : [],
             snapshot: {
                 '漢字': item['漢字'],
-                '画数': item['画数'] ?? item.strokes ?? null,
+                '画数': encounteredStrokes,
                 'カテゴリ': item['カテゴリ'] || item.category || '',
                 kanji_reading: item.kanji_reading || '',
+                isKanaCandidate: !!item.isKanaCandidate,
+                kanaCandidateType: item.kanaCandidateType || '',
                 slot: Number.isFinite(Number(item.slot)) ? Number(item.slot) : -1,
                 sessionReading: item.sessionReading || '',
                 sessionSegments: Array.isArray(item.sessionSegments) ? [...item.sessionSegments] : [],
