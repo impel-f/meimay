@@ -782,6 +782,254 @@ function getPremiumTrialToastMessage(result) {
     return '無料体験の状態を確認しました';
 }
 
+const PremiumTrialNudge = {
+    KEY: 'meimay_premium_trial_nudge_v1',
+    COOLDOWN_MS: 3 * 24 * 60 * 60 * 1000,
+    REPEAT_MS: 24 * 60 * 60 * 1000,
+    MIN_SWIPES: 12,
+    MAX_SHOWS: 3,
+    _timer: null,
+
+    loadState: function () {
+        try {
+            const raw = localStorage.getItem(this.KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    },
+
+    saveState: function (state) {
+        try {
+            localStorage.setItem(this.KEY, JSON.stringify(state || {}));
+        } catch (e) { }
+    },
+
+    isEligible: function () {
+        const membership = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+            ? PremiumManager.getMembershipState()
+            : null;
+        if (membership && membership.active) return false;
+
+        const selfState = typeof getSelfPremiumMembershipState === 'function'
+            ? getSelfPremiumMembershipState()
+            : null;
+        if (selfState && selfState.trialConsumed) return false;
+
+        const partnerSnapshot = typeof getConnectedPartnerPremiumSnapshot === 'function'
+            ? getConnectedPartnerPremiumSnapshot()
+            : null;
+        const partnerState = partnerSnapshot && typeof buildPremiumMembershipState === 'function'
+            ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+            : null;
+        if (partnerState && partnerState.trialConsumed) return false;
+
+        const state = this.loadState();
+        return !state.trialStartedAt;
+    },
+
+    record: function (trigger, payload = {}) {
+        if (!this.isEligible()) return false;
+
+        const now = Date.now();
+        const state = this.loadState();
+        const next = {
+            ...state,
+            firstActionAt: state.firstActionAt || now,
+            updatedAt: now,
+            lastTrigger: trigger
+        };
+
+        if (trigger === 'save') {
+            const savedCount = Number(payload.savedCount);
+            next.savedCount = Number.isFinite(savedCount)
+                ? Math.max(Number(next.savedCount || 0), savedCount)
+                : Math.max(1, Number(next.savedCount || 0));
+        } else if (trigger === 'build') {
+            next.buildCount = Math.max(1, Number(next.buildCount || 0) + 1);
+        } else if (trigger === 'partner') {
+            next.partnerLinked = true;
+        } else if (String(trigger || '').includes('swipe')) {
+            const swipeCount = Number(payload.swipeCount);
+            next.swipeSignals = Number(next.swipeSignals || 0) + 1;
+            next.dailySwipeCount = Number.isFinite(swipeCount)
+                ? Math.max(Number(next.dailySwipeCount || 0), swipeCount)
+                : Number(next.dailySwipeCount || 0);
+        }
+
+        this.saveState(next);
+        this.schedule(trigger, payload);
+        return true;
+    },
+
+    schedule: function (trigger, payload = {}) {
+        if (this._timer) {
+            clearTimeout(this._timer);
+            this._timer = null;
+        }
+
+        const delay = Number.isFinite(Number(payload.delayMs)) ? Number(payload.delayMs) : 900;
+        this._timer = setTimeout(() => {
+            this._timer = null;
+            this.maybeShow(trigger);
+        }, Math.max(0, delay));
+    },
+
+    maybeShow: function (trigger) {
+        const state = this.loadState();
+        if (!this.shouldShow(trigger, state)) return false;
+        return this.show(trigger, state);
+    },
+
+    shouldShow: function (trigger, state) {
+        if (!this.isEligible()) return false;
+        if (document.hidden) return false;
+
+        const activeOverlay = document.querySelector('.overlay.active');
+        if (activeOverlay) return false;
+
+        const activeSwipeCard = document.querySelector('.card.swipe-right, .card.swipe-left, .card.swipe-up');
+        if (activeSwipeCard) return false;
+
+        const now = Date.now();
+        const dismissedAt = Number(state.dismissedAt || 0);
+        const shownAt = Number(state.shownAt || 0);
+        const shownCount = Number(state.shownCount || 0);
+        if (shownCount >= this.MAX_SHOWS) return false;
+        if (dismissedAt && now - dismissedAt < this.COOLDOWN_MS) return false;
+        if (shownAt && now - shownAt < this.REPEAT_MS) return false;
+
+        if (trigger === 'save' && Number(state.savedCount || 0) >= 1) return true;
+        if (trigger === 'build' && Number(state.buildCount || 0) >= 1) return true;
+        if (trigger === 'partner' && state.partnerLinked === true) return true;
+        if (String(trigger || '').includes('swipe')) {
+            return Number(state.swipeSignals || 0) >= this.MIN_SWIPES
+                || Number(state.dailySwipeCount || 0) >= this.MIN_SWIPES;
+        }
+
+        return Number(state.savedCount || 0) >= 1
+            || Number(state.buildCount || 0) >= 1
+            || Number(state.swipeSignals || 0) >= this.MIN_SWIPES
+            || state.partnerLinked === true;
+    },
+
+    getContext: function (trigger, state) {
+        const hasPartner = typeof MeimayPairing !== 'undefined'
+            && MeimayPairing
+            && MeimayPairing.roomCode
+            && MeimayPairing.partnerUid;
+        const roomNote = hasPartner
+            ? 'パートナー連携中に開始すると、二人分の無料枠を同時に使います。'
+            : '開始するまでは無料枠は消費しません。';
+
+        if (trigger === 'partner' || state.partnerLinked === true) {
+            return {
+                title: '二人で試す前に、3日間だけ開放できます',
+                body: '広告なし、スワイプ無制限、人名用漢字まで一度まとめて確認できます。' + roomNote
+            };
+        }
+
+        if (trigger === 'save' || Number(state.savedCount || 0) >= 1) {
+            return {
+                title: '候補を保存できたので、3日間だけ全部試せます',
+                body: '気になる名前が出てきた今なら、広告なし・スワイプ無制限・人名用漢字までまとめて確認できます。' + roomNote
+            };
+        }
+
+        if (trigger === 'build' || Number(state.buildCount || 0) >= 1) {
+            return {
+                title: 'ビルドまで進んだら、3日間だけ広げて試せます',
+                body: '候補づくりの流れを止めずに、上限なしで漢字や読みを追加できます。' + roomNote
+            };
+        }
+
+        return {
+            title: '名前探しが進んできたら、3日間だけ開放できます',
+            body: 'もう少し見比べたい時に、広告なし・スワイプ無制限で続けられます。' + roomNote
+        };
+    },
+
+    show: function (trigger, state) {
+        const modal = document.getElementById('modal-ai-sound');
+        if (!modal) return false;
+
+        const context = this.getContext(trigger, state || {});
+        const next = {
+            ...(state || {}),
+            shownAt: Date.now(),
+            shownCount: Number((state || {}).shownCount || 0) + 1,
+            lastShownTrigger: trigger
+        };
+        this.saveState(next);
+
+        modal.dataset.premiumTrialNudge = 'true';
+        modal.classList.add('active');
+        modal.innerHTML = ''
+            + '<div class="detail-sheet max-w-md" style="background:#fffaf1;border:1px solid #e2d2b7;box-shadow:0 22px 70px rgba(93,77,62,0.20);" onclick="event.stopPropagation()">'
+            + '<button class="modal-close-btn" onclick="PremiumTrialNudge.dismiss()">×</button>'
+            + '<div class="text-center">'
+            + '<div class="text-[10px] font-black tracking-[0.16em] text-[#b48642]">無料体験</div>'
+            + '<h3 class="mt-2 text-[1.25rem] font-black leading-tight text-[#4b3a24]">' + escapePremiumHtml(context.title) + '</h3>'
+            + '<p class="mt-3 text-[13px] leading-[1.8] text-[#6d5a3d]">' + escapePremiumHtml(context.body) + '</p>'
+            + '</div>'
+            + '<div class="mt-5 space-y-2">'
+            + '<button type="button" onclick="PremiumTrialNudge.openPremium()" class="w-full py-3 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]">3日無料を見てみる</button>'
+            + '<button type="button" onclick="PremiumTrialNudge.dismiss()" class="w-full py-3 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] text-sm font-bold">あとで</button>'
+            + '</div>'
+            + '</div>';
+        return true;
+    },
+
+    dismiss: function () {
+        const state = this.loadState();
+        this.saveState({
+            ...state,
+            dismissedAt: Date.now(),
+            updatedAt: Date.now()
+        });
+
+        const modal = document.getElementById('modal-ai-sound');
+        if (modal && modal.dataset.premiumTrialNudge === 'true') {
+            modal.classList.remove('active');
+            modal.innerHTML = '';
+            delete modal.dataset.premiumTrialNudge;
+        }
+    },
+
+    openPremium: function () {
+        const state = this.loadState();
+        this.saveState({
+            ...state,
+            openedAt: Date.now(),
+            dismissedAt: Date.now(),
+            updatedAt: Date.now()
+        });
+
+        const modal = document.getElementById('modal-ai-sound');
+        if (modal && modal.dataset.premiumTrialNudge === 'true') {
+            modal.classList.remove('active');
+            modal.innerHTML = '';
+            delete modal.dataset.premiumTrialNudge;
+        }
+
+        setTimeout(() => {
+            if (typeof showPremiumModal === 'function') showPremiumModal();
+        }, 80);
+    },
+
+    markTrialStatus: function (status) {
+        const normalized = String(status || '').trim();
+        if (!['started', 'trial_active', 'partner_trial_active', 'paid_active'].includes(normalized)) return;
+        const state = this.loadState();
+        this.saveState({
+            ...state,
+            trialStartedAt: Date.now(),
+            updatedAt: Date.now()
+        });
+    }
+};
+
 PremiumManager.startTrial = async function () {
     if (this._trialStartInProgress) return false;
 
@@ -818,6 +1066,10 @@ PremiumManager.startTrial = async function () {
 
         if (typeof showToast === 'function') {
             showToast(getPremiumTrialToastMessage(result), result.status === 'started' ? 'OK' : 'i');
+        }
+
+        if (typeof PremiumTrialNudge !== 'undefined' && PremiumTrialNudge && typeof PremiumTrialNudge.markTrialStatus === 'function') {
+            PremiumTrialNudge.markTrialStatus(result.status);
         }
 
         await this.refreshPurchaseState();
@@ -977,6 +1229,7 @@ function showPremiumModal() {
 }
 
 window.PremiumManager = PremiumManager;
+window.PremiumTrialNudge = PremiumTrialNudge;
 window.showPremiumModal = showPremiumModal;
 window.renderPremiumComparisonMatrix = renderPremiumComparisonMatrix;
 window.formatPremiumMembershipDate = formatPremiumMembershipDate;

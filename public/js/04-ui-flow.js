@@ -1915,6 +1915,9 @@ function persistGeneratedSavedName(saveData) {
     if (typeof StorageBox !== 'undefined' && StorageBox.saveSavedNames) {
         StorageBox.saveSavedNames();
     }
+    if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+        window.PremiumTrialNudge.record('save', { savedCount: updated.length });
+    }
 }
 
 
@@ -5004,6 +5007,12 @@ function addDailyKanjiSwipeCount() {
     try {
         const next = getDailyKanjiSwipeCount() + 1;
         localStorage.setItem(_getDailyKanjiSwipeKey(), String(next));
+        if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+            window.PremiumTrialNudge.record('kanji-swipe', {
+                swipeCount: next,
+                remaining: Math.max(0, DAILY_KANJI_LIMIT - next)
+            });
+        }
         return next;
     } catch (e) {
         return getDailyKanjiSwipeCount();
@@ -5035,6 +5044,12 @@ function addDailyReadingSwipeCount() {
     try {
         const next = getDailyReadingSwipeCount() + 1;
         localStorage.setItem(_getDailyReadingSwipeKey(), String(next));
+        if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+            window.PremiumTrialNudge.record('reading-swipe', {
+                swipeCount: next,
+                remaining: Math.max(0, DAILY_READING_SWIPE_LIMIT - next)
+            });
+        }
         return next;
     } catch (e) {
         return getDailyReadingSwipeCount();

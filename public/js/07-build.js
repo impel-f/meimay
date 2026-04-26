@@ -3213,6 +3213,14 @@ function renderBuildResult() {
 
     // AI由来ボタン一時非表示に伴い、空のカードが表示されないようクリア
     container.innerHTML = '';
+
+    if (r && (r.givenName || r.fullName || (Array.isArray(r.combination) && r.combination.length > 0))) {
+        if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+            window.PremiumTrialNudge.record('build', {
+                buildName: r.givenName || r.fullName || ''
+            });
+        }
+    }
 }
 
 /**

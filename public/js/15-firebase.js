@@ -1156,6 +1156,9 @@ const MeimayPairing = {
             this._listenRoom();
             MeimayShare.listenPartnerData(this.partnerUid);
             updatePairingUI();
+            if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+                window.PremiumTrialNudge.record('partner', { delayMs: 1500 });
+            }
             await this.syncMyData();
             if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
                 const publicPremiumState = typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getPublicPremiumSnapshot === 'function'
@@ -1341,6 +1344,9 @@ const MeimayPairing = {
                     this.partnerRole = partnerRole;
                     MeimayShare.listenPartnerData(partnerUid);
                     updatePairingUI();
+                    if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
+                        window.PremiumTrialNudge.record('partner', { delayMs: 1500 });
+                    }
                      showToast('パートナーが連携しました', '\u2713');
                     console.log(`PAIRING: Partner joined (${partnerRole})`);
                 } else if (!partnerUid && this.partnerUid) {
