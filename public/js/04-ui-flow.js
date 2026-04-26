@@ -4106,7 +4106,7 @@ function openBuildFromReading(reading, preferredSegments = []) {
     const oldSelected = (Array.isArray(selectedPieces) ? [...selectedPieces] : []).filter(Boolean);
     const oldSegments = (Array.isArray(segments) ? [...segments] : []).filter(Boolean);
 
-    if (typeof openBuild === 'function') openBuild();
+    if (typeof openBuild === 'function') openBuild({ preserveReading: true });
 
     // 区切り変更時に選択状態を引き継ぐ試み
     if (oldSelected.length > 0 && Array.isArray(segments) && Array.isArray(selectedPieces)) {

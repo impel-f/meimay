@@ -419,6 +419,99 @@ function getSafeBuildCurrentReading() {
         .join('');
 }
 
+function getBuildCandidateSegmentsForReading(reading, segmentsSource = [], historyLookup = {}) {
+    const explicitSegments = Array.isArray(segmentsSource)
+        ? segmentsSource.filter(seg => seg && !isCompoundSlotPlaceholder(seg)).map(seg => String(seg))
+        : [];
+    if (explicitSegments.length > 0) return explicitSegments;
+
+    if (typeof getPreferredReadingSegments === 'function') {
+        const preferred = getPreferredReadingSegments(reading);
+        const preferredSegments = Array.isArray(preferred)
+            ? preferred.filter(seg => seg && !isCompoundSlotPlaceholder(seg)).map(seg => String(seg))
+            : [];
+        if (preferredSegments.length > 0) return preferredSegments;
+    }
+
+    if (typeof getDisplaySegmentsForReading === 'function') {
+        const displaySegments = getDisplaySegmentsForReading(reading, historyLookup);
+        const safeDisplaySegments = Array.isArray(displaySegments)
+            ? displaySegments.filter(seg => seg && !isCompoundSlotPlaceholder(seg)).map(seg => String(seg))
+            : [];
+        if (safeDisplaySegments.length > 0) return safeDisplaySegments;
+    }
+
+    return reading ? [String(reading)] : [];
+}
+
+function isBuildReadingReady(reading, candidateSegments = []) {
+    const safeReading = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(reading)
+        : String(reading || '').trim().split('::')[0].trim();
+    const safeSegments = Array.isArray(candidateSegments)
+        ? candidateSegments.filter(seg => seg && !isCompoundSlotPlaceholder(seg))
+        : [];
+    if (!safeReading || safeSegments.length === 0) return false;
+
+    return safeSegments.every((seg, idx) => {
+        const candidates = getBuildSlotCandidates(seg, idx, safeReading, {
+            excluded: excludedKanjiFromBuild
+        });
+        return Array.isArray(candidates) && candidates.length > 0;
+    });
+}
+
+function getReadyBuildReadingCandidate() {
+    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    if (!Array.isArray(stock) || stock.length === 0) return null;
+
+    let hiddenList = [];
+    try {
+        hiddenList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]');
+    } catch (error) {
+        hiddenList = [];
+    }
+    const hiddenSet = new Set(
+        (Array.isArray(hiddenList) ? hiddenList : [])
+            .map(value => typeof getReadingBaseReading === 'function'
+                ? getReadingBaseReading(value)
+                : String(value || '').trim().split('::')[0].trim())
+            .filter(Boolean)
+    );
+
+    const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
+        ? getLatestReadingHistoryLookup()
+        : {};
+    const orderedStock = typeof sortReadingStockMatches === 'function'
+        ? sortReadingStockMatches(stock)
+        : stock;
+    const seen = new Set();
+
+    for (const item of orderedStock) {
+        const rawReading = typeof resolveReadingStockValue === 'function'
+            ? resolveReadingStockValue(item)
+            : (item?.reading || item?.sessionReading || '');
+        const reading = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(rawReading)
+            : String(rawReading || '').trim().split('::')[0].trim();
+        if (!reading || hiddenSet.has(reading)) continue;
+
+        const sourceSegments = Array.isArray(item?.segments) && item.segments.length > 0
+            ? item.segments
+            : item?.sessionSegments;
+        const candidateSegments = getBuildCandidateSegmentsForReading(reading, sourceSegments, historyLookup);
+        const key = `${reading}::${candidateSegments.join('/')}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        if (isBuildReadingReady(reading, candidateSegments)) {
+            return { reading, segments: candidateSegments };
+        }
+    }
+
+    return null;
+}
+
 function getSafeFreeBuildAutoReading(choices) {
     const historyLookup = getLatestReadingHistoryLookup();
     const safeParts = (Array.isArray(choices) ? choices : []).map((kanji) => {
@@ -1665,7 +1758,7 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 /**
  * ビルド画面を開く
  */
-function openBuild() {
+function openBuild(options = {}) {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
     hydrateCompoundBuildSelections();
@@ -1674,6 +1767,22 @@ function openBuild() {
     excludedKanjiFromBuild = []; // 除外リストをリセット
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+    }
+    if (!options.preserveReading) {
+        const currentReading = getSafeBuildCurrentReading();
+        const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
+        if (!isBuildReadingReady(currentReading, currentSegments)) {
+            const readyReading = getReadyBuildReadingCandidate();
+            if (readyReading) {
+                const nameInput = document.getElementById('in-name');
+                if (nameInput) nameInput.value = readyReading.reading;
+                segments = [...readyReading.segments];
+                selectedPieces = [];
+                if (typeof clearCompoundBuildFlow === 'function') {
+                    clearCompoundBuildFlow();
+                }
+            }
+        }
     }
     renderBuildSelection();
     changeScreen('scr-build');
@@ -2062,6 +2171,7 @@ function renderBuildSelection() {
         row.className = 'mb-6';
         const isFixedSlot = !!getCompoundFixedPieceForSlot(idx);
         const slotLabel = getBuildSlotDisplayLabel(seg, idx);
+        const addSearchLabel = seg ? `+ ${escapeBuildHtml(String(seg).slice(0, 5))}を探す` : '+ 追加する';
 
         row.innerHTML = `
     <div class="flex items-center justify-between mb-3" >
@@ -2071,7 +2181,7 @@ function renderBuildSelection() {
                 </p>
                 <div class="flex gap-2">
                     <button onclick="addMoreToSlot(${idx})" class="text-[10px] font-bold text-[#5d5444] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#bca37f] rounded-full bg-white">
-                        + \u8ffd\u52a0\u3059\u308b
+                        ${addSearchLabel}
                     </button>
                 </div>
             </div>
@@ -2106,7 +2216,10 @@ function renderBuildSelection() {
         });
 
         if (items.length === 0) {
-            scrollBox.innerHTML = '<div class="text-[#bca37f] text-sm italic px-4 py-6">\u5019\u88dc\u306a\u3057\uff08\u8ffd\u52a0\u3059\u308b \u304b\u3089\u63a2\u3057\u76f4\u3057\u3066\u304f\u3060\u3055\u3044\uff09</div>';
+            scrollBox.innerHTML = `<div class="text-[#bca37f] text-sm px-4 py-5 leading-relaxed">
+                <div class="font-bold">まだ「${escapeBuildHtml(seg)}」の漢字候補がありません</div>
+                <div class="text-[11px] text-[#a6967a] mt-1">右上の「${addSearchLabel}」から探せます</div>
+            </div>`;
         }
 
         if (items.length > 0) {
