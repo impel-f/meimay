@@ -711,6 +711,8 @@
                     birthGroupIndex: null,
                     twinGroupId: null,
                     twinIndex: null,
+                    dueDate: '',
+                    birthDate: '',
                     createdAt: getNowIso(),
                     updatedAt: getNowIso()
                 },
@@ -950,6 +952,8 @@
                 birthGroupIndex: null,
                 twinGroupId: null,
                 twinIndex: null,
+                dueDate: String(wizardData.dueDate || wizardData.birthDate || '').trim(),
+                birthDate: '',
                 createdAt: getNowIso(),
                 updatedAt: getNowIso()
             });
@@ -2073,10 +2077,17 @@
 
             const nextBirthOrder = normalizePositiveInteger(options.birthOrder, activeChild.meta.birthOrder || 1);
             const nextGender = normalizeGenderValue(options.gender || activeChild.meta.gender || 'neutral');
+            const hasDateOption = Object.prototype.hasOwnProperty.call(options, 'dueDate')
+                || Object.prototype.hasOwnProperty.call(options, 'birthDate');
+            const nextDueDate = hasDateOption
+                ? String(options.dueDate || options.birthDate || '').trim()
+                : String(activeChild.meta.dueDate || activeChild.meta.birthDate || '').trim();
 
             activeChild.meta.birthOrder = nextBirthOrder;
             activeChild.meta.displayLabel = buildDisplayLabel(nextBirthOrder, activeChild.meta.birthGroupIndex);
             activeChild.meta.gender = nextGender;
+            activeChild.meta.dueDate = nextDueDate;
+            activeChild.meta.birthDate = '';
             activeChild.meta.birthGroupId = activeChild.meta.birthGroupIndex === null ? null : `bg_${nextBirthOrder}`;
             activeChild.meta.twinGroupId = activeChild.meta.birthGroupId;
             activeChild.meta.updatedAt = getNowIso();

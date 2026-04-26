@@ -36,6 +36,7 @@ const WizardData = {
 let wizRole = '';
 let wizGender = '';
 let wizBirthOrder = 1;
+let wizChildDate = '';
 let wizHasReadingCandidate = null;
 
 function parseWizBirthOrder(value, fallback = 1) {
@@ -117,7 +118,9 @@ function wizNext(currentStep) {
     }
     if (currentStep === 3) {
         const birthOrderSelect = document.getElementById('wiz-birth-order');
+        const childDateInput = document.getElementById('wiz-child-date');
         wizBirthOrder = parseWizBirthOrder(birthOrderSelect && birthOrderSelect.value, wizBirthOrder || 1);
+        wizChildDate = childDateInput ? String(childDateInput.value || '').trim() : (wizChildDate || '');
     }
     if (currentStep === 3 && !wizGender) {
         wizGender = 'neutral';
@@ -140,7 +143,11 @@ function wizNext(currentStep) {
     if (next) next.classList.add('active');
 
     if (currentStep + 1 === 3) {
+        const childDateInput = document.getElementById('wiz-child-date');
         selectWizBirthOrder(wizBirthOrder);
+        if (childDateInput) {
+            childDateInput.value = wizChildDate || '';
+        }
         if (!wizGender) {
             wizGender = 'neutral';
         }
@@ -169,9 +176,14 @@ function wizFinish(mode) {
     const username = document.getElementById('wiz-username');
     const surname = document.getElementById('wiz-surname');
     const surnameReadingInput = document.getElementById('wiz-surname-reading');
+    const childDateInput = document.getElementById('wiz-child-date');
     const existingData = WizardData.get() || {};
     const selectedRole = wizRole || existingData.role || '';
     const birthOrder = parseWizBirthOrder(wizBirthOrder || existingData.birthOrder || 1, 1);
+    const childDate = childDateInput
+        ? String(childDateInput.value || '').trim()
+        : String(wizChildDate || existingData.dueDate || existingData.birthDate || '').trim();
+    wizChildDate = childDate;
 
     const data = {
         completed: true,
@@ -182,7 +194,7 @@ function wizFinish(mode) {
         surnameReading: surnameReadingInput && surnameReadingInput.value.trim()
             ? toHira(surnameReadingInput.value.trim())
             : (existingData.surnameReading || ''),
-        dueDate: existingData.dueDate || '',
+        dueDate: childDate,
         hasReadingCandidate: wizHasReadingCandidate === true,
         gender: wizGender || existingData.gender || 'neutral',
         themeId: existingData.themeId || '',
@@ -213,7 +225,8 @@ function wizFinish(mode) {
         && typeof MeimayChildWorkspaces.applyWizardSelection === 'function') {
         MeimayChildWorkspaces.applyWizardSelection({
             birthOrder: data.birthOrder,
-            gender: data.gender
+            gender: data.gender,
+            dueDate: data.dueDate
         });
     }
 

@@ -244,7 +244,7 @@
             <div id="wiz-step-3" class="wizard-step w-full px-6">
                 <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">生まれ順・性別</h1>
 
-                <div class="mb-7 w-full">
+                <div class="mb-5 w-full">
                     <label class="text-xs font-bold text-[#8b7e66] mb-2 block">生まれ順</label>
                     <select id="wiz-birth-order" onchange="selectWizBirthOrder(this.value)"
                         class="wiz-birth-order-select w-full">
@@ -261,7 +261,13 @@
                     </select>
                 </div>
 
-                <div class="mb-8 w-full">
+                <div class="mb-5 w-full">
+                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block" for="wiz-child-date">予定日・誕生日（任意）</label>
+                    <input id="wiz-child-date" type="date" class="wiz-birth-order-select w-full" aria-label="予定日・誕生日">
+                    <p class="mt-2 text-xs font-bold text-[#b3a58c]">まだ決まっていなければ空欄でOKです</p>
+                </div>
+
+                <div class="mb-7 w-full">
                     <label class="text-xs font-bold text-[#8b7e66] mb-3 block">性別</label>
                     <div class="wiz-baby-gender-grid">
                         <button type="button" onclick="selectWizGender('male')" class="wiz-baby-gender-btn" data-gender="male" aria-pressed="false">
@@ -1590,7 +1596,7 @@
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.16"></script>
     <script src="/js/12-history.js?v=25.43"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.19"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.20"></script>
     <script src="/js/14-admob.js?v=25.25"></script>
 <script src="/js/15-firebase.js?v=26.02"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
@@ -1598,7 +1604,7 @@
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
     <script src="/js/18-ranking.js?v=25.37"></script>
-    <script src="/js/21-child-workspaces.js?v=26.18"></script>
+    <script src="/js/21-child-workspaces.js?v=26.19"></script>
 
 
 </body>
