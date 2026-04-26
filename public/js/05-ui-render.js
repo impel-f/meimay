@@ -99,7 +99,7 @@ function render() {
                 <div class="flex items-center justify-center h-full text-center px-6">
                     <div>
                         <p class="text-[#bca37f] font-bold text-lg mb-4">すべて確認しました</p>
-                        <p class="text-sm text-[#a6967a] mb-6">ビルドへ進んで名前を組み立てよう</p>
+                        <p class="text-sm text-[#a6967a] mb-6">ビルドへ進んで名前候補を作ろう</p>
                         <button onclick="isFreeSwipeMode=false; openBuildFreeMode()" class="btn-gold py-4 px-8">ビルドへ →</button>
                     </div>
                 </div>
@@ -1677,7 +1677,7 @@ function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) 
         return {
             countNumber: String(getHomeBuildPatternCount()),
             countUnit: '通り',
-            actionText: '組み立てる＞',
+            actionText: 'ビルドへ＞',
             compact: true
         };
     }
@@ -1845,7 +1845,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     if ((pairing?.matchedKanjiCount || 0) >= 1) {
         return {
             title: '二人とも残した漢字があります',
-            detail: '共通して気になった漢字から、名前候補を組み立てやすくなっています。',
+            detail: '共通して気になった漢字から、名前候補をビルドしやすくなっています。',
             actionLabel: '一致した漢字を見る',
             action: 'matched-liked'
         };
@@ -1860,9 +1860,9 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     }
     if (buildCount > 0) {
         return {
-            title: '組み立てた名前を保存しましょう',
+            title: 'ビルドした名前を保存しましょう',
             detail: '名前候補ができています。残したいものを保存すると、あとで比較しやすくなります。',
-            actionLabel: '名前を組み立てる',
+            actionLabel: 'ビルドへ',
             action: 'build'
         };
     }
@@ -1891,9 +1891,9 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
         };
     }
     return {
-        title: '集めた漢字で名前を組み立てましょう',
+        title: '集めた漢字で名前をビルドしましょう',
         detail: '読みと漢字がそろってきました。組み合わせを作って、残したい名前を保存します。',
-        actionLabel: '名前を組み立てる',
+        actionLabel: 'ビルドへ',
         action: 'build'
     };
 }
@@ -1936,7 +1936,7 @@ function getNamingMaterialTimeline(likedCount, readingStockCount, savedCount) {
 
     const stageTitle =
         activeKey === 'save' ? '候補を見る段階です' :
-        activeKey === 'build' ? '組み立てる段階です' :
+        activeKey === 'build' ? 'ビルドする段階です' :
         activeKey === 'kanji' ? '漢字材料を集める段階です' :
         '読み候補を探す段階です';
 
@@ -2161,7 +2161,7 @@ function getHomeStageTrackMetric(stepKey, likedCount, readingStockCount, savedCo
         return {
             countNumber: String(buildPatternCount),
             countUnit: '通り',
-            actionText: actionLabels.build || '組み立てる',
+            actionText: actionLabels.build || 'ビルドへ',
             compact: true
         };
     }
@@ -2179,7 +2179,7 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
     const steps = [
         { key: 'reading', label: '読み', done: readingStockCount >= 1 },
         { key: 'kanji', label: '漢字', done: likedCount >= 2 },
-        { key: 'build', label: '組み立て', done: buildPatternCount >= 1 },
+        { key: 'build', label: 'ビルド', done: buildPatternCount >= 1 },
         { key: 'save', label: '保存', done: savedCount >= 1 }
     ];
     const activeKey = savedCount >= 1
@@ -2192,7 +2192,7 @@ function getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, op
     const stageTitle = activeKey === 'save'
         ? '候補を見比べる段階'
         : activeKey === 'build'
-            ? '名前を組み立てる段階'
+            ? 'ビルドする段階'
             : activeKey === 'kanji'
                 ? '漢字を集める段階'
                 : '読みを探す段階';
@@ -2501,7 +2501,7 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
         : getHomeBuildPatternCount();
 
     if (savedCount > 0) return '保存した候補を見比べながら、残したい名前を絞り込んでいます。';
-    if (buildPatternCount > 0) return '組み立てた候補を確認し、保存する名前を選ぶ段階です。';
+    if (buildPatternCount > 0) return 'ビルドした候補を確認し、保存する名前を選ぶ段階です。';
     if (likedCount > 0) return '集めた漢字をもとに、名前の組み合わせを広げていく段階です。';
     if (readingStockCount > 0) return '読み候補をもとに、合う漢字を集めているところです。';
     return 'まずは読み候補を集めて、名前の方向性を見つけましょう。';
@@ -2706,7 +2706,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             actionLabels: {
                 reading: '読みを見る＞',
                 kanji: '漢字を見る＞',
-                build: '組み立てる＞',
+                build: 'ビルドへ＞',
                 save: '候補を見る＞'
             }
         };
@@ -2727,7 +2727,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             actionLabels: {
                 reading: '読みを見る＞',
                 kanji: '漢字を見る＞',
-                build: '組み立てる＞',
+                build: 'ビルドへ＞',
                 save: '候補を見る＞'
             }
         };
@@ -3336,7 +3336,7 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         config.detailHtml = '相手が集めた漢字を<br>確認します';
         break;
     case 'build':
-        config.title = '組み立てる';
+        config.title = 'ビルドする';
         config.detailHtml = '集まった読みと漢字から<br>候補をつくります';
         break;
     case 'saved':
@@ -3482,7 +3482,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         : focusKey === 'kanji'
             ? '今ある漢字のストックを見返します'
             : focusKey === 'build'
-                ? 'いまの組み立て候補を見返します'
+                ? 'いまのビルド候補を見返します'
                 : '保存した候補を見返します';
     const secondaryButton = focusCopy.secondaryAction
         ? renderHomeSecondaryActionButton({
@@ -3816,7 +3816,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         const statusLines = (() => {
             if (buildCount >= 6) {
                 return [
-                    '名前候補をしっかり組み立てられています。',
+                    '名前候補をしっかりビルドできています。',
                     '候補を見比べながら、残したい名前を保存しましょう。'
                 ];
             }
@@ -3829,22 +3829,22 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
             if (readingCount > 0 && kanjiCount > 0) {
                 return [
                     '読みと漢字がそろってきました。',
-                    '集めた材料から、名前候補を組み立てられます。'
+                    '集めた材料から、名前候補をビルドできます。'
                 ];
             }
             if (readingCount > 0 && kanjiCount === 0) {
                 return [
                     'まだ漢字候補がありません。',
-                    '先に読みへ合う漢字を集めると、名前を組み立てられます。'
+                    '先に読みへ合う漢字を集めると、名前をビルドできます。'
                 ];
             }
             return readingEmptyLines;
         })();
 
         return setCopy(
-            '組み立て',
+            'ビルド',
             'build',
-            '名前を組み立てる',
+            'ビルドへ',
             statusLines,
             [
                 { label: '読み', value: readingCount, unit: '件' },
@@ -3876,13 +3876,13 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         if (buildCount > 0) {
             return [
                 'まだ保存した名前はありません。',
-                '組み立てた候補の中から、残したい名前を保存しましょう。'
+                'ビルドした候補の中から、残したい名前を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount > 0) {
             return [
                 'まだ保存した名前はありません。',
-                'まずは名前を組み立てて、残したい候補を保存しましょう。'
+                'まずは名前をビルドして、残したい候補を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount === 0) {
