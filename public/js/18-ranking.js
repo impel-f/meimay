@@ -215,30 +215,8 @@ function isRankingCommonKanji(kanjiData) {
     return commonFlag === true || commonFlag === 'true' || commonFlag === 1 || commonFlag === '1';
 }
 
-function isRankingJinmeiKanji(kanjiData) {
-    if (!kanjiData || isRankingCommonKanji(kanjiData)) return false;
-    const nameReading = String(kanjiData['伝統名のり'] || kanjiData['名乗り'] || '').trim();
-    return !!nameReading;
-}
-
 function isRankingKanjiPremiumLocked(kanjiData) {
     return isRankingJinmeiKanji(kanjiData) && !isRankingPremiumAccessActive();
-}
-
-function renderRankingPremiumBadge() {
-    const premiumAccessActive = isRankingPremiumAccessActive();
-    const badgeClass = premiumAccessActive
-        ? 'pointer-events-none opacity-80'
-        : 'cursor-pointer hover:scale-[1.03] hover:bg-[#f4ead8] hover:shadow-sm';
-    const clickHandler = premiumAccessActive
-        ? ''
-        : ' onclick="event.stopPropagation();event.preventDefault();if (typeof showPremiumModal === \'function\') showPremiumModal();"';
-
-    return `
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8e6] text-[14px] leading-none text-[#b9965b] transition-all ${badgeClass}"
-            title="人名用漢字"
-            aria-label="人名用漢字"${clickHandler}>👑</span>
-    `;
 }
 
 function getRankingCardTone(index) {
@@ -302,10 +280,6 @@ function updateRankingCardState(kind, key, delta = 0, stocked = null) {
         statusEl.className = `shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black leading-none whitespace-nowrap ${stocked ? stockedBgClass : notStockedBgClass}`;
     }
     return true;
-}
-
-function getRankingPeriodSwitchLabel(period) {
-    return period === 'monthly' ? '📅月間順位' : '👑総合順位';
 }
 
 function getRankingGenderLabel(value) {

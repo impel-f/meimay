@@ -923,7 +923,7 @@ function showChoiceModal(title, description, options, currentValue, onSave) {
     const optionsHTML = options.map(opt => {
         const isSelected = opt.value === currentValue;
         return `
-            <button type="button" onclick="selectChoiceOption(${JSON.stringify(opt.value).replace(/"/g, '&quot;')}, event)"
+            <button type="button" onclick="selectSettingsChoiceOption(${JSON.stringify(opt.value).replace(/"/g, '&quot;')}, event)"
                     class="choice-option ${isSelected ? 'selected' : ''}">
                 <div class="choice-radio ${isSelected ? 'checked' : ''}"></div>
                 <div class="choice-content">
@@ -935,16 +935,16 @@ function showChoiceModal(title, description, options, currentValue, onSave) {
     }).join('');
 
     const modal = `
-        <div class="overlay active modal-overlay-dark" id="choice-modal" onclick="if(event.target.id==='choice-modal')closeChoiceModal()">
+        <div class="overlay active modal-overlay-dark" id="choice-modal" onclick="if(event.target.id==='choice-modal')closeSettingsChoiceModal()">
             <div class="modal-sheet choice-sheet" onclick="event.stopPropagation()">
-                <button type="button" class="modal-close-x" onclick="closeChoiceModal()">✕</button>
+                <button type="button" class="modal-close-x" onclick="closeSettingsChoiceModal()">✕</button>
                 <h3 class="modal-title">${title}</h3>
                 ${description ? `<p class="modal-desc">${description}</p>` : ''}
                 <div class="modal-body">
                     ${optionsHTML}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" onclick="saveChoiceModal()" class="btn-modal-primary">完了</button>
+                    <button type="button" onclick="saveSettingsChoiceModal()" class="btn-modal-primary">完了</button>
                 </div>
             </div>
         </div>
@@ -956,7 +956,7 @@ function showChoiceModal(title, description, options, currentValue, onSave) {
     window.choiceModalCallback = onSave;
 }
 
-function selectChoiceOption(value, evt) {
+function selectSettingsChoiceOption(value, evt) {
     window.choiceModalValue = value;
     document.querySelectorAll('.choice-option').forEach(opt => opt.classList.remove('selected'));
     document.querySelectorAll('.choice-radio').forEach(radio => radio.classList.remove('checked'));
@@ -967,14 +967,14 @@ function selectChoiceOption(value, evt) {
     if (radio) radio.classList.add('checked');
 }
 
-function saveChoiceModal() {
+function saveSettingsChoiceModal() {
     if (window.choiceModalCallback) {
         window.choiceModalCallback(window.choiceModalValue);
     }
-    closeChoiceModal();
+    closeSettingsChoiceModal();
 }
 
-function closeChoiceModal() {
+function closeSettingsChoiceModal() {
     document.getElementById('choice-modal')?.remove();
 }
 
@@ -1043,4 +1043,3 @@ window.closeProfileAppearanceModal = closeProfileAppearanceModal;
 window.saveProfileAppearance = saveProfileAppearance;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");
-

@@ -583,33 +583,6 @@ function applyDrawerStatusButtonTone(button, active) {
     button.style.lineHeight = '1.15';
 }
 
-function updateDrawerProfile() {
-    const data = WizardData.get();
-    if (!data) return;
-
-    const avatar = document.getElementById('drawer-avatar');
-    const username = document.getElementById('drawer-username');
-    const surnameDisplay = document.getElementById('drawer-surname-display');
-
-    if (data.username && username) {
-        username.innerText = data.username;
-        if (avatar) {
-            avatar.innerText = data.username.charAt(0).toUpperCase();
-        }
-    }
-
-    if (data.role && avatar) {
-        const roleEmoji = { papa: '👨', mama: '👩', other: '👤' };
-        if (!data.username) {
-            avatar.innerText = roleEmoji[data.role] || 'P';
-        }
-    }
-
-    if (surnameDisplay) {
-        surnameDisplay.innerText = data.surname ? `@${data.surname}` : '@苗字未設定';
-    }
-}
-
 function renderDrawerMenu() {
     const nav = document.querySelector('#side-drawer nav');
     if (!nav) return;
