@@ -244,7 +244,9 @@ function executeSaveWithMessage() {
     persistActiveChildWorkspaceSnapshot('save-name-message');
 
     closeSaveMessageModal();
-    alert('✨ 名前を保存しました！');
+    if (typeof showToast === 'function') {
+        showToast('名前を保存しました！', '✨');
+    }
     console.log('HISTORY: Name saved', saveData);
 }
 
