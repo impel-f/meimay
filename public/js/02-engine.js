@@ -218,9 +218,7 @@ function getKanaIterationCandidatesForSegment(reading, slotIdx, segmentPath = se
     if (current === previous) {
         candidates.push(createKanaCandidate('ゝ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
         candidates.push(createKanaCandidate('ヽ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
-    }
-
-    if (current === voiceKanaChar(previous)) {
+    } else if (current === voiceKanaChar(previous)) {
         candidates.push(createKanaCandidate('ゞ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
         candidates.push(createKanaCandidate('ヾ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
     }
