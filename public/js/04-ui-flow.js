@@ -185,11 +185,17 @@ function getReadingHistoryEntryByReading(reading, preferredSegments = []) {
 }
 
 function restoreKanaCandidateSettingForReadingEntry(entry, segmentPath = segments) {
-    const enabled = !!(entry && entry.settings && entry.settings.includeKanaCandidates);
+    const settings = entry && entry.settings ? entry.settings : {};
+    const legacyEnabled = !!settings.includeKanaCandidates;
+    const kanaScripts = {
+        hiragana: settings.includeHiraganaCandidates ?? legacyEnabled,
+        katakana: settings.includeKatakanaCandidates ?? legacyEnabled
+    };
     if (typeof window.setKanaCandidatesEnabledForSegments === 'function') {
-        window.setKanaCandidatesEnabledForSegments(enabled, Array.isArray(segmentPath) ? segmentPath : []);
+        window.setKanaCandidatesEnabledForSegments(kanaScripts, Array.isArray(segmentPath) ? segmentPath : []);
     } else {
-        window.includeKanaCandidatesForSegments = enabled;
+        window.includeKanaCandidateScriptsForSegments = kanaScripts;
+        window.includeKanaCandidatesForSegments = kanaScripts.hiragana || kanaScripts.katakana;
     }
 }
 

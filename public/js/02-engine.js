@@ -58,6 +58,12 @@ function filterKanjiByCurrentMembership(items) {
 if (typeof window !== 'undefined' && typeof window.includeKanaCandidatesForSegments === 'undefined') {
     window.includeKanaCandidatesForSegments = false;
 }
+if (typeof window !== 'undefined' && typeof window.includeKanaCandidateScriptsForSegments === 'undefined') {
+    window.includeKanaCandidateScriptsForSegments = {
+        hiragana: !!window.includeKanaCandidatesForSegments,
+        katakana: !!window.includeKanaCandidatesForSegments
+    };
+}
 
 const KANA_VOICED_MAP = {
     'か': 'が', 'き': 'ぎ', 'く': 'ぐ', 'け': 'げ', 'こ': 'ご',
@@ -151,14 +157,46 @@ function isOneCharSegmentPath(path) {
         && path.every((segment) => Array.from(normalizeKanaCandidateSegment(segment)).length === 1);
 }
 
-function setKanaCandidatesEnabledForSegments(enabled, segmentPath = segments) {
-    const nextValue = !!enabled && isOneCharSegmentPath(segmentPath);
-    window.includeKanaCandidatesForSegments = nextValue;
-    return nextValue;
+function normalizeKanaCandidateScriptSettings(value) {
+    if (value && typeof value === 'object') {
+        return {
+            hiragana: !!value.hiragana,
+            katakana: !!value.katakana
+        };
+    }
+    const enabled = !!value;
+    return { hiragana: enabled, katakana: enabled };
+}
+
+function getKanaCandidateScriptSettings() {
+    return normalizeKanaCandidateScriptSettings(
+        window.includeKanaCandidateScriptsForSegments || window.includeKanaCandidatesForSegments
+    );
+}
+
+function setKanaCandidatesEnabledForSegments(settings, segmentPath = segments) {
+    const normalized = normalizeKanaCandidateScriptSettings(settings);
+    const enabledForPath = isOneCharSegmentPath(segmentPath);
+    const nextSettings = {
+        hiragana: enabledForPath && normalized.hiragana,
+        katakana: enabledForPath && normalized.katakana
+    };
+    window.includeKanaCandidateScriptsForSegments = nextSettings;
+    window.includeKanaCandidatesForSegments = nextSettings.hiragana || nextSettings.katakana;
+    return window.includeKanaCandidatesForSegments;
 }
 
 function isKanaCandidatesEnabledForSegments(segmentPath = segments) {
-    return !!(window.includeKanaCandidatesForSegments && isOneCharSegmentPath(segmentPath));
+    const settings = getKanaCandidateScriptSettings();
+    return !!((settings.hiragana || settings.katakana) && isOneCharSegmentPath(segmentPath));
+}
+
+function getActiveKanaCandidateScriptSettings(segmentPath = segments, options = {}) {
+    const settings = normalizeKanaCandidateScriptSettings(options.kanaScripts || getKanaCandidateScriptSettings());
+    if (!options.force && !isOneCharSegmentPath(segmentPath)) {
+        return { hiragana: false, katakana: false };
+    }
+    return settings;
 }
 
 function getKanaCandidateSessionReading(options = {}) {
@@ -215,12 +253,21 @@ function getKanaIterationCandidatesForSegment(reading, slotIdx, segmentPath = se
     if (!previous || !current) return [];
 
     const candidates = [];
+    const scriptSettings = getActiveKanaCandidateScriptSettings(segmentPath, options);
     if (current === previous) {
-        candidates.push(createKanaCandidate('ゝ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
-        candidates.push(createKanaCandidate('ヽ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+        if (scriptSettings.hiragana) {
+            candidates.push(createKanaCandidate('ゝ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
+        }
+        if (scriptSettings.katakana) {
+            candidates.push(createKanaCandidate('ヽ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+        }
     } else if (current === voiceKanaChar(previous)) {
-        candidates.push(createKanaCandidate('ゞ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
-        candidates.push(createKanaCandidate('ヾ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+        if (scriptSettings.hiragana) {
+            candidates.push(createKanaCandidate('ゞ', current, slotIdx, { ...options, type: 'hiragana-iteration' }));
+        }
+        if (scriptSettings.katakana) {
+            candidates.push(createKanaCandidate('ヾ', current, slotIdx, { ...options, type: 'katakana-iteration' }));
+        }
     }
 
     return candidates;
@@ -230,17 +277,19 @@ function getKanaCandidatesForSegment(segment, slotIdx = currentPos, options = {}
     const segmentPath = Array.isArray(options.segments)
         ? options.segments
         : (Array.isArray(segments) ? segments : []);
-    if (!options.force && !isKanaCandidatesEnabledForSegments(segmentPath)) return [];
+    const scriptSettings = getActiveKanaCandidateScriptSettings(segmentPath, options);
+    if (!scriptSettings.hiragana && !scriptSettings.katakana) return [];
 
     const reading = normalizeKanaCandidateSegment(segment);
     if (!reading || Array.from(reading).length !== 1) return [];
 
     const hira = reading;
     const kata = toKataKanaForKanaCandidate(hira);
-    const candidates = [
-        createKanaCandidate(hira, reading, slotIdx, { ...options, type: 'hiragana', segments: segmentPath })
-    ];
-    if (kata && kata !== hira) {
+    const candidates = [];
+    if (scriptSettings.hiragana) {
+        candidates.push(createKanaCandidate(hira, reading, slotIdx, { ...options, type: 'hiragana', segments: segmentPath }));
+    }
+    if (scriptSettings.katakana && kata && kata !== hira) {
         candidates.push(createKanaCandidate(kata, reading, slotIdx, { ...options, type: 'katakana', segments: segmentPath }));
     }
     candidates.push(...getKanaIterationCandidatesForSegment(reading, slotIdx, segmentPath, { ...options, segments: segmentPath }));
@@ -277,6 +326,7 @@ function getSwipeKanaCandidatesForCurrentSlot(target, slotIdx = currentPos) {
 window.expandKanaIterationMarks = expandKanaIterationMarks;
 window.setKanaCandidatesEnabledForSegments = setKanaCandidatesEnabledForSegments;
 window.isKanaCandidatesEnabledForSegments = isKanaCandidatesEnabledForSegments;
+window.getKanaCandidateScriptSettings = getKanaCandidateScriptSettings;
 window.getKanaCandidatesForSegment = getKanaCandidatesForSegment;
 
 function getFallbackReadingSegmentPaths(rawReading, limit = 5) {
@@ -776,16 +826,22 @@ function calcSegments() {
     normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
 
     const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
-    const kanaOption = document.createElement('label');
-    kanaOption.className = `w-[92%] mx-auto mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm flex items-start gap-3 text-left ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : 'opacity-50'}`;
+    const kanaSettings = getKanaCandidateScriptSettings();
+    const kanaOption = document.createElement('div');
+    kanaOption.className = `w-[92%] mx-auto mt-1 mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm text-left ${hasOneCharPath ? '' : 'opacity-50'}`;
     kanaOption.innerHTML = `
-        <input id="seg-include-kana" type="checkbox" class="mt-1 h-4 w-4 accent-[#b9965b]" ${window.includeKanaCandidatesForSegments ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
-        <span class="min-w-0">
-            <span class="block text-sm font-black text-[#5d5444]">ひらがな・カタカナも候補に入れる</span>
-            <span class="mt-1 block text-[11px] leading-relaxed text-[#a6967a]">一文字ずつの分け方で使えます。例: み / す / ず から「みすゞ」も選べます。</span>
-        </span>
+        <div class="space-y-2">
+            <label class="flex items-center gap-3 ${hasOneCharPath ? 'cursor-pointer' : ''}">
+                <input id="seg-include-hiragana" type="checkbox" class="h-4 w-4 accent-[#b9965b]" ${kanaSettings.hiragana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
+                <span class="text-sm font-black text-[#5d5444]">ひらがなを候補に入れる</span>
+            </label>
+            <label class="flex items-center gap-3 ${hasOneCharPath ? 'cursor-pointer' : ''}">
+                <input id="seg-include-katakana" type="checkbox" class="h-4 w-4 accent-[#b9965b]" ${kanaSettings.katakana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
+                <span class="text-sm font-black text-[#5d5444]">カタカナを候補に入れる</span>
+            </label>
+        </div>
+        <div class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">一文字ずつの分け方で使えます。</div>
     `;
-    normalSection.appendChild(kanaOption);
 
     if (uniquePaths.length > 0) {
         uniquePaths.forEach((path, idx) => {
@@ -806,9 +862,13 @@ function calcSegments() {
                 </div>
             `;
             btn.onclick = () => {
-                const includeKanaInput = document.getElementById('seg-include-kana');
+                const includeHiraganaInput = document.getElementById('seg-include-hiragana');
+                const includeKatakanaInput = document.getElementById('seg-include-katakana');
                 selectSegment(path, {
-                    includeKana: !!(includeKanaInput && includeKanaInput.checked)
+                    includeKanaScripts: {
+                        hiragana: !!(includeHiraganaInput && includeHiraganaInput.checked),
+                        katakana: !!(includeKatakanaInput && includeKatakanaInput.checked)
+                    }
                 });
             };
 
@@ -818,6 +878,7 @@ function calcSegments() {
 
             normalSection.appendChild(btn);
         });
+        normalSection.appendChild(kanaOption);
         optionsContainer.appendChild(normalSection);
         normalSection.querySelectorAll('[data-segment-label]').forEach((label) => {
             const button = label.closest('button');
@@ -909,7 +970,7 @@ function selectSegment(path, options = {}) {
         clearCompoundBuildFlow();
     }
     segments = path;
-    setKanaCandidatesEnabledForSegments(!!options.includeKana, segments);
+    setKanaCandidatesEnabledForSegments(options.includeKanaScripts || !!options.includeKana, segments);
     swipes = 0;
     currentPos = 0; // Reset position
 

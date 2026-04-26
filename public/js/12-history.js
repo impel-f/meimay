@@ -254,6 +254,12 @@ function executeSaveWithMessage() {
 function addToReadingHistory() {
     if (!segments || segments.length === 0) return;
 
+    const kanaScriptSettings = typeof window.getKanaCandidateScriptSettings === 'function'
+        ? window.getKanaCandidateScriptSettings()
+        : {
+            hiragana: !!window.includeKanaCandidatesForSegments,
+            katakana: !!window.includeKanaCandidatesForSegments
+        };
     const compoundFlow = typeof window.getCompoundBuildFlow === 'function'
         ? window.getCompoundBuildFlow()
         : null;
@@ -280,7 +286,9 @@ function addToReadingHistory() {
             imageTags: selectedImageTags || [],
             prioritizeFortune: prioritizeFortune,
             surname: surnameStr,
-            includeKanaCandidates: !!window.includeKanaCandidatesForSegments
+            includeKanaCandidates: !!(kanaScriptSettings.hiragana || kanaScriptSettings.katakana),
+            includeHiraganaCandidates: !!kanaScriptSettings.hiragana,
+            includeKatakanaCandidates: !!kanaScriptSettings.katakana
         },
         compoundFlow: compoundFlow && compoundFlow.reading === reading
             ? JSON.parse(JSON.stringify(compoundFlow))
