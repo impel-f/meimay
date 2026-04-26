@@ -3518,17 +3518,21 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
+    const primaryActionStageKey = getHomeRecommendedStageKey(focusCopy.primaryAction) || focusKey;
+    const primaryDetailHtml = focusCopy.primaryAction === 'sound'
+        ? '好きな響きから<br>読み候補を探します'
+        : focusCopy.primaryAction === 'reading'
+            ? '希望の読みから<br>合う漢字を探します'
+            : primaryActionStageKey === 'build'
+                ? '集めた読みと漢字から<br>名前候補を作ります'
+                : primaryActionStageKey === 'save'
+                    ? '候補を見返して<br>名前を絞り込みます'
+                    : '今の候補を見返して<br>次に進めます';
     const actionCardConfig = {
         action: focusCopy.primaryAction,
         title: focusCopy.primaryLabel,
-        detailHtml: focusKey === 'reading'
-            ? '好きな響きから<br>読み候補を探します'
-            : focusKey === 'kanji'
-                ? '希望の読みから<br>合う漢字を探します'
-                : focusKey === 'build'
-                    ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '候補を見返して<br>名前を絞り込みます',
-        previewHtml: getHomeNextStagePreviewHtml(focusKey === 'reading' ? 'reading' : focusKey),
+        detailHtml: primaryDetailHtml,
+        previewHtml: getHomeNextStagePreviewHtml(primaryActionStageKey),
         variant: 'card',
         icon: ''
     };
@@ -3593,7 +3597,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
                             ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
-                        ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">選択中</div>` : ''}
+                        ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">今ここ</div>` : ''}
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
             `;
@@ -3607,7 +3611,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
             <div class="rounded-[24px] px-5 py-5">
-                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡この段階でできること</div>
+                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡次にやること</div>
                 <div class="mt-3">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
@@ -3763,6 +3767,8 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     const readingCount = Math.max(0, Number(readingStockCount) || 0);
     const kanjiCount = Math.max(0, Number(likedCount) || 0);
     const savedTotal = Math.max(0, Number(savedCount) || 0);
+    const wizard = getWizardHomeState();
+    const hasWizardReadingCandidate = wizard.hasReadingCandidate === true;
     const buildCount = Number.isFinite(Number(options.buildCount))
         ? Math.max(0, Number(options.buildCount))
         : Math.max(0, Number(getHomeBuildPatternCount()) || 0);
@@ -3800,12 +3806,18 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         return copy;
     };
 
-    const readingEmptyLines = [
-        'まだ読み候補はありません。',
-        'まずは好きな響きや呼びたい音から、読み候補を探しましょう。'
-    ];
+    const readingEmptyLines = hasWizardReadingCandidate
+        ? [
+            '読み候補がある状態です。',
+            'まずはその読みで使いたい漢字を探しましょう。'
+        ]
+        : [
+            '名づけはまだ最初の段階です。',
+            '気になる響きをいくつか残すと、次に漢字を選べます。'
+        ];
 
     if (stageKey === 'reading') {
+        const isReadingEmpty = readingCount === 0;
         const statusLines = readingCount === 0
             ? readingEmptyLines
             : readingCount <= 9
@@ -3820,12 +3832,16 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
 
         return setCopy(
             '読み',
-            'sound',
-            '響きを探す',
+            isReadingEmpty && hasWizardReadingCandidate ? 'reading' : 'sound',
+            isReadingEmpty
+                ? (hasWizardReadingCandidate ? '漢字を探す' : '響きを探す')
+                : '響きを探す',
             statusLines,
             [{ label: '読み', value: readingCount, unit: '件' }],
-            readingCount > 0 ? 'stock-reading' : '',
-            '集めた読みを見る'
+            readingCount > 0
+                ? 'stock-reading'
+                : (hasWizardReadingCandidate ? 'sound' : ''),
+            readingCount > 0 ? '集めた読みを見る' : '響きも探す'
         );
     }
 
