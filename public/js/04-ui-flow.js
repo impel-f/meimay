@@ -5775,18 +5775,23 @@ window.getCompoundReadingOptions = getCompoundReadingOptions;
 var searchClassFilter = '';  // '', '#自然', etc.
 var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 
-function getKanjiSearchScreenTitle() {
+function getKanjiSearchScreenTitleParts() {
     const premiumActive = typeof PremiumManager !== 'undefined'
         && PremiumManager
         && typeof PremiumManager.isPremium === 'function'
         && PremiumManager.isPremium();
-    return premiumActive ? '漢字を検索' : '漢字を検索（常用漢字のみ）';
+    return premiumActive
+        ? { main: '漢字を検索', sub: '' }
+        : { main: '漢字を検索', sub: '（常用漢字のみ）' };
 }
 
 function updateKanjiSearchTitle() {
     const titleEl = document.getElementById('kanji-search-title');
     if (!titleEl) return;
-    titleEl.textContent = getKanjiSearchScreenTitle();
+    const title = getKanjiSearchScreenTitleParts();
+    titleEl.innerHTML = title.sub
+        ? `${title.main}<span class="block text-[13px] font-bold leading-tight mt-0.5">${title.sub}</span>`
+        : title.main;
 }
 
 function openKanjiSearch() {
