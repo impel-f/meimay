@@ -50,3 +50,5 @@ Codexだけで進めると本番アカウント、課金、公開情報、削除
 - `@google/generative-ai` は `0.21.0` から `0.24.1` へ更新候補あり。
 - `xlsx` は高リスク指摘があるが npm audit 上は修正版なし。リリース前に利用範囲と代替方針を確認する。
 - `protobufjs` の critical 指摘は推移依存に含まれる。Functions / 管理スクリプト側の利用範囲を確認してから更新する。
+- `functions/` でも `npm audit --omit=dev` で 16件の脆弱性が検出された。
+- `functions/` の更新候補は `firebase-admin 13.8.0`、`firebase-functions 7.2.5`、`@apple/app-store-server-library 3.0.0`。特に Apple library のメジャー更新は課金通知検証に影響するため、実装差分を見てから判断する。
