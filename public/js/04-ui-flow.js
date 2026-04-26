@@ -5652,18 +5652,16 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const headerLabel = forceSplit ? '分け方の提案' : '';
     const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
-    const actionButtonsHtml = isStocked ? `
-            <div class="mb-4">
+    const actionButtonsHtml = isStocked && !forceSplit ? `
+            <div class="grid grid-cols-1 gap-2 mb-4">
+                <button type="button" onclick="event.stopPropagation(); closeReadingCombinationModal(); startReadingSplitProposalFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-gradient-to-r from-[#c8ad7f] to-[#d8c3a3] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                    漢字を選ぶ
+                </button>
                 <button type="button" onclick="window.removeCompletedReadingFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
                     <span>🗑️</span> ストックから外す
                 </button>
             </div>
-        ` : (!forceSplit ? `
-            <div class="flex gap-2 mb-4">
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(false)" class="flex-1 py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>♥</span> 候補</button>
-                <button onclick="event.stopPropagation(); saveReadingOnlyFromModal(true)" class="flex-1 py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95"><span>★</span> 本命</button>
-            </div>
-        ` : '');
+        ` : '';
     readingCombinationModalState = {
         item: { ...item, reading: modalReading || item.reading, baseNickname, basePosition: resolvedBasePosition },
         options,
@@ -5706,10 +5704,12 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                         ? option.candidates.map((candidate, candidateIndex) => `
                         <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
                             <div class="min-w-0 flex-1">
-                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${forceSplit ? 'この分け方から出せる候補' : preview.ruby}</div>
+                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${forceSplit ? 'この分け方から出せる候補' : '名前の例'}</div>
                                 <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                             </div>
-                            <button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>
+                            ${forceSplit
+                                ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>`
+                                : '<span class="shrink-0 px-3 py-1.5 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">例</span>'}
                         </div>
                         `).join('')
                         : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
