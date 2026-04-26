@@ -379,7 +379,8 @@ function getVisibleOwnLikedReadingsForUI() {
 
 function getReadingStockGroupKey(item) {
     const baseNickname = getReadingBaseReading(item?.baseNickname || '');
-    return baseNickname || '';
+    const basePosition = item?.basePosition === 'prefix' ? 'prefix' : '';
+    return basePosition === 'prefix' ? baseNickname : '';
 }
 
 /**
@@ -2212,7 +2213,8 @@ function showNicknameReadingSelectionWithStock(items) {
             const others = items.filter(i => i.reading !== item.reading);
             others.forEach(o => addReadingToStock(o.reading, nicknameBaseReading, o.tags || [], {
                 clearHidden: true,
-                trackStats: false
+                trackStats: false,
+                basePosition: nicknamePosition === 'prefix' ? 'prefix' : ''
             }));
             if (others.length > 0) {
                 showToast(`${others.length}件の読みをストックに保存しました`);
@@ -2449,6 +2451,37 @@ function initUniversalSwipePhysics(card) {
     const bN = document.getElementById('badge-nope-uni');
     const bS = document.getElementById('badge-super-uni');
 
+    [bL, bN, bS].forEach(badge => {
+        if (!badge) return;
+        badge.classList.remove('hidden');
+        badge.style.opacity = 0;
+        badge.style.removeProperty('--stamp-scale');
+    });
+
+    const updateSwipeStamps = () => {
+        const applyStamp = (badge, amount) => {
+            if (!badge) return;
+            const opacity = Math.max(0, Math.min(0.96, amount));
+            badge.style.opacity = opacity;
+            badge.style.setProperty('--stamp-scale', String(0.92 + (opacity * 0.16)));
+        };
+
+        const horizontalDominates = Math.abs(dx) >= Math.abs(dy) * 0.82;
+        const superDominates = dy < 0 && Math.abs(dy) > Math.abs(dx) * 0.82 && !SwipeState.config.disableSuper;
+
+        applyStamp(bS, superDominates ? (Math.abs(dy) - 28) / 96 : 0);
+        applyStamp(bL, horizontalDominates && dx > 0 ? (dx - 24) / 96 : 0);
+        applyStamp(bN, horizontalDominates && dx < 0 ? (Math.abs(dx) - 24) / 96 : 0);
+    };
+
+    const resetSwipeStamps = () => {
+        [bL, bN, bS].forEach(badge => {
+            if (!badge) return;
+            badge.style.opacity = 0;
+            badge.style.removeProperty('--stamp-scale');
+        });
+    };
+
     card.onpointerdown = e => {
         if (e.target.closest('button') || e.target.closest('#uni-swipe-action-btns')) return;
         sx = e.clientX;
@@ -2470,9 +2503,7 @@ function initUniversalSwipePhysics(card) {
             const rotate = dx / 15;
             card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
 
-            if (bS) bS.style.opacity = dy < -40 ? Math.min(0.9, (Math.abs(dy) - 40) / 80) : 0;
-            if (bL) bL.style.opacity = dx > 30 ? Math.min(0.9, (dx - 30) / 80) : 0;
-            if (bN) bN.style.opacity = dx < -30 ? Math.min(0.9, (Math.abs(dx) - 30) / 80) : 0;
+            updateSwipeStamps();
         });
     };
 
@@ -2482,7 +2513,7 @@ function initUniversalSwipePhysics(card) {
         try { card.releasePointerCapture(e.pointerId); } catch (err) { }
         card.style.willChange = 'auto';
 
-        [bL, bN, bS].forEach(b => { if (b) b.style.opacity = 0; });
+        resetSwipeStamps();
 
         const threshold = 100;
 
@@ -2510,7 +2541,10 @@ function initUniversalSwipePhysics(card) {
         }
     };
 
-    card.onpointercancel = () => { active = false; };
+    card.onpointercancel = () => {
+        active = false;
+        resetSwipeStamps();
+    };
 
     function resetCard() {
         card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
@@ -3561,6 +3595,7 @@ function normalizeReadingStockItem(item) {
             reading,
             segments: readingPromoted ? displaySegments : [],
             baseNickname: '',
+            basePosition: '',
             tags: [],
             isSuper: false,
             ownSuper: false,
@@ -3591,6 +3626,7 @@ function normalizeReadingStockItem(item) {
     ));
     const segments = readingPromoted ? rawSegments : [];
     const source = item && item.source ? String(item.source) : '';
+    const basePosition = item && item.basePosition === 'prefix' ? 'prefix' : '';
     const rawOwnSuper = !!(item && item.ownSuper);
     const partnerSuper = !!(item && (item.partnerSuper || (source === 'partner-reading' && !!item.isSuper && !rawOwnSuper)));
     let isSuper = !!(item && item.isSuper) && (source !== 'partner-reading' || rawOwnSuper);
@@ -3608,6 +3644,7 @@ function normalizeReadingStockItem(item) {
         reading,
         segments,
         baseNickname: item && item.baseNickname ? item.baseNickname : '',
+        basePosition,
         tags: Array.isArray(item && item.tags) ? [...new Set(item.tags.filter(Boolean))] : [],
         isSuper,
         ownSuper,
@@ -3799,6 +3836,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
         : [];
     const readingPromoted = !!options.readingPromoted;
+    const basePosition = options.basePosition === 'prefix' ? 'prefix' : '';
     const normalizedSegmentsInput = Array.isArray(options.segments) ? options.segments.filter(Boolean) : [];
     const normalizedSegments = readingPromoted ? normalizedSegmentsInput : [];
     const targetId = getReadingStockKey(reading, normalizedSegments);
@@ -3809,6 +3847,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         if (!existing.baseNickname && normalizedBaseNickname) {
             existing.baseNickname = normalizedBaseNickname;
         }
+        existing.basePosition = basePosition || (existing.basePosition === 'prefix' ? 'prefix' : '');
         existing.readingPromoted = !!(existing.readingPromoted || readingPromoted);
         existing.segments = existing.readingPromoted
             ? (readingPromoted ? normalizedSegments : (Array.isArray(existing.segments) ? existing.segments.filter(Boolean) : []))
@@ -3837,6 +3876,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         reading: reading,
         segments: normalizedSegments,
         baseNickname: normalizedBaseNickname,
+        basePosition,
         tags: normalizedTags,
         isSuper: !!options.isSuper,
         ownSuper: !!options.isSuper,
@@ -3904,7 +3944,8 @@ function syncReadingStockFromLiked(items = liked) {
                 isSuper: !!item.isSuper,
                 gender: item.gender || gender || 'neutral',
                 readingPromoted,
-                source: readingPromoted ? (item.source || 'reading-combination') : item.source
+                source: readingPromoted ? (item.source || 'reading-combination') : item.source,
+                basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
             }
         );
     });
@@ -5246,91 +5287,6 @@ function getReadingCardTagBadges(tags) {
 }
 
 
-function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '') {
-    closeReadingCombinationModal();
-
-    const options = getReadingSegmentOptions(
-        item.reading,
-        4,
-        preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
-    );
-    const preview = getReadingFullNamePreview(item.reading);
-    readingCombinationModalState = {
-        item: { ...item, baseNickname },
-        options
-    };
-
-    const modal = document.createElement('div');
-    modal.id = 'reading-combination-modal';
-    modal.className = 'overlay active modal-overlay-dark';
-    modal.onclick = (event) => {
-        if (event.target === modal) closeReadingCombinationModal();
-    };
-
-    modal.innerHTML = `
-        <div class="detail-sheet max-w-[440px]" onclick="event.stopPropagation()">
-            <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
-            <div class="text-center mb-5">
-                <div class="text-[10px] font-black text-[#bca37f] tracking-[0.25em] uppercase mb-2">KANJI CANDIDATES</div>
-                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${item.reading}</h3>
-                <div class="text-[12px] font-bold text-[#8b7e66]">${preview.ruby}</div>
-            </div>
-            ${renderReadingTagBadges(item.tags || [])}
-            <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
-                ${options.length === 0 ? `
-                    <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
-                        この読みでは候補がまだ見つかりませんでした。
-                    </div>
-                ` : options.map((option, index) => {
-                    const candidateHtml = option.candidates.length > 0
-                        ? option.candidates.map((candidate, candidateIndex) => `
-                            <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3">
-                                <div class="flex items-start justify-between gap-3 mb-3">
-                                    <div class="min-w-0">
-                                        <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
-                                        <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
-                                    </div>
-                                    <span class="px-2.5 py-1 rounded-full bg-white text-[#b9965b] text-[10px] font-black border border-[#e7dac7]">候補</span>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button onclick="saveReadingCandidateFromModal(${index}, ${candidateIndex})" class="w-full py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all">保存</button>
-                                </div>
-                            </div>
-                        `).join('')
-                        : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
-                    return `
-                        <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
-                            <div class="flex items-center justify-between gap-3 mb-3">
-                                <div>
-                                    <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
-                                    <div class="text-[11px] text-[#a6967a] mt-1">${preview.ruby}</div>
-                                </div>
-                                <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
-                            </div>
-                            <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    if (isStocked) {
-        const actionRow = modal.querySelector('[data-reading-combination-actions]');
-        if (actionRow) {
-            actionRow.className = 'mb-4 flex justify-end';
-            actionRow.style.display = '';
-            actionRow.innerHTML = `
-                <button onclick="event.stopPropagation(); removeCompletedReadingFromStock(${JSON.stringify(stockTarget)})" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
-                    この読みをストックから外す
-                </button>
-            `;
-        }
-    }
-}
-
-
 window.closeReadingCombinationModal = closeReadingCombinationModal;
 window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
 window.saveReadingCombinationFromModal = saveReadingCombinationFromModal;
@@ -5355,52 +5311,6 @@ window.aiReorderCandidates = aiReorderCandidates;
 
 
 
-async function startNicknameCandidateSwipe(baseReading) {
-    const flowBaseReading = toHira(baseReading || '');
-    nicknameBaseReading = flowBaseReading;
-
-    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
-    if (!sourceReady) {
-        if (typeof showToast === 'function') {
-            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        } else {
-            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        }
-        return;
-    }
-
-    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
-        .map(item => ({
-            ...item,
-            gender: item.gender || gender || 'neutral'
-        }));
-
-    if (!candidates || candidates.length === 0) {
-        alert('候補が見つかりませんでした。別の読みで試してください。');
-        return;
-    }
-
-    startUniversalSwipe('nickname', candidates, {
-        title: '読みで選ぶ',
-        subtitle: `${nicknameBaseReading} を含む候補から、気になる読みを選びます`,
-        onLike: (item, action) => {
-            if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
-                    isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral',
-                    clearHidden: true
-                });
-            }
-        },
-        onTap: (item) => {
-            openReadingCombinationModal(item, nicknameBaseReading);
-        },
-        renderCard: (item) => renderReadingSwipeCard(item)
-    });
-}
-
-
-
 window.openReadingStockModal = openReadingStockModal;
 window.saveReadingOnlyFromModal = saveReadingOnlyFromModal;
 window.saveReadingCandidateFromModal = saveReadingCandidateFromModal;
@@ -5422,61 +5332,6 @@ window.openReadingCombinationDetailFromItem = openReadingCombinationDetailFromIt
 
 
 
-
-
-
-async function startNicknameCandidateSwipe(baseReading) {
-    const flowBaseReading = toHira(baseReading || '');
-    nicknameBaseReading = flowBaseReading;
-
-    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
-    if (!sourceReady) {
-        if (typeof showToast === 'function') {
-            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        } else {
-            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        }
-        return;
-    }
-    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
-        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
-        if (typeof showToast === 'function') {
-            showToast(loadMessage);
-        } else {
-            alert(loadMessage);
-        }
-        return;
-    }
-
-    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
-        .map(item => ({
-            ...item,
-            gender: item.gender || gender || 'neutral'
-        }));
-
-    if (!candidates || candidates.length === 0) {
-        alert('候補が見つかりませんでした。別の読みで試してください。');
-        return;
-    }
-
-    startUniversalSwipe('nickname', candidates, {
-        title: '読みで選ぶ',
-        subtitle: `${nicknameBaseReading} を含む候補から、気になる読みを選びます`,
-        onLike: (item, action) => {
-            if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
-                    isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral',
-                    clearHidden: true
-                });
-            }
-        },
-        onTap: (item) => {
-            openReadingCombinationModal(item, nicknameBaseReading);
-        },
-        renderCard: (item) => renderReadingSwipeCard(item)
-    });
-}
 
 
 
@@ -5694,36 +5549,6 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     if (typeof refreshPartnerAwareUI === 'function') {
         refreshPartnerAwareUI();
     }
-}function saveReadingOnlyFromModal(asSuper = false) {
-    if (!readingCombinationModalState) return;
-    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
-    const item = readingCombinationModalState.item || {};
-    const options = Array.isArray(readingCombinationModalState.options) ? readingCombinationModalState.options : [];
-    const preferred = options[0]?.path || getPreferredReadingSegments(item.reading);
-    addReadingToStock(
-        item.reading,
-        item.baseNickname || '',
-        item.tags || [],
-        {
-            segments: Array.isArray(preferred) ? preferred : [],
-            isSuper: !!asSuper,
-            gender: item.gender || gender || 'neutral',
-            clearHidden: true
-        }
-    );
-    if (typeof showToast === 'function') {
-        showToast(
-            asSuper ? `${item.reading}を本命として保存しました` : `${item.reading}を候補として保存しました`,
-            asSuper ? '⭐' : '💾'
-        );
-    }
-
-    if (typeof renderReadingStockSection === 'function') {
-        renderReadingStockSection();
-    }
-    if (typeof refreshPartnerAwareUI === 'function') {
-        refreshPartnerAwareUI();
-    }
 }
 
 function renderReadingSwipeCard(item) {
@@ -5786,12 +5611,13 @@ async function waitForAnyCandidateData(keys, timeoutMs = 5000, intervalMs = 50) 
     return ready();
 }
 
-async function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '', returnTarget = null) {
+async function openReadingCombinationModal(item, baseNickname = '', preferredLabel = '', returnTarget = null, basePosition = '') {
     closeReadingCombinationModal();
 
     const modalReading = getReadingBaseReading(item.reading || item.sessionReading || '');
     const displayReading = getReadingDisplayLabel(item);
     const forceSplit = !!item.forceSplit;
+    const resolvedBasePosition = basePosition === 'prefix' || item?.basePosition === 'prefix' ? 'prefix' : '';
     const sourceReady = await waitForAllCandidateData(['master', 'compoundReadingsData', 'readingSegmentRules'], 6000);
     if (!sourceReady) {
         if (typeof showToast === 'function') {
@@ -5839,7 +5665,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
             </div>
         ` : '');
     readingCombinationModalState = {
-        item: { ...item, reading: modalReading || item.reading, baseNickname },
+        item: { ...item, reading: modalReading || item.reading, baseNickname, basePosition: resolvedBasePosition },
         options,
         returnTarget: returnTarget || null,
         forceSplit
@@ -7171,60 +6997,6 @@ function prepareAdaptiveReadingCandidates(candidates) {
     return aiReorderCandidates(filterEncounteredSoundCandidates(Array.isArray(candidates) ? candidates : []));
 }
 
-async function startNicknameCandidateSwipe(baseReading) {
-    const flowBaseReading = toHira(baseReading || '');
-    nicknameBaseReading = flowBaseReading;
-
-    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
-    if (!sourceReady) {
-        if (typeof showToast === 'function') {
-            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        } else {
-            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        }
-        return;
-    }
-    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
-        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
-        if (typeof showToast === 'function') {
-            showToast(loadMessage);
-        } else {
-            alert(loadMessage);
-        }
-        return;
-    }
-
-    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
-        .map(item => ({
-            ...item,
-            gender: item.gender || gender || 'neutral'
-        }));
-
-    if (!candidates || candidates.length === 0) {
-        alert('候補が見つかりませんでした。別の読みで試してください。');
-        return;
-    }
-
-    startUniversalSwipe('nickname', candidates, {
-        title: '読みで選ぶ',
-        subtitle: `${nicknameBaseReading} を含む候補から、気になる読みを選びます`,
-        onLike: (item, action) => {
-            if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
-                    segments: getPreferredReadingSegments(item.reading),
-                    isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral',
-                    clearHidden: true
-                });
-            }
-        },
-        onTap: (item) => {
-            openReadingCombinationModal(item, nicknameBaseReading);
-        },
-        renderCard: (item) => renderReadingSwipeCard(item)
-    });
-}
-
 function processNickname() {
     const el = document.getElementById('in-nickname');
     let val = el ? el.value.trim() : '';
@@ -7310,61 +7082,6 @@ window.aiReorderCandidates = aiReorderCandidates;
 
 
 
-
-
-
-async function startNicknameCandidateSwipe(baseReading) {
-    const flowBaseReading = toHira(baseReading || '');
-    nicknameBaseReading = flowBaseReading;
-
-    const sourceReady = await waitForAnyCandidateData(['readingsData', 'yomiSearchData'], 5000);
-    if (!sourceReady) {
-        if (typeof showToast === 'function') {
-            showToast('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        } else {
-            alert('候補データを読み込み中です。少し待ってからもう一度試してください。');
-        }
-        return;
-    }
-    if (getCandidateDataLoadStatus('readingsData') !== 'loaded' && getCandidateDataLoadStatus('yomiSearchData') !== 'loaded') {
-        const loadMessage = '候補データを読み込めませんでした。ページを再読み込みしてからもう一度お試しください。';
-        if (typeof showToast === 'function') {
-            showToast(loadMessage);
-        } else {
-            alert(loadMessage);
-        }
-        return;
-    }
-
-    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
-        .map(item => ({
-            ...item,
-            gender: item.gender || gender || 'neutral'
-        }));
-
-    if (!candidates || candidates.length === 0) {
-        alert('候補が見つかりませんでした。読みを変えてもう一度試してください。');
-        return;
-    }
-
-    startUniversalSwipe('nickname', candidates, {
-        title: '読みで選ぶ',
-        subtitle: `${nicknameBaseReading} から名前候補を選んでください`,
-        onLike: (item, action) => {
-            if (typeof addReadingToStock === 'function') {
-                addReadingToStock(item.reading, nicknameBaseReading, item.tags || [], {
-                    isSuper: action === 'super',
-                    gender: item.gender || gender || 'neutral',
-                    clearHidden: true
-                });
-            }
-        },
-        onTap: (item) => {
-            openReadingCombinationModal(item, nicknameBaseReading);
-        },
-        renderCard: (item) => renderReadingSwipeCard(item)
-    });
-}
 
 
 
@@ -7456,20 +7173,25 @@ function openReadingStockModal(reading) {
 function saveReadingCandidateToStock(option, candidate, asSuper = false) {
     const sessionReading = readingCombinationModalState.item.reading;
     const sessionSegments = Array.isArray(option.path) ? [...option.path] : [];
+    const modalBaseNickname = readingCombinationModalState.item.baseNickname || '';
+    const modalBasePosition = readingCombinationModalState.item.basePosition === 'prefix' ? 'prefix' : '';
 
-    addReadingToStock(sessionReading, readingCombinationModalState.item.baseNickname || '', readingCombinationModalState.item.tags || [], {
+    addReadingToStock(sessionReading, modalBaseNickname, readingCombinationModalState.item.tags || [], {
         segments: sessionSegments,
         isSuper: !!asSuper,
         gender: readingCombinationModalState.item.gender || gender || 'neutral',
         clearHidden: true,
         readingPromoted: true,
-        source: 'reading-combination'
+        source: 'reading-combination',
+        basePosition: modalBasePosition
     });
 
     candidate.combination.forEach((piece, slotIndex) => {
         const existing = liked.find(item => item['����'] === piece['����'] && item.slot === slotIndex && item.sessionReading === sessionReading);
         if (existing) {
             existing.isSuper = existing.isSuper || !!asSuper;
+            if (!existing.baseNickname && modalBaseNickname) existing.baseNickname = modalBaseNickname;
+            existing.basePosition = modalBasePosition || (existing.basePosition === 'prefix' ? 'prefix' : '');
             existing.readingPromoted = true;
             existing.source = existing.source || 'reading-combination';
             return;
@@ -7480,6 +7202,8 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
             slot: slotIndex,
             sessionReading,
             sessionSegments,
+            baseNickname: modalBaseNickname,
+            basePosition: modalBasePosition,
             readingPromoted: true,
             source: 'reading-combination',
             isSuper: !!asSuper
@@ -7499,7 +7223,8 @@ function saveReadingOnlyFromModal(asSuper = false) {
         segments: [],
         isSuper: !!asSuper,
         gender: item.gender || gender || 'neutral',
-        clearHidden: true
+        clearHidden: true,
+        basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
     });
     if (typeof showToast === 'function') {
         showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を取り込みました`, asSuper ? '★' : '✓');
@@ -7589,7 +7314,8 @@ function likePartnerReadingStock(index) {
         partnerSuper: !!item.isSuper,
         gender: item.gender || gender || 'neutral',
         source: 'partner-reading',
-        clearHidden: true
+        clearHidden: true,
+        basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
     });
 
     if (typeof showToast === 'function') showToast(`${reading}を取り込みました`, '✓');
@@ -7943,12 +7669,13 @@ async function startNicknameCandidateSwipe(baseReading) {
                 addReadingToStock(item.reading, flowBaseReading, item.tags || [], {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
-                    clearHidden: true
+                    clearHidden: true,
+                    basePosition: nicknamePosition === 'prefix' ? 'prefix' : ''
                 });
             }
         },
         onTap: (item) => {
-            openReadingCombinationModal(item, flowBaseReading);
+            openReadingCombinationModal(item, flowBaseReading, '', null, nicknamePosition === 'prefix' ? 'prefix' : '');
         },
         renderCard: (item) => renderReadingSwipeCard(item)
     });

@@ -13,6 +13,30 @@ function setupPhysics(card, data) {
     const bN = document.getElementById('badge-nope');
     const bS = document.getElementById('badge-super');
 
+    const updateSwipeStamps = () => {
+        const applyStamp = (badge, amount) => {
+            if (!badge) return;
+            const opacity = Math.max(0, Math.min(0.96, amount));
+            badge.style.opacity = opacity;
+            badge.style.setProperty('--stamp-scale', String(0.92 + (opacity * 0.16)));
+        };
+
+        const horizontalDominates = Math.abs(dx) >= Math.abs(dy) * 0.82;
+        const superDominates = dy < 0 && Math.abs(dy) > Math.abs(dx) * 0.82;
+
+        applyStamp(bS, superDominates ? (Math.abs(dy) - 28) / 96 : 0);
+        applyStamp(bL, horizontalDominates && dx > 0 ? (dx - 24) / 96 : 0);
+        applyStamp(bN, horizontalDominates && dx < 0 ? (Math.abs(dx) - 24) / 96 : 0);
+    };
+
+    const resetSwipeStamps = () => {
+        [bL, bN, bS].forEach(badge => {
+            if (!badge) return;
+            badge.style.opacity = 0;
+            badge.style.removeProperty('--stamp-scale');
+        });
+    };
+
     // ポインターダウン
     card.onpointerdown = e => {
         // 既にスワイプ中の場合は無視
@@ -59,16 +83,7 @@ function setupPhysics(card, data) {
             const rotate = dx / 15;
             card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
 
-            // バッジ表示（閾値調整済み）
-            if (bS) {
-                bS.style.opacity = dy < -40 ? Math.min(0.9, (Math.abs(dy) - 40) / 80) : 0;
-            }
-            if (bL) {
-                bL.style.opacity = dx > 30 ? Math.min(0.9, (dx - 30) / 80) : 0;
-            }
-            if (bN) {
-                bN.style.opacity = dx < -30 ? Math.min(0.9, (Math.abs(dx) - 30) / 80) : 0;
-            }
+            updateSwipeStamps();
         });
     };
 
@@ -84,9 +99,7 @@ function setupPhysics(card, data) {
         if (_nav) _nav.style.pointerEvents = '';
 
         // バッジを非表示
-        [bL, bN, bS].forEach(b => {
-            if (b) b.style.opacity = 0;
-        });
+        resetSwipeStamps();
 
         const threshold = 100; // スワイプ判定閾値
 
@@ -120,6 +133,7 @@ function setupPhysics(card, data) {
     // ポインターキャンセル時もナビ復元
     card.onpointercancel = () => {
         active = false;
+        resetSwipeStamps();
         const _nav = document.getElementById('bottom-nav');
         if (_nav) _nav.style.pointerEvents = '';
     };

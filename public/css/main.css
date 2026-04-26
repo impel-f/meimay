@@ -443,7 +443,7 @@ body.hide-top-bar .screen-header-shell {
 .stamp-premium {
     position: absolute;
     top: 35%;
-    z-index: 100;
+    z-index: 1300;
     font-family: 'Zen Maru Gothic', sans-serif;
     font-weight: 900;
     font-size: clamp(24px, 6vw, 28px);
@@ -454,30 +454,34 @@ body.hide-top-bar .screen-header-shell {
     pointer-events: none;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(8px);
-    letter-spacing: 0.1em;
-    transition: opacity 0.1s;
+    letter-spacing: 0;
+    transform: var(--stamp-transform, none) scale(var(--stamp-scale, 0.92));
+    transition: opacity 0.08s ease-out, transform 0.08s ease-out;
 }
 
-#badge-like {
+#badge-like,
+#badge-like-uni {
     color: var(--like);
     border-color: var(--like);
     right: 10%;
-    transform: rotate(15deg);
+    --stamp-transform: rotate(15deg);
 }
 
-#badge-nope {
+#badge-nope,
+#badge-nope-uni {
     color: var(--nope);
     border-color: var(--nope);
     left: 10%;
-    transform: rotate(-15deg);
+    --stamp-transform: rotate(-15deg);
 }
 
-#badge-super {
+#badge-super,
+#badge-super-uni {
     color: var(--super);
     border-color: var(--super);
     left: 50%;
     top: 25%;
-    transform: translateX(-50%);
+    --stamp-transform: translateX(-50%);
     font-size: clamp(28px, 7vw, 32px);
 }
 
