@@ -3903,6 +3903,9 @@ MeimayPairing.syncMyData = async function () {
             meimayBackup: roomBackup,
             backup: roomBackup,
             isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
+            premiumSource: typeof premiumFields.premiumSource === 'string'
+                ? premiumFields.premiumSource
+                : null,
             subscriptionStatus: typeof premiumFields.subscriptionStatus === 'string'
                 ? premiumFields.subscriptionStatus
                 : null,
@@ -3922,7 +3925,13 @@ MeimayPairing.syncMyData = async function () {
                 : null,
             latestNotificationType: typeof premiumFields.latestNotificationType === 'string'
                 ? premiumFields.latestNotificationType
-                : (typeof premiumFields.appStoreLastNotificationType === 'string' ? premiumFields.appStoreLastNotificationType : null)
+                : (typeof premiumFields.appStoreLastNotificationType === 'string' ? premiumFields.appStoreLastNotificationType : null),
+            trialStatus: typeof premiumFields.trialStatus === 'string'
+                ? premiumFields.trialStatus
+                : null,
+            trialStartedAt: premiumFields.trialStartedAt || null,
+            trialEndsAt: premiumFields.trialEndsAt || null,
+            trialConsumedByRoom: premiumFields.trialConsumedByRoom === true
         };
         const roomPayload = attachRoomSyncWorkspaceState(roomPayloadBase, childWorkspaceStateV2, childWorkspaceStateV2UpdatedAt);
         roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -5299,8 +5308,14 @@ MeimayShare.buildPublicPremiumSnapshot = function (data) {
     const subscriptionStatus = typeof data.subscriptionStatus === 'string'
         ? data.subscriptionStatus.trim().toLowerCase()
         : (typeof data.premiumStatus === 'string' ? data.premiumStatus.trim().toLowerCase() : null);
+    const premiumSource = typeof data.premiumSource === 'string'
+        ? data.premiumSource.trim().toLowerCase() || null
+        : null;
+    const trialStatus = typeof data.trialStatus === 'string'
+        ? data.trialStatus.trim().toLowerCase() || null
+        : null;
     const appStoreExpiresAt = data.appStoreExpiresAt || data.premiumExpiresAt || null;
-    const premiumExpiresAt = data.premiumExpiresAt || data.appStoreExpiresAt || null;
+    const premiumExpiresAt = data.premiumExpiresAt || data.appStoreExpiresAt || data.trialEndsAt || null;
     const appStoreProductId = typeof data.appStoreProductId === 'string'
         ? data.appStoreProductId.trim() || null
         : (typeof data.premiumProductId === 'string' ? data.premiumProductId.trim() || null : null);
@@ -5315,6 +5330,8 @@ MeimayShare.buildPublicPremiumSnapshot = function (data) {
         : appStoreLastNotificationType;
     const hasIndicators = isPremium !== null
         || !!subscriptionStatus
+        || !!premiumSource
+        || !!trialStatus
         || !!appStoreExpiresAt
         || !!premiumExpiresAt
         || !!appStoreProductId
@@ -5325,6 +5342,7 @@ MeimayShare.buildPublicPremiumSnapshot = function (data) {
     return {
         raw: data,
         isPremium,
+        premiumSource,
         subscriptionStatus,
         premiumStatus: subscriptionStatus,
         appStoreExpiresAt,
@@ -5333,6 +5351,10 @@ MeimayShare.buildPublicPremiumSnapshot = function (data) {
         premiumProductId,
         appStoreLastNotificationType,
         latestNotificationType,
+        trialStatus,
+        trialStartedAt: data.trialStartedAt || null,
+        trialEndsAt: data.trialEndsAt || null,
+        trialConsumedByRoom: data.trialConsumedByRoom === true,
         updatedAt: data.updatedAt || null
     };
 };
@@ -5357,6 +5379,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
         await firebaseDb.collection('rooms').doc(roomCode)
             .collection('data').doc(user.uid).set({
                 isPremium: state.isPremium,
+                premiumSource: state.premiumSource,
                 subscriptionStatus: state.subscriptionStatus,
                 premiumStatus: state.premiumStatus,
                 appStoreExpiresAt: state.appStoreExpiresAt,
@@ -5365,6 +5388,10 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
                 premiumProductId: state.premiumProductId,
                 appStoreLastNotificationType: state.appStoreLastNotificationType,
                 latestNotificationType: state.latestNotificationType,
+                trialStatus: state.trialStatus,
+                trialStartedAt: state.trialStartedAt,
+                trialEndsAt: state.trialEndsAt,
+                trialConsumedByRoom: state.trialConsumedByRoom === true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
         return true;

@@ -153,7 +153,9 @@ service cloud.firestore {
           'appStoreLastNotificationType', 'appStoreLastSubtype', 'appStoreEnvironment', 'appStoreProductId',
           'premiumProductId', 'appStoreOriginalTransactionId', 'originalTransactionId', 'appStoreTransactionId',
           'appStoreExpiresAt', 'premiumExpiresAt', 'appStoreLastEventAt', 'appStoreLastEventAtMs',
-          'appStoreLastVerifiedAt', 'lastVerifiedAt', 'appStoreUpdatedAt'
+          'appStoreLastVerifiedAt', 'lastVerifiedAt', 'appStoreUpdatedAt',
+          'trialStatus', 'trialStartedAt', 'trialEndsAt', 'trialConsumedAt', 'trialSource',
+          'trialRoomCode', 'trialConsumedByRoom'
         ])
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',

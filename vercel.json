@@ -14,6 +14,10 @@
       "destination": "/api/stats.js"
     },
     {
+      "source": "/api/premium-trial",
+      "destination": "/api/premium-trial.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
@@ -27,6 +31,9 @@
     },
     "api/stats.js": {
       "maxDuration": 120
+    },
+    "api/premium-trial.js": {
+      "maxDuration": 30
     }
   }
 }

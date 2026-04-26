@@ -19,11 +19,19 @@ const PremiumManager = {
     DEV_FALLBACK_KEY: 'meimay_allow_local_premium',
     TOKEN_KEY: 'meimay_app_account_token',
     _remotePremium: null,
+    _remotePremiumSource: null,
     _remoteStatus: null,
+    _remoteAppStoreExpiresAt: null,
     _remoteExpiresAt: null,
     _remoteProductId: null,
     _remoteLastNotificationType: null,
+    _remoteTrialStatus: null,
+    _remoteTrialStartedAt: null,
+    _remoteTrialEndsAt: null,
+    _remoteTrialConsumedAt: null,
+    _remoteTrialConsumedByRoom: false,
     _userDocUnsub: null,
+    _trialStartInProgress: false,
 
     getLocalPremiumState: function () {
         try {
@@ -38,7 +46,9 @@ const PremiumManager = {
 
     getPublicPremiumSnapshot: function () {
         const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
-        const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt);
+        const remoteTrialStatus = String(this._remoteTrialStatus || '').trim().toLowerCase();
+        const remotePremiumSource = String(this._remotePremiumSource || '').trim().toLowerCase();
+        const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt || this._remoteTrialEndsAt);
         const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
         let isPremium = isLocalPremiumFallbackAllowed() ? this.getLocalPremiumState() : false;
 
@@ -46,7 +56,7 @@ const PremiumManager = {
             isPremium = !remoteExpired;
         } else if (this._remotePremium === false) {
             isPremium = false;
-        } else if (remoteStatus === 'active') {
+        } else if (remoteStatus === 'active' || remoteStatus === 'trialing' || remoteTrialStatus === 'active') {
             isPremium = !remoteExpired;
         } else if (remoteExpired || remoteStatus === 'expired' || remoteStatus === 'refunded' || remoteStatus === 'revoked' || remoteStatus === 'billing_retry') {
             isPremium = false;
@@ -54,14 +64,20 @@ const PremiumManager = {
 
         return {
             isPremium,
+            premiumSource: remotePremiumSource || null,
             subscriptionStatus: remoteStatus || null,
             premiumStatus: remoteStatus || null,
-            appStoreExpiresAt: this._remoteExpiresAt || null,
-            premiumExpiresAt: this._remoteExpiresAt || null,
+            appStoreExpiresAt: this._remoteAppStoreExpiresAt || null,
+            premiumExpiresAt: this._remoteExpiresAt || this._remoteTrialEndsAt || null,
             appStoreProductId: this._remoteProductId || null,
             premiumProductId: this._remoteProductId || null,
             appStoreLastNotificationType: this._remoteLastNotificationType || null,
-            latestNotificationType: this._remoteLastNotificationType || null
+            latestNotificationType: this._remoteLastNotificationType || null,
+            trialStatus: remoteTrialStatus || null,
+            trialStartedAt: this._remoteTrialStartedAt || null,
+            trialEndsAt: this._remoteTrialEndsAt || null,
+            trialConsumedAt: this._remoteTrialConsumedAt || null,
+            trialConsumedByRoom: this._remoteTrialConsumedByRoom === true
         };
     },
 
@@ -159,16 +175,27 @@ const PremiumManager = {
         this._userDocUnsub = docRef.onSnapshot((doc) => {
             const data = doc.exists ? (doc.data() || {}) : {};
             this._remotePremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
+            this._remotePremiumSource = typeof data.premiumSource === 'string'
+                ? data.premiumSource.trim().toLowerCase()
+                : null;
             this._remoteStatus = typeof data.subscriptionStatus === 'string'
                 ? data.subscriptionStatus.trim().toLowerCase()
                 : null;
-            this._remoteExpiresAt = data.appStoreExpiresAt || data.premiumExpiresAt || null;
+            this._remoteAppStoreExpiresAt = data.appStoreExpiresAt || null;
+            this._remoteExpiresAt = data.appStoreExpiresAt || data.premiumExpiresAt || data.trialEndsAt || null;
             this._remoteProductId = typeof data.appStoreProductId === 'string'
                 ? data.appStoreProductId
                 : (typeof data.premiumProductId === 'string' ? data.premiumProductId : null);
             this._remoteLastNotificationType = typeof data.appStoreLastNotificationType === 'string'
                 ? data.appStoreLastNotificationType
                 : (typeof data.latestNotificationType === 'string' ? data.latestNotificationType : null);
+            this._remoteTrialStatus = typeof data.trialStatus === 'string'
+                ? data.trialStatus.trim().toLowerCase()
+                : null;
+            this._remoteTrialStartedAt = data.trialStartedAt || null;
+            this._remoteTrialEndsAt = data.trialEndsAt || null;
+            this._remoteTrialConsumedAt = data.trialConsumedAt || null;
+            this._remoteTrialConsumedByRoom = data.trialConsumedByRoom === true;
 
             if (this.isPremium()) {
                 hideAdBanner();
@@ -554,17 +581,24 @@ function getConnectedPremiumPartnerSnapshot() {
 function buildPremiumMembershipState(record, source, options = {}) {
     const data = record || {};
     const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
-    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || null);
+    const premiumSource = String(data.premiumSource || '').trim().toLowerCase();
+    const trialStatus = String(data.trialStatus || '').trim().toLowerCase();
+    const trialEndsAt = normalizePremiumDate(data.trialEndsAt || null);
+    const trialConsumedAt = normalizePremiumDate(data.trialConsumedAt || null);
+    const expiresAt = normalizePremiumDate(data.appStoreExpiresAt || data.premiumExpiresAt || data.trialEndsAt || null);
     const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
     const explicitPremium = typeof data.isPremium === 'boolean' ? data.isPremium : null;
-    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId;
+    const hasTrialIndicators = !!trialStatus || !!trialEndsAt || !!trialConsumedAt || premiumSource === 'trial';
+    const hasPremiumIndicators = explicitPremium !== null || !!status || !!expiresAt || !!productId || hasTrialIndicators;
     const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
     const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
     const expired = expiredByDate || expiredStatuses.has(status);
+    const isTrial = premiumSource === 'trial' || status === 'trialing' || trialStatus === 'active';
+    const trialConsumed = !!trialConsumedAt || trialStatus === 'consumed' || trialStatus === 'expired' || (hasTrialIndicators && expired);
     const localFallbackActive = options.allowLocalFallback === true
         && !hasPremiumIndicators
         && options.localPremium === true;
-    const active = !expired && (explicitPremium === true || status === 'active' || localFallbackActive);
+    const active = !expired && (explicitPremium === true || status === 'active' || status === 'trialing' || trialStatus === 'active' || localFallbackActive);
     const isPartner = source === 'partner';
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
 
@@ -574,13 +608,21 @@ function buildPremiumMembershipState(record, source, options = {}) {
         : 'このアカウントのプレミアム状態はまだ確認できていません。';
 
     if (active) {
-        label = isPartner ? 'プレミアム有効\nパートナー特典' : 'プレミアム有効';
+        if (isTrial) {
+            label = isPartner ? '3日無料プレミアム有効\nパートナー特典' : '3日無料プレミアム有効';
+        } else {
+            label = isPartner ? 'プレミアム有効\nパートナー特典' : 'プレミアム有効';
+        }
         if (expiresLabel && !expiredByDate) {
             label += '\n' + expiresLabel + 'まで';
         }
         if (localFallbackActive) {
             label = '開発用プレミアム有効';
             detail = 'ローカル確認用のプレミアム状態です。本番では購入情報を確認します。';
+        } else if (isTrial) {
+            detail = isPartner
+                ? '連携中のパートナーの無料体験で、プレミアム特典を利用できます。'
+                : '無料体験期間中です。気に入ったら有料プランへ進めます。';
         } else {
             detail = isPartner
                 ? '連携中のパートナーのプレミアム特典を利用できます。'
@@ -595,9 +637,15 @@ function buildPremiumMembershipState(record, source, options = {}) {
 
     return {
         source,
+        premiumSource,
         active,
         expired,
         hasPremiumIndicators,
+        isTrial,
+        trialStatus,
+        trialEndsAt,
+        trialConsumed,
+        trialConsumedByRoom: data.trialConsumedByRoom === true,
         title: label,
         label,
         detail,
@@ -610,11 +658,17 @@ function buildPremiumMembershipState(record, source, options = {}) {
 function getSelfPremiumMembershipState() {
     return buildPremiumMembershipState({
         isPremium: PremiumManager._remotePremium,
+        premiumSource: PremiumManager._remotePremiumSource,
         subscriptionStatus: PremiumManager._remoteStatus,
-        appStoreExpiresAt: PremiumManager._remoteExpiresAt,
+        appStoreExpiresAt: PremiumManager._remoteAppStoreExpiresAt,
         premiumExpiresAt: PremiumManager._remoteExpiresAt,
         appStoreProductId: PremiumManager._remoteProductId,
-        premiumProductId: PremiumManager._remoteProductId
+        premiumProductId: PremiumManager._remoteProductId,
+        trialStatus: PremiumManager._remoteTrialStatus,
+        trialStartedAt: PremiumManager._remoteTrialStartedAt,
+        trialEndsAt: PremiumManager._remoteTrialEndsAt,
+        trialConsumedAt: PremiumManager._remoteTrialConsumedAt,
+        trialConsumedByRoom: PremiumManager._remoteTrialConsumedByRoom
     }, 'self', {
         localPremium: typeof PremiumManager.getLocalPremiumState === 'function'
             ? PremiumManager.getLocalPremiumState()
@@ -698,6 +752,90 @@ PremiumManager.refreshPurchaseState = async function () {
     }
 };
 
+function getPremiumTrialRoomNotice() {
+    const inRoom = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode;
+    const hasPartner = inRoom && !!MeimayPairing.partnerUid;
+    if (hasPartner) {
+        return 'パートナー連携中なので、開始すると二人分の無料枠を同時に使います。';
+    }
+    if (inRoom) {
+        return 'パートナー参加前に開始すると、この端末の無料枠だけを使います。';
+    }
+    return '好きなタイミングで1回だけ開始できます。';
+}
+
+function getPremiumTrialButtonLabel() {
+    if (PremiumManager._trialStartInProgress) return '開始しています...';
+    const hasPartner = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && MeimayPairing.partnerUid;
+    return hasPartner ? '二人で3日間試す' : '3日間無料で試す';
+}
+
+function getPremiumTrialToastMessage(result) {
+    const status = String(result?.status || '').trim();
+    if (status === 'started') {
+        return result?.consumesRoom ? '二人の無料体験を開始しました' : '3日間の無料体験を開始しました';
+    }
+    if (status === 'trial_active') return '無料体験はすでに有効です';
+    if (status === 'partner_trial_active') return 'パートナーの無料体験が有効です';
+    if (status === 'paid_active') return 'すでにプレミアムが有効です';
+    if (status === 'trial_unavailable') return '無料体験は利用済みです';
+    return '無料体験の状態を確認しました';
+}
+
+PremiumManager.startTrial = async function () {
+    if (this._trialStartInProgress) return false;
+
+    const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
+        ? MeimayAuth.getCurrentUser()
+        : null;
+    if (!user) {
+        if (typeof showToast === 'function') {
+            showToast('無料体験の開始には接続準備が必要です', 'i');
+        }
+        return false;
+    }
+
+    this._trialStartInProgress = true;
+    if (typeof showPremiumModal === 'function') showPremiumModal();
+
+    try {
+        const headers = typeof getFirebaseRequestHeaders === 'function'
+            ? await getFirebaseRequestHeaders()
+            : { 'Content-Type': 'application/json' };
+        const response = await fetch('/api/premium-trial', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                roomCode: typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode
+                    ? MeimayPairing.roomCode
+                    : ''
+            })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.ok === false) {
+            throw new Error(result.details || result.error || `HTTP ${response.status}`);
+        }
+
+        if (typeof showToast === 'function') {
+            showToast(getPremiumTrialToastMessage(result), result.status === 'started' ? 'OK' : 'i');
+        }
+
+        await this.refreshPurchaseState();
+        if (typeof showPremiumModal === 'function') showPremiumModal();
+        return result.status === 'started' || result.status === 'trial_active' || result.status === 'partner_trial_active' || result.status === 'paid_active';
+    } catch (e) {
+        console.warn('PREMIUM: startTrial failed', e);
+        if (typeof showToast === 'function') {
+            showToast('無料体験を開始できませんでした', '!');
+        }
+        return false;
+    } finally {
+        this._trialStartInProgress = false;
+        if (typeof updatePremiumUI === 'function') updatePremiumUI();
+        if (typeof showPremiumModal === 'function') showPremiumModal();
+    }
+};
+
 function updatePremiumUI() {
     const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
@@ -776,6 +914,35 @@ function renderPremiumLabelMarkup(label) {
         + '<span class="mt-0.5 block text-[9px] font-medium leading-tight text-[#8b7e66]">' + escapePremiumHtml(lines.slice(1).join(' ')) + '</span>';
 }
 
+function renderPremiumTrialCard(state) {
+    if (!state || state.active) return '';
+    const selfState = getSelfPremiumMembershipState();
+    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    const unavailable = selfState.trialConsumed || (partnerState && partnerState.trialConsumed);
+    const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
+    const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
+    const body = unavailable
+        ? 'このアカウント、または連携中のパートナーは無料体験を利用済みです。'
+        : getPremiumTrialRoomNotice();
+
+    return ''
+        + '<div class="rounded-[20px] border border-[#d7b57c] bg-[#fff7e8] px-3 py-3 shadow-[0_10px_24px_rgba(183,145,85,0.10)]">'
+        + '<div class="flex items-start justify-between gap-3">'
+        + '<div>'
+        + '<div class="text-[10px] font-black tracking-[0.14em] text-[#b48642]">無料体験</div>'
+        + '<div class="mt-1 text-[15px] sm:text-[17px] font-black text-[#4b3a24]">好きなタイミングから3日間</div>'
+        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>'
+        + '</div>'
+        + '</div>'
+        + '<button type="button" onclick="PremiumManager.startTrial()" class="mt-3 w-full py-2.5 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]' + disabledClass + '">'
+        + escapePremiumHtml(unavailable ? '無料体験は利用済み' : getPremiumTrialButtonLabel())
+        + '</button>'
+        + '</div>';
+}
+
 function showPremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
     if (!modal) return;
@@ -794,6 +961,7 @@ function showPremiumModal() {
         + '<h3 class="mt-1 text-[1.2rem] sm:text-[1.5rem] font-black text-[#5b4f3f]">プレミアム機能</h3>'
         + '</div>'
         + renderPremiumComparisonMatrix()
+        + renderPremiumTrialCard(state)
         + '<div class="rounded-[18px] border border-[#e4d9c6] bg-[#fffaf1] px-3 py-3">'
         + '<div class="text-[13px] sm:text-[15px] font-black text-[#2f271e] mb-1">現在の状態</div>'
         + '<div class="text-[12px] sm:text-[14px] leading-[1.65] text-[#5d5444]">' + renderPremiumLabelMarkup(state.label) + '</div>'
