@@ -347,12 +347,14 @@ body.hide-top-bar .screen-header-shell {
     z-index: 1000;
 }
 
-#main-session-content {
+#main-session-content,
+#uni-session-content {
     min-height: 0;
     overflow: hidden;
 }
 
-#scr-main {
+#scr-main,
+#scr-swipe-universal {
     padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
@@ -516,11 +518,11 @@ body.hide-top-bar .screen-header-shell {
 }
 
 .kanji-swipe-hint {
-    color: #d4c5af;
+    color: #c7b596;
     font-size: 9px;
     font-weight: 700;
     line-height: 1;
-    opacity: 0.82;
+    opacity: 0.95;
     letter-spacing: 0.08em;
     flex-shrink: 0;
 }
@@ -964,11 +966,11 @@ body.hide-top-bar .screen-header-shell {
 }
 
 .reading-swipe-hint {
-    color: #d4c5af;
+    color: #c7b596;
     font-size: 9px;
     font-weight: 700;
     line-height: 1;
-    opacity: 0.82;
+    opacity: 0.95;
     letter-spacing: 0.08em;
     flex-shrink: 0;
 }
