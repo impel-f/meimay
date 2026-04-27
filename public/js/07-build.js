@@ -1529,10 +1529,43 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     return [...filteredKanaCandidates, ...stockCandidates];
 }
 
+function getUniqueBuildSlotCandidates(seg, idx, currentReading, options = {}) {
+    const candidates = getBuildSlotCandidates(seg, idx, currentReading, options);
+    const seen = new Set();
+    return candidates.filter(item => {
+        const buildKey = buildLikedCandidateKey(item);
+        if (seen.has(buildKey)) return false;
+        seen.add(buildKey);
+        return true;
+    });
+}
+
+function autoSelectSingleBuildCandidates() {
+    if (buildMode !== 'reading') return false;
+    if (!Array.isArray(segments) || segments.length === 0) return false;
+    if (!Array.isArray(selectedPieces)) selectedPieces = [];
+
+    const currentReading = getSafeBuildCurrentReading();
+    let changed = false;
+
+    segments.forEach((seg, idx) => {
+        if (selectedPieces[idx]) return;
+        const items = getUniqueBuildSlotCandidates(seg, idx, currentReading, {
+            excluded: excludedKanjiFromBuild
+        });
+        if (items.length !== 1) return;
+        selectedPieces[idx] = { ...items[0] };
+        changed = true;
+    });
+
+    return changed;
+}
+
 window.getMergedLikedCandidates = getMergedLikedCandidates;
 window.getVisibleKanjiStockCardCount = getVisibleKanjiStockCardCount;
 window.getVisibleKanjiStockItemCount = getVisibleKanjiStockItemCount;
 window.getBuildSlotCandidates = getBuildSlotCandidates;
+window.autoSelectSingleBuildCandidates = autoSelectSingleBuildCandidates;
 
 function getStockOwnershipKind(item) {
     if (item?.partnerAlsoPicked) return 'matched';
@@ -1816,6 +1849,7 @@ function openBuild(options = {}) {
             }
         }
     }
+    autoSelectSingleBuildCandidates();
     renderBuildSelection();
     changeScreen('scr-build');
     if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
@@ -2235,16 +2269,8 @@ function renderBuildSelection() {
         const scrollBox = document.createElement('div');
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
-        let items = getBuildSlotCandidates(seg, idx, currentReading, {
+        let items = getUniqueBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
-        });
-
-        const seen = new Set();
-        items = items.filter(item => {
-            const buildKey = buildLikedCandidateKey(item);
-            if (seen.has(buildKey)) return false;
-            seen.add(buildKey);
-            return true;
         });
 
         if (items.length === 0) {

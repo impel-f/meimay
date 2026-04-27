@@ -4502,6 +4502,7 @@ function openBuildFromReading(reading, preferredSegments = []) {
     if (typeof openBuild === 'function') openBuild({ preserveReading: true });
 
     // 区切り変更時に選択状態を引き継ぐ試み
+    let restoredSelection = false;
     if (oldSelected.length > 0 && Array.isArray(segments) && Array.isArray(selectedPieces)) {
         segments.forEach((seg, idx) => {
             if (selectedPieces[idx]) return; // すでに固定などで埋まっている場合はスキップ
@@ -4514,8 +4515,19 @@ function openBuildFromReading(reading, preferredSegments = []) {
             });
             if (match) {
                 selectedPieces[idx] = { ...match };
+                restoredSelection = true;
             }
         });
+    }
+
+    const autoSelected = typeof autoSelectSingleBuildCandidates === 'function'
+        ? autoSelectSingleBuildCandidates()
+        : false;
+    if (restoredSelection || autoSelected) {
+        if (typeof renderBuildSelection === 'function') renderBuildSelection();
+        if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
+            executeBuild();
+        }
     }
 }
 

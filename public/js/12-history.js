@@ -193,6 +193,7 @@ function executeSaveWithMessage() {
     const message = messageInput ? messageInput.value.trim() : '';
 
     const saved = getSavedNames();
+    const wasFirstSavedName = saved.length === 0;
 
     // 重複チェック (名前の文字列だけでなく、構成も完全に一致する場合のみ重複とみなす)
     const isDuplicate = saved.some(item =>
@@ -244,8 +245,11 @@ function executeSaveWithMessage() {
     persistActiveChildWorkspaceSnapshot('save-name-message');
 
     closeSaveMessageModal();
+    if (wasFirstSavedName && typeof openSavedNames === 'function') {
+        openSavedNames();
+    }
     if (typeof showToast === 'function') {
-        showToast('名前を保存しました！', '✨');
+        showToast(wasFirstSavedName ? '保存しました。次は本命を選べます' : '名前を保存しました！', '✨');
     }
     console.log('HISTORY: Name saved', saveData);
 }
@@ -2171,7 +2175,11 @@ function renderSavedScreen() {
 
     const canvasHeaderText = canvasState.matched
         ? 'ふたりの本命が一致しました'
-        : '本命の候補を選択してください';
+        : (canvasState.ownMain
+            ? 'マイ本命を選択中'
+            : (hasPartnerLinked && canvasState.partnerMain
+                ? `${partnerDisplayLabel}を確認中`
+                : '本命の候補を選択してください'));
 
     canvasContainer.innerHTML = `
         <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
