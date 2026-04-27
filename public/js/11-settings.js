@@ -309,6 +309,36 @@ function openSettings() {
     changeScreen('scr-settings');
 }
 
+function getSettingsGenderLabel(value) {
+    return value === 'male' ? '男の子' : value === 'female' ? '女の子' : '指定なし';
+}
+
+function getSettingsActiveChildSummary() {
+    if (typeof MeimayChildWorkspaces === 'undefined'
+        || !MeimayChildWorkspaces
+        || typeof MeimayChildWorkspaces.getActiveChild !== 'function') {
+        return getSettingsGenderLabel(gender);
+    }
+
+    const activeChild = MeimayChildWorkspaces.getActiveChild();
+    if (!activeChild) return getSettingsGenderLabel(gender);
+    const label = typeof MeimayChildWorkspaces.getChildLabel === 'function'
+        ? MeimayChildWorkspaces.getChildLabel(activeChild.meta?.id)
+        : (activeChild.meta?.displayLabel || '第一子');
+    return `${label}・${getSettingsGenderLabel(activeChild.meta?.gender)}`;
+}
+
+function openActiveChildSettingsFromSettings() {
+    if (typeof MeimayChildWorkspaces !== 'undefined'
+        && MeimayChildWorkspaces
+        && MeimayChildWorkspaces.root?.activeChildId
+        && typeof MeimayChildWorkspaces.openChildModal === 'function') {
+        MeimayChildWorkspaces.openChildModal('edit', MeimayChildWorkspaces.root.activeChildId);
+        return;
+    }
+    openGenderInput();
+}
+
 /**
  * 設定画面のレンダリング
  */
@@ -316,8 +346,7 @@ function renderSettingsScreen() {
     const container = document.getElementById('settings-screen-content');
     if (!container) return;
 
-    const genderText = gender === 'male' ? '男の子' :
-        gender === 'female' ? '女の子' : '指定なし';
+    const genderText = getSettingsGenderLabel(gender);
 
     const tagCount = selectedImageTags.includes('none') ?
         'こだわらない' :
@@ -331,6 +360,9 @@ function renderSettingsScreen() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ' : wizData?.role === 'mama' ? 'ママ' : '未設定';
+    const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
+    const profileText = `${nicknameText}・${profileThemeText}`;
+    const activeChildText = getSettingsActiveChildSummary();
 
 
     // Partner linking status
@@ -381,13 +413,13 @@ function renderSettingsScreen() {
     container.innerHTML = `
         <div class="settings-screen-content">
             ${renderSection('プロフィール', `
-                ${renderItem({ title: 'ニックネーム', value: nicknameText, onClick: 'openNicknameInput()' })}
+                ${renderItem({ title: 'プロフィール', value: profileText, onClick: 'openProfileAppearanceModal()' })}
                 ${renderItem({ title: 'あなたの役割', value: roleText, onClick: 'openRoleInput()' })}
             `)}
 
             ${renderSection('名づけ条件', `
                 ${renderItem({ title: '苗字', value: surnameStr || '未設定', onClick: 'openSurnameInput()' })}
-                ${renderItem({ title: '赤ちゃんの性別', value: genderText, onClick: 'openGenderInput()' })}
+                ${renderItem({ title: '子どもの設定', value: activeChildText, onClick: 'openActiveChildSettingsFromSettings()' })}
             `)}
 
             ${renderSection('共有とプレミアム', `
@@ -404,8 +436,8 @@ function renderSettingsScreen() {
                 ${renderItem({ title: 'バックアップと復元', value: 'JSON・復元キー', onClick: 'openTransferModal()' })}
                 <button type="button" class="settings-item-unified" onclick="toggleInappropriateSetting()">
                     <span class="item-content-unified">
-                        <span class="item-title-unified">人名に使える漢字すべてを表示</span>
-                        <span class="item-value-unified">注意漢字も表示</span>
+                        <span class="item-title-unified">表示する漢字の範囲</span>
+                        <span class="item-value-unified">${showInappropriateKanji ? '全範囲' : 'おすすめ範囲'}</span>
                     </span>
                     <span class="settings-toggle ${showInappropriateKanji ? 'active' : ''}" aria-hidden="true">
                         <span></span>
@@ -477,8 +509,8 @@ function openRoleInput() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const current = wizData?.role || 'other';
     showChoiceModal('役割を選択', '', [
-        { label: 'ママ👩', value: 'mama' },
-        { label: 'パパ👨', value: 'papa' },
+        { label: 'ママ', value: 'mama' },
+        { label: 'パパ', value: 'papa' },
         { label: 'その他', value: 'other' }
     ], current, (value) => {
         if (typeof WizardData !== 'undefined') {
