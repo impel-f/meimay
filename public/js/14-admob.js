@@ -325,7 +325,7 @@ function buildPremiumState(source, activeHint, status, expiresAt) {
             source,
             active: false,
             expired: true,
-            title: '👑プレミアムモード：期限切れ',
+            title: 'プレミアム期限切れ',
             subtitle: '',
             detail: expiresDate
                 ? `有効期限は${formatPremiumDateLabel(expiresDate)}まででした。`
@@ -337,7 +337,7 @@ function buildPremiumState(source, activeHint, status, expiresAt) {
         source,
         active: false,
         expired: false,
-        title: '👑プレミアムモード：未登録',
+        title: '無料プラン',
         subtitle: '',
         detail: 'まだプレミアム購入情報がありません。'
     };
@@ -844,7 +844,7 @@ PremiumManager.getDisplayStatus = function () {
             active: false,
             expired: true,
             kind: 'expired',
-            drawerLines: ['👑 プレミアム：期限切れ', dateLabel ? `${dateLabel}まででした` : '再開できます'],
+            drawerLines: ['プレミアム期限切れ', dateLabel ? `${dateLabel}まででした` : '再開できます'],
             homeTitle: '無料プラン',
             homeDetail: 'プレミアム期限切れ',
             shortLabel: '無料プラン'
@@ -856,7 +856,7 @@ PremiumManager.getDisplayStatus = function () {
             active: false,
             expired: false,
             kind: 'free-used-trial',
-            drawerLines: ['👑 無料プラン', '無料体験は利用済み'],
+            drawerLines: ['無料プラン', '無料体験は利用済み'],
             homeTitle: '無料プラン',
             homeDetail: '無料体験は利用済み',
             shortLabel: '無料プラン'
@@ -867,7 +867,7 @@ PremiumManager.getDisplayStatus = function () {
         active: false,
         expired: false,
         kind: 'free',
-        drawerLines: ['👑 無料プラン', '3日無料体験あり'],
+        drawerLines: ['無料プラン', '3日無料体験あり'],
         homeTitle: '無料プラン',
         homeDetail: '3日無料体験あり',
         shortLabel: '無料プラン・3日無料体験あり'

@@ -795,20 +795,20 @@ function formatDrawerPremiumDate(value) {
 }
 
 function buildDrawerPremiumLabelLines(state) {
-    if (!state) return ['👑 プレミアム：未登録'];
-    if (state.expired) return ['👑 プレミアム：期限切れ'];
-    if (!state.active) return ['👑 プレミアム：未登録'];
+    if (!state) return ['無料プラン'];
+    if (state.expired) return ['プレミアム期限切れ'];
+    if (!state.active) return ['無料プラン'];
 
     const expiresLabel = formatDrawerPremiumDate(state.expiresAt);
     if (state.source === 'partner') {
         return expiresLabel
-            ? ['👑 プレミアム：有効', `パートナー特典・${expiresLabel}まで`]
-            : ['👑 プレミアム：有効', 'パートナー特典'];
+            ? ['👑 プレミアム', `パートナー特典・${expiresLabel}まで`]
+            : ['👑 プレミアム', 'パートナー特典'];
     }
 
     return expiresLabel
-        ? ['👑 プレミアム：有効', `${expiresLabel}まで有効`]
-        : ['👑 プレミアム：有効'];
+        ? ['👑 プレミアム', `${expiresLabel}まで有効`]
+        : ['👑 プレミアム'];
 }
 
 function updateDrawerProfile() {
