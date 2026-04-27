@@ -69,7 +69,7 @@ function summarizeTarget(uid, data, nowMs) {
   };
 }
 
-function buildTrialUpdate(now, endsAt, roomCode, consumesRoom) {
+function buildTrialUpdate(now, endsAt) {
   return {
     isPremium: true,
     premiumSource: 'trial',
@@ -81,8 +81,8 @@ function buildTrialUpdate(now, endsAt, roomCode, consumesRoom) {
     trialEndsAt: endsAt,
     trialConsumedAt: now,
     trialSource: 'manual_3_day',
-    trialRoomCode: roomCode || null,
-    trialConsumedByRoom: consumesRoom,
+    trialRoomCode: null,
+    trialConsumedByRoom: false,
     updatedAt: FieldValue.serverTimestamp()
   };
 }
@@ -121,72 +121,63 @@ module.exports = async (req, res) => {
   try {
     const result = await db.runTransaction(async (tx) => {
       let roomCode = '';
-      let targetUids = [uid];
+      let premiumContextUids = [uid];
 
       if (requestedRoomCode) {
         const roomRef = db.collection('rooms').doc(requestedRoomCode);
         const roomSnap = await tx.get(roomRef);
-        if (!roomSnap.exists) {
-          throw Object.assign(new Error('Room not found.'), { statusCode: 404, code: 'room_not_found' });
-        }
-
-        const roomData = roomSnap.data() || {};
-        const memberUids = [roomData.memberAUid, roomData.memberBUid]
-          .map((value) => String(value || '').trim())
-          .filter(Boolean);
-        if (!memberUids.includes(uid)) {
-          throw Object.assign(new Error('User is not a room member.'), { statusCode: 403, code: 'room_not_member' });
-        }
-
-        roomCode = requestedRoomCode;
-        if (memberUids.length >= 2) {
-          targetUids = [...new Set(memberUids)];
+        if (roomSnap.exists) {
+          const roomData = roomSnap.data() || {};
+          const memberUids = [roomData.memberAUid, roomData.memberBUid]
+            .map((value) => String(value || '').trim())
+            .filter(Boolean);
+          if (memberUids.includes(uid)) {
+            roomCode = requestedRoomCode;
+            premiumContextUids = [...new Set(memberUids)];
+          }
         }
       }
 
-      const userRefs = targetUids.map((targetUid) => db.collection('users').doc(targetUid));
+      const userRefs = premiumContextUids.map((targetUid) => db.collection('users').doc(targetUid));
       const userSnaps = await Promise.all(userRefs.map((ref) => tx.get(ref)));
       const now = new Date();
       const nowMs = now.getTime();
-      const summaries = userSnaps.map((snap, index) => summarizeTarget(targetUids[index], snap.data() || {}, nowMs));
+      const summaries = userSnaps.map((snap, index) => summarizeTarget(premiumContextUids[index], snap.data() || {}, nowMs));
       const selfSummary = summaries.find((summary) => summary.uid === uid) || summaries[0];
 
       if (summaries.some((summary) => summary.paidActive)) {
         return {
           status: 'paid_active',
           roomCode,
-          targetCount: targetUids.length
+          targetCount: 1
         };
       }
 
-      if (summaries.some((summary) => summary.trialActive)) {
+      if (selfSummary?.trialActive) {
         return {
-          status: selfSummary?.trialActive ? 'trial_active' : 'partner_trial_active',
+          status: 'trial_active',
           roomCode,
-          targetCount: targetUids.length
+          targetCount: 1
         };
       }
 
-      if (summaries.some((summary) => summary.trialConsumed)) {
+      if (selfSummary?.trialConsumed) {
         return {
           status: 'trial_unavailable',
           roomCode,
-          targetCount: targetUids.length
+          targetCount: 1
         };
       }
 
       const endsAt = new Date(nowMs + TRIAL_DURATION_MS);
-      const consumesRoom = targetUids.length > 1;
-      const update = buildTrialUpdate(now, endsAt, roomCode, consumesRoom);
-      userRefs.forEach((ref) => {
-        tx.set(ref, update, { merge: true });
-      });
+      const update = buildTrialUpdate(now, endsAt);
+      tx.set(db.collection('users').doc(uid), update, { merge: true });
 
       return {
         status: 'started',
         roomCode,
-        targetCount: targetUids.length,
-        consumesRoom,
+        targetCount: 1,
+        consumesRoom: false,
         trialStartedAt: now.toISOString(),
         trialEndsAt: endsAt.toISOString()
       };

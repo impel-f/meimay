@@ -631,8 +631,10 @@ function buildPremiumMembershipState(record, source, options = {}) {
     const localFallbackActive = options.allowLocalFallback === true
         && !hasPremiumIndicators
         && options.localPremium === true;
-    const active = !expired && (explicitPremium === true || status === 'active' || status === 'trialing' || trialStatus === 'active' || localFallbackActive);
     const isPartner = source === 'partner';
+    const active = !expired
+        && (explicitPremium === true || status === 'active' || status === 'trialing' || trialStatus === 'active' || localFallbackActive)
+        && !(isPartner && isTrial);
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
 
     let label = 'プレミアム未登録';
@@ -718,7 +720,7 @@ function getSelfPremiumMembershipState() {
         trialStartedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialStartedAt,
         trialEndsAt: localPreviewTrialEndsAt || PremiumManager._remoteTrialEndsAt,
         trialConsumedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialConsumedAt,
-        trialConsumedByRoom: localPreviewMode === 'trial' ? true : PremiumManager._remoteTrialConsumedByRoom
+        trialConsumedByRoom: localPreviewMode === 'trial' ? false : PremiumManager._remoteTrialConsumedByRoom
     }, 'self', {
         localPremium: localPreviewMode
             ? true
@@ -804,11 +806,7 @@ function getPremiumActiveDetailSentence(state, dateLabel) {
 PremiumManager.getDisplayStatus = function () {
     const state = this.getMembershipState();
     const selfState = getSelfPremiumMembershipState();
-    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
-    const partnerState = partnerSnapshot
-        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
-        : null;
-    const trialUnavailable = !!(selfState && selfState.trialConsumed) || !!(partnerState && partnerState.trialConsumed);
+    const trialUnavailable = !!(selfState && selfState.trialConsumed);
     const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
     const dateLabel = state.expiresAt ? formatPremiumMembershipDate(state.expiresAt) : '';
 
@@ -913,7 +911,7 @@ function getPremiumTrialRoomNotice() {
     const inRoom = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode;
     const hasPartner = inRoom && !!MeimayPairing.partnerUid;
     if (hasPartner) {
-        return 'パートナー連携中なので、開始すると二人分の無料枠を同時に使います。';
+        return '無料体験はこのアカウントだけで開始します。パートナーの無料枠は消費しません。';
     }
     if (inRoom) {
         return 'パートナー参加前に開始すると、この端末の無料枠だけを使います。';
@@ -923,17 +921,15 @@ function getPremiumTrialRoomNotice() {
 
 function getPremiumTrialButtonLabel() {
     if (PremiumManager._trialStartInProgress) return '開始しています...';
-    const hasPartner = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && MeimayPairing.partnerUid;
-    return hasPartner ? '二人で3日間試す' : '3日間無料で試す';
+    return '3日間無料で試す';
 }
 
 function getPremiumTrialToastMessage(result) {
     const status = String(result?.status || '').trim();
     if (status === 'started') {
-        return result?.consumesRoom ? '二人の無料体験を開始しました' : '3日間の無料体験を開始しました';
+        return '3日間の無料体験を開始しました';
     }
     if (status === 'trial_active') return '無料体験はすでに有効です';
-    if (status === 'partner_trial_active') return 'パートナーの無料体験が有効です';
     if (status === 'paid_active') return 'すでにプレミアムが有効です';
     if (status === 'trial_unavailable') return '無料体験は利用済みです';
     return '無料体験の状態を確認しました';
@@ -973,14 +969,6 @@ const PremiumTrialNudge = {
             ? getSelfPremiumMembershipState()
             : null;
         if (selfState && selfState.trialConsumed) return false;
-
-        const partnerSnapshot = typeof getConnectedPartnerPremiumSnapshot === 'function'
-            ? getConnectedPartnerPremiumSnapshot()
-            : null;
-        const partnerState = partnerSnapshot && typeof buildPremiumMembershipState === 'function'
-            ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
-            : null;
-        if (partnerState && partnerState.trialConsumed) return false;
 
         const state = this.loadState();
         return !state.trialStartedAt;
@@ -1072,17 +1060,11 @@ const PremiumTrialNudge = {
     },
 
     getContext: function (trigger, state) {
-        const hasPartner = typeof MeimayPairing !== 'undefined'
-            && MeimayPairing
-            && MeimayPairing.roomCode
-            && MeimayPairing.partnerUid;
-        const roomNote = hasPartner
-            ? 'パートナー連携中に開始すると、二人分の無料枠を同時に使います。'
-            : '開始するまでは無料枠は消費しません。';
+        const roomNote = '無料体験はこのアカウントだけで開始します。';
 
         if (trigger === 'partner' || state.partnerLinked === true) {
             return {
-                title: '二人で試す前に、3日間だけ開放できます',
+                title: '自分のタイミングで、3日間だけ開放できます',
                 body: '広告なし、スワイプ無制限、人名用漢字まで一度まとめて確認できます。' + roomNote
             };
         }
@@ -1177,7 +1159,7 @@ const PremiumTrialNudge = {
 
     markTrialStatus: function (status) {
         const normalized = String(status || '').trim();
-        if (!['started', 'trial_active', 'partner_trial_active', 'paid_active'].includes(normalized)) return;
+        if (!['started', 'trial_active', 'paid_active'].includes(normalized)) return;
         const state = this.loadState();
         this.saveState({
             ...state,
@@ -1231,7 +1213,7 @@ PremiumManager.startTrial = async function () {
 
         await this.refreshPurchaseState();
         if (typeof showPremiumModal === 'function') showPremiumModal();
-        return result.status === 'started' || result.status === 'trial_active' || result.status === 'partner_trial_active' || result.status === 'paid_active';
+        return result.status === 'started' || result.status === 'trial_active' || result.status === 'paid_active';
     } catch (e) {
         console.warn('PREMIUM: startTrial failed', e);
         if (typeof showToast === 'function') {
@@ -1369,15 +1351,11 @@ function renderPremiumStatusCard(state) {
 function renderPremiumTrialCard(state) {
     if (!state || state.active) return '';
     const selfState = getSelfPremiumMembershipState();
-    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
-    const partnerState = partnerSnapshot
-        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
-        : null;
-    const unavailable = selfState.trialConsumed || (partnerState && partnerState.trialConsumed);
+    const unavailable = selfState.trialConsumed;
     const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
     const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
     const body = unavailable
-        ? 'このアカウント、または連携中のパートナーは無料体験を利用済みです。'
+        ? 'このアカウントでは無料体験を利用済みです。'
         : getPremiumTrialRoomNotice();
 
     return ''
