@@ -356,6 +356,10 @@ function safeJsonCloneForRoomSync(value, fallback = null) {
     }
 }
 
+function hasRoomSyncArrayField(data, backup, key) {
+    return Array.isArray(data?.[key]) || Array.isArray(backup?.[key]);
+}
+
 function estimateSerializedSizeBytes(value) {
     try {
         const json = JSON.stringify(value);
@@ -3945,9 +3949,30 @@ MeimayPairing.syncMyData = async function () {
         // 変化がある場合のみ送信（指紋チェック）
         // updatedAtを除外して純粋なコンテンツの変化を確認
         const contentFingerprint = JSON.stringify({
+            role: roomPayload.role,
+            displayName: roomPayload.displayName,
+            username: roomPayload.username,
+            nickname: roomPayload.nickname,
+            themeId: roomPayload.themeId,
             liked: roomPayload.liked,
             savedNames: roomPayload.savedNames,
             readingStock: roomPayload.readingStock,
+            hiddenReadings: roomPayload.hiddenReadings,
+            likedRemoved: roomPayload.likedRemoved,
+            premium: {
+                isPremium: roomPayload.isPremium,
+                premiumSource: roomPayload.premiumSource,
+                subscriptionStatus: roomPayload.subscriptionStatus,
+                premiumStatus: roomPayload.premiumStatus,
+                appStoreExpiresAt: roomPayload.appStoreExpiresAt,
+                premiumExpiresAt: roomPayload.premiumExpiresAt,
+                appStoreProductId: roomPayload.appStoreProductId,
+                premiumProductId: roomPayload.premiumProductId,
+                trialStatus: roomPayload.trialStatus,
+                trialStartedAt: roomPayload.trialStartedAt,
+                trialEndsAt: roomPayload.trialEndsAt,
+                trialConsumedByRoom: roomPayload.trialConsumedByRoom
+            },
             meimayStateV2UpdatedAt: roomPayload.meimayStateV2UpdatedAt,
             meimayStateV2: roomPayload.meimayStateV2
         });
@@ -4782,6 +4807,9 @@ const MeimayUserBackup = {
             likedRemoved: typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._loadLikedRemovalState === 'function'
                 ? StorageBox._loadLikedRemovalState()
                 : [],
+            hiddenReadings: typeof readNormalizedHiddenReadings === 'function'
+                ? readNormalizedHiddenReadings()
+                : [],
             childWorkspaceStateV2: this._readChildWorkspaceStateV2()
         };
     },
@@ -4917,6 +4945,7 @@ const MeimayUserBackup = {
             (Array.isArray(sections.likedRemoved) && sections.likedRemoved.length > 0) ||
             (Array.isArray(sections.savedNames) && sections.savedNames.length > 0) ||
             (Array.isArray(sections.readingStock) && sections.readingStock.length > 0) ||
+            (Array.isArray(sections.hiddenReadings) && sections.hiddenReadings.length > 0) ||
             !!sections.childWorkspaceStateV2 ||
             !!likedClearFlag ||
             !!savedClearFlag
@@ -4940,7 +4969,7 @@ const MeimayUserBackup = {
                 : localStorage.getItem('meimay_saved_cleared_at');
             return JSON.stringify({
                 liked: projectedSections.liked || [],
-                likedRemoved: Array.isArray(sections?.likedRemoved) ? sections.likedRemoved.length : 0,
+                likedRemoved: Array.isArray(sections?.likedRemoved) ? sections.likedRemoved : [],
                 savedNames: projectedSections.savedNames || [],
                 readingStock: projectedSections.readingStock || [],
                 pairRoomCode,
@@ -5456,14 +5485,13 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             const roomPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
             let partnerPremiumSnapshot = roomPremiumSnapshot;
             let partnerUserBackup = null;
-            if (partnerUid && (
-                !likedSource.length
-                || !savedNamesSource.length
-                || !readingStockSource.length
-                || !encounteredSource.length
-                || !hiddenReadingsSource.length
+            const shouldFetchPartnerUserBackup = partnerUid && (
+                !hasRoomSyncArrayField(data, roomBackup, 'liked')
+                || !hasRoomSyncArrayField(data, roomBackup, 'savedNames')
+                || !hasRoomSyncArrayField(data, roomBackup, 'readingStock')
                 || !partnerChildWorkspaceStateV2
-            )) {
+            );
+            if (shouldFetchPartnerUserBackup) {
                 try {
                     const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
                     if (partnerUserDoc.exists) {

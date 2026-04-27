@@ -4032,9 +4032,18 @@ function syncReadingStockRankingStats(reading, delta = 1, period = 'all', gender
     });
 }
 
+function scheduleHiddenReadingStateSync(reason = 'hiddenReading') {
+    if (typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync(reason);
+    }
+    if (typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup.scheduleSync === 'function') {
+        MeimayUserBackup.scheduleSync(reason);
+    }
+}
+
 function rememberHiddenReading(reading) {
     const raw = String(reading || '').trim();
-    if (!raw) return;
+    if (!raw) return false;
 
     const normalized = normalizeHiddenReadingValue(raw);
 
@@ -4046,9 +4055,13 @@ function rememberHiddenReading(reading) {
             .filter(Boolean)
     );
     const next = new Set(Array.isArray(removedList) ? removedList.filter(Boolean) : []);
+    const previousSize = next.size;
     next.add(raw);
     if (normalized) next.add(normalized);
+    if (next.size === previousSize) return false;
     localStorage.setItem('meimay_hidden_readings', JSON.stringify(Array.from(next)));
+    scheduleHiddenReadingStateSync('rememberHiddenReading');
+    return true;
 }
 
 function forgetHiddenReading(reading) {
@@ -4073,6 +4086,7 @@ function forgetHiddenReading(reading) {
 
     if (next.length === removedList.length) return false;
     localStorage.setItem('meimay_hidden_readings', JSON.stringify(next));
+    scheduleHiddenReadingStateSync('forgetHiddenReading');
     return true;
 }
 
