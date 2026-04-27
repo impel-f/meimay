@@ -782,10 +782,10 @@ PremiumManager.getDisplayStatus = function () {
             active: true,
             expired: false,
             kind: 'trial',
-            drawerLines: ['👑 3日無料体験中', `${ownerText}・${periodText}`],
-            homeTitle: '3日無料体験中',
-            homeDetail: remainingLabel ? `${remainingLabel}・プレミアム利用中` : 'プレミアム利用中',
-            shortLabel: `3日無料体験中${remainingLabel ? `・${remainingLabel}` : ''}`
+            drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
+            homeTitle: 'プレミアム利用中',
+            homeDetail: `${ownerText}・${periodText}`,
+            shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
 
@@ -796,10 +796,10 @@ PremiumManager.getDisplayStatus = function () {
             active: true,
             expired: false,
             kind: 'premium',
-            drawerLines: ['👑 プレミアム：有効', `${ownerText}・${periodText}`],
-            homeTitle: 'プレミアム有効',
-            homeDetail: remainingLabel || (dateLabel ? `${dateLabel}まで` : 'プレミアム利用中'),
-            shortLabel: `プレミアム有効${remainingLabel ? `・${remainingLabel}` : ''}`
+            drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
+            homeTitle: 'プレミアム利用中',
+            homeDetail: periodText,
+            shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
 
@@ -1284,11 +1284,8 @@ function renderPremiumComparisonMatrix() {
 }
 
 function getPremiumModalSubtitle(state) {
-    if (state && state.active && state.isTrial) {
-        return '無料体験中です。期限内に使い心地を確認できます。';
-    }
     if (state && state.active) {
-        return 'プレミアム機能が有効です。';
+        return '広告なし・無制限が有効です。';
     }
     if (state && state.expired) {
         return '期限が切れています。必要なときに再開できます。';
@@ -1303,13 +1300,10 @@ function renderPremiumStatusCard(state) {
     if (!display || (!display.active && display.kind === 'free')) return '';
 
     const active = !!display.active;
-    const isTrial = display.kind === 'trial' || !!(state && state.isTrial);
     const title = display.homeTitle || (state && state.label) || '無料プラン';
     const detail = display.homeDetail || (state && state.detail) || '';
     const body = active
-        ? (isTrial
-            ? '広告なし・スワイプ無制限・人名用漢字が有効です。'
-            : '広告なし・スワイプ無制限などを利用できます。')
+        ? '広告なし・スワイプ無制限・人名用漢字を使えます。'
         : (display.kind === 'expired'
             ? '現在は無料プランです。再開するとプレミアム機能を利用できます。'
             : '現在は無料プランです。必要になったらプレミアムへ進めます。');
@@ -1319,7 +1313,7 @@ function renderPremiumStatusCard(state) {
     const pillClass = active
         ? 'bg-[#b98942] text-white'
         : 'bg-white text-[#8b7e66] border border-[#e6dccb]';
-    const pill = active ? (isTrial ? '無料体験中' : '有効') : '無料';
+    const pill = active ? '有効' : (display.kind === 'expired' ? '期限切れ' : '無料');
 
     return ''
         + '<div class="rounded-[18px] px-3 py-3 shadow-[0_10px_22px_rgba(123,95,52,0.08)] ' + toneClass + '">'
@@ -1384,11 +1378,13 @@ function showPremiumModal() {
         + renderPremiumStatusCard(state)
         + renderPremiumComparisonMatrix()
         + renderPremiumTrialCard(state)
-        + '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">'
+        + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
         + (state.active
             ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
             : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">購入状態を確認</button>')
-        + '<button onclick="closePremiumModal()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">あとで見る</button>'
+        + (state.active
+            ? ''
+            : '<button onclick="closePremiumModal()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">閉じる</button>')
         + '</div>'
         + '</div></div>';
 }
