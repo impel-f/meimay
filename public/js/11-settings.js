@@ -826,9 +826,9 @@ function openTransferModal() {
                         </div>
                     </div>
                     <div class="rounded-2xl bg-[#fff8ea] border border-[#e8d5ad] px-4 py-3">
-                        <div class="text-[11px] font-black text-[#5d5444]">復元ルール</div>
-                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">復元キーはクラウド上のバックアップとこの端末のデータを統合します。苗字、ニックネーム、匿名IDだけを使った復元は行いません。</div>
-                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">パートナー連携のルームや匿名ログイン自体は端末ごとに再確認が必要です。</div>
+                        <div class="text-[11px] font-black text-[#5d5444]">大切なこと</div>
+                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">復元すると、この端末にない候補が追加されます。今ある候補はそのまま残ります。</div>
+                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">復元キーだけで戻せるため、家族以外には共有しないでください。</div>
                     </div>
                 </div>
             </div>
