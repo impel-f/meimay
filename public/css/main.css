@@ -1451,6 +1451,25 @@ body.hide-top-bar #top-bar {
     box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
 }
 
+select.wiz-birth-order-select {
+    cursor: pointer;
+    padding-right: 42px;
+    background-color: rgba(255, 255, 255, 0.96);
+    background-image:
+        linear-gradient(45deg, transparent 50%, #b08a54 50%),
+        linear-gradient(135deg, #b08a54 50%, transparent 50%);
+    background-position:
+        calc(100% - 20px) 50%,
+        calc(100% - 14px) 50%;
+    background-repeat: no-repeat;
+    background-size: 6px 6px, 6px 6px;
+    box-shadow: 0 3px 10px rgba(93, 84, 68, 0.06);
+}
+
+select.wiz-birth-order-select:active {
+    background-color: #fff8ec;
+}
+
 .wiz-baby-gender-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

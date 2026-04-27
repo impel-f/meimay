@@ -2059,7 +2059,7 @@
                 button = document.createElement('button');
                 button.id = 'top-bar-child-button';
                 button.type = 'button';
-                button.className = 'absolute right-4 top-1/2 inline-flex h-[32px] max-w-[44vw] -translate-y-1/2 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-[#cdbb9f] bg-white px-3.5 text-[11px] font-black leading-none text-[#5d5444] shadow-[0_4px_14px_rgba(93,84,68,0.14),inset_0_1px_0_rgba(255,255,255,0.95)] transition-all active:scale-95 active:bg-[#fff8ec]';
+                button.className = 'absolute right-4 top-1/2 inline-flex h-[28px] max-w-[44vw] -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-full border border-[#d8c7b0] bg-[linear-gradient(180deg,#fffdf8_0%,#f4eadb_100%)] px-3 text-[10px] font-black leading-none text-[#6a4a2f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_3px_10px_rgba(109,78,51,0.08)] transition-all active:scale-95';
                 button.addEventListener('click', () => {
                     if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') {
                         MeimayChildWorkspaces.openManagerModal();
@@ -2076,12 +2076,9 @@
 
             const activeChild = this.getActiveChild();
             const label = activeChild ? this.getFormattedChildLabel(activeChild.meta.id) : '第一子';
-            button.innerHTML = `
-                <span class="min-w-0 overflow-hidden text-ellipsis">${escapeHtml(label)}</span>
-                <span class="text-[12px] leading-none text-[#b08a54]" aria-hidden="true">▼</span>
-            `;
-            button.title = `${label}を切り替え`;
-            button.setAttribute('aria-label', `${label}を切り替え`);
+            button.textContent = label;
+            button.title = label;
+            button.setAttribute('aria-label', label);
         },
 
         applyWizardSelection(options = {}) {
