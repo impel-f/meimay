@@ -3445,6 +3445,16 @@ function renderHomeNextStagePrimaryButton(cardConfig, options = {}) {
     `;
 }
 
+function showHomeNextActionHint(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    if (typeof maybeShowHomeNextActionCoach !== 'function') return;
+    const step = window.MeimayHomeNextHintStep || {};
+    maybeShowHomeNextActionCoach(step, { force: true, delay: 60 });
+}
+
 function renderHomeSecondaryActionButton(cardConfig, detailHtml) {
     if (!cardConfig) return '';
     return `
@@ -3528,6 +3538,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, {
         highlightStyle: focusKey === initialFocusKey ? tone.cardRecommended : ''
     });
+    const homeNextHintStep = {
+        action: actionCardConfig.action,
+        title: actionCardConfig.title,
+        detail: String(actionCardConfig.detailHtml || '').replace(/<br\s*\/?>/gi, '、')
+    };
+    window.MeimayHomeNextHintStep = homeNextHintStep;
     const secondaryDetailHtml = focusKey === 'reading'
         ? '今ある読みのストックを見返します'
         : focusKey === 'kanji'
@@ -3600,7 +3616,12 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         </div>
         <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
             <div class="rounded-[24px] px-5 py-5">
-                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡次にやること</div>
+                <div class="flex items-center justify-between gap-3">
+                    <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡次にやること</div>
+                    <button type="button" onclick="showHomeNextActionHint(event)" class="shrink-0 rounded-full border border-[#eadfce] bg-white/80 px-3 py-1.5 text-[10px] font-black text-[#b9965b] shadow-sm active:scale-95">
+                        ヒント
+                    </button>
+                </div>
                 <div class="mt-3">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
@@ -3617,11 +3638,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     });
 
     if (window.MeimayHomeStageFocusSource !== 'manual' && typeof maybeShowHomeNextActionCoach === 'function') {
-        maybeShowHomeNextActionCoach({
-            action: actionCardConfig.action,
-            title: actionCardConfig.title,
-            detail: String(actionCardConfig.detailHtml || '').replace(/<br\s*\/?>/gi, '、')
-        });
+        maybeShowHomeNextActionCoach(homeNextHintStep);
     }
 }
 
@@ -3756,6 +3773,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
 
 window.renderHomeProfile = renderHomeProfile;
 window.selectHomeStageTab = selectHomeStageTab;
+window.showHomeNextActionHint = showHomeNextActionHint;
 window.cycleHomeOverviewMode = cycleHomeOverviewMode;
 window.setHomeOverviewMode = setHomeOverviewMode;
 
