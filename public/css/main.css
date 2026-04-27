@@ -2512,23 +2512,6 @@ body.has-ad-banner #universal-footer {
     color: #7c705d;
 }
 
-.context-coachmark-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 12px;
-}
-
-.context-coachmark-primary {
-    min-width: 104px;
-    min-height: 40px;
-    border-radius: 999px;
-    background: #b9965b;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 900;
-    box-shadow: 0 10px 20px rgba(185, 150, 91, 0.2);
-}
-
 @keyframes contextCoachIn {
     from {
         opacity: 0;

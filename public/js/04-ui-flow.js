@@ -3505,9 +3505,10 @@ function startSwiping() {
 let tutorialInterval;
 let tutorialStep = 1; // 1: ホーム, 2: スワイプ, 3: ビルド, 4: 保存
 const TUTORIAL_STEP_COUNT = 4;
-const CONTEXT_COACH_STORAGE_KEY = 'meimay_context_coach_v3';
+const CONTEXT_COACH_STORAGE_KEY = 'meimay_context_coach_v4';
 let contextCoachTimer = null;
 let contextCoachActiveTarget = null;
+let contextCoachDismissHandler = null;
 
 const CONTEXT_COACH_CONFIGS = {
     'scr-mode': {
@@ -3618,6 +3619,11 @@ function hideContextualCoachmark() {
         contextCoachTimer = null;
     }
 
+    if (contextCoachDismissHandler) {
+        document.removeEventListener('pointerdown', contextCoachDismissHandler, true);
+        contextCoachDismissHandler = null;
+    }
+
     const coach = document.getElementById('context-coachmark');
     if (coach) coach.remove();
 
@@ -3630,6 +3636,25 @@ function hideContextualCoachmark() {
 
 function dismissContextCoach() {
     hideContextualCoachmark();
+}
+
+function bindContextCoachOutsideDismiss() {
+    if (contextCoachDismissHandler) {
+        document.removeEventListener('pointerdown', contextCoachDismissHandler, true);
+    }
+
+    contextCoachDismissHandler = (event) => {
+        const coach = document.getElementById('context-coachmark');
+        if (!coach) {
+            hideContextualCoachmark();
+            return;
+        }
+
+        if (event.target?.closest?.('.context-coachmark-close')) return;
+        hideContextualCoachmark();
+    };
+
+    document.addEventListener('pointerdown', contextCoachDismissHandler, true);
 }
 
 function createContextCoachButton(label, className, onClick) {
@@ -3679,15 +3704,11 @@ function showContextualCoachmark(config, options = {}) {
     body.className = 'context-coachmark-body';
     body.textContent = config.body || '';
 
-    const actions = document.createElement('div');
-    actions.className = 'context-coachmark-actions';
-    actions.appendChild(createContextCoachButton('わかった', 'context-coachmark-primary', dismissContextCoach));
-
     coach.appendChild(header);
     coach.appendChild(title);
     coach.appendChild(body);
-    coach.appendChild(actions);
     document.body.appendChild(coach);
+    bindContextCoachOutsideDismiss();
 
     if (!options.force) {
         markContextCoachShown(config.key);
