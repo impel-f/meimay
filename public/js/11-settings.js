@@ -816,7 +816,7 @@ function openTransferModal() {
                     </div>
                     <div class="rounded-2xl bg-white border border-[#e7d9c5] px-4 py-3">
                         <div class="text-[12px] font-black text-[#5d5444]">復元キー</div>
-                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">JSONが手元にない時のための控えです。キーを知っている人はバックアップを復元できるので、家族内だけで保管してください。</div>
+                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">発行時にこの端末の候補をクラウドへバックアップします。キーを知っている人は復元できるので、家族内だけで保管してください。</div>
                         <div class="mt-3 rounded-xl bg-[#f8f3ea] border border-[#eadfcd] px-3 py-2">
                             <div class="text-[10px] font-bold text-[#a6967a]">この端末の復元キー</div>
                             <div id="backup-restore-key-display" class="mt-1 font-mono text-[15px] font-black tracking-[0.08em] text-[#5d5444]">${restoreKey || '未発行'}</div>

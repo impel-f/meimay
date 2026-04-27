@@ -4637,6 +4637,7 @@ const MeimayUserBackup = {
         if (code === 'no_backup_available') return 'この復元キーにはまだバックアップがありません';
         if (code === 'invalid_restore_key') return '復元キーを確認してください';
         if (code === 'authentication_failed') return 'サインインの準備が終わってからもう一度お試しください';
+        if (code === 'backup_sync_failed') return 'バックアップの保存に失敗しました。通信状況を確認してもう一度お試しください';
         return error?.message || 'バックアップ復元に失敗しました';
     },
 
@@ -4679,6 +4680,7 @@ const MeimayUserBackup = {
         const existingKey = this.getStoredRestoreKey();
         const key = existingKey || this._generateRestoreKey();
         const formattedKey = this._formatRestoreKey(key);
+        await this._syncCurrentBackupBeforeKey('restore-key-register');
         await this._callRestoreApi('register', { restoreKey: formattedKey });
         const storedKey = this._storeRestoreKey(formattedKey);
         return { restoreKey: storedKey, created: !existingKey };
@@ -4687,6 +4689,7 @@ const MeimayUserBackup = {
     rotateRestoreKey: async function () {
         const previousRestoreKey = this.getStoredRestoreKey();
         const restoreKey = this._generateRestoreKey();
+        await this._syncCurrentBackupBeforeKey('restore-key-rotate');
         await this._callRestoreApi('register', { restoreKey, previousRestoreKey });
         const storedKey = this._storeRestoreKey(restoreKey);
         return { restoreKey: storedKey, created: true };
@@ -4700,6 +4703,24 @@ const MeimayUserBackup = {
             return firebaseAuth.currentUser;
         }
         return null;
+    },
+
+    _syncCurrentBackupBeforeKey: async function (reason = 'restore-key-register') {
+        const currentUser = this._currentUser();
+        if (!currentUser) {
+            const error = new Error('サインインの準備が終わってからもう一度お試しください');
+            error.code = 'authentication_failed';
+            throw error;
+        }
+        const sections = this._readCurrentSections();
+        if (!this._hasData(sections)) return true;
+        const synced = await this.syncLocalToRemote(currentUser, { sections, force: true, reason });
+        if (!synced) {
+            const error = new Error('バックアップの保存に失敗しました');
+            error.code = 'backup_sync_failed';
+            throw error;
+        }
+        return true;
     },
 
     _safeClone: function (value) {
