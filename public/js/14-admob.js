@@ -1285,7 +1285,7 @@ function renderPremiumComparisonMatrix() {
 
 function getPremiumModalSubtitle(state) {
     if (state && state.active) {
-        return '広告なし・無制限が有効です。';
+        return '';
     }
     if (state && state.expired) {
         return '期限が切れています。必要なときに再開できます。';
@@ -1303,7 +1303,7 @@ function renderPremiumStatusCard(state) {
     const title = display.homeTitle || (state && state.label) || '無料プラン';
     const detail = display.homeDetail || (state && state.detail) || '';
     const body = active
-        ? '広告なし・スワイプ無制限・人名用漢字を使えます。'
+        ? ''
         : (display.kind === 'expired'
             ? '現在は無料プランです。再開するとプレミアム機能を利用できます。'
             : '現在は無料プランです。必要になったらプレミアムへ進めます。');
@@ -1324,7 +1324,7 @@ function renderPremiumStatusCard(state) {
         + '</div>'
         + '<span class="shrink-0 rounded-full px-3 py-1 text-[10px] font-black ' + pillClass + '">' + escapePremiumHtml(pill) + '</span>'
         + '</div>'
-        + '<p class="mt-2 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>'
+        + (body ? '<p class="mt-2 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>' : '')
         + '</div>';
 }
 
@@ -1373,7 +1373,7 @@ function showPremiumModal() {
         + '<div class="space-y-3">'
         + '<div class="text-center px-10 sm:px-0">'
         + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">プレミアム</h3>'
-        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>'
+        + (subtitle ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>' : '')
         + '</div>'
         + renderPremiumStatusCard(state)
         + renderPremiumComparisonMatrix()
