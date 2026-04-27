@@ -35,6 +35,7 @@ const PremiumManager = {
 
     getLocalPremiumState: function () {
         try {
+            if (typeof getLocalPremiumQueryPreviewMode === 'function' && getLocalPremiumQueryPreviewMode()) return true;
             const data = localStorage.getItem(this.KEY);
             if (!data) return false;
             const parsed = JSON.parse(data);
@@ -50,7 +51,10 @@ const PremiumManager = {
         const remotePremiumSource = String(this._remotePremiumSource || '').trim().toLowerCase();
         const remoteExpiresAt = normalizePremiumDate(this._remoteExpiresAt || this._remoteTrialEndsAt);
         const remoteExpired = !!remoteExpiresAt && remoteExpiresAt.getTime() <= Date.now();
-        let isPremium = isLocalPremiumFallbackAllowed() ? this.getLocalPremiumState() : false;
+        const queryPreviewMode = typeof getLocalPremiumQueryPreviewMode === 'function'
+            ? getLocalPremiumQueryPreviewMode()
+            : '';
+        let isPremium = isLocalPremiumFallbackAllowed() && !queryPreviewMode ? this.getLocalPremiumState() : false;
 
         if (this._remotePremium === true) {
             isPremium = !remoteExpired;
@@ -256,19 +260,38 @@ function escapePremiumHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-function isLocalPremiumFallbackAllowed() {
+function isLocalPremiumPreviewHost() {
     try {
         const locationInfo = window.location || {};
         const protocol = String(locationInfo.protocol || '').toLowerCase();
         const hostname = String(locationInfo.hostname || '').toLowerCase();
-        const isLocalHost = protocol === 'file:'
+        return protocol === 'file:'
             || hostname === 'localhost'
             || hostname === '127.0.0.1'
             || hostname === '::1';
-        if (!isLocalHost) return false;
+    } catch (e) {
+        return false;
+    }
+}
 
+function getLocalPremiumQueryPreviewMode() {
+    try {
+        if (!isLocalPremiumPreviewHost()) return '';
+        const locationInfo = window.location || {};
         const params = new URLSearchParams(String(locationInfo.search || ''));
-        return params.get('localPremium') === '1'
+        const value = String(params.get('localPremium') || '').trim().toLowerCase();
+        if (value === 'trial') return 'trial';
+        if (value === '1' || value === 'true' || value === 'premium') return 'premium';
+        return '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function isLocalPremiumFallbackAllowed() {
+    try {
+        if (!isLocalPremiumPreviewHost()) return false;
+        return !!getLocalPremiumQueryPreviewMode()
             || localStorage.getItem(PremiumManager.DEV_FALLBACK_KEY) === 'true';
     } catch (e) {
         return false;
@@ -656,23 +679,32 @@ function buildPremiumMembershipState(record, source, options = {}) {
 }
 
 function getSelfPremiumMembershipState() {
+    const localPreviewMode = typeof getLocalPremiumQueryPreviewMode === 'function'
+        ? getLocalPremiumQueryPreviewMode()
+        : '';
+    const localPreviewTrialEndsAt = localPreviewMode === 'trial'
+        ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+
     return buildPremiumMembershipState({
-        isPremium: PremiumManager._remotePremium,
-        premiumSource: PremiumManager._remotePremiumSource,
-        subscriptionStatus: PremiumManager._remoteStatus,
+        isPremium: localPreviewMode ? true : PremiumManager._remotePremium,
+        premiumSource: localPreviewMode === 'trial' ? 'trial' : PremiumManager._remotePremiumSource,
+        subscriptionStatus: localPreviewMode === 'trial' ? 'trialing' : PremiumManager._remoteStatus,
         appStoreExpiresAt: PremiumManager._remoteAppStoreExpiresAt,
-        premiumExpiresAt: PremiumManager._remoteExpiresAt,
+        premiumExpiresAt: localPreviewTrialEndsAt || PremiumManager._remoteExpiresAt,
         appStoreProductId: PremiumManager._remoteProductId,
         premiumProductId: PremiumManager._remoteProductId,
-        trialStatus: PremiumManager._remoteTrialStatus,
-        trialStartedAt: PremiumManager._remoteTrialStartedAt,
-        trialEndsAt: PremiumManager._remoteTrialEndsAt,
-        trialConsumedAt: PremiumManager._remoteTrialConsumedAt,
-        trialConsumedByRoom: PremiumManager._remoteTrialConsumedByRoom
+        trialStatus: localPreviewMode === 'trial' ? 'active' : PremiumManager._remoteTrialStatus,
+        trialStartedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialStartedAt,
+        trialEndsAt: localPreviewTrialEndsAt || PremiumManager._remoteTrialEndsAt,
+        trialConsumedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialConsumedAt,
+        trialConsumedByRoom: localPreviewMode === 'trial' ? true : PremiumManager._remoteTrialConsumedByRoom
     }, 'self', {
-        localPremium: typeof PremiumManager.getLocalPremiumState === 'function'
-            ? PremiumManager.getLocalPremiumState()
-            : false,
+        localPremium: localPreviewMode
+            ? true
+            : (typeof PremiumManager.getLocalPremiumState === 'function'
+                ? PremiumManager.getLocalPremiumState()
+                : false),
         allowLocalFallback: isLocalPremiumFallbackAllowed()
     });
 }
@@ -1204,6 +1236,17 @@ function updatePremiumUI() {
         renderSavedScreen();
     }
 
+    if (typeof updateDailyRemainingDisplay === 'function') {
+        updateDailyRemainingDisplay();
+    }
+
+    if (typeof renderUniversalCard === 'function') {
+        const universalScreen = document.getElementById('scr-swipe-universal');
+        if (universalScreen && universalScreen.classList.contains('active')) {
+            renderUniversalCard();
+        }
+    }
+
     if (typeof renderSettingsScreen === 'function') {
         renderSettingsScreen();
     }
@@ -1240,15 +1283,55 @@ function renderPremiumComparisonMatrix() {
         + '</div></div>';
 }
 
-function renderPremiumLabelMarkup(label) {
-    const lines = String(label || '').split('\n').map((line) => line.trim()).filter(Boolean);
-    if (!lines.length) return '';
-    if (lines.length === 1) {
-        return '<span class="block text-[11px] font-black leading-tight">' + escapePremiumHtml(lines[0]) + '</span>';
+function getPremiumModalSubtitle(state) {
+    if (state && state.active && state.isTrial) {
+        return '無料体験中です。期限内に使い心地を確認できます。';
     }
+    if (state && state.active) {
+        return 'プレミアム機能が有効です。';
+    }
+    if (state && state.expired) {
+        return '期限が切れています。必要なときに再開できます。';
+    }
+    return '3日間無料で、候補探しを広げられます。';
+}
+
+function renderPremiumStatusCard(state) {
+    const display = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
+        ? PremiumManager.getDisplayStatus()
+        : null;
+    if (!display || (!display.active && display.kind === 'free')) return '';
+
+    const active = !!display.active;
+    const isTrial = display.kind === 'trial' || !!(state && state.isTrial);
+    const title = display.homeTitle || (state && state.label) || '無料プラン';
+    const detail = display.homeDetail || (state && state.detail) || '';
+    const body = active
+        ? (isTrial
+            ? '広告なし・スワイプ無制限・人名用漢字が有効です。'
+            : '広告なし・スワイプ無制限などを利用できます。')
+        : (display.kind === 'expired'
+            ? '現在は無料プランです。再開するとプレミアム機能を利用できます。'
+            : '現在は無料プランです。必要になったらプレミアムへ進めます。');
+    const toneClass = active
+        ? 'border-[#d5b677] bg-[#fff7e4] text-[#4b3a24]'
+        : 'border-[#e4d9c6] bg-[#fffaf1] text-[#4b3a24]';
+    const pillClass = active
+        ? 'bg-[#b98942] text-white'
+        : 'bg-white text-[#8b7e66] border border-[#e6dccb]';
+    const pill = active ? (isTrial ? '無料体験中' : '有効') : '無料';
+
     return ''
-        + '<span class="block text-[11px] font-black leading-tight">' + escapePremiumHtml(lines[0]) + '</span>'
-        + '<span class="mt-0.5 block text-[9px] font-medium leading-tight text-[#8b7e66]">' + escapePremiumHtml(lines.slice(1).join(' ')) + '</span>';
+        + '<div class="rounded-[18px] px-3 py-3 shadow-[0_10px_22px_rgba(123,95,52,0.08)] ' + toneClass + '">'
+        + '<div class="flex items-start justify-between gap-3">'
+        + '<div class="min-w-0">'
+        + '<div class="text-[13px] sm:text-[15px] font-black">' + escapePremiumHtml(title) + '</div>'
+        + (detail ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(detail) + '</p>' : '')
+        + '</div>'
+        + '<span class="shrink-0 rounded-full px-3 py-1 text-[10px] font-black ' + pillClass + '">' + escapePremiumHtml(pill) + '</span>'
+        + '</div>'
+        + '<p class="mt-2 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>'
+        + '</div>';
 }
 
 function renderPremiumTrialCard(state) {
@@ -1287,6 +1370,7 @@ function showPremiumModal() {
     const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
         : { active: false, label: 'プレミアム未登録', detail: '' };
+    const subtitle = getPremiumModalSubtitle(state);
 
     modal.classList.add('active');
     modal.innerHTML = ''
@@ -1295,15 +1379,11 @@ function showPremiumModal() {
         + '<div class="space-y-3">'
         + '<div class="text-center px-10 sm:px-0">'
         + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">プレミアム</h3>'
-        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">3日間無料で、候補探しを広げられます。</p>'
+        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>'
         + '</div>'
+        + renderPremiumStatusCard(state)
         + renderPremiumComparisonMatrix()
         + renderPremiumTrialCard(state)
-        + '<div class="rounded-[18px] border border-[#e4d9c6] bg-[#fffaf1] px-3 py-3">'
-        + '<div class="text-[13px] sm:text-[15px] font-black text-[#2f271e] mb-1">現在の状態</div>'
-        + '<div class="text-[12px] sm:text-[14px] leading-[1.65] text-[#5d5444]">' + renderPremiumLabelMarkup(state.label) + '</div>'
-        + '<p class="mt-2 text-[12px] sm:text-[14px] leading-[1.65] text-[#5d5444]">' + escapePremiumHtml(state.detail || '') + '</p>'
-        + '</div>'
         + '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">'
         + (state.active
             ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
