@@ -568,8 +568,8 @@ function renderSearchMethodChooserScreen() {
             <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">名前のさがし方</h2>
             <p class="text-xs text-[#a6967a] text-center mb-8">さがし方を選んでください</p>
 
-            <div class="flex flex-col gap-3 text-left mb-4">
-                <button onclick="startMode('reading')" class="wiz-gender-btn wiz-reading-choice">
+            <div id="search-method-choice-list" class="flex flex-col gap-3 text-left mb-4">
+                <button id="search-method-reading" onclick="startMode('reading')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
                         <span class="block text-base font-bold text-[#5d5444]">漢字をさがす</span>
                         <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>合う漢字を探します</span>
@@ -581,7 +581,7 @@ function renderSearchMethodChooserScreen() {
                     </div>
                 </button>
 
-                <button onclick="startMode('sound')" class="wiz-gender-btn wiz-reading-choice">
+                <button id="search-method-sound" onclick="startMode('sound')" class="wiz-gender-btn wiz-reading-choice">
                     <div class="wiz-reading-choice-copy">
                         <span class="block text-base font-bold text-[#5d5444]">響きをさがす</span>
                         <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">好きな響きから<br>読み候補を探します</span>
@@ -3505,14 +3505,224 @@ function startSwiping() {
 let tutorialInterval;
 let tutorialStep = 1; // 1: ホーム, 2: スワイプ, 3: ビルド, 4: 保存
 const TUTORIAL_STEP_COUNT = 4;
+const CONTEXT_COACH_STORAGE_KEY = 'meimay_context_coach_v3';
+let contextCoachTimer = null;
+let contextCoachActiveTarget = null;
+
+const CONTEXT_COACH_CONFIGS = {
+    'scr-mode': {
+        key: 'home',
+        target: '#home-stage-track',
+        placement: 'bottom',
+        kicker: 'はじめてのヒント',
+        title: '迷ったら「次にやること」から',
+        body: 'ホームは、読み・漢字・ビルド・保存の現在地を見る場所です。青いカードの少し下に、今だけ進めればいい一手が出ます。'
+    },
+    'scr-input-sound-entry': () => {
+        if (document.getElementById('search-method-choice-list')) {
+            return {
+                key: 'search-method',
+                target: '#search-method-choice-list',
+                placement: 'bottom',
+                kicker: '入口のヒント',
+                title: '読みがあるかで選ぶ',
+                body: '読み候補があるなら漢字から。まだ決まっていないなら響きから始めると、候補を広げながら好みを見つけられます。'
+            };
+        }
+        if (document.getElementById('sound-entry-choice-browse')) {
+            return {
+                key: 'sound-entry',
+                target: '#sound-entry-choice-browse',
+                placement: 'bottom',
+                kicker: '響き探しのヒント',
+                title: '迷ったら上の入口から',
+                body: '最初は人気の響きを見ながら選ぶのがおすすめです。入れたい音がある時だけ、下の入口を使います。'
+            };
+        }
+        return null;
+    },
+    'scr-swipe-universal': {
+        key: 'swipe',
+        target: '#uni-swipe-action-btns',
+        placement: 'above-actions',
+        kicker: '選び方のヒント',
+        title: 'スワイプが不安ならボタンでOK',
+        body: '迷ったら、下の3つのボタンだけで進められます。候補は右、本命は上、見送りは左でも同じです。'
+    },
+    'scr-build': {
+        key: 'build',
+        target: '#build-tabs',
+        placement: 'bottom',
+        kicker: 'ビルドのヒント',
+        title: 'まず読みを選んで、一字ずつ決める',
+        body: '上で読みを切り替え、下で漢字を選びます。そろった名前は字面・運勢を見てから保存できます。'
+    },
+    'scr-saved': {
+        key: 'saved',
+        target: '#saved-naming-canvas',
+        placement: 'bottom',
+        kicker: '本命のヒント',
+        title: '最後に「本命」をひとつ残す',
+        body: '保存した候補を見比べて、本命にする名前をここへ置きます。パートナー連携後は、ふたりの本命も確認できます。'
+    }
+};
+
+function getActiveScreenIdForCoach() {
+    return document.querySelector('.screen.active')?.id || '';
+}
+
+function resolveContextCoachConfig(screenId) {
+    const config = CONTEXT_COACH_CONFIGS[screenId];
+    return typeof config === 'function' ? config() : config;
+}
+
+function readContextCoachState() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(CONTEXT_COACH_STORAGE_KEY) || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function writeContextCoachState(state) {
+    try {
+        localStorage.setItem(CONTEXT_COACH_STORAGE_KEY, JSON.stringify(state || {}));
+    } catch (e) { }
+}
+
+function hasContextCoachShown(key) {
+    const state = readContextCoachState();
+    return !!(state.shown && state.shown[key]);
+}
+
+function markContextCoachShown(key) {
+    if (!key) return;
+    const state = readContextCoachState();
+    state.shown = state.shown && typeof state.shown === 'object' ? state.shown : {};
+    state.shown[key] = new Date().toISOString();
+    writeContextCoachState(state);
+}
+
+function isContextCoachBlocked() {
+    const activeOverlay = Array.from(document.querySelectorAll('.overlay.active'))
+        .find(el => el.id !== 'context-coachmark-overlay');
+    if (activeOverlay) return true;
+    const activeSheet = document.querySelector('.settings-sheet, .modal-sheet');
+    return !!(activeSheet && activeSheet.closest('.overlay.active'));
+}
+
+function hideContextualCoachmark() {
+    if (contextCoachTimer) {
+        clearTimeout(contextCoachTimer);
+        contextCoachTimer = null;
+    }
+
+    const coach = document.getElementById('context-coachmark');
+    if (coach) coach.remove();
+
+    if (contextCoachActiveTarget) {
+        contextCoachActiveTarget.classList.remove('context-coach-target');
+        contextCoachActiveTarget.removeAttribute('data-context-coach-active');
+        contextCoachActiveTarget = null;
+    }
+}
+
+function dismissContextCoach() {
+    hideContextualCoachmark();
+}
+
+function createContextCoachButton(label, className, onClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = className;
+    button.textContent = label;
+    button.addEventListener('click', onClick);
+    return button;
+}
+
+function showContextualCoachmark(config, options = {}) {
+    if (!config || !config.key) return;
+    const target = document.querySelector(config.target);
+    if (!target) return;
+
+    hideContextualCoachmark();
+
+    contextCoachActiveTarget = target;
+    contextCoachActiveTarget.classList.add('context-coach-target');
+    contextCoachActiveTarget.setAttribute('data-context-coach-active', 'true');
+
+    const coach = document.createElement('div');
+    coach.id = 'context-coachmark';
+    coach.className = `context-coachmark context-coachmark--${config.placement || 'bottom'}`;
+    coach.setAttribute('role', 'dialog');
+    coach.setAttribute('aria-live', 'polite');
+
+    const header = document.createElement('div');
+    header.className = 'context-coachmark-header';
+
+    const kicker = document.createElement('div');
+    kicker.className = 'context-coachmark-kicker';
+    kicker.textContent = config.kicker || 'ヒント';
+
+    const closeButton = createContextCoachButton('×', 'context-coachmark-close', dismissContextCoach);
+    closeButton.setAttribute('aria-label', 'ヒントを閉じる');
+
+    header.appendChild(kicker);
+    header.appendChild(closeButton);
+
+    const title = document.createElement('div');
+    title.className = 'context-coachmark-title';
+    title.textContent = config.title || '';
+
+    const body = document.createElement('p');
+    body.className = 'context-coachmark-body';
+    body.textContent = config.body || '';
+
+    const actions = document.createElement('div');
+    actions.className = 'context-coachmark-actions';
+    actions.appendChild(createContextCoachButton('わかった', 'context-coachmark-primary', dismissContextCoach));
+
+    coach.appendChild(header);
+    coach.appendChild(title);
+    coach.appendChild(body);
+    coach.appendChild(actions);
+    document.body.appendChild(coach);
+
+    if (!options.force) {
+        markContextCoachShown(config.key);
+    }
+}
+
+function maybeShowContextualCoachmark(screenId, options = {}) {
+    const id = screenId || getActiveScreenIdForCoach();
+    const config = resolveContextCoachConfig(id);
+    hideContextualCoachmark();
+    if (!config) return;
+    if (!options.force && hasContextCoachShown(config.key)) return;
+
+    const delay = Number.isFinite(options.delay) ? options.delay : 520;
+    contextCoachTimer = setTimeout(() => {
+        contextCoachTimer = null;
+        if (getActiveScreenIdForCoach() !== id) return;
+        if (isContextCoachBlocked()) return;
+        if (!document.querySelector(config.target)) return;
+        showContextualCoachmark(config, options);
+    }, delay);
+}
+
+function showContextualGuideForCurrentScreen(options = {}) {
+    const activeScreenId = getActiveScreenIdForCoach();
+    const targetScreenId = CONTEXT_COACH_CONFIGS[activeScreenId] ? activeScreenId : 'scr-mode';
+    maybeShowContextualCoachmark(targetScreenId, {
+        ...options,
+        force: true,
+        delay: Number.isFinite(options.delay) ? options.delay : 80
+    });
+}
 
 function showTutorial(options = {}) {
-    const modal = document.getElementById('modal-tutorial');
-    if (!modal) return;
-
-    tutorialStep = 1;
-    modal.classList.add('active');
-    updateTutorialScene();
+    showContextualGuideForCurrentScreen({ force: true });
 
     if (options.markShown !== false) {
         try {
@@ -3523,12 +3733,9 @@ function showTutorial(options = {}) {
 
 function maybeShowFirstRunTutorial() {
     try {
-        if (localStorage.getItem('meimay_tutorial_shown_v2') === 'true') return;
-    } catch (e) {
-        return;
-    }
-
-    setTimeout(() => showTutorial(), 420);
+        localStorage.setItem('meimay_tutorial_shown_v2', 'true');
+    } catch (e) { }
+    maybeShowContextualCoachmark('scr-mode', { delay: 560 });
 }
 
 function nextTutorialStep() {
@@ -5156,6 +5363,9 @@ window.setRule = setRule;
 window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.maybeShowFirstRunTutorial = maybeShowFirstRunTutorial;
+window.maybeShowContextualCoachmark = maybeShowContextualCoachmark;
+window.showContextualGuideForCurrentScreen = showContextualGuideForCurrentScreen;
+window.dismissContextCoach = dismissContextCoach;
 window.closeTutorial = closeTutorial;
 window.nextTutorialStep = nextTutorialStep;
 window.processNickname = processNickname;

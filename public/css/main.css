@@ -2429,3 +2429,137 @@ body.has-ad-banner #universal-footer {
     }
 }
 
+.context-coach-target {
+    position: relative;
+    z-index: 70;
+    outline: 2px solid rgba(185, 150, 91, 0.82);
+    outline-offset: 5px;
+    box-shadow: 0 0 0 8px rgba(255, 248, 232, 0.74), 0 16px 34px rgba(96, 75, 45, 0.16);
+    border-radius: 22px;
+    transition: outline-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.context-coachmark {
+    position: fixed;
+    left: 50%;
+    z-index: 9100;
+    width: min(calc(100vw - 32px), 372px);
+    transform: translateX(-50%);
+    border: 1px solid rgba(205, 190, 168, 0.92);
+    border-radius: 22px;
+    background: rgba(255, 253, 248, 0.98);
+    box-shadow: 0 20px 46px rgba(65, 52, 32, 0.18);
+    padding: 14px 15px 15px;
+    color: #5d5444;
+    animation: contextCoachIn 0.22s ease-out both;
+    backdrop-filter: blur(12px);
+}
+
+.context-coachmark--bottom {
+    bottom: calc(102px + env(safe-area-inset-bottom, 0px));
+}
+
+.context-coachmark--top {
+    top: calc(72px + env(safe-area-inset-top, 0px));
+}
+
+.context-coachmark--above-actions {
+    bottom: calc(214px + env(safe-area-inset-bottom, 0px));
+}
+
+.context-coachmark-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.context-coachmark-kicker {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: #b9965b;
+}
+
+.context-coachmark-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(212, 197, 175, 0.9);
+    border-radius: 999px;
+    background: #fff;
+    color: #8b7e66;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+.context-coachmark-title {
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.45;
+    color: #4f4639;
+}
+
+.context-coachmark-body {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.8;
+    color: #7c705d;
+}
+
+.context-coachmark-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.context-coachmark-primary {
+    min-width: 104px;
+    min-height: 40px;
+    border-radius: 999px;
+    background: #b9965b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+    box-shadow: 0 10px 20px rgba(185, 150, 91, 0.2);
+}
+
+@keyframes contextCoachIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@media (max-height: 700px) {
+    .context-coachmark {
+        padding: 12px 13px 13px;
+    }
+
+    .context-coachmark--bottom {
+        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .context-coachmark--above-actions {
+        bottom: calc(190px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .context-coachmark-title {
+        font-size: 15px;
+    }
+
+    .context-coachmark-body {
+        font-size: 11px;
+        line-height: 1.7;
+    }
+}
+

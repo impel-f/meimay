@@ -980,9 +980,16 @@ async function restoreBackupFromRestoreKey(event) {
  * 使い方ガイド
  */
 function showGuide() {
-    if (typeof showTutorial === 'function') {
-        showTutorial({ markShown: false });
+    if (typeof changeScreen === 'function') {
+        changeScreen('scr-mode');
     }
+    setTimeout(() => {
+        if (typeof showContextualGuideForCurrentScreen === 'function') {
+            showContextualGuideForCurrentScreen({ force: true, delay: 80 });
+        } else if (typeof showTutorial === 'function') {
+            showTutorial({ markShown: false });
+        }
+    }, 180);
 }
 
 /**

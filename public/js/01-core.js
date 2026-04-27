@@ -589,6 +589,10 @@ function changeScreen(id) {
         if (id === 'scr-history' && typeof restoreHistoryScroll === 'function') {
             restoreHistoryScroll();
         }
+
+        if (typeof maybeShowContextualCoachmark === 'function') {
+            maybeShowContextualCoachmark(id);
+        }
     }, 0);
 }
 
