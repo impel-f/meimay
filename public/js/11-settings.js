@@ -426,7 +426,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('データと表示', `
-                ${renderItem({ title: 'バックアップと復元', value: 'JSON・復元キー', onClick: 'openTransferModal()' })}
+                ${renderItem({ title: 'バックアップと復元', value: '復元キー', onClick: 'openTransferModal()' })}
                 <button type="button" class="settings-item-unified settings-item-note" onclick="toggleInappropriateSetting()">
                     <span class="item-content-unified">
                         <span class="item-copy-unified">
@@ -800,20 +800,8 @@ function openTransferModal() {
             <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
-                <p class="modal-desc">復元はバックアップJSONか復元キーで行います。ID＋苗字一致だけでは復元できません。</p>
+                <p class="modal-desc">復元キーでバックアップを戻します。ID＋苗字一致だけでは復元できません。</p>
                 <div class="modal-body space-y-3 text-left">
-                    <div class="rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] px-4 py-3">
-                        <div class="text-[12px] font-black text-[#5d5444]">バックアップJSON</div>
-                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">機種変更の前にファイルを書き出して、新しい端末で読み込めます。設定や好み学習までまとめて戻せます。</div>
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <button onclick="exportBackupData()" class="w-full py-3 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
-                                JSONを書き出す
-                            </button>
-                            <button onclick="triggerBackupImport()" class="w-full py-3 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm">
-                                JSONから復元
-                            </button>
-                        </div>
-                    </div>
                     <div class="rounded-2xl bg-white border border-[#e7d9c5] px-4 py-3">
                         <div class="text-[12px] font-black text-[#5d5444]">復元キー</div>
                         <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">発行時にこの端末の候補をクラウドへバックアップします。キーを知っている人は復元できるので、家族内だけで保管してください。</div>
@@ -839,7 +827,7 @@ function openTransferModal() {
                     </div>
                     <div class="rounded-2xl bg-[#fff8ea] border border-[#e8d5ad] px-4 py-3">
                         <div class="text-[11px] font-black text-[#5d5444]">復元ルール</div>
-                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">JSON復元はこの端末の保存データを上書きします。復元キーはクラウド上のバックアップとこの端末のデータを統合します。苗字、ニックネーム、匿名IDだけを使った復元は行いません。</div>
+                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">復元キーはクラウド上のバックアップとこの端末のデータを統合します。苗字、ニックネーム、匿名IDだけを使った復元は行いません。</div>
                         <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">パートナー連携のルームや匿名ログイン自体は端末ごとに再確認が必要です。</div>
                     </div>
                 </div>
@@ -853,32 +841,6 @@ function openTransferModal() {
 
 function closeTransferModal() {
     document.getElementById('transfer-modal')?.remove();
-}
-
-function exportBackupData() {
-    if (typeof StorageBox !== 'undefined' && typeof StorageBox.exportData === 'function') {
-        StorageBox.exportData();
-        closeTransferModal();
-        if (typeof showToast === 'function') showToast('JSONバックアップを書き出しました', '✓');
-    }
-}
-
-function triggerBackupImport() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/json';
-    input.onchange = () => {
-        const file = input.files && input.files[0];
-        if (!file) return;
-        if (!confirm('JSONバックアップを読み込むと、この端末の保存データが上書きされます。続けますか？')) {
-            return;
-        }
-        closeTransferModal();
-        if (typeof StorageBox !== 'undefined' && typeof StorageBox.importData === 'function') {
-            StorageBox.importData(file);
-        }
-    };
-    input.click();
 }
 
 async function issueBackupRestoreKey() {
@@ -1223,8 +1185,6 @@ window.openLegalSettingsSheet = openLegalSettingsSheet;
 window.closeLegalSettingsSheet = closeLegalSettingsSheet;
 window.openTransferModal = openTransferModal;
 window.closeTransferModal = closeTransferModal;
-window.exportBackupData = exportBackupData;
-window.triggerBackupImport = triggerBackupImport;
 window.issueBackupRestoreKey = issueBackupRestoreKey;
 window.copyBackupRestoreKey = copyBackupRestoreKey;
 window.restoreBackupFromRestoreKey = restoreBackupFromRestoreKey;
