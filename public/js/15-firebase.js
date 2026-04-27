@@ -15,6 +15,8 @@ const firebaseConfig = {
 };
 
 let firebaseApp, firebaseAuth, firebaseDb;
+const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 3000;
+const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
 
 try {
     firebaseApp = firebase.initializeApp(firebaseConfig);
@@ -2313,7 +2315,7 @@ MeimayPairing._autoSyncDebounced = (function () {
             return;
         }
         if (timer) clearTimeout(timer);
-        timer = setTimeout(() => MeimayPairing.syncMyData(), 1200);
+        timer = setTimeout(() => MeimayPairing.syncMyData(), PARTNER_ROOM_SYNC_DEBOUNCE_MS);
     };
 })();
 
@@ -5493,7 +5495,7 @@ const MeimayUserBackup = {
             this.syncLocalToRemote(currentUser, { force: false, reason }).catch((error) => {
                 console.warn('BACKUP: scheduled sync failed', error);
             });
-        }, 1200);
+        }, REMOTE_BACKUP_SYNC_DEBOUNCE_MS);
     },
 
     installHooks: function () {
