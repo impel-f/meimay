@@ -483,7 +483,8 @@
                 .meimay-child-switcher.compact{display:none}
                 .meimay-child-switcher-header{display:none}
                 .meimay-child-switcher-title,.meimay-child-switcher-subtitle,.meimay-child-switcher-meta,.meimay-child-chip-row,.meimay-child-chip,.meimay-child-chip-add,.meimay-child-chip-sub{display:none}
-                .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
+                .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:750;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
+                .meimay-child-modal-btn{min-height:48px;padding:12px 16px;font-size:14px}
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
                 .meimay-child-modal-sheet{width:min(440px,100%);max-height:min(86vh,760px);overflow-y:auto;border-radius:22px;background:#fffdf8;border:1px solid rgba(221,214,203,.9);box-shadow:0 24px 60px rgba(54,45,34,.2);padding:24px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
@@ -492,20 +493,20 @@
                 .meimay-child-modal-close{position:relative;width:36px;height:36px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:20px;font-weight:850;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
                 .meimay-child-modal-close:active{transform:scale(.95)}
                 .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-36px;padding:2px 44px 0}
-                .meimay-child-modal-title{color:#4f4536;font-size:19px;font-weight:850;line-height:1.35;text-align:center}
+                .meimay-child-modal-title{color:#4f4536;font-size:18px;font-weight:800;line-height:1.35;text-align:center}
                 .meimay-child-modal-desc{display:none}
                 .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92)}
                 .meimay-child-copy-panel{margin-top:12px;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92);display:grid;gap:12px}
                 .meimay-child-copy-panel .meimay-child-field{margin-top:0}
                 .meimay-child-step-label{display:none}
-                .meimay-child-modal-section-title{color:#4f4536;font-size:13px;font-weight:850;letter-spacing:0}
+                .meimay-child-modal-section-title{color:#4f4536;font-size:14px;font-weight:700;letter-spacing:0}
                 .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
                 .meimay-child-card{margin-top:10px;padding:12px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:#fff}
                 .meimay-child-card.active{background:#fff9ec;border-color:#d6c4a8}
                 .meimay-child-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-                .meimay-child-card-title{color:#5d5444;font-size:15px;font-weight:900}
-                .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:11px;line-height:1.5}
-                .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900}
+                .meimay-child-card-title{color:#4f4536;font-size:14px;font-weight:700}
+                .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:12px;line-height:1.45}
+                .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:750}
                 .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
                 .meimay-child-editor-actions{position:static;padding-top:12px}
                 .meimay-child-field{margin-top:14px}
@@ -515,15 +516,15 @@
                 .meimay-child-field-hint{margin-top:6px;color:#a6967a;font-size:10px;line-height:1.45}
                 .meimay-child-partner-note{margin-top:8px;display:flex;align-items:center;justify-content:center;width:100%;min-height:22px;padding:4px 10px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900;letter-spacing:.04em;text-align:center;white-space:nowrap;box-sizing:border-box}
                 .meimay-child-radio-grid{display:grid;gap:8px;margin-top:10px}
-                .meimay-child-radio-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;cursor:pointer}
-                .meimay-child-radio-option.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
+                .meimay-child-radio-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;cursor:pointer}
+                .meimay-child-radio-option.selected{border-color:#bca37f;background:#fff9ec}
                 .meimay-child-radio-option input{margin-top:2px}
-                .meimay-child-radio-title{color:#5d5444;font-size:13px;font-weight:900}
-                .meimay-child-radio-desc{margin-top:3px;color:#8b7e66;font-size:11px;line-height:1.45}
+                .meimay-child-radio-title{color:#4f4536;font-size:14px;font-weight:700}
+                .meimay-child-radio-desc{margin-top:3px;color:#8b7e66;font-size:12px;line-height:1.45}
                 .meimay-child-gender-grid,.meimay-child-toggle-grid{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-gender-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-                .meimay-child-gender-btn,.meimay-child-toggle-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:13px;font-weight:900;text-align:left}
-                .meimay-child-gender-btn{justify-content:center;min-height:48px;padding:12px 8px;border-radius:14px;font-weight:800;text-align:center}
+                .meimay-child-gender-btn,.meimay-child-toggle-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536;font-size:14px;font-weight:700;text-align:left}
+                .meimay-child-gender-btn{justify-content:center;min-height:48px;padding:12px 8px;text-align:center}
                 .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:#fff9ec}
                 .meimay-child-toggle-count{color:#a6967a;font-size:11px;font-weight:800}
                 .meimay-child-danger{border-color:#f5c8c8;background:#fff6f6;color:#c45d5d}

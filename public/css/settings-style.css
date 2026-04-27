@@ -201,8 +201,8 @@
 .settings-sheet .modal-title {
     margin: 0 44px 18px;
     color: #4f4536;
-    font-size: 19px;
-    font-weight: 850;
+    font-size: 18px;
+    font-weight: 800;
     line-height: 1.35;
 }
 
@@ -248,13 +248,13 @@
 
 .settings-sheet-row span {
     font-size: 14px;
-    font-weight: 750;
+    font-weight: 700;
 }
 
 .settings-sheet-row strong {
     color: #9b907f;
     font-size: 12px;
-    font-weight: 650;
+    font-weight: 600;
     white-space: nowrap;
 }
 
@@ -290,11 +290,14 @@
     padding-top: 8px;
     position: sticky;
     bottom: 0;
-    background: linear-gradient(180deg, rgba(253, 250, 245, 0) 0%, #fdfaf5 24px);
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0) 0%, #fffdf8 24px);
 }
 
-.choice-sheet .btn-modal-primary {
-    min-height: 52px;
+.settings-sheet .btn-modal-primary {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 750;
 }
 
 .profile-appearance-sheet {
@@ -324,28 +327,33 @@
     padding-top: 8px;
     position: sticky;
     bottom: 0;
-    background: linear-gradient(180deg, rgba(253, 250, 245, 0) 0%, #fdfaf5 24px);
-}
-
-.profile-appearance-sheet .btn-modal-primary {
-    padding: 12px 16px;
-    font-size: 15px;
+    background: linear-gradient(180deg, rgba(255, 253, 248, 0) 0%, #fffdf8 24px);
 }
 
 .profile-appearance-sheet .modal-input-large {
-    font-size: 24px;
-    padding: 6px 0;
+    border: 1px solid #eadfce;
+    border-radius: 14px;
+    background: #fff;
+    color: #4f4536;
+    font-size: 14px;
+    font-weight: 650;
+    padding: 12px 14px;
     font-family: 'Zen Maru Gothic', sans-serif;
+    text-align: left;
+}
+
+.profile-appearance-sheet .modal-input-underline {
+    display: none;
 }
 
 .profile-appearance-label {
     display: block;
     margin-bottom: 8px;
-    color: #8b7e66;
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-align: center;
+    color: #6f6657;
+    font-size: 12px;
+    font-weight: 750;
+    letter-spacing: 0;
+    text-align: left;
 }
 
 .profile-theme-grid {
@@ -364,7 +372,7 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    min-height: 76px;
+    min-height: 68px;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -397,10 +405,10 @@
 }
 
 .profile-theme-name {
-    color: #5d5444;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.2;
+    color: #4f4536;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
 }
 
 .profile-theme-meta {
@@ -554,14 +562,14 @@
     width: 100%;
     background: white;
     border: 1px solid #eee5d8;
-    border-radius: 16px;
-    padding: 18px 20px;
+    border-radius: 14px;
+    padding: 14px;
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
     cursor: pointer;
     transition: all 0.2s;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-align: left;
 }
 
@@ -576,12 +584,12 @@
 
 /* ラジオボタン */
 .choice-radio {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     border: 2px solid #d4c5af;
     border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: 1px;
     position: relative;
     transition: all 0.2s;
 }
@@ -596,8 +604,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     background: #bca37f;
     border-radius: 50%;
 }
@@ -608,16 +616,17 @@
 }
 
 .choice-label {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
-    color: #5d5444;
+    color: #4f4536;
     margin-bottom: 4px;
+    line-height: 1.35;
 }
 
 .choice-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: #a6967a;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
 /* ============================================================
@@ -688,6 +697,11 @@
     .modal-sheet {
         padding: 28px 20px;
         border-radius: 20px;
+    }
+
+    .settings-sheet {
+        padding: 24px 18px 18px;
+        border-radius: 22px;
     }
 
     .choice-sheet {
