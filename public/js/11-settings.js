@@ -346,23 +346,15 @@ function renderSettingsScreen() {
     const container = document.getElementById('settings-screen-content');
     if (!container) return;
 
-    const genderText = getSettingsGenderLabel(gender);
-
-    const tagCount = selectedImageTags.includes('none') ?
-        'こだわらない' :
-        `${selectedImageTags.length}個選択`;
-
-    const strictText = rule === 'strict' ? '厳格' : '柔軟';
-    const fortuneText = prioritizeFortune ? '重視する' : '参考程度';
-
-    const currentReading = segments.join('') || '未設定';
-
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ' : wizData?.role === 'mama' ? 'ママ' : '未設定';
     const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
-    const profileText = `${nicknameText}・${profileThemeText}`;
     const activeChildText = getSettingsActiveChildSummary();
+    const kanjiRangeText = showInappropriateKanji ? 'すべて' : 'おすすめ';
+    const kanjiRangeNote = showInappropriateKanji
+        ? '人名に使える漢字をすべて表示します。'
+        : '名づけに適した漢字のみ表示します。';
 
 
     // Partner linking status
@@ -413,7 +405,8 @@ function renderSettingsScreen() {
     container.innerHTML = `
         <div class="settings-screen-content">
             ${renderSection('プロフィール', `
-                ${renderItem({ title: 'プロフィール', value: profileText, onClick: 'openProfileAppearanceModal()' })}
+                ${renderItem({ title: 'ニックネーム', value: nicknameText, onClick: 'openProfileAppearanceModal()' })}
+                ${renderItem({ title: 'テーマカラー', value: profileThemeText, onClick: 'openProfileAppearanceModal()' })}
                 ${renderItem({ title: 'あなたの役割', value: roleText, onClick: 'openRoleInput()' })}
             `)}
 
@@ -434,10 +427,13 @@ function renderSettingsScreen() {
 
             ${renderSection('データと表示', `
                 ${renderItem({ title: 'バックアップと復元', value: 'JSON・復元キー', onClick: 'openTransferModal()' })}
-                <button type="button" class="settings-item-unified" onclick="toggleInappropriateSetting()">
+                <button type="button" class="settings-item-unified settings-item-note" onclick="toggleInappropriateSetting()">
                     <span class="item-content-unified">
-                        <span class="item-title-unified">表示する漢字の範囲</span>
-                        <span class="item-value-unified">${showInappropriateKanji ? '全範囲' : 'おすすめ範囲'}</span>
+                        <span class="item-copy-unified">
+                            <span class="item-title-unified">表示する漢字の範囲</span>
+                            <span class="item-note-unified">${kanjiRangeNote}</span>
+                        </span>
+                        <span class="item-value-unified">${kanjiRangeText}</span>
                     </span>
                     <span class="settings-toggle ${showInappropriateKanji ? 'active' : ''}" aria-hidden="true">
                         <span></span>
@@ -449,16 +445,6 @@ function renderSettingsScreen() {
                 ${renderItem({ title: '使い方ガイド', value: '基本の流れ', onClick: 'showGuide()' })}
                 ${renderItem({ title: '利用規約・プライバシー', value: '確認する', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}" })}
             `)}
-
-            <section class="settings-section settings-danger-section">
-                <div class="settings-section-label">危険な操作</div>
-                <button onclick="deleteAllStocks()" class="settings-danger-button">
-                    ストックをすべて消去する
-                </button>
-                <p class="settings-danger-note">
-                    これまでに「いいね」した漢字ストックだけを削除します。保存済みの名前は消えません。
-                </p>
-            </section>
         </div>
     `;
 }
@@ -953,7 +939,7 @@ function toggleInappropriateSetting() {
     showInappropriateKanji = !showInappropriateKanji;
     saveSettings();
     renderSettingsScreen();
-    showToast(`不適切漢字の表示を${showInappropriateKanji ? 'ON' : 'OFF'}にしました`);
+    showToast(`表示範囲を${showInappropriateKanji ? 'すべて' : 'おすすめ'}にしました`);
 }
 
 /**

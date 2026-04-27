@@ -70,6 +70,10 @@
     opacity: 0.92;
 }
 
+.settings-item-note {
+    min-height: 68px;
+}
+
 /* コンテンツ */
 .item-content-unified {
     flex: 1;
@@ -78,6 +82,13 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+}
+
+.item-copy-unified {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .item-title-unified {
@@ -99,6 +110,19 @@
     text-align: right;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.item-note-unified {
+    display: block;
+    color: #a69b8a;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.settings-item-note .item-value-unified {
+    flex: 0 0 auto;
+    max-width: none;
 }
 
 /* 矢印 */
@@ -136,39 +160,6 @@
 
 .settings-toggle.active span {
     transform: translateX(18px);
-}
-
-.settings-danger-section {
-    margin-top: 4px;
-}
-
-.settings-danger-button {
-    width: 100%;
-    min-height: 48px;
-    border: 1px solid rgba(216, 118, 111, 0.42);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.78);
-    color: #bd5d56;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    box-shadow: none;
-    transition: transform 0.15s ease, background 0.15s ease;
-}
-
-.settings-danger-button:active {
-    transform: scale(0.98);
-    background: #fff7f6;
-}
-
-.settings-danger-note {
-    padding: 0 8px;
-    color: #a6967a;
-    font-size: 10px;
-    line-height: 1.7;
-    text-align: center;
 }
 
 /* 区切り線 */
@@ -618,13 +609,7 @@
 
 @media (max-width: 480px) {
     .settings-item-unified {
-        padding: 14px 16px;
-    }
-    
-    .item-icon-circle {
-        width: 44px;
-        height: 44px;
-        font-size: 22px;
+        padding: 0 14px;
     }
     
     .modal-sheet {
