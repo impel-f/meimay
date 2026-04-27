@@ -719,6 +719,93 @@ PremiumManager.getStatusSummary = function () {
     };
 };
 
+function getPremiumRemainingLabel(expiresAt) {
+    const date = normalizePremiumDate(expiresAt);
+    if (!date) return '';
+    const diffMs = date.getTime() - Date.now();
+    if (diffMs <= 0) return '';
+    const hourMs = 60 * 60 * 1000;
+    const dayMs = 24 * hourMs;
+    if (diffMs < dayMs) {
+        return `あと${Math.max(1, Math.ceil(diffMs / hourMs))}時間`;
+    }
+    return `あと${Math.max(1, Math.ceil(diffMs / dayMs))}日`;
+}
+
+PremiumManager.getDisplayStatus = function () {
+    const state = this.getMembershipState();
+    const selfState = getSelfPremiumMembershipState();
+    const partnerSnapshot = getConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    const trialUnavailable = !!(selfState && selfState.trialConsumed) || !!(partnerState && partnerState.trialConsumed);
+    const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
+    const dateLabel = state.expiresAt ? formatPremiumMembershipDate(state.expiresAt) : '';
+
+    if (state.active && state.isTrial) {
+        const ownerText = state.source === 'partner' ? 'パートナー特典' : '無料体験';
+        const periodText = remainingLabel || (dateLabel ? `${dateLabel}まで` : '利用中');
+        return {
+            active: true,
+            expired: false,
+            kind: 'trial',
+            drawerLines: ['👑 3日無料体験中', `${ownerText}・${periodText}`],
+            homeTitle: '3日無料体験中',
+            homeDetail: remainingLabel ? `${remainingLabel}・プレミアム利用中` : 'プレミアム利用中',
+            shortLabel: `3日無料体験中${remainingLabel ? `・${remainingLabel}` : ''}`
+        };
+    }
+
+    if (state.active) {
+        const ownerText = state.source === 'partner' ? 'パートナー特典' : 'プレミアム';
+        const periodText = remainingLabel || (dateLabel ? `${dateLabel}まで` : '有効');
+        return {
+            active: true,
+            expired: false,
+            kind: 'premium',
+            drawerLines: ['👑 プレミアム：有効', `${ownerText}・${periodText}`],
+            homeTitle: 'プレミアム有効',
+            homeDetail: remainingLabel || (dateLabel ? `${dateLabel}まで` : 'プレミアム利用中'),
+            shortLabel: `プレミアム有効${remainingLabel ? `・${remainingLabel}` : ''}`
+        };
+    }
+
+    if (state.expired) {
+        return {
+            active: false,
+            expired: true,
+            kind: 'expired',
+            drawerLines: ['👑 プレミアム：期限切れ', dateLabel ? `${dateLabel}まででした` : '再開できます'],
+            homeTitle: '無料プラン',
+            homeDetail: 'プレミアム期限切れ',
+            shortLabel: '無料プラン'
+        };
+    }
+
+    if (trialUnavailable) {
+        return {
+            active: false,
+            expired: false,
+            kind: 'free-used-trial',
+            drawerLines: ['👑 無料プラン', '無料体験は利用済み'],
+            homeTitle: '無料プラン',
+            homeDetail: '無料体験は利用済み',
+            shortLabel: '無料プラン'
+        };
+    }
+
+    return {
+        active: false,
+        expired: false,
+        kind: 'free',
+        drawerLines: ['👑 無料プラン', '3日無料体験あり'],
+        homeTitle: '無料プラン',
+        homeDetail: '3日無料体験あり',
+        shortLabel: '無料プラン・3日無料体験あり'
+    };
+};
+
 PremiumManager.refreshPurchaseState = async function () {
     const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
         ? MeimayAuth.getCurrentUser()
@@ -1128,31 +1215,29 @@ function formatPremiumMatrixCell(value) {
 
 function renderPremiumComparisonMatrix() {
     const rows = [
-        { item: '使える漢字', free: '常用漢字中心', premium: '常用漢字\n＋人名用漢字' },
-        { item: '広告', free: 'あり', premium: 'なし' },
+        { item: '使える漢字', free: '常用漢字中心', premium: '人名用漢字も' },
+        { item: '広告', free: '表示あり', premium: '非表示' },
         { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
         { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
         { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' }
     ];
 
     return ''
-        + '<div class="relative overflow-hidden rounded-[22px] border border-[#e4d9c6] bg-[#fffdf7]">'
-        + '<div class="pointer-events-none absolute z-0 rounded-[18px] border-2 border-[#d7b57c] bg-[linear-gradient(180deg,rgba(255,247,232,0.96),rgba(255,252,243,0.92))] shadow-[0_10px_28px_rgba(183,145,85,0.12)]" style="top:8px;bottom:8px;left:calc(61.31% + 6px);right:8px;"></div>'
-        + '<div class="relative z-10">'
-        + '<div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] gap-x-2 border-b border-[#eadfcd] bg-[#f6eddb] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">'
-        + '<div class="flex items-center">項目</div>'
+        + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf7]">'
+        + '<div class="grid grid-cols-[1.02fr_0.88fr_1.1fr] gap-x-2 border-b border-[#eadfcd] bg-[#f4ead8] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">'
+        + '<div class="flex items-center">できること</div>'
         + '<div class="flex items-center justify-center">無料</div>'
-        + '<div class="flex items-center justify-center"><span class="inline-flex items-center justify-center rounded-full bg-[#fff5df] px-3 py-1 text-[#8e6c36] shadow-sm">プレミアム</span></div>'
+        + '<div class="flex items-center justify-center text-[#8e6c36]">プレミアム</div>'
         + '</div>'
         + '<div class="divide-y divide-[#efe5d3]">'
         + rows.map(({ item, free, premium }) => ''
-            + '<div class="grid grid-cols-[1.05fr_0.82fr_1.18fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">'
+            + '<div class="grid grid-cols-[1.02fr_0.88fr_1.1fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">'
             + '<div class="flex items-center font-bold">' + formatPremiumMatrixCell(item) + '</div>'
-            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[44px] w-full items-center justify-center whitespace-nowrap rounded-[14px] bg-white px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-[#5d5444]">' + formatPremiumMatrixCell(free) + '</span></div>'
-            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[44px] w-full items-center justify-center rounded-[14px] bg-transparent px-2 py-2 font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
+            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-[12px] bg-white px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-[#6c6252]">' + formatPremiumMatrixCell(free) + '</span></div>'
+            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[38px] w-full items-center justify-center rounded-[12px] border border-[#dfc28f] bg-[#fff5df] px-2 py-2 font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
             + '</div>'
         ).join('')
-        + '</div></div></div>';
+        + '</div></div>';
 }
 
 function renderPremiumLabelMarkup(label) {
@@ -1205,12 +1290,12 @@ function showPremiumModal() {
 
     modal.classList.add('active');
     modal.innerHTML = ''
-        + '<div class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">'
-        + '<button class="modal-close-btn" onclick="closePremiumModal()">×</button>'
+        + '<div class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; border-radius:30px; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">'
+        + '<button class="modal-close-btn" style="top:14px;right:14px;width:40px;height:40px;font-size:22px;background:rgba(255,255,255,0.72);border:1px solid #eadfcd;" onclick="closePremiumModal()">×</button>'
         + '<div class="space-y-3">'
-        + '<div class="text-center">'
-        + '<div class="text-[9px] font-black text-[#b9965b] tracking-[0.18em]">プレミアムプラン</div>'
-        + '<h3 class="mt-1 text-[1.2rem] sm:text-[1.5rem] font-black text-[#5b4f3f]">プレミアム機能</h3>'
+        + '<div class="text-center px-10 sm:px-0">'
+        + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">プレミアム</h3>'
+        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">3日間無料で、候補探しを広げられます。</p>'
         + '</div>'
         + renderPremiumComparisonMatrix()
         + renderPremiumTrialCard(state)

@@ -305,179 +305,20 @@
                             <div class="min-w-0 flex-1">
                                 <div class="text-[18px] font-black text-[#4f4639] leading-tight">いまの名づけ状況</div>
                                 <div id="home-child-date-label" class="hidden mt-1 text-[11px] font-bold leading-tight text-[#8b7e66]" aria-live="polite"></div>
-                                <div class="hidden mt-2 text-[13px] font-black text-[#5d5444] leading-snug" id="home-next-step-title">読み候補を探す</div>
-                                <div class="hidden mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-next-step-detail"></div>
+                                <button id="home-premium-status" type="button" onclick="if(typeof showPremiumModal==='function')showPremiumModal();"
+                                    class="mt-2 hidden max-w-full rounded-full border border-[#eadfce] bg-white/72 px-3 py-1.5 text-left active:scale-[0.99] transition-transform">
+                                    <span id="home-premium-status-title" class="block text-[10px] font-black leading-tight text-[#6d5a3d]">無料プラン</span>
+                                    <span id="home-premium-status-detail" class="mt-0.5 block truncate text-[9px] font-bold leading-tight text-[#9a876b]">3日無料体験あり</span>
+                                </button>
                             </div>
                             <div id="home-overview-switch" class="shrink-0 w-[112px] md:w-[124px]"></div>
                         </div>
 
                         <div id="home-summary-panel" class="mt-3 rounded-[24px] py-3">
-                        <div id="home-status-line" class="hidden text-[11px] text-[#6f6454] leading-relaxed">候補を集めながら、次に進む準備をしています。</div>
-
-                        <div id="home-stage-track-anchor" class="mt-4"></div>
-
-                        <div id="home-legacy-actions" class="hidden mt-3 flex items-center gap-2">
-                            <button type="button" onclick="openHomeInsightsModalFromEvent(event)"
-                                class="hidden shrink-0 rounded-full border border-[#eadfce] bg-white px-3 py-2 text-[11px] font-bold text-[#8b7e66] active:scale-95 transition-transform">詳しく見る</button>
-                            <button id="home-partner-inline" type="button" onclick="handleHomeInlinePartnerAction(event)"
-                                class="hidden min-w-0 flex-1 rounded-full border border-[#eee4d6] bg-[#fffaf5] px-3 py-2 text-center text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
-                                <span id="home-partner-inline-title" class="block truncate text-center">パートナー：未連携</span>
-                                <span id="home-partner-inline-subtitle" class="mt-0.5 block text-center text-[9px] font-medium leading-snug text-[#a6967a]">連携すると二人で名前をさがせます</span>
-                            </button>
-                            <button id="home-next-step-action-label" onclick="handleHomeNextStepAction(event)" class="hidden shrink-0 px-4 py-2 rounded-full bg-[#b9965b] text-white text-[11px] font-bold active:scale-95 transition-transform">次に進む</button>
-                        </div>
+                            <div id="home-stage-track-anchor" class="mt-4"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div id="home-pair-card" class="w-full max-w-sm home-hero-width rounded-[26px] border border-[#eadfce] bg-white/88 px-4 py-3">
-                <div class="flex items-start gap-3">
-                    <div class="shrink-0 w-11 h-11 rounded-2xl bg-[#f8efe2] border border-[#ebdcc7] flex items-center justify-center text-[18px]">💞</div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b] uppercase">パートナー</div>
-                            <button id="home-pair-dismiss" onclick="dismissHomePairCard(event)" class="hidden w-7 h-7 rounded-full bg-[#f6efe4] text-[#a6967a] text-sm font-black leading-none">✕</button>
-                        </div>
-                        <div class="mt-1 text-[14px] font-black text-[#4f4639] leading-snug" id="home-partner-match-title">パートナー連携はまだ未設定です</div>
-                        <div class="mt-1 text-[11px] text-[#8b7e66] leading-relaxed" id="home-partner-match-subtitle">連携すると二人で名前をさがせます。</div>
-                        <div id="home-pair-code-row" class="hidden mt-3 flex items-center justify-between gap-2 rounded-2xl border border-[#e7d7bf] bg-[#fff6e8] px-3 py-2">
-                            <div class="min-w-0">
-                                <div class="text-[9px] font-black tracking-wide text-[#b9965b]">ルームコード</div>
-                                <div class="mt-1 text-[15px] font-black tracking-[0.18em] text-[#4f4639]" id="home-pair-room-code">------</div>
-                            </div>
-                            <button onclick="copyHomePairCode(event)" class="shrink-0 px-3 py-1.5 rounded-full border border-[#eadfce] bg-white text-[10px] font-bold text-[#8b7e66]">コピー</button>
-                        </div>
-                        <div class="mt-3 flex items-center gap-2">
-                            <button id="home-pair-join-toggle" onclick="toggleHomePairJoinRow(event)" class="hidden px-3 py-1.5 rounded-full border border-[#eadfce] bg-white text-[10px] font-bold text-[#8b7e66]">コード入力</button>
-                            <div id="home-pair-quick-role" class="hidden text-[10px] font-bold text-[#8b7e66]">ママとして参加</div>
-                        </div>
-                        <div id="home-pair-join-row" class="hidden mt-2">
-                            <div class="flex gap-2 min-w-0">
-                                <input type="text" id="home-pair-quick-input" placeholder="コードを入力"
-                                    class="min-w-0 flex-1 px-3 py-2.5 bg-white rounded-2xl text-[12px] border border-[#eadfce] uppercase font-black text-[#5d5444] tracking-[0.22em] focus:outline-none focus:border-[#b9965b]">
-                                <button onclick="handleHomePairQuickJoin(event)"
-                                    class="shrink-0 px-4 py-2.5 bg-[#8b7e66] text-white rounded-2xl text-[11px] font-bold active:scale-95 transition-transform">
-                                    参加
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="home-pair-stats-row" class="hidden mt-3 grid grid-cols-3 gap-2">
-                    <button id="home-pair-reading-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-reading')"
-                        class="rounded-2xl bg-[#fdf7ef] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
-                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-reading-count">0</div>
-                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">読み候補</div>
-                    </button>
-                    <button id="home-pair-liked-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-liked')"
-                        class="rounded-2xl bg-[#f2f6ff] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
-                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-liked-count">0</div>
-                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">漢字候補</div>
-                    </button>
-                    <button id="home-pair-saved-btn" type="button" onclick="event.stopPropagation(); runHomeAction('partner-saved')"
-                        class="rounded-2xl bg-[#f7f3ff] px-3 py-2.5 text-center active:scale-[0.98] transition-transform">
-                        <div class="text-[17px] font-black text-[#4f4639] leading-none" id="home-pair-saved-count">0</div>
-                        <div class="mt-1 text-[9px] font-bold text-[#a6967a] whitespace-nowrap">保存済み</div>
-                    </button>
-                </div>
-                <div id="home-pair-action-row" class="mt-3 flex items-center gap-2">
-                    <button id="home-pair-action" onclick="handleHomePairAction()"
-                        class="shrink-0 px-4 py-2.5 bg-[#b9965b] text-white rounded-full text-[11px] font-bold active:scale-95 transition-transform">
-                        連携する
-                    </button>
-                </div>
-                <div class="mt-2 text-[11px] text-[#8b7e66] leading-snug" id="home-match-footnote">必要になった時だけ使えます。</div>
-            </div>
-
-            <button id="home-pair-restore" onclick="restoreHomePairCard()" class="hidden w-full max-w-sm home-hero-width -mt-1 text-right text-[11px] font-bold text-[#b9965b]">パートナー機能を再表示</button>
-
-            <!-- ─── 名前を作る ─── -->
-            <div id="home-entry-divider" class="home-section-spacer w-full max-w-sm" aria-hidden="true"></div>
-
-            <!-- ② メイン2択ボタン（左:響き / 右:読みから） -->
-            <div id="home-entry-grid" class="w-full max-w-sm grid grid-cols-2 gap-2 home-entry-grid-compact">
-
-                <!-- LEFT: 響き・読みを探す -->
-                <button id="home-entry-sound" onclick="startMode('sound')"
-                    class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 10px 8px 11px; border-color: #c4caf2;">
-                    <span id="home-entry-sound-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
-
-                    <!-- タイトル (上・中央) -->
-                    <div class="text-[11px] font-black text-[#4a5fa0] leading-snug text-center mb-2">響きをさがす</div>
-
-                    <!-- ビジュアル: 3枚ベージュ統一 ミニスワイプカード ファン状 -->
-                    <div class="relative w-full flex items-center justify-center" style="height: 62px;">
-                        <!-- みなと (後ろ左) -->
-                        <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
-                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">みなと</span>
-                        </div>
-                        <!-- ひなた (中央) -->
-                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(1deg); z-index:2;">
-                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">ひなた</span>
-                        </div>
-                        <!-- ひびき (前右) -->
-                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:linear-gradient(145deg,#fdf7ef,#f0e0c4); border:1.5px solid #d4c5af; transform:rotate(6deg) translate(24px,-4px); z-index:3;">
-                            <span class="text-[11px] font-black text-[#5d5444] leading-none text-center">ひびき</span>
-                        </div>
-                    </div>
-
-                    <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b8fb5] leading-snug text-center mt-2">好きな響きから<br>読み候補を探す</div>
-                </button>
-
-                <!-- RIGHT: 読みから漢字を探す -->
-                <button id="home-entry-reading" onclick="startMode('reading')"
-                    class="relative bg-white rounded-[20px] border-2 shadow-md flex flex-col items-center active:scale-[0.97] transition-transform overflow-visible"
-                    style="padding: 10px 8px 11px; border-color: #c4caf2;">
-                    <span id="home-entry-reading-badge" class="hidden absolute top-2 right-2 px-2 py-1 rounded-full bg-[#b9965b] text-white text-[9px] font-black tracking-wide shadow-sm">おすすめ</span>
-
-                    <!-- タイトル (上・中央) -->
-                    <div class="text-[11px] font-black text-[#3a587a] leading-snug text-center mb-2">漢字をさがす</div>
-
-                    <!-- ビジュアル: 環・歓・漢 ファン状カード（実タグ色・漢字のみ） -->
-                    <div class="relative w-full flex items-center justify-center" style="height: 62px;">
-                        <!-- 環(#調和) 後ろ左 -->
-                        <div class="absolute rounded-xl shadow-sm flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:#E8F5E9; border:1.5px solid #d4c5af; transform:rotate(-7deg) translate(-24px,4px); z-index:1;">
-                            <span class="font-black" style="font-size:22px; color:#5d5444;">環</span>
-                        </div>
-                        <!-- 歓(#幸福) 中央 -->
-                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:#FFFDE7; border:1.5px solid #d4c5af; transform:rotate(1deg); z-index:2;">
-                            <span class="font-black" style="font-size:22px; color:#5d5444;">歓</span>
-                        </div>
-                        <!-- 漢(#勇壮) 前右 -->
-                        <div class="absolute rounded-xl shadow-md flex items-center justify-center overflow-hidden"
-                            style="width:50px; height:58px; background:#FFEBEE; border:1.5px solid #d4c5af; transform:rotate(6deg) translate(24px,-4px); z-index:3;">
-                            <span class="font-black" style="font-size:22px; color:#5d5444;">漢</span>
-                        </div>
-                    </div>
-
-                    <!-- 説明 (下・中央) -->
-                    <div class="home-card-subtext text-[9px] text-[#8b9eb5] leading-snug text-center mt-2">希望の読みから<br>合う漢字を探す</div>
-                </button>
-
-            </div>
-
-            <!-- ─── インスピレーション ─── -->
-            <div class="home-section-spacer w-full max-w-sm" aria-hidden="true"></div>
-
-            <!-- ③ 補助導線（非表示） -->
-            <div id="home-utility-grid" class="hidden w-full max-w-sm grid grid-cols-1 gap-2 home-utility-grid">
-                <button id="home-encountered-btn" onclick="openEncounteredLibrary('kanji')"
-                    class="home-utility-card flex items-center gap-3 px-3 py-3 bg-white rounded-[20px] border border-[#e4d8c6] active:scale-[0.97] transition-transform text-left shadow-sm">
-                    <div class="home-utility-icon relative flex-shrink-0 w-11 h-11 rounded-2xl bg-[#f6eee1] border border-[#e7d7bf] flex items-center justify-center">
-                        <span class="text-[19px] leading-none">🗂️</span>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="text-[12px] font-black text-[#5d5444] leading-tight">出会った候補</div>
-                        <div class="home-card-subtext mt-1 text-[9px] text-[#8b7e66] leading-snug">見返してストックへ</div>
-                    </div>
-                </button>
             </div>
 
             <!-- ④ 3ツール（漢字検索 / ランキング / 出会った候補） -->
@@ -1625,7 +1466,7 @@
 <script src="/js/02-engine.js?v=25.27"></script>
     <script src="/js/03-fortune.js?v=25.12"></script>
 <script src="/js/04-ui-flow.js?v=26.10"></script>
-<script src="/js/05-ui-render.js?v=25.37"></script>
+<script src="/js/05-ui-render.js?v=25.39"></script>
     <script src="/js/06-ui-physics.js?v=25.15"></script>
     <script src="/js/07-build.js?v=25.40"></script>
 <script src="/js/08-origin.js?v=25.43"></script>
@@ -1633,8 +1474,8 @@
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.17"></script>
     <script src="/js/12-history.js?v=25.48"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.21"></script>
-    <script src="/js/14-admob.js?v=25.28"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.22"></script>
+    <script src="/js/14-admob.js?v=25.30"></script>
 <script src="/js/15-firebase.js?v=26.09"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>

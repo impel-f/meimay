@@ -834,7 +834,12 @@ function updateDrawerProfile() {
         : null;
     const premiumActive = !!(premiumState && premiumState.active)
         || !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
-    const premiumLines = buildDrawerPremiumLabelLines(premiumState);
+    const premiumDisplay = premiumManager && typeof premiumManager.getDisplayStatus === 'function'
+        ? premiumManager.getDisplayStatus()
+        : null;
+    const premiumLines = premiumDisplay && Array.isArray(premiumDisplay.drawerLines)
+        ? premiumDisplay.drawerLines
+        : buildDrawerPremiumLabelLines(premiumState);
 
     if (drawer) {
         drawer.style.background = '';
@@ -894,7 +899,7 @@ function updateDrawerProfile() {
         avatar.style.border = 'none';
     }
 
-    applyDrawerStatusButtonTone(settingsButton, premiumActive);
+    applyDrawerStatusButtonTone(settingsButton, premiumDisplay ? premiumDisplay.active : premiumActive);
     applyDrawerStatusButtonTone(drawerPartnerStatusButton, pairingConnected);
 }
 

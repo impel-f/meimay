@@ -2460,7 +2460,7 @@ function openHomePartnerHub() {
     }
 
     if (!pairing.hasPartner) {
-        if (typeof toggleHomePairJoinRow === 'function') toggleHomePairJoinRow(null, true);
+        if (typeof changeScreen === 'function') changeScreen('scr-login');
         return;
     }
 
@@ -2893,15 +2893,11 @@ function renderHomeProfile() {
         : { shortText: 'まだ傾向なし' };
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
     const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
-    const recommendedEntry = getHomeRecommendedEntry(readingStockCount, likedCount, savedCount);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
     stageSnapshot.recommendedKey = getHomeOverviewInitialStageKey(stageSnapshot, nextStep);
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
-    const entryDivider = document.getElementById('home-entry-divider');
-    const entryGrid = document.getElementById('home-entry-grid');
-    const utilityGrid = document.getElementById('home-utility-grid');
     const toolGrid = document.getElementById('home-tool-grid');
     if (screen) {
         screen.style.paddingLeft = '12px';
@@ -2925,98 +2921,48 @@ function renderHomeProfile() {
     const elReadingStock = document.getElementById('home-reading-stock-count');
     if (elReadingStock) elReadingStock.innerText = stageSnapshot.readingStockCount;
 
-    const nextStepTitleEl = document.getElementById('home-next-step-title');
-    if (nextStepTitleEl) {
-        nextStepTitleEl.innerText = '';
-        nextStepTitleEl.classList.add('hidden');
-    }
-
-    const nextStepDetailEl = document.getElementById('home-next-step-detail');
-    if (nextStepDetailEl) {
-        nextStepDetailEl.innerText = '';
-        nextStepDetailEl.classList.add('hidden');
-    }
-
-    const nextStepActionLabelEl = document.getElementById('home-next-step-action-label');
-    if (nextStepActionLabelEl) {
-        nextStepActionLabelEl.innerText = nextStep.actionLabel || '開く';
-        nextStepActionLabelEl.classList.add('hidden');
-    }
-
-    const statusLineEl = document.getElementById('home-status-line');
-    if (statusLineEl) {
-        statusLineEl.innerText = getHomeStatusLine(
-            stageSnapshot.likedCount,
-            stageSnapshot.readingStockCount,
-            stageSnapshot.savedCount,
-            stageSnapshot.buildCount
-        );
-    }
-
     const overviewMount = document.getElementById('home-overview-mount');
     if (overviewMount) {
         overviewMount.innerHTML = '';
         overviewMount.classList.add('hidden');
     }
 
-    if (entryDivider) entryDivider.classList.add('hidden');
-    if (entryGrid) entryGrid.classList.add('hidden');
-    if (utilityGrid) utilityGrid.classList.add('hidden');
     if (toolGrid) toolGrid.classList.remove('hidden');
 
 
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
-    const partnerInlineTitle = document.getElementById('home-partner-inline-title');
-    const partnerInlineSubtitle = document.getElementById('home-partner-inline-subtitle');
-    if (partnerInlineTitle) {
-        let title = 'パートナー：未連携';
-        if (pairing.hasPartner) {
-            title = `パートナー：${pairing.partnerCallName || pairing.partnerDisplayName || 'パートナー'}と連携中`;
-        }
-        partnerInlineTitle.innerText = title;
+    renderHomePremiumStatus();
+}
+
+function renderHomePremiumStatus() {
+    const statusButton = document.getElementById('home-premium-status');
+    if (!statusButton) return;
+
+    const titleEl = document.getElementById('home-premium-status-title');
+    const detailEl = document.getElementById('home-premium-status-detail');
+    const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
+    const display = premiumManager && typeof premiumManager.getDisplayStatus === 'function'
+        ? premiumManager.getDisplayStatus()
+        : {
+            active: false,
+            kind: 'free',
+            homeTitle: '無料プラン',
+            homeDetail: '3日無料体験を好きなタイミングで開始できます'
+        };
+
+    if (titleEl) titleEl.textContent = display.homeTitle || '無料プラン';
+    if (detailEl) detailEl.textContent = display.homeDetail || '';
+    statusButton.classList.remove('hidden');
+    statusButton.setAttribute('aria-label', `${display.homeTitle || ''} ${display.homeDetail || ''}`.trim());
+
+    if (display.active) {
+        statusButton.style.borderColor = '#d7b57c';
+        statusButton.style.background = '#fff5df';
+    } else {
+        statusButton.style.borderColor = '#eadfce';
+        statusButton.style.background = 'rgba(255, 255, 255, 0.72)';
     }
-    if (partnerInlineSubtitle) {
-        partnerInlineSubtitle.classList.toggle('hidden', !!pairing.hasPartner);
-        partnerInlineSubtitle.innerText = '連携すると二人で名前をさがせます';
-    }
-
-    const soundBadge = document.getElementById('home-entry-sound-badge');
-    if (soundBadge) soundBadge.classList.add('hidden');
-
-    const readingBadge = document.getElementById('home-entry-reading-badge');
-    if (readingBadge) readingBadge.classList.add('hidden');
-
-    const soundEntry = document.getElementById('home-entry-sound');
-    const selfPalette = typeof window.getMeimayOwnershipPalette === 'function'
-        ? window.getMeimayOwnershipPalette('self')
-        : null;
-    const homeEntryBorder = selfPalette?.border || '#c4caf2';
-    if (soundEntry) {
-        soundEntry.style.boxShadow = '';
-        soundEntry.style.borderWidth = recommendedEntry === 'sound' ? '3px' : '2px';
-        soundEntry.style.borderColor = recommendedEntry === 'sound' ? '#b9965b' : homeEntryBorder;
-        soundEntry.style.background = '#ffffff';
-    }
-
-    const readingEntry = document.getElementById('home-entry-reading');
-    if (readingEntry) {
-        readingEntry.style.boxShadow = '';
-        readingEntry.style.borderWidth = recommendedEntry === 'reading' ? '3px' : '2px';
-        readingEntry.style.borderColor = recommendedEntry === 'reading' ? '#b9965b' : homeEntryBorder;
-        readingEntry.style.background = '#ffffff';
-    }
-
-    const pairCard = document.getElementById('home-pair-card');
-    if (pairCard) {
-        pairCard.classList.add('hidden');
-    }
-
-    const dismissBtn = document.getElementById('home-pair-dismiss');
-    if (dismissBtn) dismissBtn.classList.add('hidden');
-
-    const restoreBtn = document.getElementById('home-pair-restore');
-    if (restoreBtn) restoreBtn.classList.add('hidden');
 }
 
 window.closeHomePartnerHub = closeHomePartnerHub;
