@@ -189,6 +189,87 @@
     position: relative;
 }
 
+.settings-sheet {
+    width: min(100%, 440px);
+    border: 1px solid rgba(221, 214, 203, 0.9);
+    border-radius: 22px;
+    background: #fffdf8;
+    box-shadow: 0 24px 60px rgba(54, 45, 34, 0.2);
+    padding: 24px 18px 18px;
+}
+
+.settings-sheet .modal-title {
+    margin: 0 44px 18px;
+    color: #4f4536;
+    font-size: 19px;
+    font-weight: 850;
+    line-height: 1.35;
+}
+
+.settings-sheet .modal-desc {
+    margin: -8px 18px 18px;
+    color: #8f8069;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.settings-sheet-list {
+    overflow: hidden;
+    border: 1px solid rgba(229, 219, 203, 0.86);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.settings-sheet-row {
+    position: relative;
+    width: 100%;
+    min-height: 52px;
+    border: 0;
+    background: transparent;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: #4f4536;
+    font: inherit;
+    text-align: left;
+}
+
+.settings-sheet-row + .settings-sheet-row::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 14px;
+    right: 14px;
+    height: 1px;
+    background: rgba(229, 219, 203, 0.72);
+}
+
+.settings-sheet-row span {
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.settings-sheet-row strong {
+    color: #9b907f;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.settings-sheet-link {
+    cursor: pointer;
+}
+
+.settings-sheet-link:active {
+    background: rgba(250, 245, 236, 0.78);
+}
+
+.settings-transfer-sheet {
+    max-width: 560px;
+}
+
 .choice-sheet {
     display: flex;
     flex-direction: column;
@@ -218,7 +299,7 @@
 
 .profile-appearance-sheet {
     width: min(100%, 420px);
-    padding: 22px 16px 16px;
+    padding: 24px 16px 16px;
     max-height: min(86vh, 520px);
     display: flex;
     flex-direction: column;
@@ -226,7 +307,7 @@
 }
 
 .profile-appearance-sheet .modal-title {
-    margin-bottom: 6px;
+    margin-bottom: 18px;
 }
 
 .profile-appearance-sheet .modal-body {
@@ -255,14 +336,6 @@
     font-size: 24px;
     padding: 6px 0;
     font-family: 'Zen Maru Gothic', sans-serif;
-}
-
-.profile-appearance-desc {
-    font-size: 11px;
-    margin-bottom: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .profile-appearance-label {
@@ -352,13 +425,13 @@
 /* 閉じるボタン（×） */
 .modal-close-x {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 14px;
+    right: 14px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: #eee5d8;
-    border: none;
+    background: #ffffff;
+    border: 1px solid #eadfce;
     color: #7a6f5a;
     font-size: 20px;
     cursor: pointer;
@@ -480,7 +553,7 @@
 .choice-option {
     width: 100%;
     background: white;
-    border: 2px solid #eee5d8;
+    border: 1px solid #eee5d8;
     border-radius: 16px;
     padding: 18px 20px;
     display: flex;
@@ -505,7 +578,7 @@
 .choice-radio {
     width: 24px;
     height: 24px;
-    border: 3px solid #d4c5af;
+    border: 2px solid #d4c5af;
     border-radius: 50%;
     flex-shrink: 0;
     margin-top: 2px;

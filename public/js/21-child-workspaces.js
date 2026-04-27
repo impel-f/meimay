@@ -486,31 +486,31 @@
                 .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:800;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
-                .meimay-child-modal-sheet{width:min(560px,100%);max-height:min(86vh,820px);overflow-y:auto;border-radius:30px;background:linear-gradient(180deg,#fffaf4 0%,#fffdf8 100%);border:1px solid #eee5d8;box-shadow:0 28px 50px -28px rgba(93,84,68,.42);padding:20px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
+                .meimay-child-modal-sheet{width:min(440px,100%);max-height:min(86vh,760px);overflow-y:auto;border-radius:22px;background:#fffdf8;border:1px solid rgba(221,214,203,.9);box-shadow:0 24px 60px rgba(54,45,34,.2);padding:24px 18px calc(18px + env(safe-area-inset-bottom, 0px));display:flex;flex-direction:column;gap:14px}
                 .meimay-child-modal-header{position:relative;display:flex;flex-direction:column;gap:0}
-                .meimay-child-modal-topbar{position:sticky;top:0;z-index:6;display:flex;justify-content:flex-end;align-items:flex-start;height:40px;padding:0;background:transparent}
-                .meimay-child-modal-close{position:relative;width:40px;height:40px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:22px;font-weight:900;line-height:1;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
+                .meimay-child-modal-topbar{position:sticky;top:0;z-index:6;display:flex;justify-content:flex-end;align-items:flex-start;height:36px;padding:0;background:transparent}
+                .meimay-child-modal-close{position:relative;width:36px;height:36px;border-radius:9999px;border:1px solid #eadfce;background:#fff;color:#7a6f5a;font-size:20px;font-weight:850;line-height:1;display:inline-flex;align-items:center;justify-content:center;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;z-index:2}
                 .meimay-child-modal-close:active{transform:scale(.95)}
-                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-40px;padding:4px 0 0}
-                .meimay-child-modal-title{color:#5d5444;font-size:20px;font-weight:900;line-height:1.25;text-align:center}
-                .meimay-child-modal-desc{margin-top:0;width:100%;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8b7e66;font-size:12px;line-height:1.6;text-align:center}
-                .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86)}
-                .meimay-child-copy-panel{margin-top:12px;padding:14px;border:1px solid #eee5d8;border-radius:24px;background:rgba(255,255,255,.86);display:grid;gap:12px}
+                .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-36px;padding:2px 44px 0}
+                .meimay-child-modal-title{color:#4f4536;font-size:19px;font-weight:850;line-height:1.35;text-align:center}
+                .meimay-child-modal-desc{display:none}
+                .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92)}
+                .meimay-child-copy-panel{margin-top:12px;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92);display:grid;gap:12px}
                 .meimay-child-copy-panel .meimay-child-field{margin-top:0}
-                .meimay-child-step-label{display:inline-flex;align-items:center;justify-content:center;padding:3px 8px;border-radius:9999px;background:#fff3e4;color:#b9965b;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:8px}
-                .meimay-child-modal-section-title{color:#5d5444;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+                .meimay-child-step-label{display:none}
+                .meimay-child-modal-section-title{color:#4f4536;font-size:13px;font-weight:850;letter-spacing:0}
                 .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
-                .meimay-child-card{margin-top:10px;padding:12px;border:1px solid #eee5d8;border-radius:20px;background:#fff}
-                .meimay-child-card.active{background:linear-gradient(180deg,#fffdf8 0%,#fff5e7 100%);border-color:#e6d3b4}
+                .meimay-child-card{margin-top:10px;padding:12px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:#fff}
+                .meimay-child-card.active{background:#fff9ec;border-color:#d6c4a8}
                 .meimay-child-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
                 .meimay-child-card-title{color:#5d5444;font-size:15px;font-weight:900}
                 .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:11px;line-height:1.5}
                 .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900}
                 .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
                 .meimay-child-editor-actions{position:static;padding-top:12px}
-                .meimay-child-field{margin-top:12px}
-                .meimay-child-field-label{display:block;margin-bottom:6px;color:#8b7e66;font-size:11px;font-weight:800}
-                .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:14px;font-weight:700;outline:none}
+                .meimay-child-field{margin-top:14px}
+                .meimay-child-field-label{display:block;margin-bottom:7px;color:#6f6657;font-size:12px;font-weight:750}
+                .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536;font-size:14px;font-weight:650;outline:none}
                 .meimay-child-input:focus,.meimay-child-select:focus{border-color:#bca37f}
                 .meimay-child-field-hint{margin-top:6px;color:#a6967a;font-size:10px;line-height:1.45}
                 .meimay-child-partner-note{margin-top:8px;display:flex;align-items:center;justify-content:center;width:100%;min-height:22px;padding:4px 10px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900;letter-spacing:.04em;text-align:center;white-space:nowrap;box-sizing:border-box}
@@ -523,15 +523,16 @@
                 .meimay-child-gender-grid,.meimay-child-toggle-grid{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-gender-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
                 .meimay-child-gender-btn,.meimay-child-toggle-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:18px;background:#fff;color:#5d5444;font-size:13px;font-weight:900;text-align:left}
-                .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:linear-gradient(180deg,#fff8eb 0%,#fff1d8 100%)}
+                .meimay-child-gender-btn{justify-content:center;min-height:48px;padding:12px 8px;border-radius:14px;font-weight:800;text-align:center}
+                .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:#fff9ec}
                 .meimay-child-toggle-count{color:#a6967a;font-size:11px;font-weight:800}
                 .meimay-child-danger{border-color:#f5c8c8;background:#fff6f6;color:#c45d5d}
                 .meimay-child-leave{border-color:#f0e0b8;background:#fffbf0;color:#a87c30}
                 .meimay-child-accept{border-color:#b8d8c8;background:#f0faf4;color:#2e7d57}
                 .meimay-partner-child-card{border:2px dashed #c8ddb8;background:rgba(220,245,220,0.28)}
                 .mcw-partner-badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:8px;background:linear-gradient(135deg,#6b9e7c,#4a7a8e);color:#fff;font-size:10px;font-weight:900;letter-spacing:0.02em;vertical-align:middle;margin-left:5px}
-                .wiz-baby-gender-btn.partner-picked{border-color:#6b9e7c;background:rgba(107,158,124,0.09);position:relative}
-                .wiz-baby-gender-btn.partner-picked.selected{border-color:#6b9e7c;background:linear-gradient(180deg,rgba(107,158,124,0.18) 0%,rgba(107,158,124,0.12) 100%)}
+                .meimay-child-gender-btn.partner-picked{border-color:#6b9e7c;background:rgba(107,158,124,0.09);position:relative}
+                .meimay-child-gender-btn.partner-picked.selected{border-color:#6b9e7c;background:rgba(107,158,124,0.14)}
 
             `;
             document.head.appendChild(style);
@@ -2180,17 +2181,13 @@
                 { value: 'female', label: '女の子' },
                 { value: 'neutral', label: '指定なし' }
             ];
-            const emojis = {
-                male: '👦',
-                female: '👧',
-                neutral: '👶'
-            };
             const normalized = normalizeGenderValue(selectedGender);
+            const partnerNormalized = normalizeGenderValue(partnerGender);
             return buttons.map((item) => {
                 const isSelected = item.value === normalized;
-                return `<button type="button" class="wiz-baby-gender-btn${isSelected ? ' selected' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">
-                    <span class="wiz-baby-gender-emoji">${escapeHtml(emojis[item.value] || '👶')}</span>
-                    <span class="wiz-baby-gender-title">${escapeHtml(item.label)}</span>
+                const isPartnerPicked = partnerNormalized !== 'neutral' && item.value === partnerNormalized;
+                return `<button type="button" class="meimay-child-gender-btn${isSelected ? ' selected' : ''}${isPartnerPicked ? ' partner-picked' : ''}" data-child-modal-gender="${item.value}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.selectChildModalGender('${item.value}')">
+                    <span class="meimay-child-gender-label">${escapeHtml(item.label)}</span>
                 </button>`;
             }).join('');
         },
@@ -2452,7 +2449,6 @@
             const defaultSections = ['reading', 'kanji', 'saved'];
             const showDeleteButton = isEdit && this.buildOrderedChildIds(this.root).length > 1 && !child?.meta?.createdByPartner;
             const showLeaveButton = isEdit && !!child?.meta?.createdByPartner;
-            const createDesc = '生まれ順・性別・はじめ方を選んでください';
             const modal = document.createElement('div');
             modal.id = 'meimay-child-editor-modal';
             modal.className = 'meimay-child-modal-overlay';
@@ -2467,8 +2463,7 @@
                             <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closeChildModal()">×</button>
                         </div>
                         <div class="meimay-child-modal-copy">
-                            <div class="meimay-child-modal-title">${isEdit ? '子どもの設定を編集' : '新しい子を追加'}</div>
-                            <div class="meimay-child-modal-desc">${isEdit ? '生まれ順と性別を見直せます。' : createDesc}</div>
+                            <div class="meimay-child-modal-title">${isEdit ? '子どもの設定' : '新しい子を追加'}</div>
                         </div>
                     </div>
                     <input type="hidden" id="mcw-child-gender" value="${escapeHtml(selectedGender)}">

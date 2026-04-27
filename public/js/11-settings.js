@@ -416,7 +416,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('共有とプレミアム', `
-                ${renderItem({ title: 'パートナー連携', value: pairingStatusText, valueStyle: `color: ${pairingStatusColor};`, onClick: "changeScreen('scr-login')" })}
+                ${renderItem({ title: 'パートナー連携', value: pairingStatusText, valueStyle: `color: ${pairingStatusColor};`, onClick: 'openPartnerSettingsSheet()' })}
                 ${renderItem({
                     title: 'プレミアム',
                     value: premiumText,
@@ -442,8 +442,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('ヘルプと情報', `
-                ${renderItem({ title: '使い方ガイド', value: '基本の流れ', onClick: 'showGuide()' })}
-                ${renderItem({ title: '利用規約・プライバシー', value: '確認する', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}" })}
+                ${renderItem({ title: '利用規約・プライバシー', value: '確認する', onClick: 'openLegalSettingsSheet()' })}
             `)}
         </div>
     `;
@@ -618,6 +617,61 @@ function editShareMode() {
     });
 }
 
+function openPartnerSettingsSheet() {
+    const status = (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode)
+        ? `連携中（${escapeProfileHtml(MeimayPairing.roomCode)}）`
+        : '未連携';
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="partner-settings-sheet" onclick="if(event.target.id==='partner-settings-sheet')closePartnerSettingsSheet()">
+            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closePartnerSettingsSheet()">✕</button>
+                <h3 class="modal-title">パートナー連携</h3>
+                <div class="settings-sheet-list">
+                    <div class="settings-sheet-row">
+                        <span>状態</span>
+                        <strong>${status}</strong>
+                    </div>
+                    <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closePartnerSettingsSheet(); changeScreen('scr-login');">
+                        <span>連携設定を開く</span>
+                        <strong>›</strong>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function closePartnerSettingsSheet() {
+    document.getElementById('partner-settings-sheet')?.remove();
+}
+
+function openLegalSettingsSheet() {
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="legal-settings-sheet" onclick="if(event.target.id==='legal-settings-sheet')closeLegalSettingsSheet()">
+            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeLegalSettingsSheet()">✕</button>
+                <h3 class="modal-title">利用規約・プライバシー</h3>
+                <div class="settings-sheet-list">
+                    <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('terms');}">
+                        <span>利用規約</span>
+                        <strong>›</strong>
+                    </button>
+                    <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
+                        <span>プライバシーポリシー</span>
+                        <strong>›</strong>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function closeLegalSettingsSheet() {
+    document.getElementById('legal-settings-sheet')?.remove();
+}
+
 function openProfileAppearanceModal() {
     const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
         ? (WizardData.get() || {})
@@ -648,10 +702,9 @@ function openProfileAppearanceModal() {
 
     const modal = `
         <div class="overlay active modal-overlay-dark" id="profile-appearance-modal" onclick="if(event.target.id==='profile-appearance-modal')closeProfileAppearanceModal()">
-            <div class="modal-sheet profile-appearance-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet profile-appearance-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeProfileAppearanceModal()">✕</button>
                 <h3 class="modal-title">プロフィール</h3>
-                <p class="modal-desc profile-appearance-desc">ニックネームとテーマカラーを変更できます</p>
                 <div class="modal-body">
                     <div>
                         <label class="profile-appearance-label" for="profile-appearance-name">ニックネーム</label>
@@ -744,7 +797,7 @@ function openTransferModal() {
     const restoreKey = getStoredBackupRestoreKey();
     const modal = `
         <div class="overlay active modal-overlay-dark" id="transfer-modal" onclick="if(event.target.id==='transfer-modal')closeTransferModal()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
                 <p class="modal-desc">復元はバックアップJSONか復元キーで行います。ID＋苗字一致だけでは復元できません。</p>
@@ -948,7 +1001,7 @@ function toggleInappropriateSetting() {
 function showInputModal(title, type, currentValue, placeholder, onSave) {
     const modal = `
         <div class="overlay active modal-overlay-dark" id="input-modal" onclick="if(event.target.id==='input-modal')closeInputModal()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeInputModal()">✕</button>
                 <h3 class="modal-title">${title}</h3>
                 <div class="modal-body">
@@ -991,7 +1044,7 @@ function closeInputModal() {
 function showSurnameModal(currentKanji, currentReading, onSave) {
     const modal = `
         <div class="overlay active modal-overlay-dark" id="surname-modal" onclick="if(event.target.id==='surname-modal')closeSurnameModal()">
-            <div class="modal-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSurnameModal()">✕</button>
                 <h3 class="modal-title">苗字を入力</h3>
                 <div class="modal-body space-y-4">
@@ -1052,7 +1105,7 @@ function showChoiceModal(title, description, options, currentValue, onSave) {
 
     const modal = `
         <div class="overlay active modal-overlay-dark" id="choice-modal" onclick="if(event.target.id==='choice-modal')closeSettingsChoiceModal()">
-            <div class="modal-sheet choice-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet choice-sheet" onclick="event.stopPropagation()">
                 <button type="button" class="modal-close-x" onclick="closeSettingsChoiceModal()">✕</button>
                 <h3 class="modal-title">${title}</h3>
                 ${description ? `<p class="modal-desc">${description}</p>` : ''}
@@ -1157,6 +1210,10 @@ window.selectProfileThemeOption = selectProfileThemeOption;
 window.saveProfileAppearanceModal = saveProfileAppearanceModal;
 window.closeProfileAppearanceModal = closeProfileAppearanceModal;
 window.saveProfileAppearance = saveProfileAppearance;
+window.openPartnerSettingsSheet = openPartnerSettingsSheet;
+window.closePartnerSettingsSheet = closePartnerSettingsSheet;
+window.openLegalSettingsSheet = openLegalSettingsSheet;
+window.closeLegalSettingsSheet = closeLegalSettingsSheet;
 window.openTransferModal = openTransferModal;
 window.closeTransferModal = closeTransferModal;
 window.exportBackupData = exportBackupData;
