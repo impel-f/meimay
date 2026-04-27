@@ -764,6 +764,10 @@ function getPremiumRemainingLabel(expiresAt) {
     return `あと${Math.max(1, Math.ceil(diffMs / dayMs))}日`;
 }
 
+function formatPremiumStatusRemainingLabel(label) {
+    return String(label || '').replace(/[0-9]/g, (digit) => '０１２３４５６７８９'[Number(digit)] || digit);
+}
+
 PremiumManager.getDisplayStatus = function () {
     const state = this.getMembershipState();
     const selfState = getSelfPremiumMembershipState();
@@ -778,13 +782,16 @@ PremiumManager.getDisplayStatus = function () {
     if (state.active && state.isTrial) {
         const ownerText = state.source === 'partner' ? 'パートナー特典' : '無料体験';
         const periodText = remainingLabel || (dateLabel ? `${dateLabel}まで` : '利用中');
+        const statusTitle = remainingLabel
+            ? `ステータス：無料体験中（${formatPremiumStatusRemainingLabel(remainingLabel)}）`
+            : 'ステータス：無料体験中';
         return {
             active: true,
             expired: false,
             kind: 'trial',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: 'プレミアム利用中',
-            homeDetail: `${ownerText}・${periodText}`,
+            homeTitle: statusTitle,
+            homeDetail: '',
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
@@ -797,8 +804,8 @@ PremiumManager.getDisplayStatus = function () {
             expired: false,
             kind: 'premium',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: 'プレミアム利用中',
-            homeDetail: periodText,
+            homeTitle: 'ステータス：プレミアム利用中',
+            homeDetail: remainingLabel || (dateLabel ? `${dateLabel}まで` : ''),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
@@ -1258,7 +1265,7 @@ function formatPremiumMatrixCell(value) {
 
 function renderPremiumComparisonMatrix() {
     const rows = [
-        { item: '使える漢字', free: '常用漢字中心', premium: '人名用漢字も' },
+        { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字' },
         { item: '広告', free: '表示あり', premium: '非表示' },
         { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
         { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
@@ -1372,7 +1379,7 @@ function showPremiumModal() {
         + '<button class="modal-close-btn" style="top:14px;right:14px;width:40px;height:40px;font-size:22px;background:rgba(255,255,255,0.72);border:1px solid #eadfcd;" onclick="closePremiumModal()">×</button>'
         + '<div class="space-y-3">'
         + '<div class="text-center px-10 sm:px-0">'
-        + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">プレミアム</h3>'
+        + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">👑プレミアム案内👑</h3>'
         + (subtitle ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>' : '')
         + '</div>'
         + renderPremiumStatusCard(state)
