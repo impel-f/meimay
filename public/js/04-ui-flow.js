@@ -3542,6 +3542,38 @@ const CONTEXT_COACH_CONFIGS = {
         }
         return null;
     },
+    'scr-input-reading': {
+        key: 'reading-input',
+        target: '#scr-input-reading .reading-input-panel',
+        placement: 'bottom',
+        kicker: '漢字探しのヒント',
+        title: '読みをひらがなで入れる',
+        body: '決まっている読みを入れると、その読みで使える漢字へ進めます。迷ったら厳格モードのまま始めて大丈夫です。'
+    },
+    'scr-segment': () => {
+        if (!document.querySelector('#seg-options button')) return null;
+        return {
+            key: 'reading-segment',
+            target: '#seg-options',
+            placement: 'bottom',
+            kicker: '分け方のヒント',
+            title: '自然に読める分け方を選ぶ',
+            body: '基本は一文字ずつでOKです。まとめ読み候補がある時は、名前として自然に読ませたい分け方を選びます。'
+        };
+    },
+    'scr-main': () => {
+        const isReadingKanjiSwipe = typeof isFreeSwipeMode === 'undefined' || !isFreeSwipeMode;
+        const hasReadingSegments = Array.isArray(segments) && segments.length > 0;
+        if (!isReadingKanjiSwipe || !hasReadingSegments || !document.getElementById('swipe-action-btns')) return null;
+        return {
+            key: 'reading-kanji-swipe',
+            target: '#swipe-action-btns',
+            placement: 'above-actions',
+            kicker: '漢字選びのヒント',
+            title: '一文字ずつ漢字を選ぶ',
+            body: '気になる漢字は候補、特に使いたい漢字は本命、違うと思ったら見送り。下のボタンだけでも進められます。'
+        };
+    },
     'scr-swipe-universal': {
         key: 'swipe',
         target: '#uni-swipe-action-btns',
