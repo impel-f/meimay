@@ -2932,37 +2932,6 @@ function renderHomeProfile() {
 
     const elPrefSummary = document.getElementById('home-preference-summary');
     if (elPrefSummary) elPrefSummary.innerText = preference.shortText || 'まだ傾向なし';
-    renderHomePremiumStatus();
-}
-
-function renderHomePremiumStatus() {
-    const statusButton = document.getElementById('home-premium-status');
-    if (!statusButton) return;
-
-    const titleEl = document.getElementById('home-premium-status-title');
-    const detailEl = document.getElementById('home-premium-status-detail');
-    const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
-    const display = premiumManager && typeof premiumManager.getDisplayStatus === 'function'
-        ? premiumManager.getDisplayStatus()
-        : {
-            active: false,
-            kind: 'free',
-            homeTitle: '無料プラン',
-            homeDetail: '3日無料体験を好きなタイミングで開始できます'
-        };
-
-    if (titleEl) titleEl.textContent = display.homeTitle || '無料プラン';
-    if (detailEl) detailEl.textContent = display.homeDetail || '';
-    statusButton.classList.remove('hidden');
-    statusButton.setAttribute('aria-label', `${display.homeTitle || ''} ${display.homeDetail || ''}`.trim());
-
-    if (display.active) {
-        statusButton.style.borderColor = '#d7b57c';
-        statusButton.style.background = '#fff5df';
-    } else {
-        statusButton.style.borderColor = '#eadfce';
-        statusButton.style.background = 'rgba(255, 255, 255, 0.72)';
-    }
 }
 
 window.closeHomePartnerHub = closeHomePartnerHub;
