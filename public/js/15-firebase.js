@@ -3959,6 +3959,7 @@ MeimayPairing.syncMyData = async function () {
             liked: roomPayload.liked,
             savedNames: roomPayload.savedNames,
             readingStock: roomPayload.readingStock,
+            encounteredReadings: roomPayload.encounteredReadings,
             hiddenReadings: roomPayload.hiddenReadings,
             likedRemoved: roomPayload.likedRemoved,
             premium: {
@@ -3978,12 +3979,19 @@ MeimayPairing.syncMyData = async function () {
             meimayStateV2UpdatedAt: roomPayload.meimayStateV2UpdatedAt,
             meimayStateV2: roomPayload.meimayStateV2
         });
+        const existingContentFingerprint = String(
+            existingRoomData.roomSyncFingerprint
+            || existingRoomData.meimayRoomSyncFingerprint
+            || ''
+        ).trim();
+        roomPayload.roomSyncFingerprint = contentFingerprint;
 
-        if (this._lastContentFingerprint !== contentFingerprint) {
+        if (this._lastContentFingerprint !== contentFingerprint && existingContentFingerprint !== contentFingerprint) {
             await roomDataRef.set(roomPayload, { merge: true });
             this._lastContentFingerprint = contentFingerprint;
             console.log('PAIRING: Synced my data to room');
         } else {
+            this._lastContentFingerprint = contentFingerprint;
             // console.log('PAIRING: Sync skipped (no content change)');
         }
     } catch (e) {
@@ -5117,7 +5125,18 @@ const MeimayUserBackup = {
         }
     },
 
-    _buildRemotePatch: function (sections) {
+    _getRemoteBackupFingerprint: function (data = {}) {
+        return String(
+            data?.meimayBackupFingerprint
+            || data?.backupFingerprint
+            || data?.meimayBackup?.fingerprint
+            || data?.backup?.fingerprint
+            || ''
+        ).trim();
+    },
+
+    _buildRemotePatch: function (sections, fingerprint = '') {
+        const effectiveFingerprint = String(fingerprint || this._fingerprint(sections) || '').trim();
         const childWorkspaceStateV2 = sections?.childWorkspaceStateV2 || this._readChildWorkspaceStateV2();
         const projectedSections = MeimayFirestorePayload.projectSections({
             ...(sections || {}),
@@ -5138,6 +5157,7 @@ const MeimayUserBackup = {
             || (Array.isArray(likedRemoved) && likedRemoved.length > 0 && (!Array.isArray(projectedSections.liked) || projectedSections.liked.length === 0));
         const backup = {
             schemaVersion: 1,
+            fingerprint: effectiveFingerprint,
             syncedAtMs: Date.now(),
             likedCount: Array.isArray(projectedSections.liked) ? projectedSections.liked.length : 0,
             savedNamesCount: Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames.length : 0,
@@ -5178,6 +5198,7 @@ const MeimayUserBackup = {
         const patch = {
             meimayBackup: backup,
             backup,
+            meimayBackupFingerprint: effectiveFingerprint,
             pairRoomCode,
             roomCode: pairRoomCode,
             hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : []),
@@ -5405,10 +5426,11 @@ const MeimayUserBackup = {
 
         try {
             await firebaseDb.collection('users').doc(currentUser.uid).set(
-                this._buildRemotePatch(sections),
+                this._buildRemotePatch(sections, fingerprint),
                 { merge: true }
             );
             this._lastSyncedFingerprint = fingerprint;
+            this._lastRemoteBackupFingerprint = fingerprint;
             console.log(`BACKUP: synced Firestore backup for ${currentUser.uid}`);
             return true;
         } catch (error) {
@@ -5430,6 +5452,7 @@ const MeimayUserBackup = {
         try {
             const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
+            const remoteBackupFingerprint = this._getRemoteBackupFingerprint(remoteData);
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
             const filterRemoved = (items) => typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
                 ? StorageBox._filterRemovedLikedItems(items)
@@ -5494,7 +5517,14 @@ const MeimayUserBackup = {
             }
 
             const refreshedSections = this._readCurrentSections();
-            await this.syncLocalToRemote(currentUser, { sections: refreshedSections, force: true });
+            const refreshedFingerprint = this._fingerprint(refreshedSections);
+            if (remoteBackupFingerprint && remoteBackupFingerprint === refreshedFingerprint) {
+                this._lastSyncedFingerprint = refreshedFingerprint;
+                this._lastRemoteBackupFingerprint = refreshedFingerprint;
+                return true;
+            }
+
+            await this.syncLocalToRemote(currentUser, { sections: refreshedSections, force: false });
             return true;
         } catch (error) {
             if (this._isPermissionDeniedError(error)) {

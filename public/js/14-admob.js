@@ -18,6 +18,7 @@ const PremiumManager = {
     KEY: 'meimay_premium',
     DEV_FALLBACK_KEY: 'meimay_allow_local_premium',
     TOKEN_KEY: 'meimay_app_account_token',
+    LINK_CACHE_KEY: 'meimay_premium_link_cache_v1',
     _remotePremium: null,
     _remotePremiumSource: null,
     _remoteStatus: null,
@@ -107,6 +108,25 @@ const PremiumManager = {
         }
     },
 
+    _getLinkCacheFingerprint: function () {
+        try {
+            const raw = localStorage.getItem(this.LINK_CACHE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            return String(parsed?.fingerprint || '').trim();
+        } catch (e) {
+            return '';
+        }
+    },
+
+    _setLinkCacheFingerprint: function (fingerprint) {
+        try {
+            localStorage.setItem(this.LINK_CACHE_KEY, JSON.stringify({
+                fingerprint,
+                savedAt: new Date().toISOString()
+            }));
+        } catch (e) { }
+    },
+
     isPremium: function () {
         if (typeof this.getMembershipState === 'function') {
             const state = this.getMembershipState();
@@ -158,17 +178,24 @@ const PremiumManager = {
 
         const platform = getPlatform();
         const docRef = firebaseDb.collection('users').doc(user.uid);
+        const linkFingerprint = `${user.uid}::${token}::${platform}`;
 
-        try {
-            await docRef.set({
-                appAccountToken: token,
-                premiumPlatform: platform,
-                appStoreBundleId: 'com.impelf.meimay',
-                premiumLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        } catch (e) {
-            console.warn('PREMIUM: Failed to link appAccountToken', e);
+        if (this._lastPremiumLinkFingerprint !== linkFingerprint && this._getLinkCacheFingerprint() !== linkFingerprint) {
+            try {
+                await docRef.set({
+                    appAccountToken: token,
+                    premiumPlatform: platform,
+                    appStoreBundleId: 'com.impelf.meimay',
+                    premiumLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                this._lastPremiumLinkFingerprint = linkFingerprint;
+                this._setLinkCacheFingerprint(linkFingerprint);
+            } catch (e) {
+                console.warn('PREMIUM: Failed to link appAccountToken', e);
+            }
+        } else {
+            this._lastPremiumLinkFingerprint = linkFingerprint;
         }
 
         if (this._userDocUnsub) {
