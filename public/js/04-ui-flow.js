@@ -2391,7 +2391,8 @@ function renderUniversalCard() {
     }
 
     if (dailyRemaining !== null && dailyRemaining <= 0) {
-        const completionLabel = SwipeState.mode === 'sound' ? '読みストックへ' : '終了';
+        const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname';
+        const completionLabel = isReadingSwipe ? '読みを確認する' : '終了';
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-sm rounded-[32px] border border-[#eadfce] bg-white/95 px-6 py-7 shadow-2xl">
@@ -2416,12 +2417,16 @@ function renderUniversalCard() {
     }
 
     if (SwipeState.currentIndex >= SwipeState.candidates.length) {
-        const completionLabel = SwipeState.mode === 'sound' ? '読みストックへ →' : '終了する →';
+        const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname';
+        const completionLabel = isReadingSwipe ? '読みを確認する →' : '終了する →';
+        const completionBody = isReadingSwipe
+            ? '候補にした読みをストックで確認し、次は漢字を選びます'
+            : '候補リストを確認できます';
         container.innerHTML = `
             <div class="flex flex-col items-center justify-center h-full text-center px-6">
                 <div class="text-[60px] mb-4">✨</div>
                 <p class="text-[#bca37f] font-bold text-lg mb-4">チェック完了！</p>
-                <p class="text-sm text-[#a6967a] mb-6">いいねした読みはストックに保存されました</p>
+                <p class="text-sm text-[#a6967a] mb-6">${completionBody}</p>
                 <button onclick="showUniversalList()" class="btn-gold w-full py-4 shadow-md mb-4">${completionLabel}</button>
             </div>
         `;
@@ -2678,14 +2683,20 @@ function undoUniversalSwipe() {
 }
 
 function showUniversalList() {
-    // リスト画面を出さずに直接終了＆ホームへ
+    // リスト画面を出さずに、モードに応じた次の画面へ進める
+    const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
     if (SwipeState.liked.length > 0) {
-        showToast(`${SwipeState.liked.length}件の読みをストックに保存しました！`);
+        showToast(
+            isReadingSwipe
+                ? `${SwipeState.liked.length}件の読みを保存しました。次は漢字を選べます`
+                : `${SwipeState.liked.length}件を候補に保存しました`,
+            '✓'
+        );
     } else {
         showToast('スワイプを終了しました');
     }
     document.getElementById('uni-liked-list').classList.add('hidden');
-    if (SwipeState.mode === 'sound' || appMode === 'sound') {
+    if (isReadingSwipe) {
         if (typeof changeScreen === 'function') changeScreen('scr-stock');
         if (typeof switchStockTab === 'function') switchStockTab('reading');
         return;
@@ -3581,6 +3592,30 @@ const CONTEXT_COACH_CONFIGS = {
         kicker: '選び方のヒント',
         title: 'スワイプが不安ならボタンでOK',
         body: '迷ったら、下の3つのボタンだけで進められます。候補は右、本命は上、見送りは左でも同じです。'
+    },
+    'scr-stock': () => {
+        if (typeof currentStockTab === 'undefined' || currentStockTab !== 'reading') return null;
+        if (document.querySelector('.reading-stock-primary-action--kanji')) {
+            return {
+                key: 'stock-reading-kanji',
+                target: '.reading-stock-primary-action--kanji',
+                placement: 'bottom',
+                kicker: '次の一手',
+                title: '読みを選んだら、次は漢字',
+                body: 'ストックに入った読みごとに「漢字を選ぶ」から候補を広げます。気になる漢字を選ぶとビルドへ進めます。'
+            };
+        }
+        if (document.querySelector('.reading-stock-primary-action--build')) {
+            return {
+                key: 'stock-reading-build',
+                target: '.reading-stock-primary-action--build',
+                placement: 'bottom',
+                kicker: '次の一手',
+                title: '漢字がそろったらビルドへ',
+                body: '読みごとに選んだ漢字を組み合わせて、名前としての字面や運勢を確認できます。'
+            };
+        }
+        return null;
     },
     'scr-build': {
         key: 'build',
@@ -7903,7 +7938,7 @@ function renderReadingStockSectionV2() {
                         <div class="mt-1 text-[9px]" style="color:${tone.sub}">${item.kanjiCount}個の漢字</div>
                     </div>
                     <button onclick='event.stopPropagation(); openBuildFromReading(${JSON.stringify(String(item.id || item.reading || ''))}, ${JSON.stringify(Array.isArray(item.segments) ? item.segments.filter(Boolean) : [])})'
-                        class="text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
+                        class="reading-stock-primary-action reading-stock-primary-action--build text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap transition-all active:scale-95 shadow-sm"
                         style="${tone.action}">
                         ビルドする
                     </button>
@@ -7947,6 +7982,7 @@ function renderReadingStockSectionV2() {
                         const tone = getReadingCardToneV2(kind);
                         const actionLabel = isPromoted ? 'ビルドする' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
+                        const actionClass = isPromoted ? 'reading-stock-primary-action--build' : 'reading-stock-primary-action--kanji';
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})">
                             <div class="flex items-center justify-between gap-2">
@@ -7960,7 +7996,7 @@ function renderReadingStockSectionV2() {
                                     </div>
                                     <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字候補</div>
                                 </button>
-                                <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.id || item.reading || ""))});' class="shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
+                                <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.id || item.reading || ""))});' class="reading-stock-primary-action ${actionClass} shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     ${actionLabel}
                                 </button>
                             </div>
