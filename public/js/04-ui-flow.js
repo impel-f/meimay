@@ -3605,6 +3605,15 @@ function markContextCoachShown(key) {
     writeContextCoachState(state);
 }
 
+function getHomeNextCoachSignature(nextStep) {
+    if (!nextStep || typeof nextStep !== 'object') return '';
+    return [
+        nextStep.action,
+        nextStep.title,
+        nextStep.detail
+    ].map(value => String(value || '').trim()).filter(Boolean).join('::');
+}
+
 function isContextCoachBlocked() {
     const activeOverlay = Array.from(document.querySelectorAll('.overlay.active'))
         .find(el => el.id !== 'context-coachmark-overlay');
@@ -3729,6 +3738,53 @@ function maybeShowContextualCoachmark(screenId, options = {}) {
         if (isContextCoachBlocked()) return;
         if (!document.querySelector(config.target)) return;
         showContextualCoachmark(config, options);
+    }, delay);
+}
+
+function maybeShowHomeNextActionCoach(nextStep, options = {}) {
+    if (getActiveScreenIdForCoach() !== 'scr-mode') return;
+    const signature = getHomeNextCoachSignature(nextStep);
+    if (!signature) return;
+
+    const state = readContextCoachState();
+    state.homeNext = state.homeNext && typeof state.homeNext === 'object' ? state.homeNext : {};
+    state.homeNext.seen = state.homeNext.seen && typeof state.homeNext.seen === 'object' ? state.homeNext.seen : {};
+
+    const lastSignature = state.homeNext.lastSignature || '';
+    const alreadySeen = !!state.homeNext.seen[signature];
+    const homeIntroShown = hasContextCoachShown('home');
+    state.homeNext.lastSignature = signature;
+
+    if (!options.force && (lastSignature === signature || alreadySeen || !homeIntroShown)) {
+        writeContextCoachState(state);
+        return;
+    }
+
+    state.homeNext.seen[signature] = new Date().toISOString();
+    writeContextCoachState(state);
+
+    const title = String(nextStep.title || '次はここから').trim();
+    const detail = String(nextStep.detail || 'ホームの次にやることが更新されました。').trim();
+    const delay = Number.isFinite(options.delay) ? options.delay : 680;
+
+    if (contextCoachTimer) {
+        clearTimeout(contextCoachTimer);
+        contextCoachTimer = null;
+    }
+
+    contextCoachTimer = setTimeout(() => {
+        contextCoachTimer = null;
+        if (getActiveScreenIdForCoach() !== 'scr-mode') return;
+        if (isContextCoachBlocked()) return;
+        if (!document.querySelector('#home-next-action-card')) return;
+        showContextualCoachmark({
+            key: 'home-next-action',
+            target: '#home-next-action-card',
+            placement: 'bottom',
+            kicker: '次にやること',
+            title: `次は「${title}」`,
+            body: detail
+        }, { force: true });
     }, delay);
 }
 
@@ -5385,6 +5441,7 @@ window.goBack = goBack;
 window.showTutorial = showTutorial;
 window.maybeShowFirstRunTutorial = maybeShowFirstRunTutorial;
 window.maybeShowContextualCoachmark = maybeShowContextualCoachmark;
+window.maybeShowHomeNextActionCoach = maybeShowHomeNextActionCoach;
 window.showContextualGuideForCurrentScreen = showContextualGuideForCurrentScreen;
 window.dismissContextCoach = dismissContextCoach;
 window.closeTutorial = closeTutorial;

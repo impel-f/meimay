@@ -3424,7 +3424,7 @@ function renderHomeNextStagePrimaryButton(cardConfig, options = {}) {
     const highlightStyle = String(options.highlightStyle || '').trim();
     if (cardConfig.variant === 'icon') {
         return `
-            <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left active:scale-[0.98] transition-transform shadow-sm" style="${highlightStyle}">
+            <button id="home-next-action-card" type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 flex w-full items-center justify-between gap-3 rounded-[20px] border border-[#eadfce] bg-white px-5 py-5 text-left active:scale-[0.98] transition-transform shadow-sm" style="${highlightStyle}">
                 <div class="min-w-0 flex-1">
                     <span class="block text-[1.08rem] font-black leading-tight text-[#5d5444] md:text-[1.14rem]">${cardConfig.title}</span>
                     <span class="mt-2 block text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
@@ -3435,7 +3435,7 @@ function renderHomeNextStagePrimaryButton(cardConfig, options = {}) {
     }
 
     return `
-        <button type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm" style="${highlightStyle}">
+        <button id="home-next-action-card" type="button" onclick="event.stopPropagation(); runHomeAction('${cardConfig.action}')" class="mt-3 wiz-gender-btn wiz-reading-choice w-full shadow-sm" style="${highlightStyle}">
             <div class="wiz-reading-choice-copy">
                 <span class="block text-[1.12rem] font-black leading-tight text-[#5d5444] md:text-[1.18rem]">${cardConfig.title}</span>
                 <span class="block mt-2 text-[12px] leading-[1.7] text-[#8b7e66] md:text-[13px]">${cardConfig.detailHtml}</span>
@@ -3615,6 +3615,14 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         const step = displayedSteps[index];
         badge.textContent = step?.selected ? '●' : (step?.done ? '✓' : '-');
     });
+
+    if (window.MeimayHomeStageFocusSource !== 'manual' && typeof maybeShowHomeNextActionCoach === 'function') {
+        maybeShowHomeNextActionCoach({
+            action: actionCardConfig.action,
+            title: actionCardConfig.title,
+            detail: String(actionCardConfig.detailHtml || '').replace(/<br\s*\/?>/gi, '、')
+        });
+    }
 }
 
 function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, options = {}) {
