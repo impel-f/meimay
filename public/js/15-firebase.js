@@ -4572,11 +4572,122 @@ const MeimayUserBackup = {
     _lastSyncedFingerprint: '',
     _hooksInstalled: false,
     _remoteBackupDisabled: false,
+    _restoreKeyStorageKey: 'meimay_backup_restore_key_v1',
+    _restoreKeyLength: 16,
+    _restoreKeyAlphabet: '23456789ABCDEFGHJKLMNPQRSTUVWXYZ',
+    _restoreApiPath: '/api/backup-restore',
 
     _isPermissionDeniedError: function (error) {
         const code = String(error?.code || error?.name || '').toLowerCase();
         const message = String(error?.message || '').toLowerCase();
         return code.includes('permission') || code.includes('denied') || message.includes('missing or insufficient permissions') || message.includes('permission denied');
+    },
+
+    _normalizeRestoreKey: function (value) {
+        return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    },
+
+    _formatRestoreKey: function (value) {
+        const normalized = this._normalizeRestoreKey(value).slice(0, this._restoreKeyLength);
+        return normalized.replace(/(.{4})(?=.)/g, '$1-');
+    },
+
+    _isValidRestoreKey: function (value) {
+        return this._normalizeRestoreKey(value).length === this._restoreKeyLength;
+    },
+
+    _generateRestoreKey: function () {
+        const bytes = new Uint8Array(this._restoreKeyLength);
+        if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+            window.crypto.getRandomValues(bytes);
+        } else {
+            for (let i = 0; i < bytes.length; i += 1) {
+                bytes[i] = Math.floor(Math.random() * 256);
+            }
+        }
+        let key = '';
+        for (const value of bytes) {
+            key += this._restoreKeyAlphabet[value % this._restoreKeyAlphabet.length];
+        }
+        return this._formatRestoreKey(key);
+    },
+
+    _getStoredRestoreKeyRaw: function () {
+        try {
+            return localStorage.getItem(this._restoreKeyStorageKey) || '';
+        } catch (error) {
+            return '';
+        }
+    },
+
+    _storeRestoreKey: function (key) {
+        const formatted = this._formatRestoreKey(key);
+        if (!this._isValidRestoreKey(formatted)) return '';
+        try {
+            localStorage.setItem(this._restoreKeyStorageKey, formatted);
+        } catch (error) { }
+        return formatted;
+    },
+
+    _getRestoreErrorMessage: function (error) {
+        const code = String(error?.code || '').trim();
+        if (code === 'restore_key_not_found') return '復元キーが見つかりません';
+        if (code === 'no_backup_available') return 'この復元キーにはまだバックアップがありません';
+        if (code === 'invalid_restore_key') return '復元キーを確認してください';
+        if (code === 'authentication_failed') return 'サインインの準備が終わってからもう一度お試しください';
+        return error?.message || 'バックアップ復元に失敗しました';
+    },
+
+    _callRestoreApi: async function (action, payload = {}) {
+        const token = typeof getFirebaseIdToken === 'function'
+            ? await getFirebaseIdToken()
+            : '';
+        if (!token) {
+            const error = new Error('サインインの準備が終わってからもう一度お試しください');
+            error.code = 'authentication_failed';
+            throw error;
+        }
+
+        const response = await fetch(this._restoreApiPath, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ action, ...payload })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+            const fallbackMessage = response.status === 404 && !data.error
+                ? '復元キーは本番/API環境で有効化されます'
+                : this._getRestoreErrorMessage(data);
+            const error = new Error(fallbackMessage);
+            error.code = data.error || 'backup_restore_failed';
+            throw error;
+        }
+        return data;
+    },
+
+    getStoredRestoreKey: function () {
+        const raw = this._getStoredRestoreKeyRaw();
+        return this._isValidRestoreKey(raw) ? this._formatRestoreKey(raw) : '';
+    },
+
+    ensureRestoreKey: async function () {
+        const existingKey = this.getStoredRestoreKey();
+        const key = existingKey || this._generateRestoreKey();
+        const formattedKey = this._formatRestoreKey(key);
+        await this._callRestoreApi('register', { restoreKey: formattedKey });
+        const storedKey = this._storeRestoreKey(formattedKey);
+        return { restoreKey: storedKey, created: !existingKey };
+    },
+
+    rotateRestoreKey: async function () {
+        const previousRestoreKey = this.getStoredRestoreKey();
+        const restoreKey = this._generateRestoreKey();
+        await this._callRestoreApi('register', { restoreKey, previousRestoreKey });
+        const storedKey = this._storeRestoreKey(restoreKey);
+        return { restoreKey: storedKey, created: true };
     },
 
     _currentUser: function () {
@@ -5141,6 +5252,119 @@ const MeimayUserBackup = {
         } finally {
             this._restoreInFlight = false;
         }
+    },
+
+    _applyHiddenReadings: function (values) {
+        if (!Array.isArray(values)) return;
+        try {
+            const current = typeof readNormalizedHiddenReadings === 'function'
+                ? readNormalizedHiddenReadings()
+                : [];
+            const incoming = typeof readNormalizedHiddenReadingsFromSnapshot === 'function'
+                ? readNormalizedHiddenReadingsFromSnapshot(values)
+                : values;
+            const merged = [...new Set([...(Array.isArray(current) ? current : []), ...(Array.isArray(incoming) ? incoming : [])].filter(Boolean))];
+            localStorage.setItem('meimay_hidden_readings', JSON.stringify(merged));
+        } catch (error) {
+            console.warn('BACKUP: Failed to restore hidden readings', error);
+        }
+    },
+
+    _applyEncounteredReadings: function (values) {
+        if (!Array.isArray(values) || values.length === 0) return;
+        try {
+            const library = typeof getEncounteredLibrary === 'function'
+                ? getEncounteredLibrary()
+                : { kanji: [], readings: [] };
+            const hydrated = MeimayFirestorePayload.hydrateSections({ encounteredReadings: values }).encounteredReadings || [];
+            const byKey = new Map();
+            const addReading = (item) => {
+                if (!item) return;
+                const key = String(item.key || item.reading || '').trim();
+                if (!key) return;
+                byKey.set(key, this._safeClone(item));
+            };
+            (Array.isArray(library?.readings) ? library.readings : []).forEach(addReading);
+            hydrated.forEach(addReading);
+            localStorage.setItem('meimay_encountered_library_v1', JSON.stringify({
+                kanji: Array.isArray(library?.kanji) ? library.kanji.slice(0, 300) : [],
+                readings: Array.from(byKey.values()).slice(-300)
+            }));
+        } catch (error) {
+            console.warn('BACKUP: Failed to restore encountered readings', error);
+        }
+    },
+
+    applyRemoteBackupPayload: async function (payload = {}, options = {}) {
+        const remoteBackup = payload.backup || payload.meimayBackup || payload;
+        if (!remoteBackup || typeof remoteBackup !== 'object') {
+            const error = new Error('バックアップが見つかりません');
+            error.code = 'no_backup_available';
+            throw error;
+        }
+
+        const remoteSections = {
+            liked: Array.isArray(remoteBackup.liked) ? remoteBackup.liked : [],
+            savedNames: Array.isArray(remoteBackup.savedNames) ? remoteBackup.savedNames : [],
+            readingStock: Array.isArray(remoteBackup.readingStock) ? remoteBackup.readingStock : []
+        };
+        const localSections = this._readCurrentSections();
+        const mergedSections = options.replace === true
+            ? remoteSections
+            : {
+                liked: this._mergeByKey(localSections.liked, remoteSections.liked, (item) => this._getLikedKey(item)),
+                savedNames: this._mergeByKey(localSections.savedNames, remoteSections.savedNames, (item) => this._getSavedKey(item)),
+                readingStock: this._mergeByKey(localSections.readingStock, remoteSections.readingStock, (item) => this._getReadingStockKey(item))
+            };
+
+        if (Array.isArray(remoteBackup.likedRemoved)
+            && typeof StorageBox !== 'undefined'
+            && StorageBox
+            && typeof StorageBox._persistLikedRemovalState === 'function') {
+            StorageBox._persistLikedRemovalState(remoteBackup.likedRemoved);
+        }
+        this._applyHiddenReadings(remoteBackup.hiddenReadings);
+        this._applyEncounteredReadings(remoteBackup.encounteredReadings);
+
+        const remoteChildWorkspaceStateV2 = remoteBackup.meimayStateV2
+            || remoteBackup.childWorkspaceStateV2
+            || remoteBackup.stateV2
+            || null;
+        if (remoteChildWorkspaceStateV2) {
+            const localChildWorkspaceStateV2 = this._readChildWorkspaceStateV2();
+            if (options.replace === true || this._shouldApplyRemoteChildWorkspaceStateV2(localChildWorkspaceStateV2, remoteChildWorkspaceStateV2)) {
+                this._applyChildWorkspaceStateV2(remoteChildWorkspaceStateV2);
+            }
+        }
+
+        this._applySectionsToLocal(mergedSections);
+
+        const currentUser = this._currentUser();
+        if (currentUser) {
+            await this.syncLocalToRemote(currentUser, { sections: this._readCurrentSections(), force: true, reason: 'restore-key' });
+        }
+
+        return {
+            likedCount: Array.isArray(mergedSections.liked) ? mergedSections.liked.length : 0,
+            savedNamesCount: Array.isArray(mergedSections.savedNames) ? mergedSections.savedNames.length : 0,
+            readingStockCount: Array.isArray(mergedSections.readingStock) ? mergedSections.readingStock.length : 0
+        };
+    },
+
+    restoreFromKey: async function (restoreKey) {
+        if (!this._isValidRestoreKey(restoreKey)) {
+            const error = new Error('復元キーを確認してください');
+            error.code = 'invalid_restore_key';
+            throw error;
+        }
+        const response = await this._callRestoreApi('restore', {
+            restoreKey: this._formatRestoreKey(restoreKey)
+        });
+        const summary = await this.applyRemoteBackupPayload(response, { replace: false });
+        return {
+            ...summary,
+            sourceSummary: response.summary || null
+        };
     },
 
     syncLocalToRemote: async function (user = null, options = {}) {

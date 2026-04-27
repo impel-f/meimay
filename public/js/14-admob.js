@@ -645,7 +645,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
         } else if (isTrial) {
             detail = isPartner
                 ? '連携中のパートナーの無料体験で、プレミアム特典を利用できます。'
-                : '無料体験期間中です。気に入ったら有料プランへ進めます。';
+                : '無料体験期間中です。';
         } else {
             detail = isPartner
                 ? '連携中のパートナーのプレミアム特典を利用できます。'

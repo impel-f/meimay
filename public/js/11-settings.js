@@ -761,24 +761,80 @@ function closeProfileAppearanceModal() {
     delete window.profileAppearanceThemeTouched;
 }
 
+function getStoredBackupRestoreKey() {
+    return typeof MeimayUserBackup !== 'undefined'
+        && MeimayUserBackup
+        && typeof MeimayUserBackup.getStoredRestoreKey === 'function'
+        ? MeimayUserBackup.getStoredRestoreKey()
+        : '';
+}
+
+function updateBackupRestoreKeyDisplay(restoreKey = '') {
+    const key = restoreKey || getStoredBackupRestoreKey();
+    const display = document.getElementById('backup-restore-key-display');
+    const copyButton = document.getElementById('backup-restore-key-copy');
+    const issueButton = document.getElementById('backup-restore-key-issue');
+    if (display) {
+        display.textContent = key || '未発行';
+        display.classList.toggle('text-[#b04a3a]', !key);
+    }
+    if (copyButton) {
+        copyButton.disabled = !key;
+        copyButton.classList.toggle('opacity-50', !key);
+    }
+    if (issueButton) {
+        issueButton.textContent = key ? '復元キーを再発行' : '復元キーを発行';
+    }
+}
+
 function openTransferModal() {
+    const restoreKey = getStoredBackupRestoreKey();
     const modal = `
         <div class="overlay active modal-overlay-dark" id="transfer-modal" onclick="if(event.target.id==='transfer-modal')closeTransferModal()">
             <div class="modal-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
-                <h3 class="modal-title">データの引き継ぎ</h3>
-                <p class="modal-desc">機種変更の前にバックアップを書き出して、新しい端末で読み込めます。</p>
-                <div class="modal-body space-y-3">
-                    <button onclick="exportBackupData()" class="w-full py-4 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
-                        バックアップを書き出す
-                    </button>
-                    <button onclick="triggerBackupImport()" class="w-full py-4 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm">
-                        バックアップを読み込む
-                    </button>
-                    <div class="rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] px-4 py-3 text-left">
-                        <div class="text-[11px] font-bold text-[#5d5444]">引き継がれるもの</div>
-                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">読み候補、漢字ストック、保存済み、設定、ウィザード情報、好み学習</div>
-                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">パートナー連携の状態や匿名ログイン自体は端末で変わるので、新端末で再確認が必要です。</div>
+                <h3 class="modal-title">バックアップと復元</h3>
+                <p class="modal-desc">復元はバックアップJSONか復元キーで行います。ID＋苗字一致だけでは復元できません。</p>
+                <div class="modal-body space-y-3 text-left">
+                    <div class="rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] px-4 py-3">
+                        <div class="text-[12px] font-black text-[#5d5444]">バックアップJSON</div>
+                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">機種変更の前にファイルを書き出して、新しい端末で読み込めます。設定や好み学習までまとめて戻せます。</div>
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button onclick="exportBackupData()" class="w-full py-3 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
+                                JSONを書き出す
+                            </button>
+                            <button onclick="triggerBackupImport()" class="w-full py-3 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm">
+                                JSONから復元
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl bg-white border border-[#e7d9c5] px-4 py-3">
+                        <div class="text-[12px] font-black text-[#5d5444]">復元キー</div>
+                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">JSONが手元にない時のための控えです。キーを知っている人はバックアップを復元できるので、家族内だけで保管してください。</div>
+                        <div class="mt-3 rounded-xl bg-[#f8f3ea] border border-[#eadfcd] px-3 py-2">
+                            <div class="text-[10px] font-bold text-[#a6967a]">この端末の復元キー</div>
+                            <div id="backup-restore-key-display" class="mt-1 font-mono text-[15px] font-black tracking-[0.08em] text-[#5d5444]">${restoreKey || '未発行'}</div>
+                        </div>
+                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button id="backup-restore-key-issue" onclick="issueBackupRestoreKey()" class="w-full py-3 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
+                                ${restoreKey ? '復元キーを再発行' : '復元キーを発行'}
+                            </button>
+                            <button id="backup-restore-key-copy" onclick="copyBackupRestoreKey()" class="w-full py-3 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm ${restoreKey ? '' : 'opacity-50'}" ${restoreKey ? '' : 'disabled'}>
+                                キーをコピー
+                            </button>
+                        </div>
+                        <div class="mt-4 border-t border-[#eee5d8] pt-3">
+                            <label class="block text-[10px] font-bold text-[#a6967a] mb-1" for="backup-restore-key-input">別端末の復元キー</label>
+                            <input id="backup-restore-key-input" type="text" inputmode="text" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX" class="w-full rounded-2xl border border-[#d8ccb9] bg-[#fffaf2] px-3 py-3 text-sm font-bold text-[#5d5444] tracking-[0.08em] uppercase">
+                            <button onclick="restoreBackupFromRestoreKey(event)" class="mt-2 w-full py-3 rounded-2xl bg-[#5d5444] text-white font-bold text-sm shadow-sm">
+                                復元キーで復元
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rounded-2xl bg-[#fff8ea] border border-[#e8d5ad] px-4 py-3">
+                        <div class="text-[11px] font-black text-[#5d5444]">復元ルール</div>
+                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">JSON復元はこの端末の保存データを上書きします。復元キーはクラウド上のバックアップとこの端末のデータを統合します。苗字、ニックネーム、匿名IDだけを使った復元は行いません。</div>
+                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">パートナー連携のルームや匿名ログイン自体は端末ごとに再確認が必要です。</div>
                     </div>
                 </div>
             </div>
@@ -786,6 +842,7 @@ function openTransferModal() {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modal);
+    updateBackupRestoreKeyDisplay(restoreKey);
 }
 
 function closeTransferModal() {
@@ -796,7 +853,7 @@ function exportBackupData() {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.exportData === 'function') {
         StorageBox.exportData();
         closeTransferModal();
-        if (typeof showToast === 'function') showToast('バックアップを書き出しました', '✓');
+        if (typeof showToast === 'function') showToast('JSONバックアップを書き出しました', '✓');
     }
 }
 
@@ -807,7 +864,7 @@ function triggerBackupImport() {
     input.onchange = () => {
         const file = input.files && input.files[0];
         if (!file) return;
-        if (!confirm('バックアップを読み込むと、この端末の保存データが上書きされます。続けますか？')) {
+        if (!confirm('JSONバックアップを読み込むと、この端末の保存データが上書きされます。続けますか？')) {
             return;
         }
         closeTransferModal();
@@ -816,6 +873,99 @@ function triggerBackupImport() {
         }
     };
     input.click();
+}
+
+async function issueBackupRestoreKey() {
+    if (typeof MeimayUserBackup === 'undefined' || !MeimayUserBackup) {
+        if (typeof showToast === 'function') showToast('復元キーはまだ準備中です', '⚠');
+        return;
+    }
+    const existingKey = getStoredBackupRestoreKey();
+    if (existingKey && !confirm('復元キーを再発行すると、前のキーは使えなくなります。続けますか？')) {
+        return;
+    }
+    const button = document.getElementById('backup-restore-key-issue');
+    if (button) {
+        button.disabled = true;
+        button.textContent = '発行中...';
+    }
+    try {
+        const result = existingKey && typeof MeimayUserBackup.rotateRestoreKey === 'function'
+            ? await MeimayUserBackup.rotateRestoreKey()
+            : await MeimayUserBackup.ensureRestoreKey();
+        updateBackupRestoreKeyDisplay(result.restoreKey);
+        if (typeof showToast === 'function') showToast('復元キーを発行しました', '✓');
+    } catch (error) {
+        console.warn('BACKUP: Restore key issue failed', error);
+        if (typeof showToast === 'function') {
+            const message = typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
+                ? MeimayUserBackup._getRestoreErrorMessage(error)
+                : '復元キーの発行に失敗しました';
+            showToast(message, '⚠');
+        }
+        updateBackupRestoreKeyDisplay(existingKey);
+    } finally {
+        if (button) {
+            button.disabled = false;
+        }
+    }
+}
+
+async function copyBackupRestoreKey() {
+    const key = getStoredBackupRestoreKey();
+    if (!key) {
+        if (typeof showToast === 'function') showToast('先に復元キーを発行してください', '⚠');
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(key);
+        if (typeof showToast === 'function') showToast('復元キーをコピーしました', '✓');
+    } catch (error) {
+        if (typeof showToast === 'function') showToast(`復元キー: ${key}`, '✓');
+    }
+}
+
+async function restoreBackupFromRestoreKey(event) {
+    const input = document.getElementById('backup-restore-key-input');
+    const restoreKey = input ? input.value : '';
+    if (!restoreKey.trim()) {
+        if (typeof showToast === 'function') showToast('復元キーを入力してください', '⚠');
+        return;
+    }
+    if (!confirm('復元キーのバックアップを、この端末の保存データと統合します。続けますか？')) {
+        return;
+    }
+    const button = event && event.currentTarget ? event.currentTarget : null;
+    if (button) {
+        button.disabled = true;
+        button.textContent = '復元中...';
+    }
+    try {
+        if (typeof MeimayUserBackup === 'undefined'
+            || !MeimayUserBackup
+            || typeof MeimayUserBackup.restoreFromKey !== 'function') {
+            throw new Error('復元機能はまだ準備中です');
+        }
+        await MeimayUserBackup.restoreFromKey(restoreKey);
+        closeTransferModal();
+        if (typeof showToast === 'function') showToast('バックアップを復元しました', '✓');
+        setTimeout(() => location.reload(), 700);
+    } catch (error) {
+        console.warn('BACKUP: Restore by key failed', error);
+        if (typeof showToast === 'function') {
+            const message = typeof MeimayUserBackup !== 'undefined'
+                && MeimayUserBackup
+                && typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
+                ? MeimayUserBackup._getRestoreErrorMessage(error)
+                : (error?.message || 'バックアップ復元に失敗しました');
+            showToast(message, '⚠');
+        }
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = '復元キーで復元';
+        }
+    }
 }
 
 
@@ -1054,6 +1204,13 @@ window.selectProfileThemeOption = selectProfileThemeOption;
 window.saveProfileAppearanceModal = saveProfileAppearanceModal;
 window.closeProfileAppearanceModal = closeProfileAppearanceModal;
 window.saveProfileAppearance = saveProfileAppearance;
+window.openTransferModal = openTransferModal;
+window.closeTransferModal = closeTransferModal;
+window.exportBackupData = exportBackupData;
+window.triggerBackupImport = triggerBackupImport;
+window.issueBackupRestoreKey = issueBackupRestoreKey;
+window.copyBackupRestoreKey = copyBackupRestoreKey;
+window.restoreBackupFromRestoreKey = restoreBackupFromRestoreKey;
 window.showGuide = showGuide;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");
