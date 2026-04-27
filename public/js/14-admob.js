@@ -587,6 +587,16 @@ function formatPremiumMembershipDate(date) {
     return date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日';
 }
 
+function isLifetimePremiumProduct(productId) {
+    const normalized = String(productId || '').trim().toLowerCase();
+    if (!normalized) return false;
+    return normalized.includes('lifetime')
+        || normalized.includes('buyout')
+        || normalized.includes('one_time')
+        || normalized.includes('onetime')
+        || normalized.includes('permanent');
+}
+
 function getConnectedPartnerPremiumSnapshot() {
     if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
         return null;
@@ -643,13 +653,23 @@ function buildPremiumMembershipState(record, source, options = {}) {
             label = '開発用プレミアム有効';
             detail = 'ローカル確認用のプレミアム状態です。本番では購入情報を確認します。';
         } else if (isTrial) {
-            detail = isPartner
-                ? '連携中のパートナーの無料体験で、プレミアム特典を利用できます。'
-                : '無料体験期間中です。';
+            detail = expiresLabel
+                ? `${expiresLabel}まで無料でプレミアムを体験できます。`
+                : '無料でプレミアムを体験できます。';
+            if (isPartner) {
+                detail = `パートナー特典で、${detail}`;
+            }
         } else {
-            detail = isPartner
-                ? '連携中のパートナーのプレミアム特典を利用できます。'
-                : 'このアカウントでプレミアム特典を利用できます。';
+            if (expiresLabel) {
+                detail = `${expiresLabel}までプレミアムが有効です。`;
+            } else if (isLifetimePremiumProduct(productId)) {
+                detail = '買い切りプレミアムが有効です。';
+            } else {
+                detail = 'プレミアムが有効です。';
+            }
+            if (isPartner) {
+                detail = `パートナー特典で、${detail}`;
+            }
         }
     } else if (expired) {
         label = 'プレミアム期限切れ';
@@ -768,6 +788,19 @@ function formatPremiumStatusRemainingLabel(label) {
     return String(label || '').replace(/[0-9]/g, (digit) => '０１２３４５６７８９'[Number(digit)] || digit);
 }
 
+function getPremiumActiveDetailSentence(state, dateLabel) {
+    if (!state || !state.active) return '';
+    let sentence = '';
+    if (dateLabel) {
+        sentence = `${dateLabel}までプレミアムが有効です。`;
+    } else if (isLifetimePremiumProduct(state.productId)) {
+        sentence = '期限なしでプレミアムが有効です。';
+    } else {
+        sentence = 'プレミアムが有効です。';
+    }
+    return state.source === 'partner' ? `パートナー特典で、${sentence}` : sentence;
+}
+
 PremiumManager.getDisplayStatus = function () {
     const state = this.getMembershipState();
     const selfState = getSelfPremiumMembershipState();
@@ -782,16 +815,14 @@ PremiumManager.getDisplayStatus = function () {
     if (state.active && state.isTrial) {
         const ownerText = state.source === 'partner' ? 'パートナー特典' : '無料体験';
         const periodText = remainingLabel || (dateLabel ? `${dateLabel}まで` : '利用中');
-        const statusTitle = remainingLabel
-            ? `ステータス：無料体験中（${formatPremiumStatusRemainingLabel(remainingLabel)}）`
-            : 'ステータス：無料体験中';
+        const remainingText = remainingLabel ? `（${formatPremiumStatusRemainingLabel(remainingLabel)}）` : '';
         return {
             active: true,
             expired: false,
             kind: 'trial',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: statusTitle,
-            homeDetail: '',
+            homeTitle: `ステータス：無料体験中${remainingText}`,
+            homeDetail: getPremiumActiveDetailSentence(state, dateLabel),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
@@ -805,7 +836,7 @@ PremiumManager.getDisplayStatus = function () {
             kind: 'premium',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
             homeTitle: 'ステータス：プレミアム利用中',
-            homeDetail: remainingLabel || (dateLabel ? `${dateLabel}まで` : ''),
+            homeDetail: getPremiumActiveDetailSentence(state, dateLabel),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
     }
@@ -1306,9 +1337,9 @@ function renderPremiumStatusCard(state) {
         : null;
     if (!display || (!display.active && display.kind === 'free')) return '';
 
-    const active = !!display.active;
     const title = display.homeTitle || (state && state.label) || '無料プラン';
-    const detail = display.homeDetail || (state && state.detail) || '';
+    const active = !!display.active;
+    const detail = display.homeDetail || (!active && state && state.detail) || '';
     const body = active
         ? ''
         : (display.kind === 'expired'

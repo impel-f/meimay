@@ -344,154 +344,103 @@ function renderSettingsScreen() {
     const premiumState = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
         : null;
+    const premiumDisplay = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
+        ? PremiumManager.getDisplayStatus()
+        : null;
     const premiumActive = !!premiumState?.active;
     const dailyRemainingText = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : '-';
-    const premiumText = premiumState
-        ? premiumState.label
-        : `無料プラン・今日あと ${dailyRemainingText} 回`;
+    const premiumText = premiumDisplay?.shortLabel
+        || (premiumState
+            ? premiumState.label
+            : `無料プラン・今日あと ${dailyRemainingText} 回`);
+
+    const escapeSettingsHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const renderSection = (label, content) => `
+        <section class="settings-section">
+            <div class="settings-section-label">${escapeSettingsHtml(label)}</div>
+            <div class="settings-stack">${content}</div>
+        </section>
+    `;
+    const renderItem = ({ icon, iconBg, iconColor, title, value, onClick, valueStyle = '', arrow = '›', badge = '' }) => `
+        <button type="button" class="settings-item-unified" onclick="${onClick}">
+            <span class="item-icon-circle" style="background:${iconBg};color:${iconColor};">${icon}</span>
+            <span class="item-content-unified">
+                <span class="item-title-unified">${escapeSettingsHtml(title)}</span>
+                <span class="item-value-unified" style="${valueStyle}">${escapeSettingsHtml(value)}</span>
+            </span>
+            <span class="item-arrow-unified flex items-center gap-2">
+                ${badge}
+                <span>${arrow}</span>
+            </span>
+        </button>
+    `;
 
 
     container.innerHTML = `
         <div class="settings-screen-content">
-            <!-- ニックネーム -->
-            <div class="settings-item-unified" onclick="openNicknameInput()">
-                <div class="item-icon-circle" style="background: #fef9f0;">
-                    <span style="color: #bca37f;">😊</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">ニックネーム</div>
-                    <div class="item-value-unified">${nicknameText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
+            <header class="settings-page-header">
+                <div class="settings-page-kicker">アプリ設定</div>
+                <h2>プロフィールとデータ管理</h2>
+                <p>条件・共有・バックアップ</p>
+            </header>
 
-            <!-- 役割 -->
-            <div class="settings-item-unified" onclick="openRoleInput()">
-                <div class="item-icon-circle" style="background: #fef9f0;">
-                    <span style="color: #bca37f;">👪</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">役割</div>
-                    <div class="item-value-unified">${roleText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
+            ${renderSection('プロフィール', `
+                ${renderItem({ icon: '😊', iconBg: '#fef9f0', iconColor: '#bca37f', title: 'ニックネーム', value: nicknameText, onClick: 'openNicknameInput()' })}
+                ${renderItem({ icon: '👪', iconBg: '#fef9f0', iconColor: '#bca37f', title: 'あなたの役割', value: roleText, onClick: 'openRoleInput()' })}
+            `)}
 
+            ${renderSection('名づけ条件', `
+                ${renderItem({ icon: '👤', iconBg: '#fef2f2', iconColor: '#f87171', title: '苗字', value: surnameStr || '未設定', onClick: 'openSurnameInput()' })}
+                ${renderItem({ icon: '👶', iconBg: '#f0fdf4', iconColor: '#4ade80', title: '赤ちゃんの性別', value: genderText, onClick: 'openGenderInput()' })}
+            `)}
 
+            ${renderSection('共有とプレミアム', `
+                ${renderItem({ icon: '💑', iconBg: '#f0fdf4', iconColor: '#4ade80', title: 'パートナー連携', value: pairingStatusText, valueStyle: `color: ${pairingStatusColor};`, onClick: "changeScreen('scr-login')" })}
+                ${renderItem({
+                    icon: '👑',
+                    iconBg: '#fff7ed',
+                    iconColor: '#f59e0b',
+                    title: 'プレミアム',
+                    value: premiumText,
+                    valueStyle: 'white-space: pre-line;',
+                    onClick: "if(typeof showPremiumModal==='function'){showPremiumModal();}",
+                    badge: `<span id="premium-badge" class="settings-status-chip ${premiumActive ? '' : 'hidden'}">有効</span>`
+                })}
+            `)}
 
-            <!-- 苗字 -->
-            <div class="settings-item-unified" onclick="openSurnameInput()">
-                <div class="item-icon-circle" style="background: #fef2f2;">
-                    <span style="color: #f87171;">👤</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">苗字</div>
-                    <div class="item-value-unified">${surnameStr || '未設定'}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
+            ${renderSection('データと表示', `
+                ${renderItem({ icon: '📦', iconBg: '#eef6ff', iconColor: '#4f6fad', title: 'バックアップと復元', value: 'JSON・復元キーで引き継ぎ', onClick: 'openTransferModal()' })}
+                <button type="button" class="settings-item-unified" onclick="toggleInappropriateSetting()">
+                    <span class="item-icon-circle" style="background:#fff7ed;color:#f97316;">⚠️</span>
+                    <span class="item-content-unified">
+                        <span class="item-title-unified">人名に使える漢字すべてを表示</span>
+                        <span class="item-value-unified text-[10px] leading-tight">注意が必要な意味を持つ漢字も表示します</span>
+                    </span>
+                    <span class="settings-toggle ${showInappropriateKanji ? 'active' : ''}" aria-hidden="true">
+                        <span></span>
+                    </span>
+                </button>
+            `)}
 
-            <!-- 性別 -->
-            <div class="settings-item-unified" onclick="openGenderInput()">
-                <div class="item-icon-circle" style="background: #f0fdf4;">
-                    <span style="color: #4ade80;">👶</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">赤ちゃんの性別</div>
-                    <div class="item-value-unified">${genderText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
+            ${renderSection('ヘルプと情報', `
+                ${renderItem({ icon: '📘', iconBg: '#f0f9ff', iconColor: '#3b82f6', title: '使い方ガイド', value: '探す、ビルド、保存までの流れ', onClick: 'showGuide()' })}
+                ${renderItem({ icon: '📄', iconBg: '#f8fafc', iconColor: '#64748b', title: '利用規約・プライバシー', value: '公開前に内容を確認できます', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}" })}
+            `)}
 
-            <div class="settings-divider-unified"></div>
-
-            <!-- パートナーと連携 -->
-            <div class="settings-item-unified" onclick="changeScreen('scr-login')">
-                <div class="item-icon-circle" style="background: #f0fdf4;">
-                    <span style="color: #4ade80;">💑</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">パートナーと連携</div>
-                    <div class="item-value-unified" style="color: ${pairingStatusColor};">${pairingStatusText}</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <div class="settings-item-unified" onclick="if(typeof showPremiumModal==='function'){showPremiumModal();}">
-                <div class="item-icon-circle" style="background: #fff7ed;">
-                    <span style="color: #f59e0b;">👑</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">プレミアム</div>
-                    <div class="item-value-unified" style="white-space: pre-line;">${premiumText}</div>
-                </div>
-                <div class="item-arrow-unified flex items-center gap-2">
-                    <span id="premium-badge" class="px-2 py-1 rounded-full bg-[#fef3c7] text-[#b45309] text-[9px] font-black ${premiumActive ? '' : 'hidden'}">ACTIVE</span>
-                    <span>›</span>
-                </div>
-            </div>
-
-            <div class="settings-item-unified" onclick="showGuide()">
-                <div class="item-icon-circle" style="background: #f0f9ff;">
-                    <span style="color: #3b82f6;">📘</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">使い方ガイド</div>
-                    <div class="item-value-unified">探す、ビルド、保存までの流れを確認</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <div class="settings-item-unified" onclick="if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
-                <div class="item-icon-circle" style="background: #f8fafc;">
-                    <span style="color: #64748b;">📄</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">利用規約・プライバシー</div>
-                    <div class="item-value-unified">公開前に内容を確認できます</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <div class="settings-item-unified" onclick="openTransferModal()">
-                <div class="item-icon-circle" style="background: #eef6ff;">
-                    <span style="color: #4f6fad;">📦</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">データの引き継ぎ</div>
-                    <div class="item-value-unified">バックアップを書き出す・読み込む</div>
-                </div>
-                <div class="item-arrow-unified">›</div>
-            </div>
-
-            <div class="settings-divider-unified"></div>
-
-
-            <!-- 不適切漢字の表示設定 -->
-            <div class="settings-item-unified" onclick="toggleInappropriateSetting()">
-                <div class="item-icon-circle" style="background: #fff7ed;">
-                    <span style="color: #f97316;">⚠️</span>
-                </div>
-                <div class="item-content-unified">
-                    <div class="item-title-unified">人名に使える漢字すべてを表示</div>
-                    <div class="item-value-unified text-[10px] leading-tight">不適切な意味を持つ漢字も表示されます</div>
-                </div>
-                <div class="item-arrow-unified">
-                    <div class="w-10 h-6 rounded-full relative transition-colors ${showInappropriateKanji ? 'bg-[#bca37f]' : 'bg-gray-200'}">
-                        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${showInappropriateKanji ? 'translate-x-4' : ''}"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="settings-divider-unified" style="margin-top:40px;"></div>
-            <div class="text-[10px] text-center font-black text-[#f28b82] tracking-widest opacity-60 uppercase mb-4">Danger Zone</div>
-
-            <button onclick="deleteAllStocks()" class="w-full py-4 bg-white border border-[#f28b82] text-[#f28b82] rounded-2xl font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 text-sm shadow-sm">
-                <span>🗑️</span> ストックをすべて消去する
-            </button>
-            <p class="text-[10px] text-[#a6967a] mt-2 text-center px-4 leading-relaxed">
-                ※これまでに「いいね」した全ての漢字ストックが削除されます。（保存済みの名前一覧は消去されません）
-            </p>
+            <section class="settings-section settings-danger-section">
+                <div class="settings-section-label">危険な操作</div>
+                <button onclick="deleteAllStocks()" class="settings-danger-button">
+                    <span>🗑️</span> ストックをすべて消去する
+                </button>
+                <p class="settings-danger-note">
+                    これまでに「いいね」した漢字ストックだけを削除します。保存済みの名前は消えません。
+                </p>
+            </section>
         </div>
     `;
 }

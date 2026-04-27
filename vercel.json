@@ -18,6 +18,10 @@
       "destination": "/api/premium-trial.js"
     },
     {
+      "source": "/api/backup-restore",
+      "destination": "/api/backup-restore.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
@@ -33,6 +37,9 @@
       "maxDuration": 120
     },
     "api/premium-trial.js": {
+      "maxDuration": 30
+    },
+    "api/backup-restore.js": {
       "maxDuration": 30
     }
   }
