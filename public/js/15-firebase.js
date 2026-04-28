@@ -2104,8 +2104,8 @@ function syncPairingSurnameDisplay() {
     const subtextEl = document.getElementById('pairing-surname-subtext');
     if (subtextEl) {
         subtextEl.textContent = surname
-            ? (reading ? `読み: ${reading}` : '入力済みの苗字です')
-            : '連携時に使う苗字です';
+            ? (reading ? `ふりがな: ${reading}` : '同じ苗字の端末だけ参加できます')
+            : '連携前に苗字を入力してください';
     }
 
     const actionEl = document.getElementById('pairing-surname-action-label');
@@ -2148,15 +2148,15 @@ function syncPairingRoleSelectionFromProfile() {
     const createLabel = document.getElementById('pairing-create-role-label');
     if (createLabel) {
         createLabel.textContent = preferredRoleLabel
-            ? '現在の設定: ' + preferredRoleLabel
-            : '設定でママ / パパを選ぶと連携しやすくなります';
+            ? preferredRoleLabel + 'としてコードを発行します'
+            : '設定でママ / パパを選ぶとコードを発行できます';
     }
 
     const joinLabel = document.getElementById('pairing-join-role-label');
     if (joinLabel) {
         joinLabel.textContent = preferredRoleLabel
-            ? '現在の設定: ' + preferredRoleLabel
-            : '設定でママ / パパを選ぶと参加しやすくなります';
+            ? preferredRoleLabel + 'として参加します'
+            : '設定でママ / パパを選ぶと参加できます';
     }
 
     if (!preferredRole || typeof MeimayPairing === 'undefined') return;
@@ -2259,6 +2259,7 @@ async function handleEnterCode() {
     if (result.success) {
         if (input) input.value = '';
     } else if (result.error) {
+        showToast(result.error, '\u26a0');
     }
 }
 (function hookStorageSync() {

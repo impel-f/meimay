@@ -775,18 +775,18 @@
     <div id="scr-login" class="screen">
         <div class="w-full max-w-sm mx-auto px-6 pt-6 pb-40">
             <!-- ヘッダー -->
-            <div class="text-center mb-8">
-                <h2 class="text-2xl font-black text-[#5d5444] mb-2">パートナーと連携</h2>
-                <p class="text-xs text-[#a6967a]">コードを共有してふたりで名前を選ぼう</p>
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-black text-[#5d5444] mb-2">ふたりで候補を見比べる</h2>
+                <p class="text-xs text-[#a6967a] leading-relaxed">コードで連携すると、保存・ストック・本命を一緒に確認できます。</p>
             </div>
 
             <!-- 苗字 -->
             <div id="pairing-surname-card" class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-black text-[#8b7e66] mb-1">連携に使う苗字</p>
+                        <p class="text-xs font-black text-[#8b7e66] mb-1">参加確認に使う苗字</p>
                         <p id="pairing-surname-display" class="text-[15px] font-black text-[#5d5444] leading-snug">未設定</p>
-                        <p id="pairing-surname-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">連携時に使う苗字です</p>
+                        <p id="pairing-surname-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">同じ苗字の端末だけ参加できます</p>
                     </div>
                     <button type="button" onclick="if(typeof openSurnameInput==='function'){openSurnameInput();} else if(typeof changeScreen==='function'){changeScreen('scr-surname-settings');}"
                         class="shrink-0 px-4 py-2 rounded-full border border-[#eadfce] bg-[#fdfaf5] text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
@@ -795,12 +795,21 @@
                 </div>
             </div>
 
+            <div class="bg-[#fffaf2] border border-[#eadfce] rounded-2xl p-4 mb-4">
+                <p class="text-xs font-black text-[#8b7e66] mb-2">連携のルール</p>
+                <div class="space-y-1.5 text-[10px] leading-relaxed text-[#8b7e66]">
+                    <p>候補は数秒おきに同期されます。</p>
+                    <p>無料体験は個人単位。有料プラン中は連携相手もプレミアム機能を使えます。</p>
+                    <p>コードは家族だけに共有してください。</p>
+                </div>
+            </div>
+
             <!-- 未連携状態 -->
             <div id="pairing-not-linked">
                 <!-- ルームを作る -->
                 <div class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4">
-                    <p class="text-xs font-black text-[#8b7e66] mb-3">ルームを作る</p>
-                    <p id="pairing-create-role-label" class="text-[10px] text-[#a6967a] mb-3">現在の設定を使って連携します</p>
+                    <p class="text-xs font-black text-[#8b7e66] mb-2">1. コードを発行</p>
+                    <p id="pairing-create-role-label" class="text-[10px] text-[#a6967a] mb-3">あなたが先にコードを作り、パートナーへ送ります</p>
                     <div class="hidden flex gap-3 mb-4">
                         <button id="create-role-mama" onclick="MeimayPairing.selectCreateRole('mama')"
                             class="flex-1 py-3 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
@@ -813,7 +822,7 @@
                     </div>
                     <button id="btn-generate-code" onclick="handleGenerateCode()"
                         class="w-full py-3 bg-[#bca37f] text-white rounded-xl font-bold text-sm hover:bg-[#8b7e66] transition-all">
-                        ルームを作る
+                        コードを発行する
                     </button>
                 </div>
 
@@ -826,8 +835,8 @@
 
                 <!-- コードで参加 -->
                 <div class="bg-white border border-[#eee5d8] rounded-2xl p-4">
-                    <p class="text-xs font-black text-[#8b7e66] mb-3">コードで参加する</p>
-                    <p id="pairing-join-role-label" class="text-[10px] text-[#a6967a] mb-3">現在の設定を使って参加します</p>
+                    <p class="text-xs font-black text-[#8b7e66] mb-2">2. コードで参加</p>
+                    <p id="pairing-join-role-label" class="text-[10px] text-[#a6967a] mb-3">パートナーから届いたコードを入力します</p>
                     <div class="hidden flex gap-3 mb-3">
                         <button id="join-role-mama" onclick="MeimayPairing.selectJoinRole('mama')"
                             class="flex-1 py-2.5 bg-white border-2 border-[#eee5d8] text-[#a6967a] rounded-xl font-bold text-sm transition-all">
@@ -839,9 +848,9 @@
                         </button>
                     </div>
                     <div class="flex gap-2 min-w-0">
-                        <input type="text" id="pairing-code-input" placeholder="コードを入力"
+                        <input type="text" id="pairing-code-input" placeholder="例: ABC123"
                             class="min-w-0 flex-1 px-3 py-2.5 bg-white rounded-xl text-sm border border-[#eee5d8] uppercase font-bold text-[#5d5444] tracking-widest focus:outline-none focus:border-[#bca37f]">
-                        <button onclick="handleEnterCode()"
+                        <button id="btn-enter-code" onclick="handleEnterCode()"
                             class="shrink-0 px-5 py-2.5 bg-[#8b7e66] text-white rounded-xl font-bold text-sm hover:bg-[#5d5444] transition-all">参加</button>
                     </div>
                 </div>
@@ -856,14 +865,14 @@
                     </div>
                     <!-- ルームコード（常に表示） -->
                     <div class="mb-4">
-                        <p class="text-[10px] text-[#a6967a] mb-2">ルームコード（パートナーに送ろう）</p>
+                        <p class="text-[10px] text-[#a6967a] mb-2">共有コード</p>
                         <div id="pairing-code-display-linked"
                             class="text-2xl font-black tracking-widest text-[#5d5444] p-3 bg-[#fdfaf5] rounded-xl border border-[#eee5d8] select-all">
                         </div>
                     </div>
                     <button onclick="MeimayPairing.shareCode()"
                         class="w-full py-2.5 mb-4 bg-[#bca37f] text-white rounded-xl font-bold text-sm hover:bg-[#8b7e66] transition-all">
-                        📤 コードを送る
+                        コードを送る
                     </button>
                     <button onclick="confirmLeaveRoom()"
                         class="text-xs text-[#a6967a] underline hover:text-[#f28b82] transition-colors">
@@ -1471,7 +1480,7 @@
     <script src="/js/12-history.js?v=25.50"></script>
     <script src="/js/13-drawer-wizard.js?v=25.23"></script>
     <script src="/js/14-admob.js?v=25.39"></script>
-<script src="/js/15-firebase.js?v=26.14"></script>
+<script src="/js/15-firebase.js?v=26.15"></script>
     <script src="/js/data/legal-docs.js?v=25.11"></script>
     <script src="/js/16-legal.js?v=25.11"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
