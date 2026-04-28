@@ -773,13 +773,14 @@ PremiumManager.getMembershipState = function () {
     const partnerState = partnerSnapshot
         ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
         : null;
+    const shareablePartnerState = partnerState && !partnerState.isTrial ? partnerState : null;
 
     if (selfState.active) return selfState;
-    if (partnerState && partnerState.active) return partnerState;
+    if (shareablePartnerState && shareablePartnerState.active) return shareablePartnerState;
     if (selfState.expired) return selfState;
-    if (partnerState && partnerState.expired) return partnerState;
+    if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     if (selfState.hasPremiumIndicators) return selfState;
-    if (partnerState && partnerState.hasPremiumIndicators) return partnerState;
+    if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
 
     return getDefaultPremiumMembershipState();
 };
