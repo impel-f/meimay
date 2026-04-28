@@ -252,30 +252,27 @@ const PremiumManager = {
 const PREMIUM_PRODUCT_PLANS = [
     {
         id: 'meimay.premium.quarterly',
-        title: '3か月',
+        title: '3か月プラン',
         price: '980円',
-        note: '3か月ごと',
-        badge: 'おすすめ',
-        description: '予定日までじっくり',
-        actionLabel: '選択'
+        note: '予定日までじっくり',
+        description: '',
+        actionLabel: '購入へ進む'
     },
     {
         id: 'meimay.premium.monthly',
-        title: '1か月',
+        title: '1か月プラン',
         price: '480円',
-        note: '1か月ごと',
-        badge: '',
-        description: '短期間だけ集中',
-        actionLabel: '選択'
+        note: '短期間だけ集中',
+        description: '',
+        actionLabel: '購入へ進む'
     },
     {
         id: 'meimay.premium.lifetime',
         title: '買い切り',
         price: '1,980円',
-        note: '更新なし',
-        badge: '期限なし',
-        description: '期限なしで使える',
-        actionLabel: '購入'
+        note: '更新なし・期限なし',
+        description: '',
+        actionLabel: '購入へ進む'
     }
 ];
 
@@ -1470,7 +1467,7 @@ function renderPremiumPlanCards(state) {
         + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf8] shadow-[0_10px_24px_rgba(123,95,52,0.08)]">'
         + '<div class="flex items-center justify-between gap-3 border-b border-[#eadfcd] bg-[#f8f1e5] px-3 py-2.5">'
         + '<div class="text-[12px] sm:text-[13px] font-black text-[#4b3a24]">有料プラン</div>'
-        + '<div class="shrink-0 text-[10px] font-bold text-[#8b7e66]">購入・更新はストアで管理</div>'
+        + '<div class="shrink-0 text-[10px] font-bold text-[#8b7e66]">購入はストアで管理</div>'
         + '</div>'
         + '<div class="divide-y divide-[#efe5d3]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
@@ -1484,17 +1481,14 @@ function renderPremiumPlanCards(state) {
                 + '<div class="min-w-0">'
                 + '<div class="flex flex-wrap items-center gap-2">'
                 + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
-                + (plan.badge
-                    ? '<span class="rounded-full bg-[#5b4f3f] px-2 py-0.5 text-[10px] font-black text-white">' + escapePremiumHtml(plan.badge) + '</span>'
-                    : '')
                 + '</div>'
                 + '<div class="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
                 + '<span class="text-[20px] sm:text-[22px] font-black leading-none">' + escapePremiumHtml(plan.price) + '</span>'
                 + '<span class="text-[10px] font-bold text-[#8b7e66]">' + escapePremiumHtml(plan.note) + '</span>'
-                + '<span class="text-[10px] font-bold text-[#8b7e66]">・' + escapePremiumHtml(plan.description) + '</span>'
+                + (plan.description ? '<span class="text-[10px] font-bold text-[#8b7e66]">・' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'
-                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[4.75rem] rounded-[999px] px-3 py-2 text-[12px] font-black active:scale-[0.99] ' + buttonClass + '">'
+                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[6.4rem] rounded-[999px] px-3 py-2 text-[12px] font-black active:scale-[0.99] ' + buttonClass + '">'
                 + escapePremiumHtml(plan.actionLabel)
                 + '</button>'
                 + '</div>';
@@ -1522,8 +1516,8 @@ function showPremiumModal() {
         + (subtitle ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>' : '')
         + '</div>'
         + renderPremiumStatusCard(state)
-        + renderPremiumTrialCard(state)
         + renderPremiumComparisonMatrix()
+        + renderPremiumTrialCard(state)
         + renderPremiumPlanCards(state)
         + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
         + (state.active
