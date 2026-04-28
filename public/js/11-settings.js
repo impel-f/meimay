@@ -780,17 +780,42 @@ function updateBackupRestoreKeyDisplay(restoreKey = '') {
     const display = document.getElementById('backup-restore-key-display');
     const copyButton = document.getElementById('backup-restore-key-copy');
     const issueButton = document.getElementById('backup-restore-key-issue');
+    const stateLabel = document.getElementById('backup-restore-key-state');
     if (display) {
         display.textContent = key || '未発行';
-        display.classList.toggle('text-[#b04a3a]', !key);
+        display.classList.toggle('is-empty', !key);
+    }
+    if (stateLabel) {
+        stateLabel.textContent = key ? '発行済み' : '未発行';
+        stateLabel.classList.toggle('is-ready', !!key);
     }
     if (copyButton) {
         copyButton.disabled = !key;
-        copyButton.classList.toggle('opacity-50', !key);
+        copyButton.classList.toggle('is-disabled', !key);
     }
     if (issueButton) {
         issueButton.textContent = key ? '復元キーを再発行' : '復元キーを発行';
     }
+}
+
+function setBackupRestoreStatus(message = '', tone = 'neutral') {
+    const status = document.getElementById('backup-restore-status');
+    if (!status) return;
+    status.textContent = message || '復元キーは、家族以外に共有しないでください。';
+    status.dataset.tone = tone;
+}
+
+function formatBackupRestoreKeyInput(event) {
+    const input = event && event.currentTarget ? event.currentTarget : document.getElementById('backup-restore-key-input');
+    if (!input) return;
+    const raw = input.value || '';
+    const formatted = typeof MeimayUserBackup !== 'undefined'
+        && MeimayUserBackup
+        && typeof MeimayUserBackup._formatRestoreKey === 'function'
+        ? MeimayUserBackup._formatRestoreKey(raw)
+        : String(raw).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1-');
+    input.value = formatted;
+    setBackupRestoreStatus('', 'neutral');
 }
 
 function openTransferModal() {
@@ -800,36 +825,44 @@ function openTransferModal() {
             <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
-                <p class="modal-desc">復元キーでバックアップを戻します。ID＋苗字一致だけでは復元できません。</p>
-                <div class="modal-body space-y-3 text-left">
-                    <div class="rounded-2xl bg-white border border-[#e7d9c5] px-4 py-3">
-                        <div class="text-[12px] font-black text-[#5d5444]">復元キー</div>
-                        <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">発行時にこの端末の候補をクラウドへバックアップします。キーを知っている人は復元できるので、家族内だけで保管してください。</div>
-                        <div class="mt-3 rounded-xl bg-[#f8f3ea] border border-[#eadfcd] px-3 py-2">
-                            <div class="text-[10px] font-bold text-[#a6967a]">この端末の復元キー</div>
-                            <div id="backup-restore-key-display" class="mt-1 font-mono text-[15px] font-black tracking-[0.08em] text-[#5d5444]">${restoreKey || '未発行'}</div>
+                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。</p>
+                <div class="modal-body backup-restore-body">
+                    <section class="backup-restore-card">
+                        <div class="backup-restore-card-head">
+                            <div>
+                                <div class="backup-restore-eyebrow">この端末</div>
+                                <div class="backup-restore-title">復元キーを保管</div>
+                            </div>
+                            <span id="backup-restore-key-state" class="backup-restore-state ${restoreKey ? 'is-ready' : ''}">${restoreKey ? '発行済み' : '未発行'}</span>
                         </div>
-                        <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <button id="backup-restore-key-issue" onclick="issueBackupRestoreKey()" class="w-full py-3 rounded-2xl bg-[#bca37f] text-white font-bold text-sm shadow-sm">
+                        <p class="backup-restore-copy">発行すると、現在の候補をクラウドに保存します。再発行すると前のキーは使えなくなります。</p>
+                        <div class="backup-restore-key-box">
+                            <span>復元キー</span>
+                            <strong id="backup-restore-key-display" class="${restoreKey ? '' : 'is-empty'}">${restoreKey || '未発行'}</strong>
+                        </div>
+                        <div class="backup-restore-actions">
+                            <button id="backup-restore-key-issue" onclick="issueBackupRestoreKey()" class="backup-restore-primary">
                                 ${restoreKey ? '復元キーを再発行' : '復元キーを発行'}
                             </button>
-                            <button id="backup-restore-key-copy" onclick="copyBackupRestoreKey()" class="w-full py-3 rounded-2xl border border-[#d8ccb9] bg-white text-[#5d5444] font-bold text-sm ${restoreKey ? '' : 'opacity-50'}" ${restoreKey ? '' : 'disabled'}>
+                            <button id="backup-restore-key-copy" onclick="copyBackupRestoreKey()" class="backup-restore-secondary ${restoreKey ? '' : 'is-disabled'}" ${restoreKey ? '' : 'disabled'}>
                                 キーをコピー
                             </button>
                         </div>
-                        <div class="mt-4 border-t border-[#eee5d8] pt-3">
-                            <label class="block text-[10px] font-bold text-[#a6967a] mb-1" for="backup-restore-key-input">別端末の復元キー</label>
-                            <input id="backup-restore-key-input" type="text" inputmode="text" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX" class="w-full rounded-2xl border border-[#d8ccb9] bg-[#fffaf2] px-3 py-3 text-sm font-bold text-[#5d5444] tracking-[0.08em] uppercase">
-                            <button onclick="restoreBackupFromRestoreKey(event)" class="mt-2 w-full py-3 rounded-2xl bg-[#5d5444] text-white font-bold text-sm shadow-sm">
-                                復元キーで復元
-                            </button>
-                        </div>
-                    </div>
-                    <div class="rounded-2xl bg-[#fff8ea] border border-[#e8d5ad] px-4 py-3">
-                        <div class="text-[11px] font-black text-[#5d5444]">大切なこと</div>
-                        <div class="mt-1 text-[10px] leading-relaxed text-[#8b7e66]">復元すると、この端末にない候補が追加されます。今ある候補はそのまま残ります。</div>
-                        <div class="mt-2 text-[10px] leading-relaxed text-[#a6967a]">復元キーだけで戻せるため、家族以外には共有しないでください。</div>
-                    </div>
+                    </section>
+                    <section class="backup-restore-card">
+                        <div class="backup-restore-eyebrow">別端末から</div>
+                        <label class="backup-restore-title" for="backup-restore-key-input">復元キーで戻す</label>
+                        <p class="backup-restore-copy">この端末にない候補だけを追加します。今ある候補は消えません。</p>
+                        <input id="backup-restore-key-input" type="text" inputmode="text" autocomplete="off" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" aria-describedby="backup-restore-status" oninput="formatBackupRestoreKeyInput(event)" onkeydown="if(event.key==='Enter'){restoreBackupFromRestoreKey(event);}" class="backup-restore-input">
+                        <button onclick="restoreBackupFromRestoreKey(event)" class="backup-restore-dark">
+                            復元する
+                        </button>
+                    </section>
+                    <section class="backup-restore-note">
+                        <strong>復元ルール</strong>
+                        <span>IDや苗字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。</span>
+                    </section>
+                    <div id="backup-restore-status" class="backup-restore-status" role="status" aria-live="polite" data-tone="neutral">復元キーは、家族以外に共有しないでください。</div>
                 </div>
             </div>
         </div>
@@ -852,6 +885,7 @@ async function issueBackupRestoreKey() {
     if (existingKey && !confirm('復元キーを再発行すると、前のキーは使えなくなります。続けますか？')) {
         return;
     }
+    setBackupRestoreStatus('現在の候補をバックアップしています。', 'neutral');
     const button = document.getElementById('backup-restore-key-issue');
     if (button) {
         button.disabled = true;
@@ -862,13 +896,15 @@ async function issueBackupRestoreKey() {
             ? await MeimayUserBackup.rotateRestoreKey()
             : await MeimayUserBackup.ensureRestoreKey();
         updateBackupRestoreKeyDisplay(result.restoreKey);
+        setBackupRestoreStatus('復元キーを発行しました。安全な場所に保管してください。', 'success');
         if (typeof showToast === 'function') showToast('復元キーを発行しました', '✓');
     } catch (error) {
         console.warn('BACKUP: Restore key issue failed', error);
+        const message = typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
+            ? MeimayUserBackup._getRestoreErrorMessage(error)
+            : '復元キーの発行に失敗しました';
+        setBackupRestoreStatus(message, 'error');
         if (typeof showToast === 'function') {
-            const message = typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
-                ? MeimayUserBackup._getRestoreErrorMessage(error)
-                : '復元キーの発行に失敗しました';
             showToast(message, '⚠');
         }
         updateBackupRestoreKeyDisplay(existingKey);
@@ -887,8 +923,10 @@ async function copyBackupRestoreKey() {
     }
     try {
         await navigator.clipboard.writeText(key);
+        setBackupRestoreStatus('復元キーをコピーしました。', 'success');
         if (typeof showToast === 'function') showToast('復元キーをコピーしました', '✓');
     } catch (error) {
+        setBackupRestoreStatus('コピーできませんでした。表示されたキーを控えてください。', 'error');
         if (typeof showToast === 'function') showToast(`復元キー: ${key}`, '✓');
     }
 }
@@ -896,18 +934,37 @@ async function copyBackupRestoreKey() {
 async function restoreBackupFromRestoreKey(event) {
     const input = document.getElementById('backup-restore-key-input');
     const restoreKey = input ? input.value : '';
-    if (!restoreKey.trim()) {
-        if (typeof showToast === 'function') showToast('復元キーを入力してください', '⚠');
+    const normalizedKey = typeof MeimayUserBackup !== 'undefined'
+        && MeimayUserBackup
+        && typeof MeimayUserBackup._normalizeRestoreKey === 'function'
+        ? MeimayUserBackup._normalizeRestoreKey(restoreKey)
+        : String(restoreKey || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!normalizedKey) {
+        const message = '復元キーを入力してください。';
+        setBackupRestoreStatus(message, 'error');
+        if (typeof showToast === 'function') showToast(message, '⚠');
         return;
     }
-    if (!confirm('復元キーのバックアップを、この端末の保存データと統合します。続けますか？')) {
+    if (normalizedKey.length !== 16) {
+        const message = '復元キーは16文字です。入力内容を確認してください。';
+        setBackupRestoreStatus(message, 'error');
+        if (typeof showToast === 'function') showToast(message, '⚠');
         return;
     }
-    const button = event && event.currentTarget ? event.currentTarget : null;
+    if (input && typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._formatRestoreKey === 'function') {
+        input.value = MeimayUserBackup._formatRestoreKey(normalizedKey);
+    }
+    if (!confirm('復元キーのバックアップを、この端末に追加します。今ある候補は消えません。続けますか？')) {
+        return;
+    }
+    const button = event && event.currentTarget && event.currentTarget.tagName === 'BUTTON'
+        ? event.currentTarget
+        : null;
     if (button) {
         button.disabled = true;
         button.textContent = '復元中...';
     }
+    setBackupRestoreStatus('バックアップを復元しています。', 'neutral');
     try {
         if (typeof MeimayUserBackup === 'undefined'
             || !MeimayUserBackup
@@ -920,12 +977,13 @@ async function restoreBackupFromRestoreKey(event) {
         setTimeout(() => location.reload(), 700);
     } catch (error) {
         console.warn('BACKUP: Restore by key failed', error);
+        const message = typeof MeimayUserBackup !== 'undefined'
+            && MeimayUserBackup
+            && typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
+            ? MeimayUserBackup._getRestoreErrorMessage(error)
+            : (error?.message || 'バックアップ復元に失敗しました');
+        setBackupRestoreStatus(message, 'error');
         if (typeof showToast === 'function') {
-            const message = typeof MeimayUserBackup !== 'undefined'
-                && MeimayUserBackup
-                && typeof MeimayUserBackup._getRestoreErrorMessage === 'function'
-                ? MeimayUserBackup._getRestoreErrorMessage(error)
-                : (error?.message || 'バックアップ復元に失敗しました');
             showToast(message, '⚠');
         }
     } finally {
@@ -1188,6 +1246,7 @@ window.closeTransferModal = closeTransferModal;
 window.issueBackupRestoreKey = issueBackupRestoreKey;
 window.copyBackupRestoreKey = copyBackupRestoreKey;
 window.restoreBackupFromRestoreKey = restoreBackupFromRestoreKey;
+window.formatBackupRestoreKeyInput = formatBackupRestoreKeyInput;
 window.showGuide = showGuide;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");

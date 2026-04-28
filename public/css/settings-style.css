@@ -270,6 +270,201 @@
     max-width: 560px;
 }
 
+.backup-restore-body {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 0;
+    text-align: left;
+}
+
+.backup-restore-card {
+    border: 1px solid rgba(229, 219, 203, 0.92);
+    border-radius: 16px;
+    background: #fff;
+    padding: 14px;
+}
+
+.backup-restore-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.backup-restore-eyebrow {
+    color: #a8977b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.backup-restore-title {
+    display: block;
+    color: #4f4536;
+    font-size: 14px;
+    font-weight: 850;
+    line-height: 1.35;
+}
+
+.backup-restore-copy {
+    margin: 8px 0 0;
+    color: #7d705d;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.7;
+}
+
+.backup-restore-state {
+    flex: 0 0 auto;
+    border: 1px solid rgba(218, 202, 176, 0.95);
+    border-radius: 999px;
+    background: #f8f3ea;
+    color: #8f8069;
+    padding: 4px 9px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.backup-restore-state.is-ready {
+    background: #f4ead8;
+    color: #765f39;
+}
+
+.backup-restore-key-box {
+    margin-top: 12px;
+    border: 1px solid rgba(231, 218, 196, 0.95);
+    border-radius: 14px;
+    background: #f9f4eb;
+    padding: 10px 12px;
+}
+
+.backup-restore-key-box span {
+    display: block;
+    color: #a8977b;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.backup-restore-key-box strong {
+    display: block;
+    margin-top: 4px;
+    color: #4f4536;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 15px;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    overflow-wrap: anywhere;
+}
+
+.backup-restore-key-box strong.is-empty {
+    color: #a65f52;
+    font-family: inherit;
+    letter-spacing: 0;
+}
+
+.backup-restore-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.backup-restore-primary,
+.backup-restore-secondary,
+.backup-restore-dark {
+    min-height: 44px;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.backup-restore-primary {
+    border: 1px solid #bca37f;
+    background: #bca37f;
+    color: #fff;
+}
+
+.backup-restore-secondary {
+    border: 1px solid #d8ccb9;
+    background: #fff;
+    color: #4f4536;
+}
+
+.backup-restore-secondary.is-disabled {
+    opacity: 0.5;
+}
+
+.backup-restore-dark {
+    width: 100%;
+    margin-top: 8px;
+    border: 1px solid #5d5444;
+    background: #5d5444;
+    color: #fff;
+}
+
+.backup-restore-input {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 10px;
+    border: 1px solid #d8ccb9;
+    border-radius: 14px;
+    background: #fffaf2;
+    color: #4f4536;
+    padding: 0 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 14px;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    outline: none;
+}
+
+.backup-restore-input:focus {
+    border-color: #bca37f;
+    box-shadow: 0 0 0 3px rgba(188, 163, 127, 0.16);
+}
+
+.backup-restore-note {
+    border: 1px solid rgba(232, 213, 173, 0.95);
+    border-radius: 16px;
+    background: #fff8ea;
+    padding: 12px 14px;
+}
+
+.backup-restore-note strong {
+    display: block;
+    color: #4f4536;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.backup-restore-note span {
+    display: block;
+    margin-top: 4px;
+    color: #7d705d;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.backup-restore-status {
+    min-height: 18px;
+    color: #8f8069;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.6;
+}
+
+.backup-restore-status[data-tone="success"] {
+    color: #5d784d;
+}
+
+.backup-restore-status[data-tone="error"] {
+    color: #a65f52;
+}
+
 .choice-sheet {
     display: flex;
     flex-direction: column;
@@ -702,6 +897,10 @@
     .settings-sheet {
         padding: 24px 18px 18px;
         border-radius: 22px;
+    }
+
+    .backup-restore-actions {
+        grid-template-columns: 1fr;
     }
 
     .choice-sheet {

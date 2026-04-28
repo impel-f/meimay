@@ -4660,11 +4660,13 @@ const MeimayUserBackup = {
 
     _getRestoreErrorMessage: function (error) {
         const code = String(error?.code || '').trim();
-        if (code === 'restore_key_not_found') return '復元キーが見つかりません';
-        if (code === 'no_backup_available') return 'この復元キーにはまだバックアップがありません';
-        if (code === 'invalid_restore_key') return '復元キーを確認してください';
-        if (code === 'authentication_failed') return 'サインインの準備が終わってからもう一度お試しください';
+        if (code === 'restore_key_not_found') return '復元キーが見つかりません。入力ミスか、再発行で古いキーが無効になっている可能性があります。';
+        if (code === 'no_backup_available') return 'この復元キーにはまだバックアップがありません。元の端末で復元キーを発行し直してください。';
+        if (code === 'invalid_restore_key') return '復元キーは16文字です。入力内容を確認してください。';
+        if (code === 'authentication_failed') return '接続準備中です。数秒待ってからもう一度お試しください。';
+        if (code === 'restore_key_collision') return '復元キーの発行に失敗しました。もう一度発行してください。';
         if (code === 'backup_sync_failed') return 'バックアップの保存に失敗しました。通信状況を確認してもう一度お試しください';
+        if (code === 'backup_restore_failed') return '通信に失敗しました。接続状況を確認してもう一度お試しください。';
         return error?.message || 'バックアップ復元に失敗しました';
     },
 
@@ -4689,7 +4691,7 @@ const MeimayUserBackup = {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
             const fallbackMessage = response.status === 404 && !data.error
-                ? '復元キーは本番/API環境で有効化されます'
+                ? '復元キーはデプロイ後のAPI環境で利用できます。ローカル確認では画面表示まで確認してください。'
                 : this._getRestoreErrorMessage(data);
             const error = new Error(fallbackMessage);
             error.code = data.error || 'backup_restore_failed';
