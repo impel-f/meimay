@@ -6,9 +6,10 @@ Codexだけで進めると本番アカウント、課金、公開情報、削除
 
 ## 課金・ストア
 
-- App Store Connect で `meimay_premium_monthly` を作成するか。
-- Google Play Console で同じ月額商品の商品IDを `meimay_premium_monthly` にそろえるか。
-- 月額価格、無料トライアル有無、初回価格の有無。
+- App Store Connect で非更新サブスクリプション `meimay.premium.pass.1month` / `meimay.premium.pass.3months` を作成する。
+- App Store Connect で非消耗型 `meimay.premium.lifetime` を作成する。
+- Google Play Console では同等の期間パスと買い切り商品を作成するか、iOS先行にするか。
+- 期間パス価格、無料トライアル有無、初回価格の有無。
 - iOS / Android の bundle id / package name を最終決定するか。
 - StoreKit / Play Billing の本番接続をいつ有効化するか。
 - 課金検証用のサーバー構成を Firebase Functions で進めるか、別サーバーにするか。

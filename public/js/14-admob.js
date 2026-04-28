@@ -251,18 +251,18 @@ const PremiumManager = {
 
 const PREMIUM_PRODUCT_PLANS = [
     {
-        id: 'meimay.premium.monthly',
-        title: '1か月プラン',
+        id: 'meimay.premium.pass.1month',
+        title: '1か月パス',
         price: '480円',
-        note: '短期間だけ集中',
+        note: '自動更新なし',
         description: '',
         actionLabel: '購入へ進む'
     },
     {
-        id: 'meimay.premium.quarterly',
-        title: '3か月プラン',
+        id: 'meimay.premium.pass.3months',
+        title: '3か月パス',
         price: '980円',
-        note: '予定日までじっくり',
+        note: '自動更新なし',
         description: '',
         actionLabel: '購入へ進む'
     },
