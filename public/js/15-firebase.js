@@ -97,7 +97,7 @@ const MeimayAuth = {
         const oldName = wizData.username || '';
         const newName = prompt('新しいニックネームを入力してください', oldName);
         if (newName === null) return;
-        const trimmed = newName.trim();
+        const trimmed = newName.trim().slice(0, 10);
         if (!trimmed) { alert('ニックネームを入力してください'); return; }
         wizData.username = trimmed;
         WizardData.save(wizData);
@@ -695,7 +695,7 @@ const MeimayFirestorePayload = {
             reading: this._normalizeString(item?.reading),
             givenName: this._normalizeString(item?.givenName),
             combinationKeys,
-            message: this._normalizeString(item?.message),
+            message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
             fromPartner: item?.fromPartner === true,
@@ -740,7 +740,7 @@ const MeimayFirestorePayload = {
             givenName: this._normalizeString(item?.givenName),
             combination,
             combinationKeys,
-            message: this._normalizeString(item?.message),
+            message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
             fortune,
@@ -3871,7 +3871,7 @@ MeimayPairing.syncMyData = async function () {
         const readingStockToStore = pickStoredSection(projectedSections.readingStock, existingRoomData.readingStock);
         const encounteredToStore = pickStoredSection(projectedSections.encounteredReadings, existingRoomData.encounteredReadings);
         const existingProfileName = String(existingRoomData.displayName || existingRoomData.username || existingRoomData.nickname || '').trim();
-        const profileName = String(wizard.username || existingProfileName || '').trim();
+        const profileName = String(wizard.username || existingProfileName || '').trim().slice(0, 10);
         const rawProfileThemeId = typeof getProfileThemeId === 'function'
             ? getProfileThemeId(wizard.role)
             : (wizard.themeId || existingRoomData.themeId || null);
@@ -4045,7 +4045,7 @@ MeimayShare.syncProfileAppearance = async function () {
             || existingRoomData.nickname
             || ''
         ).trim();
-        const profileName = String(wizard.username || existingProfileName || '').trim();
+        const profileName = String(wizard.username || existingProfileName || '').trim().slice(0, 10);
         const nextThemeId = typeof getProfileThemeId === 'function'
             ? getProfileThemeId(wizard.role)
             : String(wizard.themeId || existingRoomData.themeId || '').trim();
@@ -5854,9 +5854,9 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
                 premiumState: partnerPremiumSnapshot,
                 role: data.role || null,
-                displayName: String(data.displayName || '').trim(),
-                username: String(data.username || '').trim(),
-                nickname: String(data.nickname || '').trim(),
+                displayName: String(data.displayName || '').trim().slice(0, 10),
+                username: String(data.username || '').trim().slice(0, 10),
+                nickname: String(data.nickname || '').trim().slice(0, 10),
                 themeId: String(data.themeId || '').trim(),
                 likedRemoved: Array.isArray(partnerLikedRemovalSource) ? partnerLikedRemovalSource : [],
                 meimayStateV2: partnerChildWorkspaceStateV2,

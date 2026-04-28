@@ -280,7 +280,7 @@ function saveProfileAppearance(nextValues = {}) {
     const data = WizardData.get() || {};
     const reservedTheme = getPartnerReservedThemeInfo();
     if (Object.prototype.hasOwnProperty.call(nextValues, 'nickname')) {
-        data.username = String(nextValues.nickname || '').trim();
+        data.username = String(nextValues.nickname || '').trim().slice(0, 10);
     }
     if (Object.prototype.hasOwnProperty.call(nextValues, 'themeId')) {
         data.themeId = getAvailableProfileThemeId(
@@ -478,7 +478,7 @@ function deleteAllStocks() {
  */
 function openNicknameInput() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
-    const current = wizData?.username || '';
+    const current = String(wizData?.username || '').trim().slice(0, 10);
     showInputModal('ニックネームを入力', 'text', current, '例：メイ', (value) => {
         saveProfileAppearance({
             nickname: value,
@@ -679,7 +679,7 @@ function openProfileAppearanceModal() {
     const role = getResolvedProfileRole(wizard.role);
     const reservedTheme = getPartnerReservedThemeInfo();
     const currentThemeId = getAvailableProfileThemeId(getProfileThemeId(role), role, reservedTheme.themeId);
-    const currentName = String(wizard.username || '').trim();
+    const currentName = String(wizard.username || '').trim().slice(0, 10);
     const themeButtons = PROFILE_THEME_OPTIONS.map((option) => {
         const isSelected = option.id === currentThemeId;
         const isReserved = reservedTheme.themeId === option.id;

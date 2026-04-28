@@ -190,7 +190,10 @@ function promptManualReadingInModal() {
  */
 function executeSaveWithMessage() {
     const messageInput = document.getElementById('save-message-input');
-    const message = messageInput ? messageInput.value.trim() : '';
+    const message = messageInput ? messageInput.value.trim().slice(0, 100) : '';
+    if (messageInput && messageInput.value.trim() !== message) {
+        messageInput.value = message;
+    }
 
     const saved = getSavedNames();
     const wasFirstSavedName = saved.length === 0;

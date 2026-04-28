@@ -744,7 +744,10 @@ function closeSoundEntryAndGo(mode) {
 function submitSoundEntry() {
     const input = document.getElementById('in-sound-entry');
     const raw = input && typeof input.value === 'string' ? input.value.trim() : '';
-    const cleaned = typeof toHira === 'function' ? toHira(raw) : raw;
+    const cleaned = (typeof toHira === 'function' ? toHira(raw) : raw).slice(0, 8);
+    if (input && input.value.trim() !== cleaned) {
+        input.value = cleaned;
+    }
 
     if (soundEntryMode !== 'input') {
         appMode = 'sound';
@@ -3528,7 +3531,7 @@ const CONTEXT_COACH_CONFIGS = {
         placement: 'bottom',
         kicker: 'はじめてのヒント',
         title: '迷ったら「次にやること」から',
-        body: 'ホームは、読み・漢字・ビルド・保存の現在地を見る場所です。青いカードの少し下に、今だけ進めればいい一手が出ます。'
+        body: 'ホームでは、読み・漢字・ビルド・保存の進み具合を確認できます。迷ったときは「次にやること」を見れば、今進める場所が分かります。'
     },
     'scr-input-sound-entry': () => {
         if (document.getElementById('search-method-choice-list')) {
@@ -7435,6 +7438,10 @@ function processNickname() {
 
     val = val.replace(/(ちゃん|くん|さん|たん|りん)$/g, '');
     val = toHira(val);
+    val = val.slice(0, 8);
+    if (el && el.value.trim() !== val) {
+        el.value = val;
+    }
     if (!val) {
         alert('読みが正しくありません');
         return;

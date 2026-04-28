@@ -180,6 +180,7 @@ function wizFinish(mode) {
     const existingData = WizardData.get() || {};
     const selectedRole = wizRole || existingData.role || '';
     const birthOrder = parseWizBirthOrder(wizBirthOrder || existingData.birthOrder || 1, 1);
+    const profileName = username ? username.value.trim().slice(0, 10) : '';
     const childDate = childDateInput
         ? String(childDateInput.value || '').trim()
         : String(wizChildDate || existingData.dueDate || existingData.birthDate || '').trim();
@@ -187,7 +188,7 @@ function wizFinish(mode) {
 
     const data = {
         completed: true,
-        username: username ? username.value.trim() : '',
+        username: profileName,
         role: selectedRole,
         birthOrder,
         surname: surname ? surname.value.trim() : '',
