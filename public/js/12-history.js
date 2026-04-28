@@ -1402,13 +1402,18 @@ console.log("HISTORY: Module loaded (v2.0)");
 function getSavedNames() {
     try {
         const data = localStorage.getItem('meimay_saved');
+        const hadSavedState = data !== null || localStorage.getItem('meimay_saved_cleared_at') !== null;
         const rawList = data ? JSON.parse(data) : [];
         const list = Array.isArray(rawList) ? rawList.filter(item => !item?.fromPartner) : [];
         if (list.length !== rawList.length) {
             localStorage.setItem('meimay_saved', JSON.stringify(list));
         }
         if (list.length === 0) {
-            localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+            if (hadSavedState) {
+                localStorage.setItem('meimay_saved_cleared_at', new Date().toISOString());
+            } else {
+                localStorage.removeItem('meimay_saved_cleared_at');
+            }
         } else {
             localStorage.removeItem('meimay_saved_cleared_at');
         }
@@ -1449,7 +1454,7 @@ function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKe
         fortune: fortune,
         message: item.message || '',
         savedAt: new Date().toISOString(),
-        fromPartner: true,
+        fromPartner: false,
         approvedFromPartner: true,
         approvedPartnerSavedKey: approvedPartnerSavedKey || '',
         partnerName: partnerName || 'パートナー'
@@ -1766,8 +1771,13 @@ function setSavedMainCandidate(index) {
         };
     });
 
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
     if (typeof savedNames !== 'undefined') savedNames = updated;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        localStorage.removeItem('meimay_saved_cleared_at');
+    }
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = selectedKey;
@@ -1867,16 +1877,30 @@ function votePartnerSavedName(index) {
         ? window.__meimaySavedCanvasPartnerKey
         : (typeof localStorage !== 'undefined' ? (localStorage.getItem('meimay_saved_canvas_partner_key') || '') : ''));
     const saved = getSavedNames();
+    let foundSourceInSaved = false;
     const updated = saved.map((item) => {
         const isSelected = getSavedCandidateKey(item) === sourceKey;
+        if (isSelected) foundSourceInSaved = true;
         return {
             ...item,
             mainSelected: isSelected,
             mainSelectedAt: isSelected ? now : ''
         };
     });
-    localStorage.setItem('meimay_saved', JSON.stringify(updated));
+    if (!foundSourceInSaved) {
+        updated.push({
+            ...buildApprovedPartnerSavedItem(source, partnerName, sourceKey),
+            mainSelected: true,
+            mainSelectedAt: now
+        });
+    }
     if (typeof savedNames !== 'undefined') savedNames = updated;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        localStorage.removeItem('meimay_saved_cleared_at');
+    }
     try {
         if (typeof window !== 'undefined') {
             window.__meimaySavedCanvasOwnKey = sourceKey;
