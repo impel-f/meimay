@@ -477,6 +477,21 @@ function buildRoomSyncWorkspaceState(state) {
     };
 }
 
+function buildRoomSyncWorkspaceStateFingerprintValue(state) {
+    const compact = buildRoomSyncWorkspaceState(state);
+    if (!compact || typeof compact !== 'object') return null;
+
+    const fingerprintValue = safeJsonCloneForRoomSync(compact, null);
+    if (!fingerprintValue || typeof fingerprintValue !== 'object') return null;
+    delete fingerprintValue.updatedAt;
+    Object.values(fingerprintValue.children || {}).forEach((child) => {
+        if (child && typeof child === 'object' && child.meta && typeof child.meta === 'object') {
+            delete child.meta.updatedAt;
+        }
+    });
+    return fingerprintValue;
+}
+
 function attachRoomSyncWorkspaceState(payload, workspaceState, workspaceStateUpdatedAt) {
     const basePayload = workspaceStateUpdatedAt
         ? { ...payload, meimayStateV2UpdatedAt: workspaceStateUpdatedAt }
@@ -516,6 +531,37 @@ function attachRoomSyncWorkspaceState(payload, workspaceState, workspaceStateUpd
         ...payload,
         meimayStateV2UpdatedAt: workspaceStateUpdatedAt
     };
+}
+
+function buildRoomSyncContentFingerprint(roomPayload = {}) {
+    return JSON.stringify({
+        role: roomPayload.role,
+        displayName: roomPayload.displayName,
+        username: roomPayload.username,
+        nickname: roomPayload.nickname,
+        themeId: roomPayload.themeId,
+        liked: roomPayload.liked,
+        savedNames: roomPayload.savedNames,
+        readingStock: roomPayload.readingStock,
+        encounteredReadings: roomPayload.encounteredReadings,
+        hiddenReadings: roomPayload.hiddenReadings,
+        likedRemoved: roomPayload.likedRemoved,
+        premium: {
+            isPremium: roomPayload.isPremium,
+            premiumSource: roomPayload.premiumSource,
+            subscriptionStatus: roomPayload.subscriptionStatus,
+            premiumStatus: roomPayload.premiumStatus,
+            appStoreExpiresAt: roomPayload.appStoreExpiresAt,
+            premiumExpiresAt: roomPayload.premiumExpiresAt,
+            appStoreProductId: roomPayload.appStoreProductId,
+            premiumProductId: roomPayload.premiumProductId,
+            trialStatus: roomPayload.trialStatus,
+            trialStartedAt: roomPayload.trialStartedAt,
+            trialEndsAt: roomPayload.trialEndsAt,
+            trialConsumedByRoom: roomPayload.trialConsumedByRoom
+        },
+        meimayStateV2: buildRoomSyncWorkspaceStateFingerprintValue(roomPayload.meimayStateV2)
+    });
 }
 
 function getSavedSelectionKeyForSync(item) {
@@ -1399,6 +1445,34 @@ const MeimayPairing = {
 const MeimayShare = {
     _partnerUnsub: null,
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
+    _lastPremiumStateSyncFingerprint: '',
+
+    _buildPremiumStateSyncFingerprint: function (roomCode, uid, state = {}) {
+        return JSON.stringify({
+            roomCode: String(roomCode || ''),
+            uid: String(uid || ''),
+            isPremium: state.isPremium === true,
+            premiumSource: typeof state.premiumSource === 'string' ? state.premiumSource : null,
+            subscriptionStatus: typeof state.subscriptionStatus === 'string' ? state.subscriptionStatus : null,
+            premiumStatus: typeof state.premiumStatus === 'string' ? state.premiumStatus : null,
+            appStoreExpiresAt: state.appStoreExpiresAt || null,
+            premiumExpiresAt: state.premiumExpiresAt || state.appStoreExpiresAt || null,
+            appStoreProductId: typeof state.appStoreProductId === 'string' ? state.appStoreProductId : null,
+            premiumProductId: typeof state.premiumProductId === 'string'
+                ? state.premiumProductId
+                : (typeof state.appStoreProductId === 'string' ? state.appStoreProductId : null),
+            appStoreLastNotificationType: typeof state.appStoreLastNotificationType === 'string'
+                ? state.appStoreLastNotificationType
+                : null,
+            latestNotificationType: typeof state.latestNotificationType === 'string'
+                ? state.latestNotificationType
+                : (typeof state.appStoreLastNotificationType === 'string' ? state.appStoreLastNotificationType : null),
+            trialStatus: typeof state.trialStatus === 'string' ? state.trialStatus : null,
+            trialStartedAt: state.trialStartedAt || null,
+            trialEndsAt: state.trialEndsAt || null,
+            trialConsumedByRoom: state.trialConsumedByRoom === true
+        });
+    },
 
     // 繝代・繝医リ繝ｼ縺ｮ繝・・繧ｿ繧偵Μ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡
 
@@ -3951,35 +4025,7 @@ MeimayPairing.syncMyData = async function () {
 
         // 変化がある場合のみ送信（指紋チェック）
         // updatedAtを除外して純粋なコンテンツの変化を確認
-        const contentFingerprint = JSON.stringify({
-            role: roomPayload.role,
-            displayName: roomPayload.displayName,
-            username: roomPayload.username,
-            nickname: roomPayload.nickname,
-            themeId: roomPayload.themeId,
-            liked: roomPayload.liked,
-            savedNames: roomPayload.savedNames,
-            readingStock: roomPayload.readingStock,
-            encounteredReadings: roomPayload.encounteredReadings,
-            hiddenReadings: roomPayload.hiddenReadings,
-            likedRemoved: roomPayload.likedRemoved,
-            premium: {
-                isPremium: roomPayload.isPremium,
-                premiumSource: roomPayload.premiumSource,
-                subscriptionStatus: roomPayload.subscriptionStatus,
-                premiumStatus: roomPayload.premiumStatus,
-                appStoreExpiresAt: roomPayload.appStoreExpiresAt,
-                premiumExpiresAt: roomPayload.premiumExpiresAt,
-                appStoreProductId: roomPayload.appStoreProductId,
-                premiumProductId: roomPayload.premiumProductId,
-                trialStatus: roomPayload.trialStatus,
-                trialStartedAt: roomPayload.trialStartedAt,
-                trialEndsAt: roomPayload.trialEndsAt,
-                trialConsumedByRoom: roomPayload.trialConsumedByRoom
-            },
-            meimayStateV2UpdatedAt: roomPayload.meimayStateV2UpdatedAt,
-            meimayStateV2: roomPayload.meimayStateV2
-        });
+        const contentFingerprint = buildRoomSyncContentFingerprint(roomPayload);
         const existingContentFingerprint = String(
             existingRoomData.roomSyncFingerprint
             || existingRoomData.meimayRoomSyncFingerprint
@@ -3990,9 +4036,15 @@ MeimayPairing.syncMyData = async function () {
         if (this._lastContentFingerprint !== contentFingerprint && existingContentFingerprint !== contentFingerprint) {
             await roomDataRef.set(roomPayload, { merge: true });
             this._lastContentFingerprint = contentFingerprint;
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare._buildPremiumStateSyncFingerprint === 'function') {
+                MeimayShare._lastPremiumStateSyncFingerprint = MeimayShare._buildPremiumStateSyncFingerprint(this.roomCode, user.uid, roomPayload);
+            }
             console.log('PAIRING: Synced my data to room');
         } else {
             this._lastContentFingerprint = contentFingerprint;
+            if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare._buildPremiumStateSyncFingerprint === 'function') {
+                MeimayShare._lastPremiumStateSyncFingerprint = MeimayShare._buildPremiumStateSyncFingerprint(this.roomCode, user.uid, roomPayload);
+            }
             // console.log('PAIRING: Sync skipped (no content change)');
         }
     } catch (e) {
@@ -4028,46 +4080,12 @@ MeimayShare.getConnectedPremiumSnapshot = function () {
 
 MeimayShare.syncProfileAppearance = async function () {
     const user = MeimayAuth.getCurrentUser();
-    if (!user || !this.roomCode) return;
-
-    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
-        ? (WizardData.get() || {})
-        : {};
-    const nextRole = this.myRole || wizard.role || null;
-    const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
-
-    try {
-        const roomDataDoc = await roomDataRef.get();
-        const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
-        const existingProfileName = String(
-            existingRoomData.displayName
-            || existingRoomData.username
-            || existingRoomData.nickname
-            || ''
-        ).trim();
-        const profileName = String(wizard.username || existingProfileName || '').trim().slice(0, 10);
-        const nextThemeId = typeof getProfileThemeId === 'function'
-            ? getProfileThemeId(wizard.role)
-            : String(wizard.themeId || existingRoomData.themeId || '').trim();
-        const safeThemeId = typeof nextThemeId === 'string'
-            ? nextThemeId.trim() || null
-            : null;
-        const currentPairingSurname = getCurrentPairingSurnameState();
-        await roomDataRef.set({
-                role: nextRole,
-                displayName: profileName,
-                username: profileName,
-                nickname: profileName,
-                themeId: safeThemeId,
-                surname: currentPairingSurname.surname,
-                surnameReading: currentPairingSurname.reading,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-        if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
-            MeimayPairing._autoSyncDebounced('profile-appearance');
-        }
-    } catch (e) {
-        console.warn('SHARE: Sync profile appearance failed', e);
+    const roomCode = (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode)
+        ? MeimayPairing.roomCode
+        : (this.roomCode || null);
+    if (!user || !roomCode) return;
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && typeof MeimayPairing._autoSyncDebounced === 'function') {
+        MeimayPairing._autoSyncDebounced('profile-appearance');
     }
 };
 
@@ -5110,6 +5128,9 @@ const MeimayUserBackup = {
             const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
                 ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
                 : localStorage.getItem('meimay_saved_cleared_at');
+            const childWorkspaceFingerprintValue = typeof buildRoomSyncWorkspaceStateFingerprintValue === 'function'
+                ? buildRoomSyncWorkspaceStateFingerprintValue(sections?.childWorkspaceStateV2)
+                : this._getChildWorkspaceStateV2Stamp(sections?.childWorkspaceStateV2);
             return JSON.stringify({
                 liked: projectedSections.liked || [],
                 likedRemoved: Array.isArray(sections?.likedRemoved) ? sections.likedRemoved : [],
@@ -5119,7 +5140,7 @@ const MeimayUserBackup = {
                 hiddenReadings,
                 likedClearFlag: !!likedClearFlag,
                 savedClearFlag: !!savedClearFlag,
-                childWorkspaceStateV2: this._getChildWorkspaceStateV2Stamp(sections?.childWorkspaceStateV2)
+                childWorkspaceStateV2: childWorkspaceFingerprintValue
             });
         } catch (error) {
             return `${sections?.liked?.length || 0}:${sections?.savedNames?.length || 0}:${sections?.readingStock?.length || 0}:${localStorage.getItem('meimay_liked_cleared_at') ? 1 : 0}:${localStorage.getItem('meimay_saved_cleared_at') ? 1 : 0}`;
@@ -5687,6 +5708,12 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
         : null;
 
     if (!state) return false;
+    const premiumSyncFingerprint = typeof this._buildPremiumStateSyncFingerprint === 'function'
+        ? this._buildPremiumStateSyncFingerprint(roomCode, user.uid, state)
+        : JSON.stringify({ roomCode, uid: user.uid, state });
+    if (this._lastPremiumStateSyncFingerprint === premiumSyncFingerprint) {
+        return true;
+    }
 
     try {
         await firebaseDb.collection('rooms').doc(roomCode)
@@ -5707,6 +5734,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
                 trialConsumedByRoom: state.trialConsumedByRoom === true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
+        this._lastPremiumStateSyncFingerprint = premiumSyncFingerprint;
         return true;
     } catch (e) {
         console.warn('SHARE: Sync premium state failed', e);
