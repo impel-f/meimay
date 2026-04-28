@@ -256,8 +256,8 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '980円',
         note: '3か月ごと',
         badge: 'おすすめ',
-        description: '予定日までじっくり探せます。',
-        actionLabel: '3か月 980円で始める'
+        description: '予定日までじっくり',
+        actionLabel: '選択'
     },
     {
         id: 'meimay.premium.monthly',
@@ -265,8 +265,8 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '480円',
         note: '1か月ごと',
         badge: '',
-        description: '短期間だけ集中して探せます。',
-        actionLabel: '1か月 480円で始める'
+        description: '短期間だけ集中',
+        actionLabel: '選択'
     },
     {
         id: 'meimay.premium.lifetime',
@@ -274,8 +274,8 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '1,980円',
         note: '更新なし',
         badge: '期限なし',
-        description: 'ずっと使える安心プランです。',
-        actionLabel: '1,980円で購入'
+        description: '期限なしで使える',
+        actionLabel: '購入'
     }
 ];
 
@@ -1467,35 +1467,34 @@ function renderPremiumPlanCards(state) {
     if (!state || state.active) return '';
 
     return ''
-        + '<div class="rounded-[20px] border border-[#e4d9c6] bg-[#fffdf8] px-3 py-3 shadow-[0_10px_24px_rgba(123,95,52,0.08)]">'
-        + '<div class="flex items-end justify-between gap-3">'
-        + '<div>'
-        + '<div class="text-[10px] font-black tracking-[0.14em] text-[#9b7b48]">有料プラン</div>'
-        + '<div class="mt-1 text-[15px] sm:text-[17px] font-black text-[#4b3a24]">気に入ったら選べます</div>'
+        + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf8] shadow-[0_10px_24px_rgba(123,95,52,0.08)]">'
+        + '<div class="flex items-center justify-between gap-3 border-b border-[#eadfcd] bg-[#f8f1e5] px-3 py-2.5">'
+        + '<div class="text-[12px] sm:text-[13px] font-black text-[#4b3a24]">有料プラン</div>'
+        + '<div class="shrink-0 text-[10px] font-bold text-[#8b7e66]">購入・更新はストアで管理</div>'
         + '</div>'
-        + '<div class="shrink-0 text-[10px] font-bold text-[#8b7e66]">自動更新はストアで管理</div>'
-        + '</div>'
-        + '<div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">'
+        + '<div class="divide-y divide-[#efe5d3]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
             const featured = plan.id === 'meimay.premium.quarterly';
-            const cardClass = featured
-                ? 'border-[#c59754] bg-[#fff4df] shadow-[0_10px_22px_rgba(185,137,66,0.12)]'
-                : 'border-[#eadfcd] bg-white';
+            const rowClass = featured ? 'bg-[#fff8ea]' : 'bg-white';
             const buttonClass = featured
-                ? 'bg-[#b98942] text-white'
-                : 'bg-[#f7efe0] text-[#5b4f3f] border border-[#e0c99c]';
+                ? 'bg-[#b98942] text-white shadow-sm'
+                : 'bg-white text-[#5b4f3f] border border-[#dcc9aa]';
             return ''
-                + '<div class="relative rounded-[16px] border px-3 py-3 ' + cardClass + '">'
+                + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 ' + rowClass + '">'
+                + '<div class="min-w-0">'
+                + '<div class="flex flex-wrap items-center gap-2">'
+                + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
                 + (plan.badge
-                    ? '<div class="absolute right-3 top-3 rounded-full bg-[#5b4f3f] px-2 py-0.5 text-[10px] font-black text-white">' + escapePremiumHtml(plan.badge) + '</div>'
+                    ? '<span class="rounded-full bg-[#5b4f3f] px-2 py-0.5 text-[10px] font-black text-white">' + escapePremiumHtml(plan.badge) + '</span>'
                     : '')
-                + '<div class="pr-16 text-[13px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</div>'
-                + '<div class="mt-2 flex items-baseline gap-1 text-[#3e3226]">'
-                + '<span class="text-[22px] sm:text-[24px] font-black leading-none">' + escapePremiumHtml(plan.price) + '</span>'
-                + '<span class="text-[10px] font-bold text-[#8b7e66]">' + escapePremiumHtml(plan.note) + '</span>'
                 + '</div>'
-                + '<p class="mt-2 min-h-[2.6em] text-[11px] sm:text-[12px] leading-[1.45] text-[#6d5a3d]">' + escapePremiumHtml(plan.description) + '</p>'
-                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="mt-3 w-full rounded-[12px] px-2 py-2 text-[12px] font-black active:scale-[0.99] ' + buttonClass + '">'
+                + '<div class="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
+                + '<span class="text-[20px] sm:text-[22px] font-black leading-none">' + escapePremiumHtml(plan.price) + '</span>'
+                + '<span class="text-[10px] font-bold text-[#8b7e66]">' + escapePremiumHtml(plan.note) + '</span>'
+                + '<span class="text-[10px] font-bold text-[#8b7e66]">・' + escapePremiumHtml(plan.description) + '</span>'
+                + '</div>'
+                + '</div>'
+                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[4.75rem] rounded-[999px] px-3 py-2 text-[12px] font-black active:scale-[0.99] ' + buttonClass + '">'
                 + escapePremiumHtml(plan.actionLabel)
                 + '</button>'
                 + '</div>';
@@ -1524,8 +1523,8 @@ function showPremiumModal() {
         + '</div>'
         + renderPremiumStatusCard(state)
         + renderPremiumTrialCard(state)
-        + renderPremiumPlanCards(state)
         + renderPremiumComparisonMatrix()
+        + renderPremiumPlanCards(state)
         + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
         + (state.active
             ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
