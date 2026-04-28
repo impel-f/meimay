@@ -251,18 +251,18 @@ const PremiumManager = {
 
 const PREMIUM_PRODUCT_PLANS = [
     {
-        id: 'meimay.premium.quarterly',
-        title: '3か月プラン',
-        price: '980円',
-        note: '予定日までじっくり',
-        description: '',
-        actionLabel: '購入へ進む'
-    },
-    {
         id: 'meimay.premium.monthly',
         title: '1か月プラン',
         price: '480円',
         note: '短期間だけ集中',
+        description: '',
+        actionLabel: '購入へ進む'
+    },
+    {
+        id: 'meimay.premium.quarterly',
+        title: '3か月プラン',
+        price: '980円',
+        note: '予定日までじっくり',
         description: '',
         actionLabel: '購入へ進む'
     },
@@ -1471,11 +1471,8 @@ function renderPremiumPlanCards(state) {
         + '</div>'
         + '<div class="divide-y divide-[#efe5d3]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
-            const featured = plan.id === 'meimay.premium.quarterly';
-            const rowClass = featured ? 'bg-[#fff8ea]' : 'bg-white';
-            const buttonClass = featured
-                ? 'bg-[#b98942] text-white shadow-sm'
-                : 'bg-white text-[#5b4f3f] border border-[#dcc9aa]';
+            const rowClass = 'bg-white';
+            const buttonClass = 'bg-white text-[#5b4f3f] border border-[#dcc9aa]';
             return ''
                 + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 ' + rowClass + '">'
                 + '<div class="min-w-0">'
