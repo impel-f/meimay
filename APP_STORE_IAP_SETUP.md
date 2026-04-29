@@ -55,6 +55,16 @@ REVENUECAT_ENTITLEMENT_ID=premium
 
 RevenueCat の Webhook 設定では、URL に `/api/revenuecat-webhook` を指定し、Authorization に `REVENUECAT_WEBHOOK_AUTH` と同じ値を入れます。
 
+2026年4月29日時点の本番設定:
+
+- URL: `https://meimay.vercel.app/api/revenuecat-webhook`
+- Environment: Both Production and Sandbox
+- App: All apps
+- Event type: All events
+- RevenueCat Test Event: HTTP 200 確認済み
+
+RevenueCat の Test Event は疎通確認用で、Firestore の課金状態は更新しません。実購入イベントで `users/{uid}` と `revenueCatEvents/{eventId}` の更新を別途確認します。
+
 ## 4. Firebase Functions を使う場合の Secrets / Params
 
 将来 Firebase Functions 側へ戻す場合は、Firebase プロジェクトを Blaze プランへ上げたうえで Secret Manager を使います。Functions をデプロイする前に、Secret は CLI で、String params は `functions/.env.<projectId>` かデプロイ時の対話入力で設定します。
