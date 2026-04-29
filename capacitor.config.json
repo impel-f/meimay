@@ -1,0 +1,8 @@
+{
+  "appId": "com.impelf.meimay",
+  "appName": "メイメー",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  }
+}

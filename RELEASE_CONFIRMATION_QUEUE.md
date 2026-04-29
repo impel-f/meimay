@@ -8,9 +8,10 @@ Codexだけで進めると本番アカウント、課金、公開情報、削除
 
 - App Store Connect で作成済みの `meimay.premium.pass.1month` / `meimay.premium.pass.3months` / `meimay.premium.lifetime` を、アプリ本体 1.0 の「アプリ内購入とサブスクリプション」に紐づけて審査提出する。
 - RevenueCat の `premium` entitlement / `default` offering / iOS Public SDK Key は作成済み。Webhook は Vercel の `https://meimay.vercel.app/api/revenuecat-webhook` を使い、Authorization は `REVENUECAT_WEBHOOK_AUTH` と同じ値を設定済み。2026年4月29日に RevenueCat の Test Event で HTTP 200 を確認済み。
+- Capacitor 設定と RevenueCat Capacitor SDK は追加済み。次は Mac / Xcode 環境で `npm run cap:add:ios`、`npm run cap:sync`、`npm run cap:open:ios` を実行し、TestFlight / sandbox アカウントで購入画面を確認する。
 - Google Play Console では同等の期間パスと買い切り商品を作成するか、iOS先行にするか。
 - 期間パス価格、無料トライアル有無、初回価格の有無。
-- iOS / Android の bundle id / package name を最終決定するか。
+- iOS / Android の bundle id / package name は `com.impelf.meimay` を基準にする。Android の package name を iOS と同一で進めるかは Google Play 作成時に最終確認する。
 - RevenueCat / StoreKit / Play Billing の本番接続をいつ有効化するか。
 - 課金検証用のサーバー構成は、Firebase Blaze を避けるため Vercel API の `/api/revenuecat-webhook` を本命にする。Firebase Functions の `handleRevenueCatWebhook` は将来の選択肢として残す。
 - 全ユーザー1回だけの3日無料プレミアムを、ストアの introductory offer として扱うか、アプリ内のサーバー付与 trial として扱うか。

@@ -643,9 +643,15 @@ function buildPremiumState(source, activeHint, status, expiresAt) {
 }
 
 function getPlatform() {
+    const capacitorPlatform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? String(window.Capacitor.getPlatform() || '').toLowerCase()
+        : '';
+    if (capacitorPlatform === 'ios' || capacitorPlatform === 'android') return capacitorPlatform;
+
     const ua = navigator.userAgent || '';
     if (/android/i.test(ua)) return 'android';
     if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+    if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
     return 'web';
 }
 

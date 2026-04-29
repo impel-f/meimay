@@ -7,7 +7,7 @@
 ## 1. v1.1 の前提
 
 - iOS / Android のストア配布を前提にする。
-- Web / PWA の現資産を活かし、ネイティブ化は Capacitor を第一候補にする。
+- Web / PWA の現資産を活かし、ネイティブ化は Capacitor で進める。
 - デジタル機能の解放は実課金にする。
 - ダミー課金、localStorage だけの有料判定、後読みの override JS はリリース対象から外す。
 - ユーザーが初回から「今なにをしているか」「次に何をすればいいか」を迷わない体験にする。
@@ -44,6 +44,7 @@
 - StoreKit / Play Billing の購入・復元後に RevenueCat Webhook を Vercel API の `/api/revenuecat-webhook` で受け、サーバー側で Firestore へ反映する。
 - Firestore の `users/{uid}` を購読して UI を更新する。
 - localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI では購入操作として見せない。
+- Capacitor appId は `com.impelf.meimay`、webDir は `public` とする。
 
 ### 商品設計
 
