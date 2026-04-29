@@ -45,7 +45,7 @@
 - Firestore の `users/{uid}` を購読して UI を更新する。
 - localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI では購入操作として見せない。
 - Capacitor appId は `com.impelf.meimay`、webDir は `public` とする。
-- iOS は `ios/App/App.xcodeproj` と scheme `App` を Xcode Cloud で Archive し、TestFlight で iPad 実機確認する。
+- iOS は Codemagic の `ios-testflight` ワークフローで `ios/App/App.xcodeproj` と scheme `App` をビルドし、TestFlight で iPad 実機確認する。Xcode Cloud は Mac が用意できた場合の予備ルートにする。
 
 ### 商品設計
 

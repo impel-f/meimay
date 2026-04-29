@@ -1,6 +1,6 @@
 # App Store / Firebase 課金セットアップ
 
-メイメーは Web / Firebase 構成を土台に、Capacitor でネイティブ化する方針です。2026年4月29日時点で `capacitor.config.json`、Capacitor 本体、RevenueCat Capacitor SDK、iOS ネイティブプロジェクトを追加済みです。手元に Mac がなくても、Xcode Cloud で `ios/App/App.xcodeproj` をビルドして TestFlight へ配布する流れを本命にします。
+メイメーは Web / Firebase 構成を土台に、Capacitor でネイティブ化する方針です。2026年4月29日時点で `capacitor.config.json`、Capacitor 本体、RevenueCat Capacitor SDK、iOS ネイティブプロジェクト、Codemagic 用 `codemagic.yaml` を追加済みです。手元に Mac がなくても、Codemagic で `ios/App/App.xcodeproj` をビルドして TestFlight へ配布する流れを本命にします。
 
 ## 0. ネイティブ化の現在地
 
@@ -12,6 +12,7 @@
 - iOS project: `ios/App/App.xcodeproj`
 - Xcode scheme: `App`
 - Xcode Cloud script: `ios/App/ci_scripts/ci_post_clone.sh`
+- Codemagic config: `codemagic.yaml`
 - RevenueCat iOS Public SDK Key: `appl_iANPgUKzgQIuwcKXMrvmSKkxIhX`
 - RevenueCat entitlement: `premium`
 - RevenueCat offering: `default`
@@ -23,9 +24,20 @@ npm run cap:add:android
 npm run cap:sync
 ```
 
-Windows で `npm run cap:sync` を実行すると、Swift Package のローカルパスが Windows 形式に戻る場合があります。Xcode Cloud では `ci_post_clone.sh` が `npm ci` と `npx cap sync ios` を実行し、Mac 形式の状態へ再生成してからビルドします。
+Windows で `npm run cap:sync` を実行すると、Swift Package のローカルパスが Windows 形式に戻る場合があります。Codemagic では `codemagic.yaml` が `npm ci` と `npx cap sync ios` を実行し、Mac 形式の状態へ再生成してからビルドします。
 
-Xcode Cloud 設定の目安:
+Codemagic ワークフロー:
+
+- `ios-capacitor-smoke`: 署名なしで iOS プロジェクトがビルドできるか確認する
+- `ios-testflight`: App Store Connect 署名で IPA を作成し、App Store Connect へアップロードする
+
+Codemagic の App Store Connect 連携:
+
+- Integration name: `codemagic`
+- Bundle ID: `com.impelf.meimay`
+- App Store Apple ID: `6760251452`
+
+Xcode Cloud を使う場合の目安:
 
 - Repository: GitHub の `impel-f/meimay`
 - Branch: `main`

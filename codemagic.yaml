@@ -1,0 +1,71 @@
+workflows:
+  ios-capacitor-smoke:
+    name: iOS Capacitor smoke build
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      vars:
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+      node: v22.11.0
+      xcode: latest
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Build iOS app without signing
+        script: |
+          xcodebuild \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+
+  ios-testflight:
+    name: iOS TestFlight upload
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.impelf.meimay
+      vars:
+        BUNDLE_ID: "com.impelf.meimay"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+        APP_STORE_APPLE_ID: "6760251452"
+      node: v22.11.0
+      xcode: latest
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Set iOS build number
+        script: |
+          BUILD_VERSION="${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}"
+          BUILD_VERSION="${BUILD_VERSION:-1}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
+      - name: Set up provisioning profiles settings on Xcode project
+        script: xcode-project use-profiles --project "$CM_BUILD_DIR/$XCODE_PROJECT"
+      - name: Build ipa for App Store Connect
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags="-destination 'generic/platform=iOS'"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
