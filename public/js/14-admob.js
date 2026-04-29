@@ -33,6 +33,7 @@ const PremiumManager = {
     _remoteTrialConsumedByRoom: false,
     _userDocUnsub: null,
     _trialStartInProgress: false,
+    _purchaseInProgress: false,
 
     getLocalPremiumState: function () {
         try {
@@ -186,6 +187,9 @@ const PremiumManager = {
                     appAccountToken: token,
                     premiumPlatform: platform,
                     appStoreBundleId: 'com.impelf.meimay',
+                    revenueCatAppUserId: user.uid,
+                    revenueCatPlatform: platform,
+                    revenueCatLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     premiumLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
@@ -256,7 +260,8 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '480円',
         note: '自動更新なし',
         description: '',
-        actionLabel: '購入へ進む'
+        actionLabel: '購入へ進む',
+        durationMonths: 1
     },
     {
         id: 'meimay.premium.pass.3months',
@@ -264,7 +269,8 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '980円',
         note: '自動更新なし',
         description: '',
-        actionLabel: '購入へ進む'
+        actionLabel: '購入へ進む',
+        durationMonths: 3
     },
     {
         id: 'meimay.premium.lifetime',
@@ -272,9 +278,22 @@ const PREMIUM_PRODUCT_PLANS = [
         price: '1,980円',
         note: '更新なし・期限なし',
         description: '',
-        actionLabel: '購入へ進む'
+        actionLabel: '購入へ進む',
+        lifetime: true
     }
 ];
+
+const RevenueCatConfig = {
+    iosPublicSdkKey: 'appl_iANPgUKzgQIuwcKXMrvmSKkxIhX',
+    androidPublicSdkKey: '',
+    entitlementId: 'premium',
+    offeringId: 'default',
+    packageIdentifiersByProductId: {
+        'meimay.premium.pass.1month': ['$rc_monthly', 'monthly', 'pass_1month'],
+        'meimay.premium.pass.3months': ['$rc_three_month', 'three_month', 'three_months', 'pass_3months'],
+        'meimay.premium.lifetime': ['$rc_lifetime', 'lifetime']
+    }
+};
 
 function normalizePremiumDate(value) {
     if (!value) return null;
@@ -351,6 +370,232 @@ function isLocalPremiumFallbackAllowed() {
         return false;
     }
 }
+
+function addMonthsToPremiumDate(date, months) {
+    const base = normalizePremiumDate(date) || new Date();
+    const next = new Date(base.getTime());
+    next.setMonth(next.getMonth() + months);
+    return next;
+}
+
+function getRevenueCatPlugin() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Purchases) {
+        return window.Capacitor.Plugins.Purchases;
+    }
+    if (window.Purchases && typeof window.Purchases.configure === 'function') {
+        return window.Purchases;
+    }
+    if (window.RevenueCat && window.RevenueCat.Purchases) {
+        return window.RevenueCat.Purchases;
+    }
+    return null;
+}
+
+function getRevenueCatUserCancelled(error) {
+    const code = String(error?.code || error?.errorCode || '').toLowerCase();
+    const message = String(error?.message || error?.errorMessage || '').toLowerCase();
+    return error?.userCancelled === true
+        || code.includes('cancel')
+        || message.includes('cancel');
+}
+
+function getRevenueCatPlatformApiKey(platform) {
+    if (platform === 'ios') return RevenueCatConfig.iosPublicSdkKey;
+    if (platform === 'android') return RevenueCatConfig.androidPublicSdkKey;
+    return '';
+}
+
+function getRevenueCatProductIdFromPackage(pkg) {
+    const product = pkg?.product || pkg?.storeProduct || pkg?.webBillingProduct || null;
+    return String(
+        product?.identifier
+        || product?.productIdentifier
+        || product?.productId
+        || product?.id
+        || pkg?.productIdentifier
+        || pkg?.productId
+        || ''
+    ).trim();
+}
+
+function getRevenueCatPackageIdentifier(pkg) {
+    return String(
+        pkg?.identifier
+        || pkg?.packageIdentifier
+        || pkg?.packageType
+        || pkg?.type
+        || ''
+    ).trim();
+}
+
+function collectRevenueCatPackages(offerings) {
+    const offering = offerings?.all?.[RevenueCatConfig.offeringId]
+        || offerings?.current
+        || offerings?.[RevenueCatConfig.offeringId]
+        || null;
+    if (!offering) return [];
+
+    const packages = [];
+    const addPackage = (pkg) => {
+        if (!pkg || typeof pkg !== 'object' || packages.includes(pkg)) return;
+        packages.push(pkg);
+    };
+
+    if (Array.isArray(offering.availablePackages)) {
+        offering.availablePackages.forEach(addPackage);
+    }
+
+    [
+        'monthly',
+        'threeMonth',
+        'threeMonths',
+        'annual',
+        'lifetime'
+    ].forEach((key) => addPackage(offering[key]));
+
+    Object.keys(offering).forEach((key) => {
+        const value = offering[key];
+        if (value && typeof value === 'object' && (value.product || value.storeProduct || value.webBillingProduct)) {
+            addPackage(value);
+        }
+    });
+
+    return packages;
+}
+
+function findRevenueCatPackageForProduct(offerings, productId) {
+    const normalizedProductId = String(productId || '').trim();
+    const packages = collectRevenueCatPackages(offerings);
+    const packageIds = RevenueCatConfig.packageIdentifiersByProductId[normalizedProductId] || [];
+
+    return packages.find((pkg) => getRevenueCatProductIdFromPackage(pkg) === normalizedProductId)
+        || packages.find((pkg) => packageIds.includes(getRevenueCatPackageIdentifier(pkg)))
+        || null;
+}
+
+function getRevenueCatEntitlement(customerInfo) {
+    const info = customerInfo?.customerInfo || customerInfo || {};
+    const active = info.entitlements?.active || {};
+    const all = info.entitlements?.all || {};
+    return active[RevenueCatConfig.entitlementId]
+        || all[RevenueCatConfig.entitlementId]
+        || null;
+}
+
+function getRevenueCatEntitlementActive(customerInfo) {
+    const info = customerInfo?.customerInfo || customerInfo || {};
+    return !!(info.entitlements
+        && info.entitlements.active
+        && info.entitlements.active[RevenueCatConfig.entitlementId]);
+}
+
+function getRevenueCatEntitlementDate(entitlement, keys) {
+    for (const key of keys) {
+        const date = normalizePremiumDate(entitlement?.[key]);
+        if (date) return date;
+    }
+    return null;
+}
+
+function inferRevenueCatPlanExpiresAt(plan, entitlement) {
+    if (!plan || plan.lifetime || !plan.durationMonths) return null;
+    const purchasedAt = getRevenueCatEntitlementDate(entitlement, [
+        'latestPurchaseDate',
+        'latestPurchaseDateMillis',
+        'purchaseDate',
+        'purchaseDateMillis'
+    ]) || new Date();
+    return addMonthsToPremiumDate(purchasedAt, plan.durationMonths);
+}
+
+const RevenueCatBridge = {
+    _configuredAppUserId: '',
+    _configuredPlatform: '',
+    _offerings: null,
+
+    isAvailable: function () {
+        return !!getRevenueCatPlugin();
+    },
+
+    getAppUserId: function (user) {
+        return String(user?.uid || '').trim();
+    },
+
+    configure: async function (user) {
+        const plugin = getRevenueCatPlugin();
+        if (!plugin) {
+            throw new Error('RevenueCat SDK is not available in this build.');
+        }
+
+        const platform = getPlatform();
+        const apiKey = getRevenueCatPlatformApiKey(platform);
+        if (!apiKey) {
+            throw new Error('RevenueCat SDK key is not configured for this platform.');
+        }
+
+        const appUserID = this.getAppUserId(user);
+        if (!appUserID) {
+            throw new Error('RevenueCat app user id is missing.');
+        }
+
+        if (this._configuredAppUserId === appUserID && this._configuredPlatform === platform) {
+            return plugin;
+        }
+
+        if (this._configuredAppUserId && typeof plugin.logIn === 'function') {
+            await plugin.logIn({ appUserID });
+            this._configuredAppUserId = appUserID;
+            this._configuredPlatform = platform;
+            return plugin;
+        }
+
+        await plugin.configure({ apiKey, appUserID });
+        this._configuredAppUserId = appUserID;
+        this._configuredPlatform = platform;
+        return plugin;
+    },
+
+    getOfferings: async function (user) {
+        const plugin = await this.configure(user);
+        if (typeof plugin.getOfferings !== 'function') {
+            throw new Error('RevenueCat getOfferings is not available.');
+        }
+        if (!this._offerings) {
+            this._offerings = await plugin.getOfferings();
+        }
+        return this._offerings;
+    },
+
+    getCustomerInfo: async function (user) {
+        const plugin = await this.configure(user);
+        if (typeof plugin.getCustomerInfo !== 'function') return null;
+        return plugin.getCustomerInfo();
+    },
+
+    restorePurchases: async function (user) {
+        const plugin = await this.configure(user);
+        if (typeof plugin.restorePurchases === 'function') {
+            return plugin.restorePurchases();
+        }
+        if (typeof plugin.getCustomerInfo === 'function') {
+            return plugin.getCustomerInfo();
+        }
+        return null;
+    },
+
+    purchaseProduct: async function (productId, user) {
+        const plugin = await this.configure(user);
+        const offerings = await this.getOfferings(user);
+        const rcPackage = findRevenueCatPackageForProduct(offerings, productId);
+        if (!rcPackage) {
+            throw new Error('RevenueCat package was not found.');
+        }
+        if (typeof plugin.purchasePackage !== 'function') {
+            throw new Error('RevenueCat purchasePackage is not available.');
+        }
+        return plugin.purchasePackage({ aPackage: rcPackage });
+    }
+};
 
 function buildPremiumState(source, activeHint, status, expiresAt) {
     const normalizedStatus = String(status || '').trim().toLowerCase();
@@ -929,7 +1174,7 @@ PremiumManager.getDisplayStatus = function () {
     };
 };
 
-PremiumManager.refreshPurchaseState = async function () {
+PremiumManager.refreshPurchaseState = async function (restore = true) {
     const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
         ? MeimayAuth.getCurrentUser()
         : null;
@@ -943,6 +1188,10 @@ PremiumManager.refreshPurchaseState = async function () {
 
     try {
         await this.bindToUserDoc(user);
+        let revenueCatChecked = false;
+        if (RevenueCatBridge.isAvailable()) {
+            revenueCatChecked = await this.refreshRevenueCatCustomerInfo(user, restore);
+        }
         if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
             const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
                 ? this.getPublicPremiumSnapshot()
@@ -950,7 +1199,11 @@ PremiumManager.refreshPurchaseState = async function () {
             await MeimayShare.syncPremiumState(publicPremiumState);
         }
         if (typeof showToast === 'function') {
-            showToast(this.isPremium() ? '購入状態を更新しました' : '現在の購入状態を確認しました', this.isPremium() ? 'OK' : 'i');
+            const active = this.isPremium();
+            const message = active
+                ? '購入状態を更新しました'
+                : (revenueCatChecked ? '現在の購入状態を確認しました' : '購入状態はアプリ版で確認できます');
+            showToast(message, active ? 'OK' : 'i');
         }
         return true;
     } catch (e) {
@@ -966,6 +1219,70 @@ function getPremiumProductPlan(productId) {
     const normalized = String(productId || '').trim();
     return PREMIUM_PRODUCT_PLANS.find((plan) => plan.id === normalized) || null;
 }
+
+PremiumManager._syncCurrentPremiumState = async function () {
+    if (this.isPremium()) {
+        hideAdBanner();
+    } else {
+        showAdBanner();
+    }
+    updatePremiumUI();
+
+    if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+        const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+            ? this.getPublicPremiumSnapshot()
+            : null;
+        if (publicPremiumState) {
+            await MeimayShare.syncPremiumState(publicPremiumState);
+        }
+    }
+};
+
+PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackProductId = '') {
+    const customerInfo = result?.customerInfo || result || null;
+    if (!customerInfo) return false;
+
+    const entitlement = getRevenueCatEntitlement(customerInfo);
+    const entitlementActive = getRevenueCatEntitlementActive(customerInfo);
+    const productId = String(
+        fallbackProductId
+        || entitlement?.productIdentifier
+        || entitlement?.productId
+        || ''
+    ).trim();
+    const plan = getPremiumProductPlan(productId);
+    const entitlementExpiresAt = getRevenueCatEntitlementDate(entitlement, [
+        'expirationDate',
+        'expirationDateMillis',
+        'expiresDate',
+        'expiresDateMillis'
+    ]);
+    const inferredExpiresAt = entitlementActive && !entitlementExpiresAt
+        ? inferRevenueCatPlanExpiresAt(plan, entitlement)
+        : null;
+    const expiresAt = entitlementExpiresAt || inferredExpiresAt;
+    const expired = !!expiresAt && expiresAt.getTime() <= Date.now();
+    const active = entitlementActive && !expired;
+
+    this._remotePremium = active;
+    this._remotePremiumSource = 'revenuecat';
+    this._remoteStatus = active ? 'active' : (expired ? 'expired' : 'inactive');
+    this._remoteAppStoreExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+    this._remoteExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+    this._remoteProductId = productId || this._remoteProductId || null;
+    this._remoteLastNotificationType = 'revenuecat_customer_info';
+
+    await this._syncCurrentPremiumState();
+    return active;
+};
+
+PremiumManager.refreshRevenueCatCustomerInfo = async function (user, restore = false) {
+    if (!RevenueCatBridge.isAvailable()) return false;
+    const result = restore
+        ? await RevenueCatBridge.restorePurchases(user)
+        : await RevenueCatBridge.getCustomerInfo(user);
+    return this._applyRevenueCatCustomerInfo(result);
+};
 
 PremiumManager.startPurchase = async function (productId) {
     const plan = getPremiumProductPlan(productId);
@@ -987,11 +1304,44 @@ PremiumManager.startPurchase = async function (productId) {
         }
     }
 
-    // StoreKit / RevenueCat の購入ブリッジ接続後、この商品IDをそのまま渡します。
-    if (typeof showToast === 'function') {
-        showToast(`${plan.title}の購入はストア接続後に有効になります`, 'i');
+    if (!RevenueCatBridge.isAvailable()) {
+        if (typeof showToast === 'function') {
+            showToast('購入はアプリ版で有効になります', 'i');
+        }
+        return false;
     }
-    return false;
+
+    if (this._purchaseInProgress) {
+        if (typeof showToast === 'function') {
+            showToast('購入処理を確認しています', 'i');
+        }
+        return false;
+    }
+
+    try {
+        this._purchaseInProgress = true;
+        const result = await RevenueCatBridge.purchaseProduct(plan.id, user);
+        const active = await this._applyRevenueCatCustomerInfo(result, plan.id);
+        await this.refreshPurchaseState(false);
+        if (typeof showToast === 'function') {
+            showToast(active ? 'プレミアムが有効になりました' : '購入状態を確認しました', active ? 'OK' : 'i');
+        }
+        return active;
+    } catch (e) {
+        if (getRevenueCatUserCancelled(e)) {
+            if (typeof showToast === 'function') {
+                showToast('購入をキャンセルしました', 'i');
+            }
+        } else {
+            console.warn('PREMIUM: RevenueCat purchase failed', e);
+            if (typeof showToast === 'function') {
+                showToast('購入を完了できませんでした', '!');
+            }
+        }
+        return false;
+    } finally {
+        this._purchaseInProgress = false;
+    }
 };
 
 function getPremiumTrialRoomNotice() {
@@ -1528,6 +1878,7 @@ function showPremiumModal() {
 }
 
 window.PremiumManager = PremiumManager;
+window.RevenueCatBridge = RevenueCatBridge;
 window.PremiumTrialNudge = PremiumTrialNudge;
 window.showPremiumModal = showPremiumModal;
 window.renderPremiumComparisonMatrix = renderPremiumComparisonMatrix;

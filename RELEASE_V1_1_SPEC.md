@@ -1,6 +1,6 @@
 # Meimay v1.1 リリース仕様書
 
-更新日: 2026-04-26
+更新日: 2026-04-29
 
 目的: 課金、初回体験、法務、ストア提出素材までそろえた状態で、Meimay v1.1 としてリリースできる形にする。
 
@@ -34,12 +34,14 @@
 - `premiumProductId`
 - `premiumExpiresAt`
 - `appAccountToken`
+- `revenueCatAppUserId`
 - `updatedAt`
 
 アプリ側の動き:
 
-- アプリ起動時に Firebase Auth の `uid` と `appAccountToken` をリンクする。
-- StoreKit / Play Billing の購入・復元後にサーバー検証を行う。
+- アプリ起動時に Firebase Auth の `uid`、`appAccountToken`、RevenueCat App User ID をリンクする。
+- RevenueCat SDK では `premium` entitlement と `default` offering を使う。
+- StoreKit / Play Billing の購入・復元後に RevenueCat Webhook でサーバー検証を行う。
 - Firestore の `users/{uid}` を購読して UI を更新する。
 - localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI では購入操作として見せない。
 
@@ -195,8 +197,8 @@ v1.1 では入れない:
 
 ### フェーズ 3: 課金
 
-- iOS の StoreKit 購入と復元を実装する。
-- App Store Server Notifications の検証を確認する。
+- iOS の RevenueCat / StoreKit 購入と復元を実装する。
+- RevenueCat Webhook と App Store Server Notifications の検証を確認する。
 - Android の Play Billing 購入と復元を実装する。
 - サーバー検証後に Firestore の有料権限を更新する。
 - 期限切れ、返金、請求リトライ状態を確認する。
@@ -235,4 +237,4 @@ v1.1 では入れない:
 3. スワイプ画面に目的、操作、残り枚数を出す。
 4. 無料ユーザーの具体的な上限値を決める。
 5. Capacitor とネイティブアプリ識別子を追加する。
-6. まず StoreKit を実課金に接続し、その後 Play Billing を接続する。
+6. まず RevenueCat 経由で iOS 実課金に接続し、その後 Play Billing を接続する。

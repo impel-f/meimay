@@ -32,6 +32,10 @@ const APPLE_IAP_ENVIRONMENT = defineString("APPLE_IAP_ENVIRONMENT", {
   default: Environment.SANDBOX,
 });
 const APPLE_IAP_ENCODED_KEY = defineSecret("APPLE_IAP_ENCODED_KEY");
+const REVENUECAT_ENTITLEMENT_ID = defineString("REVENUECAT_ENTITLEMENT_ID", {
+  default: "premium",
+});
+const REVENUECAT_WEBHOOK_AUTH = defineSecret("REVENUECAT_WEBHOOK_AUTH");
 
 let cachedVerifier: SignedDataVerifier | null = null;
 
@@ -153,6 +157,45 @@ type PendingNotificationRecord = Partial<NotificationContext> & {
   notificationType?: string;
   subtype?: string | null;
   expiresAt?: unknown;
+};
+
+type RevenueCatEvent = {
+  id?: string;
+  type?: string;
+  app_user_id?: string;
+  original_app_user_id?: string;
+  aliases?: unknown;
+  entitlement_id?: string | null;
+  entitlement_ids?: unknown;
+  product_id?: string | null;
+  purchased_at_ms?: number | null;
+  expiration_at_ms?: number | null;
+  event_timestamp_ms?: number | null;
+  store?: string | null;
+  environment?: string | null;
+  transaction_id?: string | null;
+  original_transaction_id?: string | null;
+  presented_offering_id?: string | null;
+  period_type?: string | null;
+};
+
+type RevenueCatContext = {
+  eventId: string;
+  eventType: string;
+  appUserId: string | null;
+  originalAppUserId: string | null;
+  aliases: string[];
+  entitlementIds: string[];
+  productId: string | null;
+  store: string | null;
+  environment: string | null;
+  transactionId: string | null;
+  originalTransactionId: string | null;
+  presentedOfferingId: string | null;
+  periodType: string | null;
+  purchasedAtMs: number | null;
+  expiresAtMs: number | null;
+  eventAtMs: number;
 };
 
 function mapSubscriptionState(
@@ -329,6 +372,281 @@ function buildUserSubscriptionUpdate(
   }
 
   return updatePayload;
+}
+
+function getRevenueCatEvent(body: unknown): RevenueCatEvent | null {
+  if (!body || typeof body !== "object" || !("event" in body)) {
+    return null;
+  }
+  const event = (body as { event?: unknown }).event;
+  return event && typeof event === "object" ? event as RevenueCatEvent : null;
+}
+
+function getRevenueCatAuthorization(request: { get(name: string): string | undefined }): string {
+  const value = request.get("authorization") || request.get("Authorization") || "";
+  return value.trim();
+}
+
+function getRevenueCatAliases(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((item) => !!item);
+}
+
+function getRevenueCatEntitlementIds(event: RevenueCatEvent): string[] {
+  const ids = Array.isArray(event.entitlement_ids)
+    ? event.entitlement_ids
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item) => !!item)
+    : [];
+  if (event.entitlement_id) {
+    ids.push(event.entitlement_id);
+  }
+  return Array.from(new Set(ids));
+}
+
+function addUtcMonths(timestampMs: number, months: number): number {
+  const date = new Date(timestampMs);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return date.getTime();
+}
+
+function inferRevenueCatExpiresAtMs(event: RevenueCatEvent): number | null {
+  if (typeof event.expiration_at_ms === "number") {
+    return event.expiration_at_ms;
+  }
+  const purchasedAtMs = typeof event.purchased_at_ms === "number" ? event.purchased_at_ms : null;
+  const productId = `${event.product_id || ""}`.trim();
+  if (!purchasedAtMs || !productId) return null;
+  if (productId === "meimay.premium.pass.1month") return addUtcMonths(purchasedAtMs, 1);
+  if (productId === "meimay.premium.pass.3months") return addUtcMonths(purchasedAtMs, 3);
+  return null;
+}
+
+function buildRevenueCatContext(event: RevenueCatEvent): RevenueCatContext {
+  const eventAtMs =
+    typeof event.event_timestamp_ms === "number"
+      ? event.event_timestamp_ms
+      : typeof event.purchased_at_ms === "number"
+        ? event.purchased_at_ms
+        : Date.now();
+
+  return {
+    eventId: `${event.id || `missing-${eventAtMs}`}`,
+    eventType: `${event.type || ""}`.trim().toUpperCase(),
+    appUserId: typeof event.app_user_id === "string" ? event.app_user_id.trim() || null : null,
+    originalAppUserId: typeof event.original_app_user_id === "string" ? event.original_app_user_id.trim() || null : null,
+    aliases: getRevenueCatAliases(event.aliases),
+    entitlementIds: getRevenueCatEntitlementIds(event),
+    productId: typeof event.product_id === "string" ? event.product_id.trim() || null : null,
+    store: typeof event.store === "string" ? event.store.trim() || null : null,
+    environment: typeof event.environment === "string" ? event.environment.trim() || null : null,
+    transactionId: typeof event.transaction_id === "string" ? event.transaction_id.trim() || null : null,
+    originalTransactionId: typeof event.original_transaction_id === "string" ? event.original_transaction_id.trim() || null : null,
+    presentedOfferingId: typeof event.presented_offering_id === "string" ? event.presented_offering_id.trim() || null : null,
+    periodType: typeof event.period_type === "string" ? event.period_type.trim() || null : null,
+    purchasedAtMs: typeof event.purchased_at_ms === "number" ? event.purchased_at_ms : null,
+    expiresAtMs: inferRevenueCatExpiresAtMs(event),
+    eventAtMs,
+  };
+}
+
+function isRevenueCatPremiumProduct(productId: string | null): boolean {
+  return !!productId && productId.startsWith("meimay.premium.");
+}
+
+function mapRevenueCatPremiumState(context: RevenueCatContext): PremiumMutation {
+  const entitlementId = REVENUECAT_ENTITLEMENT_ID.value().trim() || "premium";
+  const hasPremiumEntitlement = context.entitlementIds.includes(entitlementId)
+    || isRevenueCatPremiumProduct(context.productId);
+  const expiredByDate = !!context.expiresAtMs && context.expiresAtMs <= Date.now();
+
+  if (context.eventType === "TEST") {
+    return { isPremium: null, subscriptionStatus: "test" };
+  }
+
+  if (context.eventType === "EXPIRATION") {
+    return { isPremium: false, subscriptionStatus: "expired" };
+  }
+
+  if (context.eventType === "CANCELLATION") {
+    return { isPremium: false, subscriptionStatus: "refunded" };
+  }
+
+  if (context.eventType === "BILLING_ISSUE") {
+    return { isPremium: null, subscriptionStatus: "billing_issue" };
+  }
+
+  const activeTypes = new Set([
+    "INITIAL_PURCHASE",
+    "NON_RENEWING_PURCHASE",
+    "RENEWAL",
+    "UNCANCELLATION",
+    "SUBSCRIPTION_EXTENDED",
+    "TEMPORARY_ENTITLEMENT_GRANT",
+    "REFUND_REVERSED",
+  ]);
+
+  if (activeTypes.has(context.eventType) && hasPremiumEntitlement) {
+    return {
+      isPremium: !expiredByDate,
+      subscriptionStatus: expiredByDate ? "expired" : "active",
+    };
+  }
+
+  if (expiredByDate) {
+    return { isPremium: false, subscriptionStatus: "expired" };
+  }
+
+  return {
+    isPremium: null,
+    subscriptionStatus: context.eventType ? context.eventType.toLowerCase() : "unknown",
+  };
+}
+
+function isLikelyRevenueCatUserId(value: string | null): value is string {
+  return !!value && !value.startsWith("$RCAnonymousID:");
+}
+
+async function resolveRevenueCatUserRef(context: RevenueCatContext): Promise<DocumentReference | null> {
+  const candidates = [
+    context.appUserId,
+    context.originalAppUserId,
+    ...context.aliases,
+  ].filter(isLikelyRevenueCatUserId);
+
+  for (const candidate of candidates) {
+    const directRef = db.collection("users").doc(candidate);
+    const directSnap = await directRef.get();
+    if (directSnap.exists) {
+      return directRef;
+    }
+
+    const querySnap = await db
+      .collection("users")
+      .where("revenueCatAppUserId", "==", candidate)
+      .limit(1)
+      .get();
+    if (!querySnap.empty) {
+      return querySnap.docs[0].ref;
+    }
+  }
+
+  return candidates.length > 0 ? db.collection("users").doc(candidates[0]) : null;
+}
+
+function buildRevenueCatUserUpdate(
+  context: RevenueCatContext,
+  premiumMutation: PremiumMutation,
+): Record<string, unknown> {
+  const expiresAt = context.expiresAtMs ? new Date(context.expiresAtMs) : null;
+  const purchasedAt = context.purchasedAtMs ? new Date(context.purchasedAtMs) : null;
+  const eventAt = new Date(context.eventAtMs);
+  const isAppStore = context.store === "APP_STORE";
+
+  const updatePayload: Record<string, unknown> = {
+    revenueCatAppUserId: context.appUserId,
+    premiumSource: "revenuecat",
+    subscriptionStatus: premiumMutation.subscriptionStatus,
+    premiumStatus: premiumMutation.subscriptionStatus,
+    latestNotificationType: context.eventType || null,
+    latestNotificationUUID: context.eventId,
+    revenueCatLastEventType: context.eventType || null,
+    revenueCatLastEventId: context.eventId,
+    revenueCatStore: context.store,
+    revenueCatEnvironment: context.environment,
+    revenueCatProductId: context.productId,
+    premiumProductId: context.productId,
+    revenueCatTransactionId: context.transactionId,
+    revenueCatOriginalTransactionId: context.originalTransactionId,
+    originalTransactionId: context.originalTransactionId,
+    revenueCatPresentedOfferingId: context.presentedOfferingId,
+    revenueCatPeriodType: context.periodType,
+    revenueCatPurchasedAt: purchasedAt,
+    revenueCatExpiresAt: expiresAt,
+    premiumExpiresAt: expiresAt,
+    revenueCatLastEventAt: eventAt,
+    revenueCatLastEventAtMs: context.eventAtMs,
+    lastVerifiedAt: FieldValue.serverTimestamp(),
+    revenueCatUpdatedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  if (isAppStore) {
+    updatePayload.appStoreProductId = context.productId;
+    updatePayload.appStoreTransactionId = context.transactionId;
+    updatePayload.appStoreOriginalTransactionId = context.originalTransactionId;
+    updatePayload.appStoreExpiresAt = expiresAt;
+    updatePayload.appStoreEnvironment = context.environment;
+    updatePayload.appStoreLastVerifiedAt = FieldValue.serverTimestamp();
+    updatePayload.appStoreUpdatedAt = FieldValue.serverTimestamp();
+  }
+
+  if (premiumMutation.isPremium !== null) {
+    updatePayload.isPremium = premiumMutation.isPremium;
+  }
+
+  return updatePayload;
+}
+
+async function applyRevenueCatEventToUser(
+  userRef: DocumentReference,
+  context: RevenueCatContext,
+  premiumMutation: PremiumMutation,
+): Promise<ApplyNotificationResult> {
+  const eventRef = db.collection("revenueCatEvents").doc(context.eventId);
+
+  return db.runTransaction(async (tx) => {
+    const [eventSnap, userSnap] = await Promise.all([tx.get(eventRef), tx.get(userRef)]);
+
+    if (eventSnap.exists) {
+      return { status: "duplicate" };
+    }
+
+    const currentEventAtMs = Number(userSnap.get("revenueCatLastEventAtMs") || 0);
+    const isStale = currentEventAtMs > 0 && context.eventAtMs > 0 && context.eventAtMs < currentEventAtMs;
+
+    tx.set(
+      eventRef,
+      {
+        eventId: context.eventId,
+        eventType: context.eventType || null,
+        userId: userRef.id,
+        appUserId: context.appUserId,
+        originalAppUserId: context.originalAppUserId,
+        aliases: context.aliases,
+        entitlementIds: context.entitlementIds,
+        productId: context.productId,
+        store: context.store,
+        environment: context.environment,
+        transactionId: context.transactionId,
+        originalTransactionId: context.originalTransactionId,
+        expiresAt: context.expiresAtMs ? new Date(context.expiresAtMs) : null,
+        eventAt: new Date(context.eventAtMs),
+        eventAtMs: context.eventAtMs,
+        status: isStale ? "stale" : "processed",
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    if (isStale) {
+      return {
+        status: "stale",
+        userId: userRef.id,
+        premiumMutation,
+      };
+    }
+
+    tx.set(userRef, buildRevenueCatUserUpdate(context, premiumMutation), { merge: true });
+
+    return {
+      status: "processed",
+      userId: userRef.id,
+      premiumMutation,
+    };
+  });
 }
 
 async function applyNotificationToUser(
@@ -539,6 +857,71 @@ export const handleAppStoreNotification = onRequest(
     }
 
     const result = await applyNotificationToUser(userRef, context, premiumMutation);
+
+    response.status(200).json({
+      ok: true,
+      status: result.status,
+      userId: userRef.id,
+      isPremium: premiumMutation.isPremium,
+      subscriptionStatus: premiumMutation.subscriptionStatus,
+    });
+  },
+);
+
+export const handleRevenueCatWebhook = onRequest(
+  {
+    region: "asia-northeast1",
+    cors: false,
+    secrets: [REVENUECAT_WEBHOOK_AUTH],
+  },
+  async (request, response) => {
+    if (request.method !== "POST") {
+      response.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const expectedAuth = REVENUECAT_WEBHOOK_AUTH.value().trim();
+    const actualAuth = getRevenueCatAuthorization(request);
+    if (!expectedAuth || (actualAuth !== expectedAuth && actualAuth !== `Bearer ${expectedAuth}`)) {
+      response.status(401).json({ ok: false, error: "unauthorized" });
+      return;
+    }
+
+    const event = getRevenueCatEvent(request.body);
+    if (!event) {
+      response.status(400).json({ ok: false, error: "missing_event" });
+      return;
+    }
+
+    const context = buildRevenueCatContext(event);
+    const premiumMutation = mapRevenueCatPremiumState(context);
+
+    if (context.eventType === "TEST") {
+      response.status(200).json({ ok: true, testEvent: true });
+      return;
+    }
+
+    const userRef = await resolveRevenueCatUserRef(context);
+    if (!userRef) {
+      await db.collection("revenueCatEvents").doc(context.eventId).set(
+        {
+          ...context,
+          status: "pending_user_link",
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      logger.warn("REVENUECAT: user not resolved", {
+        appUserId: context.appUserId,
+        eventType: context.eventType,
+        eventId: context.eventId,
+      });
+      response.status(200).json({ ok: true, ignored: "user_not_resolved" });
+      return;
+    }
+
+    const result = await applyRevenueCatEventToUser(userRef, context, premiumMutation);
 
     response.status(200).json({
       ok: true,

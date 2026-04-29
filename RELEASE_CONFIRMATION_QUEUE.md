@@ -1,18 +1,18 @@
 # リリース前にユーザー確認が必要な項目
 
-更新日: 2026-04-27
+更新日: 2026-04-29
 
 Codexだけで進めると本番アカウント、課金、公開情報、削除操作に触れるため、以下は後でユーザー確認してから実施する。
 
 ## 課金・ストア
 
-- App Store Connect で非更新サブスクリプション `meimay.premium.pass.1month` / `meimay.premium.pass.3months` を作成する。
-- App Store Connect で非消耗型 `meimay.premium.lifetime` を作成する。
+- App Store Connect で作成済みの `meimay.premium.pass.1month` / `meimay.premium.pass.3months` / `meimay.premium.lifetime` を、アプリ本体 1.0 の「アプリ内購入とサブスクリプション」に紐づけて審査提出する。
+- RevenueCat の `premium` entitlement / `default` offering / iOS Public SDK Key は作成済み。Webhook URL と Authorization はデプロイ後に本番値で設定する。
 - Google Play Console では同等の期間パスと買い切り商品を作成するか、iOS先行にするか。
 - 期間パス価格、無料トライアル有無、初回価格の有無。
 - iOS / Android の bundle id / package name を最終決定するか。
-- StoreKit / Play Billing の本番接続をいつ有効化するか。
-- 課金検証用のサーバー構成を Firebase Functions で進めるか、別サーバーにするか。
+- RevenueCat / StoreKit / Play Billing の本番接続をいつ有効化するか。
+- 課金検証用のサーバー構成は Firebase Functions の `handleRevenueCatWebhook` を使うか、別サーバーにするか。
 - 全ユーザー1回だけの3日無料プレミアムを、ストアの introductory offer として扱うか、アプリ内のサーバー付与 trial として扱うか。
 - パートナー連携中でも無料プレミアムは個人単位で消費するルールでよいか。有料プレミアムは片方の課金で連携相手にも特典共有する。
 
@@ -49,6 +49,7 @@ Codexだけで進めると本番アカウント、課金、公開情報、削除
 - ルームコード参加を本番Firestoreで試すか。
 - 連携解除、保存候補削除、ストック全消去、子ども情報削除などの削除系QAをどのデータで実施するか。
 - 課金状態の本番確認ボタンを実アカウントで押してよいタイミング。
+- RevenueCat Webhook のテストイベントを本番 Functions に送ってよいタイミング。
 
 ## 依存関係
 

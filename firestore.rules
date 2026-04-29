@@ -138,7 +138,8 @@ service cloud.firestore {
 
       allow create: if isSelf(userId)
         && request.resource.data.keys().hasOnly([
-          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt',
+          'revenueCatAppUserId', 'revenueCatPlatform', 'revenueCatLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupFingerprint', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved'
         ])
@@ -146,7 +147,8 @@ service cloud.firestore {
 
       allow update: if isSelf(userId)
         && request.resource.data.keys().hasOnly([
-          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt',
+          'revenueCatAppUserId', 'revenueCatPlatform', 'revenueCatLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupFingerprint', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved',
           'isPremium', 'premiumSource', 'subscriptionStatus', 'premiumStatus', 'latestNotificationType', 'latestNotificationUUID',
@@ -154,11 +156,17 @@ service cloud.firestore {
           'premiumProductId', 'appStoreOriginalTransactionId', 'originalTransactionId', 'appStoreTransactionId',
           'appStoreExpiresAt', 'premiumExpiresAt', 'appStoreLastEventAt', 'appStoreLastEventAtMs',
           'appStoreLastVerifiedAt', 'lastVerifiedAt', 'appStoreUpdatedAt',
+          'revenueCatLastEventType', 'revenueCatLastEventId', 'revenueCatStore', 'revenueCatEnvironment',
+          'revenueCatProductId', 'revenueCatTransactionId', 'revenueCatOriginalTransactionId',
+          'revenueCatPresentedOfferingId', 'revenueCatPeriodType', 'revenueCatPurchasedAt',
+          'revenueCatExpiresAt', 'revenueCatLastEventAt', 'revenueCatLastEventAtMs',
+          'revenueCatUpdatedAt',
           'trialStatus', 'trialStartedAt', 'trialEndsAt', 'trialConsumedAt', 'trialSource',
           'trialRoomCode', 'trialConsumedByRoom'
         ])
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt', 'updatedAt',
+          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt',
+          'revenueCatAppUserId', 'revenueCatPlatform', 'revenueCatLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupFingerprint', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
           'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved'
         ])
@@ -197,6 +205,10 @@ service cloud.firestore {
     }
 
     match /appStoreNotifications/{docId} {
+      allow read, write: if false;
+    }
+
+    match /revenueCatEvents/{docId} {
       allow read, write: if false;
     }
 
