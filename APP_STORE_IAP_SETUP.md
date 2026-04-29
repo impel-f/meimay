@@ -1,6 +1,6 @@
 # App Store / Firebase 課金セットアップ
 
-メイメーは Web / Firebase 構成を土台に、Capacitor でネイティブ化する方針です。2026年4月29日時点で `capacitor.config.json`、Capacitor 本体、RevenueCat Capacitor SDK は追加済みです。`ios/` / `android/` のネイティブプロジェクトはまだ作成していないため、Mac / Xcode または Android Studio 環境で作成後にこのドキュメントの手順を反映してください。
+メイメーは Web / Firebase 構成を土台に、Capacitor でネイティブ化する方針です。2026年4月29日時点で `capacitor.config.json`、Capacitor 本体、RevenueCat Capacitor SDK、iOS ネイティブプロジェクトを追加済みです。手元に Mac がなくても、Xcode Cloud で `ios/App/App.xcodeproj` をビルドして TestFlight へ配布する流れを本命にします。
 
 ## 0. ネイティブ化の現在地
 
@@ -9,19 +9,32 @@
 - Capacitor appId: `com.impelf.meimay`
 - Capacitor appName: `メイメー`
 - webDir: `public`
+- iOS project: `ios/App/App.xcodeproj`
+- Xcode scheme: `App`
+- Xcode Cloud script: `ios/App/ci_scripts/ci_post_clone.sh`
 - RevenueCat iOS Public SDK Key: `appl_iANPgUKzgQIuwcKXMrvmSKkxIhX`
 - RevenueCat entitlement: `premium`
 - RevenueCat offering: `default`
 
-ネイティブプロジェクト作成時のコマンド:
+ローカルでネイティブプロジェクトを更新する場合:
 
 ```bash
-npm run cap:add:ios
 npm run cap:add:android
 npm run cap:sync
 ```
 
-iOS は Mac / Xcode 環境で `npm run cap:open:ios` を実行し、Bundle ID が `com.impelf.meimay` になっていることを確認します。Android は Google Play Console 側の商品作成後に Public SDK Key を `public/js/14-admob.js` の `RevenueCatConfig.androidPublicSdkKey` へ入れます。
+Windows で `npm run cap:sync` を実行すると、Swift Package のローカルパスが Windows 形式に戻る場合があります。Xcode Cloud では `ci_post_clone.sh` が `npm ci` と `npx cap sync ios` を実行し、Mac 形式の状態へ再生成してからビルドします。
+
+Xcode Cloud 設定の目安:
+
+- Repository: GitHub の `impel-f/meimay`
+- Branch: `main`
+- Project: `ios/App/App.xcodeproj`
+- Scheme: `App`
+- Action: Archive
+- Distribution: TestFlight
+
+Android は Google Play Console 側の商品作成後に Public SDK Key を `public/js/14-admob.js` の `RevenueCatConfig.androidPublicSdkKey` へ入れます。
 
 ## 1. Info.plist に追加する項目
 
