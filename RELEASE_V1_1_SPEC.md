@@ -41,7 +41,7 @@
 
 - アプリ起動時に Firebase Auth の `uid`、`appAccountToken`、RevenueCat App User ID をリンクする。
 - RevenueCat SDK では `premium` entitlement と `default` offering を使う。
-- StoreKit / Play Billing の購入・復元後に RevenueCat Webhook でサーバー検証を行う。
+- StoreKit / Play Billing の購入・復元後に RevenueCat Webhook を Vercel API の `/api/revenuecat-webhook` で受け、サーバー側で Firestore へ反映する。
 - Firestore の `users/{uid}` を購読して UI を更新する。
 - localStorage の `meimay_premium` は開発互換用に残す場合でも、本番 UI では購入操作として見せない。
 
@@ -97,7 +97,6 @@
 
 v1.1 では入れない:
 
-- 複数課金プラン
 - 外部決済
 - PDF / 画像エクスポート
 - 高度な占い・診断の多段メニュー

@@ -18,6 +18,10 @@
       "destination": "/api/premium-trial.js"
     },
     {
+      "source": "/api/revenuecat-webhook",
+      "destination": "/api/revenuecat-webhook.js"
+    },
+    {
       "source": "/api/backup-restore",
       "destination": "/api/backup-restore.js"
     },
@@ -37,6 +41,9 @@
       "maxDuration": 120
     },
     "api/premium-trial.js": {
+      "maxDuration": 30
+    },
+    "api/revenuecat-webhook.js": {
       "maxDuration": 30
     },
     "api/backup-restore.js": {
