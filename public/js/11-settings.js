@@ -443,6 +443,7 @@ function renderSettingsScreen() {
 
             ${renderSection('ヘルプと情報', `
                 ${renderItem({ title: '利用規約・プライバシー', value: '確認する', onClick: 'openLegalSettingsSheet()' })}
+                ${renderItem({ title: 'お問い合わせ', value: 'メール', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('contact');}" })}
             `)}
         </div>
     `;
@@ -651,7 +652,7 @@ function openLegalSettingsSheet() {
         <div class="overlay active modal-overlay-dark" id="legal-settings-sheet" onclick="if(event.target.id==='legal-settings-sheet')closeLegalSettingsSheet()">
             <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeLegalSettingsSheet()">✕</button>
-                <h3 class="modal-title">利用規約・プライバシー</h3>
+                <h3 class="modal-title">規約・プライバシー・お問い合わせ</h3>
                 <div class="settings-sheet-list">
                     <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('terms');}">
                         <span>利用規約</span>
@@ -659,6 +660,10 @@ function openLegalSettingsSheet() {
                     </button>
                     <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
                         <span>プライバシーポリシー</span>
+                        <strong>›</strong>
+                    </button>
+                    <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('contact');}">
+                        <span>お問い合わせ</span>
                         <strong>›</strong>
                     </button>
                 </div>

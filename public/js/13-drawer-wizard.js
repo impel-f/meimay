@@ -587,6 +587,9 @@ function drawerNavigate(target) {
             case 'legal-privacy':
                 if (typeof openLegalScreen === 'function') openLegalScreen('privacy');
                 break;
+            case 'legal-contact':
+                if (typeof openLegalScreen === 'function') openLegalScreen('contact');
+                break;
         }
     }, 200);
 }
@@ -634,7 +637,8 @@ function renderDrawerMenu() {
             items: [
                 { id: 'drawer-settings', target: 'settings', icon: '⚙️', label: '設定' },
                 { id: 'drawer-legal-terms', target: 'legal-terms', icon: '📘', label: '利用規約' },
-                { id: 'drawer-legal-privacy', target: 'legal-privacy', icon: '🔒', label: 'プライバシーポリシー' }
+                { id: 'drawer-legal-privacy', target: 'legal-privacy', icon: '🔒', label: 'プライバシーポリシー' },
+                { id: 'drawer-legal-contact', target: 'legal-contact', icon: '✉️', label: 'お問い合わせ' }
             ]
         }
     ];

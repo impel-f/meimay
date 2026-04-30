@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="メイメーのお問い合わせ">
+    <title>お問い合わせ | メイメー</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color: #5d5444;
+            background: #fdfaf5;
+            font-family: "Zen Maru Gothic", system-ui, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #fdfaf5;
+        }
+
+        .page {
+            width: min(760px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0 56px;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #eadfce;
+            padding-bottom: 18px;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        a {
+            color: #9a7432;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            color: #3f3529;
+            font-size: clamp(28px, 6vw, 42px);
+            line-height: 1.2;
+            letter-spacing: 0;
+        }
+
+        .lead {
+            margin: 0 0 28px;
+            color: #8b7e66;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.8;
+        }
+
+        .doc {
+            border: 1px solid #eadfce;
+            border-radius: 18px;
+            background: #fffaf0;
+            padding: clamp(20px, 5vw, 36px);
+            box-shadow: 0 12px 30px rgba(93, 84, 68, 0.08);
+            font-size: 15px;
+            line-height: 1.9;
+        }
+
+        .doc h3 {
+            margin: 28px 0 8px;
+            color: #4a4035;
+            font-size: 18px;
+        }
+
+        .doc p {
+            margin: 0 0 16px;
+        }
+
+        .doc button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            border: 1px solid #d4c5af;
+            border-radius: 16px;
+            background: #bca37f;
+            color: white;
+            padding: 14px 18px;
+            font: inherit;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .doc button + button {
+            background: white;
+            color: #5d5444;
+        }
+
+        @media (max-width: 560px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <header>
+            <div class="brand">メイメー</div>
+            <nav aria-label="関連ページ">
+                <a href="/privacy.html">プライバシーポリシー</a>
+                <a href="/terms.html">利用規約</a>
+                <a href="/">アプリへ戻る</a>
+            </nav>
+        </header>
+        <h1>お問い合わせ</h1>
+        <p class="lead">不具合、購入状態、復元、パートナー連携、プライバシーに関する連絡はこちらからお願いします。</p>
+        <section class="doc" id="doc-content">読み込み中です。</section>
+    </main>
+
+    <script src="/js/data/legal-docs.js?v=25.12"></script>
+    <script src="/js/16-legal.js?v=25.12"></script>
+    <script>
+        const docs = window.MeimayLegalDocs || {};
+        document.getElementById('doc-content').innerHTML = docs.contactGuide || 'お問い合わせ情報を読み込めませんでした。';
+    </script>
+</body>
+
+</html>
