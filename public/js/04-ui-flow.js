@@ -2025,6 +2025,81 @@ function getReadingGenderBonus(entryGender, targetGender = gender || 'neutral') 
     return -9999;
 }
 
+// 明治安田「名前ランキング2025 読み方ベスト50」を序盤の定番名ヒントに使う。
+// Source: https://www.meijiyasuda.co.jp/enjoy/ranking/read_best50/
+// 候補の本文・件数・タグは引き続き readingsData のマスタを正にする。
+var SOUND_STARTER_SOURCE_READINGS = {
+    neutral: [
+        'はると', 'みなと', 'あおと', 'えま', 'さな', 'すい',
+        'ひなた', 'つむぎ', 'いろは', 'みお', 'こはる', 'めい',
+        'そら', 'りく', 'あおい', 'ゆい', 'はる', 'なぎ',
+        'いおり', 'れん', 'あさひ', 'ひまり', 'あかり', 'さくら'
+    ],
+    male: [
+        'はると', 'みなと', 'あおと', 'せな', 'ひなた', 'ゆいと',
+        'りく', 'そら', 'りと', 'そうた', 'はるき', 'はる',
+        'さく', 'なぎ', 'るい', 'そうま', 'いおり', 'あおい',
+        'かいと', 'いつき', 'あさひ', 'ゆうせい', 'こうせい', 'れん'
+    ],
+    female: [
+        'えま', 'さな', 'すい', 'つむぎ', 'いろは', 'みお',
+        'こはる', 'めい', 'ひまり', 'はな', 'のあ', 'ゆい',
+        'あおい', 'えな', 'なぎさ', 'いと', 'おと', 'ほのか',
+        'せな', 'いちか', 'さら', 'りお', 'りん', 'さくら',
+        'ゆな', 'ふうか', 'ゆあ', 'ことは', 'ひな', 'あかり'
+    ]
+};
+
+function normalizeSoundStarterReading(reading) {
+    const text = String(reading || '').trim();
+    if (!text) return '';
+    return typeof toHira === 'function' ? toHira(text) : text;
+}
+
+function getSoundStarterReadingList(targetGender = gender || 'neutral') {
+    const source = targetGender === 'male'
+        ? SOUND_STARTER_SOURCE_READINGS.male
+        : targetGender === 'female'
+            ? SOUND_STARTER_SOURCE_READINGS.female
+            : SOUND_STARTER_SOURCE_READINGS.neutral;
+    const list = Array.isArray(source) ? source : SOUND_STARTER_SOURCE_READINGS.neutral;
+    return Array.from(new Set(list.map(normalizeSoundStarterReading).filter(Boolean)));
+}
+
+function getSoundStarterSourceIndex(candidate, targetGender = gender || 'neutral') {
+    const reading = normalizeSoundStarterReading(candidate?.reading || candidate?.yomi);
+    if (!reading) return -1;
+    return getSoundStarterReadingList(targetGender).indexOf(reading);
+}
+
+function mergeSoundStarterCandidates(scoredList, targetGender = gender || 'neutral') {
+    const list = Array.isArray(scoredList) ? scoredList.filter(Boolean) : [];
+    const starterItems = list
+        .map((candidate, index) => ({
+            candidate,
+            index,
+            starterIndex: getSoundStarterSourceIndex(candidate, targetGender)
+        }))
+        .filter(item => item.starterIndex >= 0)
+        .sort((a, b) => {
+            if (a.starterIndex !== b.starterIndex) return a.starterIndex - b.starterIndex;
+            const countDiff = (b.candidate.rawCount || 0) - (a.candidate.rawCount || 0);
+            if (countDiff !== 0) return countDiff;
+            return a.index - b.index;
+        })
+        .map(item => item.candidate);
+
+    const seen = new Set();
+    const merged = [];
+    [...starterItems, ...list].forEach(candidate => {
+        const key = normalizeSoundStarterReading(candidate?.reading || candidate?.yomi);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        merged.push(candidate);
+    });
+    return merged;
+}
+
 function generatePopularNames(gender) {
     if (!readingsData || readingsData.length === 0) {
         console.warn("UI_FLOW: readingsData is empty. Trying fallback to yomiSearchData?");
@@ -2087,7 +2162,7 @@ function generatePopularNames(gender) {
     });
 
     // 上位500件を返す
-    return scoredList.slice(0, 500);
+    return mergeSoundStarterCandidates(scoredList, gender).slice(0, 500);
 }
 
 function proceedWithSoundReading(reading) {
@@ -6573,7 +6648,7 @@ ${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisN
 【注意】好きな響きと重複しない新しい候補を出してください。
 `.trim();
 
-    fetch('/api/gemini', {
+    fetch(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
@@ -6726,7 +6801,7 @@ ${likedKanji}
 漢字|画数|簡単な意味の説明（10文字以内）
 `.trim();
 
-    fetch('/api/gemini', {
+    fetch(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
@@ -6934,7 +7009,7 @@ ${answersText}
 陽|はる、ひなた|12|明るく温かい印象
 `.trim();
 
-    fetch('/api/gemini', {
+    fetch(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
@@ -7394,6 +7469,7 @@ if (typeof window !== 'undefined') {
 }
 
 var SOUND_EXPLORATION_INTERACTION_THRESHOLD = 24;
+var SOUND_STARTER_OPENING_LIMIT = 18;
 
 function getReadingCandidateRankScore(candidate) {
     return ((candidate?.popular ? 1 : 0) * 1000000) +
@@ -7420,12 +7496,40 @@ function buildExplorationReadingOrder(candidates) {
         .map(item => item.candidate);
 }
 
+function buildStarterReadingOrder(candidates, targetGender = gender || 'neutral') {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (list.length === 0) return [];
+
+    const starterRanked = list
+        .map((candidate, index) => ({
+            candidate,
+            index,
+            starterIndex: getSoundStarterSourceIndex(candidate, targetGender),
+            baseScore: getReadingCandidateRankScore(candidate)
+        }))
+        .filter(item => item.starterIndex >= 0)
+        .sort((a, b) => {
+            if (a.starterIndex !== b.starterIndex) return a.starterIndex - b.starterIndex;
+            if (b.baseScore !== a.baseScore) return b.baseScore - a.baseScore;
+            return a.index - b.index;
+        })
+        .map(item => item.candidate);
+
+    const opening = starterRanked.slice(0, SOUND_STARTER_OPENING_LIMIT);
+    const openingKeys = new Set(opening.map(candidate => normalizeSoundStarterReading(candidate?.reading || candidate?.yomi)));
+    const rest = list.filter(candidate => {
+        const key = normalizeSoundStarterReading(candidate?.reading || candidate?.yomi);
+        return !openingKeys.has(key);
+    });
+    return [...opening, ...buildExplorationReadingOrder(rest)];
+}
+
 function aiReorderCandidates(candidates) {
     const list = Array.isArray(candidates) ? candidates : [];
     const interactionCount = getSoundPreferenceInteractionCount();
     const sessionShownCount = SwipeState?.soundSession?.recentShown?.length || 0;
     if (interactionCount < SOUND_EXPLORATION_INTERACTION_THRESHOLD || sessionShownCount < SOUND_SESSION_WARMUP_LIMIT) {
-        return buildExplorationReadingOrder(list);
+        return buildStarterReadingOrder(list, gender);
     }
     return rankSoundCandidates(list, {
         phase: 'learn',

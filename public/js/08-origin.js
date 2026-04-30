@@ -63,7 +63,7 @@ ${originDetails}
         const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         console.log("ORIGIN: Fetching from API...");
-        const response = await fetch('/api/gemini', {
+        const response = await fetch(getMeimayApiUrl('/api/gemini'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ prompt: prompt }),
@@ -668,7 +668,7 @@ async function callKanjiCacheApiWithAuth(payload) {
             console.warn('KANJI_CACHE_API: Failed to get auth token', authErr);
         }
     }
-    const response = await fetch('/api/kanji-cache', {
+    const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
@@ -684,7 +684,7 @@ async function resetKanjiDetailCache(kanji, currentReading) {
     clearKanjiDetailReset(kanji, currentReading);
 
     try {
-        const response = await fetch('/api/kanji-cache', {
+        const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -807,7 +807,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         if (!cacheHit) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
-            const response = await fetch('/api/gemini', {
+            const response = await fetch(getMeimayApiUrl('/api/gemini'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -853,7 +853,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                         if (needsMeaningRepair) {
                             const repairController = new AbortController();
                             const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
-                            const repairResponse = await fetch('/api/gemini', {
+                            const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -885,7 +885,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                             if (countRepresentativeIdiomCandidates(currentIdiomsSection) < 3) {
                                 const repairController = new AbortController();
                                 const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
-                                const repairResponse = await fetch('/api/gemini', {
+                                const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
@@ -987,7 +987,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 try {
                 const controller2 = new AbortController();
                 const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
-                const response2 = await fetch('/api/gemini', {
+                const response2 = await fetch(getMeimayApiUrl('/api/gemini'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
