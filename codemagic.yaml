@@ -34,9 +34,6 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.impelf.meimay
       vars:
         BUNDLE_ID: "com.impelf.meimay"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
@@ -54,6 +51,15 @@ workflows:
           BUILD_VERSION="${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}"
           BUILD_VERSION="${BUILD_VERSION:-1}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
+      - name: Initialize code signing keychain
+        script: keychain initialize
+      - name: Fetch or create iOS App Store signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add signing certificates to keychain
+        script: keychain add-certificates
       - name: Set up provisioning profiles settings on Xcode project
         script: xcode-project use-profiles --project "$CM_BUILD_DIR/$XCODE_PROJECT"
       - name: Build ipa for App Store Connect
