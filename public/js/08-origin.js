@@ -287,7 +287,7 @@ const KANJI_DETAIL_GROUNDED_HINTS = {
     }
 };
 
-const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.21';
+const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.22';
 let kanjiDetailDatasetPromise = null;
 
 function isKanjiCharacter(ch) {
@@ -1056,7 +1056,7 @@ function renderKanjiDetailText(resultEl, aiText) {
     if (!matches.length) {
         resultEl.innerHTML = `
             <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
             </div>
         `;
         return;
@@ -1076,7 +1076,7 @@ function renderKanjiDetailText(resultEl, aiText) {
                     <span>${icon}</span>
                     ${title}
                 </div>
-                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content}</p>
             </div>
         `;
     }).join('');
@@ -1115,7 +1115,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
                     <span>${getIcon(title)}</span>
                     ${title}
                 </div>
-                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${displayContent}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${displayContent}</p>
             </div>
         `;
     };
@@ -1123,7 +1123,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
     if (!sections.length) {
         resultEl.innerHTML = `
             <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
             </div>
         `;
         return;
@@ -1132,7 +1132,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
     const html = sections.map(({ title, content }) => renderBlock(title, content)).filter(Boolean).join('');
     resultEl.innerHTML = html || `
         <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-            <p class="text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+            <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
         </div>
     `;
 }

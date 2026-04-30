@@ -429,6 +429,25 @@ function showDetailByData(data) {
 // 詳細モーダルで現在表示中の漢字データを保持
 let _currentDetailData = null;
 
+function escapeKanjiDetailHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderKanjiDetailReadingChips(readings) {
+    const list = Array.isArray(readings) ? readings.filter(Boolean) : [];
+    if (list.length === 0) {
+        return '<span class="text-xs font-bold text-[#c2b196]">読みデータなし</span>';
+    }
+    return list
+        .map(reading => `<span class="kanji-detail-reading-chip">${escapeKanjiDetailHtml(reading)}</span>`)
+        .join('');
+}
+
 /**
  * 漢字詳細モーダルを表示
  */
@@ -480,8 +499,8 @@ async function showKanjiDetail(data) {
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>💡</span> 意味
                 </div>
-                <div class="text-xs text-[#5d5444] leading-relaxed">
-                    ${clean(data['意味']) || '意味データなし'}
+                <div class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed">
+                    ${escapeKanjiDetailHtml(clean(data['意味']) || '意味データなし')}
                 </div>
             </div>
         `;
@@ -502,8 +521,8 @@ async function showKanjiDetail(data) {
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>📖</span> ${readingLabel}
                 </div>
-                <div class="text-xs text-[#5d5444] leading-normal tracking-wider whitespace-normal break-words mt-[1px]" style="overflow-wrap:anywhere; word-break:break-word;">
-                    ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
+                <div class="kanji-detail-reading-list mt-1">
+                    ${renderKanjiDetailReadingChips(readings)}
                 </div>
             </div>
         `;
@@ -667,14 +686,15 @@ async function showKanjiDetail(data) {
                     const mainText = m['漢字'];
                     const reading = m['読み'] || '';
                     const meaning = m['意味'] || '';
+                    const type = m['type'] || '縁起の良い言葉';
                     return `
                         <div class="bg-white p-3 rounded-lg border border-[#eee5d8] shadow-sm mb-2">
                             <div class="flex justify-between items-start gap-2 mb-1">
-                                <div class="min-w-0 font-bold text-[#5d5444] text-lg leading-snug break-words" style="overflow-wrap:anywhere; word-break:break-word;">${mainText}</div>
-                                <span class="shrink-0 max-w-[8rem] text-[9px] font-bold leading-tight text-center text-[#bca37f] bg-[#fdfaf5] px-2 py-1 rounded-full whitespace-normal">${m['type'] || '縁起の良い言葉'}</span>
+                                <div class="kanji-detail-wrap-text min-w-0 font-bold text-[#5d5444] text-lg leading-snug break-words">${escapeKanjiDetailHtml(mainText)}</div>
+                                <span class="kanji-detail-wrap-text shrink-0 max-w-[8rem] text-[9px] font-bold leading-tight text-center text-[#bca37f] bg-[#fdfaf5] px-2 py-1 rounded-full whitespace-normal">${escapeKanjiDetailHtml(type)}</span>
                             </div>
-                            ${reading ? `<div class="text-xs text-[#a6967a] mb-1 font-bold leading-relaxed whitespace-normal break-words" style="overflow-wrap:anywhere; word-break:break-word;">${reading}</div>` : ''}
-                            ${meaning ? `<div class="text-xs text-[#7a6f5a] leading-relaxed whitespace-normal break-words" style="overflow-wrap:anywhere; word-break:break-word;">${meaning}</div>` : ''}
+                            ${reading ? `<div class="kanji-detail-wrap-text text-xs text-[#a6967a] mb-1 font-bold leading-relaxed whitespace-normal break-words">${escapeKanjiDetailHtml(reading)}</div>` : ''}
+                            ${meaning ? `<div class="kanji-detail-wrap-text text-xs text-[#7a6f5a] leading-relaxed whitespace-normal break-words">${escapeKanjiDetailHtml(meaning)}</div>` : ''}
                         </div>
                     `;
                 }).join('');

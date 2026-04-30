@@ -1356,6 +1356,10 @@ button {
     top: calc(var(--safe-top) + 24px) !important;
 }
 
+#top-bar-child-button {
+    top: calc(var(--safe-top) + 24px) !important;
+}
+
 /* Hide top bar on swipe screen to avoid interference */
 body.hide-top-bar #top-bar {
     transform: translateY(-100%);
@@ -2474,6 +2478,37 @@ body.has-ad-banner #universal-footer {
 
 .context-coachmark--above-actions {
     bottom: calc(214px + env(safe-area-inset-bottom, 0px));
+}
+
+.kanji-detail-reading-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 92px;
+    overflow-y: auto;
+    padding-right: 2px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+.kanji-detail-reading-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 3px 8px;
+    color: #5d5444;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.kanji-detail-wrap-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .context-coachmark-header {

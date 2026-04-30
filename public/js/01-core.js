@@ -347,7 +347,7 @@ window.onload = () => {
             }
 
             // 四字熟語・ことわざデータの読み込み（非同期）
-            fetch('/data/idioms.json')
+            fetch('/data/idioms.json?v=25.01')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
