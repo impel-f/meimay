@@ -34,6 +34,8 @@ workflows:
     integrations:
       app_store_connect: codemagic
     environment:
+      groups:
+        - code-signing
       vars:
         BUNDLE_ID: "com.impelf.meimay"
         XCODE_PROJECT: "ios/App/App.xcodeproj"
@@ -57,6 +59,7 @@ workflows:
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
       - name: Add signing certificates to keychain
         script: keychain add-certificates

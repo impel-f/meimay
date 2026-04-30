@@ -36,8 +36,12 @@ Codemagic の App Store Connect 連携:
 - Integration name: `codemagic`
 - Bundle ID: `com.impelf.meimay`
 - App Store Apple ID: `6760251452`
+- Environment group: `code-signing`
+- Environment variable: `CERTIFICATE_PRIVATE_KEY`
 
-Apple Developer で手動の Certificate Signing Request が求められる証明書作成画面は、Mac がある場合の手動ルートです。iPad だけで進める場合は、Codemagic の `ios-testflight` 内で `app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create` を実行し、App Store 配布用の証明書とプロビジョニングプロファイルを自動作成・取得します。
+Apple Developer で手動の Certificate Signing Request が求められる証明書作成画面は、Mac がある場合の手動ルートです。iPad だけで進める場合は、Codemagic の `ios-testflight` 内で `app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --certificate-key=@env:CERTIFICATE_PRIVATE_KEY --create` を実行し、App Store 配布用の証明書とプロビジョニングプロファイルを自動作成・取得します。
+
+`CERTIFICATE_PRIVATE_KEY` は Codemagic の署名証明書作成用の秘密鍵です。リポジトリには入れず、Codemagic の Environment variables で Sensitive として保存します。
 
 Xcode Cloud を使う場合の目安:
 
