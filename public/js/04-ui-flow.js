@@ -7402,10 +7402,22 @@ function getReadingCandidateRankScore(candidate) {
 }
 
 function buildExplorationReadingOrder(candidates) {
-    return rankSoundCandidates(Array.isArray(candidates) ? candidates : [], {
-        phase: 'explore',
-        debugLabel: 'explore'
-    });
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    return list
+        .map((candidate, index) => ({
+            candidate,
+            index,
+            score: getReadingCandidateRankScore(candidate)
+        }))
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            const aReading = String(a.candidate?.reading || '');
+            const bReading = String(b.candidate?.reading || '');
+            const readingOrder = aReading.localeCompare(bReading, 'ja');
+            if (readingOrder !== 0) return readingOrder;
+            return a.index - b.index;
+        })
+        .map(item => item.candidate);
 }
 
 function aiReorderCandidates(candidates) {

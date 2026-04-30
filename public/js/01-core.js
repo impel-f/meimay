@@ -24,6 +24,30 @@ let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];
 
+const MEIMAY_PRODUCTION_API_ORIGIN = 'https://meimay.vercel.app';
+
+function isNativeAppRuntime() {
+    try {
+        const platform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+            ? String(window.Capacitor.getPlatform() || '').toLowerCase()
+            : '';
+        return platform === 'ios' || platform === 'android';
+    } catch (e) {
+        return false;
+    }
+}
+window.isNativeAppRuntime = isNativeAppRuntime;
+
+function getMeimayApiUrl(path) {
+    const normalizedPath = String(path || '').startsWith('/')
+        ? String(path || '')
+        : `/${String(path || '')}`;
+    return isNativeAppRuntime()
+        ? `${MEIMAY_PRODUCTION_API_ORIGIN}${normalizedPath}`
+        : normalizedPath;
+}
+window.getMeimayApiUrl = getMeimayApiUrl;
+
 function formatSwipeProgressText(options = {}) {
     const toCount = (value) => {
         const count = Number(value);
@@ -62,13 +86,13 @@ function showToast(message, icon = '✨', onAction = null) {
     const toast = document.createElement('div');
     toast.id = 'meimay-toast';
     toast.style.cssText = `
-        position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+        position: fixed; top: calc(60px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
         background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
         border-radius: 16px; font-size: 13px; font-weight: 700;
         z-index: 99999; display: flex; align-items: center; gap: 8px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(12px);
         animation: toastIn 0.3s ease-out;
-        max-width: 90vw;
+        width: max-content; max-width: 90vw; line-height: 1.45; text-align: center;
     `;
 
     const iconEl = document.createElement('span');

@@ -859,6 +859,9 @@ function calcSegments() {
 
     const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
     const kanaSettings = getKanaCandidateScriptSettings();
+    const kanaOptionNote = hasOneCharPath
+        ? '一文字ずつに分ける候補を選んだとき、かなも候補に入ります。'
+        : 'この読みは一文字ずつに分けられないため、かな候補は使えません。';
     const kanaOption = document.createElement('div');
     kanaOption.className = `w-[92%] mx-auto mt-1 mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm text-left ${hasOneCharPath ? '' : 'opacity-50'}`;
     kanaOption.innerHTML = `
@@ -875,7 +878,7 @@ function calcSegments() {
                 <span class="text-[13px] font-black text-[#6b6254] transition-colors peer-checked:text-[#5d5444]">カタカナ</span>
             </label>
         </div>
-        <div class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">一文字ずつの分け方で使えます。</div>
+        <div class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">${kanaOptionNote}</div>
     `;
 
     if (uniquePaths.length > 0) {

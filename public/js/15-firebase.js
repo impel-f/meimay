@@ -2567,6 +2567,7 @@ function isLocalStatsRuntime() {
     if (typeof window === 'undefined' || typeof location === 'undefined') return false;
     if (window.MEIMAY_FORCE_REMOTE_STATS === true) return false;
     if (window.MEIMAY_FORCE_LOCAL_STATS === true) return true;
+    if (typeof isNativeAppRuntime === 'function' && isNativeAppRuntime()) return false;
 
     const host = String(location.hostname || '').toLowerCase();
     return location.protocol === 'file:'
@@ -2574,6 +2575,10 @@ function isLocalStatsRuntime() {
         || host === '127.0.0.1'
         || host === '[::1]'
         || host === '::1';
+}
+
+function getStatsApiRequestUrl(path = '/api/stats') {
+    return typeof getMeimayApiUrl === 'function' ? getMeimayApiUrl(path) : path;
 }
 
 function normalizeLocalStatsReading(value) {
@@ -2932,7 +2937,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetch('/api/stats', {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -2970,7 +2975,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetch('/api/stats', {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -3007,7 +3012,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch('/api/stats', {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -3044,7 +3049,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch('/api/stats', {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -3081,7 +3086,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch('/api/stats', {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -3101,7 +3106,7 @@ const MeimayStats = {
 
         const run = async () => {
             try {
-                const response = await fetch('/api/stats', {
+                const response = await fetch(getStatsApiRequestUrl(), {
                     method: 'POST',
                     headers: await getFirebaseRequestHeaders(),
                     body: JSON.stringify({
@@ -3675,7 +3680,7 @@ const MeimayStats = {
                 query.set('gender', normalizedGender);
             }
 
-            const response = await fetch(`/api/stats?${query.toString()}`, {
+            const response = await fetch(getStatsApiRequestUrl(`/api/stats?${query.toString()}`), {
                 cache: 'no-store'
             });
 

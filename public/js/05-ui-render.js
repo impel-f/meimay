@@ -498,11 +498,11 @@ async function showKanjiDetail(data) {
     if (headerReadingEl) {
         const readingLabel = isKanaDetail ? '読み' : '読み・名乗り';
         headerReadingEl.innerHTML = `
-            <div class="flex flex-col">
+            <div class="flex min-w-0 flex-col">
                 <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>📖</span> ${readingLabel}
                 </div>
-                <div class="text-xs text-[#5d5444] leading-normal tracking-wider break-keep mt-[1px]">
+                <div class="text-xs text-[#5d5444] leading-normal tracking-wider whitespace-normal break-words mt-[1px]" style="overflow-wrap:anywhere; word-break:break-word;">
                     ${readings.join('<span class="text-[#ede5d8] mx-1">|</span>')}
                 </div>
             </div>
@@ -669,12 +669,12 @@ async function showKanjiDetail(data) {
                     const meaning = m['意味'] || '';
                     return `
                         <div class="bg-white p-3 rounded-lg border border-[#eee5d8] shadow-sm mb-2">
-                            <div class="flex justify-between items-center mb-1">
-                                <div class="font-bold text-[#5d5444] text-lg">${mainText}</div>
-                                <span class="text-[9px] font-bold text-[#bca37f] bg-[#fdfaf5] px-2 py-0.5 rounded-full">${m['type'] || '縁起の良い言葉'}</span>
+                            <div class="flex justify-between items-start gap-2 mb-1">
+                                <div class="min-w-0 font-bold text-[#5d5444] text-lg leading-snug break-words" style="overflow-wrap:anywhere; word-break:break-word;">${mainText}</div>
+                                <span class="shrink-0 max-w-[8rem] text-[9px] font-bold leading-tight text-center text-[#bca37f] bg-[#fdfaf5] px-2 py-1 rounded-full whitespace-normal">${m['type'] || '縁起の良い言葉'}</span>
                             </div>
-                            ${reading ? `<div class="text-xs text-[#a6967a] mb-1 font-bold">${reading}</div>` : ''}
-                            ${meaning ? `<div class="text-xs text-[#7a6f5a] leading-relaxed">${meaning}</div>` : ''}
+                            ${reading ? `<div class="text-xs text-[#a6967a] mb-1 font-bold leading-relaxed whitespace-normal break-words" style="overflow-wrap:anywhere; word-break:break-word;">${reading}</div>` : ''}
+                            ${meaning ? `<div class="text-xs text-[#7a6f5a] leading-relaxed whitespace-normal break-words" style="overflow-wrap:anywhere; word-break:break-word;">${meaning}</div>` : ''}
                         </div>
                     `;
                 }).join('');

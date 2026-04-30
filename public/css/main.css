@@ -27,6 +27,8 @@
     --shadow-md: 0 12px 24px rgba(93, 84, 68, 0.08);
     --shadow-lg: 0 20px 45px rgba(93, 84, 68, 0.12);
     --shadow-xl: 0 30px 60px rgba(93, 84, 68, 0.18);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --top-bar-height: calc(48px + var(--safe-top));
 }
 
 * {
@@ -88,7 +90,7 @@ body {
 
 .screen-header-shell {
     position: sticky;
-    top: 48px;
+    top: var(--top-bar-height);
     z-index: 50;
     background: #fdfaf5;
     margin-left: -1rem;
@@ -1344,7 +1346,14 @@ button {
    ============================================================ */
 
 #top-bar {
+    height: var(--top-bar-height);
+    padding-top: var(--safe-top);
     transition: transform 0.3s ease;
+}
+
+#btn-hamburger,
+#top-bar > .pointer-events-none {
+    top: calc(var(--safe-top) + 24px) !important;
 }
 
 /* Hide top bar on swipe screen to avoid interference */
@@ -1354,12 +1363,12 @@ body.hide-top-bar #top-bar {
 
 /* Adjust screen padding for top bar */
 .screen {
-    padding-top: 60px !important;
+    padding-top: calc(60px + var(--safe-top)) !important;
 }
 
 /* Build screen: namePreview starts flush under top-bar (48px) */
 #scr-build {
-    padding-top: 48px !important;
+    padding-top: var(--top-bar-height) !important;
 }
 
 /* ============================================================
@@ -2370,7 +2379,7 @@ body.has-ad-banner #universal-footer {
 
 @media (max-height: 760px) {
     #scr-mode {
-        padding-top: 56px !important;
+        padding-top: calc(56px + var(--safe-top)) !important;
         padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
     }
 

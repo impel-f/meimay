@@ -1187,7 +1187,7 @@ PremiumManager.refreshPurchaseState = async function (restore = true) {
 
     if (!user) {
         if (typeof showToast === 'function') {
-            showToast('購入状態の確認には接続準備が必要です', 'i');
+            showToast('購入の復元にはサインインが必要です', 'i');
         }
         return false;
     }
@@ -1207,15 +1207,15 @@ PremiumManager.refreshPurchaseState = async function (restore = true) {
         if (typeof showToast === 'function') {
             const active = this.isPremium();
             const message = active
-                ? '購入状態を更新しました'
-                : (revenueCatChecked ? '現在の購入状態を確認しました' : '購入状態はアプリ版で確認できます');
+                ? '購入情報を同期しました'
+                : (revenueCatChecked ? '購入情報を確認しました' : '購入の復元はアプリ版で使えます');
             showToast(message, active ? 'OK' : 'i');
         }
         return true;
     } catch (e) {
         console.warn('PREMIUM: refreshPurchaseState failed', e);
         if (typeof showToast === 'function') {
-            showToast('購入状態を確認できませんでした', '!');
+            showToast('購入情報を確認できませんでした', '!');
         }
         return false;
     }
@@ -1330,7 +1330,7 @@ PremiumManager.startPurchase = async function (productId) {
         const active = await this._applyRevenueCatCustomerInfo(result, plan.id);
         await this.refreshPurchaseState(false);
         if (typeof showToast === 'function') {
-            showToast(active ? 'プレミアムが有効になりました' : '購入状態を確認しました', active ? 'OK' : 'i');
+            showToast(active ? 'プレミアムが有効になりました' : '購入情報を確認しました', active ? 'OK' : 'i');
         }
         return active;
     } catch (e) {
@@ -1620,7 +1620,7 @@ PremiumManager.startTrial = async function () {
         : null;
     if (!user) {
         if (typeof showToast === 'function') {
-            showToast('無料体験の開始には接続準備が必要です', 'i');
+            showToast('無料体験の開始準備をしています。少し待ってからもう一度お試しください', 'i');
         }
         return false;
     }
@@ -1632,7 +1632,10 @@ PremiumManager.startTrial = async function () {
         const headers = typeof getFirebaseRequestHeaders === 'function'
             ? await getFirebaseRequestHeaders()
             : { 'Content-Type': 'application/json' };
-        const response = await fetch('/api/premium-trial', {
+        const trialUrl = typeof getMeimayApiUrl === 'function'
+            ? getMeimayApiUrl('/api/premium-trial')
+            : '/api/premium-trial';
+        const response = await fetch(trialUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -1660,7 +1663,7 @@ PremiumManager.startTrial = async function () {
     } catch (e) {
         console.warn('PREMIUM: startTrial failed', e);
         if (typeof showToast === 'function') {
-            showToast('無料体験を開始できませんでした', '!');
+            showToast('無料体験を開始できませんでした。通信状態を確認してください', '!');
         }
         return false;
     } finally {
@@ -1875,7 +1878,7 @@ function showPremiumModal() {
         + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
         + (state.active
             ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
-            : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">購入状態を確認</button>')
+            : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">購入を復元・同期</button>')
         + (state.active
             ? ''
             : '<button onclick="closePremiumModal()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">閉じる</button>')
