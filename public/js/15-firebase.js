@@ -4860,7 +4860,10 @@ const MeimayUserBackup = {
             throw error;
         }
 
-        const response = await fetch(this._restoreApiPath, {
+        const requestUrl = typeof getMeimayApiUrl === 'function'
+            ? getMeimayApiUrl(this._restoreApiPath)
+            : this._restoreApiPath;
+        const response = await fetch(requestUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
