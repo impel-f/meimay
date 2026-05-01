@@ -2271,7 +2271,7 @@ function updatePairingUI() {
                 partnerStatusEl.textContent = formatPairingParticipantLabel(partnerDisplayName, MeimayPairing.partnerRole, 'パートナー') + 'と連携中';
                 partnerStatusEl.className = 'text-sm font-bold text-[#5d5444]';
             } else {
-                partnerStatusEl.textContent = 'パートナー未連携';
+                partnerStatusEl.textContent = '連携待ち';
                 partnerStatusEl.className = 'text-sm font-bold text-[#a6967a]';
             }
         }
@@ -2296,6 +2296,12 @@ function updatePairingUI() {
                 const showPartnerName = partnerStatusName && partnerStatusName !== 'パートナー';
                 drawerPartnerStatusSubtext.textContent = showPartnerName ? partnerStatusName : '';
                 drawerPartnerStatusSubtext.classList.toggle('hidden', !showPartnerName);
+            }
+        } else if (inRoom) {
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：連携待ち';
+            if (drawerPartnerStatusSubtext) {
+                drawerPartnerStatusSubtext.textContent = 'コード発行済み';
+                drawerPartnerStatusSubtext.classList.remove('hidden');
             }
         } else {
             drawerPartnerStatusLabel.textContent = '🔗パートナー：未連携';
@@ -2516,16 +2522,18 @@ function getStatsGenderTargets(genderValue) {
 function getStatsRankingCollectionNames(kind, metric = 'all', gender = 'all') {
     const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
     const normalizedMetric = normalizedKind === 'reading'
-        ? (metric === 'like' || metric === 'direct' ? metric : 'all')
+        ? (metric === 'saved' || metric === 'like' || metric === 'direct' ? metric : 'all')
         : 'all';
 
     const baseCollections = normalizedKind !== 'reading'
         ? ['statistics']
-        : normalizedMetric === 'like'
-            ? ['reading_like_statistics']
-            : normalizedMetric === 'direct'
-                ? ['reading_statistics']
-                : ['reading_statistics', 'reading_like_statistics'];
+        : normalizedMetric === 'saved'
+            ? ['reading_saved_statistics']
+            : normalizedMetric === 'like'
+                ? ['reading_like_statistics']
+                : normalizedMetric === 'direct'
+                    ? ['reading_statistics']
+                    : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
 
     const genderTargets = getStatsGenderTargets(gender);
     if (genderTargets.length === 0) {
@@ -2660,7 +2668,7 @@ function getLocalStatsGenderTargetsForRead(genderValue) {
 
 function getLocalStatsMetric(kind, metricValue) {
     if (kind !== 'reading') return 'all';
-    return metricValue === 'like' || metricValue === 'direct' ? metricValue : 'all';
+    return metricValue === 'saved' || metricValue === 'like' || metricValue === 'direct' ? metricValue : 'all';
 }
 
 function getLocalStatsBucketKey(kind, metric, period, genderValue) {
@@ -2775,7 +2783,9 @@ function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderVal
                 if (!isLocalStatsGenderMatched(entry?.gender || entry?.settings?.gender || currentGender, normalizedGender)) return;
                 addLocalStatsTotal(totals, normalizeLocalStatsReading(entry?.reading || entry?.key || ''));
             });
+        }
 
+        if (normalizedMetric === 'saved' || normalizedMetric === 'all') {
             savedList.forEach((item) => {
                 if (!isLocalStatsDateInPeriod(item?.savedAt || item?.updatedAt || item?.createdAt, period)) return;
                 if (!isLocalStatsGenderMatched(item?.gender || item?.settings?.gender || currentGender, normalizedGender)) return;
@@ -2847,7 +2857,7 @@ function fetchLocalStatsRankings(type = 'allTime', kind = 'kanji', metric = 'all
     const normalizedMetric = getLocalStatsMetric(normalizedKind, metric);
     const normalizedGender = normalizeStatsGenderValue(genderValue);
     const metrics = normalizedKind === 'reading' && normalizedMetric === 'all'
-        ? ['direct', 'like']
+        ? ['direct', 'like', 'saved']
         : [normalizedMetric];
     const genderTargets = getLocalStatsGenderTargetsForRead(normalizedGender);
     const store = readLocalStatsStore();
@@ -2883,6 +2893,36 @@ function fetchLocalStatsRankings(type = 'allTime', kind = 'kanji', metric = 'all
             return aKey.localeCompare(bKey, 'ja');
         })
         .slice(0, 100);
+}
+
+function extractSavedNameStatsReading(item) {
+    if (!item || typeof item !== 'object') return '';
+    const direct = String(item.givenReading || item.givenNameReading || '').trim();
+    const rawReading = direct || String(item.reading || '').trim();
+    if (!rawReading) return '';
+    const parts = rawReading.split(/\s+/).filter(Boolean);
+    const target = parts.length > 1 ? parts[parts.length - 1] : rawReading;
+    return normalizeStatsReadingText(target);
+}
+
+function getSavedNameStatsGender(item) {
+    const currentGender = typeof gender !== 'undefined' ? gender : 'neutral';
+    return normalizeStatsGenderValue(item?.gender || item?.settings?.gender || currentGender, 'neutral');
+}
+
+function recordSavedNameReadingForRanking(item, delta = 1, options = {}) {
+    if (typeof MeimayStats === 'undefined' || typeof MeimayStats.recordReadingSaved !== 'function') return false;
+    const reading = extractSavedNameStatsReading(item);
+    const normalizedDelta = Number(delta);
+    if (!reading || !Number.isInteger(normalizedDelta) || normalizedDelta === 0) return false;
+
+    MeimayStats.recordReadingSaved(reading, normalizedDelta, 'all', {
+        gender: options.gender || getSavedNameStatsGender(item),
+        scope: options.scope || 'all'
+    }).catch((error) => {
+        console.warn('STATS: saved reading sync failed', error);
+    });
+    return true;
 }
 
 const MeimayStats = {
@@ -3059,6 +3099,42 @@ const MeimayStats = {
             return true;
         } catch (e) {
             console.error('STATS: recordReadingLike error', e);
+            return false;
+        }
+    },
+
+    recordReadingSaved: async function (readingString, delta = 1, period = 'all', genderOrOptions = null) {
+        const normalizedReading = normalizeStatsReadingText(readingString);
+        if (!normalizedReading) return false;
+        const normalizedDelta = Number(delta);
+        const normalizedPeriod = period === 'allTime' || period === 'monthly' || period === 'weekly' ? period : 'all';
+        if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return false;
+
+        try {
+            const body = buildStatsRequestBody({
+                kind: 'reading',
+                reading: normalizedReading,
+                delta: normalizedDelta,
+                metric: 'saved'
+            }, genderOrOptions);
+            if (normalizedPeriod !== 'all') {
+                body.period = normalizedPeriod;
+            }
+            if (isLocalStatsRuntime()) {
+                notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+                return true;
+            }
+
+            const response = await fetch(getStatsApiRequestUrl(), {
+                method: 'POST',
+                headers: await getFirebaseRequestHeaders(),
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(`API Error: ${response.status}`);
+            notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+            return true;
+        } catch (e) {
+            console.error('STATS: recordReadingSaved error', e);
             return false;
         }
     },
@@ -3494,6 +3570,109 @@ const MeimayStats = {
         return this._readingGenderStatsSeedPromise;
     },
 
+    seedSavedReadingStatsFromLocalNames: async function () {
+        const seededFlagKey = 'meimay_reading_saved_stats_seeded_v1';
+        if (this._savedReadingStatsSeedPromise) return this._savedReadingStatsSeedPromise;
+
+        const run = async () => {
+            if (isLocalStatsRuntime()) {
+                localStorage.setItem(seededFlagKey, '1');
+                return true;
+            }
+
+            if (typeof this.bootstrapReadingStatsCollections === 'function') {
+                await this.bootstrapReadingStatsCollections();
+            }
+
+            const savedList = typeof getSavedNames === 'function' ? getSavedNames() : [];
+            const totals = new Map();
+            const totalsByGender = new Map();
+            const periods = ['allTime', 'weekly', 'monthly'];
+
+            const bumpTotals = (map, reading, itemDate) => {
+                if (!reading) return;
+                const current = map.get(reading) || { allTime: 0, weekly: 0, monthly: 0 };
+                current.allTime += 1;
+                if (isLocalStatsDateInPeriod(itemDate, 'weekly')) current.weekly += 1;
+                if (isLocalStatsDateInPeriod(itemDate, 'monthly')) current.monthly += 1;
+                map.set(reading, current);
+            };
+
+            const addGenderTotals = (genderValue, reading, itemDate) => {
+                getStatsGenderTargets(genderValue).forEach((target) => {
+                    const current = totalsByGender.get(target) || new Map();
+                    bumpTotals(current, reading, itemDate);
+                    totalsByGender.set(target, current);
+                });
+            };
+
+            savedList.forEach((item) => {
+                const reading = extractSavedNameStatsReading(item);
+                if (!reading) return;
+                const itemDate = item?.savedAt || item?.updatedAt || item?.createdAt || new Date().toISOString();
+                const genderKey = getSavedNameStatsGender(item);
+                bumpTotals(totals, reading, itemDate);
+                addGenderTotals(genderKey, reading, itemDate);
+            });
+
+            if (totals.size === 0 && totalsByGender.size === 0) {
+                localStorage.setItem(seededFlagKey, '1');
+                return true;
+            }
+
+            const buildServerMap = (items) => {
+                const map = new Map();
+                (Array.isArray(items) ? items : []).forEach((item) => {
+                    const reading = normalizeStatsReadingText(item?.reading || item?.key || '');
+                    const count = Number(item?.count) || 0;
+                    if (reading && count > 0) map.set(reading, count);
+                });
+                return map;
+            };
+
+            const tasks = [];
+            const addMissingDeltas = async (map, genderKey = 'all') => {
+                for (const period of periods) {
+                    const serverItems = await this.fetchRankings(period, 'reading', 'saved', genderKey);
+                    const serverMap = buildServerMap(serverItems);
+                    map.forEach((counts, reading) => {
+                        const localCount = Number(counts[period]) || 0;
+                        if (localCount <= 0) return;
+                        const delta = Math.max(0, localCount - (Number(serverMap.get(reading)) || 0));
+                        if (delta <= 0) return;
+                        const options = genderKey === 'all'
+                            ? { scope: 'global' }
+                            : { gender: genderKey, scope: 'gender' };
+                        tasks.push(this.recordReadingSaved(reading, delta, period, options));
+                    });
+                }
+            };
+
+            await addMissingDeltas(totals, 'all');
+            for (const [genderKey, map] of totalsByGender.entries()) {
+                await addMissingDeltas(map, genderKey);
+            }
+
+            if (tasks.length === 0) {
+                localStorage.setItem(seededFlagKey, '1');
+                return true;
+            }
+
+            const results = await Promise.all(tasks);
+            const hasSuccess = results.some(Boolean);
+            if (hasSuccess) {
+                localStorage.setItem(seededFlagKey, '1');
+            }
+            return hasSuccess;
+        };
+
+        this._savedReadingStatsSeedPromise = run().finally(() => {
+            this._savedReadingStatsSeedPromise = null;
+        });
+
+        return this._savedReadingStatsSeedPromise;
+    },
+
     seedKanjiStatsFromLocalLikes: async function () {
         const seededFlagKey = 'meimay_kanji_gender_stats_seeded_v2';
         if (this._kanjiGenderStatsSeedPromise) return this._kanjiGenderStatsSeedPromise;
@@ -3662,7 +3841,7 @@ const MeimayStats = {
         const normalizedType = type === 'monthly' || type === 'weekly' ? type : 'allTime';
         const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
         const normalizedMetric = normalizedKind === 'reading'
-            ? (metric === 'direct' || metric === 'like' ? metric : 'all')
+            ? (metric === 'saved' || metric === 'direct' || metric === 'like' ? metric : 'all')
             : 'all';
         const normalizedGender = normalizeStatsGenderValue(gender);
         const localItems = fetchLocalStatsRankings(normalizedType, normalizedKind, normalizedMetric, normalizedGender);
@@ -3718,6 +3897,8 @@ const MeimayStats = {
 };
 
 window.MeimayStats = MeimayStats;
+window.extractSavedNameStatsReading = extractSavedNameStatsReading;
+window.recordSavedNameReadingForRanking = recordSavedNameReadingForRanking;
 
 function seedReadingStatsFromLocalHistory() {
     try {
@@ -3727,15 +3908,9 @@ function seedReadingStatsFromLocalHistory() {
             });
         }
 
-        if (typeof MeimayStats === 'undefined' || typeof MeimayStats.seedEncounteredReadingStats !== 'function') return;
-
-        MeimayStats.seedEncounteredReadingStats().catch((error) => {
-            console.warn('STATS: startup reading seed failed', error);
-        });
-
-        if (typeof MeimayStats.seedEncounteredReadingStatsByGender === 'function') {
-            MeimayStats.seedEncounteredReadingStatsByGender().catch((error) => {
-                console.warn('STATS: startup gender reading seed failed', error);
+        if (typeof MeimayStats !== 'undefined' && typeof MeimayStats.seedSavedReadingStatsFromLocalNames === 'function') {
+            MeimayStats.seedSavedReadingStatsFromLocalNames().catch((error) => {
+                console.warn('STATS: startup saved reading seed failed', error);
             });
         }
 
@@ -3761,7 +3936,7 @@ if (typeof window !== 'undefined') {
     }
 }
 
-console.log("FIREBASE: Module loaded (v22.1 - anonymous + room pairing + reading seed)");
+console.log("FIREBASE: Module loaded (v22.2 - anonymous + room pairing + saved reading ranking)");
 
 function getPartnerRoleLabel(role) {
     if (role === 'mama') return 'ママ';
@@ -4714,8 +4889,8 @@ const MeimayUserBackup = {
         const existingKey = this.getStoredRestoreKey();
         const key = existingKey || this._generateRestoreKey();
         const formattedKey = this._formatRestoreKey(key);
-        await this._syncCurrentBackupBeforeKey('restore-key-register');
-        await this._callRestoreApi('register', { restoreKey: formattedKey });
+        const backupPayload = await this._syncCurrentBackupBeforeKey('restore-key-register');
+        await this._callRestoreApi('register', { restoreKey: formattedKey, ...(backupPayload || {}) });
         const storedKey = this._storeRestoreKey(formattedKey);
         return { restoreKey: storedKey, created: !existingKey };
     },
@@ -4723,8 +4898,8 @@ const MeimayUserBackup = {
     rotateRestoreKey: async function () {
         const previousRestoreKey = this.getStoredRestoreKey();
         const restoreKey = this._generateRestoreKey();
-        await this._syncCurrentBackupBeforeKey('restore-key-rotate');
-        await this._callRestoreApi('register', { restoreKey, previousRestoreKey });
+        const backupPayload = await this._syncCurrentBackupBeforeKey('restore-key-rotate');
+        await this._callRestoreApi('register', { restoreKey, previousRestoreKey, ...(backupPayload || {}) });
         const storedKey = this._storeRestoreKey(restoreKey);
         return { restoreKey: storedKey, created: true };
     },
@@ -4747,14 +4922,18 @@ const MeimayUserBackup = {
             throw error;
         }
         const sections = this._readCurrentSections();
-        if (!this._hasData(sections)) return true;
+        if (!this._hasData(sections)) return null;
+        const backupPayload = this._buildRestoreApiBackupPayload(sections);
         const synced = await this.syncLocalToRemote(currentUser, { sections, force: true, reason });
-        if (!synced) {
+        if (!synced && !backupPayload) {
             const error = new Error('バックアップの保存に失敗しました');
             error.code = 'backup_sync_failed';
             throw error;
         }
-        return true;
+        if (!synced) {
+            console.warn('BACKUP: Firestore client sync failed before restore key issue; API register will carry backup payload.');
+        }
+        return backupPayload;
     },
 
     _safeClone: function (value) {
@@ -5247,6 +5426,25 @@ const MeimayUserBackup = {
         }
 
         return patch;
+    },
+
+    _buildRestoreApiBackupPayload: function (sections) {
+        try {
+            const fingerprint = this._fingerprint(sections);
+            const patch = this._buildRemotePatch(sections, fingerprint);
+            const backup = this._safeClone(patch?.meimayBackup || patch?.backup || null);
+            if (!backup || typeof backup !== 'object') return null;
+            return {
+                backup,
+                meimayBackupFingerprint: String(patch?.meimayBackupFingerprint || fingerprint || '').trim(),
+                pairRoomCode: patch?.pairRoomCode || null,
+                roomCode: patch?.roomCode || null,
+                hiddenReadings: this._safeClone(Array.isArray(patch?.hiddenReadings) ? patch.hiddenReadings : [])
+            };
+        } catch (error) {
+            console.warn('BACKUP: Failed to build API backup payload', error);
+            return null;
+        }
     },
 
     _applySectionsToLocal: function (sections) {

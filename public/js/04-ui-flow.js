@@ -1908,6 +1908,11 @@ function persistGeneratedSavedName(saveData) {
             mainSelectedAt: preserved.mainSelectedAt || enrichedSaveData.mainSelectedAt || ''
         }
         : enrichedSaveData;
+    if (preserved) {
+        mergedSaveData.readingStatsTracked = preserved.readingStatsTracked === true;
+    } else {
+        mergedSaveData.readingStatsTracked = true;
+    }
     const updated = [
         mergedSaveData,
         ...existing.filter(item => matchKey(item) !== nextKey)
@@ -1920,6 +1925,9 @@ function persistGeneratedSavedName(saveData) {
     }
     if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
         window.PremiumTrialNudge.record('save', { savedCount: updated.length });
+    }
+    if (!preserved && typeof recordSavedNameReadingForRanking === 'function') {
+        recordSavedNameReadingForRanking(mergedSaveData, 1);
     }
 }
 
@@ -4286,7 +4294,7 @@ function notifyStockStateChanged(reason = 'stock') {
 
 function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const stock = getReadingStock();
-    const shouldTrackStats = options.trackStats !== false;
+    const shouldTrackStats = false;
     const normalizedBaseNickname = typeof baseNickname === 'string' ? baseNickname.trim() : '';
     const normalizedTags = Array.isArray(tags)
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
@@ -4314,12 +4322,6 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
         existing.ownSuper = existing.ownSuper || existing.isSuper;
         existing.partnerSuper = existing.partnerSuper || !!options.partnerSuper;
         if (options.source) existing.source = options.source;
-        if (shouldTrackStats && existing.statsTracked === false) {
-            existing.statsTracked = true;
-            syncReadingStockRankingStats(reading, 1, 'all', {
-                gender: existing.gender || options.gender || gender || 'neutral'
-            });
-        }
         saveReadingStock(stock);
         if (options.clearHidden) {
             forgetHiddenReading(reading);
@@ -4348,11 +4350,6 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     saveReadingStock(stock);
     if (options.clearHidden) {
         forgetHiddenReading(reading);
-    }
-    if (shouldTrackStats) {
-        syncReadingStockRankingStats(reading, 1, 'all', {
-            gender: entry.gender || options.gender || gender || 'neutral'
-        });
     }
     console.log("STOCK: Added reading to stock:", entry);
     return entry;
@@ -4417,27 +4414,6 @@ function removeReadingFromStock(target) {
     }
 
     saveReadingStock(nextStock);
-    if (typeof MeimayStats !== 'undefined' && typeof MeimayStats.recordReadingUnlike === 'function') {
-        const normalizedReading = getReadingBaseReading(target);
-        const trackedRemovedByGender = new Map();
-        removedItems.forEach((item) => {
-            if (!item || item.statsTracked === false) return;
-            const itemGender = String(item.gender || gender || 'neutral').trim().toLowerCase();
-            const normalizedGender = itemGender === 'male' || itemGender === 'female' || itemGender === 'neutral'
-                ? itemGender
-                : (gender || 'neutral');
-            trackedRemovedByGender.set(normalizedGender, (trackedRemovedByGender.get(normalizedGender) || 0) + 1);
-        });
-        if (normalizedReading && trackedRemovedByGender.size > 0) {
-            trackedRemovedByGender.forEach((count, itemGender) => {
-                MeimayStats.recordReadingUnlike(normalizedReading, -count, 'all', {
-                    gender: itemGender
-                }).catch((error) => {
-                    console.warn('STATS: reading unlike sync failed', error);
-                });
-            });
-        }
-    }
     console.log("STOCK: Removed reading from stock:", target);
     return removedItems;
 }
@@ -6152,6 +6128,16 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const headerLabel = forceSplit ? '分け方の提案' : '';
     const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
+    const readingOnlyActionButtonsHtml = !forceSplit ? `
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(false); return false;" class="w-full py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
+                    <span>♥</span> 候補
+                </button>
+                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(true); return false;" class="w-full py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
+                    <span>★</span> 本命
+                </button>
+            </div>
+        ` : '';
     const actionButtonsHtml = isStocked && !forceSplit ? `
             <div class="grid grid-cols-1 gap-2 mb-4">
                 <button type="button" onclick="event.stopPropagation(); closeReadingCombinationModal(); startReadingSplitProposalFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-gradient-to-r from-[#c8ad7f] to-[#d8c3a3] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
@@ -6161,7 +6147,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                     <span>🗑️</span> ストックから外す
                 </button>
             </div>
-        ` : '';
+        ` : readingOnlyActionButtonsHtml;
     readingCombinationModalState = {
         item: { ...item, reading: modalReading || item.reading, baseNickname, basePosition: resolvedBasePosition },
         options,
@@ -6204,12 +6190,11 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                         ? option.candidates.map((candidate, candidateIndex) => `
                         <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
                             <div class="min-w-0 flex-1">
-                                <div class="text-[11px] font-bold text-[#8b7e66] mb-1">${forceSplit ? 'この分け方から出せる候補' : '名前の例'}</div>
                                 <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
                             </div>
                             ${forceSplit
                                 ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>`
-                                : '<span class="shrink-0 px-3 py-1.5 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">例</span>'}
+                                : ''}
                         </div>
                         `).join('')
                         : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
@@ -6219,6 +6204,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                                 <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
                                 <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
                             </div>
+                            ${option.candidates.length > 0 ? `<div class="text-[11px] font-bold text-[#8b7e66] mb-2">${forceSplit ? 'この分け方から出せる候補' : '名前の例'}</div>` : ''}
                             <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
                         </div>
                     `;
@@ -7777,7 +7763,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
         basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
     });
     if (typeof showToast === 'function') {
-        showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を取り込みました`, asSuper ? '★' : '✓');
+        showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を候補として取り込みました`, asSuper ? '★' : '✓');
     }
 
     if (typeof renderReadingStockSection === 'function') renderReadingStockSection();

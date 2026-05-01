@@ -585,7 +585,7 @@ function renderRankingEmptyState(type, period) {
     const typeLabel = type === 'reading' ? '読み' : '漢字';
     const periodLabel = period === 'monthly' ? '月間' : '総合';
     const message = type === 'reading'
-        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックや直接入力が集まるとここに並びます。`
+        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>名前として保存されるとここに並びます。`
         : `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックが増えるとここに並びます。`;
 
     return `
@@ -647,7 +647,7 @@ function renderRankingKanjiCard(item, index) {
             title="${premiumLocked ? 'プレミアムで詳細を見る' : '詳細を表示'}"
             onclick="event.stopPropagation();${actionHandler}"
             class="w-full flex items-center gap-3 ${cardBackgroundClass} rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left ${premiumLocked ? 'hover:bg-[#efefec]' : ''} ${cardTitleClass}">
-            <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
+            <div class="flex flex-col items-center justify-center shrink-0 w-14 gap-1.5">
                 ${rankHtml}
                 <div class="text-[10px] font-black leading-none whitespace-nowrap ${countTextClass}" data-ranking-count-display>❤${item.count}</div>
             </div>
@@ -690,7 +690,7 @@ function renderRankingReadingCard(item, index) {
             data-ranking-count="${item.count}"
             onclick="openRankingReadingAction(this.dataset.reading)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
-            <div class="flex flex-col items-center justify-center shrink-0 w-12 gap-0.5">
+            <div class="flex flex-col items-center justify-center shrink-0 w-14 gap-1.5">
                 ${rankHtml}
                 <div class="text-[10px] font-black text-[#e07a7a] leading-none whitespace-nowrap" data-ranking-count-display>❤${item.count}</div>
             </div>
@@ -885,16 +885,10 @@ async function loadRanking() {
                     seedTasks.push(MeimayStats.seedKanjiStatsFromLocalLikes());
                 }
             }
-            if (type === 'reading' && typeof MeimayStats.seedEncounteredReadingStatsByGender === 'function') {
-                const readingSeeded = getSeedFlag('meimay_reading_gender_stats_seeded_v2');
-                if (!readingSeeded) {
-                    seedTasks.push(MeimayStats.seedEncounteredReadingStatsByGender());
-                }
-            }
-            if (type === 'reading' && typeof MeimayStats.seedEncounteredReadingStats === 'function') {
-                const readingGlobalSeeded = getSeedFlag('meimay_reading_stats_seeded_v3');
-                if (!readingGlobalSeeded) {
-                    seedTasks.push(MeimayStats.seedEncounteredReadingStats());
+            if (type === 'reading' && typeof MeimayStats.seedSavedReadingStatsFromLocalNames === 'function') {
+                const readingSavedSeeded = getSeedFlag('meimay_reading_saved_stats_seeded_v1');
+                if (!readingSavedSeeded) {
+                    seedTasks.push(MeimayStats.seedSavedReadingStatsFromLocalNames());
                 }
             }
         }
@@ -906,7 +900,7 @@ async function loadRanking() {
         if (type === 'kanji') {
             items = await MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
         } else {
-            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'all', genderFilter);
+            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'saved', genderFilter);
             items = buildReadingRankingItems(readingRanking, genderFilter);
         }
 

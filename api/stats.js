@@ -55,6 +55,7 @@ function normalizeStatsKind(kind) {
 }
 
 function normalizeStatsMetric(metric) {
+  if (metric === 'saved') return 'saved';
   if (metric === 'like') return 'like';
   if (metric === 'direct') return 'direct';
   return 'all';
@@ -94,11 +95,13 @@ function getStatsCollectionNames(kind, metric = 'all', gender = 'all', scope = '
 
   const baseCollections = normalizedKind !== 'reading'
     ? ['statistics']
-    : normalizedMetric === 'like'
-      ? ['reading_like_statistics']
-      : normalizedMetric === 'direct'
-        ? ['reading_statistics']
-        : ['reading_statistics', 'reading_like_statistics'];
+    : normalizedMetric === 'saved'
+      ? ['reading_saved_statistics']
+      : normalizedMetric === 'like'
+        ? ['reading_like_statistics']
+        : normalizedMetric === 'direct'
+          ? ['reading_statistics']
+          : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
 
   const genderTargets = getStatsGenderTargets(gender);
   if (genderTargets.length === 0) return baseCollections;

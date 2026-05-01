@@ -1049,6 +1049,286 @@ window.setTemporarySwipeRule = setTemporarySwipeRule;
 window.getActiveSwipeRule = getActiveSwipeRule;
 window.clearTemporarySwipeRules = clearTemporarySwipeRules;
 
+function getSwipeStackContext(slotIdx = currentPos, options = {}) {
+    const segmentList = Array.isArray(segments) ? segments : [];
+    const safeSlotIdx = Number.isInteger(slotIdx) && slotIdx >= 0 ? slotIdx : currentPos;
+    const target = toHira(segmentList[safeSlotIdx] || '');
+    const normalizedTarget = normalizeReadingComparisonValue(target);
+    const activeRule = options.ruleOverride || options.nextRule ||
+        (typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(safeSlotIdx) : rule);
+
+    return {
+        slotIdx: safeSlotIdx,
+        segmentList,
+        target,
+        normalizedTarget,
+        activeRule,
+        includeNoped: options.includeNoped === true,
+        premiumOverride: options.premiumOverride === true,
+        suppressLogs: options.suppressLogs === true
+    };
+}
+
+function getSwipeCandidateDisplayKey(item) {
+    return String(item?.['漢字'] || item?.kanji || '').trim();
+}
+
+function countAdditionalSwipeCandidates(nextCandidates, baseCandidates) {
+    const baseKeys = new Set((Array.isArray(baseCandidates) ? baseCandidates : [])
+        .map(getSwipeCandidateDisplayKey)
+        .filter(Boolean));
+    const seen = new Set();
+    return (Array.isArray(nextCandidates) ? nextCandidates : []).filter((item) => {
+        const key = getSwipeCandidateDisplayKey(item);
+        if (!key || baseKeys.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    }).length;
+}
+
+function buildSwipeStackCandidates(options = {}) {
+    const {
+        slotIdx,
+        segmentList,
+        target,
+        normalizedTarget,
+        activeRule,
+        includeNoped,
+        premiumOverride,
+        suppressLogs
+    } = getSwipeStackContext(options.slotIdx, options);
+
+    if (!target || !Array.isArray(master) || master.length === 0) return [];
+
+    let candidates = master.filter(k => {
+        if (!premiumOverride && !isKanjiAccessibleForCurrentMembership(k)) {
+            return false;
+        }
+        // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+        }
+
+        if (isKanjiGenderMismatch(k)) {
+            return false;
+        }
+
+        // 同じ読みが続く場合は、seenチェックをスキップ
+        const isSameReading = slotIdx > 0 && segmentList[slotIdx] === segmentList[slotIdx - 1];
+
+        if (!isSameReading && seen && seen.has(k['漢字'])) {
+            // return false; // ユーザー要望により、既読・ストック済みでも再出現させる
+        }
+
+        // ユーザー要望：戻った時に、そのターンで選んだ（ストック済み）漢字は候補に出さない
+        const alreadyLiked = liked.some(l => l.slot == slotIdx && l['漢字'] === k['漢字']);
+        if (alreadyLiked) {
+            if (!suppressLogs) {
+                console.log(`ENGINE: Skipping ${k['漢字']} because it is already liked at slot ${slotIdx}`);
+            }
+            return false;
+        }
+
+        // NOPEした漢字は出さない（最初から選び直し時にリセット）
+        if (!includeNoped && typeof noped !== 'undefined' && noped.has(k['漢字'])) {
+            return false;
+        }
+
+        // 読みデータの取得（メジャー/マイナー区分）
+        // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
+        const readingBuckets = typeof getKanjiReadingBuckets === 'function'
+            ? getKanjiReadingBuckets(k)
+            : null;
+        const majorReadings = Array.isArray(readingBuckets?.majorReadings)
+            ? readingBuckets.majorReadings
+            : ((k['音'] || '') + ',' + (k['訓'] || ''))
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean);
+        const minorReadings = Array.isArray(readingBuckets?.minorReadings)
+            ? readingBuckets.minorReadings
+            : (k['伝統名のり'] || '')
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean);
+        const majorStrictReadings = Array.isArray(readingBuckets?.majorStrictReadings) && readingBuckets.majorStrictReadings.length > 0
+            ? readingBuckets.majorStrictReadings
+            : majorReadings;
+        const minorStrictReadings = Array.isArray(readingBuckets?.minorStrictReadings) && readingBuckets.minorStrictReadings.length > 0
+            ? readingBuckets.minorStrictReadings
+            : minorReadings;
+
+        // 読みマッチング判定
+        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
+        // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
+        const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : normalizedTarget;
+        const allowVoicedFallback = slotIdx > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
+        const isMajorExact = majorStrictReadings.includes(normalizedTarget);
+        const isMinorExact = minorStrictReadings.includes(normalizedTarget);
+        // 清音化一致：メジャー読みのみを対象（名乗りは除外）
+        const isSeionMatch = allowVoicedFallback && majorStrictReadings.includes(targetSeion);
+        // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
+        const isPartial = majorReadings.some(r => r.startsWith(normalizedTarget)) ||
+            (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion)));
+
+        if (isMajorExact) {
+            k.priority = 1;      // メジャー読み完全一致（最優先）
+            k.readingTier = 1;
+        } else if (isMinorExact) {
+            k.priority = 1;      // マイナー（名乗り）完全一致
+            k.readingTier = 2;   // メジャーの後に表示
+        } else if (isSeionMatch) {
+            k.priority = 2;
+            k.readingTier = 3;
+        } else if (isPartial) {
+            k.priority = 3;
+            k.readingTier = 4;
+        } else {
+            k.priority = 0;
+            k.readingTier = 99;
+        }
+
+        // ルールに応じてフィルタ (priority=1:完全一致, priority=2:連濁一致)
+        return activeRule === 'strict' ? (k.priority === 1 || k.priority === 2) : k.priority > 0;
+    });
+
+    // 々（同じ字点）の対応
+    // 条件：前の文字と同じ、または濁点・半濁点の関係にある場合
+    // 例：さ⇔ざ、か⇔が、は⇔ば⇔ぱ
+    if (slotIdx > 0) {
+        const cur = segmentList[slotIdx];
+        const prev = segmentList[slotIdx - 1];
+
+        if (cur === prev || isDakutenMatch(cur, prev)) {
+            const currentReadingRaw = typeof getCurrentSessionReading === 'function'
+                ? getCurrentSessionReading()
+                : segmentList.join('');
+            const currentReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(currentReadingRaw)
+                : String(currentReadingRaw || '').trim();
+            const prevNormalized = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(prev)
+                : String(prev || '').trim();
+            const prevChoices = liked.filter(item => {
+                if (item.slot !== slotIdx - 1 || item.isKanaCandidate || item['漢字'] === '々') return false;
+
+                const itemReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+                    ? normalizeReadingComparisonValue(item.sessionReading || '')
+                    : String(item.sessionReading || '').trim();
+                if (!currentReadingNormalized || itemReadingNormalized !== currentReadingNormalized) return false;
+
+                if (Array.isArray(item.sessionSegments)) {
+                    const itemPrevSegment = item.sessionSegments[item.slot] || '';
+                    const itemPrevNormalized = typeof normalizeReadingComparisonValue === 'function'
+                        ? normalizeReadingComparisonValue(itemPrevSegment)
+                        : String(itemPrevSegment || '').trim();
+                    if (prevNormalized && itemPrevNormalized && itemPrevNormalized !== prevNormalized) return false;
+                }
+
+                return true;
+            });
+
+            if (prevChoices.length > 0) {
+                candidates.push({
+                    '漢字': '々',
+                    '画数': prevChoices[0]['画数'],
+                    '音': '',
+                    '訓': '',
+                    '伝統名のり': '',
+                    '意味': '前の漢字を繰り返す',
+                    '名前のイメージ': '【繰り返し】',
+                    '分類': '【記号】',
+                    priority: 1,
+                    score: 999999 // Ensure it appears first
+                });
+            }
+        }
+    }
+
+    // 性別による優先順位付け (calculateKanjiScoreで考慮)
+    // candidates = applyGenderFilter(candidates);
+
+    // イメージタグによる優先順位付け
+    candidates = applyImageTagFilter(candidates);
+
+    // 総合スコア計算
+    candidates.forEach(k => {
+        k.score = calculateKanjiScore(k);
+        if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
+    });
+
+    // 優先度でソート（メジャー/マイナー区分対応）
+    candidates.sort((a, b) => {
+        // 々（繰り返し記号）は最優先
+        if (a['漢字'] === '々') return -1;
+        if (b['漢字'] === '々') return 1;
+
+        // まず読みの優先度 (1:完全一致, 2:清音一致, 3:部分一致)
+        if (a.priority !== b.priority) return a.priority - b.priority;
+
+        // 同じpriority内でメジャー/マイナー区分（readingTier）
+        const tierA = a.readingTier || 99;
+        const tierB = b.readingTier || 99;
+        if (tierA !== tierB) return tierA - tierB;
+
+        // 次に総合スコア（降順）
+        return b.score - a.score;
+    });
+
+    const kanaCandidates = getSwipeKanaCandidatesForCurrentSlot(target, slotIdx);
+    return kanaCandidates.length > 0 ? [...kanaCandidates, ...candidates] : candidates;
+}
+
+function getSwipeEmptyStateActionCounts(slotIdx = currentPos) {
+    if (!Array.isArray(segments) || segments.length === 0) {
+        return { revisit: 0, flexible: 0, premium: 0 };
+    }
+
+    const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(slotIdx) : rule;
+    const baseCandidates = buildSwipeStackCandidates({
+        slotIdx,
+        ruleOverride: activeRule,
+        includeNoped: false,
+        suppressLogs: true
+    });
+    const revisitCandidates = buildSwipeStackCandidates({
+        slotIdx,
+        ruleOverride: activeRule,
+        includeNoped: true,
+        suppressLogs: true
+    });
+    const counts = {
+        revisit: countAdditionalSwipeCandidates(revisitCandidates, baseCandidates),
+        flexible: 0,
+        premium: 0
+    };
+
+    if (activeRule === 'strict') {
+        const flexibleCandidates = buildSwipeStackCandidates({
+            slotIdx,
+            ruleOverride: 'lax',
+            includeNoped: true,
+            suppressLogs: true
+        });
+        counts.flexible = countAdditionalSwipeCandidates(flexibleCandidates, revisitCandidates);
+    }
+
+    if (!isPremiumAccessActive()) {
+        const premiumCandidates = buildSwipeStackCandidates({
+            slotIdx,
+            ruleOverride: activeRule,
+            includeNoped: false,
+            premiumOverride: true,
+            suppressLogs: true
+        });
+        counts.premium = countAdditionalSwipeCandidates(premiumCandidates, baseCandidates);
+    }
+
+    return counts;
+}
+window.getSwipeEmptyStateActionCounts = getSwipeEmptyStateActionCounts;
+
 /**
  * スワイプ用スタックの生成
  */
@@ -1184,186 +1464,11 @@ function loadStack() {
         }
     }
 
-    // フィルタリング
-    stack = master.filter(k => {
-        if (!isKanjiAccessibleForCurrentMembership(k)) {
-            return false;
-        }
-        // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
-        const flag = k['不適切フラグ'];
-        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
-            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
-        }
-
-        if (isKanjiGenderMismatch(k)) {
-            return false;
-        }
-
-        // 同じ読みが続く場合は、seenチェックをスキップ
-        const isSameReading = currentPos > 0 && segments[currentPos] === segments[currentPos - 1];
-
-        if (!isSameReading && seen && seen.has(k['漢字'])) {
-            // return false; // ユーザー要望により、既読・ストック済みでも再出現させる
-        }
-
-        // ユーザー要望：戻った時に、そのターンで選んだ（ストック済み）漢字は候補に出さない
-        const alreadyLiked = liked.some(l => l.slot == currentPos && l['漢字'] === k['漢字']);
-        if (alreadyLiked) {
-            console.log(`ENGINE: Skipping ${k['漢字']} because it is already liked at slot ${currentPos}`);
-            return false;
-        }
-
-        // NOPEした漢字は出さない（最初から選び直し時にリセット）
-        if (!includeNopedForThisLoad && typeof noped !== 'undefined' && noped.has(k['漢字'])) {
-            return false;
-        }
-
-        // 読みデータの取得（メジャー/マイナー区分）
-        // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
-        const readingBuckets = typeof getKanjiReadingBuckets === 'function'
-            ? getKanjiReadingBuckets(k)
-            : null;
-        const majorReadings = Array.isArray(readingBuckets?.majorReadings)
-            ? readingBuckets.majorReadings
-            : ((k['音'] || '') + ',' + (k['訓'] || ''))
-                .split(/[、,，\s/]+/)
-                .map(x => normalizeReadingComparisonValue(x))
-                .filter(Boolean);
-        const minorReadings = Array.isArray(readingBuckets?.minorReadings)
-            ? readingBuckets.minorReadings
-            : (k['伝統名のり'] || '')
-                .split(/[、,，\s/]+/)
-                .map(x => normalizeReadingComparisonValue(x))
-                .filter(Boolean);
-        const majorStrictReadings = Array.isArray(readingBuckets?.majorStrictReadings) && readingBuckets.majorStrictReadings.length > 0
-            ? readingBuckets.majorStrictReadings
-            : majorReadings;
-        const minorStrictReadings = Array.isArray(readingBuckets?.minorStrictReadings) && readingBuckets.minorStrictReadings.length > 0
-            ? readingBuckets.minorStrictReadings
-            : minorReadings;
-
-        // 読みマッチング判定
-        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
-        // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
-        const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : normalizedTarget;
-        const allowVoicedFallback = currentPos > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
-        const isMajorExact = majorStrictReadings.includes(normalizedTarget);
-        const isMinorExact = minorStrictReadings.includes(normalizedTarget);
-        const isExact = isMajorExact || isMinorExact;
-        // 清音化一致：メジャー読みのみを対象（名乗りは除外）
-        const isSeionMatch = allowVoicedFallback && majorStrictReadings.includes(targetSeion);
-        // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
-        const isPartial = majorReadings.some(r => r.startsWith(normalizedTarget)) ||
-            (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion)));
-
-        if (isMajorExact) {
-            k.priority = 1;      // メジャー読み完全一致（最優先）
-            k.readingTier = 1;
-        } else if (isMinorExact) {
-            k.priority = 1;      // マイナー（名乗り）完全一致
-            k.readingTier = 2;   // メジャーの後に表示
-        } else if (isSeionMatch) {
-            k.priority = 2;
-            k.readingTier = 3;
-        } else if (isPartial) {
-            k.priority = 3;
-            k.readingTier = 4;
-        } else {
-            k.priority = 0;
-            k.readingTier = 99;
-        }
-
-        // ルールに応じてフィルタ (priority=1:完全一致, priority=2:連濁一致)
-        return activeRule === 'strict' ? (k.priority === 1 || k.priority === 2) : k.priority > 0;
+    stack = buildSwipeStackCandidates({
+        slotIdx: currentPos,
+        ruleOverride: activeRule,
+        includeNoped: includeNopedForThisLoad
     });
-
-    // 々（同じ字点）の対応
-    // 条件：前の文字と同じ、または濁点・半濁点の関係にある場合
-    // 例：さ⇔ざ、か⇔が、は⇔ば⇔ぱ
-    if (currentPos > 0) {
-        const cur = segments[currentPos];
-        const prev = segments[currentPos - 1];
-
-        if (cur === prev || isDakutenMatch(cur, prev)) {
-            const currentReadingRaw = typeof getCurrentSessionReading === 'function'
-                ? getCurrentSessionReading()
-                : segments.join('');
-            const currentReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
-                ? normalizeReadingComparisonValue(currentReadingRaw)
-                : String(currentReadingRaw || '').trim();
-            const prevNormalized = typeof normalizeReadingComparisonValue === 'function'
-                ? normalizeReadingComparisonValue(prev)
-                : String(prev || '').trim();
-            const prevChoices = liked.filter(item => {
-                if (item.slot !== currentPos - 1 || item.isKanaCandidate || item['漢字'] === '々') return false;
-
-                const itemReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
-                    ? normalizeReadingComparisonValue(item.sessionReading || '')
-                    : String(item.sessionReading || '').trim();
-                if (!currentReadingNormalized || itemReadingNormalized !== currentReadingNormalized) return false;
-
-                if (Array.isArray(item.sessionSegments)) {
-                    const itemPrevSegment = item.sessionSegments[item.slot] || '';
-                    const itemPrevNormalized = typeof normalizeReadingComparisonValue === 'function'
-                        ? normalizeReadingComparisonValue(itemPrevSegment)
-                        : String(itemPrevSegment || '').trim();
-                    if (prevNormalized && itemPrevNormalized && itemPrevNormalized !== prevNormalized) return false;
-                }
-
-                return true;
-            });
-
-            if (prevChoices.length > 0) {
-                stack.push({
-                    '漢字': '々',
-                    '画数': prevChoices[0]['画数'],
-                    '音': '',
-                    '訓': '',
-                    '伝統名のり': '',
-                    '意味': '前の漢字を繰り返す',
-                    '名前のイメージ': '【繰り返し】',
-                    '分類': '【記号】',
-                    priority: 1,
-                    score: 999999 // Ensure it appears first
-                });
-            }
-        }
-    }
-
-    // 性別による優先順位付け (calculateKanjiScoreで考慮)
-    // stack = applyGenderFilter(stack); 
-
-    // イメージタグによる優先順位付け
-    stack = applyImageTagFilter(stack);
-
-    // 総合スコア計算
-    stack.forEach(k => {
-        k.score = calculateKanjiScore(k);
-        if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
-    });
-
-    // 優先度でソート（メジャー/マイナー区分対応）
-    stack.sort((a, b) => {
-        // 々（繰り返し記号）は最優先
-        if (a['漢字'] === '々') return -1;
-        if (b['漢字'] === '々') return 1;
-
-        // まず読みの優先度 (1:完全一致, 2:清音一致, 3:部分一致)
-        if (a.priority !== b.priority) return a.priority - b.priority;
-
-        // 同じpriority内でメジャー/マイナー区分（readingTier）
-        const tierA = a.readingTier || 99;
-        const tierB = b.readingTier || 99;
-        if (tierA !== tierB) return tierA - tierB;
-
-        // 次に総合スコア（降順）
-        return b.score - a.score;
-    });
-
-    const kanaCandidates = getSwipeKanaCandidatesForCurrentSlot(target, currentPos);
-    if (kanaCandidates.length > 0) {
-        stack = [...kanaCandidates, ...stack];
-    }
 
     console.log(`ENGINE: Stack loaded with ${stack.length} candidates`);
 

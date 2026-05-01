@@ -151,17 +151,19 @@ const FortuneLogic = (function () {
             const givStrokes = givArr.map(g => g.strokes);
             const surTotal = surStrokes.reduce((a, b) => a + b, 0);
             const givTotal = givStrokes.reduce((a, b) => a + b, 0);
+            const hasSingleSurname = surStrokes.length === 1 && surStrokes[0] > 0;
+            const hasSingleGiven = givStrokes.length === 1 && givStrokes[0] > 0;
 
             // 五格の計算
-            const ten = surTotal; // 天格（名字の総画数）
+            const ten = surTotal + (hasSingleSurname ? 1 : 0); // 天格（一字姓は霊数+1）
             const jin = (surStrokes[surStrokes.length - 1] || 0) + (givStrokes[0] || 0); // 人格
-            const chi = givTotal; // 地格（名前の総画数）
+            const chi = givTotal + (hasSingleGiven ? 1 : 0); // 地格（一字名は霊数+1）
 
             // 外格の計算
             let gai = (surTotal + givTotal) - jin;
-            if (surStrokes.length === 1 && givStrokes.length === 1) {
+            if (hasSingleSurname && hasSingleGiven) {
                 gai = 2; // 特殊ケース
-            } else if (surStrokes.length === 1 || givStrokes.length === 1) {
+            } else if (hasSingleSurname || hasSingleGiven) {
                 gai += 1; // 調整
             }
 

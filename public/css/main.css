@@ -564,6 +564,7 @@ body.hide-top-bar .screen-header-shell {
 #uni-swipe-action-btns button {
     width: clamp(56px, 9.5vh, 72px) !important;
     height: clamp(56px, 9.5vh, 72px) !important;
+    box-shadow: 0 8px 18px -16px rgba(93, 84, 68, 0.28) !important;
 }
 
 @media (max-height: 720px) {
@@ -1075,7 +1076,7 @@ body.hide-top-bar .screen-header-shell {
 
 .hud-top-mini {
     position: fixed;
-    top: 52px;
+    top: calc(var(--top-bar-height) + 8px);
     left: 50%;
     transform: translateX(-50%);
     z-index: 2000;

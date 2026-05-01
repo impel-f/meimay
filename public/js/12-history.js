@@ -50,7 +50,7 @@ function showSaveMessageModal() {
                         <label class="text-xs font-bold text-[#a6967a] mb-2 block">メモ（任意）</label>
                         <textarea id="save-message-input" 
                                   class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all resize-none"
-                                  placeholder="例：第一候補、祖父の名前から"
+                                  placeholder="例：響きが好き、優しい印象"
                                   rows="2"
                                   maxlength="100"></textarea>
                     </div>
@@ -199,10 +199,11 @@ function executeSaveWithMessage() {
     const wasFirstSavedName = saved.length === 0;
 
     // 重複チェック (名前の文字列だけでなく、構成も完全に一致する場合のみ重複とみなす)
-    const isDuplicate = saved.some(item =>
+    const duplicateItem = saved.find(item =>
         item.fullName === currentBuildResult.fullName &&
         JSON.stringify(item.combination) === JSON.stringify(currentBuildResult.combination)
     );
+    const isDuplicate = !!duplicateItem;
 
     if (isDuplicate) {
         if (!confirm('同じ名前・構成のデータが既に保存されています。メッセージを更新しますか？')) {
@@ -219,7 +220,8 @@ function executeSaveWithMessage() {
     const saveData = {
         ...currentBuildResult,
         message: message,
-        savedAt: new Date().toISOString()
+        savedAt: new Date().toISOString(),
+        readingStatsTracked: isDuplicate ? duplicateItem?.readingStatsTracked === true : true
     };
 
     // 最新を先頭へ
@@ -246,6 +248,9 @@ function executeSaveWithMessage() {
         }
     }
     persistActiveChildWorkspaceSnapshot('save-name-message');
+    if (!isDuplicate && typeof recordSavedNameReadingForRanking === 'function') {
+        recordSavedNameReadingForRanking(saveData, 1);
+    }
 
     closeSaveMessageModal();
     if (wasFirstSavedName && typeof openSavedNames === 'function') {
@@ -314,13 +319,6 @@ function addToReadingHistory() {
     }
 
     localStorage.setItem('meimay_reading_history', JSON.stringify(filtered));
-    if (typeof MeimayStats !== 'undefined' && MeimayStats.recordReadingEncounter) {
-        MeimayStats.recordReadingEncounter(reading, 1, 'all', {
-            gender: historyData.settings.gender || gender || 'neutral'
-        }).catch((error) => {
-            console.warn('HISTORY: reading stats sync failed', error);
-        });
-    }
     console.log('HISTORY: Added reading history', historyData);
 }
 
@@ -1890,12 +1888,15 @@ function votePartnerSavedName(index) {
             mainSelectedAt: isSelected ? now : ''
         };
     });
+    let addedPartnerSavedItem = null;
     if (!foundSourceInSaved) {
-        updated.push({
+        addedPartnerSavedItem = {
             ...buildApprovedPartnerSavedItem(source, partnerName, sourceKey),
             mainSelected: true,
-            mainSelectedAt: now
-        });
+            mainSelectedAt: now,
+            readingStatsTracked: true
+        };
+        updated.push(addedPartnerSavedItem);
     }
     if (typeof savedNames !== 'undefined') savedNames = updated;
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
@@ -1930,6 +1931,9 @@ function votePartnerSavedName(index) {
     }
 
     renderSavedScreen();
+    if (addedPartnerSavedItem && typeof recordSavedNameReadingForRanking === 'function') {
+        recordSavedNameReadingForRanking(addedPartnerSavedItem, 1);
+    }
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     if (typeof showToast === 'function') showToast(`${partnerName}の候補を本命にしました`, '✓');
     return true;

@@ -37,7 +37,10 @@ service cloud.firestore {
         || collectionId == 'reading_statistics_female'
         || collectionId == 'reading_like_statistics'
         || collectionId == 'reading_like_statistics_male'
-        || collectionId == 'reading_like_statistics_female';
+        || collectionId == 'reading_like_statistics_female'
+        || collectionId == 'reading_saved_statistics'
+        || collectionId == 'reading_saved_statistics_male'
+        || collectionId == 'reading_saved_statistics_female';
     }
 
     function canReadSharedBackup(userId) {

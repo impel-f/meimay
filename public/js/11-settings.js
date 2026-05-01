@@ -361,8 +361,13 @@ function renderSettingsScreen() {
     let pairingStatusText = '未連携';
     let pairingStatusColor = '#a6967a';
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
-        pairingStatusText = `連携中（${MeimayPairing.roomCode}）`;
-        pairingStatusColor = '#4ade80';
+        if (MeimayPairing.partnerUid) {
+            pairingStatusText = `連携中（${MeimayPairing.roomCode}）`;
+            pairingStatusColor = '#4ade80';
+        } else {
+            pairingStatusText = `連携待ち（${MeimayPairing.roomCode}）`;
+            pairingStatusColor = '#b9965b';
+        }
     }
 
     const premiumState = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
@@ -620,7 +625,7 @@ function editShareMode() {
 
 function openPartnerSettingsSheet() {
     const status = (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode)
-        ? `連携中（${escapeProfileHtml(MeimayPairing.roomCode)}）`
+        ? `${MeimayPairing.partnerUid ? '連携中' : '連携待ち'}（${escapeProfileHtml(MeimayPairing.roomCode)}）`
         : '未連携';
     const modal = `
         <div class="overlay active modal-overlay-dark" id="partner-settings-sheet" onclick="if(event.target.id==='partner-settings-sheet')closePartnerSettingsSheet()">

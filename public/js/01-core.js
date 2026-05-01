@@ -487,26 +487,44 @@ function toSeion(str) {
 /**
  * 名字データの更新
  */
+function resolveFortuneStrokeForChar(char, fallback = 0) {
+    const key = String(char || '').trim();
+    if (!key) return 0;
+    const fallbackValue = parseInt(fallback, 10) || 0;
+    if (strokeData && strokeData[key]) return parseInt(strokeData[key], 10) || fallbackValue;
+    const found = Array.isArray(master) ? master.find(k => k['漢字'] === key) : null;
+    if (found) return parseInt(found['画数'], 10) || fallbackValue;
+    return fallbackValue;
+}
+
+function getFortuneSurnameData(source = surnameData, fallbackSurname = surnameStr) {
+    const sourceItems = Array.isArray(source) ? source : [];
+    const chars = sourceItems.length > 0
+        ? sourceItems.map(item => ({
+            ...item,
+            kanji: item?.kanji || item?.['漢字'] || ''
+        }))
+        : Array.from(String(fallbackSurname || '').trim()).map(char => ({ kanji: char, strokes: 0 }));
+
+    return chars
+        .filter(item => item && String(item.kanji || '').trim())
+        .map(item => {
+            const kanji = String(item.kanji || '').trim();
+            return {
+                ...item,
+                kanji,
+                strokes: resolveFortuneStrokeForChar(kanji, item.strokes)
+            };
+        });
+}
+window.getFortuneSurnameData = getFortuneSurnameData;
+
 function updateSurnameData() {
     const input = document.getElementById('in-surname');
     if (!input) return;
 
     surnameStr = input.value.trim();
-    const chars = surnameStr.split('');
-
-    surnameData = chars.map(c => {
-        const found = master.find(k => k['漢字'] === c);
-        let strokes = 0;
-        if (strokeData[c]) {
-            strokes = strokeData[c];
-        } else if (found) {
-            strokes = parseInt(found['画数']) || 0;
-        }
-        return {
-            kanji: c,
-            strokes: strokes
-        };
-    });
+    surnameData = getFortuneSurnameData([], surnameStr);
 
     console.log("CORE: Surname data updated ->", surnameData);
 

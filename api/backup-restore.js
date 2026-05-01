@@ -61,41 +61,105 @@ function summarizeBackup(backup) {
   };
 }
 
+function sanitizeJsonValue(value) {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    return null;
+  }
+}
+
+function normalizeRoomCode(value) {
+  const roomCode = String(value || '').trim().toUpperCase();
+  return roomCode || null;
+}
+
+function normalizeBackupRegisterPatch(body) {
+  const backup = sanitizeJsonValue(body.meimayBackup || body.backup || null);
+  if (!backup || typeof backup !== 'object' || Array.isArray(backup)) {
+    return null;
+  }
+
+  const fingerprint = String(
+    body.meimayBackupFingerprint
+    || body.backupFingerprint
+    || backup.fingerprint
+    || ''
+  ).trim();
+  const pairRoomCode = normalizeRoomCode(body.pairRoomCode || body.roomCode);
+  const sanitizedHiddenReadings = Array.isArray(body.hiddenReadings)
+    ? sanitizeJsonValue(body.hiddenReadings)
+    : [];
+  const hiddenReadings = Array.isArray(sanitizedHiddenReadings)
+    ? sanitizedHiddenReadings.filter(Boolean)
+    : [];
+  const patch = {
+    meimayBackup: backup,
+    backup,
+    meimayBackupUpdatedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  };
+
+  if (fingerprint) patch.meimayBackupFingerprint = fingerprint;
+  patch.pairRoomCode = pairRoomCode;
+  patch.roomCode = pairRoomCode;
+  patch.hiddenReadings = hiddenReadings;
+
+  return patch;
+}
+
 async function registerRestoreKey(db, uid, body) {
   const keyHash = hashRestoreKey(body.restoreKey);
   const previousKeyHash = body.previousRestoreKey ? hashRestoreKey(body.previousRestoreKey) : '';
   const keyRef = db.collection('backupRestoreKeys').doc(keyHash);
+  const userBackupPatch = normalizeBackupRegisterPatch(body);
 
-  await db.runTransaction(async (tx) => {
-    const keySnap = await tx.get(keyRef);
-    const previousRef = previousKeyHash && previousKeyHash !== keyHash
-      ? db.collection('backupRestoreKeys').doc(previousKeyHash)
-      : null;
-    const previousSnap = previousRef ? await tx.get(previousRef) : null;
-    if (keySnap.exists) {
-      const keyData = keySnap.data() || {};
-      const ownerUid = String(keyData.ownerUid || '').trim();
-      if (ownerUid && ownerUid !== uid) {
-        throw Object.assign(new Error('Restore key collision.'), {
-          statusCode: 409,
-          code: 'restore_key_collision'
-        });
+  try {
+    await db.runTransaction(async (tx) => {
+      const keySnap = await tx.get(keyRef);
+      const previousRef = previousKeyHash && previousKeyHash !== keyHash
+        ? db.collection('backupRestoreKeys').doc(previousKeyHash)
+        : null;
+      const previousSnap = previousRef ? await tx.get(previousRef) : null;
+      if (keySnap.exists) {
+        const keyData = keySnap.data() || {};
+        const ownerUid = String(keyData.ownerUid || '').trim();
+        if (ownerUid && ownerUid !== uid) {
+          throw Object.assign(new Error('Restore key collision.'), {
+            statusCode: 409,
+            code: 'restore_key_collision'
+          });
+        }
       }
-    }
 
-    tx.set(keyRef, {
-      ownerUid: uid,
-      schemaVersion: 1,
-      createdAt: keySnap.exists ? keySnap.data().createdAt || FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
+      tx.set(keyRef, {
+        ownerUid: uid,
+        schemaVersion: 1,
+        createdAt: keySnap.exists ? keySnap.data().createdAt || FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
 
-    if (previousRef && previousSnap) {
-      if (previousSnap.exists && String((previousSnap.data() || {}).ownerUid || '') === uid) {
-        tx.delete(previousRef);
+      if (userBackupPatch) {
+        tx.set(db.collection('users').doc(uid), userBackupPatch, { merge: true });
       }
+
+      if (previousRef && previousSnap) {
+        if (previousSnap.exists && String((previousSnap.data() || {}).ownerUid || '') === uid) {
+          tx.delete(previousRef);
+        }
+      }
+    });
+  } catch (error) {
+    if (error?.code === 'restore_key_collision') throw error;
+    if (userBackupPatch) {
+      throw Object.assign(new Error('Backup sync failed.'), {
+        statusCode: 500,
+        code: 'backup_sync_failed'
+      });
     }
-  });
+    throw error;
+  }
 
   return { ok: true, registered: true };
 }

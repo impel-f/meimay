@@ -789,40 +789,54 @@ function removeFbChoice(slotIdx) {
 }
 
 // 運勢ランキングHTML（姓名判断を適用）
+function getBuildFortuneSurnameData() {
+    if (typeof getFortuneSurnameData === 'function') {
+        return getFortuneSurnameData(surnameData, surnameStr);
+    }
+    return Array.isArray(surnameData) ? surnameData : [];
+}
+
 function renderFbFortune(choices) {
-    if (typeof surnameData === 'undefined' || !surnameData || surnameData.length === 0) {
+    const fortuneSurnameData = getBuildFortuneSurnameData();
+    if (!fortuneSurnameData || fortuneSurnameData.length === 0) {
         return '<p class="text-[10px] text-[#a6967a]">姓名判断するには名字を設定してください</p>';
     }
-    if (typeof calcFortune !== 'function') {
+    if (typeof FortuneLogic === 'undefined' || !FortuneLogic.calculate) {
         return '<p class="text-[10px] text-[#a6967a]">姓名判断機能が読み込まれていません</p>';
     }
     try {
-        const givenStrokes = choices.map(k => {
+        const givArr = (Array.isArray(choices) ? choices : []).map((k, idx) => {
+            const displayKanji = typeof getFbDisplayKanji === 'function' ? getFbDisplayKanji(idx) : k;
+            const targetKanji = displayKanji || k;
+            if (!targetKanji) return null;
+            if (targetKanji === '々') return { kanji: targetKanji, strokes: getFortuneStrokeValue('々') };
             const likedItem = liked.find(l => l['漢字'] === k);
             if (likedItem) {
-                return getFortuneStrokeValue(likedItem);
+                return { kanji: targetKanji, strokes: getFortuneStrokeValue(likedItem) };
             }
             const item = master?.find(m => m['漢字'] === k);
-            return getFortuneStrokeValue(item);
-        });
-        const surnameStrokes = surnameData.map(getFortuneStrokeValue);
-        const result = calcFortune(surnameStrokes, givenStrokes);
+            return { kanji: targetKanji, strokes: getFortuneStrokeValue(item) };
+        }).filter(Boolean);
+        if (givArr.length === 0) return '<p class="text-[10px] text-[#a6967a]">漢字を選ぶと運勢を確認できます</p>';
+
+        const result = FortuneLogic.calculate(fortuneSurnameData, givArr);
         if (!result) return '<p class="text-[10px] text-[#a6967a]">運勢の計算中...</p>';
 
         const ranks = [
-            { label: '天格', value: result.tenkaku },
-            { label: '地格', value: result.chikaku },
-            { label: '人格', value: result.jinkaku },
-            { label: '外格', value: result.gaikaku },
-            { label: '総格', value: result.sokaku },
+            { label: '天格', value: result.ten },
+            { label: '人格', value: result.jin },
+            { label: '地格', value: result.chi },
+            { label: '外格', value: result.gai },
+            { label: '総格', value: result.so },
         ];
 
         return ranks.map(r => {
-            const fortune = r.value?.fortune || '--';
-            const color = fortune === '大吉' ? 'text-red-500' : fortune === '吉' ? 'text-[#bca37f]' : 'text-[#8b7e66]';
+            const fortune = r.value?.res?.label || '--';
+            const color = r.value?.res?.color || (fortune === '大吉' ? 'text-red-500' : fortune === '吉' ? 'text-[#bca37f]' : 'text-[#8b7e66]');
+            const strokes = Number.isFinite(Number(r.value?.val)) ? `${r.value.val}画` : '--';
             return `<div class="flex justify-between items-center px-1">
                 <span class="text-xs text-[#8b7e66] font-bold">${r.label}</span>
-                <span class="text-xs font-black ${color}">${fortune}</span>
+                <span class="text-xs font-black ${color}">${strokes} ${fortune}</span>
             </div>`;
         }).join('');
     } catch (e) {
@@ -1003,6 +1017,7 @@ function buildFreeBuildFortuneRanking() {
     const fixedFirstKanji = totalSlots > 1 ? String(fbChoices[0] || '').trim() : '';
     const fixedPieces = fixedFirstKanji ? [getFreeBuildRankingCandidateItem(fixedFirstKanji, pool)].filter(Boolean) : [];
     const variableSlots = Math.max(1, totalSlots - fixedPieces.length);
+    const resolvedSurnameData = getBuildFortuneSurnameData();
     const ranked = [];
 
     function walk(depth, pieces) {
@@ -1012,7 +1027,7 @@ function buildFreeBuildFortuneRanking() {
                 strokes: parseInt(piece['画数']) || 0
             }));
             const fortune = typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate
-                ? FortuneLogic.calculate(surnameData, givArr)
+                ? FortuneLogic.calculate(resolvedSurnameData, givArr)
                 : null;
             ranked.push({
                 combination: {
@@ -2065,8 +2080,8 @@ function updateNamePreview() {
             }
             return { kanji: ch, strokes: 0 };
         });
-        const tempSurname = (typeof surnameData !== 'undefined' && surnameData && surnameData.length > 0)
-            ? surnameData : [{ kanji: '', strokes: 0 }];
+        const resolvedSurnameData = getBuildFortuneSurnameData();
+        const tempSurname = resolvedSurnameData.length > 0 ? resolvedSurnameData : [{ kanji: '', strokes: 0 }];
         fortuneData = FortuneLogic.calculate(tempSurname, givArr);
         if (typeof currentBuildResult !== 'undefined') {
             currentBuildResult = currentBuildResult || {};
@@ -2802,8 +2817,9 @@ function executeFbBuild() {
 
     let fortune = null;
     if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
-        if (surnameData && surnameData.length > 0) {
-            fortune = FortuneLogic.calculate(surnameData, givArr);
+        const resolvedSurnameData = getBuildFortuneSurnameData();
+        if (resolvedSurnameData.length > 0) {
+            fortune = FortuneLogic.calculate(resolvedSurnameData, givArr);
         } else {
             fortune = FortuneLogic.calculate([{ kanji: '', strokes: 0 }], givArr);
         }
@@ -3106,7 +3122,8 @@ window.removeFbChoice = function (slotIdx) {
  * 姓名判断による並び替え
  */
 function sortByFortune(items, slotIndex) {
-    if (!surnameData || surnameData.length === 0) return items;
+    const resolvedSurnameData = getBuildFortuneSurnameData();
+    if (!resolvedSurnameData || resolvedSurnameData.length === 0) return items;
 
     // 各スロットの基準画数を事前に取得（ループ内での liked.filter を避ける）
     const slotBaseStrokes = segments.map((_, idx) => {
@@ -3128,7 +3145,7 @@ function sortByFortune(items, slotIndex) {
 
         let score = 0;
         if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
-            const fortune = FortuneLogic.calculate(surnameData, tempCombination);
+            const fortune = FortuneLogic.calculate(resolvedSurnameData, tempCombination);
             if (fortune && fortune.so) {
                 if (fortune.so.res.label === '大吉') score += 1000;
                 else if (fortune.so.res.label === '吉') score += 500;
@@ -3208,8 +3225,9 @@ function executeBuild() {
 
     let fortune = null;
     if (typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate) {
-        if (surnameData && surnameData.length > 0) {
-            fortune = FortuneLogic.calculate(surnameData, givArr);
+        const resolvedSurnameData = getBuildFortuneSurnameData();
+        if (resolvedSurnameData.length > 0) {
+            fortune = FortuneLogic.calculate(resolvedSurnameData, givArr);
         } else {
             const tempSurname = [{ kanji: '', strokes: 0 }];
             fortune = FortuneLogic.calculate(tempSurname, givArr);
@@ -3586,7 +3604,8 @@ function showFortuneRanking() {
         updateSurnameData();
     }
 
-    if (!surnameData || surnameData.length === 0) {
+    const resolvedSurnameData = getBuildFortuneSurnameData();
+    if (!resolvedSurnameData || resolvedSurnameData.length === 0) {
         alert('名字を入力してください');
         return;
     }
@@ -3610,7 +3629,7 @@ function showFortuneRanking() {
             kanji: p['漢字'],
             strokes: parseInt(p['画数']) || 0
         }));
-        const fortune = FortuneLogic.calculate(surnameData, givArr);
+        const fortune = FortuneLogic.calculate(resolvedSurnameData, givArr);
         let score = 0;
         if (fortune) {
             // 吉凶のスコア化関数

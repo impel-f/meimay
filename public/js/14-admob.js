@@ -1503,7 +1503,7 @@ const PremiumTrialNudge = {
     },
 
     getContext: function (trigger, state) {
-        const roomNote = '無料体験はこのアカウントだけで開始します。';
+        const roomNote = '無料体験はこのアカウントだけで開始します。今の候補やストックはそのまま残ります。';
 
         if (trigger === 'partner' || state.partnerLinked === true) {
             return {

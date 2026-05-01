@@ -827,10 +827,15 @@ function updateDrawerProfile() {
     const sideProfile = document.getElementById('side-profile');
     const drawer = document.getElementById('side-drawer');
     const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
+    const drawerPartnerStatusLabel = document.getElementById('drawer-partner-status-label');
+    const drawerPartnerStatusSubtext = document.getElementById('drawer-partner-status-subtext');
+    const drawerPairingBadge = document.getElementById('drawer-pairing-badge');
     const settingsButton = document.getElementById('drawer-settings-button');
-    const pairingConnected = !!(typeof MeimayPairing !== 'undefined'
+    const pairingInRoom = !!(typeof MeimayPairing !== 'undefined'
         && MeimayPairing
-        && MeimayPairing.roomCode
+        && MeimayPairing.roomCode);
+    const pairingConnected = !!(pairingInRoom
+        && typeof MeimayPairing !== 'undefined'
         && MeimayPairing.partnerUid);
     const palette = typeof applyProfileTheme === 'function' ? applyProfileTheme(data.themeId) : null;
     const premiumManager = typeof PremiumManager !== 'undefined' ? PremiumManager : null;
@@ -897,6 +902,32 @@ function updateDrawerProfile() {
         settingsButton.setAttribute('aria-label', premiumLines.join(' '));
     }
 
+    if (drawerPartnerStatusLabel) {
+        if (pairingConnected) {
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：連携中';
+            if (drawerPartnerStatusSubtext) {
+                drawerPartnerStatusSubtext.textContent = '';
+                drawerPartnerStatusSubtext.classList.add('hidden');
+            }
+        } else if (pairingInRoom) {
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：連携待ち';
+            if (drawerPartnerStatusSubtext) {
+                drawerPartnerStatusSubtext.textContent = 'コード発行済み';
+                drawerPartnerStatusSubtext.classList.remove('hidden');
+            }
+        } else {
+            drawerPartnerStatusLabel.textContent = '🔗パートナー：未連携';
+            if (drawerPartnerStatusSubtext) {
+                drawerPartnerStatusSubtext.textContent = '';
+                drawerPartnerStatusSubtext.classList.add('hidden');
+            }
+        }
+    }
+
+    if (drawerPairingBadge) {
+        drawerPairingBadge.classList.toggle('hidden', !pairingConnected);
+    }
+
     if (avatar && palette) {
         avatar.style.background = `linear-gradient(135deg, ${palette.accent} 0%, ${palette.accentStrong} 100%)`;
         avatar.style.boxShadow = `0 12px 24px ${palette.shadow}`;
@@ -905,7 +936,7 @@ function updateDrawerProfile() {
     }
 
     applyDrawerStatusButtonTone(settingsButton, premiumDisplay ? premiumDisplay.active : premiumActive);
-    applyDrawerStatusButtonTone(drawerPartnerStatusButton, pairingConnected);
+    applyDrawerStatusButtonTone(drawerPartnerStatusButton, pairingInRoom);
 }
 
 function openDrawerProfileAppearance() {

@@ -43,6 +43,44 @@ function normalizeKana(str) {
     });
 }
 
+function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'warm' }) {
+    const tones = {
+        premium: {
+            wrap: 'border-[#ead8b8] bg-[#fffaf1]',
+            label: 'text-[#6f5630]',
+            detail: 'text-[#9b8054]',
+            count: 'border-[#e6cfa6] bg-white text-[#8a682f]'
+        },
+        warm: {
+            wrap: 'border-[#e7d9c1] bg-white',
+            label: 'text-[#5d5444]',
+            detail: 'text-[#a2947a]',
+            count: 'border-[#eadfce] bg-[#f8f1e6] text-[#8b6f47]'
+        },
+        cool: {
+            wrap: 'border-[#d5e1f0] bg-[#f7fbff]',
+            label: 'text-[#4f6f9b]',
+            detail: 'text-[#7b94b7]',
+            count: 'border-[#c7d8ee] bg-white text-[#5f7ea8]'
+        }
+    };
+    const style = tones[tone] || tones.warm;
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    const countBadge = safeCount > 0
+        ? `<span class="shrink-0 rounded-full border ${style.count} px-2.5 py-1 text-[10px] font-black leading-none">+${safeCount}件</span>`
+        : '';
+
+    return `
+        <button onclick="${onclick}" class="w-full rounded-[20px] border ${style.wrap} px-4 py-3 text-left transition active:scale-[0.99]">
+            <div class="flex items-center justify-between gap-3">
+                <span class="min-w-0 text-[13px] font-black ${style.label}">${label}</span>
+                ${countBadge}
+            </div>
+            <div class="mt-1 text-[11px] font-bold leading-relaxed ${style.detail}">${detail}</div>
+        </button>
+    `;
+}
+
 /**
  * scr-main の表示状態を3状態で制御する
  *  - セッションなし : empty-state 表示、HUD/stack/actionBtns 非表示
@@ -111,30 +149,53 @@ function render() {
         const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
         const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
         const canOfferFlexibleRetry = typeof activeRule !== 'undefined' && activeRule === 'strict';
-        const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+        const actionCounts = typeof getSwipeEmptyStateActionCounts === 'function'
+            ? getSwipeEmptyStateActionCounts(currentPos)
+            : null;
+        const expansionActions = [
+            {
+                show: !premiumActive && (!actionCounts || actionCounts.premium > 0),
+                label: '人名用漢字も見る',
+                detail: 'プレミアムで候補の範囲を広げる',
+                count: actionCounts?.premium,
+                tone: 'premium',
+                onclick: "if (typeof showPremiumModal === 'function') showPremiumModal();"
+            },
+            {
+                show: !actionCounts || actionCounts.revisit > 0,
+                label: '見送った候補を戻す',
+                detail: 'さっき見送った漢字をもう一度確認',
+                count: actionCounts?.revisit,
+                tone: 'warm',
+                onclick: 'retrySwipeEmptyState({ includeNoped: true })'
+            },
+            {
+                show: canOfferFlexibleRetry && (!actionCounts || actionCounts.flexible > 0),
+                label: '柔軟モードで探す',
+                detail: '読みを少し広げて追加候補を確認',
+                count: actionCounts?.flexible,
+                tone: 'cool',
+                onclick: "retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })"
+            }
+        ].filter(action => action.show);
+        const expansionHtml = expansionActions
+            .map(action => renderSwipeEmptyStateOption(action))
+            .join('');
+        const emptyStateCopy = expansionActions.length > 0
+            ? 'まだ広げられる候補があります。'
+            : '今の条件では追加候補がありません。';
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
-                <div class="w-full max-w-[320px]">
-                    <p class="text-[#bca37f] font-bold text-lg mb-4">候補がありません</p>
-                    <p class="text-sm text-[#a6967a] mb-6">設定を変更するか、<br>次の文字に進んでください</p>
-                    <div class="mb-4 flex flex-col gap-2">
-                        ${premiumActive ? '' : `
-                            <button onclick="if (typeof showPremiumModal === 'function') showPremiumModal();" class="w-full rounded-2xl border border-[#e6dccb] bg-white px-4 py-3 text-[12px] font-bold text-[#8b7e66] shadow-sm active:scale-95">
-                                人名用漢字も表示する
-                            </button>
-                        `}
-                        <button onclick="retrySwipeEmptyState({ includeNoped: true })" class="w-full rounded-2xl border border-[#d9c5a4] bg-[#fffaf2] px-4 py-3 text-[12px] font-bold text-[#8b6f47] active:scale-95">
-                            見送った候補を再度表示する
-                        </button>
-                        ${canOfferFlexibleRetry ? `
-                            <button onclick="retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })" class="w-full rounded-2xl border border-[#cfdcf2] bg-[#f7fbff] px-4 py-3 text-[12px] font-bold text-[#5f7ea8] active:scale-95">
-                                柔軟モードでも探す
-                            </button>
-                        ` : ''}
+                <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-6 shadow-[0_18px_45px_rgba(93,84,68,0.12)]">
+                    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8ed] text-[11px] font-black tracking-[0.12em] text-[#b9965b]">
+                        候補
                     </div>
+                    <p class="text-[#5d5444] font-black text-lg">候補がありません</p>
+                    <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
+                    ${expansionHtml ? `<div class="my-5 flex flex-col gap-2.5">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
                     ${goToBuild ?
-                '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold py-4 px-8">ビルド画面へ →</button>' :
-                '<button onclick="proceedToNextSlot()" class="btn-gold py-4 px-8">次の文字へ進む →</button>'
+                '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold w-full py-4">ビルド画面へ →</button>' :
+                '<button onclick="proceedToNextSlot()" class="btn-gold w-full py-4">次の文字へ進む →</button>'
             }
                 </div>
             </div>
@@ -1181,10 +1242,16 @@ function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairin
         });
     }
 
-    if (pairing?.inRoom && !pairing?.hasPartner) {
+    if (!pairing?.inRoom) {
+        todos.splice(1, 0, {
+            label: '連携コードを発行する',
+            detail: 'コードを発行すると、パートナーと一緒に候補を作れます。',
+            action: 'pair'
+        });
+    } else if (pairing?.inRoom && !pairing?.hasPartner) {
         todos.push({
             label: `${pairing.inviteTargetLabel}にコードを共有する`,
-            detail: '相手が入ると、一致した漢字や名前が自動で見え始めます。',
+            detail: 'パートナーが入ると、一致した漢字や名前が見えます。',
             action: 'pair'
         });
     } else if (pairing?.hasPartner && ((pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0) === 0)) {
@@ -1348,6 +1415,14 @@ function formatHomeChildDate(date) {
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
+function getHomeChildDateCountdownLabel(dateStart, todayStart) {
+    if (!(dateStart instanceof Date) || !(todayStart instanceof Date)) return '';
+    const diffMs = dateStart.getTime() - todayStart.getTime();
+    if (diffMs <= 0) return '';
+    const diffDays = Math.round(diffMs / 86400000);
+    return Number.isFinite(diffDays) && diffDays > 0 ? `（あと${diffDays}日）` : '';
+}
+
 function getHomeActiveChildDateValue() {
     try {
         if (typeof MeimayChildWorkspaces !== 'undefined'
@@ -1369,8 +1444,10 @@ function getHomeChildDateLabel() {
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const label = dateStart.getTime() > todayStart.getTime() ? '予定日' : '誕生日';
-    return `${label} ${formatHomeChildDate(dateStart)}`;
+    const isDueDate = dateStart.getTime() > todayStart.getTime();
+    const label = isDueDate ? '予定日' : '誕生日';
+    const countdownLabel = isDueDate ? getHomeChildDateCountdownLabel(dateStart, todayStart) : '';
+    return `${label} ${formatHomeChildDate(dateStart)}${countdownLabel}`;
 }
 
 function renderHomeChildDateLabel() {
@@ -1865,18 +1942,18 @@ function getPairingHomeSummary() {
         : `${partnerDisplayName}さん`;
 
     const summary = {
-        inRoom: false,
-        hasPartner: false,
         partnerLabel: partnerDisplayName || 'パートナー',
         partnerDisplayName: partnerDisplayName || 'パートナー',
         partnerCallName,
         matchedKanjiCount: 0,
         matchedNameCount: 0,
         previewLabels: [],
-        roomCode,
         myRoleLabel,
         inviteTargetLabel,
-        ...(baseSummary || {})
+        ...(baseSummary || {}),
+        inRoom: !!(baseSummary?.inRoom || roomCode),
+        hasPartner: !!(baseSummary?.hasPartner || (typeof MeimayPairing !== 'undefined' && MeimayPairing.partnerUid)),
+        roomCode: roomCode || baseSummary?.roomCode || null
     };
 
     if (!summary.inRoom) {
@@ -1884,9 +1961,9 @@ function getPairingHomeSummary() {
             ...summary,
             shortText: '未連携',
             title: 'パートナー連携はまだ未設定です',
-            subtitle: '連携すると二人で名前をさがせます。',
-            footnote: '必要になったらあとから始められます。',
-            actionLabel: '連携する',
+            subtitle: 'コードを発行すると、パートナーと一緒に名前候補を作れます。',
+            footnote: '受け取る場合は相手のコードを入力できます。',
+            actionLabel: 'コードを発行',
             canOpenHub: false
         };
     }
@@ -1896,9 +1973,9 @@ function getPairingHomeSummary() {
             ...summary,
             shortText: '連携待ち',
             title: `${summary.myRoleLabel}としてルームを作成済みです`,
-            subtitle: `${summary.inviteTargetLabel}にコードを送ると一致が見られます。`,
+            subtitle: `${summary.inviteTargetLabel}にコードを共有すると一致が見られます。`,
             footnote: 'コード入力でも参加できます。',
-            actionLabel: '',
+            actionLabel: 'コードを共有',
             canOpenHub: false
         };
     }
@@ -1912,6 +1989,13 @@ function getPairingHomeSummary() {
         actionLabel: '',
         canOpenHub: false
     };
+}
+
+function isHomePairingWaiting(pairing) {
+    return !!(
+        (pairing?.inRoom && !pairing?.hasPartner)
+        || (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode && !MeimayPairing.partnerUid)
+    );
 }
 
 function getOwnHomeReadingCount() {
@@ -2003,7 +2087,7 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     if (savedCount > 0) {
         return {
             title: '保存した候補を見比べましょう',
-            detail: '候補が残っています。響き、漢字、印象を見比べながら絞り込めます。',
+            detail: '5分ほど見返すだけでも、響き・漢字・印象の違いを比べながら絞り込めます。',
             actionLabel: '候補を見る',
             action: 'saved'
         };
@@ -3114,7 +3198,7 @@ function getHomeOverviewModel(pairing, nextStep, aggregateCounts) {
         primaryAction: nextStep?.action || 'sound',
         primaryLabel: nextStep?.actionLabel || '次に進む',
         secondaryAction: pairing?.hasPartner ? 'openHomeInsightsModalFromEvent(event)' : 'handleHomePairAction()',
-        secondaryLabel: pairing?.hasPartner ? 'くわしく見る' : '連携する'
+        secondaryLabel: pairing?.hasPartner ? 'くわしく見る' : (isHomePairingWaiting(pairing) ? 'コードを共有' : 'コードを発行')
     };
 }
 
@@ -3418,6 +3502,12 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         config.title = '相手の保存済みを見る';
         config.detailHtml = '相手が保存した候補を<br>確認します';
         break;
+    case 'pair':
+        config.title = 'コードを共有';
+        config.detailHtml = '連携コードを送る';
+        config.variant = 'icon';
+        config.icon = '🔗';
+        break;
     default:
         break;
     }
@@ -3488,6 +3578,29 @@ function renderHomeSecondaryActionButton(cardConfig, detailHtml) {
     `;
 }
 
+function renderHomePairingWaitActionButton(pairing, primaryAction = '', secondaryAction = '') {
+    if (pairing?.hasPartner) return '';
+    if (primaryAction === 'pair' || secondaryAction === 'pair') return '';
+    const waitingForPartner = isHomePairingWaiting(pairing);
+    return renderHomeSecondaryActionButton({
+        action: 'pair',
+        title: waitingForPartner ? 'コードを共有' : 'コードを発行'
+    }, waitingForPartner ? 'パートナーへコードを送ります' : 'パートナーと候補を作れます');
+}
+
+function getHomePrimaryActionCardConfig(focusCopy, fallbackStageKey, readingStockCount) {
+    const action = focusCopy?.primaryAction || 'sound';
+    const stageKey = getHomeRecommendedStageKey(action) || fallbackStageKey || 'reading';
+    const config = getHomeNextStageCardConfig({
+        action,
+        actionLabel: focusCopy?.primaryLabel || '次へ進む',
+        detail: ''
+    }, readingStockCount);
+    config.title = focusCopy?.primaryLabel || config.title;
+    config.previewHtml = action === 'pair' ? '' : getHomeNextStagePreviewHtml(stageKey);
+    return { config, stageKey };
+}
+
 function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
@@ -3537,24 +3650,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         summaryPanel.style.cssText = 'background:transparent;border:none;';
     }
 
-    const primaryActionStageKey = getHomeRecommendedStageKey(focusCopy.primaryAction) || focusKey;
-    const primaryDetailHtml = focusCopy.primaryAction === 'sound'
-        ? '好きな響きから<br>読み候補を探します'
-        : focusCopy.primaryAction === 'reading'
-            ? '希望の読みから<br>合う漢字を探します'
-            : primaryActionStageKey === 'build'
-                ? '集めた読みと漢字から<br>名前候補を作ります'
-                : primaryActionStageKey === 'save'
-                    ? '候補を見返して<br>名前を絞り込みます'
-                    : '今の候補を見返して<br>次に進めます';
-    const actionCardConfig = {
-        action: focusCopy.primaryAction,
-        title: focusCopy.primaryLabel,
-        detailHtml: primaryDetailHtml,
-        previewHtml: getHomeNextStagePreviewHtml(primaryActionStageKey),
-        variant: 'card',
-        icon: ''
-    };
+    const actionCardConfig = getHomePrimaryActionCardConfig(focusCopy, focusKey, readingStockCount).config;
     const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, {
         highlightStyle: focusKey === initialFocusKey ? tone.cardRecommended : ''
     });
@@ -3577,6 +3673,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
             title: focusCopy.secondaryLabel
         }, secondaryDetailHtml)
         : '';
+    const pairingWaitButton = renderHomePairingWaitActionButton(pairing, actionCardConfig.action, focusCopy.secondaryAction);
     const displayedSteps = timeline.steps.map((step) => {
         const selected = step.key === focusKey;
         return {
@@ -3645,6 +3742,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                 <div class="mt-3">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
+                ${pairingWaitButton ? `<div class="mt-3">${pairingWaitButton}</div>` : ''}
                 </div>
             </div>
         </div>
@@ -3712,26 +3810,14 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
         };
     });
 
-    const actionCardConfig = {
-        action: focusCopy.primaryAction,
-        title: focusCopy.primaryLabel,
-        detailHtml: selectedTabKey === 'reading'
-            ? '好きな響きから<br>読み候補を探します'
-            : selectedTabKey === 'kanji'
-                ? '希望の読みから<br>合う漢字を探します'
-                : selectedTabKey === 'build'
-                    ? '集めた読みと漢字から<br>名前候補を作ります'
-                    : '候補を見返して<br>名前を絞り込みます',
-        previewHtml: getHomeNextStagePreviewHtml(selectedTabKey === 'reading' ? 'reading' : selectedTabKey),
-        variant: 'card',
-        icon: ''
-    };
+    const actionCardConfig = getHomePrimaryActionCardConfig(focusCopy, selectedTabKey, readingStockCount).config;
     const primaryCard = renderHomeNextStagePrimaryButton(actionCardConfig, {
         highlightStyle: selectedTabKey === initialFocusKey ? tone.cardRecommended : ''
     });
     const secondaryButton = focusCopy.secondaryAction
         ? `<button type="button" onclick="event.stopPropagation(); runHomeAction('${focusCopy.secondaryAction}')" class="w-full rounded-[18px] border border-[#eadfce] bg-white px-4 py-3 text-[11px] font-bold text-[#8b7e66] active:scale-[0.98] transition-transform">${focusCopy.secondaryLabel}</button>`
         : '';
+    const pairingWaitButton = renderHomePairingWaitActionButton(pairing, actionCardConfig.action, focusCopy.secondaryAction);
 
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
@@ -3786,6 +3872,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
             <div class="mt-3 rounded-[24px] border border-[#eee5d8] bg-white px-4 py-4 shadow-sm">
                 ${primaryCard}
                 ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
+                ${pairingWaitButton ? `<div class="mt-3">${pairingWaitButton}</div>` : ''}
             </div>
         </div>
     `;

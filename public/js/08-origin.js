@@ -215,6 +215,18 @@ function consumeDailyKanjiDetailUse() {
     }
 }
 
+function refundDailyKanjiDetailUse() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return;
+    try {
+        const nextCount = Math.max(0, getDailyKanjiDetailUseCount() - 1);
+        if (nextCount === 0) {
+            localStorage.removeItem(_getDailyKanjiDetailKey());
+        } else {
+            localStorage.setItem(_getDailyKanjiDetailKey(), String(nextCount));
+        }
+    } catch (error) { }
+}
+
 function sanitizeKanjiAiText(text) {
     return String(text || '')
         .replace(/\r\n/g, '\n')
@@ -734,6 +746,7 @@ async function generateKanjiDetail(kanji, currentReading) {
     const resultEl = document.getElementById('ai-kanji-result');
     if (!resultEl) return;
 
+    const shouldRefundOnFailure = !(typeof isPremiumAccessActive === 'function' && isPremiumAccessActive());
     if (!consumeDailyKanjiDetailUse()) {
         if (typeof showToast === 'function') {
             showToast('今日の無料AIは使い切りました', '🌙');
@@ -1035,10 +1048,13 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
     } catch (err) {
         console.error('AI_KANJI_DETAIL:', err);
+        if (shouldRefundOnFailure) {
+            refundDailyKanjiDetailUse();
+        }
         resultEl.innerHTML = `
-            <div class="bg-[#fef2f2] p-3 rounded-xl text-xs text-[#f28b82] mb-2">
-                漢字の説明を取得できませんでした。時間をおいてもう一度お試しください。
-                ${err?.message ? `<div class="mt-2 whitespace-pre-wrap text-[11px] leading-relaxed opacity-80">${escapeHtml(err.message)}</div>` : ''}
+            <div class="bg-[#fff7ed] p-3 rounded-xl text-xs text-[#9a6a36] mb-2 border border-[#f1ddbf]">
+                <div class="font-black text-[#8b5d28]">AI説明を取得できませんでした。</div>
+                <div class="mt-1 leading-relaxed">通信状態を確認して、少し時間をおいてもう一度お試しください。無料AI回数は消費していません。</div>
             </div>
         `;
     }
@@ -1142,6 +1158,7 @@ window.generateOrigin = generateOrigin;
 window.generateKanjiDetail = generateKanjiDetail;
 window.canUseDailyKanjiDetailAI = canUseDailyKanjiDetailAI;
 window.consumeDailyKanjiDetailUse = consumeDailyKanjiDetailUse;
+window.refundDailyKanjiDetailUse = refundDailyKanjiDetailUse;
 window.renderKanjiDetailText = renderKanjiDetailSections;
 window.renderKanjiDetailSections = renderKanjiDetailSections;
 window.resetKanjiDetailCache = resetKanjiDetailCache;
