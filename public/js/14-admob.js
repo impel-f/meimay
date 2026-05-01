@@ -675,6 +675,7 @@ const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
 let adBannerVisible = false;
 let adBannerMode = null;
+let nativeAdMobInitializePromise = null;
 
 function measureAdBannerHeight(container) {
     if (!container) return 0;
@@ -740,20 +741,22 @@ function initAdMob() {
     showWebAdBanner();
 }
 
-function initNativeAdMob(platform) {
+async function initNativeAdMob(platform) {
     const config = platform === 'ios' ? AdMobConfig.ios : AdMobConfig.android;
     const footerHeight = getBottomFooterHeight();
 
     try {
         const { AdMob } = window.Capacitor.Plugins;
 
-        AdMob.initialize({
-            requestTrackingAuthorization: true,
-            testingDevices: [],
-            initializeForTesting: false
-        });
+        if (!nativeAdMobInitializePromise) {
+            nativeAdMobInitializePromise = AdMob.initialize({
+                testingDevices: [],
+                initializeForTesting: false
+            });
+        }
+        await nativeAdMobInitializePromise;
 
-        AdMob.showBanner({
+        await AdMob.showBanner({
             adId: config.bannerId,
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
@@ -761,12 +764,19 @@ function initNativeAdMob(platform) {
             isTesting: false
         });
 
+        const container = document.getElementById('admob-banner');
+        if (container) {
+            container.style.display = 'none';
+            container.style.bottom = '';
+            container.innerHTML = '';
+        }
         adBannerVisible = true;
         adBannerMode = 'native';
         updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
 
         console.log('ADMOB: Native banner initialized');
     } catch (e) {
+        nativeAdMobInitializePromise = null;
         console.warn('ADMOB: Native init failed, falling back to web', e);
         showWebAdBanner();
     }
@@ -840,7 +850,10 @@ function hideAdBanner() {
 
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
         try {
-            window.Capacitor.Plugins.AdMob.hideBanner();
+            const hideResult = window.Capacitor.Plugins.AdMob.hideBanner();
+            if (hideResult && typeof hideResult.catch === 'function') {
+                hideResult.catch((e) => console.warn('ADMOB: hideBanner failed', e));
+            }
         } catch (e) { console.warn('ADMOB: hideBanner failed', e); }
     }
 }
