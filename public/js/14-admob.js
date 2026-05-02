@@ -14,6 +14,25 @@ const AdMobConfig = {
     }
 };
 
+const AdMobTestAdConfig = {
+    enabled: true,
+    androidBannerId: 'ca-app-pub-3940256099942544/6300978111',
+    iosBannerId: 'ca-app-pub-3940256099942544/2934735716'
+};
+
+function isAdMobTestAdMode() {
+    return AdMobTestAdConfig.enabled === true;
+}
+
+function getAdMobBannerId(platform, config) {
+    if (isAdMobTestAdMode()) {
+        return platform === 'ios'
+            ? AdMobTestAdConfig.iosBannerId
+            : AdMobTestAdConfig.androidBannerId;
+    }
+    return config.bannerId;
+}
+
 const PremiumManager = {
     KEY: 'meimay_premium',
     DEV_FALLBACK_KEY: 'meimay_allow_local_premium',
@@ -854,7 +873,7 @@ async function initNativeAdMob(platform) {
         if (!nativeAdMobInitializePromise) {
             nativeAdMobInitializePromise = AdMob.initialize({
                 testingDevices: [],
-                initializeForTesting: false
+                initializeForTesting: isAdMobTestAdMode()
             });
         }
         await nativeAdMobInitializePromise;
@@ -863,11 +882,11 @@ async function initNativeAdMob(platform) {
         nativeAdMobBannerFailed = false;
         adBannerMode = 'native';
         await AdMob.showBanner({
-            adId: config.bannerId,
+            adId: getAdMobBannerId(platform, config),
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: footerHeight,
-            isTesting: false
+            isTesting: isAdMobTestAdMode()
         });
 
         if (nativeAdMobBannerFailed) return;
@@ -979,6 +998,7 @@ window.MeimayAdMobDebug = {
             platform: getPlatform(),
             nativeRuntime: isCapacitorNativeAdRuntime(),
             adMobPluginAvailable: !!getAdMobPlugin(),
+            testAdMode: isAdMobTestAdMode(),
             visible: adBannerVisible,
             mode: adBannerMode,
             nativeLoaded: nativeAdMobBannerLoaded,

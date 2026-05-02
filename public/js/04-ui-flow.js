@@ -6364,15 +6364,22 @@ function isSampleKanjiAccessibleForCurrentMembership(label) {
     const chars = Array.from(String(label || '').trim()).filter(Boolean);
     if (chars.length === 0) return false;
 
-    return chars.every((char) => {
-        const masterItem = Array.isArray(master)
-            ? master.find((entry) => String(entry?.['漢字'] || '').trim() === char)
-            : null;
-        if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function') {
-            return isKanjiAccessibleForCurrentMembership(masterItem);
-        }
-        return typeof isPremiumAccessActive === 'function' ? isPremiumAccessActive() : true;
-    });
+    return chars.every((char) => isReadingNameCharAccessibleForCurrentMembership(char));
+}
+
+function isReadingNameCharAccessibleForCurrentMembership(char) {
+    const value = String(char || '').trim();
+    if (!value) return false;
+    const masterItem = Array.isArray(master)
+        ? master.find((entry) => String(entry?.['漢字'] || '').trim() === value)
+        : null;
+    if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function') {
+        return isKanjiAccessibleForCurrentMembership(masterItem);
+    }
+    if (!masterItem && /^[\u3040-\u30ff\u3005\u30fc]$/.test(value)) {
+        return true;
+    }
+    return typeof isPremiumAccessActive === 'function' ? isPremiumAccessActive() : true;
 }
 
 function isReadingCandidateLockedForCurrentMembership(candidate) {
@@ -6412,10 +6419,16 @@ function renderReadingSampleExample(example) {
 function renderReadingModalCandidateName(candidate) {
     const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
     const locked = isReadingCandidateLockedForCurrentMembership(candidate);
+    const nameHtml = Array.from(fullName).map((char) => {
+        if (!locked || /\s/.test(char) || isReadingNameCharAccessibleForCurrentMembership(char)) {
+            return escapeHtmlText(char);
+        }
+        return `<span class="reading-modal-candidate-char--locked">${escapeHtmlText(char)}</span>`;
+    }).join('');
 
     return '<div class="reading-modal-candidate-name">'
-        + '<span class="reading-modal-candidate-text' + (locked ? ' reading-modal-candidate-text--locked' : '') + '">'
-        + escapeHtmlText(fullName)
+        + '<span class="reading-modal-candidate-text">'
+        + nameHtml
         + '</span>'
         + (locked ? '<span class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます"><span aria-hidden="true">👑</span><span>人名用</span></span>' : '')
         + '</div>';

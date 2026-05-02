@@ -1121,11 +1121,13 @@ body.has-ad-banner #uni-swipe-action-btns {
 .reading-modal-candidate-name {
     display: flex;
     min-width: 0;
+    width: 100%;
     align-items: center;
     gap: 8px;
 }
 
 .reading-modal-candidate-text {
+    flex: 1 1 auto;
     min-width: 0;
     color: #5d5444;
     font-size: 18px;
@@ -1135,13 +1137,14 @@ body.has-ad-banner #uni-swipe-action-btns {
     word-break: break-word;
 }
 
-.reading-modal-candidate-text--locked {
+.reading-modal-candidate-char--locked {
     color: #8b8b8b;
 }
 
 .reading-modal-jinmei-badge {
     display: inline-flex;
     flex-shrink: 0;
+    margin-left: auto;
     align-items: center;
     justify-content: center;
     gap: 3px;
