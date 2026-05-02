@@ -2055,7 +2055,6 @@ function renderSavedScreen() {
     });
 
     const ownVisibleItems = ownDecoratedAll.filter(entry => entry.isVisibleOwn);
-    const hiddenOwnItems = ownDecoratedAll.filter(entry => !entry.isVisibleOwn);
 
     const partnerDecorated = partnerSaved.map((item, index) => {
         const key = getSavedCandidateKey(item);
@@ -2080,9 +2079,7 @@ function renderSavedScreen() {
         return bTime - aTime;
     });
 
-    // When the regular own list is empty, surface hidden synced/approved items
-    // so the home count and the saved screen stay aligned.
-    let visibleOwn = ownVisibleItems.length > 0 ? ownVisibleItems : hiddenOwnItems;
+    let visibleOwn = ownVisibleItems;
     let visiblePartner = partnerDecorated;
     if (!hasPartnerLinked) {
         visiblePartner = [];

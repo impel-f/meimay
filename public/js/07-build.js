@@ -11,6 +11,7 @@ let shownFbSlots = 1;
 let fbSelectedReading = null;
 let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
+let buildReadingDropdownChoices = [];
 
 function escapeBuildHtml(value) {
     return String(value ?? '')
@@ -199,6 +200,17 @@ function getVisibleAllKanjiBuildCandidates() {
     });
 
     return [...ownItems, ...uniquePartnerItems];
+}
+
+function getVisibleReadingModeKanjiBuildCandidates() {
+    const isPaired = typeof window.MeimayPartnerInsights !== 'undefined'
+        && typeof MeimayPairing !== 'undefined'
+        && !!MeimayPairing.roomCode;
+    if (isPaired && typeof getMergedLikedCandidates === 'function') {
+        return getMergedLikedCandidates()
+            .filter(item => !!item && !isImportedKanjiLibraryItem(item));
+    }
+    return getVisibleOwnKanjiBuildCandidates();
 }
 
 function rememberBuildCandidateExclusions(target) {
@@ -461,55 +473,134 @@ function isBuildReadingReady(reading, candidateSegments = []) {
     });
 }
 
-function getReadyBuildReadingCandidate() {
-    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
-    if (!Array.isArray(stock) || stock.length === 0) return null;
-
+function getBuildHiddenReadingSet() {
     let hiddenList = [];
     try {
         hiddenList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]');
     } catch (error) {
         hiddenList = [];
     }
-    const hiddenSet = new Set(
+    return new Set(
         (Array.isArray(hiddenList) ? hiddenList : [])
             .map(value => typeof getReadingBaseReading === 'function'
                 ? getReadingBaseReading(value)
                 : String(value || '').trim().split('::')[0].trim())
             .filter(Boolean)
     );
+}
 
+function getBuildReadingChoiceKanjiCount(reading, candidateSegments = []) {
+    const seen = new Set();
+    (Array.isArray(candidateSegments) ? candidateSegments : []).forEach((seg, idx) => {
+        const candidates = getUniqueBuildSlotCandidates(seg, idx, reading, {
+            excluded: excludedKanjiFromBuild
+        });
+        candidates.forEach(item => {
+            const key = getLikedCandidateDisplayKey(item) || buildLikedCandidateKey(item);
+            if (key) seen.add(key);
+        });
+    });
+    return seen.size;
+}
+
+function getBuildReadingChoices(options = {}) {
+    const hiddenSet = getBuildHiddenReadingSet();
     const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
         ? getLatestReadingHistoryLookup()
         : {};
-    const orderedStock = typeof sortReadingStockMatches === 'function'
-        ? sortReadingStockMatches(stock)
-        : stock;
-    const seen = new Set();
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const choices = new Map();
 
-    for (const item of orderedStock) {
-        const rawReading = typeof resolveReadingStockValue === 'function'
-            ? resolveReadingStockValue(item)
-            : (item?.reading || item?.sessionReading || '');
+    const addChoice = (rawReading, rawSegments = [], source = 'self', sourceItem = null) => {
         const reading = typeof getReadingBaseReading === 'function'
             ? getReadingBaseReading(rawReading)
             : String(rawReading || '').trim().split('::')[0].trim();
-        if (!reading || hiddenSet.has(reading)) continue;
+        if (!reading || hiddenSet.has(reading)) return;
+        const candidateSegments = getBuildCandidateSegmentsForReading(reading, rawSegments, historyLookup);
+        if (!Array.isArray(candidateSegments) || candidateSegments.length === 0) return;
+        if (options.readyOnly !== false && !isBuildReadingReady(reading, candidateSegments)) return;
 
-        const sourceSegments = Array.isArray(item?.segments) && item.segments.length > 0
-            ? item.segments
-            : item?.sessionSegments;
-        const candidateSegments = getBuildCandidateSegmentsForReading(reading, sourceSegments, historyLookup);
-        const key = `${reading}::${candidateSegments.join('/')}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
+        const key = typeof getReadingStockKey === 'function'
+            ? getReadingStockKey(reading, candidateSegments)
+            : `${reading}::${candidateSegments.join('/')}`;
+        const existing = choices.get(key) || {
+            key,
+            reading,
+            segments: candidateSegments,
+            hasSelf: false,
+            hasPartner: false,
+            isSuper: false,
+            addedAt: '',
+            kanjiCount: 0
+        };
 
-        if (isBuildReadingReady(reading, candidateSegments)) {
-            return { reading, segments: candidateSegments };
+        if (source === 'partner') existing.hasPartner = true;
+        else existing.hasSelf = true;
+        existing.isSuper = existing.isSuper || !!(sourceItem && (sourceItem.isSuper || sourceItem.ownSuper || sourceItem.partnerSuper));
+        const addedAt = String(sourceItem?.addedAt || sourceItem?.timestamp || sourceItem?.savedAt || '');
+        if (addedAt && (!existing.addedAt || Date.parse(addedAt) > Date.parse(existing.addedAt || ''))) {
+            existing.addedAt = addedAt;
         }
-    }
+        existing.kanjiCount = Math.max(existing.kanjiCount || 0, getBuildReadingChoiceKanjiCount(reading, candidateSegments));
+        choices.set(key, existing);
+    };
 
-    return null;
+    const addFromLiked = (items, source) => {
+        (Array.isArray(items) ? items : []).forEach(item => {
+            const rawReading = item?.sessionReading || item?.reading || '';
+            if (!rawReading || ['FREE', 'SEARCH', 'RANKING', 'SHARED', 'UNKNOWN'].includes(rawReading)) return;
+            const slot = Number(item?.slot);
+            if (!Number.isFinite(slot) || slot < 0) return;
+            const sourceSegments = Array.isArray(item?.sessionSegments) && item.sessionSegments.length > 0
+                ? item.sessionSegments
+                : (Array.isArray(item?.segments) ? item.segments : []);
+            addChoice(rawReading, sourceSegments, source, item);
+        });
+    };
+
+    const ownLikedItems = pairInsights?.getOwnLiked
+        ? pairInsights.getOwnLiked()
+        : (Array.isArray(liked) ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)) : []);
+    addFromLiked(ownLikedItems, 'self');
+
+    const partnerLikedItems = pairInsights?.getPartnerLiked
+        ? pairInsights.getPartnerLiked()
+        : [];
+    addFromLiked(partnerLikedItems, 'partner');
+
+    const addFromReadingStock = (items, source) => {
+        (Array.isArray(items) ? items : []).forEach(item => {
+            const rawReading = typeof resolveReadingStockValue === 'function'
+                ? resolveReadingStockValue(item)
+                : (item?.reading || item?.sessionReading || '');
+            const sourceSegments = Array.isArray(item?.segments) && item.segments.length > 0
+                ? item.segments
+                : (Array.isArray(item?.sessionSegments) ? item.sessionSegments : []);
+            addChoice(rawReading, sourceSegments, source, item);
+        });
+    };
+
+    addFromReadingStock(typeof getReadingStock === 'function' ? getReadingStock() : [], 'self');
+    addFromReadingStock(pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [], 'partner');
+
+    return Array.from(choices.values())
+        .filter(choice => choice.kanjiCount > 0)
+        .sort((a, b) => {
+            const aSourceRank = a.hasSelf && a.hasPartner ? 0 : a.hasSelf ? 1 : 2;
+            const bSourceRank = b.hasSelf && b.hasPartner ? 0 : b.hasSelf ? 1 : 2;
+            if (aSourceRank !== bSourceRank) return aSourceRank - bSourceRank;
+            if (!!a.isSuper !== !!b.isSuper) return a.isSuper ? -1 : 1;
+            const aTime = Date.parse(a.addedAt || '') || 0;
+            const bTime = Date.parse(b.addedAt || '') || 0;
+            if (aTime !== bTime) return bTime - aTime;
+            return a.reading.localeCompare(b.reading, 'ja');
+        });
+}
+
+function getReadyBuildReadingCandidate() {
+    const choices = getBuildReadingChoices();
+    const first = choices[0];
+    return first ? { reading: first.reading, segments: first.segments } : null;
 }
 
 function getSafeFreeBuildAutoReading(choices) {
@@ -1489,7 +1580,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
     const source = (partnerOnly || matchedOnly) && typeof getMergedLikedCandidates === 'function'
         ? getMergedLikedCandidates()
-        : getVisibleOwnKanjiBuildCandidates();
+        : getVisibleReadingModeKanjiBuildCandidates();
     const stockCandidates = source.filter((item) => {
         const slotMatch = item.slot === idx;
         const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
@@ -2460,32 +2551,31 @@ function toggleReadingDropdown() {
         return;
     }
 
-    // 読みストック一覧を構築
-    let removedList = [];
-    try { removedList = JSON.parse(localStorage.getItem('meimay_hidden_readings') || '[]'); } catch (e) { }
-
-    const completedReadings = [...new Set(
-        (liked || []).filter(item =>
-            item.sessionReading && item.sessionReading !== 'FREE' && item.sessionReading !== 'SEARCH' && item.slot >= 0 && !removedList.includes(item.sessionReading)
-        ).map(item => item.sessionReading)
-    )];
-
-    const historyLookup = getLatestReadingHistoryLookup();
-
+    buildReadingDropdownChoices = getBuildReadingChoices();
     const currentReading = getSafeBuildCurrentReading();
+    const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
 
-    if (completedReadings.length === 0) {
-        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読みストックがありません</div>';
+    if (buildReadingDropdownChoices.length === 0) {
+        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">ビルドできる読み候補がありません</div>';
     } else {
-        dropdown.innerHTML = completedReadings.map(reading => {
-            const displaySegments = getDisplaySegmentsForReading(reading, historyLookup);
-            const display = displaySegments.length > 0 ? displaySegments.join(' / ') : reading;
-            const isCurrent = reading === currentReading;
-            const kanjiCount = (liked || []).filter(i => i.sessionReading === reading && i.slot >= 0).length;
-            return `<button onclick="selectReadingForBuild('${reading}')"
+        dropdown.innerHTML = buildReadingDropdownChoices.map((choice, index) => {
+            const displaySegments = Array.isArray(choice.segments) ? choice.segments : [];
+            const display = displaySegments.length > 0 ? displaySegments.join(' / ') : choice.reading;
+            const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
+            const sourceClass = choice.hasSelf && choice.hasPartner
+                ? 'bg-[#fff3d8] text-[#9a7841] border-[#ead7ac]'
+                : choice.hasPartner
+                    ? 'bg-[#fff0f5] text-[#a25f78] border-[#f4d3df]'
+                    : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
+            const isCurrent = choice.reading === currentReading
+                && displaySegments.join('/') === currentSegments.join('/');
+            return `<button onclick="selectReadingForBuildByIndex(${index})"
                 class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
-                <span class="text-sm font-bold text-[#5d5444]">${display}${isCurrent ? '（現在）' : ''}</span>
-                <span class="text-[10px] text-[#a6967a]">${kanjiCount}個</span>
+                <span class="min-w-0 flex-1 pr-3">
+                    <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(display)}${isCurrent ? '（現在）' : ''}</span>
+                    <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
+                </span>
+                <span class="shrink-0 text-[10px] text-[#a6967a]">${choice.kanjiCount}個</span>
             </button>`;
         }).join('');
     }
@@ -2507,7 +2597,14 @@ function toggleReadingDropdown() {
 }
 window.toggleReadingDropdown = toggleReadingDropdown;
 
-function selectReadingForBuild(reading) {
+function selectReadingForBuildByIndex(index) {
+    const choice = buildReadingDropdownChoices[Number(index)];
+    if (!choice) return;
+    selectReadingForBuild(choice.reading, choice.segments || []);
+}
+window.selectReadingForBuildByIndex = selectReadingForBuildByIndex;
+
+function selectReadingForBuild(reading, preferredSegments = []) {
     const dropdown = document.getElementById('reading-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
     const caret = document.getElementById('reading-mode-caret');
@@ -2517,7 +2614,7 @@ function selectReadingForBuild(reading) {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
     if (typeof openBuildFromReading === 'function') {
-        openBuildFromReading(reading);
+        openBuildFromReading(reading, preferredSegments);
     }
 }
 window.selectReadingForBuild = selectReadingForBuild;

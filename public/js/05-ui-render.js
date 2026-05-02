@@ -2152,6 +2152,9 @@ function getHomeOwnershipSummary() {
                 : (typeof savedNames !== 'undefined' && Array.isArray(savedNames) ? savedNames : []);
             return Array.isArray(savedSource) ? savedSource : [];
         })();
+    const visibleOwnSavedItems = Array.isArray(ownSavedItems)
+        ? ownSavedItems.filter(item => !item?.fromPartner && !item?.approvedFromPartner)
+        : [];
     const ownReadingItems = pairInsights?.getOwnReadingStock
         ? pairInsights.getOwnReadingStock()
         : ((typeof getReadingStock === 'function') ? getReadingStock() : []);
@@ -2163,7 +2166,7 @@ function getHomeOwnershipSummary() {
 
     const displaySavedCount = isPaired && typeof getMergedSavedNames === 'function'
         ? getMergedSavedNames().length
-        : ownSavedItems.length;
+        : visibleOwnSavedItems.length;
 
     const displayReadingCount = isPaired && pairInsights?.getPartnerReadingStock
         ? (() => {
@@ -2177,7 +2180,7 @@ function getHomeOwnershipSummary() {
         pairInsights,
         pairing,
         ownLikedItems,
-        ownSavedItems,
+        ownSavedItems: visibleOwnSavedItems,
         ownReadingItems,
         ownLikedCount: displayLikedCount,
         ownSavedCount: displaySavedCount,
@@ -2704,6 +2707,11 @@ function openHomePartnerHub() {
     const partnerPendingReadings = partnerReadings.filter(item => !partnerInsights?.isPartnerReadingApproved?.(item));
     const matchedSavedCount = pairing.matchedNameCount || 0;
     const matchedLikedCount = pairing.matchedKanjiCount || 0;
+    const alignmentCard = typeof window.MeimayChildWorkspaces !== 'undefined'
+        && window.MeimayChildWorkspaces
+        && typeof window.MeimayChildWorkspaces.renderPartnerAlignmentCard === 'function'
+            ? window.MeimayChildWorkspaces.renderPartnerAlignmentCard()
+            : '';
 
     const modal = document.createElement('div');
     modal.id = 'home-partner-hub-modal';
@@ -2718,6 +2726,7 @@ function openHomePartnerHub() {
                     <div class="mt-1 text-sm font-bold text-[#5d5444]">${pairing.title}</div>
                     <div class="mt-2 text-[11px] text-[#8b7e66] leading-relaxed">${pairing.footnote}</div>
                 </div>
+                ${alignmentCard ? `<div class="mt-4">${alignmentCard}</div>` : ''}
                 <div class="grid grid-cols-2 gap-3 mt-4">
                     <button onclick="openHomePartnerHubAction('partner-saved', event)" class="text-left rounded-2xl border border-[#f4d3cf] bg-white px-4 py-3 active:scale-[0.98] transition-transform">
                         <div class="text-[10px] font-black tracking-wide text-[#dd7d73]">相手の保存候補</div>

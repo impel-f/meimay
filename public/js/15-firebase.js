@@ -1816,6 +1816,9 @@ const MeimayPartnerInsights = {
             const partnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
                 ? manager.getPartnerChildForChild(activeChild)
                 : null;
+            const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
+                ? manager.isPartnerAlignmentReviewRequired()
+                : false;
             const activeBirthOrder = Number(activeChild?.meta?.birthOrder || activeChild?.birthOrder || 1);
             const activeTwinIndex = activeChild?.meta?.birthGroupIndex
                 ?? activeChild?.meta?.twinIndex
@@ -1830,11 +1833,11 @@ const MeimayPartnerInsights = {
                 partnerChild,
                 partnerChildCount,
                 localChildCount,
-                requiresScopedChild: !!activeChild && (
+                requiresScopedChild: !!activeChild && (alignmentNeedsReview || (
                     localChildCount > 1
                     || activeBirthOrder > 1
                     || !(activeTwinIndex === null || activeTwinIndex === undefined || activeTwinIndex === '')
-                )
+                ))
             };
         } catch (error) {
             console.warn('PAIRING: Failed to resolve partner child context', error);
@@ -2458,9 +2461,15 @@ function updatePairingLinkedNextActions(inRoom, hasPartner) {
     const summary = getPairingLinkedActionSummary();
     const matchedTotal = summary.matchedReadingCount + summary.matchedKanjiCount + summary.matchedNameCount;
     const matchedAction = getPairingMatchedAction(summary);
+    const alignmentCard = typeof MeimayChildWorkspaces !== 'undefined'
+        && MeimayChildWorkspaces
+        && typeof MeimayChildWorkspaces.renderPartnerAlignmentCard === 'function'
+            ? MeimayChildWorkspaces.renderPartnerAlignmentCard()
+            : '';
     const actionItems = [
+        alignmentCard,
         renderPairingLinkedActionButton('saved', '保存済みで見比べる', '残した名前をふたり分並べて確認します。')
-    ];
+    ].filter(Boolean);
 
     if (summary.partnerReadingCount > 0) {
         actionItems.push(renderPairingLinkedActionButton('partner-reading', '相手の読みを見る', '相手の読みストックを確認して、気になるものを取り込めます。', {
@@ -6432,6 +6441,9 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             // 子ワークスペース状態（本命選択など）をリアルタイムに反映
             if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
                 MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
+                if (typeof updatePairingUI === 'function') {
+                    updatePairingUI();
+                }
             }
                 } catch (error) {
                     console.warn('SHARE: Listen partner data error', error);

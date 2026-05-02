@@ -5984,6 +5984,17 @@ function sortReadingCandidatesForDisplay(list) {
     return [...(Array.isArray(list) ? list : [])].sort(compareReadingCandidatesForDisplay);
 }
 
+function getReadingCandidateSlotKeys(candidate) {
+    const combination = Array.isArray(candidate?.combination) ? candidate.combination : [];
+    const slotKeys = combination
+        .map((piece) => String(piece?.['漢字'] || piece?.kanji || '').trim())
+        .filter(Boolean);
+
+    if (slotKeys.length > 0) return slotKeys;
+
+    return Array.from(getReadingCandidateDisplayName(candidate)).filter(Boolean);
+}
+
 // 最初の区切りが長い候補を先に見せる
 function compareReadingSegmentOptionsForDisplay(a, b) {
     const aPath = Array.isArray(a?.path) ? a.path.filter(Boolean) : [];
@@ -6004,40 +6015,60 @@ function compareReadingSegmentOptionsForDisplay(a, b) {
 }
 
 function pickReadingDisplayCandidates(allCandidates, limit) {
-    const rankedCandidates = sortReadingCandidatesForDisplay(allCandidates);
+    const rankedCandidates = sortReadingCandidatesForDisplay(allCandidates)
+        .map((candidate, index) => ({ candidate, index }));
     const selected = [];
     const selectedNames = new Set();
-    const firstSlotSeen = new Set();
-
-    const getFirstSlotKey = (candidate) => {
-        const firstPiece = Array.isArray(candidate?.combination) ? candidate.combination[0] : null;
-        const firstKanji = firstPiece && firstPiece['漢字'] ? String(firstPiece['漢字']).trim() : '';
-        return firstKanji || String(candidate?.givenName || candidate?.fullName || '').trim();
-    };
+    const slotSeen = [];
 
     const addCandidate = (candidate) => {
         if (!candidate || selected.length >= limit) return false;
-        const nameKey = String(candidate.givenName || candidate.fullName || '').trim();
+        const nameKey = getReadingCandidateDisplayName(candidate);
         if (!nameKey || selectedNames.has(nameKey)) return false;
         selected.push(candidate);
         selectedNames.add(nameKey);
+        getReadingCandidateSlotKeys(candidate).forEach((slotKey, slotIndex) => {
+            if (!slotSeen[slotIndex]) slotSeen[slotIndex] = new Set();
+            slotSeen[slotIndex].add(slotKey);
+        });
         return true;
     };
 
-    rankedCandidates.forEach((candidate) => {
-        if (selected.length >= limit) return;
-        const firstSlotKey = getFirstSlotKey(candidate);
-        if (!firstSlotKey || firstSlotSeen.has(firstSlotKey)) return;
-        if (addCandidate(candidate)) {
-            firstSlotSeen.add(firstSlotKey);
-        }
-    });
+    while (selected.length < limit) {
+        let bestEntry = null;
+        let bestScore = -Infinity;
 
-    if (selected.length < limit) {
-        rankedCandidates.forEach((candidate) => {
-            if (selected.length >= limit) return;
-            addCandidate(candidate);
+        rankedCandidates.forEach((entry) => {
+            const candidate = entry.candidate;
+            const nameKey = getReadingCandidateDisplayName(candidate);
+            if (!candidate || !nameKey || selectedNames.has(nameKey)) return;
+
+            const slotKeys = getReadingCandidateSlotKeys(candidate);
+            let diversityScore = 0;
+
+            slotKeys.forEach((slotKey, slotIndex) => {
+                const alreadySeen = slotSeen[slotIndex]?.has(slotKey);
+                if (alreadySeen) {
+                    diversityScore -= 14 + slotIndex;
+                } else {
+                    diversityScore += 120 - (slotIndex * 6);
+                    if (slotIndex > 0) diversityScore += 26;
+                }
+            });
+
+            diversityScore += Math.min(slotKeys.length, 4) * 8;
+            diversityScore -= entry.index * 0.08;
+            diversityScore += (candidate._displayNoise || candidate._sampleNoise || 0) * 0.01;
+
+            if (diversityScore > bestScore) {
+                bestScore = diversityScore;
+                bestEntry = entry;
+            }
         });
+
+        if (!bestEntry || !addCandidate(bestEntry.candidate)) {
+            break;
+        }
     }
 
     return sortReadingCandidatesForDisplay(selected).slice(0, limit);
@@ -6047,9 +6078,10 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
     if (!Array.isArray(path) || path.length === 0) return [];
 
     const includeLockedExamples = !!options.includeLockedExamples;
-    const groups = path.map((segment) => {
+    const groups = path.map((segment, segmentIndex) => {
         const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender, {
-            includeLockedExamples
+            includeLockedExamples,
+            segmentIndex
         });
         const pool = sortReadingCandidatesForDisplay(
             rawGroup
@@ -6427,6 +6459,92 @@ function renderReadingSampleExample(example) {
         + '</span>';
 }
 
+function getReadingSampleLabelLength(label) {
+    return Array.from(String(label || '').replace(/\s+/g, '')).length;
+}
+
+function compareReadingSampleExamples(a, b) {
+    if ((a.priority || 0) !== (b.priority || 0)) return (a.priority || 0) - (b.priority || 0);
+    const scoreDelta = (b.score || 0) - (a.score || 0);
+    if (scoreDelta !== 0) return scoreDelta;
+    const noiseDelta = (a.noise || 0) - (b.noise || 0);
+    if (noiseDelta !== 0) return noiseDelta;
+    if ((a.order || 0) !== (b.order || 0)) return (a.order || 0) - (b.order || 0);
+    return String(a.label || '').localeCompare(String(b.label || ''), 'ja');
+}
+
+function compareSelectedReadingSampleDisplay(a, b) {
+    const aPriority = a.priority || 0;
+    const bPriority = b.priority || 0;
+    const aDirect = aPriority < 1000;
+    const bDirect = bPriority < 1000;
+    if (aDirect !== bDirect) return aDirect ? -1 : 1;
+
+    const lengthDelta = (a.labelLength || getReadingSampleLabelLength(a.label)) -
+        (b.labelLength || getReadingSampleLabelLength(b.label));
+    if (lengthDelta !== 0) return lengthDelta;
+
+    return compareReadingSampleExamples(a, b);
+}
+
+function selectBalancedReadingSampleExamples(examples, limit = 4) {
+    const cleanExamples = (Array.isArray(examples) ? examples : [])
+        .filter((example) => example && example.label)
+        .map((example, index) => ({
+            ...example,
+            order: typeof example.order === 'number' ? example.order : index,
+            labelLength: example.labelLength || getReadingSampleLabelLength(example.label),
+            noise: typeof example.noise === 'number' ? example.noise : Math.random()
+        }))
+        .sort(compareReadingSampleExamples);
+
+    const buckets = new Map();
+    cleanExamples.forEach((example) => {
+        const bucketKey = String(example.labelLength || getReadingSampleLabelLength(example.label));
+        if (!buckets.has(bucketKey)) buckets.set(bucketKey, []);
+        buckets.get(bucketKey).push(example);
+    });
+
+    const bucketKeys = [...buckets.keys()].sort((a, b) => Number(a) - Number(b));
+    const selected = [];
+    const selectedLabels = new Set();
+
+    while (selected.length < limit) {
+        let addedThisRound = false;
+
+        bucketKeys.forEach((bucketKey) => {
+            if (selected.length >= limit) return;
+            const bucket = buckets.get(bucketKey) || [];
+
+            while (bucket.length > 0) {
+                const next = bucket.shift();
+                const labelKey = String(next.label || '').trim();
+                if (!labelKey || selectedLabels.has(labelKey)) continue;
+                selected.push(next);
+                selectedLabels.add(labelKey);
+                addedThisRound = true;
+                break;
+            }
+        });
+
+        if (!addedThisRound) break;
+    }
+
+    if (selected.length < limit) {
+        cleanExamples.forEach((example) => {
+            if (selected.length >= limit) return;
+            const labelKey = String(example.label || '').trim();
+            if (!labelKey || selectedLabels.has(labelKey)) return;
+            selected.push(example);
+            selectedLabels.add(labelKey);
+        });
+    }
+
+    return selected
+        .slice(0, limit)
+        .sort(compareSelectedReadingSampleDisplay);
+}
+
 function renderReadingModalCandidateName(candidate) {
     const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
     const locked = isReadingCandidateLockedForCurrentMembership(candidate);
@@ -6450,21 +6568,35 @@ function getSampleKanjiHtml(item) {
     const examples = [];
     const seen = new Set();
 
-    const addExample = (label, locked = false, priority = 1000) => {
+    const addExample = (label, locked = false, priority = 1000, meta = {}) => {
         const normalizedLabel = String(label || '').trim();
         if (!normalizedLabel || seen.has(normalizedLabel)) return;
         seen.add(normalizedLabel);
-        examples.push({ label: normalizedLabel, locked: !!locked, priority });
+        examples.push({
+            label: normalizedLabel,
+            locked: !!locked,
+            priority,
+            labelLength: meta.labelLength || getReadingSampleLabelLength(normalizedLabel),
+            score: meta.score || 0,
+            noise: typeof meta.noise === 'number' ? meta.noise : Math.random(),
+            order: examples.length
+        });
     };
 
     getDirectCuratedReadingExamples(item.reading).forEach((example, index) => {
-        addExample(example.label, example.locked, index);
+        addExample(example.label, example.locked, index, {
+            labelLength: getReadingSampleLabelLength(example.label)
+        });
     });
 
     options.forEach((option) => {
-        sortReadingCandidatesForDisplay(option.candidates).slice(0, 4).forEach((candidate) => {
+        pickReadingDisplayCandidates(option.candidates, 4).forEach((candidate) => {
             const label = candidate.givenName || candidate.fullName;
-            addExample(label, isReadingCandidateLockedForCurrentMembership(candidate), 1000);
+            addExample(label, isReadingCandidateLockedForCurrentMembership(candidate), 1000, {
+                labelLength: getReadingSampleLabelLength(label),
+                score: candidate.score || 0,
+                noise: typeof candidate._displayNoise === 'number' ? candidate._displayNoise : Math.random()
+            });
         });
     });
 
@@ -6472,12 +6604,7 @@ function getSampleKanjiHtml(item) {
         return '<span class="text-xs text-[#d4c5af]">候補なし</span>';
     }
 
-    return examples
-        .sort((a, b) => {
-            if ((a.priority || 0) !== (b.priority || 0)) return (a.priority || 0) - (b.priority || 0);
-            return a.label.length - b.label.length || a.label.localeCompare(b.label, 'ja');
-        })
-        .slice(0, 4)
+    return selectBalancedReadingSampleExamples(examples, 4)
         .map(renderReadingSampleExample)
         .join('');
 }
