@@ -608,14 +608,20 @@ function openNicknameInput() {
 /**
  * 役割選択
  */
-function openRoleInput() {
+function openRoleInput(options = {}) {
+    const config = typeof options === 'function' ? { onSave: options } : (options || {});
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
-    const current = wizData?.role || 'other';
-    showChoiceModal('役割を選択', '', [
+    const current = (wizData?.role === 'mama' || wizData?.role === 'papa' || (!config.parentOnly && wizData?.role === 'other'))
+        ? wizData.role
+        : (config.parentOnly ? '' : 'other');
+    const optionsList = [
         { label: 'ママ', value: 'mama' },
-        { label: 'パパ', value: 'papa' },
-        { label: 'その他', value: 'other' }
-    ], current, (value) => {
+        { label: 'パパ', value: 'papa' }
+    ];
+    if (!config.parentOnly) {
+        optionsList.push({ label: 'その他', value: 'other' });
+    }
+    showChoiceModal(config.title || '役割を選択', config.description || '', optionsList, current, (value) => {
         if (typeof WizardData !== 'undefined') {
             const data = WizardData.get() || {};
             const previousRole = data.role;
@@ -626,6 +632,19 @@ function openRoleInput() {
                 MeimayShare.syncProfileAppearance();
             }
             syncProfileAppearance({ rerenderSettings: true });
+        }
+        try {
+            if (value === 'mama' || value === 'papa') {
+                localStorage.setItem('meimay_my_role', value);
+            } else if (!localStorage.getItem('meimay_room_code')) {
+                localStorage.removeItem('meimay_my_role');
+            }
+        } catch (error) { }
+        if (typeof syncPairingRoleSelectionFromProfile === 'function') {
+            syncPairingRoleSelectionFromProfile();
+        }
+        if (typeof config.onSave === 'function') {
+            config.onSave(value);
         }
     });
 }
@@ -660,7 +679,11 @@ function rebuildSurnameDataFromState() {
     });
 }
 
-function openSurnameInput() {
+function openSurnameInput(options = {}) {
+    const afterSave = typeof options === 'function'
+        ? options
+        : (typeof options?.onSave === 'function' ? options.onSave : null);
+
     showSurnameModal(surnameStr, surnameReading, (kanji, reading) => {
         surnameStr = kanji || '';
         surnameReading = reading || '';
@@ -697,6 +720,13 @@ function openSurnameInput() {
         saveSettings();
         renderSettingsScreen();
         if (typeof renderHomeProfile === 'function') renderHomeProfile();
+        if (afterSave) {
+            afterSave({
+                surname: surnameStr,
+                surnameReading,
+                surnameData: Array.isArray(surnameData) ? surnameData : []
+            });
+        }
     });
 }
 

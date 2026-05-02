@@ -305,6 +305,14 @@ const KANJI_DETAIL_GROUNDED_HINTS = {
     }
 };
 
+const KANJI_DETAIL_CORE_SECTION_ORDER = ['成り立ち', '意味の深掘り', '代表的な熟語'];
+const KANJI_DETAIL_CORE_SECTION_SET = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
+const KANJI_DETAIL_SECTION_ICON_MAP = {
+    '成り立ち': '🧬',
+    '意味の深掘り': '💡',
+    '代表的な熟語': '✨'
+};
+
 const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.22';
 let kanjiDetailDatasetPromise = null;
 
@@ -393,6 +401,27 @@ function extractRepresentativeIdiomWord(line) {
         .trim();
 }
 
+function dedupeRepresentativeIdiomLines(lines, limit = 5) {
+    const mergedLines = [];
+    const seenWords = new Set();
+
+    for (const rawLine of Array.isArray(lines) ? lines : []) {
+        const line = sanitizeKanjiAiText(rawLine);
+        if (!line) continue;
+
+        const word = extractRepresentativeIdiomWord(line);
+        const normalizedWord = sanitizeKanjiAiText(word).replace(/[・\s]/g, '');
+        const key = normalizedWord || line;
+        if (seenWords.has(key)) continue;
+
+        seenWords.add(key);
+        mergedLines.push(line);
+        if (limit && mergedLines.length >= limit) break;
+    }
+
+    return mergedLines;
+}
+
 function collectRepresentativeIdiomFallbackLines(kanji, dataset) {
     const targetKanji = String(kanji || '').trim();
     if (!targetKanji) return [];
@@ -475,27 +504,99 @@ function cachedKanjiDetailMatchesHint(text, groundedHint) {
     return groundedHint.requiredKeywords.every((keyword) => normalizedText.includes(keyword));
 }
 
-function extractKanjiDetailSectionMap(aiText) {
-    const normalizedText = sanitizeKanjiAiText(aiText);
+function normalizeKanjiDetailSectionMarkers(text) {
+    return sanitizeKanjiAiText(text)
+        .replace(/[［\[]/g, '【')
+        .replace(/[］\]]/g, '】')
+        .replace(/(^|\n)\s*[^\n【】]{0,12}【\s*(成り立ち|意味の深掘り|代表的な熟語)\s*(?=[\s　:：\-ー]|$)/g, '$1【$2】\n')
+        .replace(/(^|\n)\s*[🧬💡✨📚🏷️⭐️★☆◆◇・\-\s]*(?:代表\s*)?【\s*(成り立ち|意味の深掘り|代表的な熟語)\s*】/g, '$1【$2】')
+        .replace(/(^|\n)\s*[🧬💡✨📚🏷️⭐️★☆◆◇・\-\s]*(成り立ち|意味の深掘り|代表的な熟語)\s*[:：]\s*/g, '$1【$2】\n')
+        .replace(/([^\n])(?=【(?:成り立ち|意味の深掘り|代表的な熟語|[^】\n]{1,28}由来)】)/g, '$1\n')
+        .trim();
+}
+
+function mergeKanjiDetailSectionContent(title, primaryContent, nextContent) {
+    const primary = sanitizeKanjiAiText(primaryContent);
+    const next = sanitizeKanjiAiText(nextContent);
+    if (!primary) return next;
+    if (!next || primary === next) return primary;
+    if (title === '代表的な熟語') return mergeRepresentativeIdiomSectionText(primary, next);
+    if (KANJI_DETAIL_CORE_SECTION_SET.has(title)) return primary;
+    return primary;
+}
+
+function extractKanjiDetailSectionList(aiText) {
+    const normalizedText = normalizeKanjiDetailSectionMarkers(aiText);
     const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|(?![^]))/gm;
-    const sectionMap = new Map();
+    const sections = [];
     let match;
 
     while ((match = sectionPattern.exec(normalizedText)) !== null) {
         const title = normalizeKanjiDetailTitle(match[1]) || sanitizeKanjiAiText(match[1]);
         const content = sanitizeKanjiAiText(match[2]);
-        if (title && content) sectionMap.set(title, content);
+        if (title && content) sections.push({ title, content });
+    }
+
+    return sections;
+}
+
+function extractKanjiDetailSectionMap(aiText) {
+    const sectionMap = new Map();
+
+    for (const { title, content } of extractKanjiDetailSectionList(aiText)) {
+        const currentContent = sectionMap.get(title) || '';
+        sectionMap.set(title, mergeKanjiDetailSectionContent(title, currentContent, content));
     }
 
     return sectionMap;
 }
 
+function getOrderedKanjiDetailSections(aiText) {
+    const sectionMap = new Map();
+    const extras = [];
+    const extraTitles = new Set();
+
+    for (const { title, content } of extractKanjiDetailSectionList(aiText)) {
+        if (!title || !content) continue;
+
+        if (KANJI_DETAIL_CORE_SECTION_SET.has(title)) {
+            const currentContent = sectionMap.get(title) || '';
+            sectionMap.set(title, mergeKanjiDetailSectionContent(title, currentContent, content));
+            continue;
+        }
+
+        if (extraTitles.has(title)) continue;
+        extraTitles.add(title);
+        extras.push({ title, content });
+    }
+
+    return [
+        ...KANJI_DETAIL_CORE_SECTION_ORDER
+            .map((title) => ({ title, content: sectionMap.get(title) || '' }))
+            .filter((section) => section.content),
+        ...extras
+    ];
+}
+
+function canonicalizeKanjiDetailText(aiText) {
+    const sections = getOrderedKanjiDetailSections(aiText);
+    if (!sections.length) return sanitizeKanjiAiText(aiText);
+    return sections
+        .map(({ title, content }) => {
+            const body = title === '代表的な熟語'
+                ? formatRepresentativeIdiomContent(content)
+                : sanitizeKanjiAiText(content);
+            return body ? `【${title}】\n${body}` : '';
+        })
+        .filter(Boolean)
+        .join('\n\n');
+}
+
 function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
     const sectionMap = extractKanjiDetailSectionMap(aiText);
-    const orderedTitles = ['成り立ち', '意味の深掘り', '代表的な熟語'];
     const blocks = [];
 
-    for (const title of orderedTitles) {
+    for (const title of KANJI_DETAIL_CORE_SECTION_ORDER) {
         const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
@@ -513,8 +614,8 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         if (content) blocks.push(`【${title}】\n${content}`);
     }
 
-    if (!blocks.length) return sanitizeKanjiAiText(aiText);
-    return blocks.join('\n\n');
+    if (!blocks.length) return canonicalizeKanjiDetailText(aiText);
+    return canonicalizeKanjiDetailText(blocks.join('\n\n'));
 }
 
 function upsertKanjiDetailSection(aiText, title, content) {
@@ -522,15 +623,15 @@ function upsertKanjiDetailSection(aiText, title, content) {
     const normalizedContent = sanitizeKanjiAiText(content);
     if (!normalizedContent) return normalizedText;
 
-    const matches = Array.from(normalizedText.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g));
-    if (!matches.length) {
+    const sections = extractKanjiDetailSectionList(normalizedText);
+    if (!sections.length) {
         return `【${title}】\n${normalizedContent}`;
     }
 
     let found = false;
-    const rebuilt = matches.map((match) => {
-        const currentTitle = normalizeKanjiDetailTitle(match[1]);
-        const currentContent = sanitizeKanjiAiText(match[2]);
+    const rebuilt = sections.map(({ title: rawTitle, content: rawContent }) => {
+        const currentTitle = normalizeKanjiDetailTitle(rawTitle);
+        const currentContent = sanitizeKanjiAiText(rawContent);
         if (!currentTitle) return '';
         if (currentTitle === title) {
             found = true;
@@ -540,12 +641,20 @@ function upsertKanjiDetailSection(aiText, title, content) {
     }).filter(Boolean);
 
     if (!found) rebuilt.unshift(`【${title}】\n${normalizedContent}`);
-    return rebuilt.join('\n\n');
+    return canonicalizeKanjiDetailText(rebuilt.join('\n\n'));
 }
 
 function normalizeKanjiDetailTitle(title) {
-    const normalized = sanitizeKanjiAiText(title);
-    if (normalized === '入力情報' || normalized === '基本情報') return '';
+    const normalized = sanitizeKanjiAiText(title)
+        .replace(/[【】［］\[\]]/g, '')
+        .replace(/[🧬💡✨📚🏷️⭐️★☆◆◇・]/g, '')
+        .replace(/^[\s\d０-９一二三四五六七八九十]+[.)、．:：\-ー]?\s*/, '')
+        .trim();
+    const compact = normalized.replace(/\s+/g, '');
+    if (!compact || compact === '入力情報' || compact === '基本情報') return '';
+    if (/成り立|字源/.test(compact)) return '成り立ち';
+    if (/代表的な熟語|熟語/.test(compact) || compact === '代表' || /^代表[:：]?/.test(compact)) return '代表的な熟語';
+    if (/意味|深掘|字義|ニュアンス/.test(compact)) return '意味の深掘り';
     return normalized;
 }
 
@@ -560,26 +669,22 @@ function isLikelyTruncatedSection(text) {
 
 function formatRepresentativeIdiomContent(content) {
     const parsed = parseRepresentativeIdiomLines(content);
-    if (parsed.length > 0) return parsed.join('\n');
-    return sanitizeKanjiAiText(content)
+    if (parsed.length > 0) return dedupeRepresentativeIdiomLines(parsed).join('\n');
+    const fallbackLines = sanitizeKanjiAiText(content)
         .split('\n')
         .map((line) => line
             .replace(/^[・\-•●◇◆\d]+[.)、．]?\s*/, '')
             .trim())
         .filter(Boolean)
-        .join('\n');
+        .map((line) => line.startsWith('・') ? line : `・${line}`);
+    return dedupeRepresentativeIdiomLines(fallbackLines).join('\n');
 }
 
 function mergeRepresentativeIdiomSectionText(primaryContent, secondaryContent) {
-    const mergedLines = [];
-    for (const line of [
+    return dedupeRepresentativeIdiomLines([
         ...parseRepresentativeIdiomLines(primaryContent),
         ...parseRepresentativeIdiomLines(secondaryContent)
-    ]) {
-        if (!mergedLines.includes(line)) mergedLines.push(line);
-        if (mergedLines.length >= 5) break;
-    }
-    return mergedLines.join('\n');
+    ]).join('\n');
 }
 
 function countRepresentativeIdiomCandidates(content) {
@@ -595,7 +700,7 @@ function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
 意味: ${meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
 
-以下の各セクションを【】で区切って回答してください。
+以下の順番と見出しで回答してください。見出しはこの3種類以外を使わず、文字列を完全一致させてください。
 
 【成り立ち】
 ${groundedHint?.promptContext
@@ -609,6 +714,9 @@ ${groundedHint?.promptContext
 この漢字を使った実在する熟語を3〜5個、読みと意味付きで挙げてください。2〜4字を目安にし、1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
 
 【絶対に守るルール】
+・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
+・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
+・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・口調は必ずです・ます調で統一してください。
 ・「アプリ内辞書では」という表現は使わないでください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
@@ -668,6 +776,9 @@ ${currentIdioms || 'なし'}
 
 【お願い】
 ・足りない部分だけを直してください。
+・出力順は必ず【意味の深掘り】→【代表的な熟語】にしてください。
+・見出しは【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
+・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
 ・【代表的な熟語】は、実在する熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。2〜4字を目安にしてください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
@@ -974,6 +1085,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 }
             }
 
+            baseText = canonicalizeKanjiDetailText(baseText);
             const shouldPersistBaseText = finalIdiomsCount >= 3;
 
             if (shouldPersistBaseText) {
@@ -1051,7 +1163,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
         }
 
-        const combinedText = [baseText, readingText].filter(Boolean).join('\n\n');
+        const combinedText = canonicalizeKanjiDetailText([baseText, readingText].filter(Boolean).join('\n\n'));
         if (!combinedText) {
             throw new Error('表示できる説明がありません。');
         }
@@ -1079,62 +1191,16 @@ async function generateKanjiDetail(kanji, currentReading) {
 }
 
 function renderKanjiDetailText(resultEl, aiText) {
-    const normalizedText = sanitizeKanjiAiText(aiText);
-    const matches = Array.from(normalizedText.matchAll(/【([^】]+)】([\s\S]*?)(?=【[^】]+】|$)/g));
-    const iconMap = {
-        '成り立ち': '🧬',
-        '意味の深掘り': '💡',
-        '代表的な熟語': '📚'
-    };
-
-    if (!matches.length) {
-        resultEl.innerHTML = `
-            <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
-            </div>
-        `;
-        return;
-    }
-
-    const html = matches.map((match) => {
-        const title = normalizeKanjiDetailTitle(match[1]);
-        let content = sanitizeKanjiAiText(match[2]);
-        if (!title || !content) return '';
-        if (title === '代表的な熟語') {
-            content = formatRepresentativeIdiomContent(content);
-        }
-        const icon = iconMap[title] || (title.includes('由来') ? '🏷️' : '✨');
-        return `
-            <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
-                    <span>${icon}</span>
-                    ${title}
-                </div>
-                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${content}</p>
-            </div>
-        `;
-    }).join('');
-
-    resultEl.innerHTML = html;
+    renderKanjiDetailSections(resultEl, aiText);
 }
 
 function renderKanjiDetailSections(resultEl, aiText) {
     const normalizedText = sanitizeKanjiAiText(aiText);
-    const sectionPattern = /^【([^】]+)】\s*([\s\S]*?)(?=^【[^】]+】|(?![^]))/gm;
-    const sections = [];
-    let match;
-
-    while ((match = sectionPattern.exec(normalizedText)) !== null) {
-        const rawTitle = sanitizeKanjiAiText(match[1]);
-        const title = normalizeKanjiDetailTitle(rawTitle) || rawTitle;
-        const content = sanitizeKanjiAiText(match[2]);
-        if (title || content) sections.push({ title, content });
-    }
+    const sections = getOrderedKanjiDetailSections(normalizedText);
 
     const getIcon = (title) => {
-        if (title.includes('成り立ち')) return '🧬';
+        if (KANJI_DETAIL_SECTION_ICON_MAP[title]) return KANJI_DETAIL_SECTION_ICON_MAP[title];
         if (title.includes('由来') || title.includes('理由') || title.includes('読み')) return '🏷️';
-        if (title.includes('熟語')) return '✨';
         return '✨';
     };
 
@@ -1146,10 +1212,10 @@ function renderKanjiDetailSections(resultEl, aiText) {
         return `
             <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
                 <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
-                    <span>${getIcon(title)}</span>
-                    ${title}
+                    <span>${escapeHtml(getIcon(title))}</span>
+                    ${escapeHtml(title)}
                 </div>
-                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${displayContent}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${escapeHtml(displayContent)}</p>
             </div>
         `;
     };
@@ -1157,7 +1223,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
     if (!sections.length) {
         resultEl.innerHTML = `
             <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${escapeHtml(normalizedText)}</p>
             </div>
         `;
         return;
@@ -1166,7 +1232,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
     const html = sections.map(({ title, content }) => renderBlock(title, content)).filter(Boolean).join('');
     resultEl.innerHTML = html || `
         <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
-            <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${normalizedText}</p>
+            <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${escapeHtml(normalizedText)}</p>
         </div>
     `;
 }

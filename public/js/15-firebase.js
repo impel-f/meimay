@@ -15,7 +15,7 @@ const firebaseConfig = {
 };
 
 let firebaseApp, firebaseAuth, firebaseDb;
-const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 3000;
+const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 1200;
 const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
 
 try {
@@ -995,6 +995,8 @@ const MeimayPairing = {
     _isLeavingRoom: false,
     _retiringUsedRoom: false,
     _markPairingUsedInFlight: false,
+    _syncInProgress: false,
+    _syncPending: false,
 
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
@@ -1085,7 +1087,19 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { showToast('サインインを待っています。', '\u23f3'); return null; }
         const role = this._selectedCreateRole || getPreferredPairingRole();
-        if (!role) { showToast('先に設定でママ / パパを選んでください', '\u26a0'); return null; }
+        if (!role) {
+            if (typeof openRoleInput === 'function') {
+                openRoleInput({
+                    parentOnly: true,
+                    title: 'コードを発行する役割',
+                    description: 'パートナーに共有する前に、あなたの役割を選びます。',
+                    onSave: () => this.createRoom()
+                });
+            } else {
+                showToast('先に設定でママ / パパを選んでください', '\u26a0');
+            }
+            return null;
+        }
         if (this._selectedCreateRole !== role) this.selectCreateRole(role);
         const pairingSurname = getCurrentPairingSurnameState();
         if (!pairingSurname.surname) {
@@ -1130,7 +1144,19 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser();
         if (!user) { showToast('サインインを待っています。', '\u23f3'); return { success: false }; }
         const role = this._selectedJoinRole || getPreferredPairingRole();
-        if (!role) { showToast('先に設定でママ / パパを選んでください', '\u26a0'); return { success: false }; }
+        if (!role) {
+            if (typeof openRoleInput === 'function') {
+                openRoleInput({
+                    parentOnly: true,
+                    title: '参加する役割',
+                    description: 'この端末をママ / パパのどちらとして連携するか選びます。',
+                    onSave: () => this.joinRoom(code)
+                });
+            } else {
+                showToast('先に設定でママ / パパを選んでください', '\u26a0');
+            }
+            return { success: false, pendingRole: true };
+        }
         if (this._selectedJoinRole !== role) this.selectJoinRole(role);
         if (!code || code.trim().length < 4) { showToast('コードを入力してください', '\u26a0'); return { success: false }; }
 
@@ -2314,6 +2340,22 @@ function formatPairingParticipantLabel(name, role, fallbackLabel = '') {
 function syncPairingRoleSelectionFromProfile() {
     const preferredRole = getPreferredPairingRole();
     const preferredRoleLabel = getPreferredPairingRoleLabel();
+    const displayEl = document.getElementById('pairing-role-display');
+    if (displayEl) {
+        displayEl.textContent = preferredRoleLabel || '未設定';
+    }
+
+    const subtextEl = document.getElementById('pairing-role-subtext');
+    if (subtextEl) {
+        subtextEl.textContent = preferredRoleLabel
+            ? `${preferredRoleLabel}としてパートナー連携します`
+            : '連携前にママ / パパを選んでください';
+    }
+
+    const actionEl = document.getElementById('pairing-role-action-label');
+    if (actionEl) {
+        actionEl.textContent = preferredRoleLabel ? '変更する' : '選ぶ';
+    }
 
     const createLabel = document.getElementById('pairing-create-role-label');
     if (createLabel) {
@@ -2416,19 +2458,27 @@ function updatePairingLinkedNextActions(inRoom, hasPartner) {
     const summary = getPairingLinkedActionSummary();
     const matchedTotal = summary.matchedReadingCount + summary.matchedKanjiCount + summary.matchedNameCount;
     const matchedAction = getPairingMatchedAction(summary);
+    const actionItems = [
+        renderPairingLinkedActionButton('saved', '保存済みで見比べる', '残した名前をふたり分並べて確認します。')
+    ];
+
+    if (summary.partnerReadingCount > 0) {
+        actionItems.push(renderPairingLinkedActionButton('partner-reading', '相手の読みを見る', '相手の読みストックを確認して、気になるものを取り込めます。', {
+            count: summary.partnerReadingCount
+        }));
+    }
+
+    if (matchedAction && matchedTotal > 0) {
+        actionItems.push(renderPairingLinkedActionButton(matchedAction, '一致候補を見る', 'ふたりとも気になっている読み・漢字・名前だけを見ます。', {
+            count: matchedTotal
+        }));
+    }
+
     mount.innerHTML = `
         <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] p-3 text-left">
-            <div class="mb-2 text-[10px] font-black tracking-[0.16em] text-[#b9965b]">次に一緒に見るもの</div>
+            <div class="mb-2 text-[10px] font-black tracking-[0.16em] text-[#b9965b]">連携後にできること</div>
             <div class="space-y-2">
-                ${renderPairingLinkedActionButton('saved', '保存済みで見比べる', '残した名前をふたり分並べて確認します。')}
-                ${renderPairingLinkedActionButton('partner-reading', summary.partnerReadingCount > 0 ? '相手の読みを見る' : '相手の読みはこれから', '相手の読みストックを確認して、気になるものを取り込めます。', {
-                    count: summary.partnerReadingCount,
-                    disabled: summary.partnerReadingCount <= 0
-                })}
-                ${renderPairingLinkedActionButton(matchedAction || 'matched', matchedTotal > 0 ? '一致候補を見る' : '一致候補はこれから', 'ふたりとも気になっている読み・漢字・名前だけを見ます。', {
-                    count: matchedTotal,
-                    disabled: !matchedAction
-                })}
+                ${actionItems.join('')}
             </div>
         </div>
     `;
@@ -2493,6 +2543,12 @@ function updatePairingUI() {
 
         const codeEl = document.getElementById('pairing-code-display-linked');
         if (codeEl) codeEl.textContent = MeimayPairing.roomCode;
+
+        const codeBlockEl = document.getElementById('pairing-linked-code-block');
+        if (codeBlockEl) codeBlockEl.classList.toggle('hidden', hasPartner);
+
+        const shareCodeBtn = document.getElementById('pairing-share-code-btn');
+        if (shareCodeBtn) shareCodeBtn.classList.toggle('hidden', hasPartner);
 
         const myRoleEl = document.getElementById('pairing-my-role');
         if (myRoleEl) myRoleEl.textContent = formatPairingParticipantLabel(getWizardNickname(), MeimayPairing.myRole, 'あなた');
@@ -2631,6 +2687,9 @@ MeimayPairing._autoSyncDebounced = (function () {
         // 復元中はデバウンスされた実行もスキップ
         if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
             return;
+        }
+        if (this._syncInProgress) {
+            this._syncPending = true;
         }
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => MeimayPairing.syncMyData(), PARTNER_ROOM_SYNC_DEBOUNCE_MS);
@@ -4244,7 +4303,10 @@ MeimayPairing.syncMyData = async function () {
     if (!user || !this.roomCode) return;
     
     // 二重送信防止
-    if (this._syncInProgress) return;
+    if (this._syncInProgress) {
+        this._syncPending = true;
+        return;
+    }
 
     // パートナーからのデータ反映（復元）中は、ループ防止のため送信をスキップ
     if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
@@ -4469,6 +4531,14 @@ MeimayPairing.syncMyData = async function () {
         console.error('PAIRING: Sync data failed', e);
     } finally {
         this._syncInProgress = false;
+        if (this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
+            this._syncPending = false;
+            setTimeout(() => {
+                if (this.roomCode && typeof this.syncMyData === 'function') {
+                    this.syncMyData();
+                }
+            }, 250);
+        }
     }
 };
 

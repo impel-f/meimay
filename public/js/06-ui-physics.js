@@ -37,8 +37,25 @@ function setupPhysics(card, data) {
         });
     };
 
+    const suppressTextEditingContext = () => {
+        const activeElement = document.activeElement;
+        if (activeElement && typeof activeElement.blur === 'function' && /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')) {
+            try {
+                activeElement.blur();
+            } catch (err) { }
+        }
+        try {
+            const selection = window.getSelection && window.getSelection();
+            if (selection && typeof selection.removeAllRanges === 'function') {
+                selection.removeAllRanges();
+            }
+        } catch (err) { }
+    };
+
     // ポインターダウン
     card.onpointerdown = e => {
+        if (e.cancelable) e.preventDefault();
+        suppressTextEditingContext();
         // 既にスワイプ中の場合は無視
         if (card.classList.contains('swipe-right') ||
             card.classList.contains('swipe-left') ||
@@ -71,6 +88,7 @@ function setupPhysics(card, data) {
     // ポインター移動
     card.onpointermove = e => {
         if (!active) return;
+        if (e.cancelable) e.preventDefault();
 
         dx = e.clientX - sx;
         dy = e.clientY - sy;
@@ -92,7 +110,8 @@ function setupPhysics(card, data) {
         if (!active) return;
 
         active = false;
-        card.releasePointerCapture(e.pointerId);
+        if (e.cancelable) e.preventDefault();
+        try { card.releasePointerCapture(e.pointerId); } catch (err) { }
         card.style.willChange = 'auto'; // GPU解放
         // ナビゲーションのpointer-eventsを復元
         const _nav = document.getElementById('bottom-nav');
@@ -151,6 +170,12 @@ function setupPhysics(card, data) {
  * ボタンからの手動スワイプ
  */
 function manual(dir) {
+    const activeElement = document.activeElement;
+    if (activeElement && typeof activeElement.blur === 'function' && /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')) {
+        try {
+            activeElement.blur();
+        } catch (err) { }
+    }
     // カードタップ直後のghost clickによる誤発動を防ぐ（300ms以内は無視）
     if (Date.now() - (window._lastCardTap || 0) < 300) {
         console.log('PHYSICS: manual() blocked – ghost click guard');

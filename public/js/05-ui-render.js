@@ -81,6 +81,18 @@ function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'wa
     `;
 }
 
+function openPremiumExpansionFromEmptyState() {
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    if (premiumActive) {
+        retrySwipeEmptyState({ includeNoped: false });
+        return;
+    }
+    if (typeof showPremiumModal === 'function') {
+        showPremiumModal();
+    }
+}
+window.openPremiumExpansionFromEmptyState = openPremiumExpansionFromEmptyState;
+
 function isKanjiDetailAiAvailableForCurrentUser() {
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     return premiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
@@ -197,7 +209,7 @@ function render() {
                 detail: 'プレミアムで候補の範囲を広げる',
                 count: actionCounts?.premium,
                 tone: 'premium',
-                onclick: "if (typeof showPremiumModal === 'function') showPremiumModal();"
+                onclick: "openPremiumExpansionFromEmptyState()"
             },
             {
                 show: !actionCounts || actionCounts.revisit > 0,
@@ -226,7 +238,7 @@ function render() {
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-6 shadow-[0_18px_45px_rgba(93,84,68,0.12)]">
-                    <p class="text-[#5d5444] font-black text-lg">候補をすべて見ました</p>
+                    <p class="text-[#5d5444] font-black text-lg">☑候補をすべてみました</p>
                     <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
                     ${expansionHtml ? `<div class="my-5 flex flex-col gap-2.5">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
                     ${goToBuild ?
@@ -262,10 +274,26 @@ function render() {
     // 読みは実幅に合わせて1行に収め、マッチした読みは必ず残す
     const readingsHTML = allReadings.length > 0 ?
         allReadings.map(r => {
-            const isMatch = normalizeKana(r) === normalizeKana(currentSearchReading);
+            const normalizedReading = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(r)
+                : normalizeKana(r);
+            const normalizedSearch = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(currentSearchReading)
+                : normalizeKana(currentSearchReading);
+            const normalizedMatched = typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(data._swipeMatchedReading || '')
+                : normalizeKana(data._swipeMatchedReading || '');
+            const rawMatched = String(data._swipeMatchedReadingRaw || '').trim();
+            const isMatch = normalizedReading === normalizedSearch ||
+                (normalizedMatched && normalizedReading === normalizedMatched) ||
+                (rawMatched && r === rawMatched);
             return `<span class="kanji-reading-chip ${isMatch ? 'kanji-reading-chip-active' : ''}">${r}</span>`;
         }).join(' ') + `<span class="kanji-reading-more" hidden></span>` :
         '';
+
+    const flexibleMatchHTML = data._swipeMatchKind === 'partial' && data._swipeMatchDisplayLabel
+        ? `<div class="kanji-swipe-flex-reading"><span>柔軟読み</span><strong>${escapeKanjiDetailHtml(data._swipeMatchDisplayLabel)}</strong></div>`
+        : '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
     const unifiedTags = getUnifiedTags((data['分類'] || ''));
@@ -295,6 +323,8 @@ function render() {
                 <div class="kanji-swipe-meaning">
                     <p>${shortMeaning || '意味情報なし'}</p>
                 </div>
+
+                ${flexibleMatchHTML}
             </div>
 
             <div class="kanji-swipe-hint">タップで詳細 / スワイプで選択</div>
@@ -477,6 +507,22 @@ function retrySwipeEmptyState(options = {}) {
         includeNoped = false,
         nextRule = null
     } = options;
+    let additionalBaseKeys = null;
+
+    if (nextRule === 'lax' && typeof buildSwipeStackCandidates === 'function') {
+        const currentRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
+        const baseCandidates = buildSwipeStackCandidates({
+            slotIdx: currentPos,
+            ruleOverride: currentRule,
+            includeNoped: true,
+            suppressLogs: true
+        });
+        additionalBaseKeys = new Set((Array.isArray(baseCandidates) ? baseCandidates : [])
+            .map(item => typeof getSwipeCandidateDisplayKey === 'function'
+                ? getSwipeCandidateDisplayKey(item)
+                : String(item?.['漢字'] || item?.kanji || '').trim())
+            .filter(Boolean));
+    }
 
     if (nextRule) {
         if (typeof setTemporarySwipeRule === 'function') {
@@ -488,6 +534,9 @@ function retrySwipeEmptyState(options = {}) {
         }
     }
 
+    window._swipeAdditionalBaseKeysForSlot = additionalBaseKeys && additionalBaseKeys.size > 0
+        ? { slotIdx: currentPos, keys: [...additionalBaseKeys] }
+        : null;
     window._includeNopedForSlot = includeNoped ? currentPos : null;
     currentIdx = 0;
     swipes = 0;
@@ -1403,8 +1452,17 @@ async function handleHomePairQuickJoin(event) {
 
     const role = getDefaultHomePairJoinRole();
     if (!role) {
-        if (typeof showToast === 'function') showToast('参加前にママ / パパを選んでください', '⚠️');
-        if (typeof changeScreen === 'function') changeScreen('scr-login');
+        if (typeof openRoleInput === 'function') {
+            openRoleInput({
+                parentOnly: true,
+                title: '参加する役割を選択',
+                description: 'パートナー連携で、あなたをママ / パパのどちらとして表示するか選びます。',
+                onSave: () => handleHomePairQuickJoin()
+            });
+        } else {
+            if (typeof showToast === 'function') showToast('参加前にママ / パパを選んでください', '⚠️');
+            if (typeof changeScreen === 'function') changeScreen('scr-login');
+        }
         return;
     }
 

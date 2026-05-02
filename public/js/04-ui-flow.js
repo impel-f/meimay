@@ -5796,6 +5796,7 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
             _recommendationScore: 100000 - (index * 1000),
             _genderPriority: 1,
             _curatedOrder: index,
+            _curatedNoise: Math.random(),
             _premiumLocked: !accessible
         });
     });
@@ -5811,7 +5812,12 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
     const includeLockedExamples = !!options.includeLockedExamples;
     const cacheKey = `strict::${target}::${targetGender}::${segmentIndex}::${includeLockedExamples ? 'withLocked' : 'freeOnly'}`;
     if (readingKanjiCache.has(cacheKey)) {
-        return readingKanjiCache.get(cacheKey).slice(0, limit);
+        const refreshed = readingKanjiCache.get(cacheKey).map((item) => ({
+            ...item,
+            _curatedNoise: typeof item?._curatedOrder === 'number' ? Math.random() : item?._curatedNoise,
+            _displayNoise: Math.random() * 120
+        }));
+        return sortReadingCandidatesForDisplay(refreshed).slice(0, limit);
     }
 
     const curatedItems = getCuratedSegmentCandidateItems(target, targetGender, { includeLockedExamples });
@@ -5960,11 +5966,16 @@ function compareReadingCandidatesForDisplay(a, b) {
     const aCuratedOrder = typeof a?._curatedOrder === 'number' ? a._curatedOrder : null;
     const bCuratedOrder = typeof b?._curatedOrder === 'number' ? b._curatedOrder : null;
     if (aCuratedOrder !== null && bCuratedOrder !== null && aCuratedOrder !== bCuratedOrder) {
+        const curatedNoiseDelta = (a?._curatedNoise || 0) - (b?._curatedNoise || 0);
+        if (curatedNoiseDelta !== 0) return curatedNoiseDelta;
         return aCuratedOrder - bCuratedOrder;
     }
 
     const scoreDelta = (b?.score || 0) - (a?.score || 0);
     if (scoreDelta !== 0) return scoreDelta;
+
+    const noiseDelta = (a?._displayNoise || 0) - (b?._displayNoise || 0);
+    if (noiseDelta !== 0) return noiseDelta;
 
     return aName.localeCompare(bName, 'ja');
 }

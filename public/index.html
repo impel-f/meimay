@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-<link rel="stylesheet" href="/css/main.css?v=25.83">
+<link rel="stylesheet" href="/css/main.css?v=25.85">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.18">
 
     <!-- Google AdSense -->
@@ -787,6 +787,21 @@
                 <p class="text-xs text-[#a6967a] leading-relaxed">コードで連携すると、保存・ストック・本命を一緒に確認できます。</p>
             </div>
 
+            <!-- 役割 -->
+            <div id="pairing-role-card" class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4 shadow-sm">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-black text-[#8b7e66] mb-1">あなたの役割</p>
+                        <p id="pairing-role-display" class="text-[15px] font-black text-[#5d5444] leading-snug">未設定</p>
+                        <p id="pairing-role-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">連携時にママ / パパの表示に使います</p>
+                    </div>
+                    <button type="button" onclick="if(typeof openRoleInput==='function'){openRoleInput({parentOnly:true,title:'役割を選択',description:'パートナー連携で、あなたをママ / パパのどちらとして表示するか選びます。'});}"
+                        class="shrink-0 px-4 py-2 rounded-full border border-[#eadfce] bg-[#fdfaf5] text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
+                        <span id="pairing-role-action-label">選ぶ</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 苗字 -->
             <div id="pairing-surname-card" class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
@@ -861,14 +876,14 @@
                     <div class="text-xs text-[#a6967a] mb-4">
                         あなた：<span id="pairing-my-role" class="font-bold text-[#8b7e66]">-</span>
                     </div>
-                    <!-- ルームコード（常に表示） -->
-                    <div class="mb-4">
+                    <!-- 連携待ちの共有コード -->
+                    <div id="pairing-linked-code-block" class="mb-4">
                         <p class="text-[10px] text-[#a6967a] mb-2">共有コード</p>
                         <div id="pairing-code-display-linked"
                             class="text-2xl font-black tracking-widest text-[#5d5444] p-3 bg-[#fdfaf5] rounded-xl border border-[#eee5d8] select-all">
                         </div>
                     </div>
-                    <button onclick="MeimayPairing.shareCode()"
+                    <button id="pairing-share-code-btn" onclick="MeimayPairing.shareCode()"
                         class="w-full py-2.5 mb-4 bg-[#bca37f] text-white rounded-xl font-bold text-sm hover:bg-[#8b7e66] transition-all">
                         コードを共有する
                     </button>
@@ -1473,20 +1488,20 @@
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
     <script src="/js/01-core.js?v=26.07"></script>
-<script src="/js/02-engine.js?v=25.32"></script>
+<script src="/js/02-engine.js?v=25.34"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-<script src="/js/04-ui-flow.js?v=26.34"></script>
-<script src="/js/05-ui-render.js?v=25.56"></script>
-    <script src="/js/06-ui-physics.js?v=25.15"></script>
-    <script src="/js/07-build.js?v=25.43"></script>
-<script src="/js/08-origin.js?v=25.47"></script>
+<script src="/js/04-ui-flow.js?v=26.35"></script>
+<script src="/js/05-ui-render.js?v=25.59"></script>
+    <script src="/js/06-ui-physics.js?v=25.16"></script>
+    <script src="/js/07-build.js?v=25.44"></script>
+<script src="/js/08-origin.js?v=25.48"></script>
     <script src="/js/09-storage.js?v=26.03"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.34"></script>
+    <script src="/js/11-settings.js?v=25.36"></script>
     <script src="/js/12-history.js?v=25.53"></script>
     <script src="/js/13-drawer-wizard.js?v=25.28"></script>
-    <script src="/js/14-admob.js?v=25.58"></script>
-<script src="/js/15-firebase.js?v=26.28"></script>
+    <script src="/js/14-admob.js?v=25.61"></script>
+<script src="/js/15-firebase.js?v=26.32"></script>
     <script src="/js/data/legal-docs.js?v=25.18"></script>
     <script src="/js/16-legal.js?v=25.17"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>

@@ -530,6 +530,30 @@ body.hide-top-bar .screen-header-shell {
     text-align: center;
 }
 
+.kanji-swipe-flex-reading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: 24px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.64);
+    color: #9a7b50;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 4px 12px rgba(93, 84, 68, 0.06);
+    flex-shrink: 0;
+}
+
+.kanji-swipe-flex-reading strong {
+    color: #5d5444;
+    font-size: 12px;
+    line-height: 1;
+}
+
 .kanji-swipe-hint {
     color: #c7b596;
     font-size: 9px;
@@ -573,6 +597,92 @@ body.has-ad-banner #uni-swipe-action-btns {
     box-shadow: 0 8px 18px -16px rgba(93, 84, 68, 0.28) !important;
 }
 
+@media (max-height: 760px) {
+    #scr-main .hud-top-mini,
+    #scr-swipe-universal .hud-top-mini {
+        min-height: 40px !important;
+        margin-bottom: 8px !important;
+    }
+
+    #scr-main #stack-container,
+    #scr-swipe-universal #uni-swipe-container {
+        margin-top: 10px !important;
+    }
+
+    #scr-main .card,
+    #scr-swipe-universal .card {
+        top: 32px;
+        padding: 8px;
+        border-radius: 42px !important;
+    }
+
+    .kanji-swipe-kanji {
+        font-size: clamp(76px, 14vh, 96px);
+    }
+
+    .kanji-swipe-main {
+        gap: 8px;
+    }
+
+    .kanji-swipe-tags {
+        gap: 4px;
+        max-height: 28px;
+    }
+
+    .kanji-swipe-readings {
+        max-height: 30px;
+    }
+
+    .kanji-reading-chip,
+    .kanji-reading-more {
+        min-height: 24px;
+        padding: 3px 7px;
+        font-size: 11px;
+    }
+
+    .kanji-swipe-meaning {
+        padding: 6px 10px;
+        border-radius: 16px;
+    }
+
+    .kanji-swipe-meaning p {
+        line-height: 1.35;
+    }
+
+    .reading-swipe-card-content {
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .reading-swipe-heading-main {
+        margin: 8px 0 0;
+        padding: 4px 0 5px;
+    }
+
+    .reading-swipe-example-card {
+        border-radius: 22px;
+        padding: 9px 10px;
+    }
+
+    .reading-swipe-example-label {
+        margin-bottom: 8px;
+    }
+
+    #swipe-action-btns,
+    #uni-swipe-action-btns {
+        gap: 14px;
+        margin-top: 8px;
+        margin-bottom: 8px;
+        padding-top: 0 !important;
+    }
+
+    #swipe-action-btns button,
+    #uni-swipe-action-btns button {
+        width: 58px !important;
+        height: 58px !important;
+    }
+}
+
 @media (max-height: 720px) {
     .kanji-swipe-hint {
         font-size: 8px;
@@ -580,6 +690,34 @@ body.has-ad-banner #uni-swipe-action-btns {
 
     .kanji-swipe-meaning p {
         -webkit-line-clamp: 1;
+    }
+}
+
+@media (max-height: 640px) {
+    #scr-main .card,
+    #scr-swipe-universal .card {
+        top: 24px;
+        border-radius: 36px !important;
+    }
+
+    .kanji-swipe-kanji {
+        font-size: clamp(68px, 13vh, 86px);
+    }
+
+    .kanji-swipe-tags,
+    .kanji-swipe-hint,
+    .reading-swipe-hint {
+        display: none;
+    }
+
+    .reading-swipe-example-card {
+        padding: 8px 10px;
+    }
+
+    #swipe-action-btns button,
+    #uni-swipe-action-btns button {
+        width: 54px !important;
+        height: 54px !important;
     }
 }
 

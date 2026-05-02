@@ -1094,14 +1094,16 @@ function buildPremiumMembershipState(record, source, options = {}) {
     const expiredStatuses = new Set(['expired', 'refunded', 'revoked', 'billing_retry']);
     const expiredByDate = !!expiresAt && expiresAt.getTime() <= Date.now();
     const expired = expiredByDate || expiredStatuses.has(status);
-    const isTrial = premiumSource === 'trial' || status === 'trialing' || trialStatus === 'active';
+    const isStorePurchase = ['revenuecat', 'app_store', 'appstore', 'google_play', 'google'].includes(premiumSource) || !!productId;
+    const isTrial = !isStorePurchase && (premiumSource === 'trial' || status === 'trialing' || trialStatus === 'active');
+    const trialActive = !isStorePurchase && trialStatus === 'active';
     const trialConsumed = !!trialConsumedAt || trialStatus === 'consumed' || trialStatus === 'expired' || (hasTrialIndicators && expired);
     const localFallbackActive = options.allowLocalFallback === true
         && !hasPremiumIndicators
         && options.localPremium === true;
     const isPartner = source === 'partner';
     const active = !expired
-        && (explicitPremium === true || status === 'active' || status === 'trialing' || trialStatus === 'active' || localFallbackActive)
+        && (explicitPremium === true || status === 'active' || status === 'trialing' || trialActive || localFallbackActive)
         && !(isPartner && isTrial);
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
 
@@ -1441,6 +1443,13 @@ PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackPr
     this._remoteExpiresAt = expiresAt ? expiresAt.toISOString() : null;
     this._remoteProductId = productId || this._remoteProductId || null;
     this._remoteLastNotificationType = 'revenuecat_customer_info';
+    if (active) {
+        this._remoteTrialStatus = null;
+        this._remoteTrialStartedAt = null;
+        this._remoteTrialEndsAt = null;
+        this._remoteTrialConsumedAt = null;
+        this._remoteTrialConsumedByRoom = false;
+    }
 
     await this._syncCurrentPremiumState();
     return active;
@@ -1861,6 +1870,19 @@ function updatePremiumUI() {
         }
     }
 
+    if (typeof render === 'function') {
+        const kanjiSwipeScreen = document.getElementById('scr-main');
+        if (kanjiSwipeScreen && kanjiSwipeScreen.classList.contains('active')) {
+            const stackExhausted = Array.isArray(stack) && currentIdx >= stack.length;
+            if (state.active && stackExhausted && Array.isArray(segments) && segments.length > 0 && typeof loadStack === 'function') {
+                currentIdx = 0;
+                loadStack();
+            } else {
+                render();
+            }
+        }
+    }
+
     if (typeof renderSettingsScreen === 'function') {
         renderSettingsScreen();
     }
@@ -1971,28 +1993,28 @@ function renderPremiumPlanCards(state) {
     if (!state || state.active) return '';
 
     return ''
-        + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf8] shadow-[0_10px_24px_rgba(123,95,52,0.08)]">'
-        + '<div class="flex items-center justify-between gap-3 border-b border-[#eadfcd] bg-[#f8f1e5] px-3 py-2.5">'
-        + '<div class="text-[12px] sm:text-[13px] font-black text-[#4b3a24]">有料プラン</div>'
-        + '<div class="shrink-0 text-[10px] font-bold text-[#8b7e66]">購入はストアで管理</div>'
+        + '<div class="overflow-hidden rounded-[20px] border border-[#e3d6c2] bg-white shadow-[0_12px_28px_rgba(123,95,52,0.08)]">'
+        + '<div class="flex items-center justify-between gap-3 border-b border-[#eee3d2] bg-[#fbf6ed] px-4 py-3">'
+        + '<div class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">有料プラン</div>'
+        + '<div class="shrink-0 text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">購入・返金はストアで管理</div>'
         + '</div>'
-        + '<div class="divide-y divide-[#efe5d3]">'
+        + '<div class="divide-y divide-[#f0e7d8]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
-            const rowClass = 'bg-white';
-            const buttonClass = 'bg-white text-[#5b4f3f] border border-[#dcc9aa]';
-            const planTitle = plan.note ? `${plan.title}（${plan.note}）` : plan.title;
+            const note = plan.note || '';
+            const buttonClass = 'bg-[#fffaf2] text-[#5b4f3f] border border-[#d9c39f] shadow-[0_4px_12px_rgba(123,95,52,0.06)]';
             return ''
-                + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 ' + rowClass + '">'
+                + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 bg-white">'
                 + '<div class="min-w-0">'
-                + '<div class="flex flex-wrap items-center gap-2">'
-                + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(planTitle) + '</span>'
+                + '<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">'
+                + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
+                + (note ? '<span class="text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">' + escapePremiumHtml(note) + '</span>' : '')
                 + '</div>'
-                + '<div class="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
-                + '<span class="text-[20px] sm:text-[22px] font-black leading-none">' + escapePremiumHtml(plan.price) + '</span>'
-                + (plan.description ? '<span class="text-[10px] font-bold text-[#8b7e66]">・' + escapePremiumHtml(plan.description) + '</span>' : '')
+                + '<div class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
+                + '<span class="text-[24px] sm:text-[26px] font-black leading-none tracking-normal">' + escapePremiumHtml(plan.price) + '</span>'
+                + (plan.description ? '<span class="text-[10px] font-medium text-[#8b7e66]">' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'
-                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[6.4rem] rounded-[999px] px-3 py-2 text-[12px] font-black active:scale-[0.99] ' + buttonClass + '">'
+                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[6.2rem] rounded-[999px] px-3.5 py-2.5 text-[12px] font-black active:scale-[0.99] transition-transform ' + buttonClass + '">'
                 + escapePremiumHtml(plan.actionLabel)
                 + '</button>'
                 + '</div>';
@@ -2009,7 +2031,6 @@ function renderPremiumPurchaseSyncNotice(state, message = '') {
     return ''
         + '<div class="rounded-[16px] border border-[#eadfcd] bg-white/78 px-3 py-2.5 text-center">'
         + '<p id="premium-purchase-sync-note" class="text-[10px] sm:text-[11px] leading-[1.6] font-bold text-[#9a8a70]">' + escapePremiumHtml(body) + '</p>'
-        + '<button type="button" onclick="restorePurchaseStateFromPremiumModal()" class="mt-1 text-[10px] font-black text-[#8b6f47] underline underline-offset-2">反映されない場合だけ購入を再確認</button>'
         + '</div>';
 }
 
@@ -2038,37 +2059,11 @@ async function syncPurchaseStateFromPremiumModal() {
         } else {
             updatePremiumPurchaseSyncNotice(isActive
                 ? '購入状態を同期しました。'
-                : '購入状態を確認しました。反映されない場合は、同じApple ID / Googleアカウントでストアにサインインしているか確認してください。');
+                : '購入状態を確認しました。');
         }
     } catch (error) {
         console.warn('PREMIUM: premium modal sync failed', error);
         updatePremiumPurchaseSyncNotice('購入状態を確認できませんでした。通信状態を確認してください。');
-    } finally {
-        premiumModalPurchaseSyncInFlight = false;
-    }
-}
-
-async function restorePurchaseStateFromPremiumModal() {
-    if (premiumModalPurchaseSyncInFlight) return;
-    if (!PremiumManager || typeof PremiumManager.refreshPurchaseState !== 'function') return;
-
-    premiumModalPurchaseSyncInFlight = true;
-    updatePremiumPurchaseSyncNotice('ストアの購入情報を再確認しています...');
-    const wasActive = PremiumManager.isPremium();
-
-    try {
-        await PremiumManager.refreshPurchaseState(true, { silent: true, reason: 'premium-modal-restore' });
-        const isActive = PremiumManager.isPremium();
-        if (isActive && !wasActive) {
-            showPremiumModal({ skipAutoSync: true, syncMessage: '購入状態を同期しました。' });
-        } else {
-            updatePremiumPurchaseSyncNotice(isActive
-                ? '購入状態を同期しました。'
-                : '購入情報は見つかりませんでした。同じApple ID / Googleアカウントでストアにサインインしているか確認してください。');
-        }
-    } catch (error) {
-        console.warn('PREMIUM: premium modal restore failed', error);
-        updatePremiumPurchaseSyncNotice('購入情報を確認できませんでした。通信状態を確認してください。');
     } finally {
         premiumModalPurchaseSyncInFlight = false;
     }
@@ -2111,7 +2106,6 @@ window.PremiumManager = PremiumManager;
 window.RevenueCatBridge = RevenueCatBridge;
 window.PremiumTrialNudge = PremiumTrialNudge;
 window.showPremiumModal = showPremiumModal;
-window.restorePurchaseStateFromPremiumModal = restorePurchaseStateFromPremiumModal;
 window.renderPremiumComparisonMatrix = renderPremiumComparisonMatrix;
 window.formatPremiumMembershipDate = formatPremiumMembershipDate;
 window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;

@@ -799,7 +799,7 @@ function getBuildFortuneSurnameData() {
 function renderFbFortune(choices) {
     const fortuneSurnameData = getBuildFortuneSurnameData();
     if (!fortuneSurnameData || fortuneSurnameData.length === 0) {
-        return '<p class="text-[10px] text-[#a6967a]">姓名判断するには名字を設定してください</p>';
+        return '<button type="button" onclick="promptSurnameForFortuneRanking()" class="w-full rounded-xl border border-dashed border-[#d4c5af] bg-[#fffaf4] px-3 py-2 text-[10px] font-black text-[#8b7e66] active:scale-95 transition-transform">苗字を入力して運勢を見る</button>';
     }
     if (typeof FortuneLogic === 'undefined' || !FortuneLogic.calculate) {
         return '<p class="text-[10px] text-[#a6967a]">姓名判断機能が読み込まれていません</p>';
@@ -3610,6 +3610,33 @@ function closeFortuneDetail() {
 /**
  * 運勢ランキングを表示
  */
+function promptSurnameForFortuneRanking() {
+    if (typeof openSurnameInput !== 'function') {
+        alert('名字を入力してください');
+        return;
+    }
+
+    if (typeof showToast === 'function') {
+        showToast('運勢TOP10には苗字が必要です', '✏️');
+    }
+
+    openSurnameInput({
+        onSave: () => {
+            const resolvedSurnameData = getBuildFortuneSurnameData();
+            if (!resolvedSurnameData || resolvedSurnameData.length === 0) {
+                if (typeof showToast === 'function') {
+                    showToast('苗字を入力すると運勢TOP10を見られます', '✏️');
+                }
+                return;
+            }
+            if (typeof renderBuildSelection === 'function') {
+                renderBuildSelection();
+            }
+            showFortuneRanking();
+        }
+    });
+}
+
 function showFortuneRanking() {
     console.log("BUILD: Showing fortune ranking");
 
@@ -3620,7 +3647,7 @@ function showFortuneRanking() {
 
     const resolvedSurnameData = getBuildFortuneSurnameData();
     if (!resolvedSurnameData || resolvedSurnameData.length === 0) {
-        alert('名字を入力してください');
+        promptSurnameForFortuneRanking();
         return;
     }
     if (buildMode === 'free') {

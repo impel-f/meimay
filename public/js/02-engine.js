@@ -1125,6 +1125,63 @@ function getSwipeCandidateDisplayKey(item) {
     return String(item?.['漢字'] || item?.kanji || '').trim();
 }
 
+function getSwipeReadingEntries(value) {
+    if (typeof splitKanjiReadingEntries === 'function') {
+        return splitKanjiReadingEntries(value);
+    }
+    return String(value || '')
+        .split(/[、,，\s/]+/)
+        .map(entry => String(entry || '').trim())
+        .filter(Boolean);
+}
+
+function getSwipeReadingEntryForms(entry) {
+    if (typeof getKanjiReadingForms === 'function') {
+        return getKanjiReadingForms(entry);
+    }
+    const normalized = normalizeReadingComparisonValue(entry);
+    return normalized ? [normalized] : [];
+}
+
+function formatSwipeFlexibleReadingLabel(targetReading, rawReading, normalizedReading) {
+    const raw = String(rawReading || '').trim();
+    const hiraRaw = typeof toHira === 'function' ? toHira(raw) : raw;
+    const normalizedRaw = normalizeReadingComparisonValue(hiraRaw);
+    const normalizedTarget = normalizeReadingComparisonValue(targetReading);
+    const normalizedMatch = normalizeReadingComparisonValue(normalizedReading || normalizedRaw);
+
+    if (hiraRaw && /[（(]/.test(hiraRaw)) {
+        return hiraRaw.replace(/\(/g, '（').replace(/\)/g, '）');
+    }
+    if (normalizedTarget && normalizedMatch.startsWith(normalizedTarget) && normalizedMatch.length > normalizedTarget.length) {
+        return `${normalizedTarget}（${normalizedMatch.slice(normalizedTarget.length)}）`;
+    }
+    return hiraRaw || normalizedMatch;
+}
+
+function getSwipeFlexibleReadingMatch(k, normalizedTarget, targetSeion, allowVoicedFallback) {
+    const targets = [normalizedTarget];
+    if (allowVoicedFallback && targetSeion && targetSeion !== normalizedTarget) {
+        targets.push(targetSeion);
+    }
+    const entries = getSwipeReadingEntries(((k?.['音'] || '') + ',' + (k?.['訓'] || '')));
+
+    for (const entry of entries) {
+        const forms = getSwipeReadingEntryForms(entry);
+        for (const target of targets) {
+            const matched = forms.find(form => form.startsWith(target) && form.length > target.length);
+            if (matched) {
+                return {
+                    raw: entry,
+                    normalized: matched,
+                    label: formatSwipeFlexibleReadingLabel(target, entry, matched)
+                };
+            }
+        }
+    }
+    return null;
+}
+
 function countAdditionalSwipeCandidates(nextCandidates, baseCandidates) {
     const baseKeys = new Set((Array.isArray(baseCandidates) ? baseCandidates : [])
         .map(getSwipeCandidateDisplayKey)
@@ -1138,7 +1195,73 @@ function countAdditionalSwipeCandidates(nextCandidates, baseCandidates) {
     }).length;
 }
 
+function getApprovedSwipeKanjiList(target) {
+    const segmentState = typeof getReadingSegmentRuleState === 'function'
+        ? getReadingSegmentRuleState(target)
+        : { state: 'missing', candidates: [] };
+    return segmentState.state === 'approved' && Array.isArray(segmentState.candidates)
+        ? segmentState.candidates.map((kanji) => String(kanji || '').trim()).filter(Boolean)
+        : [];
+}
+
+function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
+    const list = Array.isArray(candidates) ? candidates : [];
+    const approvedList = Array.isArray(approvedKanjiList) ? approvedKanjiList.filter(Boolean) : [];
+    if (approvedList.length === 0) return list;
+
+    const {
+        slotIdx,
+        includeNoped,
+        premiumOverride,
+        suppressLogs
+    } = context || {};
+    const byKanji = new Map();
+    list.forEach((item) => {
+        const kanji = getSwipeCandidateDisplayKey(item);
+        if (kanji && !byKanji.has(kanji)) byKanji.set(kanji, item);
+    });
+
+    approvedList.forEach((kanji, index) => {
+        const masterItem = Array.isArray(master)
+            ? master.find((item) => String(item?.['漢字'] || '').trim() === kanji)
+            : null;
+        const accessible = masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function'
+            ? isKanjiAccessibleForCurrentMembership(masterItem)
+            : (premiumOverride === true);
+
+        if (!accessible && premiumOverride !== true) return;
+
+        const alreadyLiked = Array.isArray(liked)
+            ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji)
+            : false;
+        if (alreadyLiked) {
+            if (!suppressLogs) console.log(`ENGINE: Skipping approved ${kanji} because it is already liked at slot ${slotIdx}`);
+            return;
+        }
+        if (!includeNoped && typeof noped !== 'undefined' && noped && noped.has(kanji)) return;
+
+        let item = byKanji.get(kanji);
+        if (!item) {
+            if (!masterItem) return;
+            item = { ...masterItem };
+            list.push(item);
+            byKanji.set(kanji, item);
+        }
+
+        item.priority = Math.min(item.priority || 1, 1);
+        item.readingTier = Math.min(item.readingTier || 1, 1);
+        item._approvedSwipeCandidate = true;
+        item._approvedSwipeOrder = index;
+        item._approvedSwipeNoise = Math.random();
+    });
+
+    return list;
+}
+
 function buildSwipeStackCandidates(options = {}) {
+    const additionalBaseKeys = options.additionalBaseKeys instanceof Set
+        ? options.additionalBaseKeys
+        : (Array.isArray(options.additionalBaseKeys) ? new Set(options.additionalBaseKeys) : null);
     const {
         slotIdx,
         segmentList,
@@ -1151,8 +1274,14 @@ function buildSwipeStackCandidates(options = {}) {
     } = getSwipeStackContext(options.slotIdx, options);
 
     if (!target || !Array.isArray(master) || master.length === 0) return [];
+    const approvedKanjiList = getApprovedSwipeKanjiList(normalizedTarget);
 
     let candidates = master.filter(k => {
+        delete k._swipeMatchKind;
+        delete k._swipeMatchedReading;
+        delete k._swipeMatchedReadingRaw;
+        delete k._swipeMatchDisplayLabel;
+
         if (!premiumOverride && !isKanjiAccessibleForCurrentMembership(k)) {
             return false;
         }
@@ -1236,6 +1365,13 @@ function buildSwipeStackCandidates(options = {}) {
         } else if (isPartial) {
             k.priority = 3;
             k.readingTier = 4;
+            const match = getSwipeFlexibleReadingMatch(k, normalizedTarget, targetSeion, allowVoicedFallback);
+            if (match && match.label) {
+                k._swipeMatchKind = 'partial';
+                k._swipeMatchedReading = match.normalized;
+                k._swipeMatchedReadingRaw = match.raw;
+                k._swipeMatchDisplayLabel = match.label;
+            }
         } else {
             k.priority = 0;
             k.readingTier = 99;
@@ -1309,6 +1445,17 @@ function buildSwipeStackCandidates(options = {}) {
         k.score = calculateKanjiScore(k);
         if (k.imagePriority === 1) k.score += 1500; // イメージ一致ボーナス
     });
+    candidates = markApprovedSwipeCandidates(candidates, approvedKanjiList, {
+        slotIdx,
+        includeNoped,
+        premiumOverride,
+        suppressLogs
+    });
+    candidates.forEach(k => {
+        if (k._approvedSwipeCandidate) {
+            k.score = (Number(k.score) || 0) + 12000 + Math.random() * 2000;
+        }
+    });
 
     // 優先度でソート（メジャー/マイナー区分対応）
     candidates.sort((a, b) => {
@@ -1324,12 +1471,25 @@ function buildSwipeStackCandidates(options = {}) {
         const tierB = b.readingTier || 99;
         if (tierA !== tierB) return tierA - tierB;
 
+        if (!!a._approvedSwipeCandidate !== !!b._approvedSwipeCandidate) {
+            return a._approvedSwipeCandidate ? -1 : 1;
+        }
+        if (a._approvedSwipeCandidate && b._approvedSwipeCandidate) {
+            const noiseDelta = (a._approvedSwipeNoise || 0) - (b._approvedSwipeNoise || 0);
+            if (noiseDelta !== 0) return noiseDelta;
+            return (a._approvedSwipeOrder || 0) - (b._approvedSwipeOrder || 0);
+        }
+
         // 次に総合スコア（降順）
         return b.score - a.score;
     });
 
     const kanaCandidates = getSwipeKanaCandidatesForCurrentSlot(target, slotIdx);
-    return kanaCandidates.length > 0 ? [...kanaCandidates, ...candidates] : candidates;
+    let combinedCandidates = kanaCandidates.length > 0 ? [...kanaCandidates, ...candidates] : candidates;
+    if (additionalBaseKeys && additionalBaseKeys.size > 0) {
+        combinedCandidates = combinedCandidates.filter(item => !additionalBaseKeys.has(getSwipeCandidateDisplayKey(item)));
+    }
+    return combinedCandidates;
 }
 
 function getSwipeEmptyStateActionCounts(slotIdx = currentPos) {
@@ -1398,6 +1558,13 @@ function loadStack() {
     const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
     const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
     window._includeNopedForSlot = null;
+    const additionalFilter = window._swipeAdditionalBaseKeysForSlot;
+    const additionalBaseKeysForThisLoad = additionalFilter && additionalFilter.slotIdx === currentPos && Array.isArray(additionalFilter.keys)
+        ? new Set(additionalFilter.keys)
+        : null;
+    if (additionalFilter && additionalFilter.slotIdx === currentPos) {
+        window._swipeAdditionalBaseKeysForSlot = null;
+    }
     const normalizedTarget = normalizeReadingComparisonValue(target);
     console.log(`ENGINE: Loading stack for position ${currentPos + 1}: "${target}"${normalizedTarget !== target ? ` (→ "${normalizedTarget}")` : ''}`);
 
@@ -1519,7 +1686,8 @@ function loadStack() {
     stack = buildSwipeStackCandidates({
         slotIdx: currentPos,
         ruleOverride: activeRule,
-        includeNoped: includeNopedForThisLoad
+        includeNoped: includeNopedForThisLoad,
+        additionalBaseKeys: additionalBaseKeysForThisLoad
     });
 
     console.log(`ENGINE: Stack loaded with ${stack.length} candidates`);
