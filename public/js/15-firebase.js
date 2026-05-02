@@ -2243,6 +2243,145 @@ function syncPairingRoleSelectionFromProfile() {
         MeimayPairing.selectJoinRole(preferredRole);
     }
 }
+
+function getPairingLinkedActionSummary() {
+    try {
+        if (typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getSummary === 'function') {
+            const summary = MeimayPartnerInsights.getSummary() || {};
+            return {
+                partnerReadingCount: Math.max(0, Number(summary.partnerReadingCount) || 0),
+                partnerSavedCount: Math.max(0, Number(summary.partnerSavedCount) || 0),
+                matchedReadingCount: Math.max(0, Number(summary.matchedReadingCount) || 0),
+                matchedKanjiCount: Math.max(0, Number(summary.matchedKanjiCount) || 0),
+                matchedNameCount: Math.max(0, Number(summary.matchedNameCount) || 0)
+            };
+        }
+    } catch (error) {
+        console.warn('PAIRING_UI: failed to summarize partner actions', error);
+    }
+
+    return {
+        partnerReadingCount: 0,
+        partnerSavedCount: 0,
+        matchedReadingCount: 0,
+        matchedKanjiCount: 0,
+        matchedNameCount: 0
+    };
+}
+
+function getPairingMatchedAction(summary) {
+    if ((summary?.matchedNameCount || 0) > 0) return 'matched-saved';
+    if ((summary?.matchedReadingCount || 0) > 0) return 'matched-reading';
+    if ((summary?.matchedKanjiCount || 0) > 0) return 'matched-liked';
+    return '';
+}
+
+function renderPairingLinkedActionButton(action, title, detail, options = {}) {
+    const disabled = !!options.disabled;
+    const count = Number.isFinite(Number(options.count)) ? Math.max(0, Number(options.count)) : null;
+    const countHtml = count === null
+        ? ''
+        : `<span class="shrink-0 rounded-full border border-[#eadfce] bg-[#fffaf5] px-2.5 py-1 text-[10px] font-black text-[#8b7e66]">${count}</span>`;
+    const disabledClass = disabled ? ' opacity-55 pointer-events-none' : ' active:scale-[0.98]';
+    const click = disabled ? '' : ` onclick="handlePairingLinkedNextAction('${action}', event)"`;
+
+    return `
+        <button type="button"${click}
+            class="w-full rounded-2xl border border-[#eee5d8] bg-[#fffdf9] px-3 py-3 text-left transition-transform${disabledClass}">
+            <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <div class="text-[12px] font-black text-[#5d5444]">${title}</div>
+                    <div class="mt-1 text-[10px] font-bold leading-relaxed text-[#a6967a]">${detail}</div>
+                </div>
+                ${countHtml}
+            </div>
+        </button>
+    `;
+}
+
+function updatePairingLinkedNextActions(inRoom, hasPartner) {
+    const mount = document.getElementById('pairing-linked-next-actions');
+    if (!mount) return;
+    if (!inRoom) {
+        mount.innerHTML = '';
+        return;
+    }
+
+    if (!hasPartner) {
+        mount.innerHTML = `
+            <div class="rounded-2xl border border-dashed border-[#eadfce] bg-[#fffaf5] px-3 py-3 text-left">
+                <div class="text-[11px] font-black text-[#5d5444]">パートナーの参加待ちです</div>
+                <div class="mt-1 text-[10px] font-bold leading-relaxed text-[#a6967a]">参加後は、相手の読みや一致候補をここから見られます。</div>
+            </div>
+        `;
+        return;
+    }
+
+    const summary = getPairingLinkedActionSummary();
+    const matchedTotal = summary.matchedReadingCount + summary.matchedKanjiCount + summary.matchedNameCount;
+    const matchedAction = getPairingMatchedAction(summary);
+    mount.innerHTML = `
+        <div class="rounded-2xl border border-[#eee5d8] bg-[#fffaf5] p-3 text-left">
+            <div class="mb-2 text-[10px] font-black tracking-[0.16em] text-[#b9965b]">次に一緒に見るもの</div>
+            <div class="space-y-2">
+                ${renderPairingLinkedActionButton('saved', '保存済みで見比べる', '残した名前をふたり分並べて確認します。')}
+                ${renderPairingLinkedActionButton('partner-reading', summary.partnerReadingCount > 0 ? '相手の読みを見る' : '相手の読みはこれから', '相手の読みストックを確認して、気になるものを取り込めます。', {
+                    count: summary.partnerReadingCount,
+                    disabled: summary.partnerReadingCount <= 0
+                })}
+                ${renderPairingLinkedActionButton(matchedAction || 'matched', matchedTotal > 0 ? '一致候補を見る' : '一致候補はこれから', 'ふたりとも気になっている読み・漢字・名前だけを見ます。', {
+                    count: matchedTotal,
+                    disabled: !matchedAction
+                })}
+            </div>
+        </div>
+    `;
+}
+
+function handlePairingLinkedNextAction(action, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    if (action === 'saved') {
+        if (typeof openSavedNamesWithPartnerFocus === 'function') {
+            openSavedNamesWithPartnerFocus('all');
+        } else if (typeof openSavedNames === 'function') {
+            openSavedNames();
+        }
+        return;
+    }
+
+    const targetAction = action === 'matched'
+        ? getPairingMatchedAction(getPairingLinkedActionSummary())
+        : action;
+
+    if (!targetAction) {
+        if (typeof showToast === 'function') showToast('一致候補はこれから増えていきます', '🔗');
+        return;
+    }
+
+    if (typeof runHomeAction === 'function') {
+        runHomeAction(targetAction);
+        return;
+    }
+
+    if (targetAction === 'partner-reading' || targetAction === 'matched-reading') {
+        if (typeof changeScreen === 'function') changeScreen('scr-stock');
+        if (typeof switchStockTab === 'function') switchStockTab('reading');
+        return;
+    }
+    if (targetAction === 'partner-liked' || targetAction === 'matched-liked') {
+        if (typeof changeScreen === 'function') changeScreen('scr-stock');
+        if (typeof switchStockTab === 'function') switchStockTab('kanji');
+        return;
+    }
+    if (targetAction === 'partner-saved' || targetAction === 'matched-saved') {
+        if (typeof openSavedNames === 'function') openSavedNames();
+    }
+}
+
 function updatePairingUI() {
     const inRoom = !!MeimayPairing.roomCode;
     const hasPartner = !!MeimayPairing.partnerUid;
@@ -2275,9 +2414,11 @@ function updatePairingUI() {
                 partnerStatusEl.className = 'text-sm font-bold text-[#a6967a]';
             }
         }
+        updatePairingLinkedNextActions(inRoom, hasPartner);
     } else {
         if (pairingNotLinked) pairingNotLinked.classList.remove('hidden');
         if (pairingLinked) pairingLinked.classList.add('hidden');
+        updatePairingLinkedNextActions(false, false);
     }
 
     const drawerPartnerStatusButton = document.getElementById('drawer-partner-status-button');
@@ -2440,6 +2581,7 @@ window.MeimayPairing = MeimayPairing;
 window.MeimayShare = MeimayShare;
 window.handleGenerateCode = handleGenerateCode;
 window.handleEnterCode = handleEnterCode;
+window.handlePairingLinkedNextAction = handlePairingLinkedNextAction;
 if (typeof showToast === 'function') window.showToast = showToast;
 
 // ============================================================

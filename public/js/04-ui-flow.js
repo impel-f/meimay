@@ -2727,7 +2727,7 @@ function universalSwipeAction(action) {
 
     // 10スワイプごとにチェック
     if (SwipeState.history.length > 0 && SwipeState.history.length % 10 === 0) {
-        showUniversalSwipeCheckpoint();
+        showUniversalSwipeCheckpointNudge();
     }
 
     // Animation
@@ -2786,6 +2786,7 @@ function showUniversalList() {
     if (isReadingSwipe) {
         if (typeof changeScreen === 'function') changeScreen('scr-stock');
         if (typeof switchStockTab === 'function') switchStockTab('reading');
+        recordReadingSwipeCompletionPremiumNudge();
         return;
     }
     goBack(); // モードに応じたホームへの遷移を実行
@@ -4387,6 +4388,25 @@ function getReadingSwipeStockToastText(item, action) {
     return `${label}を${actionLabel}読みストックに追加しました。${countText}`;
 }
 
+function recordReadingSwipeCompletionPremiumNudge() {
+    const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
+    if (!isReadingSwipe || SwipeState.liked.length <= 0) return;
+    if (typeof window === 'undefined' || !window.PremiumTrialNudge || typeof window.PremiumTrialNudge.record !== 'function') return;
+
+    const swipeCount = typeof getDailyReadingSwipeCount === 'function'
+        ? getDailyReadingSwipeCount()
+        : SwipeState.history.length;
+    const stockCount = typeof getReadingStock === 'function'
+        ? getReadingStock().length
+        : SwipeState.liked.length;
+
+    window.PremiumTrialNudge.record('reading-swipe-complete', {
+        swipeCount,
+        stockCount,
+        delayMs: 2400
+    });
+}
+
 function maybeShowReadingSwipeCompletionCoach() {
     const key = 'reading-swipe-stock-complete-v1';
     const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
@@ -5437,6 +5457,34 @@ function showUniversalSwipeCheckpoint() {
     modal.classList.add('active');
 }
 
+function shouldShowUniversalSwipeCheckpointModal() {
+    const modeKey = String(SwipeState.mode || appMode || 'default').replace(/[^a-z0-9_-]/gi, '_');
+    const key = `meimay_universal_swipe_checkpoint_modal_v1_${modeKey}`;
+    try {
+        if (localStorage.getItem(key) === '1') return false;
+        localStorage.setItem(key, '1');
+        return true;
+    } catch (e) {
+        return true;
+    }
+}
+
+function showUniversalSwipeCheckpointNudge() {
+    if (shouldShowUniversalSwipeCheckpointModal()) {
+        showUniversalSwipeCheckpoint();
+        return;
+    }
+
+    if (typeof showToast === 'function') {
+        const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
+        const keptCount = SwipeState.liked.length;
+        const message = isReadingSwipe
+            ? `${keptCount}件の読みをストック中です。一区切りで完了を押せます`
+            : `${keptCount}件を候補に追加中です`;
+        showToast(message, '✓');
+    }
+}
+
 
 function navSearchAction() {
     if (appMode === 'nickname') {
@@ -5543,12 +5591,6 @@ function addDailyReadingSwipeCount() {
     try {
         const next = getDailyReadingSwipeCount() + 1;
         localStorage.setItem(_getDailyReadingSwipeKey(), String(next));
-        if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
-            window.PremiumTrialNudge.record('reading-swipe', {
-                swipeCount: next,
-                remaining: Math.max(0, DAILY_READING_SWIPE_LIMIT - next)
-            });
-        }
         return next;
     } catch (e) {
         return getDailyReadingSwipeCount();
@@ -8234,6 +8276,7 @@ function renderReadingStockSectionV2() {
                         const actionLabel = isPromoted ? 'ビルドする' : '漢字を選ぶ';
                         const actionHandler = isPromoted ? 'startReadingFromStock' : 'startReadingSplitProposalFromStock';
                         const actionClass = isPromoted ? 'reading-stock-primary-action--build' : 'reading-stock-primary-action--kanji';
+                        const kanjiCountLabel = kanjiCount > 0 ? `${kanjiCount}件の漢字候補` : '漢字はこれから';
                         return `
                         <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})">
                             <div class="flex items-center justify-between gap-2">
@@ -8245,7 +8288,7 @@ function renderReadingStockSectionV2() {
                                             false
                                         )}
                                     </div>
-                                    <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCount}件の漢字候補</div>
+                                    <div class="mt-1 text-[9px]" style="color:${tone.sub}">${kanjiCountLabel}</div>
                                 </button>
                                 <button onclick='event.stopPropagation(); if(typeof ${actionHandler} === "function") ${actionHandler}(${JSON.stringify(String(item.id || item.reading || ""))});' class="reading-stock-primary-action ${actionClass} shrink-0 px-4 py-2 rounded-full text-xs font-bold text-white whitespace-nowrap shadow-sm active:scale-95 transition-all" style="${tone.action}">
                                     ${actionLabel}
