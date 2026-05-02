@@ -81,6 +81,37 @@ function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'wa
     `;
 }
 
+function isKanjiDetailAiAvailableForCurrentUser() {
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+    return premiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
+}
+
+function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
+    if (!button) return false;
+
+    const aiAvailable = isKanjiDetailAiAvailableForCurrentUser();
+    const availableClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
+    const unavailableClass = 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
+    button.className = aiAvailable ? availableClass : unavailableClass;
+    button.disabled = !aiAvailable;
+    button.setAttribute('aria-disabled', String(!aiAvailable));
+    button.innerHTML = `<span>🤖</span> ${aiAvailable ? 'AIで漢字の成り立ち・意味を深掘り' : '今日のAI深掘りは終了しました'}`;
+
+    let note = document.getElementById('kanji-detail-ai-limit-note');
+    if (!aiAvailable && !note) {
+        note = document.createElement('p');
+        note.id = 'kanji-detail-ai-limit-note';
+        note.className = 'mt-2 text-[11px] text-[#a59683] text-center';
+        note.textContent = '無料会員は 1 日 1 回までです';
+        button.insertAdjacentElement('afterend', note);
+    } else if (aiAvailable && note) {
+        note.remove();
+    }
+
+    return aiAvailable;
+}
+window.refreshKanjiDetailAiButtonState = refreshKanjiDetailAiButtonState;
+
 /**
  * scr-main の表示状態を3状態で制御する
  *  - セッションなし : empty-state 表示、HUD/stack/actionBtns 非表示
@@ -155,7 +186,7 @@ function render() {
         const expansionActions = [
             {
                 show: !premiumActive && (!actionCounts || actionCounts.premium > 0),
-                label: '人名用漢字も見る',
+                label: '👑人名用漢字も見る',
                 detail: 'プレミアムで候補の範囲を広げる',
                 count: actionCounts?.premium,
                 tone: 'premium',
@@ -181,16 +212,14 @@ function render() {
         const expansionHtml = expansionActions
             .map(action => renderSwipeEmptyStateOption(action))
             .join('');
+        const nextStepCopy = goToBuild ? 'ビルドへ進めます' : '次の文字へ進めます';
         const emptyStateCopy = expansionActions.length > 0
-            ? 'まだ広げられる候補があります。'
-            : '今の条件では追加候補がありません。';
+            ? `${nextStepCopy}。必要なら下の選択肢で候補を広げられます。`
+            : '今の条件で追加できる候補はありません。';
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
                 <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-6 shadow-[0_18px_45px_rgba(93,84,68,0.12)]">
-                    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8ed] text-[11px] font-black tracking-[0.12em] text-[#b9965b]">
-                        候補
-                    </div>
-                    <p class="text-[#5d5444] font-black text-lg">候補がありません</p>
+                    <p class="text-[#5d5444] font-black text-lg">候補をすべて見ました</p>
                     <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
                     ${expansionHtml ? `<div class="my-5 flex flex-col gap-2.5">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
                     ${goToBuild ?
@@ -663,8 +692,7 @@ async function showKanjiDetail(data) {
         const aiSection = document.createElement('div');
         aiSection.id = 'btn-ai-kanji-detail';
         aiSection.className = 'mb-4';
-        const aiPremiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
-        const aiAvailable = aiPremiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
+        const aiAvailable = isKanjiDetailAiAvailableForCurrentUser();
         const aiButtonClass = aiAvailable
             ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
             : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
@@ -673,10 +701,10 @@ async function showKanjiDetail(data) {
             : '今日のAI深掘りは終了しました';
         aiSection.innerHTML = `
             <button id="btn-ai-kanji-detail-action" type="button"
-                    class="${aiButtonClass}">
+                    class="${aiButtonClass}" ${aiAvailable ? '' : 'disabled aria-disabled="true"'}>
                 <span>🤖</span> ${aiButtonLabel}
             </button>
-            ${aiAvailable ? '' : '<p class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
+            ${aiAvailable ? '' : '<p id="kanji-detail-ai-limit-note" class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
             <div id="ai-kanji-result" class="mt-3"></div>
         `;
 
@@ -731,6 +759,7 @@ async function showKanjiDetail(data) {
                 }
 
                 await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
+                refreshKanjiDetailAiButtonState(aiActionButton);
             }, true);
         }
 

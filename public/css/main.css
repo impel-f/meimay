@@ -550,8 +550,14 @@ body.hide-top-bar .screen-header-shell {
 #uni-swipe-action-btns {
     align-items: center !important;
     margin-top: clamp(8px, 1.8vh, 18px);
+    margin-bottom: clamp(6px, 1.2vh, 12px);
     padding-top: clamp(2px, 0.6vh, 6px) !important;
     padding-bottom: 0 !important;
+}
+
+body.has-ad-banner #swipe-action-btns,
+body.has-ad-banner #uni-swipe-action-btns {
+    margin-bottom: clamp(14px, 2.4vh, 24px);
 }
 
 #swipe-action-btns button,
@@ -723,6 +729,90 @@ body.hide-top-bar .screen-header-shell {
     transform: translate(0, -150vh) scale(0.5) !important;
     opacity: 0 !important;
     transition: all 0.5s ease-in !important;
+}
+
+#scr-main.swipe-hint-peek-active #stack-container .card:not(.swipe-right):not(.swipe-left):not(.swipe-up),
+#scr-swipe-universal.swipe-hint-peek-active #uni-swipe-container .card:not(.swipe-right):not(.swipe-left):not(.swipe-up) {
+    animation: swipeHintCardPeek 4.2s ease-in-out 0.18s 1 both;
+}
+
+#scr-main.swipe-hint-peek-active #badge-like,
+#scr-swipe-universal.swipe-hint-peek-active #badge-like-uni {
+    animation: swipeHintStampLikePeek 4.2s ease-in-out 0.18s 1 both;
+    animation-delay: 0.18s;
+}
+
+#scr-main.swipe-hint-peek-active #badge-super,
+#scr-swipe-universal.swipe-hint-peek-active #badge-super-uni {
+    animation: swipeHintStampSuperPeek 4.2s ease-in-out 0.18s 1 both;
+    animation-delay: 0.18s;
+}
+
+#scr-main.swipe-hint-peek-active #badge-nope,
+#scr-swipe-universal.swipe-hint-peek-active #badge-nope-uni {
+    animation: swipeHintStampNopePeek 4.2s ease-in-out 0.18s 1 both;
+    animation-delay: 0.18s;
+}
+
+@keyframes swipeHintCardPeek {
+    0%, 10%, 30%, 40%, 62%, 72%, 100% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+    }
+    17%, 23% {
+        transform: translate3d(42px, -2px, 0) rotate(4deg) scale(1.015);
+    }
+    48%, 54% {
+        transform: translate3d(0, -44px, 0) rotate(0deg) scale(1.015);
+    }
+    80%, 86% {
+        transform: translate3d(-42px, -2px, 0) rotate(-4deg) scale(1.015);
+    }
+}
+
+@keyframes swipeHintStampLikePeek {
+    0%, 11%, 29%, 100% {
+        opacity: 0;
+        transform: var(--stamp-transform, none) scale(0.92);
+    }
+    17%, 23% {
+        opacity: 0.86;
+        transform: var(--stamp-transform, none) scale(1.04);
+    }
+}
+
+@keyframes swipeHintStampSuperPeek {
+    0%, 39%, 63%, 100% {
+        opacity: 0;
+        transform: var(--stamp-transform, none) scale(0.92);
+    }
+    48%, 54% {
+        opacity: 0.86;
+        transform: var(--stamp-transform, none) scale(1.04);
+    }
+}
+
+@keyframes swipeHintStampNopePeek {
+    0%, 71%, 100% {
+        opacity: 0;
+        transform: var(--stamp-transform, none) scale(0.92);
+    }
+    80%, 86% {
+        opacity: 0.86;
+        transform: var(--stamp-transform, none) scale(1.04);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #scr-main.swipe-hint-peek-active #stack-container .card,
+    #scr-swipe-universal.swipe-hint-peek-active #uni-swipe-container .card,
+    #scr-main.swipe-hint-peek-active #badge-like,
+    #scr-main.swipe-hint-peek-active #badge-nope,
+    #scr-main.swipe-hint-peek-active #badge-super,
+    #scr-swipe-universal.swipe-hint-peek-active #badge-like-uni,
+    #scr-swipe-universal.swipe-hint-peek-active #badge-nope-uni,
+    #scr-swipe-universal.swipe-hint-peek-active #badge-super-uni {
+        animation: none;
+    }
 }
 
 /* ============================================================
@@ -971,12 +1061,46 @@ body.hide-top-bar .screen-header-shell {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 7px;
+    gap: 7px 8px;
     padding: 0;
     color: #3f382f;
     font-size: clamp(14px, 3.8vw, 15px);
     font-weight: 700;
     line-height: 1.25;
+}
+
+.reading-swipe-example-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 22px;
+    white-space: nowrap;
+}
+
+.reading-swipe-example-item--locked {
+    color: #9c7b44;
+    font-weight: 900;
+}
+
+.reading-swipe-example-text {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1.25;
+}
+
+.reading-swipe-example-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: rgba(250, 247, 240, 0.72);
+    border: 1px solid #eadfce;
+    color: #b09b7c;
+    padding: 1px 5px;
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1.3;
 }
 
 .reading-swipe-hint {
@@ -1484,6 +1608,63 @@ select.wiz-birth-order-select:active {
     background-color: #fff8ec;
 }
 
+.wiz-date-picker {
+    position: relative;
+    width: 100%;
+}
+
+.wiz-date-display {
+    min-height: 50px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 42px 14px 16px;
+    background-color: rgba(255, 255, 255, 0.96);
+    background-image:
+        linear-gradient(45deg, transparent 50%, #b08a54 50%),
+        linear-gradient(135deg, #b08a54 50%, transparent 50%);
+    background-position:
+        calc(100% - 20px) 50%,
+        calc(100% - 14px) 50%;
+    background-repeat: no-repeat;
+    background-size: 6px 6px, 6px 6px;
+    border: 1.5px solid rgba(212, 197, 175, 0.34);
+    border-radius: 18px;
+    box-shadow: 0 3px 10px rgba(93, 84, 68, 0.06);
+    color: #5d5444;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wiz-date-picker:focus-within .wiz-date-display {
+    border-color: rgba(188, 163, 127, 0.82);
+    box-shadow: 0 0 0 1px rgba(188, 163, 127, 0.08) inset;
+}
+
+.wiz-date-display.is-empty {
+    color: #5d5444;
+}
+
+.wiz-date-picker:active .wiz-date-display {
+    background-color: #fff8ec;
+}
+
+.wiz-date-picker input[type="date"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 50px;
+    opacity: 0;
+    cursor: pointer;
+    color: transparent;
+}
+
 .wiz-baby-gender-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1841,6 +2022,11 @@ body.has-ad-banner #scr-mode {
     padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+body.has-ad-banner #scr-main,
+body.has-ad-banner #scr-swipe-universal {
+    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 /* Build screen: keep the save button above the ad banner for free users */
 body.has-ad-banner #scr-build > div {
     padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
@@ -1994,6 +2180,16 @@ body.has-ad-banner #universal-footer {
     .wiz-birth-order-select {
         padding: 12px 14px;
         font-size: 13px;
+    }
+
+    .wiz-date-display {
+        min-height: 46px;
+        padding: 12px 40px 12px 14px;
+        font-size: 13px;
+    }
+
+    .wiz-date-picker input[type="date"] {
+        min-height: 46px;
     }
 
     .wiz-baby-gender-btn {

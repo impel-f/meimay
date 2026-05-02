@@ -2129,7 +2129,7 @@ function normalizePairingSurnameValue(value) {
 function getCurrentPairingSurnameState() {
     const globalSurname = normalizePairingSurnameValue(typeof surnameStr !== 'undefined' ? surnameStr : '');
     const globalReading = normalizePairingSurnameValue(typeof surnameReading !== 'undefined' ? surnameReading : '');
-    if (globalSurname || globalReading) {
+    if (globalSurname) {
         return {
             surname: globalSurname,
             reading: globalReading
@@ -2140,10 +2140,10 @@ function getCurrentPairingSurnameState() {
         const wizard = WizardData.get() || {};
         const wizardSurname = normalizePairingSurnameValue(wizard.surname || wizard.surnameStr || '');
         const wizardReading = normalizePairingSurnameValue(wizard.surnameReading || '');
-        if (wizardSurname || wizardReading) {
+        if (wizardSurname) {
             return {
                 surname: wizardSurname,
-                reading: wizardReading
+                reading: globalReading || wizardReading
             };
         }
     }
@@ -2152,17 +2152,17 @@ function getCurrentPairingSurnameState() {
         const settings = JSON.parse(localStorage.getItem('meimay_settings') || '{}');
         const settingsSurname = normalizePairingSurnameValue(settings.surname || '');
         const settingsReading = normalizePairingSurnameValue(settings.surnameReading || '');
-        if (settingsSurname || settingsReading) {
+        if (settingsSurname) {
             return {
                 surname: settingsSurname,
-                reading: settingsReading
+                reading: globalReading || settingsReading
             };
         }
     } catch (error) {
         // ignore settings parse failures and fall through to the empty state
     }
 
-    return { surname: '', reading: '' };
+    return { surname: '', reading: globalReading };
 }
 
 function syncPairingSurnameDisplay() {

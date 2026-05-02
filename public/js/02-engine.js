@@ -842,6 +842,51 @@ function calcSegments() {
         ? getCompoundReadingOptions(nameReading, 8, gender || 'neutral')
         : [];
 
+    const getPathCandidateAvailability = (path) => {
+        if (!Array.isArray(path) || path.length === 0) return { viable: false, total: 0, exactWhole: false };
+        if (typeof findStrictKanjiCandidatesForSegment !== 'function') {
+            return { viable: true, total: path.length, exactWhole: path.length === 1 };
+        }
+        const counts = path.map((segment, segmentIndex) => {
+            try {
+                return findStrictKanjiCandidatesForSegment(segment, 1, gender || 'neutral', { segmentIndex }).length;
+            } catch (error) {
+                return 1;
+            }
+        });
+        const normalizedWhole = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(nameReading)
+            : nameReading;
+        const normalizedPathReading = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(path.join(''))
+            : path.join('');
+        return {
+            viable: counts.every(count => count > 0),
+            total: counts.reduce((sum, count) => sum + count, 0),
+            exactWhole: path.length === 1 && counts[0] > 0 && normalizedPathReading === normalizedWhole
+        };
+    };
+
+    uniquePaths = uniquePaths
+        .map((path, index) => ({
+            path,
+            index,
+            availability: getPathCandidateAvailability(path)
+        }))
+        .sort((a, b) => {
+            if (a.availability.viable !== b.availability.viable) {
+                return a.availability.viable ? -1 : 1;
+            }
+            if (a.availability.exactWhole !== b.availability.exactWhole) {
+                return a.availability.exactWhole ? -1 : 1;
+            }
+            if (b.availability.total !== a.availability.total) {
+                return b.availability.total - a.availability.total;
+            }
+            return a.index - b.index;
+        })
+        .map(item => item.path);
+
     function createSectionTitle(title, subtitle = '') {
         const wrapper = document.createElement('div');
         wrapper.className = 'mb-3 text-left';
@@ -853,6 +898,10 @@ function calcSegments() {
     }
 
     optionsContainer.innerHTML = '';
+    const choiceTarget = document.createElement('div');
+    choiceTarget.id = 'seg-choice-target';
+    optionsContainer.appendChild(choiceTarget);
+
     const normalSection = document.createElement('div');
     normalSection.className = 'mb-6';
     normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
@@ -916,8 +965,7 @@ function calcSegments() {
 
             normalSection.appendChild(btn);
         });
-        normalSection.appendChild(kanaOption);
-        optionsContainer.appendChild(normalSection);
+        choiceTarget.appendChild(normalSection);
         normalSection.querySelectorAll('[data-segment-label]').forEach((label) => {
             const button = label.closest('button');
             fitSegmentOptionButton(button);
@@ -932,7 +980,7 @@ function calcSegments() {
         const emptyState = document.createElement('div');
         emptyState.className = 'mb-5 rounded-[28px] border border-dashed border-[#eadfce] bg-[#fffaf4] px-5 py-5 text-center text-[0.9rem] font-bold text-[#a6967a]';
         emptyState.textContent = '1文字ずつで進められる候補がまだ見つかりません';
-        optionsContainer.appendChild(emptyState);
+        choiceTarget.appendChild(emptyState);
     }
 
     if (compoundOptions.length > 0) {
@@ -974,7 +1022,7 @@ function calcSegments() {
             compoundSection.appendChild(btn);
         });
 
-        optionsContainer.appendChild(compoundSection);
+        choiceTarget.appendChild(compoundSection);
         compoundSection.querySelectorAll('[data-segment-label]').forEach((label) => {
             const button = label.closest('button');
             fitSegmentOptionButton(button);
@@ -985,6 +1033,10 @@ function calcSegments() {
                 fitSegmentOptionButton(button);
             });
         });
+    }
+
+    if (uniquePaths.length > 0) {
+        optionsContainer.appendChild(kanaOption);
     }
 
     // 画面遷移

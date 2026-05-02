@@ -183,7 +183,15 @@ const PremiumManager = {
 
         if (this._lastPremiumLinkFingerprint !== linkFingerprint && this._getLinkCacheFingerprint() !== linkFingerprint) {
             try {
-                await docRef.set({
+                let existingUserData = null;
+                try {
+                    const snap = await docRef.get();
+                    existingUserData = snap.exists ? (snap.data() || {}) : null;
+                } catch (readError) {
+                    existingUserData = null;
+                }
+
+                const linkPayload = {
                     appAccountToken: token,
                     premiumPlatform: platform,
                     appStoreBundleId: 'com.impelf.meimay',
@@ -192,7 +200,15 @@ const PremiumManager = {
                     revenueCatLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     premiumLinkedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                };
+                if (!existingUserData || !Object.prototype.hasOwnProperty.call(existingUserData, 'pairRoomCode')) {
+                    linkPayload.pairRoomCode = '';
+                }
+                if (!existingUserData || !Object.prototype.hasOwnProperty.call(existingUserData, 'roomCode')) {
+                    linkPayload.roomCode = '';
+                }
+
+                await docRef.set(linkPayload, { merge: true });
                 this._lastPremiumLinkFingerprint = linkFingerprint;
                 this._setLinkCacheFingerprint(linkFingerprint);
             } catch (e) {
@@ -1372,7 +1388,7 @@ function getPremiumTrialRoomNotice() {
     if (inRoom) {
         return 'パートナー参加前に開始すると、この端末の無料枠だけを使います。';
     }
-    return '好きなタイミングで1回だけ開始できます。';
+    return '無料体験は1回だけ利用できます。';
 }
 
 function getPremiumTrialButtonLabel() {
@@ -1516,40 +1532,36 @@ const PremiumTrialNudge = {
     },
 
     getContext: function (trigger, state) {
-        const roomNote = '無料体験はこのアカウントだけで開始します。今の候補やストックはそのまま残ります。';
+        const roomNote = 'プレミアムの無料体験はこのアカウントだけで開始します。今の候補やストックはそのまま残ります。';
 
         if (trigger === 'partner' || state.partnerLinked === true) {
             return {
-                title: '自分のタイミングで、3日間だけ開放できます',
+                title: 'プレミアムを3日間無料で体験できます',
                 body: '広告なし、スワイプ無制限、人名用漢字まで一度まとめて確認できます。' + roomNote
             };
         }
 
         if (trigger === 'save' || Number(state.savedCount || 0) >= 1) {
             return {
-                title: '候補を保存できたので、3日間だけ全部試せます',
+                title: 'プレミアムを3日間無料で体験できます',
                 body: '気になる名前が出てきた今なら、広告なし・スワイプ無制限・人名用漢字までまとめて確認できます。' + roomNote
             };
         }
 
         if (trigger === 'build' || Number(state.buildCount || 0) >= 1) {
             return {
-                title: 'ビルドまで進んだら、3日間だけ広げて試せます',
+                title: 'プレミアムを3日間無料で体験できます',
                 body: '候補づくりの流れを止めずに、上限なしで漢字や読みを追加できます。' + roomNote
             };
         }
 
         return {
-            title: '名前探しが進んできたら、3日間だけ開放できます',
+            title: 'プレミアムを3日間無料で体験できます',
             body: 'もう少し見比べたい時に、広告なし・スワイプ無制限で続けられます。' + roomNote
         };
     },
 
     show: function (trigger, state) {
-        const modal = document.getElementById('modal-ai-sound');
-        if (!modal) return false;
-
-        const context = this.getContext(trigger, state || {});
         const next = {
             ...(state || {}),
             shownAt: Date.now(),
@@ -1558,21 +1570,9 @@ const PremiumTrialNudge = {
         };
         this.saveState(next);
 
-        modal.dataset.premiumTrialNudge = 'true';
-        modal.classList.add('active');
-        modal.innerHTML = ''
-            + '<div class="detail-sheet max-w-md" style="background:#fffaf1;border:1px solid #e2d2b7;box-shadow:0 22px 70px rgba(93,77,62,0.20);" onclick="event.stopPropagation()">'
-            + '<button class="modal-close-btn" onclick="PremiumTrialNudge.dismiss()">×</button>'
-            + '<div class="text-center">'
-            + '<div class="text-[10px] font-black tracking-[0.16em] text-[#b48642]">無料体験</div>'
-            + '<h3 class="mt-2 text-[1.25rem] font-black leading-tight text-[#4b3a24]">' + escapePremiumHtml(context.title) + '</h3>'
-            + '<p class="mt-3 text-[13px] leading-[1.8] text-[#6d5a3d]">' + escapePremiumHtml(context.body) + '</p>'
-            + '</div>'
-            + '<div class="mt-5 space-y-2">'
-            + '<button type="button" onclick="PremiumTrialNudge.openPremium()" class="w-full py-3 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]">3日無料を見てみる</button>'
-            + '<button type="button" onclick="PremiumTrialNudge.dismiss()" class="w-full py-3 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] text-sm font-bold">あとで</button>'
-            + '</div>'
-            + '</div>';
+        if (typeof showPremiumModal === 'function') {
+            showPremiumModal();
+        }
         return true;
     },
 
@@ -1769,7 +1769,7 @@ function getPremiumModalSubtitle(state) {
     if (state && state.expired) {
         return '期限が切れています。必要なときに再開できます。';
     }
-    return '3日間無料で、候補探しを広げられます。';
+    return 'プレミアムを3日間無料で体験できます。';
 }
 
 function renderPremiumStatusCard(state) {
@@ -1813,16 +1813,16 @@ function renderPremiumTrialCard(state) {
     const unavailable = selfState.trialConsumed;
     const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
     const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
+    const notice = unavailable ? '' : getPremiumTrialRoomNotice();
     const body = unavailable
         ? 'このアカウントでは無料体験を利用済みです。'
-        : getPremiumTrialRoomNotice();
+        : `好きなタイミングでプレミアムを3日間体験できます。${notice ? ' ' + notice : ''}`;
 
     return ''
         + '<div class="rounded-[20px] border border-[#d7b57c] bg-[#fff7e8] px-3 py-3 shadow-[0_10px_24px_rgba(183,145,85,0.10)]">'
         + '<div class="flex items-start justify-between gap-3">'
         + '<div>'
         + '<div class="text-[10px] font-black tracking-[0.14em] text-[#b48642]">無料体験</div>'
-        + '<div class="mt-1 text-[15px] sm:text-[17px] font-black text-[#4b3a24]">好きなタイミングから3日間</div>'
         + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>'
         + '</div>'
         + '</div>'
@@ -1845,15 +1845,15 @@ function renderPremiumPlanCards(state) {
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
             const rowClass = 'bg-white';
             const buttonClass = 'bg-white text-[#5b4f3f] border border-[#dcc9aa]';
+            const planTitle = plan.note ? `${plan.title}（${plan.note}）` : plan.title;
             return ''
                 + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-3 ' + rowClass + '">'
                 + '<div class="min-w-0">'
                 + '<div class="flex flex-wrap items-center gap-2">'
-                + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
+                + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(planTitle) + '</span>'
                 + '</div>'
                 + '<div class="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
                 + '<span class="text-[20px] sm:text-[22px] font-black leading-none">' + escapePremiumHtml(plan.price) + '</span>'
-                + '<span class="text-[10px] font-bold text-[#8b7e66]">' + escapePremiumHtml(plan.note) + '</span>'
                 + (plan.description ? '<span class="text-[10px] font-bold text-[#8b7e66]">・' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'
@@ -1891,7 +1891,7 @@ function showPremiumModal() {
         + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
         + (state.active
             ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
-            : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">購入を復元・同期</button>')
+            : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">購入を復元</button>')
         + (state.active
             ? ''
             : '<button onclick="closePremiumModal()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">閉じる</button>')

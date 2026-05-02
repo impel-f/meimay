@@ -3,6 +3,9 @@
 let currentRankingType = 'kanji';
 const RANKING_PERIOD_STORAGE_KEY = 'meimay_ranking_period_v1';
 const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
+const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v1';
+const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
+const RANKING_CACHE_MAX_ENTRIES = 24;
 
 function normalizeRankingGender(value) {
     const raw = String(value || '').trim().toLowerCase();
@@ -71,6 +74,7 @@ let rankingTouchStartX = 0;
 let rankingTouchStartY = 0;
 let rankingSwipeSetupDone = false;
 let rankingStockRefreshTimer = null;
+let rankingLoadSequence = 0;
 
 function escapeRankingHtml(value) {
     return String(value ?? '')
@@ -849,7 +853,121 @@ function getRankingLoadingMessage() {
     `;
 }
 
-async function loadRanking() {
+function getRankingCacheKey(type, period, genderFilter) {
+    const normalizedType = normalizeRankingType(type);
+    const normalizedPeriod = normalizeRankingPeriod(period);
+    const normalizedGender = normalizeRankingGender(genderFilter);
+    const periodKey = normalizedPeriod === 'monthly' ? getRankingCurrentMonthKey() : 'all';
+    return [normalizedType, normalizedPeriod, normalizedGender, periodKey].join('|');
+}
+
+function readRankingCacheStore() {
+    try {
+        const raw = localStorage.getItem(RANKING_CACHE_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function writeRankingCacheStore(store) {
+    try {
+        localStorage.setItem(RANKING_CACHE_STORAGE_KEY, JSON.stringify(store));
+    } catch (error) {
+        // Cache writes are best-effort.
+    }
+}
+
+function readRankingCacheEntry(cacheKey) {
+    const store = readRankingCacheStore();
+    const entry = store[cacheKey];
+    if (!entry || !Array.isArray(entry.items)) return null;
+
+    const cachedAt = Number(entry.cachedAt) || 0;
+    return {
+        items: entry.items,
+        cachedAt,
+        isFresh: Date.now() - cachedAt < RANKING_CACHE_TTL_MS
+    };
+}
+
+function writeRankingCacheEntry(cacheKey, items) {
+    if (!Array.isArray(items)) return;
+
+    const store = readRankingCacheStore();
+    store[cacheKey] = {
+        cachedAt: Date.now(),
+        items
+    };
+
+    const trimmedEntries = Object.entries(store)
+        .filter(([, entry]) => entry && Array.isArray(entry.items))
+        .sort(([, a], [, b]) => (Number(b.cachedAt) || 0) - (Number(a.cachedAt) || 0))
+        .slice(0, RANKING_CACHE_MAX_ENTRIES);
+
+    writeRankingCacheStore(Object.fromEntries(trimmedEntries));
+}
+
+function renderRankingResult(listContainer, items, type, period) {
+    if (!Array.isArray(items) || items.length === 0) {
+        listContainer.innerHTML = renderRankingEmptyState(type, period);
+        return;
+    }
+    listContainer.innerHTML = buildRankingContent(items, type, period);
+}
+
+function isRankingViewCurrent(type, period, genderFilter) {
+    return normalizeRankingType(currentRankingType) === normalizeRankingType(type)
+        && normalizeRankingPeriod(currentRankingPeriod) === normalizeRankingPeriod(period)
+        && normalizeRankingGender(currentRankingGender) === normalizeRankingGender(genderFilter);
+}
+
+async function seedRankingStatsIfNeeded(type) {
+    const seedTasks = [];
+    const getSeedFlag = (key) => {
+        try {
+            return localStorage.getItem(key) === '1';
+        } catch (error) {
+            return false;
+        }
+    };
+
+    if (type === 'kanji' && typeof MeimayStats.seedKanjiStatsFromLocalLikes === 'function') {
+        const kanjiSeeded = getSeedFlag('meimay_kanji_gender_stats_seeded_v2');
+        if (!kanjiSeeded) {
+            seedTasks.push(MeimayStats.seedKanjiStatsFromLocalLikes());
+        }
+    }
+    if (type === 'reading' && typeof MeimayStats.seedSavedReadingStatsFromLocalNames === 'function') {
+        const readingSavedSeeded = getSeedFlag('meimay_reading_saved_stats_seeded_v1');
+        if (!readingSavedSeeded) {
+            seedTasks.push(MeimayStats.seedSavedReadingStatsFromLocalNames());
+        }
+    }
+
+    if (seedTasks.length > 0) {
+        await Promise.allSettled(seedTasks);
+    }
+}
+
+async function fetchRankingItems(type, period, genderFilter) {
+    if (typeof MeimayStats === 'undefined' || typeof MeimayStats.fetchRankings !== 'function') {
+        throw new Error('ランキングAPIを利用できません');
+    }
+
+    await seedRankingStatsIfNeeded(type);
+
+    if (type === 'kanji') {
+        return MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
+    }
+
+    const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'saved', genderFilter);
+    return buildReadingRankingItems(readingRanking, genderFilter);
+}
+
+async function loadRanking(options = {}) {
     const listContainer = document.getElementById('ranking-list-container');
     if (!listContainer) return;
 
@@ -862,56 +980,34 @@ async function loadRanking() {
     currentRankingGender = genderFilter;
     updateRankingButtonState();
 
-    listContainer.innerHTML = getRankingLoadingMessage();
+    const loadId = ++rankingLoadSequence;
+    const cacheKey = getRankingCacheKey(type, period, genderFilter);
+    const cachedEntry = readRankingCacheEntry(cacheKey);
+    if (cachedEntry) {
+        renderRankingResult(listContainer, cachedEntry.items, type, period);
+        if (cachedEntry.isFresh && !options.forceRefresh) {
+            return;
+        }
+    } else {
+        listContainer.innerHTML = getRankingLoadingMessage();
+    }
 
     if (typeof MeimayStats === 'undefined') {
+        if (cachedEntry) return;
         listContainer.innerHTML = '<div class="text-center py-20 text-[#f28b82]">ランキング集計モジュールが読み込まれていません。</div>';
         return;
     }
 
     try {
-        const seedTasks = [];
-        if (typeof MeimayStats !== 'undefined') {
-            const getSeedFlag = (key) => {
-                try {
-                    return localStorage.getItem(key) === '1';
-                } catch (error) {
-                    return false;
-                }
-            };
-            if (type === 'kanji' && typeof MeimayStats.seedKanjiStatsFromLocalLikes === 'function') {
-                const kanjiSeeded = getSeedFlag('meimay_kanji_gender_stats_seeded_v2');
-                if (!kanjiSeeded) {
-                    seedTasks.push(MeimayStats.seedKanjiStatsFromLocalLikes());
-                }
-            }
-            if (type === 'reading' && typeof MeimayStats.seedSavedReadingStatsFromLocalNames === 'function') {
-                const readingSavedSeeded = getSeedFlag('meimay_reading_saved_stats_seeded_v1');
-                if (!readingSavedSeeded) {
-                    seedTasks.push(MeimayStats.seedSavedReadingStatsFromLocalNames());
-                }
-            }
-        }
-        if (seedTasks.length > 0) {
-            await Promise.allSettled(seedTasks);
-        }
-
-        let items = [];
-        if (type === 'kanji') {
-            items = await MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
-        } else {
-            const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'saved', genderFilter);
-            items = buildReadingRankingItems(readingRanking, genderFilter);
-        }
-
-        if (!Array.isArray(items) || items.length === 0) {
-            listContainer.innerHTML = renderRankingEmptyState(type, period);
+        const items = await fetchRankingItems(type, period, genderFilter);
+        writeRankingCacheEntry(cacheKey, Array.isArray(items) ? items : []);
+        if (loadId !== rankingLoadSequence || !isRankingViewCurrent(type, period, genderFilter)) {
             return;
         }
-
-        listContainer.innerHTML = buildRankingContent(items, type, period);
+        renderRankingResult(listContainer, items, type, period);
     } catch (error) {
         console.error('RANKING: loadRanking error', error);
+        if (cachedEntry) return;
         listContainer.innerHTML = '<div class="text-center py-20 text-[#f28b82]">ランキングの取得に失敗しました。</div>';
     }
 }
@@ -983,8 +1079,8 @@ function refreshRankingOnStockChange() {
         rankingStockRefreshTimer = null;
         const rankingScreen = document.getElementById('scr-ranking');
         if (!rankingScreen || !rankingScreen.classList.contains('active')) return;
-        loadRanking();
-    }, 0);
+        loadRanking({ forceRefresh: true });
+    }, 250);
 }
 
 if (typeof window !== 'undefined' && !window.__meimayRankingStockListenerAttached) {
@@ -1029,19 +1125,4 @@ function renderRankingPremiumBadge() {
 
 function getRankingPeriodSwitchLabel(period) {
     return period === 'monthly' ? '📅月間順位' : '🏆総合順位';
-}
-
-const __originalRefreshRankingOnStockChange = refreshRankingOnStockChange;
-refreshRankingOnStockChange = function () {
-    if (rankingStockRefreshTimer) {
-        clearTimeout(rankingStockRefreshTimer);
-        rankingStockRefreshTimer = null;
-    }
-};
-
-if (typeof window !== 'undefined') {
-    if (window.__meimayRankingStockListenerAttached) {
-        window.removeEventListener('meimay:stock-changed', __originalRefreshRankingOnStockChange);
-        window.addEventListener('meimay:stock-changed', refreshRankingOnStockChange);
-    }
 }

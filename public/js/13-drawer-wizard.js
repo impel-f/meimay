@@ -44,6 +44,28 @@ function parseWizBirthOrder(value, fallback = 1) {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function formatWizChildDateLabel(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return '未設定';
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return '未設定';
+    return `${year}年${month}月${day}日`;
+}
+
+function syncWizChildDateLabel() {
+    const input = document.getElementById('wiz-child-date');
+    const display = document.getElementById('wiz-child-date-display');
+    const value = input ? String(input.value || '').trim() : String(wizChildDate || '').trim();
+    wizChildDate = value;
+    if (display) {
+        display.textContent = formatWizChildDateLabel(value);
+        display.classList.toggle('is-empty', !value);
+    }
+}
+
 // ==========================================
 // WIZARD FUNCTIONS
 // ==========================================
@@ -148,6 +170,7 @@ function wizNext(currentStep) {
         if (childDateInput) {
             childDateInput.value = wizChildDate || '';
         }
+        syncWizChildDateLabel();
         if (!wizGender) {
             wizGender = 'neutral';
         }
@@ -259,6 +282,7 @@ function wizStartNaming() {
 window.selectWizReadingCandidate = selectWizReadingCandidate;
 window.selectWizGender = selectWizGender;
 window.selectWizBirthOrder = selectWizBirthOrder;
+window.syncWizChildDateLabel = syncWizChildDateLabel;
 window.wizStartNaming = wizStartNaming;
 
 const DRAWER_EDGE_SWIPE_ZONE = 24;
@@ -737,6 +761,7 @@ function updateTopBarTitle(screenId) {
 
 function initDrawerWizard() {
     syncWizardReadingChoiceCopy();
+    syncWizChildDateLabel();
     renderDrawerMenu();
     setupDrawerSwipeGestures();
 

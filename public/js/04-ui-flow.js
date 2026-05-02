@@ -2291,8 +2291,9 @@ const COMMON_KANJI_MAP = {
     'か': ['花', '香', '果', '佳', '華', '夏'],
     'り': ['莉', '里', '理', '梨', '璃', '利'],
     'あ': ['愛', 'あ', '亜', '安', '明'],
+    'い': ['伊', '生', '衣', '依', '維'],
     'ま': ['真', '麻', '舞', '万', '茉'],
-    'さ': ['咲', '沙', '紗', '彩', '早'],
+    'さ': ['彩', '咲', '沙', '紗', '早'],
     'き': ['希', '季', '稀', '紀', '喜'],
     'と': ['斗', '人', '翔', '都', '登']
 };
@@ -2774,7 +2775,7 @@ function showUniversalList() {
     if (SwipeState.liked.length > 0) {
         showToast(
             isReadingSwipe
-                ? `${SwipeState.liked.length}件の読みを保存しました。次は漢字を選べます`
+                ? `${SwipeState.liked.length}件の読みをストックに保存しました。読みストックを開きます`
                 : `${SwipeState.liked.length}件を候補に保存しました`,
             '✓'
         );
@@ -3605,6 +3606,7 @@ const TUTORIAL_STEP_COUNT = 4;
 const CONTEXT_COACH_STORAGE_KEY = 'meimay_context_coach_v4';
 let contextCoachTimer = null;
 let contextCoachActiveTarget = null;
+let contextCoachDemoTarget = null;
 let contextCoachDismissHandler = null;
 
 const CONTEXT_COACH_CONFIGS = {
@@ -3648,14 +3650,14 @@ const CONTEXT_COACH_CONFIGS = {
         body: '決まっている読みを入れると、その読みで使える漢字へ進めます。迷ったら厳格モードのまま始めて大丈夫です。'
     },
     'scr-segment': () => {
-        if (!document.querySelector('#seg-options button')) return null;
+        if (!document.querySelector('#seg-choice-target button')) return null;
         return {
             key: 'reading-segment',
-            target: '#seg-options',
+            target: '#seg-choice-target',
             placement: 'bottom',
             kicker: '分け方のヒント',
-            title: '自然に読める分け方を選ぶ',
-            body: '基本は一文字ずつでOKです。まとめ読み候補がある時は、名前として自然に読ませたい分け方を選びます。'
+            title: '漢字の分け方を選びます',
+            body: '響きの意味や文字数を見ながら、しっくりくる分け方を選びます。迷ったら1文字ずつから始めると進めやすいです。'
         };
     },
     'scr-main': () => {
@@ -3663,21 +3665,28 @@ const CONTEXT_COACH_CONFIGS = {
         const hasReadingSegments = Array.isArray(segments) && segments.length > 0;
         if (!isReadingKanjiSwipe || !hasReadingSegments || !document.getElementById('swipe-action-btns')) return null;
         return {
-            key: 'reading-kanji-swipe',
+            key: 'reading-kanji-swipe-v2',
             target: '#swipe-action-btns',
             placement: 'above-actions',
+            demoTarget: '#scr-main',
             kicker: '漢字選びのヒント',
-            title: '一文字ずつ漢字を選ぶ',
-            body: '気になる漢字は候補、特に使いたい漢字は本命、違うと思ったら見送り。下のボタンだけでも進められます。'
+            title: 'カードを動かして選べます',
+            body: 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。右で候補、上で本命、左で見送り。下のボタンでも同じように選べます。'
         };
     },
-    'scr-swipe-universal': {
-        key: 'swipe',
-        target: '#uni-swipe-action-btns',
-        placement: 'above-actions',
-        kicker: '選び方のヒント',
-        title: 'スワイプが不安ならボタンでOK',
-        body: '迷ったら、下の3つのボタンだけで進められます。候補は右、本命は上、見送りは左でも同じです。'
+    'scr-swipe-universal': () => {
+        const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
+        return {
+            key: isReadingSwipe ? 'reading-swipe-v3' : 'swipe-v2',
+            target: '#uni-swipe-action-btns',
+            placement: 'above-actions',
+            demoTarget: '#scr-swipe-universal',
+            kicker: '選び方のヒント',
+            title: 'カードを動かして選べます',
+            body: isReadingSwipe
+                ? 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。候補に入れた読みは読みストックにたまります。続けて探せて、一区切りついたら右上の「完了」で確認できます。'
+                : 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。右で候補、上で本命、左で見送り。下のボタンでも同じように選べます。'
+        };
     },
     'scr-stock': () => {
         if (typeof currentStockTab === 'undefined' || currentStockTab !== 'reading') return null;
@@ -3704,12 +3713,12 @@ const CONTEXT_COACH_CONFIGS = {
         return null;
     },
     'scr-build': {
-        key: 'build',
+        key: 'build-v2',
         target: '#build-tabs',
         placement: 'bottom',
         kicker: 'ビルドのヒント',
-        title: 'まず読みを選んで、一字ずつ決める',
-        body: '上で読みを切り替え、下で漢字を選びます。そろった名前は字面・運勢を見てから保存できます。'
+        title: '一字ずつ選んで名前にします',
+        body: '読みを選び、漢字を一文字ずつ決めます。そろった名前は字面と運勢を確認して、気に入ったら保存できます。'
     },
     'scr-saved': {
         key: 'saved',
@@ -3794,6 +3803,11 @@ function hideContextualCoachmark() {
         contextCoachActiveTarget.removeAttribute('data-context-coach-active');
         contextCoachActiveTarget = null;
     }
+
+    if (contextCoachDemoTarget) {
+        contextCoachDemoTarget.classList.remove('swipe-hint-peek-active');
+        contextCoachDemoTarget = null;
+    }
 }
 
 function dismissContextCoach() {
@@ -3838,6 +3852,15 @@ function showContextualCoachmark(config, options = {}) {
     contextCoachActiveTarget = target;
     contextCoachActiveTarget.classList.add('context-coach-target');
     contextCoachActiveTarget.setAttribute('data-context-coach-active', 'true');
+
+    if (config.demoTarget) {
+        contextCoachDemoTarget = document.querySelector(config.demoTarget);
+        if (contextCoachDemoTarget) {
+            contextCoachDemoTarget.classList.remove('swipe-hint-peek-active');
+            void contextCoachDemoTarget.offsetWidth;
+            contextCoachDemoTarget.classList.add('swipe-hint-peek-active');
+        }
+    }
 
     const coach = document.createElement('div');
     coach.id = 'context-coachmark';
@@ -4353,6 +4376,51 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     }
     console.log("STOCK: Added reading to stock:", entry);
     return entry;
+}
+
+function getReadingSwipeStockToastText(item, action) {
+    const reading = String(item?.reading || '').trim();
+    const label = reading ? `「${reading}」` : '読み';
+    const count = typeof getReadingStock === 'function' ? getReadingStock().length : 0;
+    const actionLabel = action === 'super' ? '本命として' : '候補として';
+    const countText = count > 0 ? `いま読みストックは${count}件です。` : '読みストックにたまりました。';
+    return `${label}を${actionLabel}読みストックに追加しました。${countText}`;
+}
+
+function maybeShowReadingSwipeCompletionCoach() {
+    const key = 'reading-swipe-stock-complete-v1';
+    const isReadingSwipe = SwipeState.mode === 'sound' || SwipeState.mode === 'nickname' || appMode === 'sound';
+    if (!isReadingSwipe) return false;
+    if (typeof hasContextCoachShown === 'function' && hasContextCoachShown(key)) return false;
+
+    const target = document.getElementById('uni-swipe-complete-btn');
+    if (!target) return false;
+
+    setTimeout(() => {
+        if ((SwipeState.mode !== 'sound' && SwipeState.mode !== 'nickname' && appMode !== 'sound') ||
+            getActiveScreenIdForCoach() !== 'scr-swipe-universal') {
+            return;
+        }
+        if (typeof isContextCoachBlocked === 'function' && isContextCoachBlocked()) return;
+        if (typeof showContextualCoachmark !== 'function') return;
+        showContextualCoachmark({
+            key,
+            target: '#uni-swipe-complete-btn',
+            placement: 'top',
+            kicker: '読みストック',
+            title: 'ストックに追加しました',
+            body: '読みはストックにたまります。続けて探せますし、一区切りついたら右上の「完了」で確認できます。'
+        });
+    }, 700);
+
+    return true;
+}
+
+function notifyReadingSwipeStockAdded(item, action) {
+    if (maybeShowReadingSwipeCompletionCoach()) return;
+    if (typeof showToast === 'function') {
+        showToast(getReadingSwipeStockToastText(item, action), action === 'super' ? '★' : '📖');
+    }
 }
 
 function syncReadingStockFromLiked(items = liked) {
@@ -6041,7 +6109,7 @@ function renderReadingSwipeCard(item) {
             </div>
             ${renderAdaptiveReadingHeading(item.reading, { baseSize: 52, minSize: 26, lineHeight: 1.2, className: 'reading-swipe-heading-main' })}
             <div class="reading-swipe-example-card">
-                <p class="reading-swipe-example-label">漢字の例</p>
+                <p class="reading-swipe-example-label">名前の例</p>
                 <div class="reading-swipe-example-list">
                     ${getSampleKanjiHtml(item)}
                 </div>
@@ -6126,8 +6194,8 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const preview = getReadingFullNamePreview(modalReading || item.reading);
     const tone = getReadingCardTone(item);
     const headerLabel = forceSplit ? '分け方の提案' : '';
-    const headerTitle = forceSplit ? 'どの分け方にする？' : displayReading;
-    const headerSubtitle = forceSplit ? `${preview.ruby} の分け方を選んでください` : preview.ruby;
+    const headerTitle = forceSplit ? '漢字の分け方を選ぶ' : displayReading;
+    const headerSubtitle = forceSplit ? `${preview.ruby}の分け方を選びます` : preview.ruby;
     const readingOnlyActionButtonsHtml = !forceSplit ? `
             <div class="grid grid-cols-2 gap-2 mb-4">
                 <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(false); return false;" class="w-full py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
@@ -6223,16 +6291,70 @@ function saveReadingCombinationFromModal(index) {
     saveReadingCandidateFromModal(index, 0);
 }
 
+function isSampleKanjiAccessibleForCurrentMembership(label) {
+    const chars = Array.from(String(label || '').trim()).filter(Boolean);
+    if (chars.length === 0) return false;
+
+    return chars.every((char) => {
+        const masterItem = Array.isArray(master)
+            ? master.find((entry) => String(entry?.['漢字'] || '').trim() === char)
+            : null;
+        if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function') {
+            return isKanjiAccessibleForCurrentMembership(masterItem);
+        }
+        return typeof isPremiumAccessActive === 'function' ? isPremiumAccessActive() : true;
+    });
+}
+
+function getDirectCuratedReadingExamples(reading) {
+    const normalizedReading = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(reading)
+        : String(reading || '').trim();
+    if (!normalizedReading || typeof getCuratedReadingSegmentCandidates !== 'function') return [];
+
+    const curated = getCuratedReadingSegmentCandidates(normalizedReading);
+    if (!Array.isArray(curated) || curated.length === 0) return [];
+
+    return curated
+        .map((label) => String(label || '').trim())
+        .filter(Boolean)
+        .map((label) => ({
+            label,
+            locked: !isSampleKanjiAccessibleForCurrentMembership(label)
+        }));
+}
+
+function renderReadingSampleExample(example) {
+    const label = String(example?.label || '').trim();
+    if (!label) return '';
+    const locked = !!example.locked;
+    const displayLabel = locked ? `${label}👑` : label;
+    return `<span class="reading-swipe-example-item${locked ? ' reading-swipe-example-item--locked' : ''}">`
+        + `<span class="reading-swipe-example-text">${escapeHtmlText(displayLabel)}</span>`
+        + (locked ? '<span class="reading-swipe-example-badge" title="プレミアムで人名用漢字も見られます">人名用</span>' : '')
+        + '</span>';
+}
+
 function getSampleKanjiHtml(item) {
     const options = getReadingSegmentOptions(item.reading, 4);
     const examples = [];
+    const seen = new Set();
+
+    const addExample = (label, locked = false, priority = 1000) => {
+        const normalizedLabel = String(label || '').trim();
+        if (!normalizedLabel || seen.has(normalizedLabel)) return;
+        seen.add(normalizedLabel);
+        examples.push({ label: normalizedLabel, locked: !!locked, priority });
+    };
+
+    getDirectCuratedReadingExamples(item.reading).forEach((example, index) => {
+        addExample(example.label, example.locked, index);
+    });
 
     options.forEach((option) => {
         sortReadingCandidatesForDisplay(option.candidates).slice(0, 4).forEach((candidate) => {
             const label = candidate.givenName || candidate.fullName;
-            if (!examples.includes(label)) {
-                examples.push(label);
-            }
+            addExample(label, false, 1000);
         });
     });
 
@@ -6241,11 +6363,13 @@ function getSampleKanjiHtml(item) {
     }
 
     return examples
-        .sort((a, b) => a.length - b.length || a.localeCompare(b, 'ja'))
+        .sort((a, b) => {
+            if ((a.priority || 0) !== (b.priority || 0)) return (a.priority || 0) - (b.priority || 0);
+            return a.label.length - b.label.length || a.label.localeCompare(b.label, 'ja');
+        })
         .slice(0, 4)
-        .map((example) =>
-        `<span class="text-sm font-bold mx-1">${example}</span>`
-    ).join('');
+        .map(renderReadingSampleExample)
+        .join('');
 }
 
 window.closeReadingCombinationModal = closeReadingCombinationModal;
@@ -7774,6 +7898,12 @@ function startReadingSplitProposalFromStock(reading) {
     const targetReading = getReadingBaseReading(reading);
     const nameInput = document.getElementById('in-name');
     if (nameInput) nameInput.value = targetReading || reading;
+    if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
+    if (typeof setRule === 'function') {
+        setRule('strict');
+    } else {
+        rule = 'strict';
+    }
     if (typeof calcSegments === 'function') {
         calcSegments();
         return;
@@ -8210,6 +8340,7 @@ async function startNicknameCandidateSwipe(baseReading) {
                     basePosition: nicknamePosition === 'prefix' ? 'prefix' : ''
                 });
             }
+            notifyReadingSwipeStockAdded(item, action);
         },
         onTap: (item) => {
             openReadingCombinationModal(item, flowBaseReading, '', null, nicknamePosition === 'prefix' ? 'prefix' : '');
@@ -8236,6 +8367,7 @@ function initSoundMode() {
                     clearHidden: true
                 });
             }
+            notifyReadingSwipeStockAdded(item, action);
         },
         onTap: (item) => {
             openReadingCombinationModal(item);
