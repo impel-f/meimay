@@ -126,6 +126,10 @@ if (firebaseAuth) {
             if (window.PremiumManager && typeof window.PremiumManager.bindToUserDoc === 'function') {
                 await window.PremiumManager.bindToUserDoc(user);
             }
+            if (window.PremiumManager && typeof window.PremiumManager.refreshPurchaseState === 'function') {
+                window.PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'auth-ready' })
+                    .catch((error) => console.warn('PREMIUM: silent purchase sync failed', error));
+            }
             if (window.MeimayUserBackup && typeof window.MeimayUserBackup.bootstrapForUser === 'function') {
                 await window.MeimayUserBackup.bootstrapForUser(user);
             }
@@ -989,6 +993,8 @@ const MeimayPairing = {
     _selectedJoinRole: null,    // 蜿ょ刈譎ゅ↓驕ｸ繧薙□繝ｭ繝ｼ繝ｫ
     _roomUnsub: null,
     _isLeavingRoom: false,
+    _retiringUsedRoom: false,
+    _markPairingUsedInFlight: false,
 
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
@@ -1021,9 +1027,14 @@ const MeimayPairing = {
 
             const partnerUid = data[`${this.partnerSlot}Uid`];
             const partnerRole = data[`${this.partnerSlot}Role`];
+            if (data.pairedOnce === true && !partnerUid) {
+                await this._retireUsedRoom('resume-used-room');
+                return;
+            }
             if (partnerUid) {
                 this.partnerUid = partnerUid;
                 this.partnerRole = partnerRole;
+                this._markRoomPairedOnceIfNeeded(data);
                 MeimayShare.listenPartnerData(partnerUid);
             }
             this._listenRoom();
@@ -1082,21 +1093,8 @@ const MeimayPairing = {
             return null;
         }
 
-        // 6譁・ｭ励Λ繝ｳ繝繝繧ｳ繝ｼ繝・
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-
         try {
-            await firebaseDb.collection('rooms').doc(code).set({
-                memberAUid: user.uid,
-                memberARole: role,
-                memberASurname: pairingSurname.surname,
-                memberASurnameReading: pairingSurname.reading || null,
-                memberBUid: null,
-                memberBRole: null,
-                memberBSurname: null,
-                memberBSurnameReading: null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            const code = await this._createUniqueRoomDocument(user.uid, role, pairingSurname);
 
             this.roomCode = code;
             this.mySlot = 'memberA';
@@ -1150,6 +1148,11 @@ const MeimayPairing = {
             }
 
             const data = roomDoc.data();
+            const existingMemberBUid = data.memberBUid || '';
+            const isExistingMemberB = existingMemberBUid === user.uid;
+            if (data.pairedOnce === true && !isExistingMemberB) {
+                return { success: false, error: 'このコードは使用済みです。新しいコードを発行してください' };
+            }
             const partnerSlot = 'memberA';
             const partnerUid = data[`${partnerSlot}Uid`] || '';
             const partnerSurnameField = getPairingRoomSurnameField(partnerSlot);
@@ -1177,7 +1180,7 @@ const MeimayPairing = {
             if (data.memberAUid === user.uid) {
                 return { success: false, error: '自分のルームです' };
             }
-            if (data.memberBUid && data.memberBUid !== user.uid) {
+            if (existingMemberBUid && !isExistingMemberB) {
                 return { success: false, error: 'このルームは満員です' };
             }
 
@@ -1186,12 +1189,18 @@ const MeimayPairing = {
                 return { success: false, error: '苗字が一致しません' };
             }
 
-            await firebaseDb.collection('rooms').doc(upperCode).update({
-                memberBUid: user.uid,
-                memberBRole: role,
-                memberBSurname: pairingSurname.surname,
-                memberBSurnameReading: pairingSurname.reading || null
-            });
+            if (!isExistingMemberB) {
+                await firebaseDb.collection('rooms').doc(upperCode).update({
+                    memberBUid: user.uid,
+                    memberBRole: role,
+                    memberBSurname: pairingSurname.surname,
+                    memberBSurnameReading: pairingSurname.reading || null,
+                    pairedOnce: true,
+                    pairedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } else {
+                this._markRoomPairedOnceIfNeeded(data);
+            }
 
             this.roomCode = upperCode;
             this.mySlot = 'memberB';
@@ -1378,6 +1387,7 @@ const MeimayPairing = {
                 const nextMyRole = data[`${nextMySlot}Role`] || this.myRole || null;
                 const partnerUid = data[`${nextPartnerSlot}Uid`];
                 const partnerRole = data[`${nextPartnerSlot}Role`];
+                const isUsedRoomWaiting = data.pairedOnce === true && !partnerUid;
 
                 if (nextMySlot !== this.mySlot) {
                     this.mySlot = nextMySlot;
@@ -1390,10 +1400,16 @@ const MeimayPairing = {
                     localStorage.setItem('meimay_my_role', nextMyRole);
                 }
 
+                if (isUsedRoomWaiting) {
+                    this._retireUsedRoom('partner-left-used-room');
+                    return;
+                }
+
                 if (partnerUid && partnerUid !== this.partnerUid) {
                     // 繝代・繝医リ繝ｼ縺悟盾蜉縺励◆
                     this.partnerUid = partnerUid;
                     this.partnerRole = partnerRole;
+                    this._markRoomPairedOnceIfNeeded(data);
                     MeimayShare.listenPartnerData(partnerUid);
                     updatePairingUI();
                     if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
@@ -1437,6 +1453,86 @@ const MeimayPairing = {
         localStorage.removeItem('meimay_room_code');
         localStorage.removeItem('meimay_room_slot');
         localStorage.removeItem('meimay_my_role');
+    },
+
+    _generateRoomCode: function () {
+        return Math.random().toString(36).substring(2, 8).toUpperCase();
+    },
+
+    _createUniqueRoomDocument: async function (uid, role, pairingSurname) {
+        let lastError = null;
+        for (let attempt = 0; attempt < 10; attempt++) {
+            const code = this._generateRoomCode();
+            const roomRef = firebaseDb.collection('rooms').doc(code);
+            try {
+                await firebaseDb.runTransaction(async (transaction) => {
+                    const snap = await transaction.get(roomRef);
+                    if (snap.exists) {
+                        const collision = new Error('room_code_collision');
+                        collision.code = 'room_code_collision';
+                        throw collision;
+                    }
+                    transaction.set(roomRef, {
+                        memberAUid: uid,
+                        memberARole: role,
+                        memberASurname: pairingSurname.surname,
+                        memberASurnameReading: pairingSurname.reading || null,
+                        memberBUid: null,
+                        memberBRole: null,
+                        memberBSurname: null,
+                        memberBSurnameReading: null,
+                        pairedOnce: false,
+                        pairedAt: null,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                return code;
+            } catch (error) {
+                if (error?.code === 'room_code_collision') {
+                    lastError = error;
+                    continue;
+                }
+                throw error;
+            }
+        }
+
+        const error = new Error('room_code_generation_failed');
+        error.cause = lastError;
+        throw error;
+    },
+
+    _markRoomPairedOnceIfNeeded: async function (data = {}) {
+        if (!this.roomCode || this._isLeavingRoom || this._markPairingUsedInFlight) return;
+        if (data.pairedOnce === true) return;
+        if (!data.memberAUid || !data.memberBUid) return;
+        const currentUid = MeimayAuth.getCurrentUser()?.uid || firebaseAuth?.currentUser?.uid || '';
+        if (currentUid !== data.memberAUid && currentUid !== data.memberBUid) return;
+
+        this._markPairingUsedInFlight = true;
+        try {
+            await firebaseDb.collection('rooms').doc(this.roomCode).set({
+                pairedOnce: true,
+                pairedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (error) {
+            console.warn('PAIRING: Failed to mark room as used', error);
+        } finally {
+            this._markPairingUsedInFlight = false;
+        }
+    },
+
+    _retireUsedRoom: async function (reason = 'used-room') {
+        if (!this.roomCode || this._retiringUsedRoom) return;
+        this._retiringUsedRoom = true;
+        try {
+            if (typeof showToast === 'function') {
+                showToast('以前の連携コードは無効になりました。新しく連携する場合はコードを発行してください', '\u2139');
+            }
+            await this.leaveRoom();
+            console.log(`PAIRING: Retired used room (${reason})`);
+        } finally {
+            this._retiringUsedRoom = false;
+        }
     }
 };
 
@@ -5781,6 +5877,13 @@ const MeimayUserBackup = {
             ...summary,
             sourceSummary: response.summary || null
         };
+    },
+
+    deleteRemoteBackup: async function () {
+        const response = await this._callRestoreApi('delete-user-backup', {});
+        this._lastSyncedFingerprint = '';
+        this._lastRemoteBackupFingerprint = '';
+        return response;
     },
 
     syncLocalToRemote: async function (user = null, options = {}) {

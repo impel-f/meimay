@@ -574,6 +574,13 @@ function toggleFortunePriority() {
 function changeScreen(id) {
     console.log(`CORE: Screen transition -> ${id}`);
 
+    const activeElement = document.activeElement;
+    if (activeElement && typeof activeElement.blur === 'function' && /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')) {
+        try {
+            activeElement.blur();
+        } catch (e) { }
+    }
+
     // 1. [最優先] 画面の表示切り替えを即座に実行
     // 開いているモーダルを全て閉じる
     const modals = document.querySelectorAll('.overlay.active');

@@ -733,24 +733,24 @@ body.has-ad-banner #uni-swipe-action-btns {
 
 #scr-main.swipe-hint-peek-active #stack-container .card:not(.swipe-right):not(.swipe-left):not(.swipe-up),
 #scr-swipe-universal.swipe-hint-peek-active #uni-swipe-container .card:not(.swipe-right):not(.swipe-left):not(.swipe-up) {
-    animation: swipeHintCardPeek 4.2s ease-in-out 0.18s 1 both;
+    animation: swipeHintCardPeek 4.8s ease-in-out 0.18s infinite both;
 }
 
 #scr-main.swipe-hint-peek-active #badge-like,
 #scr-swipe-universal.swipe-hint-peek-active #badge-like-uni {
-    animation: swipeHintStampLikePeek 4.2s ease-in-out 0.18s 1 both;
+    animation: swipeHintStampLikePeek 4.8s ease-in-out 0.18s infinite both;
     animation-delay: 0.18s;
 }
 
 #scr-main.swipe-hint-peek-active #badge-super,
 #scr-swipe-universal.swipe-hint-peek-active #badge-super-uni {
-    animation: swipeHintStampSuperPeek 4.2s ease-in-out 0.18s 1 both;
+    animation: swipeHintStampSuperPeek 4.8s ease-in-out 0.18s infinite both;
     animation-delay: 0.18s;
 }
 
 #scr-main.swipe-hint-peek-active #badge-nope,
 #scr-swipe-universal.swipe-hint-peek-active #badge-nope-uni {
-    animation: swipeHintStampNopePeek 4.2s ease-in-out 0.18s 1 both;
+    animation: swipeHintStampNopePeek 4.8s ease-in-out 0.18s infinite both;
     animation-delay: 0.18s;
 }
 
@@ -1079,8 +1079,8 @@ body.has-ad-banner #uni-swipe-action-btns {
 }
 
 .reading-swipe-example-item--locked {
-    color: #9c7b44;
-    font-weight: 900;
+    color: #b08c50;
+    font-weight: 800;
 }
 
 .reading-swipe-example-text {
@@ -1101,6 +1101,44 @@ body.has-ad-banner #uni-swipe-action-btns {
     font-size: 8px;
     font-weight: 800;
     line-height: 1.3;
+}
+
+.reading-modal-candidate-name {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+}
+
+.reading-modal-candidate-text {
+    min-width: 0;
+    color: #5d5444;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.reading-modal-candidate-text--locked {
+    color: #7a6240;
+}
+
+.reading-modal-jinmei-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 1px solid #dfc28f;
+    border-radius: 999px;
+    background: #fff5df;
+    color: #8e6c36;
+    padding: 3px 7px;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 .reading-swipe-hint {
@@ -1611,9 +1649,12 @@ select.wiz-birth-order-select:active {
 .wiz-date-picker {
     position: relative;
     width: 100%;
+    touch-action: manipulation;
 }
 
 .wiz-date-display {
+    position: relative;
+    z-index: 1;
     min-height: 50px;
     width: 100%;
     display: flex;
@@ -1639,6 +1680,7 @@ select.wiz-birth-order-select:active {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    pointer-events: none;
 }
 
 .wiz-date-picker:focus-within .wiz-date-display {
@@ -1657,12 +1699,18 @@ select.wiz-birth-order-select:active {
 .wiz-date-picker input[type="date"] {
     position: absolute;
     inset: 0;
+    z-index: 2;
     width: 100%;
     height: 100%;
     min-height: 50px;
-    opacity: 0;
+    opacity: 0.01;
     cursor: pointer;
     color: transparent;
+    background: transparent;
+    border: 0;
+    font-size: 16px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .wiz-baby-gender-grid {
@@ -2647,6 +2695,14 @@ body.has-ad-banner #universal-footer {
     box-shadow: 0 0 0 8px rgba(255, 248, 232, 0.74), 0 16px 34px rgba(96, 75, 45, 0.16);
     border-radius: 22px;
     transition: outline-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#swipe-action-btns.context-coach-target,
+#uni-swipe-action-btns.context-coach-target {
+    outline: 0;
+    outline-offset: 0;
+    box-shadow: none;
+    border-radius: 0;
 }
 
 .context-coachmark {

@@ -3685,7 +3685,7 @@ const CONTEXT_COACH_CONFIGS = {
             kicker: '選び方のヒント',
             title: 'カードを動かして選べます',
             body: isReadingSwipe
-                ? 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。候補に入れた読みは読みストックにたまります。続けて探せて、一区切りついたら右上の「完了」で確認できます。'
+                ? 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。候補に入れた読みは読みストックにたまります。一区切りついたら右上の「完了」で確認できます。'
                 : 'カードを少し動かすと、候補・本命・見送りの文字が覗きます。右で候補、上で本命、左で見送り。下のボタンでも同じように選べます。'
         };
     },
@@ -4426,10 +4426,10 @@ function maybeShowReadingSwipeCompletionCoach() {
         showContextualCoachmark({
             key,
             target: '#uni-swipe-complete-btn',
-            placement: 'top',
+            placement: 'bottom',
             kicker: '読みストック',
             title: 'ストックに追加しました',
-            body: '読みはストックにたまります。続けて探せますし、一区切りついたら右上の「完了」で確認できます。'
+            body: '読みはストックにたまります。一区切りついたら右上の「完了」で確認できます。'
         });
     }, 700);
 
@@ -6300,7 +6300,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                         ? option.candidates.map((candidate, candidateIndex) => `
                         <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
                             <div class="min-w-0 flex-1">
-                                <div class="text-lg font-black text-[#5d5444]">${candidate.fullName}</div>
+                                ${renderReadingModalCandidateName(candidate)}
                             </div>
                             ${forceSplit
                                 ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>`
@@ -6370,11 +6370,22 @@ function renderReadingSampleExample(example) {
     const label = String(example?.label || '').trim();
     if (!label) return '';
     const locked = !!example.locked;
-    const displayLabel = locked ? `${label}👑` : label;
     return `<span class="reading-swipe-example-item${locked ? ' reading-swipe-example-item--locked' : ''}">`
-        + `<span class="reading-swipe-example-text">${escapeHtmlText(displayLabel)}</span>`
-        + (locked ? '<span class="reading-swipe-example-badge" title="プレミアムで人名用漢字も見られます">人名用</span>' : '')
+        + `<span class="reading-swipe-example-text">${escapeHtmlText(label)}</span>`
         + '</span>';
+}
+
+function renderReadingModalCandidateName(candidate) {
+    const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
+    const givenName = String(candidate?.givenName || fullName).trim();
+    const locked = givenName ? !isSampleKanjiAccessibleForCurrentMembership(givenName) : false;
+
+    return '<div class="reading-modal-candidate-name">'
+        + '<span class="reading-modal-candidate-text' + (locked ? ' reading-modal-candidate-text--locked' : '') + '">'
+        + escapeHtmlText(fullName)
+        + '</span>'
+        + (locked ? '<span class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます"><span aria-hidden="true">👑</span><span>人名用</span></span>' : '')
+        + '</div>';
 }
 
 function getSampleKanjiHtml(item) {

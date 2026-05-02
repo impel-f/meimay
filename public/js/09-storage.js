@@ -524,6 +524,21 @@ const StorageBox = {
         }
     },
 
+    removeKanjiAiCache: function (kanji) {
+        try {
+            const raw = localStorage.getItem(this.KEY_KANJI_AI_CACHE);
+            if (!raw) return true;
+            const cache = JSON.parse(raw);
+            if (!cache || typeof cache !== 'object') return true;
+            delete cache[kanji];
+            localStorage.setItem(this.KEY_KANJI_AI_CACHE, JSON.stringify(cache));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: kanji AI cache remove failed", e);
+            return false;
+        }
+    },
+
     /**
      * データ完全リセット
      */

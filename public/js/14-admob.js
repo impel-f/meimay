@@ -692,6 +692,9 @@ const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
 let adBannerVisible = false;
 let adBannerMode = null;
 let nativeAdMobInitializePromise = null;
+let nativeAdMobListenersReady = false;
+let nativeAdMobBannerLoaded = false;
+let nativeAdMobBannerFailed = false;
 
 function measureAdBannerHeight(container) {
     if (!container) return 0;
@@ -739,8 +742,52 @@ function updateAdLayoutSpacing(bannerHeight) {
     return 0;
 }
 
+function setupNativeAdMobBannerListeners(AdMob) {
+    if (nativeAdMobListenersReady || !AdMob || typeof AdMob.addListener !== 'function') return;
+    nativeAdMobListenersReady = true;
+
+    try {
+        const addBannerListener = (eventName, handler) => {
+            const listenerResult = AdMob.addListener(eventName, handler);
+            if (listenerResult && typeof listenerResult.catch === 'function') {
+                listenerResult.catch((e) => console.warn(`ADMOB: ${eventName} listener failed`, e));
+            }
+        };
+
+        addBannerListener('bannerAdLoaded', () => {
+            nativeAdMobBannerLoaded = true;
+            nativeAdMobBannerFailed = false;
+            adBannerVisible = true;
+            adBannerMode = 'native';
+            updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
+            console.log('ADMOB: Native banner loaded');
+        });
+
+        addBannerListener('bannerAdSizeChanged', (size) => {
+            if (adBannerMode !== 'native') return;
+            const height = Number(size && size.height);
+            if (Number.isFinite(height) && height > 0) {
+                nativeAdMobBannerLoaded = true;
+                adBannerVisible = true;
+                updateAdLayoutSpacing(Math.max(height, NATIVE_AD_BANNER_MIN_HEIGHT));
+            }
+        });
+
+        addBannerListener('bannerAdFailedToLoad', (error) => {
+            nativeAdMobBannerLoaded = false;
+            nativeAdMobBannerFailed = true;
+            console.warn('ADMOB: Native banner failed to load, falling back to web', error);
+            showWebAdBanner();
+        });
+    } catch (e) {
+        nativeAdMobListenersReady = false;
+        console.warn('ADMOB: Native banner listener setup failed', e);
+    }
+}
+
 function initAdMob() {
     if (PremiumManager.isPremium()) {
+        console.log('ADMOB: Hidden for premium user');
         hideAdBanner();
         return;
     }
@@ -763,6 +810,7 @@ async function initNativeAdMob(platform) {
 
     try {
         const { AdMob } = window.Capacitor.Plugins;
+        setupNativeAdMobBannerListeners(AdMob);
 
         if (!nativeAdMobInitializePromise) {
             nativeAdMobInitializePromise = AdMob.initialize({
@@ -772,6 +820,9 @@ async function initNativeAdMob(platform) {
         }
         await nativeAdMobInitializePromise;
 
+        nativeAdMobBannerLoaded = false;
+        nativeAdMobBannerFailed = false;
+        adBannerMode = 'native';
         await AdMob.showBanner({
             adId: config.bannerId,
             adSize: 'BANNER',
@@ -779,6 +830,8 @@ async function initNativeAdMob(platform) {
             margin: footerHeight,
             isTesting: false
         });
+
+        if (nativeAdMobBannerFailed) return;
 
         const container = document.getElementById('admob-banner');
         if (container) {
@@ -790,9 +843,11 @@ async function initNativeAdMob(platform) {
         adBannerMode = 'native';
         updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
 
-        console.log('ADMOB: Native banner initialized');
+        console.log('ADMOB: Native banner requested');
     } catch (e) {
         nativeAdMobInitializePromise = null;
+        nativeAdMobBannerLoaded = false;
+        nativeAdMobBannerFailed = true;
         console.warn('ADMOB: Native init failed, falling back to web', e);
         showWebAdBanner();
     }
@@ -861,6 +916,8 @@ function hideAdBanner() {
     }
     adBannerVisible = false;
     adBannerMode = null;
+    nativeAdMobBannerLoaded = false;
+    nativeAdMobBannerFailed = false;
     document.body.style.removeProperty('--ad-screen-safe-space');
     document.body.classList.remove('has-ad-banner');
 
@@ -1209,13 +1266,14 @@ PremiumManager.getDisplayStatus = function () {
     };
 };
 
-PremiumManager.refreshPurchaseState = async function (restore = true) {
+PremiumManager.refreshPurchaseState = async function (restore = true, options = {}) {
+    const silent = options && typeof options === 'object' && options.silent === true;
     const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
         ? MeimayAuth.getCurrentUser()
         : null;
 
     if (!user) {
-        if (typeof showToast === 'function') {
+        if (!silent && typeof showToast === 'function') {
             showToast('購入の復元にはサインインが必要です', 'i');
         }
         return false;
@@ -1233,7 +1291,7 @@ PremiumManager.refreshPurchaseState = async function (restore = true) {
                 : null;
             await MeimayShare.syncPremiumState(publicPremiumState);
         }
-        if (typeof showToast === 'function') {
+        if (!silent && typeof showToast === 'function') {
             const active = this.isPremium();
             const message = active
                 ? '購入情報を同期しました'
@@ -1243,7 +1301,7 @@ PremiumManager.refreshPurchaseState = async function (restore = true) {
         return true;
     } catch (e) {
         console.warn('PREMIUM: refreshPurchaseState failed', e);
-        if (typeof showToast === 'function') {
+        if (!silent && typeof showToast === 'function') {
             showToast('購入情報を確認できませんでした', '!');
         }
         return false;
@@ -1866,7 +1924,80 @@ function renderPremiumPlanCards(state) {
         + '</div>';
 }
 
-function showPremiumModal() {
+let premiumModalPurchaseSyncInFlight = false;
+
+function renderPremiumPurchaseSyncNotice(state, message = '') {
+    if (state && state.active) return '';
+    const body = message || '購入状態は起動時とこの画面を開いたときに自動で確認します。';
+    return ''
+        + '<div class="rounded-[16px] border border-[#eadfcd] bg-white/78 px-3 py-2.5 text-center">'
+        + '<p id="premium-purchase-sync-note" class="text-[10px] sm:text-[11px] leading-[1.6] font-bold text-[#9a8a70]">' + escapePremiumHtml(body) + '</p>'
+        + '<button type="button" onclick="restorePurchaseStateFromPremiumModal()" class="mt-1 text-[10px] font-black text-[#8b6f47] underline underline-offset-2">反映されない場合だけ購入を再確認</button>'
+        + '</div>';
+}
+
+function updatePremiumPurchaseSyncNotice(message) {
+    const note = document.getElementById('premium-purchase-sync-note');
+    if (note) note.textContent = message;
+}
+
+async function syncPurchaseStateFromPremiumModal() {
+    if (premiumModalPurchaseSyncInFlight) return;
+    if (!PremiumManager || typeof PremiumManager.refreshPurchaseState !== 'function') return;
+    if (typeof RevenueCatBridge !== 'undefined' && RevenueCatBridge && !RevenueCatBridge.isAvailable()) {
+        updatePremiumPurchaseSyncNotice('購入状態はアプリ版で自動確認します。');
+        return;
+    }
+
+    premiumModalPurchaseSyncInFlight = true;
+    updatePremiumPurchaseSyncNotice('購入状態を確認しています...');
+    const wasActive = PremiumManager.isPremium();
+
+    try {
+        await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
+        const isActive = PremiumManager.isPremium();
+        if (isActive && !wasActive) {
+            showPremiumModal({ skipAutoSync: true, syncMessage: '購入状態を同期しました。' });
+        } else {
+            updatePremiumPurchaseSyncNotice(isActive
+                ? '購入状態を同期しました。'
+                : '購入状態を確認しました。反映されない場合は、同じApple ID / Googleアカウントでストアにサインインしているか確認してください。');
+        }
+    } catch (error) {
+        console.warn('PREMIUM: premium modal sync failed', error);
+        updatePremiumPurchaseSyncNotice('購入状態を確認できませんでした。通信状態を確認してください。');
+    } finally {
+        premiumModalPurchaseSyncInFlight = false;
+    }
+}
+
+async function restorePurchaseStateFromPremiumModal() {
+    if (premiumModalPurchaseSyncInFlight) return;
+    if (!PremiumManager || typeof PremiumManager.refreshPurchaseState !== 'function') return;
+
+    premiumModalPurchaseSyncInFlight = true;
+    updatePremiumPurchaseSyncNotice('ストアの購入情報を再確認しています...');
+    const wasActive = PremiumManager.isPremium();
+
+    try {
+        await PremiumManager.refreshPurchaseState(true, { silent: true, reason: 'premium-modal-restore' });
+        const isActive = PremiumManager.isPremium();
+        if (isActive && !wasActive) {
+            showPremiumModal({ skipAutoSync: true, syncMessage: '購入状態を同期しました。' });
+        } else {
+            updatePremiumPurchaseSyncNotice(isActive
+                ? '購入状態を同期しました。'
+                : '購入情報は見つかりませんでした。同じApple ID / Googleアカウントでストアにサインインしているか確認してください。');
+        }
+    } catch (error) {
+        console.warn('PREMIUM: premium modal restore failed', error);
+        updatePremiumPurchaseSyncNotice('購入情報を確認できませんでした。通信状態を確認してください。');
+    } finally {
+        premiumModalPurchaseSyncInFlight = false;
+    }
+}
+
+function showPremiumModal(options = {}) {
     const modal = document.getElementById('modal-ai-sound');
     if (!modal) return;
 
@@ -1874,6 +2005,7 @@ function showPremiumModal() {
         ? PremiumManager.getMembershipState()
         : { active: false, label: 'プレミアム未登録', detail: '' };
     const subtitle = getPremiumModalSubtitle(state);
+    const syncMessage = options && typeof options === 'object' ? String(options.syncMessage || '') : '';
 
     modal.classList.add('active');
     modal.innerHTML = ''
@@ -1888,21 +2020,21 @@ function showPremiumModal() {
         + renderPremiumComparisonMatrix()
         + renderPremiumTrialCard(state)
         + renderPremiumPlanCards(state)
-        + '<div class="' + (state.active ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-2') + '">'
-        + (state.active
-            ? '<button onclick="closePremiumModal()" class="w-full py-2.5 bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white rounded-2xl font-bold text-sm shadow-md">閉じる</button>'
-            : '<button onclick="PremiumManager.refreshPurchaseState()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">購入を復元</button>')
-        + (state.active
-            ? ''
-            : '<button onclick="closePremiumModal()" class="w-full py-2.5 rounded-2xl border border-[#e6dccb] bg-white text-[#8b7e66] font-bold text-sm">閉じる</button>')
+        + renderPremiumPurchaseSyncNotice(state, syncMessage)
+        + '<button onclick="closePremiumModal()" class="w-full py-2.5 ' + (state.active ? 'bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white shadow-md' : 'border border-[#e6dccb] bg-white text-[#8b7e66]') + ' rounded-2xl font-bold text-sm">閉じる</button>'
         + '</div>'
         + '</div></div>';
+
+    if (!state.active && !(options && options.skipAutoSync)) {
+        setTimeout(syncPurchaseStateFromPremiumModal, 120);
+    }
 }
 
 window.PremiumManager = PremiumManager;
 window.RevenueCatBridge = RevenueCatBridge;
 window.PremiumTrialNudge = PremiumTrialNudge;
 window.showPremiumModal = showPremiumModal;
+window.restorePurchaseStateFromPremiumModal = restorePurchaseStateFromPremiumModal;
 window.renderPremiumComparisonMatrix = renderPremiumComparisonMatrix;
 window.formatPremiumMembershipDate = formatPremiumMembershipDate;
 window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;

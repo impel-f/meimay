@@ -66,6 +66,49 @@ function syncWizChildDateLabel() {
     }
 }
 
+function openWizChildDatePicker() {
+    const input = document.getElementById('wiz-child-date');
+    if (!input) return;
+
+    try {
+        if (typeof input.focus === 'function') {
+            input.focus({ preventScroll: true });
+        }
+    } catch (e) {
+        try { input.focus(); } catch (focusError) { }
+    }
+
+    if (typeof input.showPicker === 'function') {
+        try {
+            input.showPicker();
+            return;
+        } catch (e) {
+            // Some WebViews expose showPicker but reject it for date inputs.
+        }
+    }
+
+    try {
+        input.click();
+    } catch (e) { }
+}
+
+function setupWizChildDatePicker() {
+    const picker = document.querySelector('.wiz-date-picker');
+    const input = document.getElementById('wiz-child-date');
+    if (!picker || !input || picker.dataset.datePickerReady === 'true') return;
+    picker.dataset.datePickerReady = 'true';
+
+    picker.addEventListener('click', (event) => {
+        if (event.target === input) return;
+        openWizChildDatePicker();
+    });
+
+    input.addEventListener('pointerup', () => {
+        if (typeof input.showPicker !== 'function') return;
+        try { input.showPicker(); } catch (e) { }
+    });
+}
+
 // ==========================================
 // WIZARD FUNCTIONS
 // ==========================================
@@ -170,6 +213,7 @@ function wizNext(currentStep) {
         if (childDateInput) {
             childDateInput.value = wizChildDate || '';
         }
+        setupWizChildDatePicker();
         syncWizChildDateLabel();
         if (!wizGender) {
             wizGender = 'neutral';
@@ -761,6 +805,7 @@ function updateTopBarTitle(screenId) {
 
 function initDrawerWizard() {
     syncWizardReadingChoiceCopy();
+    setupWizChildDatePicker();
     syncWizChildDateLabel();
     renderDrawerMenu();
     setupDrawerSwipeGestures();

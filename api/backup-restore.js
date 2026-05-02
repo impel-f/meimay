@@ -208,6 +208,26 @@ async function restoreBackupByKey(db, uid, body) {
   };
 }
 
+async function deleteUserBackupData(db, uid) {
+  const keySnap = await db.collection('backupRestoreKeys')
+    .where('ownerUid', '==', uid)
+    .get();
+  const refs = keySnap.docs.map((doc) => doc.ref);
+  refs.push(db.collection('users').doc(uid));
+
+  for (let i = 0; i < refs.length; i += 450) {
+    const batch = db.batch();
+    refs.slice(i, i + 450).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+
+  return {
+    ok: true,
+    deletedUserBackup: true,
+    deletedRestoreKeys: keySnap.size
+  };
+}
+
 module.exports = async (req, res) => {
   setCorsHeaders(res);
 
@@ -239,6 +259,10 @@ module.exports = async (req, res) => {
     }
     if (action === 'restore') {
       const result = await restoreBackupByKey(db, uid, body);
+      return res.status(200).json(result);
+    }
+    if (action === 'delete-user-backup') {
+      const result = await deleteUserBackupData(db, uid);
       return res.status(200).json(result);
     }
     return buildErrorResponse(res, 400, 'invalid_action');

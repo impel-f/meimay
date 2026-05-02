@@ -89,22 +89,29 @@ function isKanjiDetailAiAvailableForCurrentUser() {
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
     if (!button) return false;
 
-    const aiAvailable = isKanjiDetailAiAvailableForCurrentUser();
+    const currentKanji = _currentDetailData && _currentDetailData['漢字'] ? _currentDetailData['漢字'] : '';
+    const cachedText = currentKanji ? getCachedKanjiDetailText(currentKanji) : '';
+    const hasCachedDetail = !!cachedText;
+    const aiAvailable = !hasCachedDetail && isKanjiDetailAiAvailableForCurrentUser();
     const availableClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
     const unavailableClass = 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
     button.className = aiAvailable ? availableClass : unavailableClass;
     button.disabled = !aiAvailable;
     button.setAttribute('aria-disabled', String(!aiAvailable));
-    button.innerHTML = `<span>🤖</span> ${aiAvailable ? 'AIで漢字の成り立ち・意味を深掘り' : '今日のAI深掘りは終了しました'}`;
+    button.innerHTML = hasCachedDetail
+        ? '<span>✓</span> AI深掘り済み'
+        : `<span>🤖</span> ${aiAvailable ? 'AIで漢字の成り立ち・意味を深掘り' : '今日のAI深掘りは終了しました'}`;
 
     let note = document.getElementById('kanji-detail-ai-limit-note');
-    if (!aiAvailable && !note) {
+    if (hasCachedDetail && note) {
+        note.remove();
+    } else if (!aiAvailable && !hasCachedDetail && !note) {
         note = document.createElement('p');
         note.id = 'kanji-detail-ai-limit-note';
         note.className = 'mt-2 text-[11px] text-[#a59683] text-center';
         note.textContent = '無料会員は 1 日 1 回までです';
         button.insertAdjacentElement('afterend', note);
-    } else if (aiAvailable && note) {
+    } else if ((aiAvailable || hasCachedDetail) && note) {
         note.remove();
     }
 
@@ -538,6 +545,31 @@ function renderKanjiDetailReadingChips(readings) {
         .join('');
 }
 
+function getCachedKanjiDetailText(kanji) {
+    if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
+    const cached = StorageBox.getKanjiAiCache(kanji);
+    return String(cached?.text || '').trim();
+}
+
+function renderCachedKanjiDetailIfAvailable(kanji) {
+    const resultEl = document.getElementById('ai-kanji-result');
+    const cachedText = getCachedKanjiDetailText(kanji);
+    if (!resultEl || !cachedText) return false;
+
+    if (typeof renderKanjiDetailSections === 'function') {
+        renderKanjiDetailSections(resultEl, cachedText);
+    } else {
+        resultEl.innerHTML = `
+            <div class="bg-white p-4 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
+                <p class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed whitespace-pre-wrap">${escapeKanjiDetailHtml(cachedText)}</p>
+            </div>
+        `;
+    }
+    return true;
+}
+
+window.renderCachedKanjiDetailIfAvailable = renderCachedKanjiDetailIfAvailable;
+
 /**
  * 漢字詳細モーダルを表示
  */
@@ -715,6 +747,8 @@ async function showKanjiDetail(data) {
         }
 
         const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
+        const cachedRendered = renderCachedKanjiDetailIfAvailable(data['漢字']);
+        if (cachedRendered) refreshKanjiDetailAiButtonState(aiActionButton);
         if (aiActionButton) {
             let longPressTimer = null;
             let longPressTriggered = false;
@@ -749,7 +783,13 @@ async function showKanjiDetail(data) {
                     return;
                 }
 
-                if (!aiAvailable) {
+                if (renderCachedKanjiDetailIfAvailable(data['漢字'])) {
+                    refreshKanjiDetailAiButtonState(aiActionButton);
+                    return;
+                }
+
+                const currentAiAvailable = isKanjiDetailAiAvailableForCurrentUser();
+                if (!currentAiAvailable) {
                     event.preventDefault();
                     event.stopImmediatePropagation();
                     if (typeof showToast === 'function') {
@@ -758,6 +798,8 @@ async function showKanjiDetail(data) {
                     return;
                 }
 
+                aiActionButton.disabled = true;
+                aiActionButton.setAttribute('aria-disabled', 'true');
                 await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
                 refreshKanjiDetailAiButtonState(aiActionButton);
             }, true);

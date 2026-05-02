@@ -432,6 +432,7 @@ function renderSettingsScreen() {
 
             ${renderSection('データと表示', `
                 ${renderItem({ title: 'バックアップと復元', value: '復元キー', onClick: 'openTransferModal()' })}
+                ${renderItem({ title: 'アプリデータを削除', value: '初期化', valueStyle: 'color:#c56555;font-weight:800;', onClick: 'openDeleteAppDataSheet()' })}
                 <button type="button" class="settings-item-unified settings-item-note" onclick="toggleInappropriateSetting()">
                     <span class="item-content-unified">
                         <span class="item-copy-unified">
@@ -475,6 +476,117 @@ function deleteAllStocks() {
     }
 
     alert('すべてのストックを消去しました。');
+}
+
+function openDeleteAppDataSheet() {
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="delete-app-data-sheet" onclick="if(event.target.id==='delete-app-data-sheet')closeDeleteAppDataSheet()">
+            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeDeleteAppDataSheet()">✕</button>
+                <h3 class="modal-title">アプリデータを削除</h3>
+                <p class="modal-desc">端末内の名づけデータ、復元キー、クラウドバックアップ、パートナー連携情報を削除します。</p>
+                <div class="settings-sheet-list">
+                    <div class="settings-sheet-row">
+                        <span>削除されるもの</span>
+                        <strong>保存名・ストック・設定</strong>
+                    </div>
+                    <div class="settings-sheet-row">
+                        <span>購入履歴</span>
+                        <strong>ストア側に残ります</strong>
+                    </div>
+                </div>
+                <p class="mt-3 text-[11px] leading-relaxed text-[#9a8a70]">プレミアム購入済みの場合、削除後は同じApple ID / Googleアカウントで購入状態の同期が必要になることがあります。</p>
+                <div id="delete-app-data-status" class="mt-3 hidden rounded-2xl bg-[#fff4ec] px-4 py-3 text-[11px] font-bold leading-relaxed text-[#9a5a46]"></div>
+                <button type="button" id="delete-app-data-confirm" onclick="deleteMeimayAppData()" class="mt-4 w-full rounded-2xl bg-[#c56555] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-95 transition-transform">すべてのデータを削除</button>
+                <button type="button" onclick="closeDeleteAppDataSheet()" class="mt-2 w-full rounded-2xl border border-[#d4c5af] bg-white px-4 py-3 text-sm font-black text-[#5d5444] active:scale-95 transition-transform">キャンセル</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('delete-app-data-sheet')?.remove();
+    document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function closeDeleteAppDataSheet() {
+    document.getElementById('delete-app-data-sheet')?.remove();
+}
+
+function setDeleteAppDataStatus(message, tone = 'working') {
+    const status = document.getElementById('delete-app-data-status');
+    if (!status) return;
+    status.textContent = message;
+    status.classList.remove('hidden');
+    status.style.background = tone === 'error' ? '#fff1f1' : '#fff4ec';
+    status.style.color = tone === 'error' ? '#b74f4f' : '#9a5a46';
+}
+
+async function deleteMeimayAppData() {
+    const firstConfirm = confirm('保存した名前、ストック、読み・漢字の履歴、設定、復元キー、クラウドバックアップを削除します。\nこの操作は元に戻せません。続けますか？');
+    if (!firstConfirm) return;
+    const finalConfirm = confirm('最終確認です。\n購入履歴はストア側に残りますが、アプリ内の名づけデータは削除されます。本当に削除しますか？');
+    if (!finalConfirm) return;
+
+    const button = document.getElementById('delete-app-data-confirm');
+    if (button) {
+        button.disabled = true;
+        button.textContent = '削除中...';
+        button.style.opacity = '0.7';
+    }
+    setDeleteAppDataStatus('削除しています。画面を閉じずにお待ちください。');
+
+    const warnings = [];
+    try {
+        if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.stopListening === 'function') {
+            MeimayShare.stopListening();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to stop partner listener before data deletion', error);
+    }
+
+    try {
+        if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && typeof MeimayPairing.leaveRoom === 'function') {
+            await MeimayPairing.leaveRoom();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to leave pairing room during data deletion', error);
+        warnings.push('パートナー連携の解除に失敗しました');
+    }
+
+    try {
+        if (typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup.deleteRemoteBackup === 'function') {
+            await MeimayUserBackup.deleteRemoteBackup();
+        } else if (typeof firebaseDb !== 'undefined' && firebaseDb && typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser()?.uid) {
+            await firebaseDb.collection('users').doc(MeimayAuth.getCurrentUser().uid).delete();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to delete remote backup during data deletion', error);
+        warnings.push('クラウドバックアップの削除に失敗しました');
+    }
+
+    const currentUser = (typeof firebaseAuth !== 'undefined' && firebaseAuth && firebaseAuth.currentUser)
+        ? firebaseAuth.currentUser
+        : (typeof MeimayAuth !== 'undefined' && MeimayAuth ? MeimayAuth.getCurrentUser() : null);
+    try {
+        if (currentUser && typeof currentUser.delete === 'function') {
+            await currentUser.delete();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to delete anonymous Firebase user', error);
+        warnings.push('匿名IDの削除に失敗しました');
+    }
+
+    try {
+        localStorage.clear();
+        sessionStorage.clear();
+    } catch (error) {
+        console.warn('SETTINGS: Failed to clear local storage', error);
+    }
+
+    if (warnings.length > 0) {
+        setDeleteAppDataStatus('端末内データは削除しました。一部のクラウド削除は通信状況により完了していない可能性があります。必要に応じてお問い合わせください。', 'error');
+    } else {
+        setDeleteAppDataStatus('削除しました。アプリを再読み込みします。');
+    }
+    setTimeout(() => location.reload(), 900);
 }
 
 
@@ -835,7 +947,7 @@ function openTransferModal() {
             <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
-                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。</p>
+                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。パートナー連携は復元後に再設定してください。</p>
                 <div class="modal-body backup-restore-body">
                     <section class="backup-restore-card">
                         <div class="backup-restore-card-head">
@@ -870,7 +982,7 @@ function openTransferModal() {
                     </section>
                     <section class="backup-restore-note">
                         <strong>復元ルール</strong>
-                        <span>IDや苗字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。</span>
+                        <span>IDや苗字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。</span>
                     </section>
                     <div id="backup-restore-status" class="backup-restore-status" role="status" aria-live="polite" data-tone="neutral">復元キーは、家族以外に共有しないでください。</div>
                 </div>
@@ -1251,6 +1363,9 @@ window.openPartnerSettingsSheet = openPartnerSettingsSheet;
 window.closePartnerSettingsSheet = closePartnerSettingsSheet;
 window.openLegalSettingsSheet = openLegalSettingsSheet;
 window.closeLegalSettingsSheet = closeLegalSettingsSheet;
+window.openDeleteAppDataSheet = openDeleteAppDataSheet;
+window.closeDeleteAppDataSheet = closeDeleteAppDataSheet;
+window.deleteMeimayAppData = deleteMeimayAppData;
 window.openTransferModal = openTransferModal;
 window.closeTransferModal = closeTransferModal;
 window.issueBackupRestoreKey = issueBackupRestoreKey;

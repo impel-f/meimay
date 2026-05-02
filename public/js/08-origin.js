@@ -227,6 +227,12 @@ function refundDailyKanjiDetailUse() {
     } catch (error) { }
 }
 
+function getStoredKanjiDetailAiText(kanji) {
+    if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
+    const cached = StorageBox.getKanjiAiCache(kanji);
+    return String(cached?.text || '').trim();
+}
+
 function sanitizeKanjiAiText(text) {
     return String(text || '')
         .replace(/\r\n/g, '\n')
@@ -694,6 +700,9 @@ async function resetKanjiDetailCache(kanji, currentReading) {
     const readingPayload = isSpecialKanjiAiReading(currentReading) ? '' : currentReading;
     let lastError = null;
     clearKanjiDetailReset(kanji, currentReading);
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeKanjiAiCache === 'function') {
+        StorageBox.removeKanjiAiCache(kanji);
+    }
 
     try {
         const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
@@ -745,6 +754,12 @@ async function resetKanjiDetailCache(kanji, currentReading) {
 async function generateKanjiDetail(kanji, currentReading) {
     const resultEl = document.getElementById('ai-kanji-result');
     if (!resultEl) return;
+
+    const cachedText = getStoredKanjiDetailAiText(kanji);
+    if (cachedText && !hasKanjiDetailReset(kanji, currentReading)) {
+        renderKanjiDetailSections(resultEl, cachedText);
+        return;
+    }
 
     const shouldRefundOnFailure = !(typeof isPremiumAccessActive === 'function' && isPremiumAccessActive());
     if (!consumeDailyKanjiDetailUse()) {
@@ -1042,6 +1057,9 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
 
         renderKanjiDetailSections(resultEl, combinedText);
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveKanjiAiCache === 'function') {
+            StorageBox.saveKanjiAiCache(kanji, combinedText);
+        }
 
         if (finalIdiomsCount >= 3 && (readingFreshGenerated || (baseFreshGenerated && isSpecialKanjiAiReading(currentReading)))) {
             clearKanjiDetailReset(kanji, currentReading);

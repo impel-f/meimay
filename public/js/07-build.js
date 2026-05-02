@@ -1130,10 +1130,24 @@ function switchStockTab(tab) {
         // kanji (default)
         if (kanjiTab) kanjiTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (kanjiPanel) kanjiPanel.classList.remove('hidden');
+        if (typeof renderStock === 'function') renderStock();
     }
 }
 
 window.switchStockTab = switchStockTab;
+
+if (typeof window !== 'undefined' && !window.__meimayStockRenderListenerBound) {
+    window.__meimayStockRenderListenerBound = true;
+    window.addEventListener('meimay:stock-changed', () => {
+        const stockScreen = document.getElementById('scr-stock');
+        if (!stockScreen || !stockScreen.classList.contains('active')) return;
+        if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
+            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+            return;
+        }
+        if (typeof renderStock === 'function') renderStock();
+    });
+}
 
 /**
  * ストック一覧のレンダリング（読み方別・重複排除）
