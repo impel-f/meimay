@@ -671,6 +671,19 @@ function getPlatform() {
     return 'web';
 }
 
+function isCapacitorNativeAdRuntime() {
+    const capacitorPlatform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? String(window.Capacitor.getPlatform() || '').toLowerCase()
+        : '';
+    return capacitorPlatform === 'ios' || capacitorPlatform === 'android';
+}
+
+function getAdMobPlugin() {
+    return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob
+        ? window.Capacitor.Plugins.AdMob
+        : null;
+}
+
 function getBottomFooterHeight() {
     const candidates = [
         document.getElementById('bottom-nav'),
@@ -742,6 +755,23 @@ function updateAdLayoutSpacing(bannerHeight) {
     return 0;
 }
 
+function clearHtmlAdBanner(reason, error) {
+    const container = document.getElementById('admob-banner');
+    if (container) {
+        container.style.display = 'none';
+        container.style.bottom = '';
+        container.innerHTML = '';
+    }
+    adBannerVisible = false;
+    adBannerMode = null;
+    document.body.style.removeProperty('--ad-screen-safe-space');
+    document.body.classList.remove('has-ad-banner');
+
+    if (reason) {
+        console.warn(`ADMOB: ${reason}`, error || '');
+    }
+}
+
 function setupNativeAdMobBannerListeners(AdMob) {
     if (nativeAdMobListenersReady || !AdMob || typeof AdMob.addListener !== 'function') return;
     nativeAdMobListenersReady = true;
@@ -776,8 +806,7 @@ function setupNativeAdMobBannerListeners(AdMob) {
         addBannerListener('bannerAdFailedToLoad', (error) => {
             nativeAdMobBannerLoaded = false;
             nativeAdMobBannerFailed = true;
-            console.warn('ADMOB: Native banner failed to load, falling back to web', error);
-            showWebAdBanner();
+            clearHtmlAdBanner('Native banner failed to load; web placeholder suppressed in native app', error);
         });
     } catch (e) {
         nativeAdMobListenersReady = false;
@@ -793,14 +822,20 @@ function initAdMob() {
     }
 
     const platform = getPlatform();
+    const AdMob = getAdMobPlugin();
 
     // Native AdMob (Capacitor/Cordova)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+    if (AdMob) {
         initNativeAdMob(platform);
         return;
     }
 
-    // Web fallback: show placeholder banner
+    if (isCapacitorNativeAdRuntime()) {
+        clearHtmlAdBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
+        return;
+    }
+
+    // Web fallback: show placeholder banner in local/browser previews
     showWebAdBanner();
 }
 
@@ -809,7 +844,11 @@ async function initNativeAdMob(platform) {
     const footerHeight = getBottomFooterHeight();
 
     try {
-        const { AdMob } = window.Capacitor.Plugins;
+        const AdMob = getAdMobPlugin();
+        if (!AdMob) {
+            clearHtmlAdBanner('Native AdMob plugin is unavailable before initialization');
+            return;
+        }
         setupNativeAdMobBannerListeners(AdMob);
 
         if (!nativeAdMobInitializePromise) {
@@ -848,16 +887,18 @@ async function initNativeAdMob(platform) {
         nativeAdMobInitializePromise = null;
         nativeAdMobBannerLoaded = false;
         nativeAdMobBannerFailed = true;
-        console.warn('ADMOB: Native init failed, falling back to web', e);
-        showWebAdBanner();
+        clearHtmlAdBanner('Native init failed; web placeholder suppressed in native app', e);
     }
 }
 
 function showAdBanner() {
     if (PremiumManager.isPremium()) return;
     const platform = getPlatform();
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+    const AdMob = getAdMobPlugin();
+    if (AdMob) {
         initNativeAdMob(platform);
+    } else if (isCapacitorNativeAdRuntime()) {
+        clearHtmlAdBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
     } else {
         showWebAdBanner();
     }
@@ -921,15 +962,31 @@ function hideAdBanner() {
     document.body.style.removeProperty('--ad-screen-safe-space');
     document.body.classList.remove('has-ad-banner');
 
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+    const AdMob = getAdMobPlugin();
+    if (AdMob) {
         try {
-            const hideResult = window.Capacitor.Plugins.AdMob.hideBanner();
+            const hideResult = AdMob.hideBanner();
             if (hideResult && typeof hideResult.catch === 'function') {
                 hideResult.catch((e) => console.warn('ADMOB: hideBanner failed', e));
             }
         } catch (e) { console.warn('ADMOB: hideBanner failed', e); }
     }
 }
+
+window.MeimayAdMobDebug = {
+    getState: function () {
+        return {
+            platform: getPlatform(),
+            nativeRuntime: isCapacitorNativeAdRuntime(),
+            adMobPluginAvailable: !!getAdMobPlugin(),
+            visible: adBannerVisible,
+            mode: adBannerMode,
+            nativeLoaded: nativeAdMobBannerLoaded,
+            nativeFailed: nativeAdMobBannerFailed,
+            safeSpace: document.body.style.getPropertyValue('--ad-screen-safe-space') || ''
+        };
+    }
+};
 
 window.addEventListener('resize', () => {
     if (adBannerVisible) {

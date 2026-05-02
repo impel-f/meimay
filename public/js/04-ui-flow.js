@@ -1752,6 +1752,7 @@ function getCompoundReadingOptions(reading, limit = 6, targetGender = gender || 
 function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
     const targetGender = gender || 'neutral';
     const normalizedReading = toHira(reading || '');
+    const includeLockedExamples = !!extraOptions.includeLockedExamples;
     const strictPaths = typeof getReadingSegmentPaths === 'function'
         ? getReadingSegmentPaths(normalizedReading, limit * 2, { strictOnly: true, allowFallback: false })
         : [];
@@ -1773,7 +1774,7 @@ function getReadingSegmentOptions(reading, limit = 4, extraOptions = {}) {
             const cleanPath = Array.isArray(path) ? path.filter(Boolean) : [];
             const label = cleanPath.join('/');
             if (!label || seen.has(label)) return null;
-            const candidates = buildReadingCombinationCandidates(cleanPath, 4, targetGender);
+            const candidates = buildReadingCombinationCandidates(cleanPath, 4, targetGender, { includeLockedExamples });
             if (!candidates || candidates.length === 0) return null;
             seen.add(label);
             return {
@@ -5749,12 +5750,13 @@ function getStrictReadingMatch(item, segment, options = {}) {
     return null;
 }
 
-function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neutral') {
+function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neutral', options = {}) {
     if (typeof getCuratedReadingSegmentCandidates !== 'function') return null;
 
     const curatedCandidates = getCuratedReadingSegmentCandidates(segment);
     if (!Array.isArray(curatedCandidates)) return null;
 
+    const includeLockedExamples = !!options.includeLockedExamples;
     const items = [];
     const seen = new Set();
 
@@ -5766,11 +5768,11 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
         const masterItem = Array.isArray(master)
             ? master.find((item) => String(item['漢字'] || '').trim() === normalizedKanji)
             : null;
+        const accessible = masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function'
+            ? isKanjiAccessibleForCurrentMembership(masterItem)
+            : (typeof isPremiumAccessActive === 'function' ? isPremiumAccessActive() : true);
 
-        if (masterItem && typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(masterItem)) {
-            return;
-        }
-        if (!masterItem && typeof isPremiumAccessActive === 'function' && !isPremiumAccessActive()) {
+        if (!accessible && !includeLockedExamples) {
             return;
         }
         if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem, targetGender)) {
@@ -5793,7 +5795,8 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
             _readingMatchTier: 1,
             _recommendationScore: 100000 - (index * 1000),
             _genderPriority: 1,
-            _curatedOrder: index
+            _curatedOrder: index,
+            _premiumLocked: !accessible
         });
     });
 
@@ -5805,12 +5808,13 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
     if (!target || !master || master.length === 0) return [];
 
     const segmentIndex = Number(options.segmentIndex || 0);
-    const cacheKey = `strict::${target}::${targetGender}::${segmentIndex}`;
+    const includeLockedExamples = !!options.includeLockedExamples;
+    const cacheKey = `strict::${target}::${targetGender}::${segmentIndex}::${includeLockedExamples ? 'withLocked' : 'freeOnly'}`;
     if (readingKanjiCache.has(cacheKey)) {
         return readingKanjiCache.get(cacheKey).slice(0, limit);
     }
 
-    const curatedItems = getCuratedSegmentCandidateItems(target, targetGender);
+    const curatedItems = getCuratedSegmentCandidateItems(target, targetGender, { includeLockedExamples });
     if (Array.isArray(curatedItems)) {
         if (curatedItems.length > 0) {
             const rankedCuratedItems = sortReadingCandidatesForDisplay(curatedItems);
@@ -5825,7 +5829,10 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
 
     master
         .filter(item => {
-            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) {
+            const accessible = typeof isKanjiAccessibleForCurrentMembership === 'function'
+                ? isKanjiAccessibleForCurrentMembership(item)
+                : true;
+            if (!accessible && !includeLockedExamples) {
                 return false;
             }
             const flag = item['\u4E0D\u9069\u5207\u30D5\u30E9\u30B0'];
@@ -5835,6 +5842,9 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
         })
         .map(item => {
             const match = getStrictReadingMatch(item, target, { segmentIndex });
+            const accessible = typeof isKanjiAccessibleForCurrentMembership === 'function'
+                ? isKanjiAccessibleForCurrentMembership(item)
+                : true;
             return {
                 ...item,
                 _readingMatchTier: match ? match.tier : 99,
@@ -5843,7 +5853,8 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
                     : ((parseInt(item['\u304A\u3059\u3059\u3081\u5EA6']) || 0) * 100),
                 _genderPriority: typeof getKanjiGenderPriority === 'function'
                     ? getKanjiGenderPriority(item, targetGender)
-                    : 1
+                    : 1,
+                _premiumLocked: !accessible
             };
         })
         .sort((a, b) => {
@@ -6021,11 +6032,14 @@ function pickReadingDisplayCandidates(allCandidates, limit) {
     return sortReadingCandidatesForDisplay(selected).slice(0, limit);
 }
 
-function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral') {
+function buildReadingCombinationCandidates(path, limit = 4, targetGender = gender || 'neutral', options = {}) {
     if (!Array.isArray(path) || path.length === 0) return [];
 
+    const includeLockedExamples = !!options.includeLockedExamples;
     const groups = path.map((segment) => {
-        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender);
+        const rawGroup = findStrictKanjiCandidatesForSegment(segment, 20, targetGender, {
+            includeLockedExamples
+        });
         const pool = sortReadingCandidatesForDisplay(
             rawGroup
                 .slice(0, 16)
@@ -6054,7 +6068,8 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
             allResults.push({
                 givenName,
                 score: score + Math.random() * 60,
-                combination: pieces.map(piece => ({ ...piece }))
+                combination: pieces.map(piece => ({ ...piece })),
+                _premiumLocked: pieces.some(piece => piece && piece._premiumLocked === true)
             });
             return;
         }
@@ -6095,6 +6110,14 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     const option = readingCombinationModalState.options[optionIndex];
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
+    if (isReadingCandidateLockedForCurrentMembership(candidate)) {
+        if (typeof showPremiumModal === 'function') {
+            showPremiumModal();
+        } else if (typeof showToast === 'function') {
+            showToast('人名用漢字はプレミアムで使えます', '👑');
+        }
+        return;
+    }
     const reading = readingCombinationModalState.item.reading;
 
     saveReadingCandidateToStock(option, candidate, asSuper);
@@ -6228,11 +6251,12 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const stockTarget = stockItem?.id || modalReading || item.reading || item.sessionReading || '';
     const encodedStockTarget = encodeURIComponent(String(stockTarget || ''));
     const isStocked = !!stockItem;
-    const options = getReadingSegmentOptions(
-        modalReading || item.reading,
-        4,
-        preferredLabel ? { preferredLabel, compoundLimit: 6 } : { compoundLimit: 6 }
-    );
+    const optionConfig = {
+        compoundLimit: 6,
+        includeLockedExamples: true,
+        ...(preferredLabel ? { preferredLabel } : {})
+    };
+    const options = getReadingSegmentOptions(modalReading || item.reading, 4, optionConfig);
     const preview = getReadingFullNamePreview(modalReading || item.reading);
     const tone = getReadingCardTone(item);
     const headerLabel = forceSplit ? '分け方の提案' : '';
@@ -6297,16 +6321,19 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                     </div>
                 ` : options.map((option, index) => {
                     const candidateHtml = option.candidates.length > 0
-                        ? option.candidates.map((candidate, candidateIndex) => `
-                        <div class="rounded-2xl border border-[#eee5d8] bg-[#fdfaf5] p-3 flex items-center gap-3">
+                        ? option.candidates.map((candidate, candidateIndex) => {
+                            const locked = isReadingCandidateLockedForCurrentMembership(candidate);
+                            return `
+                        <div class="reading-modal-candidate-row${locked ? ' reading-modal-candidate-row--locked' : ''}">
                             <div class="min-w-0 flex-1">
                                 ${renderReadingModalCandidateName(candidate)}
                             </div>
                             ${forceSplit
-                                ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap">保存</button>`
+                                ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '保存'}</button>`
                                 : ''}
                         </div>
-                        `).join('')
+                        `;
+                        }).join('')
                         : '<div class="px-3 py-2 rounded-2xl bg-[#fdfaf5] border border-[#eee5d8] text-xs text-[#a6967a] text-center">候補がまだありません</div>';
                     return `
                         <div class="rounded-[28px] border border-[#ede5d8] bg-white p-4 shadow-sm">
@@ -6348,6 +6375,13 @@ function isSampleKanjiAccessibleForCurrentMembership(label) {
     });
 }
 
+function isReadingCandidateLockedForCurrentMembership(candidate) {
+    if (candidate && candidate._premiumLocked === true) return true;
+    const givenName = String(candidate?.givenName || candidate?.fullName || '').replace(/\s+/g, '').trim();
+    if (!givenName) return false;
+    return !isSampleKanjiAccessibleForCurrentMembership(givenName);
+}
+
 function getDirectCuratedReadingExamples(reading) {
     const normalizedReading = typeof normalizeReadingComparisonValue === 'function'
         ? normalizeReadingComparisonValue(reading)
@@ -6377,8 +6411,7 @@ function renderReadingSampleExample(example) {
 
 function renderReadingModalCandidateName(candidate) {
     const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
-    const givenName = String(candidate?.givenName || fullName).trim();
-    const locked = givenName ? !isSampleKanjiAccessibleForCurrentMembership(givenName) : false;
+    const locked = isReadingCandidateLockedForCurrentMembership(candidate);
 
     return '<div class="reading-modal-candidate-name">'
         + '<span class="reading-modal-candidate-text' + (locked ? ' reading-modal-candidate-text--locked' : '') + '">'
@@ -6389,7 +6422,7 @@ function renderReadingModalCandidateName(candidate) {
 }
 
 function getSampleKanjiHtml(item) {
-    const options = getReadingSegmentOptions(item.reading, 4);
+    const options = getReadingSegmentOptions(item.reading, 4, { includeLockedExamples: true });
     const examples = [];
     const seen = new Set();
 
@@ -6407,7 +6440,7 @@ function getSampleKanjiHtml(item) {
     options.forEach((option) => {
         sortReadingCandidatesForDisplay(option.candidates).slice(0, 4).forEach((candidate) => {
             const label = candidate.givenName || candidate.fullName;
-            addExample(label, false, 1000);
+            addExample(label, isReadingCandidateLockedForCurrentMembership(candidate), 1000);
         });
     });
 
