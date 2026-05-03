@@ -97,6 +97,9 @@
     font-size: 14px;
     font-weight: 750;
     line-height: 1.25;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .item-value-unified {
@@ -201,9 +204,12 @@
 .settings-sheet .modal-title {
     margin: 0 44px 18px;
     color: #4f4536;
-    font-size: 18px;
+    font-size: clamp(14px, 4.7vw, 18px);
     font-weight: 800;
     line-height: 1.35;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .settings-sheet .modal-desc {
@@ -249,6 +255,9 @@
 .settings-sheet-row span {
     font-size: 14px;
     font-weight: 700;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .settings-sheet-row strong {
@@ -632,7 +641,13 @@
     right: 14px;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+    max-height: 36px;
+    padding: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 9999px;
     background: #ffffff;
     border: 1px solid #eadfce;
     color: #7a6f5a;
@@ -641,6 +656,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 36px;
+    line-height: 1;
     transition: all 0.2s;
     z-index: 10;
 }
@@ -651,11 +668,14 @@
 
 /* モーダルタイトル */
 .modal-title {
-    font-size: 20px;
+    font-size: clamp(15px, 5vw, 20px);
     font-weight: 800;
     color: #5d5444;
     text-align: center;
     margin-bottom: 16px;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 /* モーダル説明文 */
@@ -816,6 +836,9 @@
     color: #4f4536;
     margin-bottom: 4px;
     line-height: 1.35;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
 }
 
 .choice-desc {

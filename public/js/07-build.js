@@ -2316,24 +2316,24 @@ function renderBuildSelection() {
         : '\u8aad\u307f\u3092\u9078\u3076';
 
     modeBar.innerHTML = `
-        <div class="flex rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="build-tabs">
+        <div class="grid grid-cols-2 rounded-2xl border border-[#eee5d8] bg-white p-1 shadow-sm" id="build-tabs">
             <button onclick="toggleReadingDropdown()" id="reading-mode-btn"
-                class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'reading'
+                class="min-w-0 rounded-xl px-2 py-2 text-center font-bold transition-all ${buildMode === 'reading'
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
-                <span class="inline-flex items-center justify-center gap-1.5 min-w-0 w-full">
-                    <span style="display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.9vw,15px);line-height:1.2;">${readingBtnLabel}</span>
-                    <span id="reading-mode-caret" class="text-[11px] leading-none">▼</span>
+                <span class="build-mode-tab-inner">
+                    <span class="build-mode-tab-label">${readingBtnLabel}</span>
+                    <span id="reading-mode-caret" class="build-mode-tab-caret">▼</span>
                 </span>
             </button>
             <button onclick="setBuildMode('free')"
-                class="flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center transition-all ${buildMode === 'free'
+                class="min-w-0 rounded-xl px-2 py-2 text-center font-bold transition-all ${buildMode === 'free'
             ? 'bg-[#fffbeb] text-[#5d5444] shadow-sm'
             : 'text-[#a6967a]'}">
-                \u81ea\u7531\u7d44\u307f\u7acb\u3066
+                <span class="build-mode-tab-label">\u81ea\u7531\u7d44\u307f\u7acb\u3066</span>
             </button>
         </div>
-        <div id="reading-dropdown" class="absolute top-full left-0 w-[60%] z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
+        <div id="reading-dropdown" class="absolute top-full left-0 right-0 z-[60] hidden bg-white border border-[#ede5d8] rounded-2xl shadow-xl mt-2 max-h-60 overflow-y-auto"></div>
     `;
 
     const namePreview = document.createElement('div');
@@ -3401,6 +3401,60 @@ function getFortuneStrokeValue(item) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function renderFortuneMetricStack(obj, label, options = {}) {
+    const num = Number(options.num ?? (obj ? (obj.num || obj.val || 0) : 0)) || 0;
+    const luckLabel = obj?.res?.label || '';
+    const compact = options.compact === true;
+    const numSize = options.numSize || (compact ? 13 : 16);
+    const unitSize = options.unitSize || (compact ? 7 : 9);
+    const gap = options.gap || (compact ? 3 : 5);
+    const labelHtml = options.showLabel === false ? '' : `<div style="font-size:${options.labelSize || 7}px;font-weight:700;color:#a6967a;margin-bottom:${compact ? 2 : 4}px">${label}</div>`;
+
+    return `
+        ${labelHtml}
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:${gap}px;line-height:1.1">
+            <div style="display:flex;align-items:baseline;justify-content:center;color:#5d5444">
+                <span style="font-size:${numSize}px;font-weight:900">${num}</span>
+                <span style="font-size:${unitSize}px;font-weight:700;color:#a6967a;margin-left:1px">画</span>
+            </div>
+            ${luckLabel ? `<span class="${getFortuneBadgeClass(luckLabel)}">${luckLabel}</span>` : ''}
+        </div>
+    `;
+}
+
+function fitFortuneMapToContainer(mapArea) {
+    const inner = mapArea?.querySelector?.('.fortune-map-inner');
+    if (!inner || typeof window === 'undefined') return;
+
+    inner.style.transform = '';
+    inner.style.transformOrigin = '';
+    inner.style.marginLeft = '';
+    inner.style.marginRight = '';
+    inner.style.marginBottom = '';
+
+    const areaStyle = window.getComputedStyle(mapArea);
+    const paddingX = (parseFloat(areaStyle.paddingLeft) || 0) + (parseFloat(areaStyle.paddingRight) || 0);
+    const availableWidth = Math.max(0, mapArea.clientWidth - paddingX);
+    const naturalWidth = inner.scrollWidth || inner.getBoundingClientRect().width || 0;
+    if (!availableWidth || !naturalWidth || naturalWidth <= availableWidth) {
+        inner.style.marginLeft = 'auto';
+        inner.style.marginRight = 'auto';
+        return;
+    }
+
+    const scale = Math.min(1, availableWidth / naturalWidth);
+    const scaledWidth = naturalWidth * scale;
+    const naturalHeight = inner.scrollHeight || inner.getBoundingClientRect().height || 0;
+
+    inner.style.transformOrigin = 'top left';
+    inner.style.transform = `scale(${scale})`;
+    inner.style.marginLeft = `${Math.max(0, (availableWidth - scaledWidth) / 2)}px`;
+    inner.style.marginRight = '0';
+    if (naturalHeight) {
+        inner.style.marginBottom = `${Math.round(naturalHeight * (scale - 1))}px`;
+    }
+}
+
 function showFortuneDetail() {
     const modal = document.getElementById('modal-fortune-detail');
     if (!modal || !currentBuildResult.fortune) return;
@@ -3432,8 +3486,8 @@ function showFortuneDetail() {
     // 鑑定図解：3カラム（外格＋[括弧 ｜ 漢字列 ｜ ]括弧×3＋天人地格）＋下部総格
     const BOX_H = 40;   // 漢字ボックス高さ px
     const BOX_W = 40;   // 漢字ボックス幅 px
-    const GAP = 8;    // 行間 px（広めに）
-    const DIV_H = 30;   // 「/」区切り高さ px（人格スペース確保）
+    const GAP = 12;    // 行間 px（人格・地格の線が干渉しないよう広めに）
+    const DIV_H = 48;   // 「/」区切り高さ px（人格スペース確保）
     const BC = '#bca37f'; // 括弧の色
     const BW = 2;    // 括弧の線幅 px
     const BARM = 10;   // 括弧のアーム幅 px
@@ -3480,7 +3534,7 @@ function showFortuneDetail() {
     };
 
     // 格ボックスの Y 位置（重なり防止：最小間隔を保証）
-    const FBOX_H = 36; // fBoxを横並びにしてコンパクト化
+    const FBOX_H = 50; // 画数と運勢を縦積みにした格ボックスの最小間隔
     const rawY = [spanMid(tenSpan), spanMid(jinSpan), spanMid(chiSpan)];
     const yPos = [...rawY];
     for (let i = 1; i < yPos.length; i++) {
@@ -3489,11 +3543,11 @@ function showFortuneDetail() {
     const [yTen, yJin, yChi] = yPos;
     const rightColH = Math.max(totalH, yChi + FBOX_H / 2 + 4);
 
-    // 格ボックス HTML（コンパクト横並びレイアウト）
+    // 格ボックス HTML（画数を上、運勢を下に積む）
     const fBox = (obj, label) => `
     <div style = "text-align:center;cursor:pointer;white-space:nowrap" onclick = "showFortuneTerm('${label}')" >
-            <div style="padding:2px 6px;background:#fdfaf5;border:1.5px solid #eee5d8;border-radius:6px;display:inline-block">
-                <span style="font-size:12px;font-weight:900;color:#5d5444">${getNum(obj)}</span><span style="font-size:7px;color:#a6967a">画</span><span style="margin-left:3px" class="${getFortuneBadgeClass(obj.res.label)}">${obj.res.label}</span>
+            <div style="width:62px;padding:2px 6px;background:#fdfaf5;border:1.5px solid #eee5d8;border-radius:6px;display:inline-block;box-sizing:border-box">
+                ${renderFortuneMetricStack(obj, label, { num: getNum(obj), compact: true, showLabel: false, numSize: 12, unitSize: 7, gap: 2 })}
             </div>
             <div style="font-size:7px;font-weight:700;color:#a6967a;margin-top:1px">${label}</div>
         </div> `;
@@ -3508,9 +3562,9 @@ function showFortuneDetail() {
     container.appendChild(mapTitle);
 
     const mapArea = document.createElement('div');
-    mapArea.className = "mb-2 p-4 bg-[#FFFDFC] rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
+    mapArea.className = "fortune-map-card mb-2 bg-[#FFFDFC] rounded-2xl border border-[#eee5d8] shadow-sm animate-fade-in";
     mapArea.innerHTML = `
-        <div style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
+        <div class="fortune-map-inner" style="display:flex;align-items:flex-start;justify-content:center;gap:2px">
 
             
             <div style="position:relative;display:flex;flex-direction:row-reverse;align-items:flex-start;flex-shrink:0;height:${totalH}px;width:${BARM + LINE + 80}px;justify-content:flex-start">
@@ -3529,9 +3583,8 @@ function showFortuneDetail() {
                     
                     <!-- 総格：構造に干渉しないよう下方に絶対配置 -->
                     <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);text-align:center;cursor:pointer;white-space:nowrap" onclick="showFortuneTerm('総格')">
-                        <div style="padding:4px 10px;background:linear-gradient(to bottom, white, #fdfaf5);border:1.5px solid #bca37f;border-radius:10px;display:inline-block;box-shadow:0 2px 6px rgba(188,163,127,0.15)">
-                            <div style="font-size:7px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
-                            <span style="font-size:14px;font-weight:900;color:#5d5444">${getNum(res.so)}</span><span style="font-size:8px;color:#a6967a">画</span><span style="margin-left:3px" class="${getFortuneBadgeClass(res.so.res.label)}">${res.so.res.label}</span>
+                        <div style="width:62px;padding:4px 8px;background:linear-gradient(to bottom, white, #fdfaf5);border:1.5px solid #bca37f;border-radius:10px;display:inline-block;box-sizing:border-box;box-shadow:0 2px 6px rgba(188,163,127,0.15)">
+                            ${renderFortuneMetricStack(res.so, '総格', { num: getNum(res.so), compact: true, numSize: 14, unitSize: 8, gap: 3 })}
                         </div>
                     </div>
                 </div>
@@ -3575,12 +3628,13 @@ function showFortuneDetail() {
         <div style="display:inline-block;padding:6px 20px;background:linear-gradient(to right,#fdfaf5,white);border-radius:12px;border:1.5px solid #bca37f;box-shadow:0 1px 4px rgba(188,163,127,0.15);cursor:pointer"
             onclick="showFortuneTerm('総格')">
             <div style="font-size:8px;font-weight:700;color:#a6967a;margin-bottom:1px">総格</div>
-            <div style="font-size:16px;font-weight:900;color:#5d5444;line-height:1.2">${getNum(res.so)}<span style="font-size:9px;font-weight:400;color:#a6967a">画</span></div>
-            <div class="${getFortuneBadgeClass(res.so.res.label)}">${res.so.res.label}</div>
+            ${renderFortuneMetricStack(res.so, '総格', { num: getNum(res.so), compact: false, showLabel: false, numSize: 16, unitSize: 9, gap: 4 })}
         </div>
     </div>
 `;
     container.appendChild(mapArea);
+    fitFortuneMapToContainer(mapArea);
+    window.requestAnimationFrame(() => fitFortuneMapToContainer(mapArea));
 
     const showSansaiSection = false;
     if (showSansaiSection && res.sansai) {
@@ -3663,12 +3717,12 @@ function renderFortuneDetails(container, res, getNum) {
                     <span class="text-xs font-black text-[#a6967a]">${p.k}（${p.sub}）</span>
                     <span onclick="showFortuneTerm('${p.k}')" style="width:16px;height:16px;min-width:16px;flex-shrink:0;border-radius:50%;background:#bca37f;color:white;font-size:10px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;line-height:1;align-self:center">?</span>
                 </div>
-                <div class="flex items-center gap-2 ml-auto">
-                    <span class="text-base font-black text-[#5d5444]">${getNum(p.d)}画</span>
+                <div class="ml-auto flex min-w-[58px] flex-col items-center justify-center gap-1">
+                    <span class="text-base font-black leading-none text-[#5d5444]">${getNum(p.d)}<span class="ml-0.5 text-[9px] font-bold text-[#a6967a]">画</span></span>
                     <span class="${getFortuneBadgeClass(p.d.res.label)}">${p.d.res.label}</span>
                 </div>
             </div>
-    <p class="text-[11px] leading-relaxed text-[#7a6f5a] line-clamp-3">${descText}</p>
+    <p class="text-[11px] leading-relaxed text-[#7a6f5a]">${descText}</p>
 `;
         container.appendChild(row);
     });

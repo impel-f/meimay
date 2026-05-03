@@ -1050,9 +1050,6 @@ function showSavedNameDetail(index, source = 'own') {
                 </div>
 
                 <div class="modal-footer flex flex-col gap-2">
-                    <button onclick="loadSavedName(${index}, '${source}')" class="w-full py-5 bg-[#bca37f] text-white rounded-[1.5rem] text-sm font-black shadow-lg shadow-[#bca37f]/20 hover:bg-[#a68d68] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                         <span>🛠️</span> この構成で漢字を選びなおす
-                    </button>
                     ${localDeleteIndex >= 0 ? `<button onclick="deleteSavedName(${localDeleteIndex})" class="w-full py-4 bg-[#fef2f2] text-[#f28b82] rounded-xl text-xs font-bold hover:bg-[#f28b82] hover:text-white transition-all">削除</button>` : ''}
                     <button onclick="closeSavedNameDetail()" class="w-full py-4 bg-white text-[#a6967a] rounded-xl text-xs font-bold hover:bg-[#fdfaf5] transition-all">
                         閉じる

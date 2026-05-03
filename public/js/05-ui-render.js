@@ -574,6 +574,7 @@ function showDetailByData(data) {
 
 // 詳細モーダルで現在表示中の漢字データを保持
 let _currentDetailData = null;
+let _kanjiDetailAdvanceOnClose = null;
 
 function escapeKanjiDetailHtml(value) {
     return String(value ?? '')
@@ -1040,8 +1041,73 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             renderStock();
         }
 
-        alert(isSuper ? '★本命でストックに追加しました！' : '♥候補でストックに追加しました！');
+        const addedMessage = typeof getKanjiSwipeStockToastText === 'function'
+            ? getKanjiSwipeStockToastText(data, isSuper ? 'up' : 'right')
+            : `${data['漢字'] ? `「${data['漢字']}」` : '漢字'}を${isSuper ? '本命として' : '候補として'}追加しました。`;
+        if (typeof showToast === 'function') {
+            showToast(addedMessage, isSuper ? '★' : '📚');
+        } else {
+            alert(addedMessage);
+        }
+        const mainSwipeScreen = document.getElementById('scr-main');
+        const activeSwipeItem = Array.isArray(stack) ? stack[currentIdx] : null;
+        if (mainSwipeScreen && mainSwipeScreen.classList.contains('active') &&
+            activeSwipeItem && activeSwipeItem['漢字'] === data['漢字']) {
+            _kanjiDetailAdvanceOnClose = {
+                kanji: data['漢字'],
+                action: isSuper ? 'up' : 'right'
+            };
+        }
         if (typeof showKanjiDetail === 'function') showKanjiDetail(data);
+    }
+}
+
+function advanceKanjiSwipeAfterDetailSelection(pending) {
+    if (!pending || !pending.kanji) return;
+
+    const mainSwipeScreen = document.getElementById('scr-main');
+    const activeItem = Array.isArray(stack) ? stack[currentIdx] : null;
+    if (!mainSwipeScreen || !mainSwipeScreen.classList.contains('active') ||
+        !activeItem || activeItem['漢字'] !== pending.kanji) {
+        return;
+    }
+
+    const action = pending.action === 'up' ? 'up' : 'right';
+    const encounteredAction = action === 'up' ? 'super' : 'like';
+    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
+
+    if (!premiumActive) {
+        if (typeof addDailySeenKanji === 'function') addDailySeenKanji(activeItem['漢字']);
+        if (typeof addDailyKanjiSwipeCount === 'function') addDailyKanjiSwipeCount();
+        if (typeof updateDailyRemainingDisplay === 'function') updateDailyRemainingDisplay();
+    }
+
+    if (typeof recordEncounteredSwipeItem === 'function') {
+        recordEncounteredSwipeItem(activeItem, encounteredAction);
+    }
+
+    const card = document.querySelector('#stack .card') || document.querySelector('#stack-container .card');
+    const finish = () => {
+        currentIdx++;
+        if (typeof render === 'function') render();
+        if (typeof handleSwipeProgress === 'function') handleSwipeProgress();
+        swipes++;
+        if (swipes > 0 && swipes % 10 === 0) {
+            const checkpointSlot = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ? -1 : currentPos;
+            if (typeof showKanjiSwipeCheckpointNudge === 'function') {
+                showKanjiSwipeCheckpointNudge(checkpointSlot);
+            } else if (typeof openChoiceModal === 'function') {
+                openChoiceModal(checkpointSlot);
+            }
+        }
+    };
+
+    if (card) {
+        card.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
+        card.classList.add(action === 'up' ? 'swipe-up' : 'swipe-right');
+        setTimeout(finish, 320);
+    } else {
+        finish();
     }
 }
 
@@ -1229,8 +1295,11 @@ async function handleHomePairAction() {
 
 function closeKanjiDetail() {
     const modal = document.getElementById('modal-kanji-detail');
+    const pendingAdvance = _kanjiDetailAdvanceOnClose;
+    _kanjiDetailAdvanceOnClose = null;
     if (modal) modal.classList.remove('active');
     if (typeof updateSwipeMainState === 'function') updateSwipeMainState();
+    advanceKanjiSwipeAfterDetailSelection(pendingAdvance);
 
     if (typeof _lastSavedDetailIndex === 'number' && _lastSavedDetailIndex !== null) {
         const scrSaved = document.getElementById('scr-saved');
@@ -2400,7 +2469,7 @@ function getHomeRecommendedStageKey(action) {
     if (action === 'reading' || action === 'stock' || action === 'matched-liked' || action === 'partner-liked') {
         return 'kanji';
     }
-    if (action === 'build') return 'build';
+    if (action === 'build' || action === 'free-build') return 'build';
     if (action === 'saved' || action === 'matched-saved' || action === 'partner-saved') {
         return 'save';
     }
@@ -2643,6 +2712,19 @@ function runHomeAction(action) {
 
     if (action === 'build') {
         if (typeof openBuild === 'function') {
+            openBuild();
+        } else if (typeof changeScreen === 'function') {
+            changeScreen('scr-build');
+        }
+        return;
+    }
+
+    if (action === 'free-build') {
+        if (typeof openBuildFreeMode === 'function') {
+            openBuildFreeMode();
+        } else if (typeof openFreeBuild === 'function') {
+            openFreeBuild();
+        } else if (typeof openBuild === 'function') {
             openBuild();
         } else if (typeof changeScreen === 'function') {
             changeScreen('scr-build');
@@ -3726,6 +3808,16 @@ function renderHomePairingWaitActionButton(pairing, primaryAction = '', secondar
     }, waitingForPartner ? 'パートナーへコードを送ります' : 'パートナーと候補を作れます');
 }
 
+function getHomeSecondaryActionDetailHtml(focusKey, secondaryAction = '') {
+    if (secondaryAction === 'free-build') {
+        return '集めた漢字から自由に候補を作ります';
+    }
+    if (focusKey === 'reading') return '今ある読みのストックを見返します';
+    if (focusKey === 'kanji') return '今ある漢字のストックを見返します';
+    if (focusKey === 'build') return 'いまのビルド候補を見返します';
+    return '保存した候補を見返します';
+}
+
 function getHomePrimaryActionCardConfig(focusCopy, fallbackStageKey, readingStockCount) {
     const action = focusCopy?.primaryAction || 'sound';
     const stageKey = getHomeRecommendedStageKey(action) || fallbackStageKey || 'reading';
@@ -3798,13 +3890,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         detail: String(actionCardConfig.detailHtml || '').replace(/<br\s*\/?>/gi, '、')
     };
     window.MeimayHomeNextHintStep = homeNextHintStep;
-    const secondaryDetailHtml = focusKey === 'reading'
-        ? '今ある読みのストックを見返します'
-        : focusKey === 'kanji'
-            ? '今ある漢字のストックを見返します'
-            : focusKey === 'build'
-                ? 'いまのビルド候補を見返します'
-                : '保存した候補を見返します';
+    const secondaryDetailHtml = getHomeSecondaryActionDetailHtml(focusKey, focusCopy.secondaryAction);
     const secondaryButton = focusCopy.secondaryAction
         ? renderHomeSecondaryActionButton({
             action: focusCopy.secondaryAction,
@@ -4184,7 +4270,9 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
                 { label: '読み', value: readingCount, unit: '件' },
                 { label: '漢字', value: kanjiCount, unit: '字' },
                 { label: '組み合わせ', value: buildCount, unit: '通り' }
-            ]
+            ],
+            kanjiCount > 0 ? 'free-build' : '',
+            kanjiCount > 0 ? '自由組み立てへ' : ''
         );
     }
 

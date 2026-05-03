@@ -1141,6 +1141,7 @@ const READING_CARD_GENDER_BORDERS = {
 const readingKanjiCache = new Map();
 let readingCombinationModalState = null;
 let readingCombinationModalOpenedAt = 0;
+let readingDetailAdvanceOnClose = null;
 
 function getReadingTonePalette(reading) {
     const firstMora = splitReadingIntoMoraUnits(reading || '')[0] || '';
@@ -1943,10 +1944,78 @@ function renderReadingTagBadges(tags) {
 }
 
 
+function getReadingSwipeDetailKey(item) {
+    return normalizeReadingComparisonValue(getReadingBaseReading(item?.reading || item?.sessionReading || ''));
+}
+
+function isActiveReadingSwipeDetailItem(item) {
+    const screen = document.getElementById('scr-swipe-universal');
+    if (!screen || !screen.classList.contains('active')) return false;
+    if (!SwipeState || (SwipeState.mode !== 'sound' && SwipeState.mode !== 'nickname' && appMode !== 'sound')) return false;
+    const currentItem = Array.isArray(SwipeState.candidates) ? SwipeState.candidates[SwipeState.currentIndex] : null;
+    return !!currentItem && getReadingSwipeDetailKey(currentItem) === getReadingSwipeDetailKey(item);
+}
+
+function advanceReadingSwipeAfterDetailSelection(pending) {
+    if (!pending || !pending.item) return;
+    if (!isActiveReadingSwipeDetailItem(pending.item)) return;
+
+    const action = pending.action === 'super' ? 'super' : 'like';
+    const currentItem = SwipeState.candidates[SwipeState.currentIndex];
+    const container = document.getElementById('uni-stack');
+    const card = container ? container.querySelector('.card') : null;
+
+    if (action === 'super') currentItem.isSuper = true;
+    SwipeState.liked.push(currentItem);
+    if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
+        learnSoundPreference(currentItem, action);
+        if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
+            rerankRemainingSoundCandidates();
+        }
+    }
+    if (currentItem.tags && currentItem.tags.length > 0 && typeof updateTagScore === 'function') {
+        updateTagScore(currentItem.tags, 1);
+    }
+    if (typeof recordEncounteredSwipeItem === 'function') {
+        recordEncounteredSwipeItem(currentItem, action);
+    }
+    SwipeState.history.push({ action, item: currentItem });
+    if (SwipeState.dailyLimitMode === 'reading' && typeof addDailyReadingSwipeCount === 'function') {
+        addDailyReadingSwipeCount();
+    }
+    if (SwipeState.config.onSwipe) {
+        SwipeState.config.onSwipe(currentItem, action);
+    }
+    if (SwipeState.history.length > 0 && SwipeState.history.length % 10 === 0) {
+        showUniversalSwipeCheckpointNudge();
+    }
+
+    const finish = () => {
+        SwipeState.currentIndex++;
+        renderUniversalCard();
+    };
+
+    if (card) {
+        card.style.transition = 'transform 0.5s ease-in, opacity 0.4s';
+        if (action === 'super') {
+            card.style.transform = 'translateY(-500px) scale(1.2)';
+        } else {
+            card.style.transform = 'translate3d(500px, 50px, 0) rotate(20deg)';
+        }
+        card.style.opacity = '0';
+        setTimeout(finish, 300);
+    } else {
+        finish();
+    }
+}
+
 function closeReadingCombinationModal() {
+    const pendingAdvance = readingDetailAdvanceOnClose;
+    readingDetailAdvanceOnClose = null;
     document.getElementById('reading-combination-modal')?.remove();
     readingCombinationModalState = null;
     readingCombinationModalOpenedAt = 0;
+    advanceReadingSwipeAfterDetailSelection(pendingAdvance);
 }
 
 function returnToReadingStockFromCombinationModal() {
@@ -8220,8 +8289,14 @@ function saveReadingOnlyFromModal(asSuper = false) {
         clearHidden: true,
         basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
     });
+    if (isActiveReadingSwipeDetailItem(item)) {
+        readingDetailAdvanceOnClose = {
+            item: { ...item },
+            action: asSuper ? 'super' : 'like'
+        };
+    }
     if (typeof showToast === 'function') {
-        showToast(asSuper ? `${item.reading}を本命として取り込みました` : `${item.reading}を候補として取り込みました`, asSuper ? '★' : '✓');
+        showToast(asSuper ? `${item.reading}を本命として追加しました` : `${item.reading}を候補として追加しました`, asSuper ? '★' : '✓');
     }
 
     if (typeof renderReadingStockSection === 'function') renderReadingStockSection();

@@ -172,24 +172,25 @@ body.hide-top-bar .screen-header-shell {
     left: 0;
     right: 0;
     z-index: 10000 !important;
-    background: rgba(253, 250, 245, 0.96);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(139, 126, 102, 0.15);
-    padding: 16px 0;
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.03);
+    background: rgba(253, 250, 245, 0.86);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid rgba(139, 126, 102, 0.1);
+    padding: 8px 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.025);
     pointer-events: all;
 }
 
 .nav-item {
     transition: all 0.2s;
-    padding: 6px 8px;
+    padding: 3px 6px;
     border-radius: 12px;
     cursor: pointer;
     pointer-events: all !important;
     position: relative;
     z-index: 1;
+    gap: 2px !important;
 }
 
 .nav-item:active span:first-child {
@@ -197,7 +198,7 @@ body.hide-top-bar .screen-header-shell {
 }
 
 .nav-item.active-nav {
-    background: rgba(188, 163, 127, 0.1);
+    background: rgba(188, 163, 127, 0.075);
 }
 
 .nav-item.active-nav span:last-child {
@@ -1015,7 +1016,13 @@ body.has-ad-banner .meimay-child-modal-sheet {
     right: 24px;
     width: 48px;
     height: 48px;
-    border-radius: 50%;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
+    padding: 0;
+    aspect-ratio: 1 / 1;
+    border-radius: 9999px;
     background: rgba(212, 197, 175, 0.2);
     border: none;
     font-size: 24px;
@@ -1025,6 +1032,8 @@ body.has-ad-banner .meimay-child-modal-sheet {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 48px;
+    line-height: 1;
 }
 
 .modal-close-btn:hover {
@@ -1344,10 +1353,40 @@ body.has-ad-banner .meimay-child-modal-sheet {
     background: #F7F4EE;
 }
 
+#modal-fortune-detail {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    overflow-x: hidden !important;
+}
+
+#modal-fortune-detail .fortune-detail-sheet {
+    width: min(calc(100vw - 16px), 440px) !important;
+    max-width: calc(100vw - 16px) !important;
+    border-radius: clamp(30px, 9vw, 58px);
+}
+
+#fortune-detail-scroll-area {
+    padding-left: clamp(10px, 3vw, 16px) !important;
+    padding-right: clamp(10px, 3vw, 16px) !important;
+}
+
+.fortune-map-card {
+    padding: clamp(8px, 2.6vw, 16px);
+    overflow: hidden;
+}
+
+.fortune-map-inner {
+    width: max-content;
+    margin: 0 auto;
+    transform-origin: top left;
+}
+
 .fortune-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 38px;
+    box-sizing: border-box;
     padding: 2px 8px;
     border-radius: 999px;
     border: 1px solid transparent;
@@ -1716,6 +1755,37 @@ body.hide-top-bar #top-bar {
 /* Build screen: namePreview starts flush under top-bar (48px) */
 #scr-build {
     padding-top: var(--top-bar-height) !important;
+}
+
+#build-tabs > button {
+    min-width: 0;
+}
+
+.build-mode-tab-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 0;
+    width: 100%;
+}
+
+.build-mode-tab-label {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: clamp(10px, 3.05vw, 14px);
+    line-height: 1.2;
+    letter-spacing: 0;
+}
+
+.build-mode-tab-caret {
+    flex-shrink: 0;
+    font-size: 10px;
+    line-height: 1;
 }
 
 /* ============================================================
@@ -2254,9 +2324,41 @@ body.has-ad-banner #scr-swipe-universal {
     padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* Build screen: keep the save button above the ad banner for free users */
-body.has-ad-banner #scr-build > div {
+#scr-legal {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.has-ad-banner #scr-legal {
     padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+#scr-legal > div {
+    min-height: 0;
+}
+
+#legal-scroll-area {
+    min-height: 0;
+}
+
+/* Build screen: keep the save button above the ad banner for free users */
+#build-screen-shell {
+    height: calc(100dvh - var(--top-bar-height) - 92px - env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 12px !important;
+}
+
+body.has-ad-banner #scr-build > #build-screen-shell {
+    height: calc(100dvh - var(--top-bar-height) - var(--ad-screen-safe-space, 148px) - env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 8px !important;
+}
+
+#build-scroll-area {
+    overscroll-behavior: contain;
+    padding-bottom: 10px;
+}
+
+#build-save-area {
+    padding-top: clamp(6px, 1.2vh, 12px) !important;
+    padding-bottom: 2px;
 }
 
 /* Keep the footer anchored; the ad banner is lifted above it in JS. */
@@ -2784,6 +2886,28 @@ body.has-ad-banner #universal-footer {
     min-height: 66px;
 }
 
+#bottom-nav .nav-item span:last-child,
+#scr-mode .home-tool-card > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    letter-spacing: 0;
+}
+
+#bottom-nav .nav-item span:first-child {
+    font-size: clamp(17px, 5vw, 19px) !important;
+    line-height: 1;
+}
+
+#bottom-nav .nav-item span:last-child {
+    font-size: clamp(7px, 2.2vw, 8px) !important;
+}
+
+#scr-mode .home-tool-card > span:last-child {
+    font-size: clamp(8px, 2.8vw, 10px) !important;
+}
+
 #scr-mode #home-pair-card {
     padding: 12px 14px !important;
 }
@@ -2798,14 +2922,135 @@ body.has-ad-banner #universal-footer {
     margin-top: 6px !important;
 }
 
+#scr-mode #home-hero-card,
+#scr-mode .home-title-block,
+#scr-mode #home-overview-switch,
+#scr-mode #home-stage-track [data-home-stage-button] {
+    container-type: inline-size;
+}
+
+#scr-mode .home-status-title {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(14px, 12cqw, 18px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode .home-child-date-fit {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(9px, 3.2cqw, 11px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-overview-switch button > div > div:first-child {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(7px, 7.2cqw, 9px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-overview-switch button > div > div:nth-child(2) {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(6px, 6.2cqw, 8px) !important;
+    letter-spacing: 0;
+}
+
 #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
     display: inline-block;
-    font-size: 1.22em;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(7px, 13.5cqw, 9.5px) !important;
     line-height: 0.95;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(2) {
+    font-size: clamp(11px, 21cqw, 14px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-stage-track [data-home-stage-button] span[data-home-stage-count] + span {
+    font-size: clamp(6px, 10cqw, 7px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-stage-track [data-home-stage-button] span[data-home-stage-count] ~ div {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(6px, 10.8cqw, 8.5px) !important;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-stage-track [data-home-stage-button] > div > div:nth-child(3) {
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: clamp(6px, 10.8cqw, 7px) !important;
+    letter-spacing: 0;
 }
 
 @media (max-height: 760px) {
+    #scr-build .screen-header-shell {
+        padding-top: 0.5rem;
+    }
+
+    #build-name-preview {
+        margin-top: 0.65rem !important;
+        margin-bottom: 0.1rem !important;
+    }
+
+    #build-selection {
+        padding-top: 0.75rem !important;
+        margin-bottom: 0.75rem !important;
+    }
+
+    #build-selection.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 1rem !important;
+    }
+
+    #build-tabs > button {
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+    }
+
+    .build-piece-btn {
+        min-width: 62px;
+        height: 82px;
+        padding: 8px;
+        border-radius: 20px;
+    }
+
+    .build-kanji-text {
+        font-size: clamp(1.65rem, 8vw, 2rem);
+    }
+
+    .build-kanji-text.is-compound {
+        font-size: clamp(1rem, 4vw, 1.25rem);
+    }
+
+    #build-save-btn {
+        max-width: 280px;
+        padding-top: 0.55rem !important;
+        padding-bottom: 0.55rem !important;
+        border-radius: 20px;
+    }
+
+    #build-save-btn .build-save-btn-title {
+        font-size: 13px !important;
+    }
+
+    #build-save-btn .build-save-btn-detail {
+        font-size: 9px !important;
+    }
+
     #scr-mode {
         padding-top: calc(56px + var(--safe-top)) !important;
         padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
@@ -2836,7 +3081,7 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.18em;
+        font-size: clamp(7px, 13cqw, 9px) !important;
     }
 }
 
@@ -2862,7 +3107,7 @@ body.has-ad-banner #universal-footer {
     }
 
     #scr-mode #home-stage-track [data-home-stage-button] > div > div:first-child > span:last-child {
-        font-size: 1.24em;
+        font-size: clamp(8px, 11cqw, 10.5px) !important;
     }
 }
 

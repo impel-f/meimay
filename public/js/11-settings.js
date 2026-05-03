@@ -352,9 +352,6 @@ function renderSettingsScreen() {
     const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
     const activeChildText = getSettingsActiveChildSummary();
     const kanjiRangeText = showInappropriateKanji ? 'すべて' : 'おすすめ';
-    const kanjiRangeNote = showInappropriateKanji
-        ? '人名に使える漢字をすべて表示します。'
-        : '名づけに適した漢字のみ表示します。';
 
 
     // Partner linking status
@@ -393,11 +390,13 @@ function renderSettingsScreen() {
             <div class="settings-stack">${content}</div>
         </section>
     `;
-    const renderItem = ({ title, value, onClick, valueStyle = '', arrow = '›', badge = '' }) => `
+    const renderItem = ({ title, value, onClick, valueStyle = '', arrow = '›', badge = '' }) => {
+        const hasValue = value !== undefined && value !== null && String(value).trim() !== '';
+        return `
         <button type="button" class="settings-item-unified" onclick="${onClick}">
             <span class="item-content-unified">
                 <span class="item-title-unified">${escapeSettingsHtml(title)}</span>
-                <span class="item-value-unified" style="${valueStyle}">${escapeSettingsHtml(value)}</span>
+                ${hasValue ? `<span class="item-value-unified" style="${valueStyle}">${escapeSettingsHtml(value)}</span>` : ''}
             </span>
             <span class="item-arrow-unified flex items-center gap-2">
                 ${badge}
@@ -405,6 +404,7 @@ function renderSettingsScreen() {
             </span>
         </button>
     `;
+    };
 
 
     container.innerHTML = `
@@ -432,24 +432,17 @@ function renderSettingsScreen() {
 
             ${renderSection('データと表示', `
                 ${renderItem({ title: 'バックアップと復元', value: '復元キー', onClick: 'openTransferModal()' })}
+                ${renderItem({ title: '表示する漢字の範囲', value: kanjiRangeText, onClick: 'openKanjiRangeSettingModal()' })}
                 ${renderItem({ title: 'アプリデータを削除', value: '初期化', valueStyle: 'color:#c56555;font-weight:800;', onClick: 'openDeleteAppDataSheet()' })}
-                <button type="button" class="settings-item-unified settings-item-note" onclick="toggleInappropriateSetting()">
-                    <span class="item-content-unified">
-                        <span class="item-copy-unified">
-                            <span class="item-title-unified">表示する漢字の範囲</span>
-                            <span class="item-note-unified">${kanjiRangeNote}</span>
-                        </span>
-                        <span class="item-value-unified">${kanjiRangeText}</span>
-                    </span>
-                    <span class="settings-toggle ${showInappropriateKanji ? 'active' : ''}" aria-hidden="true">
-                        <span></span>
-                    </span>
-                </button>
             `)}
 
             ${renderSection('ヘルプと情報', `
-                ${renderItem({ title: '利用規約・プライバシー', value: '確認する', onClick: 'openLegalSettingsSheet()' })}
-                ${renderItem({ title: 'お問い合わせ', value: 'メール', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('contact');}" })}
+                ${renderItem({ title: '利用規約', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('terms');}" })}
+                ${renderItem({ title: 'プライバシーポリシー', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}" })}
+            `)}
+
+            ${renderSection('お問い合わせ', `
+                ${renderItem({ title: 'お問い合わせ', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('contact');}" })}
             `)}
         </div>
     `;
@@ -1167,11 +1160,36 @@ function showGuide() {
 /**
  * 不適切設定の切り替え
  */
-function toggleInappropriateSetting() {
-    showInappropriateKanji = !showInappropriateKanji;
+function setKanjiRangeSetting(value) {
+    showInappropriateKanji = value === 'all';
     saveSettings();
     renderSettingsScreen();
     showToast(`表示範囲を${showInappropriateKanji ? 'すべて' : 'おすすめ'}にしました`);
+}
+
+function openKanjiRangeSettingModal() {
+    showChoiceModal(
+        '表示する漢字の範囲',
+        '通常は「おすすめ」のままで大丈夫です。人名に使える漢字を広く確認したいときだけ「すべて」を選びます。',
+        [
+            {
+                value: 'recommended',
+                label: 'おすすめ',
+                desc: '名づけで使いやすい漢字を中心に表示します。'
+            },
+            {
+                value: 'all',
+                label: 'すべて',
+                desc: '人名に使える漢字を広く表示します。候補が増える分、注意が必要な漢字も含まれます。'
+            }
+        ],
+        showInappropriateKanji ? 'all' : 'recommended',
+        setKanjiRangeSetting
+    );
+}
+
+function toggleInappropriateSetting() {
+    openKanjiRangeSettingModal();
 }
 
 /**
@@ -1403,5 +1421,8 @@ window.copyBackupRestoreKey = copyBackupRestoreKey;
 window.restoreBackupFromRestoreKey = restoreBackupFromRestoreKey;
 window.formatBackupRestoreKeyInput = formatBackupRestoreKeyInput;
 window.showGuide = showGuide;
+window.openKanjiRangeSettingModal = openKanjiRangeSettingModal;
+window.setKanjiRangeSetting = setKanjiRangeSetting;
+window.toggleInappropriateSetting = toggleInappropriateSetting;
 
 console.log("SETTINGS: Module loaded (v6.0 - Separate Screen)");

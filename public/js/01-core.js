@@ -571,8 +571,42 @@ function toggleFortunePriority() {
 /**
  * 画面遷移（モーダル自動クローズ付き）
  */
+const TEXT_EDITING_SCREEN_IDS = new Set([
+    'scr-input-reading',
+    'scr-input-sound-entry',
+    'scr-input-nickname',
+    'scr-diagnosis-input',
+    'scr-kanji-search'
+]);
+
+function shouldKeepNativeTextEditingForScreen(id) {
+    return TEXT_EDITING_SCREEN_IDS.has(String(id || ''));
+}
+
+function ensureNativeFocusSink() {
+    let sink = document.getElementById('meimay-native-focus-sink');
+    if (!sink) {
+        sink = document.createElement('div');
+        sink.id = 'meimay-native-focus-sink';
+        sink.setAttribute('tabindex', '-1');
+        sink.setAttribute('aria-hidden', 'true');
+        sink.style.cssText = [
+            'position:fixed',
+            'left:-9999px',
+            'top:0',
+            'width:1px',
+            'height:1px',
+            'opacity:0',
+            'pointer-events:none',
+            'outline:none'
+        ].join(';');
+        document.body.appendChild(sink);
+    }
+    return sink;
+}
+
 function clearNativeTextEditingContext(options = {}) {
-    const shouldFocusBody = options.focusBody === true;
+    const shouldFocusBody = options.focusBody === true || options.focusSink === true;
     const activeElement = document.activeElement;
     const isTextEditingElement = activeElement && (
         /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')
@@ -592,34 +626,53 @@ function clearNativeTextEditingContext(options = {}) {
         }
     } catch (e) { }
 
-    if (shouldFocusBody && document.body && typeof document.body.focus === 'function') {
-        const hadTabIndex = document.body.hasAttribute('tabindex');
-        const previousTabIndex = document.body.getAttribute('tabindex');
-        if (!hadTabIndex) document.body.setAttribute('tabindex', '-1');
+    if (shouldFocusBody && document.body) {
+        const focusTarget = ensureNativeFocusSink();
         try {
-            document.body.focus({ preventScroll: true });
+            focusTarget.focus({ preventScroll: true });
         } catch (e) {
-            try { document.body.focus(); } catch (fallbackError) { }
-        }
-        if (!hadTabIndex) {
-            setTimeout(() => {
-                if (document.activeElement !== document.body) {
-                    document.body.removeAttribute('tabindex');
-                } else if (previousTabIndex !== null) {
-                    document.body.setAttribute('tabindex', previousTabIndex);
-                }
-            }, 0);
+            try { focusTarget.focus(); } catch (fallbackError) { }
         }
     }
 }
 
 window.clearNativeTextEditingContext = clearNativeTextEditingContext;
 
+function installNativeUndoSuppression() {
+    if (window.__meimayNativeUndoSuppressionInstalled) return;
+    window.__meimayNativeUndoSuppressionInstalled = true;
+
+    document.addEventListener('beforeinput', (event) => {
+        const inputType = String(event.inputType || '');
+        if (inputType === 'historyUndo' || inputType === 'historyRedo') {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        const key = String(event.key || '').toLowerCase();
+        if ((event.metaKey || event.ctrlKey) && (key === 'z' || key === 'y')) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }, true);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 0);
+        }
+    });
+}
+
+installNativeUndoSuppression();
+
 function changeScreen(id) {
     console.log(`CORE: Screen transition -> ${id}`);
+    const shouldFocusSink = !shouldKeepNativeTextEditingForScreen(id);
 
     clearNativeTextEditingContext({
-        focusBody: id === 'scr-main' || id === 'scr-swipe-universal'
+        focusSink: shouldFocusSink
     });
 
     // 1. [最優先] 画面の表示切り替えを即座に実行
@@ -636,6 +689,10 @@ function changeScreen(id) {
     if (target) {
         target.classList.add('active');
         target.scrollTop = 0;
+        if (shouldFocusSink) {
+            setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 80);
+            setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 600);
+        }
     } else {
         console.error(`CORE: Screen not found: ${id}`);
         return;
