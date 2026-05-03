@@ -243,6 +243,7 @@ function executeSwipe(dir, data) {
     }
 
     // データ処理（左以外はストック）
+    let addedToStock = false;
     if (data && dir !== 'left') {
         if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
             const isDuplicate = liked.some(item =>
@@ -258,6 +259,7 @@ function executeSwipe(dir, data) {
                     sessionReading: 'FREE',
                     sessionSegments: null
                 });
+                addedToStock = true;
             }
         } else {
             // 修正：同じ「読み」で同じ「漢字」が既にストックに存在するか確認
@@ -282,6 +284,7 @@ function executeSwipe(dir, data) {
                     sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
                     sessionSegments: [...segments]
                 });
+                addedToStock = true;
             } else {
                 console.log(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);
             }
@@ -300,6 +303,9 @@ function executeSwipe(dir, data) {
 
     if ((dir === 'right' || dir === 'up') && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
         StorageBox.saveLiked();
+        if (addedToStock && typeof notifyKanjiSwipeStockAdded === 'function') {
+            notifyKanjiSwipeStockAdded(data, dir);
+        }
         if (data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');
         }
@@ -321,18 +327,14 @@ function executeSwipe(dir, data) {
         swipes++;
         console.log(`PHYSICS: Swipe ${dir} executed (total: ${swipes})`);
 
-        // 10枚スワイプ（nopeも含む）でポップアップ
+        // 10枚ごとの節目。初回だけモーダル、その後はトーストで流れを止めない。
         if (swipes > 0 && swipes % 10 === 0) {
-            if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
-                console.log(`CHOICE: ${swipes} swipes reached in Free Mode`);
-                if (typeof openChoiceModal === 'function') {
-                    openChoiceModal(-1);
-                }
-            } else {
-                console.log(`CHOICE: ${swipes} swipes reached for slot ${currentPos}`);
-                if (typeof openChoiceModal === 'function') {
-                    openChoiceModal(currentPos);
-                }
+            const checkpointSlot = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ? -1 : currentPos;
+            console.log(`CHOICE: ${swipes} swipes reached for slot ${checkpointSlot}`);
+            if (typeof showKanjiSwipeCheckpointNudge === 'function') {
+                showKanjiSwipeCheckpointNudge(checkpointSlot);
+            } else if (typeof openChoiceModal === 'function') {
+                openChoiceModal(checkpointSlot);
             }
         }
     }, 400);

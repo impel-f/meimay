@@ -571,15 +571,56 @@ function toggleFortunePriority() {
 /**
  * 画面遷移（モーダル自動クローズ付き）
  */
-function changeScreen(id) {
-    console.log(`CORE: Screen transition -> ${id}`);
-
+function clearNativeTextEditingContext(options = {}) {
+    const shouldFocusBody = options.focusBody === true;
     const activeElement = document.activeElement;
-    if (activeElement && typeof activeElement.blur === 'function' && /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')) {
+    const isTextEditingElement = activeElement && (
+        /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName || '')
+        || activeElement.isContentEditable === true
+    );
+
+    if (isTextEditingElement && typeof activeElement.blur === 'function') {
         try {
             activeElement.blur();
         } catch (e) { }
     }
+
+    try {
+        const selection = window.getSelection && window.getSelection();
+        if (selection && typeof selection.removeAllRanges === 'function') {
+            selection.removeAllRanges();
+        }
+    } catch (e) { }
+
+    if (shouldFocusBody && document.body && typeof document.body.focus === 'function') {
+        const hadTabIndex = document.body.hasAttribute('tabindex');
+        const previousTabIndex = document.body.getAttribute('tabindex');
+        if (!hadTabIndex) document.body.setAttribute('tabindex', '-1');
+        try {
+            document.body.focus({ preventScroll: true });
+        } catch (e) {
+            try { document.body.focus(); } catch (fallbackError) { }
+        }
+        if (!hadTabIndex) {
+            setTimeout(() => {
+                if (document.activeElement !== document.body) {
+                    document.body.removeAttribute('tabindex');
+                } else if (previousTabIndex !== null) {
+                    document.body.setAttribute('tabindex', previousTabIndex);
+                }
+            }, 0);
+        }
+    }
+}
+
+window.clearNativeTextEditingContext = clearNativeTextEditingContext;
+
+function changeScreen(id) {
+    console.log(`CORE: Screen transition -> ${id}`);
+
+    clearNativeTextEditingContext({
+        focusBody: id === 'scr-main' || id === 'scr-swipe-universal'
+    });
 
     // 1. [最優先] 画面の表示切り替えを即座に実行
     // 開いているモーダルを全て閉じる

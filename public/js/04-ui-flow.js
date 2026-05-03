@@ -2374,6 +2374,9 @@ function proceedWithNicknameReading(reading) {
  */
 function startUniversalSwipe(mode, candidates, configOverride = {}) {
     console.log(`SWIPE: Starting mode ${mode} with ${candidates.length} items`);
+    if (typeof clearNativeTextEditingContext === 'function') {
+        clearNativeTextEditingContext({ focusBody: true });
+    }
 
     // AIボタンのクリーンアップ（前のモードから残っている場合）
     const aiSoundBtn = document.getElementById('btn-ai-sound-analyze');
@@ -2408,6 +2411,11 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
             if (elSubtitle) elSubtitle.innerText = configOverride.subtitle || '';
 
             changeScreen('scr-swipe-universal');
+            setTimeout(() => {
+                if (typeof clearNativeTextEditingContext === 'function') {
+                    clearNativeTextEditingContext({ focusBody: true });
+                }
+            }, 0);
             renderUniversalCard();
             return;
         }
@@ -2435,6 +2443,11 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     if (elSubtitle) elSubtitle.innerText = configOverride.subtitle || '';
 
     changeScreen('scr-swipe-universal');
+    setTimeout(() => {
+        if (typeof clearNativeTextEditingContext === 'function') {
+            clearNativeTextEditingContext({ focusBody: true });
+        }
+    }, 0);
 
     // スーパーライクボタンの表示/非表示
     const superBtn = document.querySelector('#scr-swipe-universal button[onclick="universalSwipeAction(\'super\')"]');
@@ -2554,6 +2567,9 @@ function renderUniversalCard() {
     card.style.border = `3px solid ${borderColor}`;
     card.style.touchAction = 'none';
     card.style.willChange = 'transform';
+    card.style.userSelect = 'none';
+    card.style.webkitUserSelect = 'none';
+    card.setAttribute('tabindex', '-1');
     card.innerHTML = SwipeState.config.renderCard(item);
 
     container.appendChild(card);
@@ -2603,6 +2619,10 @@ function initUniversalSwipePhysics(card) {
 
     card.onpointerdown = e => {
         if (e.target.closest('button') || e.target.closest('#uni-swipe-action-btns')) return;
+        if (e.cancelable) e.preventDefault();
+        if (typeof clearNativeTextEditingContext === 'function') {
+            clearNativeTextEditingContext({ focusBody: true });
+        }
         sx = e.clientX;
         sy = e.clientY;
         dx = dy = 0;
@@ -2614,6 +2634,7 @@ function initUniversalSwipePhysics(card) {
 
     card.onpointermove = e => {
         if (!active) return;
+        if (e.cancelable) e.preventDefault();
         dx = e.clientX - sx;
         dy = e.clientY - sy;
 
@@ -2628,6 +2649,7 @@ function initUniversalSwipePhysics(card) {
 
     card.onpointerup = e => {
         if (!active) return;
+        if (e.cancelable) e.preventDefault();
         active = false;
         try { card.releasePointerCapture(e.pointerId); } catch (err) { }
         card.style.willChange = 'auto';
@@ -2672,6 +2694,9 @@ function initUniversalSwipePhysics(card) {
 }
 
 function universalSwipeAction(action) {
+    if (typeof clearNativeTextEditingContext === 'function') {
+        clearNativeTextEditingContext({ focusBody: true });
+    }
     if (SwipeState.currentIndex >= SwipeState.candidates.length) return;
 
     // disableSuper対応
@@ -3663,11 +3688,11 @@ const CONTEXT_COACH_CONFIGS = {
         };
     },
     'scr-main': () => {
-        const isReadingKanjiSwipe = typeof isFreeSwipeMode === 'undefined' || !isFreeSwipeMode;
+        const isFreeKanjiSwipe = typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode;
         const hasReadingSegments = Array.isArray(segments) && segments.length > 0;
-        if (!isReadingKanjiSwipe || !hasReadingSegments || !document.getElementById('swipe-action-btns')) return null;
+        if ((!isFreeKanjiSwipe && !hasReadingSegments) || !document.getElementById('swipe-action-btns')) return null;
         return {
-            key: 'reading-kanji-swipe-v2',
+            key: isFreeKanjiSwipe ? 'free-kanji-swipe-v1' : 'reading-kanji-swipe-v3',
             target: '#swipe-action-btns',
             placement: 'above-actions',
             demoTarget: '#scr-main',
@@ -4383,10 +4408,8 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
 function getReadingSwipeStockToastText(item, action) {
     const reading = String(item?.reading || '').trim();
     const label = reading ? `「${reading}」` : '読み';
-    const count = typeof getReadingStock === 'function' ? getReadingStock().length : 0;
     const actionLabel = action === 'super' ? '本命として' : '候補として';
-    const countText = count > 0 ? `いま読みストックは${count}件です。` : '読みストックにたまりました。';
-    return `${label}を${actionLabel}読みストックに追加しました。${countText}`;
+    return `${label}を${actionLabel}追加しました。`;
 }
 
 function recordReadingSwipeCompletionPremiumNudge() {
@@ -4441,6 +4464,48 @@ function notifyReadingSwipeStockAdded(item, action) {
     if (maybeShowReadingSwipeCompletionCoach()) return;
     if (typeof showToast === 'function') {
         showToast(getReadingSwipeStockToastText(item, action), action === 'super' ? '★' : '📖');
+    }
+}
+
+function getCurrentKanjiSwipeReading() {
+    if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) return 'FREE';
+    if (typeof getCurrentSessionReading === 'function') return getCurrentSessionReading();
+    return Array.isArray(segments) ? segments.join('') : '';
+}
+
+function matchesCurrentKanjiSwipeStockItem(item, slotIdx = currentPos) {
+    if (!item || item.fromPartner) return false;
+    const currentReading = getCurrentKanjiSwipeReading();
+    if (currentReading === 'FREE') return item.sessionReading === 'FREE';
+
+    const itemReading = String(item.sessionReading || '').trim();
+    const currentReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(currentReading)
+        : String(currentReading || '').trim();
+    const itemReadingNormalized = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(itemReading)
+        : itemReading;
+
+    return item.slot === slotIdx &&
+        (!itemReadingNormalized || itemReadingNormalized === currentReadingNormalized);
+}
+
+function getCurrentKanjiSwipeStockCount(slotIdx = currentPos) {
+    return Array.isArray(liked)
+        ? liked.filter(item => matchesCurrentKanjiSwipeStockItem(item, slotIdx)).length
+        : 0;
+}
+
+function getKanjiSwipeStockToastText(item, action) {
+    const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
+    const label = kanji ? `「${kanji}」` : '漢字';
+    const actionLabel = action === 'up' ? '本命として' : '候補として';
+    return `${label}を${actionLabel}追加しました。`;
+}
+
+function notifyKanjiSwipeStockAdded(item, action) {
+    if (typeof showToast === 'function') {
+        showToast(getKanjiSwipeStockToastText(item, action), action === 'up' ? '★' : '📚');
     }
 }
 
@@ -5486,6 +5551,36 @@ function showUniversalSwipeCheckpointNudge() {
     }
 }
 
+function shouldShowKanjiSwipeCheckpointModal(slotIdx = currentPos) {
+    if (getCurrentKanjiSwipeStockCount(slotIdx) <= 0) return false;
+
+    const modeKey = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ? 'free' : 'reading';
+    const key = `meimay_kanji_swipe_checkpoint_modal_v1_${modeKey}`;
+    try {
+        if (localStorage.getItem(key) === '1') return false;
+        localStorage.setItem(key, '1');
+        return true;
+    } catch (e) {
+        return true;
+    }
+}
+
+function showKanjiSwipeCheckpointNudge(slotIdx = currentPos) {
+    const resolvedSlot = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ? -1 : slotIdx;
+    if (typeof openChoiceModal === 'function' && shouldShowKanjiSwipeCheckpointModal(resolvedSlot)) {
+        openChoiceModal(resolvedSlot);
+        return;
+    }
+
+    if (typeof showToast === 'function') {
+        const keptCount = getCurrentKanjiSwipeStockCount(resolvedSlot);
+        const message = keptCount > 0
+            ? `${keptCount}件を候補に追加中です。一区切りで候補を確認できます`
+            : '10枚見ました。気になる漢字は候補か本命に残せます';
+        showToast(message, '✓');
+    }
+}
+
 
 function navSearchAction() {
     if (appMode === 'nickname') {
@@ -5710,6 +5805,8 @@ window.renderFreeBuild = renderFreeBuild;
 window.getReadingStock = getReadingStock;
 window.addReadingToStock = addReadingToStock;
 window.syncReadingStockFromLiked = syncReadingStockFromLiked;
+window.notifyKanjiSwipeStockAdded = notifyKanjiSwipeStockAdded;
+window.showKanjiSwipeCheckpointNudge = showKanjiSwipeCheckpointNudge;
 window.showKanjiSwipeDailyLimitPrompt = showKanjiSwipeDailyLimitPrompt;
 window.startDirectKanjiSwipe = startDirectKanjiSwipe;
 window.updateDailyRemainingDisplay = updateDailyRemainingDisplay;

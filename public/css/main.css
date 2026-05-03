@@ -374,17 +374,17 @@ body.hide-top-bar .screen-header-shell {
 #scr-main #stack-container {
     width: min(86vw, 340px) !important;
     max-width: min(86vw, 340px) !important;
-    margin-top: clamp(24px, 3.4vh, 34px);
+    margin-top: clamp(30px, 4.2vh, 44px);
 }
 
 #scr-swipe-universal #uni-swipe-container {
     width: min(86vw, 340px) !important;
     max-width: min(86vw, 340px) !important;
-    margin-top: clamp(24px, 3.4vh, 34px);
+    margin-top: clamp(30px, 4.2vh, 44px);
 }
 
 #scr-main .card {
-    top: clamp(46px, 6.2vh, 66px);
+    top: clamp(72px, 8.5vh, 94px);
     bottom: clamp(0px, 0.6vh, 8px);
     padding: clamp(8px, 1.6vh, 14px);
     border-radius: clamp(34px, 8vh, 70px);
@@ -393,7 +393,7 @@ body.hide-top-bar .screen-header-shell {
 }
 
 #scr-swipe-universal .card {
-    top: clamp(46px, 6.2vh, 66px);
+    top: clamp(72px, 8.5vh, 94px);
     bottom: clamp(0px, 0.6vh, 8px);
     padding: clamp(8px, 1.6vh, 14px);
     border-radius: clamp(34px, 8vh, 70px) !important;
@@ -570,6 +570,17 @@ body.hide-top-bar .screen-header-shell {
     z-index: 1205;
 }
 
+#scr-main,
+#scr-swipe-universal,
+#scr-main .card,
+#scr-swipe-universal .card,
+#swipe-action-btns,
+#uni-swipe-action-btns {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
 #swipe-action-btns,
 #uni-swipe-action-btns {
     align-items: center !important;
@@ -606,12 +617,12 @@ body.has-ad-banner #uni-swipe-action-btns {
 
     #scr-main #stack-container,
     #scr-swipe-universal #uni-swipe-container {
-        margin-top: 10px !important;
+        margin-top: 18px !important;
     }
 
     #scr-main .card,
     #scr-swipe-universal .card {
-        top: 32px;
+        top: 58px;
         padding: 8px;
         border-radius: 42px !important;
     }
@@ -696,7 +707,7 @@ body.has-ad-banner #uni-swipe-action-btns {
 @media (max-height: 640px) {
     #scr-main .card,
     #scr-swipe-universal .card {
-        top: 24px;
+        top: 50px;
         border-radius: 36px !important;
     }
 
@@ -971,6 +982,19 @@ body.has-ad-banner #uni-swipe-action-btns {
 
 .overlay.active {
     display: flex !important;
+}
+
+body.has-ad-banner .overlay,
+body.has-ad-banner .modal-overlay-dark,
+body.has-ad-banner .meimay-child-modal-overlay {
+    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + 14px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.has-ad-banner .detail-sheet,
+body.has-ad-banner .modal-sheet,
+body.has-ad-banner .choice-sheet,
+body.has-ad-banner .meimay-child-modal-sheet {
+    max-height: min(82vh, calc(100vh - var(--ad-screen-safe-space, 148px) - 40px)) !important;
 }
 
 .detail-sheet {
@@ -2208,8 +2232,7 @@ select.wiz-birth-order-select:active {
    ============================================================
    ナビバー高さ計算：
    - 通常: bottom:0, 高さ約80px → padding-bottom 160px で十分
-   - 広告あり: bottom:40px + 高さ約80px = 底面から120px占有
-     → padding-bottom は 160px 以上必要（80px では不足）
+   - 広告あり: 広告 + ナビ + 少しの余白を実測値で確保
    ============================================================ */
 
 /* スクリーン基本 padding-bottom にセーフエリアを加算 */
@@ -2217,23 +2240,23 @@ select.wiz-birth-order-select:active {
     padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* 広告あり: ナビバーが bottom:40px 分上がるため合計 160px で統一 */
+/* 広告あり: JS の --ad-screen-safe-space を優先して、余白を詰めすぎず広げすぎない */
 body.has-ad-banner .screen {
-    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner #scr-mode {
-    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner #scr-main,
 body.has-ad-banner #scr-swipe-universal {
-    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* Build screen: keep the save button above the ad banner for free users */
 body.has-ad-banner #scr-build > div {
-    padding-bottom: calc(var(--ad-screen-safe-space, 160px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* Keep the footer anchored; the ad banner is lifted above it in JS. */
@@ -2882,7 +2905,7 @@ body.has-ad-banner #universal-footer {
 }
 
 body.has-ad-banner .context-coachmark--bottom {
-    bottom: calc(var(--ad-screen-safe-space, 160px) + 14px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--ad-screen-safe-space, 148px) + 14px + env(safe-area-inset-bottom, 0px));
 }
 
 .context-coachmark--top {
@@ -2894,7 +2917,7 @@ body.has-ad-banner .context-coachmark--bottom {
 }
 
 body.has-ad-banner .context-coachmark--above-actions {
-    bottom: calc(var(--ad-screen-safe-space, 160px) + 112px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--ad-screen-safe-space, 148px) + 104px + env(safe-area-inset-bottom, 0px));
 }
 
 .kanji-detail-reading-list {
@@ -2994,7 +3017,7 @@ body.has-ad-banner .context-coachmark--above-actions {
     }
 
     body.has-ad-banner .context-coachmark--bottom {
-        bottom: calc(var(--ad-screen-safe-space, 160px) + 12px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--ad-screen-safe-space, 148px) + 12px + env(safe-area-inset-bottom, 0px));
     }
 
     .context-coachmark--above-actions {
@@ -3002,7 +3025,7 @@ body.has-ad-banner .context-coachmark--above-actions {
     }
 
     body.has-ad-banner .context-coachmark--above-actions {
-        bottom: calc(var(--ad-screen-safe-space, 160px) + 96px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--ad-screen-safe-space, 148px) + 88px + env(safe-area-inset-bottom, 0px));
     }
 
     .context-coachmark-title {
