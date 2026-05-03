@@ -819,14 +819,14 @@ function updateAdLayoutSpacing(bannerHeight) {
     let measuredHeight = typeof bannerHeight === 'number' ? bannerHeight : 0;
 
     if (adBannerVisible && measuredHeight <= 0) {
-        if (adBannerMode === 'web') {
+        if (adBannerMode === 'web' || adBannerMode === 'native-fallback') {
             measuredHeight = measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT;
         } else if (adBannerMode === 'native') {
             measuredHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
         }
     }
 
-    if (adBannerMode === 'web' && container) {
+    if ((adBannerMode === 'web' || adBannerMode === 'native-fallback') && container) {
         container.style.bottom = `${footerHeight}px`;
     }
 
@@ -861,6 +861,47 @@ function clearHtmlAdBanner(reason, error) {
     }
 }
 
+function showNativeAdMobFallbackBanner(reason, error) {
+    if (!isAdMobTestAdMode()) {
+        clearHtmlAdBanner(reason, error);
+        return;
+    }
+
+    const container = document.getElementById('admob-banner');
+    if (!container || PremiumManager.isPremium()) {
+        clearHtmlAdBanner(reason, error);
+        return;
+    }
+
+    adBannerVisible = true;
+    adBannerMode = 'native-fallback';
+    adBannerSuppressedByOverlay = hasActiveAdBlockingOverlay();
+
+    const footerHeight = getBottomFooterHeight();
+    container.style.bottom = `${footerHeight}px`;
+    container.style.display = 'flex';
+    setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
+    container.innerHTML = `
+        <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+                <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">AD</span>
+                <div class="min-w-0 flex-1">
+                    <span class="block truncate text-[10px] font-bold text-[#8b7e66]">AdMobテスト広告を確認中</span>
+                    <span class="block truncate text-[8px] text-[#a6967a]">表示されない場合はPremium状態・プラグイン・ログを確認</span>
+                </div>
+            </div>
+            <span class="shrink-0 rounded-full bg-[#bca37f] px-3 py-1 text-[10px] font-black text-white">テスト</span>
+        </div>
+    `;
+
+    document.body.classList.add('has-ad-banner');
+    updateAdLayoutSpacing(measureAdBannerHeight(container) || NATIVE_AD_BANNER_MIN_HEIGHT);
+
+    if (reason) {
+        console.warn(`ADMOB: ${reason}`, error || '');
+    }
+}
+
 function setupNativeAdMobBannerListeners(AdMob) {
     if (nativeAdMobListenersReady || !AdMob || typeof AdMob.addListener !== 'function') return;
     nativeAdMobListenersReady = true;
@@ -874,6 +915,12 @@ function setupNativeAdMobBannerListeners(AdMob) {
         };
 
         addBannerListener('bannerAdLoaded', () => {
+            const container = document.getElementById('admob-banner');
+            if (container) {
+                container.style.display = 'none';
+                container.style.bottom = '';
+                container.innerHTML = '';
+            }
             nativeAdMobBannerLoaded = true;
             nativeAdMobBannerFailed = false;
             adBannerVisible = true;
@@ -895,7 +942,7 @@ function setupNativeAdMobBannerListeners(AdMob) {
         addBannerListener('bannerAdFailedToLoad', (error) => {
             nativeAdMobBannerLoaded = false;
             nativeAdMobBannerFailed = true;
-            clearHtmlAdBanner('Native banner failed to load; web placeholder suppressed in native app', error);
+            showNativeAdMobFallbackBanner('Native banner failed to load', error);
         });
     } catch (e) {
         nativeAdMobListenersReady = false;
@@ -921,7 +968,7 @@ function initAdMob() {
     }
 
     if (isCapacitorNativeAdRuntime()) {
-        clearHtmlAdBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
+        showNativeAdMobFallbackBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
         return;
     }
 
@@ -937,7 +984,7 @@ async function initNativeAdMob(platform) {
     try {
         const AdMob = getAdMobPlugin();
         if (!AdMob) {
-            clearHtmlAdBanner('Native AdMob plugin is unavailable before initialization');
+            showNativeAdMobFallbackBanner('Native AdMob plugin is unavailable before initialization');
             return;
         }
         setupNativeAdMobBannerListeners(AdMob);
@@ -986,7 +1033,7 @@ async function initNativeAdMob(platform) {
         nativeAdMobInitializePromise = null;
         nativeAdMobBannerLoaded = false;
         nativeAdMobBannerFailed = true;
-        clearHtmlAdBanner('Native init failed; web placeholder suppressed in native app', e);
+        showNativeAdMobFallbackBanner('Native init failed', e);
     }
 }
 
@@ -998,7 +1045,7 @@ function showAdBanner() {
     if (AdMob) {
         initNativeAdMob(platform);
     } else if (isCapacitorNativeAdRuntime()) {
-        clearHtmlAdBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
+        showNativeAdMobFallbackBanner('Native runtime detected but AdMob plugin is unavailable; check Capacitor sync/build');
     } else {
         showWebAdBanner();
     }
@@ -1086,8 +1133,10 @@ window.MeimayAdMobDebug = {
             nativeRuntime: isCapacitorNativeAdRuntime(),
             adMobPluginAvailable: !!getAdMobPlugin(),
             testAdMode: isAdMobTestAdMode(),
+            premiumActive: PremiumManager.isPremium(),
             visible: adBannerVisible,
             mode: adBannerMode,
+            suppressedByOverlay: adBannerSuppressedByOverlay,
             nativeLoaded: nativeAdMobBannerLoaded,
             nativeFailed: nativeAdMobBannerFailed,
             safeSpace: document.body.style.getPropertyValue('--ad-screen-safe-space') || ''

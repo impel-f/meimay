@@ -343,7 +343,7 @@ function isLikelyRepresentativeIdiomWord(word) {
     if (!normalized) return false;
 
     const characters = Array.from(normalized);
-    if (characters.length < 2 || characters.length > 4) return false;
+    if (characters.length < 2 || characters.length > 3) return false;
     if (!characters.every((ch) => isKanjiCharacter(ch))) return false;
     if (/[。、！？]/.test(normalized)) return false;
 
@@ -601,8 +601,7 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
             const mergedIdioms = mergeRepresentativeIdiomSectionText(aiSection, datasetSection);
-            const content = mergedIdioms || sanitizeKanjiAiText(aiSection) || sanitizeKanjiAiText(datasetSection);
-            if (content) blocks.push(`【${title}】\n${content}`);
+            if (mergedIdioms) blocks.push(`【${title}】\n${mergedIdioms}`);
             continue;
         }
 
@@ -669,15 +668,7 @@ function isLikelyTruncatedSection(text) {
 
 function formatRepresentativeIdiomContent(content) {
     const parsed = parseRepresentativeIdiomLines(content);
-    if (parsed.length > 0) return dedupeRepresentativeIdiomLines(parsed).join('\n');
-    const fallbackLines = sanitizeKanjiAiText(content)
-        .split('\n')
-        .map((line) => line
-            .replace(/^[・\-•●◇◆\d]+[.)、．]?\s*/, '')
-            .trim())
-        .filter(Boolean)
-        .map((line) => line.startsWith('・') ? line : `・${line}`);
-    return dedupeRepresentativeIdiomLines(fallbackLines).join('\n');
+    return dedupeRepresentativeIdiomLines(parsed).join('\n');
 }
 
 function mergeRepresentativeIdiomSectionText(primaryContent, secondaryContent) {
@@ -711,7 +702,7 @@ ${groundedHint?.promptContext
 字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。必ず句点で終えてください。
 
 【代表的な熟語】
-この漢字を使った実在する熟語を3〜5個、読みと意味付きで挙げてください。2〜4字を目安にし、1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
+この漢字を使った実在する熟語を3〜5個、読みと意味付きで挙げてください。2字熟語または3字熟語だけにし、1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
 
 【絶対に守るルール】
 ・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
@@ -723,7 +714,8 @@ ${groundedHint?.promptContext
 ・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
 ・実在を確信できるものだけを書いてください。ただし、3個に満たない場合でも、一般的で安全な実在の熟語を優先して3個以上になるように選んでください。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
-・四字熟語、故事成語、ことわざは書かないでください。
+・代表的な熟語は必ず2字熟語または3字熟語にしてください。4字以上の語は書かないでください。
+・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
 ・代表的な熟語は1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個になるようにしてください。1個だけで終わらせないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
@@ -780,9 +772,9 @@ ${currentIdioms || 'なし'}
 ・見出しは【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
-・【代表的な熟語】は、実在する熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。2〜4字を目安にしてください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
+・【代表的な熟語】は、実在する2字熟語または3字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。4字以上の語は書かないでください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
-・四字熟語、故事成語、ことわざは書かないでください。
+・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
 ・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
 `.trim();
 }
@@ -1209,6 +1201,7 @@ function renderKanjiDetailSections(resultEl, aiText) {
         const displayContent = title.includes('熟語')
             ? formatRepresentativeIdiomContent(content)
             : content;
+        if (!displayContent) return '';
         return `
             <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
                 <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
