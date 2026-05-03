@@ -394,7 +394,18 @@
 
     function getChildWorkspaceDateText(child) {
         const value = String(child?.meta?.dueDate || child?.meta?.birthDate || '').trim();
-        return value || '未設定';
+        return formatChildWorkspaceDateText(value);
+    }
+
+    function formatChildWorkspaceDateText(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '未設定';
+        const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (!match) return raw;
+        const year = match[1];
+        const month = parseInt(match[2], 10);
+        const day = parseInt(match[3], 10);
+        return `${year}年${month}月${day}日`;
     }
 
     function getChildWorkspaceOwnerLabel(child, fallback = '第一子') {
@@ -624,14 +635,27 @@
                 .meimay-child-gender-btn.partner-picked{border-color:#6b9e7c;background:rgba(107,158,124,0.09);position:relative}
                 .meimay-child-gender-btn.partner-picked.selected{border-color:#6b9e7c;background:rgba(107,158,124,0.14)}
                 .meimay-child-align-note{padding:12px 14px;border-radius:16px;background:#fff8e8;border:1px solid #eadfce;color:#7a6542;font-size:12px;font-weight:750;line-height:1.55}
-                .meimay-child-align-grid{display:grid;grid-template-columns:1fr;gap:10px}
-                .meimay-child-align-card{padding:13px;border:1px solid rgba(229,219,203,.9);border-radius:16px;background:#fff}
-                .meimay-child-align-owner{color:#b9965b;font-size:10px;font-weight:900;letter-spacing:.12em}
-                .meimay-child-align-title{margin-top:4px;color:#4f4536;font-size:16px;font-weight:850}
+                .meimay-child-align-pair-card{padding:14px;border:1px solid rgba(229,219,203,.95);border-radius:16px;background:#fff}
+                .meimay-child-align-pair-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+                .meimay-child-align-pair-title{color:#4f4536;font-size:18px;font-weight:900;line-height:1.3}
+                .meimay-child-align-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+                .meimay-child-align-person{padding:10px;border:1px solid #eadfce;border-radius:14px;background:#fffdf8}
+                .meimay-child-align-owner{color:#b9965b;font-size:10px;font-weight:900;letter-spacing:0}
+                .meimay-child-align-title{margin-top:4px;color:#4f4536;font-size:14px;font-weight:850}
                 .meimay-child-align-meta{margin-top:5px;color:#7d725f;font-size:12px;font-weight:750;line-height:1.45}
-                .meimay-child-align-slot{margin-top:6px;color:#b4a58d;font-size:10px;font-weight:800}
                 .meimay-child-align-issues{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
                 .meimay-child-align-issues span{display:inline-flex;align-items:center;border-radius:9999px;background:#fff2e2;color:#a76d35;padding:4px 8px;font-size:10px;font-weight:900}
+                .meimay-child-align-resolve{display:grid;gap:9px;margin-top:12px;padding-top:12px;border-top:1px solid #f0e7da}
+                .meimay-child-align-resolve-title{color:#5d5444;font-size:12px;font-weight:900}
+                .meimay-child-align-resolve-row{display:grid;gap:6px}
+                .meimay-child-align-resolve-label{color:#8b7e66;font-size:11px;font-weight:900}
+                .meimay-child-align-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+                .meimay-child-align-choice{position:relative;display:block}
+                .meimay-child-align-choice input{position:absolute;opacity:0;pointer-events:none}
+                .meimay-child-align-choice-body{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-height:56px;padding:9px 10px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536}
+                .meimay-child-align-choice input:checked + .meimay-child-align-choice-body{border-color:#8abca2;background:#eefaf3;box-shadow:inset 0 0 0 1px rgba(46,125,87,.2)}
+                .meimay-child-align-choice-source{font-size:11px;font-weight:900;color:#9a7d4f;line-height:1.35}
+                .meimay-child-align-choice-value{font-size:14px;font-weight:900;color:#4f4536;line-height:1.35;text-align:left}
                 .meimay-child-align-pick-list{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-align-pick{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid #eadfce;border-radius:14px;background:#fff;text-align:left;color:#4f4536;font-weight:850}
                 .meimay-child-align-pick.selected{border-color:#bca37f;background:#fff8e8}
@@ -640,8 +664,6 @@
                 .meimay-child-partner-link-kicker{color:#b9965b;font-size:10px;font-weight:900;letter-spacing:.1em}
                 .meimay-child-partner-link-title{margin-top:4px;color:#4f4536;font-size:14px;font-weight:850;line-height:1.45}
                 .meimay-child-partner-link-desc{margin-top:5px;color:#8b7e66;font-size:11px;font-weight:750;line-height:1.55}
-                @media (min-width:520px){.meimay-child-align-grid{grid-template-columns:1fr 1fr}}
-
             `;
             document.head.appendChild(style);
         },
@@ -2804,13 +2826,13 @@
             return orderedIds.length > 0 ? partnerRoot.children?.[orderedIds[0]] || null : null;
         },
 
-        getPartnerAlignmentIssues(localChild, partnerChild) {
+        getPartnerAlignmentIssues(localChild, partnerChild, options = {}) {
             if (!localChild || !partnerChild) return [];
             const issues = [];
             const localSlot = getChildWorkspaceSlotKey(localChild);
             const partnerSlot = getChildWorkspaceSlotKey(partnerChild);
-            if (localSlot !== partnerSlot) {
-                issues.push('進めている子が違う可能性があります');
+            if (localSlot !== partnerSlot && options.allowDifferentSlot !== true) {
+                issues.push('別の子として対応づけます');
             }
 
             const localGender = normalizeGenderValue(localChild.meta?.gender);
@@ -2821,7 +2843,7 @@
 
             const localDate = String(localChild.meta?.dueDate || localChild.meta?.birthDate || '').trim();
             const partnerDate = String(partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '').trim();
-            if (localDate && partnerDate && localDate !== partnerDate) {
+            if (localDate !== partnerDate && (localDate || partnerDate)) {
                 issues.push('予定日・誕生日が違います');
             }
 
@@ -2849,9 +2871,9 @@
             const localCount = this.buildOrderedChildIds(this.root).length;
             const partnerCount = this.buildOrderedChildIds(partnerRoot).length;
             const linked = !!(localChild && this.isPartnerChildLinkConfirmed(localChild, partnerChild));
-            const issues = this.getPartnerAlignmentIssues(localChild, partnerChild);
+            const issues = this.getPartnerAlignmentIssues(localChild, partnerChild, { allowDifferentSlot: linked });
             const unacceptedPartnerChildren = this.getUnacceptedPartnerChildren();
-            const needsReview = !!localChild && !!partnerChild && !linked;
+            const needsReview = !!localChild && !!partnerChild && (!linked || issues.length > 0);
 
             return {
                 available: true,
@@ -2873,7 +2895,7 @@
 
         renderPartnerAlignmentCard() {
             const state = this.getPartnerAlignmentState();
-            if (!state.available || state.linked) return '';
+            if (!state.available) return '';
             if (!state.needsReview) return '';
 
             const issueText = state.issues.length > 0
@@ -2894,20 +2916,91 @@
             `;
         },
 
-        buildPartnerAlignmentChildCard(child, ownerLabel, options = {}) {
+        buildPartnerAlignmentPersonSummary(child, ownerLabel) {
             const title = getChildWorkspaceOwnerLabel(child, ownerLabel);
-            const slotText = getChildWorkspaceSlotKey(child);
+            return `
+                <div class="meimay-child-align-person">
+                    <div class="meimay-child-align-owner">${escapeHtml(ownerLabel)}</div>
+                    <div class="meimay-child-align-title">${escapeHtml(title)}${getGenderEmoji(child?.meta?.gender)}</div>
+                    <div class="meimay-child-align-meta">${escapeHtml(getGenderLabel(child?.meta?.gender))}</div>
+                    <div class="meimay-child-align-meta">予定日 ${escapeHtml(getChildWorkspaceDateText(child))}</div>
+                </div>
+            `;
+        },
+
+        buildPartnerAlignmentChoice(sectionKey, source, label, value, checked = false) {
+            const safeSectionKey = String(sectionKey || '').trim();
+            const safeSource = source === 'partner' ? 'partner' : 'local';
+            const sourceLabel = safeSource === 'partner' ? 'パートナーの設定' : 'あなたの設定';
+            return `
+                <label class="meimay-child-align-choice">
+                    <input type="radio" name="mcw-align-${escapeHtml(safeSectionKey)}-source" value="${safeSource}" ${checked ? 'checked' : ''}>
+                    <span class="meimay-child-align-choice-body">
+                        <span class="meimay-child-align-choice-source">${escapeHtml(label || sourceLabel)}</span>
+                        <span class="meimay-child-align-choice-value">${escapeHtml(value)}</span>
+                    </span>
+                </label>
+            `;
+        },
+
+        buildPartnerAlignmentResolutionControls(localChild, partnerChild) {
+            const rows = [];
+            const localGender = normalizeGenderValue(localChild?.meta?.gender);
+            const partnerGender = normalizeGenderValue(partnerChild?.meta?.gender);
+            if (localGender !== partnerGender) {
+                rows.push(`
+                    <div class="meimay-child-align-resolve-row">
+                        <div class="meimay-child-align-resolve-label">性別をどちらにそろえる？</div>
+                        <div class="meimay-child-align-choice-grid">
+                            ${this.buildPartnerAlignmentChoice('gender', 'local', 'あなたの設定', getGenderLabel(localGender), true)}
+                            ${this.buildPartnerAlignmentChoice('gender', 'partner', 'パートナーの設定', getGenderLabel(partnerGender))}
+                        </div>
+                    </div>
+                `);
+            }
+
+            const localDate = String(localChild?.meta?.dueDate || localChild?.meta?.birthDate || '').trim();
+            const partnerDate = String(partnerChild?.meta?.dueDate || partnerChild?.meta?.birthDate || '').trim();
+            if (localDate !== partnerDate) {
+                rows.push(`
+                    <div class="meimay-child-align-resolve-row">
+                        <div class="meimay-child-align-resolve-label">予定日・誕生日をどちらにそろえる？</div>
+                        <div class="meimay-child-align-choice-grid">
+                            ${this.buildPartnerAlignmentChoice('date', 'local', 'あなたの設定', formatChildWorkspaceDateText(localDate), true)}
+                            ${this.buildPartnerAlignmentChoice('date', 'partner', 'パートナーの設定', formatChildWorkspaceDateText(partnerDate))}
+                        </div>
+                    </div>
+                `);
+            }
+
+            if (rows.length === 0) return '';
+            return `
+                <div class="meimay-child-align-resolve">
+                    <div class="meimay-child-align-resolve-title">違うところをそろえる</div>
+                    ${rows.join('')}
+                </div>
+            `;
+        },
+
+        buildPartnerAlignmentPairCard(localChild, partnerChild, options = {}) {
+            const localTitle = getChildWorkspaceOwnerLabel(localChild, 'この子');
+            const partnerTitle = getChildWorkspaceOwnerLabel(partnerChild, 'パートナーの子');
+            const title = localTitle === partnerTitle ? localTitle : `${localTitle} / ${partnerTitle}`;
             const issueList = Array.isArray(options.issues) ? options.issues : [];
             const issueHtml = issueList.length > 0
                 ? `<div class="meimay-child-align-issues">${issueList.map((issue) => `<span>${escapeHtml(issue)}</span>`).join('')}</div>`
                 : '';
             return `
-                <div class="meimay-child-align-card">
-                    <div class="meimay-child-align-owner">${escapeHtml(ownerLabel)}</div>
-                    <div class="meimay-child-align-title">${escapeHtml(title)}${getGenderEmoji(child?.meta?.gender)}</div>
-                    <div class="meimay-child-align-meta">${escapeHtml(buildChildWorkspaceSummaryLine(child))}</div>
-                    <div class="meimay-child-align-slot">識別: ${escapeHtml(slotText)}</div>
-                    ${issueHtml}
+                <div class="meimay-child-align-pair-card">
+                    <div class="meimay-child-align-pair-head">
+                        <div class="meimay-child-align-pair-title">${escapeHtml(title)}</div>
+                        ${issueHtml}
+                    </div>
+                    <div class="meimay-child-align-compare">
+                        ${this.buildPartnerAlignmentPersonSummary(localChild, 'あなた')}
+                        ${this.buildPartnerAlignmentPersonSummary(partnerChild, 'パートナー')}
+                    </div>
+                    ${this.buildPartnerAlignmentResolutionControls(localChild, partnerChild)}
                 </div>
             `;
         },
@@ -2927,7 +3020,8 @@
                 ? this.getPartnerChildBySlotKey(partnerChildSlotKey)
                 : (state.partnerChild || this.getDefaultPartnerChildForAlignment());
             const selectedSlotKey = getChildWorkspaceSlotKey(selectedPartner);
-            const issues = this.getPartnerAlignmentIssues(localChild, selectedPartner);
+            const selectedLinked = !!(localChild && this.isPartnerChildLinkConfirmed(localChild, selectedPartner));
+            const issues = this.getPartnerAlignmentIssues(localChild, selectedPartner, { allowDifferentSlot: selectedLinked });
             const partnerCards = partnerIds.map((childId) => {
                 const partnerChild = partnerRoot.children?.[childId];
                 if (!partnerChild) return '';
@@ -2957,25 +3051,21 @@
                             <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closePartnerAlignmentModal()">×</button>
                         </div>
                         <div class="meimay-child-modal-copy">
-                            <div class="meimay-child-modal-title">パートナーと名づけ帳をそろえる</div>
+                            <div class="meimay-child-modal-title">名づけ帳をそろえる</div>
                         </div>
                     </div>
                     <div class="meimay-child-align-note">
-                        どの子の名づけを一緒に進めるか確認します。性別や予定日は自動では上書きしません。
+                        選んだ内容をこの名づけ帳に反映します。相手側は自動では上書きしません。
                     </div>
-                    <div class="meimay-child-align-grid">
-                        ${this.buildPartnerAlignmentChildCard(localChild, 'あなた')}
-                        ${this.buildPartnerAlignmentChildCard(selectedPartner, 'パートナー', { issues })}
-                    </div>
+                    ${this.buildPartnerAlignmentPairCard(localChild, selectedPartner, { issues })}
                     ${partnerIds.length > 1 ? `
                         <div class="meimay-child-modal-section">
-                            <div class="meimay-child-modal-section-title">パートナー側の名づけ帳</div>
+                            <div class="meimay-child-modal-section-title">この子に対応する相手の子</div>
                             <div class="meimay-child-align-pick-list">${partnerCards}</div>
                         </div>
                     ` : ''}
                     <div class="meimay-child-editor-actions">
-                        <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(selectedSlotKey)}', '${escapeHtml(safeLocalChildId)}')">この子で一緒に進める</button>
-                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.addPartnerChildAsSeparate('${escapeHtml(selectedSlotKey)}')">別の子として追加</button>
+                        <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(selectedSlotKey)}', '${escapeHtml(safeLocalChildId)}')">選んだ内容で一緒に進める</button>
                         <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.closePartnerAlignmentModal(); MeimayChildWorkspaces.openManagerModal();">名づけ帳管理で確認</button>
                     </div>
                 </div>
@@ -2987,6 +3077,41 @@
             document.getElementById('meimay-child-align-modal')?.remove();
         },
 
+        getPartnerAlignmentChoiceSource(sectionKey) {
+            const safeKey = String(sectionKey || '').trim();
+            if (!safeKey) return 'local';
+            const input = document.querySelector(`input[name="mcw-align-${safeKey}-source"]:checked`);
+            return input?.value === 'partner' ? 'partner' : 'local';
+        },
+
+        applyPartnerAlignmentChoices(localChild, partnerChild) {
+            if (!localChild || !partnerChild) return false;
+            let changed = false;
+
+            if (this.getPartnerAlignmentChoiceSource('gender') === 'partner') {
+                const nextGender = normalizeGenderValue(partnerChild.meta?.gender);
+                if (normalizeGenderValue(localChild.meta?.gender) !== nextGender) {
+                    localChild.meta.gender = nextGender;
+                    changed = true;
+                }
+            }
+
+            if (this.getPartnerAlignmentChoiceSource('date') === 'partner') {
+                const nextDate = String(partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '').trim();
+                const currentDate = String(localChild.meta?.dueDate || localChild.meta?.birthDate || '').trim();
+                if (currentDate !== nextDate) {
+                    localChild.meta.dueDate = nextDate;
+                    localChild.meta.birthDate = '';
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                localChild.meta.updatedAt = getNowIso();
+            }
+            return changed;
+        },
+
         confirmPartnerChildLink(partnerChildSlotKey, localChildId = '') {
             const safeLocalChildId = String(localChildId || '').trim();
             const localChild = safeLocalChildId ? this.getChildById(safeLocalChildId) : this.getActiveChild();
@@ -2996,6 +3121,8 @@
                 return;
             }
 
+            this.applyPartnerAlignmentChoices(localChild, partnerChild);
+            const remainingIssues = this.getPartnerAlignmentIssues(localChild, partnerChild, { allowDifferentSlot: true });
             const links = this.getPartnerChildLinks();
             links[localChild.meta.id] = {
                 status: 'linked',
@@ -3011,7 +3138,12 @@
             this.closeChildModal();
             if (typeof updatePairingUI === 'function') updatePairingUI();
             this.refreshVisibleUI('partner-child-link');
-            this.notify('パートナーと同じ名づけ帳としてそろえました', '✓');
+            this.notify(
+                remainingIssues.length > 0
+                    ? 'まだ違いがあります。相手側にも確認が出ます'
+                    : 'パートナーと同じ名づけ帳としてそろえました',
+                remainingIssues.length > 0 ? 'i' : '✓'
+            );
         },
 
         addPartnerChildAsSeparate(partnerChildSlotKey) {
@@ -3077,7 +3209,7 @@
                 || this.getPartnerChildBySlotKey(getChildWorkspaceSlotKey(child))
                 || this.getDefaultPartnerChildForAlignment();
             const linked = !!(candidatePartnerChild && this.isPartnerChildLinkConfirmed(child, candidatePartnerChild));
-            const issues = candidatePartnerChild ? this.getPartnerAlignmentIssues(child, candidatePartnerChild) : [];
+            const issues = candidatePartnerChild ? this.getPartnerAlignmentIssues(child, candidatePartnerChild, { allowDifferentSlot: linked }) : [];
             const partnerLabel = candidatePartnerChild
                 ? `${getChildWorkspaceOwnerLabel(candidatePartnerChild, 'パートナーの子')}${getGenderEmoji(candidatePartnerChild.meta?.gender)}`
                 : '読み込み中';
