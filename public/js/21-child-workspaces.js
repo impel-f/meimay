@@ -18,6 +18,7 @@
     const JAPANESE_NUMERALS = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
     const MAX_BIRTH_ORDER = 10;
     const MAX_MULTIPLE_CHILDREN = 5;
+    const MULTIPLE_CHILD_LABELS = ['ひとりめ', 'ふたりめ', 'さんにんめ', 'よにんめ', 'ごにんめ'];
 
     function cloneData(value, fallback) {
         if (value === undefined) return cloneFallback(fallback);
@@ -148,6 +149,14 @@
         return multipleSuffixToIndex(value);
     }
 
+    function normalizeMultipleCount(value, fallback = null) {
+        const parsed = parseInt(value, 10);
+        const fallbackParsed = parseInt(fallback, 10);
+        const candidate = Number.isFinite(parsed) ? parsed : fallbackParsed;
+        if (!Number.isFinite(candidate)) return null;
+        return Math.max(2, Math.min(MAX_MULTIPLE_CHILDREN, candidate));
+    }
+
     function normalizePositiveInteger(value, fallback = 1) {
         const parsed = parseInt(value, 10);
         return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -172,10 +181,28 @@
         return `第${safeOrder}子`;
     }
 
-    function buildDisplayLabel(order, twinIndex = null) {
+    function getMultipleGroupLabel(count) {
+        const safeCount = normalizeMultipleCount(count, 2) || 2;
+        const labels = {
+            2: '双子',
+            3: '三つ子',
+            4: '四つ子',
+            5: '五つ子'
+        };
+        return labels[safeCount] || `${safeCount}つ子`;
+    }
+
+    function getMultiplePositionLabel(index) {
+        const safeIndex = normalizeNonNegativeInteger(index, 0);
+        return MULTIPLE_CHILD_LABELS[safeIndex] || `${safeIndex + 1}人目`;
+    }
+
+    function buildDisplayLabel(order, twinIndex = null, multipleCount = null) {
         const baseLabel = getJapaneseOrderLabel(order);
         const normalizedTwinIndex = normalizeTwinIndex(twinIndex);
-        return normalizedTwinIndex === null ? baseLabel : `${baseLabel}${multipleIndexToSuffix(normalizedTwinIndex)}`;
+        if (normalizedTwinIndex === null) return baseLabel;
+        const safeCount = normalizeMultipleCount(multipleCount, Math.max(normalizedTwinIndex + 1, 2));
+        return `${getJapaneseOrderLabel(normalizePositiveInteger(order, 1) + normalizedTwinIndex)}（${getMultipleGroupLabel(safeCount)}）`;
     }
 
     function getWorkspaceSavedCombinationKey(item) {
@@ -510,7 +537,7 @@
                 .meimay-child-switcher.compact{display:none}
                 .meimay-child-switcher-header{display:none}
                 .meimay-child-switcher-title,.meimay-child-switcher-subtitle,.meimay-child-switcher-meta,.meimay-child-chip-row,.meimay-child-chip,.meimay-child-chip-add,.meimay-child-chip-sub{display:none}
-                .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:750;transition:transform .15s ease,box-shadow .15s ease,background .15s ease;padding:8px 12px;font-size:11px}
+                .meimay-child-inline-btn,.meimay-child-modal-btn{border:1px solid #eadfce;background:#fff;color:#5d5444;border-radius:9999px;font-weight:750;transition:transform .15s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease,color .15s ease;padding:8px 12px;font-size:11px}
                 .meimay-child-modal-btn{min-height:48px;padding:12px 16px;font-size:14px}
                 .meimay-child-inline-btn:active,.meimay-child-modal-btn:active{transform:scale(.97)}
                 .meimay-child-modal-overlay{position:fixed;inset:0;z-index:10020;display:flex;align-items:center;justify-content:center;padding:clamp(12px,3vw,24px);background:rgba(49,38,24,.36);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
@@ -522,25 +549,52 @@
                 .meimay-child-modal-copy{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:100%;box-sizing:border-box;margin-top:-36px;padding:2px 44px 0}
                 .meimay-child-modal-title{color:#4f4536;font-size:18px;font-weight:800;line-height:1.35;text-align:center}
                 .meimay-child-modal-desc{display:none}
-                .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92)}
+                .meimay-child-modal-section{margin-top:0;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:18px;background:linear-gradient(180deg,#fffaf2 0%,#fffdf8 100%)}
                 .meimay-child-copy-panel{margin-top:12px;padding:14px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:rgba(255,255,255,.92);display:grid;gap:12px}
                 .meimay-child-copy-panel .meimay-child-field{margin-top:0}
                 .meimay-child-step-label{display:none}
-                .meimay-child-modal-section-title{color:#4f4536;font-size:14px;font-weight:700;letter-spacing:0}
-                .meimay-child-modal-stack{display:grid;gap:10px;margin-top:12px}
-                .meimay-child-card{margin-top:10px;padding:12px;border:1px solid rgba(229,219,203,.86);border-radius:16px;background:#fff}
-                .meimay-child-card.active{background:#fff9ec;border-color:#d6c4a8}
-                .meimay-child-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-                .meimay-child-card-title{color:#4f4536;font-size:14px;font-weight:700}
-                .meimay-child-card-meta{margin-top:4px;color:#8b7e66;font-size:12px;line-height:1.45}
+                .meimay-child-modal-section-title{color:#4f4536;font-size:14px;font-weight:850;letter-spacing:0}
+                .meimay-child-modal-stack{display:grid;gap:12px;margin-top:12px}
+                .meimay-child-card{position:relative;margin-top:0;padding:14px;border:1px solid #eadfce;border-radius:16px;background:#fffdf8;box-shadow:0 10px 24px -22px rgba(74,58,37,.34);overflow:hidden}
+                .meimay-child-card.active{background:#fff8e8;border-color:#d4b887;box-shadow:0 12px 26px -21px rgba(157,120,57,.42)}
+                .meimay-child-card.active:before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:4px;border-radius:0 9999px 9999px 0;background:#c79a52}
+                .meimay-child-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+                .meimay-child-card-title{color:#3f372d;font-size:15px;font-weight:850;line-height:1.35}
+                .meimay-child-card-meta{margin-top:4px;color:#81715d;font-size:11px;font-weight:700;line-height:1.45}
+                .meimay-child-partner-presence{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 9px;border:1px solid #d6dfcb;border-radius:9999px;background:#f5fbf1;color:#55745c;font-size:10px;font-weight:900;line-height:1.2}
+                .meimay-child-partner-presence.away{border-color:#eadfce;background:#fff8e8;color:#8a6425}
+                .meimay-child-partner-presence-dot{width:6px;height:6px;border-radius:9999px;background:#70a76d;flex:0 0 auto}
+                .meimay-child-partner-presence.away .meimay-child-partner-presence-dot{background:#c49b5b}
                 .meimay-child-badge{display:inline-flex;align-items:center;justify-content:center;padding:4px 9px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:750}
+                .meimay-child-current-status{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid #e5c98f;border-radius:9999px;background:#fff2ce;color:#8a6425;font-size:13px;font-weight:900}
                 .meimay-child-card-actions,.meimay-child-shared-actions,.meimay-child-editor-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+                .meimay-child-manager-edit{min-width:96px;min-height:40px;padding:9px 13px;border-color:#e2d3bd;background:#fff;color:#5d5444;font-size:12px;font-weight:800;box-shadow:0 8px 18px -18px rgba(74,58,37,.38)}
+                .meimay-child-manager-switch{min-height:46px;border-color:#a98755;background:#a98755;color:#fff;box-shadow:0 12px 24px -18px rgba(136,96,45,.58)}
+                .meimay-child-manager-switch:active{box-shadow:0 8px 16px -16px rgba(136,96,45,.58)}
+                .meimay-child-add-action{min-height:46px;border-color:#d2bd9d;background:#fffaf2;color:#5d5444}
                 .meimay-child-editor-actions{position:static;padding-top:12px}
+                .meimay-child-editor-current{padding:13px 14px;border:1px solid #eadfce;border-radius:16px;background:#fff8e8}
+                .meimay-child-editor-current-kicker{color:#b58a4d;font-size:10px;font-weight:900;letter-spacing:.12em}
+                .meimay-child-editor-current-title{margin-top:4px;color:#3f372d;font-size:17px;font-weight:900;line-height:1.35}
+                .meimay-child-editor-current-meta{margin-top:4px;color:#81715d;font-size:11px;font-weight:750}
+                .meimay-child-editor-field{margin-top:0;padding:13px;border:1px solid #eadfce;border-radius:16px;background:#fff}
+                .meimay-child-editor-field .meimay-child-field-label{margin-bottom:8px;color:#6f6657;font-size:11px;font-weight:900}
+                .meimay-child-editor-field .meimay-child-multiple-toggle{margin-top:12px;padding:11px 0 0;border:0;border-top:1px solid #f0e5d5;border-radius:0;background:transparent}
+                .meimay-child-save-action{border-color:#9f7a48;background:#9f7a48;color:#fff;font-weight:900;box-shadow:0 12px 24px -18px rgba(136,96,45,.58)}
                 .meimay-child-field{margin-top:14px}
                 .meimay-child-field-label{display:block;margin-bottom:7px;color:#6f6657;font-size:12px;font-weight:750}
                 .meimay-child-input,.meimay-child-select{width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536;font-size:14px;font-weight:650;outline:none}
                 .meimay-child-input:focus,.meimay-child-select:focus{border-color:#bca37f}
+                .meimay-child-input:disabled,.meimay-child-select:disabled{background:#f7f0e6;color:#9d8f78;border-color:#eadfce;opacity:1}
                 .meimay-child-field-hint{margin-top:6px;color:#a6967a;font-size:10px;line-height:1.45}
+                .meimay-child-multiple-toggle{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536}
+                .meimay-child-multiple-toggle input{width:18px;height:18px;margin-top:2px;accent-color:#b9965b;flex:0 0 auto}
+                .meimay-child-multiple-title{display:block;color:#4f4536;font-size:12px;font-weight:850;line-height:1.35}
+                .meimay-child-multiple-desc{display:block;margin-top:2px;color:#8b7e66;font-size:10px;font-weight:700;line-height:1.45}
+                .meimay-child-multiple-area{margin-top:10px}
+                .meimay-child-multiple-area[hidden]{display:none}
+                .meimay-child-multiple-grid{display:grid;grid-template-columns:1fr;gap:10px}
+                @media(max-width:420px){.meimay-child-multiple-grid{grid-template-columns:1fr}}
                 .meimay-child-partner-note{margin-top:8px;display:flex;align-items:center;justify-content:center;width:100%;min-height:22px;padding:4px 10px;border-radius:9999px;background:#fff5de;color:#a27d47;font-size:10px;font-weight:900;letter-spacing:.04em;text-align:center;white-space:nowrap;box-sizing:border-box}
                 .meimay-child-radio-grid{display:grid;gap:8px;margin-top:10px}
                 .meimay-child-radio-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;cursor:pointer}
@@ -552,8 +606,16 @@
                 .meimay-child-gender-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
                 .meimay-child-gender-btn,.meimay-child-toggle-btn{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fff;color:#4f4536;font-size:14px;font-weight:700;text-align:left}
                 .meimay-child-gender-btn{justify-content:center;min-height:48px;padding:12px 8px;text-align:center}
-                .meimay-child-gender-btn.selected,.meimay-child-toggle-btn.selected{border-color:#bca37f;background:#fff9ec}
+                .meimay-child-gender-btn.selected{border-color:#bca37f;background:#fff9ec}
+                .meimay-child-toggle-btn{min-height:48px;border-color:#e5d6c0;background:#fffdf8;box-shadow:inset 0 0 0 1px rgba(255,255,255,.75)}
+                .meimay-child-toggle-btn.selected{border-color:#9f7a48;background:#fff7e7;box-shadow:inset 0 0 0 2px rgba(159,122,72,.28)}
+                .meimay-child-toggle-main{display:flex;align-items:center;gap:8px;min-width:0}
+                .meimay-child-toggle-check{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #d9c8ad;border-radius:9999px;background:#fff;color:transparent;font-size:12px;font-weight:900;line-height:1;flex:0 0 auto}
+                .meimay-child-toggle-btn.selected .meimay-child-toggle-check{border-color:#9f7a48;background:#9f7a48;color:#fff}
                 .meimay-child-toggle-count{color:#a6967a;font-size:11px;font-weight:800}
+                .meimay-child-toggle-btn.selected .meimay-child-toggle-count{color:#7a5a2c}
+                .meimay-child-copy-source-note{display:flex;align-items:center;min-height:48px;padding:12px 14px;border:1px solid #eadfce;border-radius:14px;background:#fffaf2;color:#4f4536;font-size:14px;font-weight:800;line-height:1.45}
+                .meimay-child-copy-source-note.muted{background:#f8f2e9;color:#9a8c75}
                 .meimay-child-danger{border-color:#f5c8c8;background:#fff6f6;color:#c45d5d}
                 .meimay-child-leave{border-color:#f0e0b8;background:#fffbf0;color:#a87c30}
                 .meimay-child-accept{border-color:#b8d8c8;background:#f0faf4;color:#2e7d57}
@@ -574,6 +636,10 @@
                 .meimay-child-align-pick{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border:1px solid #eadfce;border-radius:14px;background:#fff;text-align:left;color:#4f4536;font-weight:850}
                 .meimay-child-align-pick.selected{border-color:#bca37f;background:#fff8e8}
                 .meimay-child-align-pick small{color:#8b7e66;font-size:10px;font-weight:750;text-align:right}
+                .meimay-child-partner-link-status{padding:12px 14px;border-radius:16px;border:1px solid #eadfce;background:#fffaf2;color:#5d5444}
+                .meimay-child-partner-link-kicker{color:#b9965b;font-size:10px;font-weight:900;letter-spacing:.1em}
+                .meimay-child-partner-link-title{margin-top:4px;color:#4f4536;font-size:14px;font-weight:850;line-height:1.45}
+                .meimay-child-partner-link-desc{margin-top:5px;color:#8b7e66;font-size:11px;font-weight:750;line-height:1.55}
                 @media (min-width:520px){.meimay-child-align-grid{grid-template-columns:1fr 1fr}}
 
             `;
@@ -707,6 +773,12 @@
             const twinSuffix = normalizeTwinSuffix(childRecord?.meta?.twinSuffix || childRecord?.meta?.multipleSuffix || (rawMultipleIndex !== null && rawMultipleIndex !== undefined ? multipleIndexToSuffix(rawMultipleIndex) : ''));
             const twinIndex = normalizeTwinIndex(rawMultipleIndex, twinSuffix);
             const birthOrder = normalizePositiveInteger(childRecord?.meta?.birthOrder, fallbackBirthOrder);
+            const multipleCount = twinIndex === null
+                ? null
+                : normalizeMultipleCount(
+                    childRecord?.meta?.birthGroupSize ?? childRecord?.meta?.multipleCount ?? childRecord?.meta?.twinCount,
+                    Math.max(twinIndex + 1, 2)
+                );
             const createdAt = String(childRecord?.meta?.createdAt || getNowIso());
             const updatedAt = String(childRecord?.meta?.updatedAt || createdAt);
             const birthGroupId = String(childRecord?.meta?.birthGroupId || childRecord?.meta?.twinGroupId || (twinIndex === null ? '' : `bg_${birthOrder}`)).trim() || null;
@@ -716,12 +788,15 @@
                 meta: {
                     id: safeId,
                     birthOrder,
-                    displayLabel: buildDisplayLabel(birthOrder, twinIndex),
+                    displayLabel: buildDisplayLabel(birthOrder, twinIndex, multipleCount),
                     gender: normalizeGenderValue(childRecord?.meta?.gender),
                     birthGroupId,
                     birthGroupIndex: twinIndex,
+                    birthGroupSize: multipleCount,
+                    multipleCount,
                     twinGroupId: birthGroupId,
                     twinIndex,
+                    twinCount: multipleCount,
                     createdAt,
                     updatedAt,
                     dueDate: String(childRecord?.meta?.dueDate || childRecord?.meta?.birthDate || '').trim(),
@@ -1037,6 +1112,12 @@
             const draftReadingInput = document.getElementById('in-name');
             const compoundFlow = typeof window.getCompoundBuildFlow === 'function' ? window.getCompoundBuildFlow() : (window.meimayCompoundBuildFlow || null);
             const birthGroupIndex = existingMeta.birthGroupIndex ?? existingMeta.twinIndex ?? null;
+            const birthGroupSize = birthGroupIndex === null
+                ? null
+                : normalizeMultipleCount(
+                    existingMeta.birthGroupSize ?? existingMeta.multipleCount ?? existingMeta.twinCount,
+                    Math.max(normalizeTwinIndex(birthGroupIndex) + 1, 2)
+                );
             const savedCanvas = getSavedCanvasStateSnapshot();
             const savedCanvasDraft = savedCanvas.blank || savedCanvas.ownKey || savedCanvas.partnerKey || savedCanvas.selectedKey
                 ? {
@@ -1052,12 +1133,15 @@
                 meta: {
                     id: String(existingMeta.id || '').trim(),
                     birthOrder: normalizePositiveInteger(existingMeta.birthOrder, 1),
-                    displayLabel: buildDisplayLabel(existingMeta.birthOrder, birthGroupIndex),
+                    displayLabel: buildDisplayLabel(existingMeta.birthOrder, birthGroupIndex, birthGroupSize),
                     gender: normalizeGenderValue(typeof gender !== 'undefined' ? gender : existingMeta.gender),
                     birthGroupId: existingMeta.birthGroupId || existingMeta.twinGroupId || (birthGroupIndex === null ? null : `bg_${normalizePositiveInteger(existingMeta.birthOrder, 1)}`),
                     birthGroupIndex,
+                    birthGroupSize,
+                    multipleCount: birthGroupSize,
                     twinGroupId: existingMeta.twinGroupId || existingMeta.birthGroupId || (birthGroupIndex === null ? null : `bg_${normalizePositiveInteger(existingMeta.birthOrder, 1)}`),
                     twinIndex: birthGroupIndex,
+                    twinCount: birthGroupSize,
                     createdAt: existingMeta.createdAt || getNowIso(),
                     updatedAt: getNowIso(),
                     dueDate: String(existingMeta.dueDate || existingMeta.birthDate || '').trim(),
@@ -1713,6 +1797,12 @@
             const id = String(options.id || this.generateChildId());
             const birthOrder = normalizePositiveInteger(options.birthOrder, this.getSuggestedBirthOrder());
             const twinIndex = normalizeTwinIndex(options.multipleIndex ?? options.twinIndex ?? null);
+            const multipleCount = twinIndex === null
+                ? null
+                : normalizeMultipleCount(
+                    options.birthGroupSize ?? options.multipleCount ?? options.twinCount,
+                    Math.max(twinIndex + 1, 2)
+                );
             const genderValue = normalizeGenderValue(options.gender || 'neutral');
             const activeChild = this.getActiveChild();
             const prefs = cloneData(activeChild?.prefs, {
@@ -1724,12 +1814,15 @@
                 meta: {
                     id,
                     birthOrder,
-                    displayLabel: buildDisplayLabel(birthOrder, twinIndex),
+                    displayLabel: buildDisplayLabel(birthOrder, twinIndex, multipleCount),
                     gender: genderValue,
                     birthGroupId: twinIndex === null ? null : `bg_${birthOrder}`,
                     birthGroupIndex: twinIndex,
+                    birthGroupSize: multipleCount,
+                    multipleCount,
                     twinGroupId: twinIndex === null ? null : `bg_${birthOrder}`,
                     twinIndex,
+                    twinCount: multipleCount,
                     createdAt: getNowIso(),
                     updatedAt: getNowIso(),
                     dueDate: String(options.dueDate || ''),
@@ -1773,7 +1866,7 @@
             this.applyActiveChildToGlobals({ reason: 'copy-child' });
             this.refreshVisibleUI('copy-child');
             this.closeManagerModal();
-            this.notify(`${sourceChild.meta.displayLabel} の候補をコピーしました`, '✓');
+            this.notify(`${sourceChild.meta.displayLabel} の候補を引き継ぎました`, '✓');
         },
 
         applySharedLibrariesToActiveChild() {
@@ -1898,14 +1991,22 @@
             }
             const partnerSlotKey = getChildWorkspaceSlotKey(partnerChild);
             const partnerTwinIndex = normalizeTwinIndex(partnerChild.meta?.birthGroupIndex ?? partnerChild.meta?.twinIndex ?? null);
+            const partnerMultipleCount = partnerTwinIndex === null
+                ? null
+                : normalizeMultipleCount(
+                    partnerChild.meta?.birthGroupSize ?? partnerChild.meta?.multipleCount ?? partnerChild.meta?.twinCount,
+                    Math.max(partnerTwinIndex + 1, 2)
+                );
             let birthOrder = normalizePositiveInteger(partnerChild.meta?.birthOrder, 1);
             let twinIndex = partnerTwinIndex;
+            let multipleCount = partnerMultipleCount;
             if (this.isBirthOrderTaken(birthOrder)) {
                 if (partnerTwinIndex !== null && !this.isChildWorkspaceSlotTaken(partnerSlotKey)) {
                     twinIndex = partnerTwinIndex;
                 } else if (options.allowNextBirthOrder === true) {
                     birthOrder = this.getSuggestedBirthOrder();
                     twinIndex = null;
+                    multipleCount = null;
                 } else {
                     this.notify('その生まれ順はすでに使われています。', '!');
                     return;
@@ -1916,12 +2017,15 @@
                 meta: {
                     id: newId,
                     birthOrder,
-                    displayLabel: buildDisplayLabel(birthOrder, twinIndex),
+                    displayLabel: buildDisplayLabel(birthOrder, twinIndex, multipleCount),
                     gender: normalizeGenderValue(partnerChild.meta?.gender || 'neutral'),
                     birthGroupId: twinIndex === null ? null : (partnerChild.meta?.birthGroupId || `bg_${birthOrder}`),
                     birthGroupIndex: twinIndex,
+                    birthGroupSize: multipleCount,
+                    multipleCount,
                     twinGroupId: twinIndex === null ? null : (partnerChild.meta?.twinGroupId || partnerChild.meta?.birthGroupId || `bg_${birthOrder}`),
                     twinIndex,
+                    twinCount: multipleCount,
                     createdAt: getNowIso(),
                     updatedAt: getNowIso(),
                     dueDate: partnerChild.meta?.dueDate || partnerChild.meta?.birthDate || '',
@@ -2034,6 +2138,7 @@
                 this.applyActiveChildToGlobals({ reason: 'partner-status-sync' });
                 this.refreshVisibleUI('partner-status-sync');
             }
+            this.refreshOpenManagerModal();
             return changed;
         },
 
@@ -2123,7 +2228,7 @@
                 : String(activeChild.meta.dueDate || activeChild.meta.birthDate || '').trim();
 
             activeChild.meta.birthOrder = nextBirthOrder;
-            activeChild.meta.displayLabel = buildDisplayLabel(nextBirthOrder, activeChild.meta.birthGroupIndex);
+            activeChild.meta.displayLabel = buildDisplayLabel(nextBirthOrder, activeChild.meta.birthGroupIndex, activeChild.meta.birthGroupSize ?? activeChild.meta.multipleCount ?? activeChild.meta.twinCount);
             activeChild.meta.gender = nextGender;
             activeChild.meta.dueDate = nextDueDate;
             activeChild.meta.birthDate = '';
@@ -2143,13 +2248,29 @@
             return true;
         },
 
+        getReservedBirthOrdersForChild(child) {
+            const order = normalizePositiveInteger(child?.meta?.birthOrder, 0);
+            if (order <= 0) return [];
+            const rawTwinIndex = child?.meta?.birthGroupIndex ?? child?.meta?.twinIndex ?? child?.meta?.multipleIndex ?? null;
+            const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                ? null
+                : normalizeTwinIndex(rawTwinIndex);
+            if (twinIndex === null) return [order];
+            const count = normalizeMultipleCount(
+                child?.meta?.birthGroupSize ?? child?.meta?.multipleCount ?? child?.meta?.twinCount,
+                Math.max(twinIndex + 1, 2)
+            );
+            return Array.from({ length: count }, (_, index) => order + index);
+        },
+
         getAvailableBirthOrders(excludedChildId = null) {
             const taken = new Set();
             this.buildOrderedChildIds(this.root).forEach((childId) => {
                 if (excludedChildId && childId === excludedChildId) return;
                 const child = this.getChildById(childId);
-                const order = normalizePositiveInteger(child?.meta?.birthOrder, 0);
-                if (order >= 1) taken.add(order);
+                this.getReservedBirthOrdersForChild(child).forEach((order) => {
+                    if (order >= 1) taken.add(order);
+                });
             });
             const available = [];
             for (let order = 1; order <= MAX_BIRTH_ORDER; order += 1) {
@@ -2168,8 +2289,30 @@
             return this.buildOrderedChildIds(this.root).some((childId) => {
                 if (excludedChildId && childId === excludedChildId) return false;
                 const child = this.getChildById(childId);
-                return normalizePositiveInteger(child?.meta?.birthOrder, 0) === safeOrder;
+                return this.getReservedBirthOrdersForChild(child).includes(safeOrder);
             });
+        },
+
+        findBirthOrderRangeConflict(startOrder, count = 1, excludedChildId = null, options = {}) {
+            const safeStart = normalizePositiveInteger(startOrder, 1);
+            const safeCount = Math.max(1, normalizeNonNegativeInteger(count, 1));
+            const requested = new Set(Array.from({ length: safeCount }, (_, index) => safeStart + index));
+            const allowSingletonAtStart = options.allowSingletonAtStart === true;
+            for (const childId of this.buildOrderedChildIds(this.root)) {
+                if (excludedChildId && childId === excludedChildId) continue;
+                const child = this.getChildById(childId);
+                if (!child) continue;
+                const childOrder = normalizePositiveInteger(child.meta?.birthOrder, 0);
+                const rawTwinIndex = child.meta?.birthGroupIndex ?? child.meta?.twinIndex ?? child.meta?.multipleIndex ?? null;
+                const childTwinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                    ? null
+                    : normalizeTwinIndex(rawTwinIndex);
+                if (childTwinIndex !== null && childOrder === safeStart) continue;
+                if (allowSingletonAtStart && childTwinIndex === null && childOrder === safeStart) continue;
+                const hasConflict = this.getReservedBirthOrdersForChild(child).some((order) => requested.has(order));
+                if (hasConflict) return child;
+            }
+            return null;
         },
 
         isChildWorkspaceSlotTaken(slotKey, excludedChildId = null) {
@@ -2180,6 +2323,54 @@
                 const child = this.getChildById(childId);
                 return getChildWorkspaceSlotKey(child) === safeSlotKey;
             });
+        },
+
+        findChildIdByBirthSlot(birthOrder, twinIndex = null, excludedChildId = null) {
+            const slotKey = getChildWorkspaceSlotKeyFromParts(birthOrder, twinIndex);
+            return this.buildOrderedChildIds(this.root).find((childId) => {
+                if (excludedChildId && childId === excludedChildId) return false;
+                const child = this.getChildById(childId);
+                return getChildWorkspaceSlotKey(child) === slotKey;
+            }) || null;
+        },
+
+        getExistingMultipleGroupSizeForBirthOrder(order) {
+            const safeOrder = normalizePositiveInteger(order, 0);
+            if (safeOrder <= 0) return null;
+            let maxIndex = -1;
+            this.buildOrderedChildIds(this.root).forEach((childId) => {
+                const child = this.getChildById(childId);
+                if (!child || normalizePositiveInteger(child?.meta?.birthOrder, 0) !== safeOrder) return;
+                const rawTwinIndex = child.meta?.birthGroupIndex ?? child.meta?.twinIndex ?? child.meta?.multipleIndex ?? null;
+                const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                    ? null
+                    : normalizeTwinIndex(rawTwinIndex);
+                if (twinIndex === null) return;
+                const declaredCount = normalizeMultipleCount(
+                    child.meta?.birthGroupSize ?? child.meta?.multipleCount ?? child.meta?.twinCount,
+                    null
+                );
+                maxIndex = Math.max(maxIndex, twinIndex, declaredCount ? declaredCount - 1 : -1);
+            });
+            return maxIndex >= 0 ? normalizeMultipleCount(maxIndex + 1, 2) : null;
+        },
+
+        getExistingMultipleGroupDateForBirthOrder(order, excludedChildId = null) {
+            const safeOrder = normalizePositiveInteger(order, 0);
+            if (safeOrder <= 0) return '';
+            for (const childId of this.buildOrderedChildIds(this.root)) {
+                if (excludedChildId && childId === excludedChildId) continue;
+                const child = this.getChildById(childId);
+                if (!child || normalizePositiveInteger(child?.meta?.birthOrder, 0) !== safeOrder) continue;
+                const rawTwinIndex = child.meta?.birthGroupIndex ?? child.meta?.twinIndex ?? child.meta?.multipleIndex ?? null;
+                const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                    ? null
+                    : normalizeTwinIndex(rawTwinIndex);
+                if (twinIndex === null) continue;
+                const dateValue = String(child.meta?.dueDate || child.meta?.birthDate || '').trim();
+                if (dateValue) return dateValue;
+            }
+            return '';
         },
 
         getSingletonChildForBirthOrder(order, excludedChildId = null) {
@@ -2195,36 +2386,51 @@
             return singletonId ? this.getChildById(singletonId) : null;
         },
 
-        promoteSingletonChildToMultipleBase(order, twinIndex = null, excludedChildId = null) {
+        promoteSingletonChildToMultipleBase(order, twinIndex = null, excludedChildId = null, multipleCount = null) {
             if (normalizeTwinIndex(twinIndex) === null) return false;
             const safeOrder = normalizePositiveInteger(order, 1);
             const child = this.getSingletonChildForBirthOrder(safeOrder, excludedChildId);
             if (!child) return false;
+            const safeCount = normalizeMultipleCount(multipleCount, 2);
             child.meta.birthGroupId = child.meta.birthGroupId || `bg_${safeOrder}`;
             child.meta.birthGroupIndex = 0;
+            child.meta.birthGroupSize = safeCount;
+            child.meta.multipleCount = safeCount;
             child.meta.twinGroupId = child.meta.twinGroupId || child.meta.birthGroupId;
             child.meta.twinIndex = 0;
-            child.meta.displayLabel = buildDisplayLabel(safeOrder, 0);
+            child.meta.twinCount = safeCount;
+            child.meta.displayLabel = buildDisplayLabel(safeOrder, 0, safeCount);
             child.meta.updatedAt = getNowIso();
             return true;
         },
 
-        validateChildSlotSelection(birthOrder, twinIndex = null, excludedChildId = null) {
+        validateChildSlotSelection(birthOrder, twinIndex = null, excludedChildId = null, multipleCount = null) {
             const safeOrder = normalizePositiveInteger(birthOrder, 1);
             const normalizedTwinIndex = normalizeTwinIndex(twinIndex);
             const slotKey = getChildWorkspaceSlotKeyFromParts(safeOrder, normalizedTwinIndex);
+            const rangeCount = normalizedTwinIndex === null
+                ? 1
+                : normalizeMultipleCount(multipleCount, Math.max(normalizedTwinIndex + 1, 2));
 
             if (this.isChildWorkspaceSlotTaken(slotKey, excludedChildId)) {
                 return { ok: false, message: '同じ名づけ帳があります。多胎の区分を変えてください。' };
             }
 
-            if (normalizedTwinIndex === null && this.isBirthOrderTaken(safeOrder, excludedChildId)) {
-                return { ok: false, message: '同じ生まれ順がある場合は、双子・三つ子などの区分を選んでください。' };
+            const rangeConflict = this.findBirthOrderRangeConflict(safeOrder, rangeCount, excludedChildId, {
+                allowSingletonAtStart: normalizedTwinIndex !== null
+            });
+            if (rangeConflict) {
+                return {
+                    ok: false,
+                    message: normalizedTwinIndex === null
+                        ? 'その生まれ順はすでに使われています。'
+                        : '人数分の生まれ順がほかの名づけ帳と重なっています。開始する生まれ順を変えてください。'
+                };
             }
 
             const singletonChild = this.getSingletonChildForBirthOrder(safeOrder, excludedChildId);
             if (singletonChild && normalizedTwinIndex === 0) {
-                return { ok: false, message: `${getJapaneseOrderLabel(safeOrder)}Aは既存の名づけ帳に使われます。追加する場合はB以降を選んでください。` };
+                return { ok: false, message: '既存の名づけ帳がひとりめに使われます。追加する場合は、ふたりめ以降を選んでください。' };
             }
 
             return { ok: true };
@@ -2239,31 +2445,243 @@
             const availableOrders = this.getAvailableBirthOrders(excludedChildId);
             const safeSelected = normalizePositiveInteger(selectedOrder, 0);
             if (availableOrders.length === 0 && !excludedChildId) {
-                return includeTaken
-                    ? Array.from({ length: MAX_BIRTH_ORDER }, (_, index) => index + 1)
+                if (includeTaken) {
+                    return Array.from({ length: MAX_BIRTH_ORDER }, (_, index) => index + 1)
                         .map((order) => `<option value="${order}"${safeSelected === order ? ' selected' : ''}>${escapeHtml(getJapaneseOrderLabel(order))}</option>`)
-                        .join('')
-                    : '<option value="" disabled selected>追加できる順番がありません</option>';
+                        .join('');
+                }
+                if (safeSelected > 0) {
+                    return `<option value="${safeSelected}" selected>${escapeHtml(getJapaneseOrderLabel(safeSelected))}</option>`;
+                }
+                return '<option value="" disabled selected>追加できる順番がありません</option>';
             }
             const orderOptions = includeTaken
                 ? Array.from({ length: MAX_BIRTH_ORDER }, (_, index) => index + 1)
-                : (availableOrders.length > 0 ? availableOrders : [safeSelected || 1]);
+                : Array.from(new Set([
+                    ...availableOrders,
+                    ...(safeSelected > 0 ? [safeSelected] : [])
+                ])).sort((left, right) => left - right);
             return orderOptions.map((order) => {
                 const isSelected = safeSelected === order;
                 return `<option value="${order}"${isSelected ? ' selected' : ''}>${escapeHtml(getJapaneseOrderLabel(order))}</option>`;
             }).join('');
         },
 
-        buildMultipleOrderOptions(selectedTwinIndex = null) {
-            const normalizedTwinIndex = normalizeTwinIndex(selectedTwinIndex);
-            const options = ['<option value="">ひとり（通常）</option>'];
-            for (let index = 0; index < MAX_MULTIPLE_CHILDREN; index += 1) {
-                const value = index + 1;
-                const suffix = multipleIndexToSuffix(index);
-                const label = `${suffix}（${value}人目）`;
-                options.push(`<option value="${value}"${normalizedTwinIndex === index ? ' selected' : ''}>${escapeHtml(label)}</option>`);
+        buildMultipleCountOptions(selectedCount = 2) {
+            const normalizedCount = normalizeMultipleCount(selectedCount, 2);
+            const labels = {
+                2: '2人（双子）',
+                3: '3人（三つ子）',
+                4: '4人（四つ子）',
+                5: '5人（五つ子）'
+            };
+            const options = [];
+            for (let count = 2; count <= MAX_MULTIPLE_CHILDREN; count += 1) {
+                options.push(`<option value="${count}"${normalizedCount === count ? ' selected' : ''}>${escapeHtml(labels[count] || `${count}人`)}</option>`);
             }
             return options.join('');
+        },
+
+        getSuggestedMultipleIndexForBirthOrder(order, excludedChildId = null) {
+            const safeOrder = normalizePositiveInteger(order, 1);
+            const startIndex = this.getSingletonChildForBirthOrder(safeOrder, excludedChildId) ? 1 : 0;
+            for (let index = startIndex; index < MAX_MULTIPLE_CHILDREN; index += 1) {
+                const slotKey = getChildWorkspaceSlotKeyFromParts(safeOrder, index);
+                if (!this.isChildWorkspaceSlotTaken(slotKey, excludedChildId)) {
+                    return index;
+                }
+            }
+            return startIndex;
+        },
+
+        getIncompleteMultipleGroupSuggestion(preferredChildId = '') {
+            const preferredId = String(preferredChildId || '').trim();
+            const orderedIds = this.buildOrderedChildIds(this.root);
+            const candidateIds = [
+                ...(preferredId && orderedIds.includes(preferredId) ? [preferredId] : []),
+                ...orderedIds.filter((childId) => childId !== preferredId)
+            ];
+
+            for (const childId of candidateIds) {
+                const child = this.getChildById(childId);
+                if (!child) continue;
+                const birthOrder = normalizePositiveInteger(child.meta?.birthOrder, 0);
+                if (birthOrder <= 0) continue;
+                const rawTwinIndex = child.meta?.birthGroupIndex ?? child.meta?.twinIndex ?? child.meta?.multipleIndex ?? null;
+                const twinIndex = rawTwinIndex === null || rawTwinIndex === undefined || rawTwinIndex === ''
+                    ? null
+                    : normalizeTwinIndex(rawTwinIndex);
+                if (twinIndex === null) continue;
+                const multipleCount = normalizeMultipleCount(
+                    child.meta?.birthGroupSize ?? child.meta?.multipleCount ?? child.meta?.twinCount,
+                    Math.max(twinIndex + 1, 2)
+                );
+                for (let index = 0; index < multipleCount; index += 1) {
+                    if (!this.findChildIdByBirthSlot(birthOrder, index)) {
+                        return { birthOrder, multipleIndex: index, multipleCount };
+                    }
+                }
+            }
+
+            return null;
+        },
+
+        ensureMultipleGroupSiblings(options = {}) {
+            const birthOrder = normalizePositiveInteger(options.birthOrder, 1);
+            const multipleCount = normalizeMultipleCount(options.multipleCount, 2);
+            const dueDate = String(options.dueDate || '').trim();
+            const gendersByIndex = options.gendersByIndex && typeof options.gendersByIndex === 'object'
+                ? options.gendersByIndex
+                : {};
+            const groupId = `bg_${birthOrder}`;
+            let createdCount = 0;
+            let updatedCount = 0;
+
+            for (let index = 0; index < multipleCount; index += 1) {
+                let slotId = this.findChildIdByBirthSlot(birthOrder, index);
+                if (!slotId && index === 0) {
+                    this.promoteSingletonChildToMultipleBase(birthOrder, 0, null, multipleCount);
+                    slotId = this.findChildIdByBirthSlot(birthOrder, index);
+                }
+
+                if (slotId) {
+                    const child = this.getChildById(slotId);
+                    if (!child) continue;
+                    const shouldUpdateDate = !!dueDate && !String(child.meta?.dueDate || child.meta?.birthDate || '').trim();
+                    child.meta.birthOrder = birthOrder;
+                    child.meta.birthGroupId = groupId;
+                    child.meta.birthGroupIndex = index;
+                    child.meta.birthGroupSize = multipleCount;
+                    child.meta.multipleCount = multipleCount;
+                    child.meta.twinGroupId = groupId;
+                    child.meta.twinIndex = index;
+                    child.meta.twinCount = multipleCount;
+                    child.meta.displayLabel = buildDisplayLabel(birthOrder, index, multipleCount);
+                    if (Object.prototype.hasOwnProperty.call(gendersByIndex, index)) {
+                        child.meta.gender = normalizeGenderValue(gendersByIndex[index]);
+                    }
+                    if (shouldUpdateDate) {
+                        child.meta.dueDate = dueDate;
+                        child.meta.birthDate = '';
+                    }
+                    child.meta.updatedAt = getNowIso();
+                    updatedCount += 1;
+                    continue;
+                }
+
+                const nextId = this.generateChildId();
+                this.root.children[nextId] = this.buildChildRecordForCreate({
+                    id: nextId,
+                    birthOrder,
+                    multipleIndex: index,
+                    multipleCount,
+                    gender: Object.prototype.hasOwnProperty.call(gendersByIndex, index)
+                        ? normalizeGenderValue(gendersByIndex[index])
+                        : 'neutral',
+                    dueDate,
+                    startMode: 'blank'
+                });
+                createdCount += 1;
+            }
+
+            return { createdCount, updatedCount };
+        },
+
+        buildMultipleAutoCreateNotice(multipleCount, createdCount = 0) {
+            const safeCreatedCount = normalizeNonNegativeInteger(createdCount, 0);
+            if (safeCreatedCount <= 0) return '';
+            const groupLabel = getMultipleGroupLabel(multipleCount);
+            return safeCreatedCount === 1
+                ? `${groupLabel}のもう一人も追加しました`
+                : `${groupLabel}の残り${safeCreatedCount}人も追加しました`;
+        },
+
+        updateChildModalMultipleVisibility(refreshSuggestion = false) {
+            const enabled = document.getElementById('mcw-child-multiple-enabled')?.checked === true;
+            const area = document.getElementById('mcw-child-multiple-area');
+            const select = document.getElementById('mcw-child-multiple-order');
+            const countSelect = document.getElementById('mcw-child-multiple-count');
+            const baseOrderInput = document.getElementById('mcw-child-multiple-base-order');
+            const indexInput = document.getElementById('mcw-child-multiple-index-override');
+            const countLockedInput = document.getElementById('mcw-child-multiple-count-locked');
+            const modeInput = document.getElementById('mcw-child-modal-mode');
+            const hint = document.getElementById('mcw-child-multiple-hint');
+            if (area) area.hidden = !enabled;
+            if (!enabled || !select) return;
+
+            const displayBirthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
+            const excludedChildId = document.getElementById('mcw-child-id')?.value || '';
+            const baseOrderRaw = normalizePositiveInteger(baseOrderInput?.value, 0);
+            const indexRaw = normalizeTwinIndex(indexInput?.value ?? null);
+            const overrideMatchesDisplay = baseOrderRaw > 0
+                && indexRaw !== null
+                && (baseOrderRaw + indexRaw) === displayBirthOrder;
+            const countLocked = String(countLockedInput?.value || '') === '1' && overrideMatchesDisplay;
+            if (countSelect) countSelect.disabled = countLocked;
+            let birthOrder = overrideMatchesDisplay ? baseOrderRaw : displayBirthOrder;
+            let selectedIndex = overrideMatchesDisplay
+                ? indexRaw
+                : this.getSuggestedMultipleIndexForBirthOrder(birthOrder, excludedChildId);
+            const existingCount = this.getExistingMultipleGroupSizeForBirthOrder(birthOrder);
+            const countValue = refreshSuggestion ? '' : countSelect?.value;
+            let multipleCount = normalizeMultipleCount(
+                countValue,
+                Math.max(existingCount || 2, selectedIndex + 1, 2)
+            );
+            if (selectedIndex >= multipleCount) {
+                selectedIndex = Math.max(0, multipleCount - 1);
+                birthOrder = displayBirthOrder - selectedIndex;
+                if (birthOrder <= 0) {
+                    birthOrder = displayBirthOrder;
+                    selectedIndex = 0;
+                }
+            }
+            if (!overrideMatchesDisplay && selectedIndex > 0 && (birthOrder + selectedIndex) !== displayBirthOrder) {
+                selectedIndex = 0;
+                birthOrder = displayBirthOrder;
+            }
+            if (countSelect) countSelect.value = String(multipleCount);
+            select.value = String(selectedIndex + 1);
+            if (baseOrderInput) baseOrderInput.value = String(birthOrder);
+            if (indexInput) indexInput.value = String(selectedIndex);
+            if (hint) {
+                const groupLabel = getMultipleGroupLabel(multipleCount);
+                hint.textContent = String(modeInput?.value || '') === 'edit'
+                    ? `${groupLabel}として設定しています。予定日・誕生日は同じ日付を使います。`
+                    : selectedIndex > 0
+                    ? `${getJapaneseOrderLabel(birthOrder)}と${groupLabel}として追加します。予定日・誕生日は同じ日付を使います。`
+                    : `${groupLabel}として追加します。予定日・誕生日は同じ日付を使います。`;
+            }
+            const existingDate = this.getExistingMultipleGroupDateForBirthOrder(birthOrder, excludedChildId);
+            const dateInput = document.getElementById('mcw-child-date-value');
+            if (existingDate && dateInput && !String(dateInput.value || '').trim()) {
+                dateInput.value = existingDate;
+            }
+            if (refreshSuggestion || !String(select.value || '').trim()) {
+                select.value = String(selectedIndex + 1);
+            }
+        },
+
+        getSelectedChildModalMultipleSlot() {
+            const displayBirthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
+            const multipleEnabled = document.getElementById('mcw-child-multiple-enabled')?.checked === true;
+            if (!multipleEnabled) {
+                return { birthOrder: displayBirthOrder, twinIndex: null, multipleCount: null };
+            }
+
+            const multipleCount = normalizeMultipleCount(document.getElementById('mcw-child-multiple-count')?.value, 2);
+            const baseOrder = normalizePositiveInteger(document.getElementById('mcw-child-multiple-base-order')?.value, 0);
+            const overrideIndex = normalizeTwinIndex(document.getElementById('mcw-child-multiple-index-override')?.value ?? null);
+            const canUseOverride = baseOrder > 0
+                && overrideIndex !== null
+                && overrideIndex < multipleCount
+                && (baseOrder + overrideIndex) === displayBirthOrder;
+
+            if (canUseOverride) {
+                return { birthOrder: baseOrder, twinIndex: overrideIndex, multipleCount };
+            }
+
+            return { birthOrder: displayBirthOrder, twinIndex: 0, multipleCount };
         },
 
         getSelectedChildModalGender() {
@@ -2409,7 +2827,7 @@
             return issues;
         },
 
-        getPartnerAlignmentState() {
+        getPartnerAlignmentState(localChildId = '') {
             const inRoom = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
             const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
             if (!this.initialized || !this.root || !inRoom || !hasPartner) {
@@ -2421,7 +2839,8 @@
                 return { available: false, needsReview: false, reason: 'partner-loading' };
             }
 
-            const localChild = this.getActiveChild();
+            const safeLocalChildId = String(localChildId || '').trim();
+            const localChild = safeLocalChildId ? this.getChildById(safeLocalChildId) : this.getActiveChild();
             const linkedPartnerChild = this.getLinkedPartnerChildForChild(localChild);
             const partnerChild = linkedPartnerChild
                 || this.getDefaultPartnerChildForAlignment()
@@ -2492,8 +2911,8 @@
             `;
         },
 
-        openPartnerAlignmentModal(partnerChildSlotKey = '') {
-            const state = this.getPartnerAlignmentState();
+        openPartnerAlignmentModal(partnerChildSlotKey = '', localChildId = '') {
+            const state = this.getPartnerAlignmentState(localChildId);
             if (!state.available) {
                 this.notify('パートナーの名づけ帳を読み込み中です。少し待ってからもう一度開いてください。', 'i');
                 return;
@@ -2501,6 +2920,7 @@
 
             const partnerRoot = this.getPartnerWorkspaceRoot();
             const localChild = state.localChild || this.getActiveChild();
+            const safeLocalChildId = String(localChild?.meta?.id || localChildId || '').trim();
             const partnerIds = this.buildOrderedChildIds(partnerRoot);
             const selectedPartner = partnerChildSlotKey
                 ? this.getPartnerChildBySlotKey(partnerChildSlotKey)
@@ -2514,7 +2934,7 @@
                 const isSelected = slotKey === selectedSlotKey;
                 return `
                     <button type="button" class="meimay-child-align-pick${isSelected ? ' selected' : ''}"
-                        onclick="MeimayChildWorkspaces.openPartnerAlignmentModal('${escapeHtml(slotKey)}')">
+                        onclick="MeimayChildWorkspaces.openPartnerAlignmentModal('${escapeHtml(slotKey)}', '${escapeHtml(safeLocalChildId)}')">
                         <span>${escapeHtml(getChildWorkspaceOwnerLabel(partnerChild, 'パートナーの子'))}${getGenderEmoji(partnerChild.meta?.gender)}</span>
                         <small>${escapeHtml(buildChildWorkspaceSummaryLine(partnerChild))}</small>
                     </button>
@@ -2553,8 +2973,8 @@
                         </div>
                     ` : ''}
                     <div class="meimay-child-editor-actions">
-                        <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(selectedSlotKey)}')">この子で一緒に進める</button>
-                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.addPartnerChildAsSeparate('${escapeHtml(selectedSlotKey)}')">別の名づけ帳として追加</button>
+                        <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(selectedSlotKey)}', '${escapeHtml(safeLocalChildId)}')">この子で一緒に進める</button>
+                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.addPartnerChildAsSeparate('${escapeHtml(selectedSlotKey)}')">別の子として追加</button>
                         <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.closePartnerAlignmentModal(); MeimayChildWorkspaces.openManagerModal();">名づけ帳管理で確認</button>
                     </div>
                 </div>
@@ -2566,8 +2986,9 @@
             document.getElementById('meimay-child-align-modal')?.remove();
         },
 
-        confirmPartnerChildLink(partnerChildSlotKey) {
-            const localChild = this.getActiveChild();
+        confirmPartnerChildLink(partnerChildSlotKey, localChildId = '') {
+            const safeLocalChildId = String(localChildId || '').trim();
+            const localChild = safeLocalChildId ? this.getChildById(safeLocalChildId) : this.getActiveChild();
             const partnerChild = this.getPartnerChildBySlotKey(partnerChildSlotKey);
             if (!localChild || !partnerChild) {
                 this.notify('名づけ帳を確認できませんでした。', '!');
@@ -2586,6 +3007,7 @@
             this.root.updatedAt = getNowIso();
             this.saveRoot(this.root, { reason: 'partner-child-link' });
             this.closePartnerAlignmentModal();
+            this.closeChildModal();
             if (typeof updatePairingUI === 'function') updatePairingUI();
             this.refreshVisibleUI('partner-child-link');
             this.notify('パートナーと同じ名づけ帳としてそろえました', '✓');
@@ -2598,6 +3020,99 @@
             });
             this.closePartnerAlignmentModal();
             if (typeof updatePairingUI === 'function') updatePairingUI();
+        },
+
+        clearPartnerSavedCanvasForChild(child) {
+            if (!child?.draft?.savedCanvas) return false;
+            const current = normalizeWorkspaceSavedCanvasState(child.draft.savedCanvas);
+            const selectedWasPartner = current.selectedSource === 'partner'
+                || (!!current.partnerKey && current.selectedKey === current.partnerKey && current.partnerKey !== current.ownKey);
+            child.draft.savedCanvas = normalizeWorkspaceSavedCanvasState({
+                blank: current.blank,
+                ownKey: current.ownKey,
+                partnerKey: '',
+                selectedKey: selectedWasPartner ? current.ownKey : current.selectedKey,
+                selectedSource: selectedWasPartner ? (current.ownKey ? 'own' : '') : current.selectedSource,
+                selectedAt: selectedWasPartner ? '' : current.selectedAt
+            });
+            return true;
+        },
+
+        unlinkPartnerChildLink(childId = '') {
+            const safeChildId = String(childId || this.root?.activeChildId || '').trim();
+            const child = safeChildId ? this.getChildById(safeChildId) : null;
+            if (!child) {
+                this.notify('名づけ帳を確認できませんでした。', '!');
+                return;
+            }
+
+            const links = this.getPartnerChildLinks();
+            if (Object.prototype.hasOwnProperty.call(links, safeChildId)) {
+                delete links[safeChildId];
+            }
+            this.clearPartnerSavedCanvasForChild(child);
+            this.root.updatedAt = getNowIso();
+            this.saveRoot(this.root, { reason: 'partner-child-unlink' });
+            if (safeChildId === this.root.activeChildId) {
+                this.applyActiveChildToGlobals({ reason: 'partner-child-unlink' });
+            }
+            this.closeChildModal();
+            if (typeof updatePairingUI === 'function') updatePairingUI();
+            this.refreshVisibleUI('partner-child-unlink');
+            this.notify('この組み合わせを解除しました', '✓');
+        },
+
+        buildChildPartnerLinkSection(child) {
+            if (!child) return '';
+            const inRoom = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
+            const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
+            if (!inRoom || !hasPartner) return '';
+
+            const safeChildId = String(child.meta?.id || '').trim();
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            const link = this.getPartnerChildLink(safeChildId);
+            const linkedPartnerChild = this.getLinkedPartnerChildForChild(child);
+            const candidatePartnerChild = linkedPartnerChild
+                || this.getPartnerChildBySlotKey(getChildWorkspaceSlotKey(child))
+                || this.getDefaultPartnerChildForAlignment();
+            const linked = !!(candidatePartnerChild && this.isPartnerChildLinkConfirmed(child, candidatePartnerChild));
+            const issues = candidatePartnerChild ? this.getPartnerAlignmentIssues(child, candidatePartnerChild) : [];
+            const partnerLabel = candidatePartnerChild
+                ? `${getChildWorkspaceOwnerLabel(candidatePartnerChild, 'パートナーの子')}${getGenderEmoji(candidatePartnerChild.meta?.gender)}`
+                : '読み込み中';
+            const localLabel = `${getChildWorkspaceOwnerLabel(child, 'この子')}${getGenderEmoji(child.meta?.gender)}`;
+            const statusLabel = !partnerRoot ? '読み込み中' : (linked ? '確認済み' : '未確認');
+            const title = linked
+                ? `${localLabel} ↔ ${partnerLabel}`
+                : '一緒に進める子を確認できます';
+            const desc = linked
+                ? '相手側の別の名づけ帳に変更できます。解除しても、自分の候補や保存名は残ります。'
+                : 'どの子の名づけを一緒に進めるかを選びます。性別や予定日は自動では上書きしません。';
+            const issueHtml = issues.length > 0
+                ? `<div class="meimay-child-align-issues">${issues.map((issue) => `<span>${escapeHtml(issue)}</span>`).join('')}</div>`
+                : '';
+            const canOpen = !!partnerRoot && !!candidatePartnerChild;
+            const openButtonLabel = linked ? '一緒に進める子を変更' : '一緒に進める子を確認';
+            const openButton = `<button type="button" class="meimay-child-modal-btn" ${canOpen ? `onclick="MeimayChildWorkspaces.openPartnerAlignmentModal('', '${escapeHtml(safeChildId)}')"` : 'disabled'}>${openButtonLabel}</button>`;
+            const unlinkButton = link
+                ? `<button type="button" class="meimay-child-modal-btn meimay-child-leave" onclick="MeimayChildWorkspaces.unlinkPartnerChildLink('${escapeHtml(safeChildId)}')">この組み合わせを解除</button>`
+                : '';
+
+            return `
+                <div class="meimay-child-modal-section">
+                    <div class="meimay-child-modal-section-title">パートナーと一緒に進める子</div>
+                    <div class="meimay-child-partner-link-status">
+                        <div class="meimay-child-partner-link-kicker">${escapeHtml(statusLabel)}</div>
+                        <div class="meimay-child-partner-link-title">${escapeHtml(title)}</div>
+                        <div class="meimay-child-partner-link-desc">${escapeHtml(desc)}</div>
+                        ${issueHtml}
+                    </div>
+                    <div class="meimay-child-card-actions">
+                        ${openButton}
+                        ${unlinkButton}
+                    </div>
+                </div>
+            `;
         },
 
         getPartnerChildBySlotKey(slotKey) {
@@ -2661,18 +3176,155 @@
             return this.getFormattedChildLabel(childId);
         },
 
-        buildCopySourceOptions(excludedChildId = '') {
-            const childIds = this.buildOrderedChildIds(this.root).filter((id) => id !== excludedChildId);
+        getPartnerPresenceName() {
+            const insights = typeof window !== 'undefined' ? window.MeimayPartnerInsights : null;
+            const snapshot = typeof MeimayShare !== 'undefined' && MeimayShare ? MeimayShare.partnerSnapshot || null : null;
+            const candidates = [
+                insights && typeof insights.getPartnerDisplayName === 'function' ? insights.getPartnerDisplayName() : '',
+                typeof getPartnerRoleLabel === 'function' ? getPartnerRoleLabel(snapshot?.role) : '',
+                snapshot?.displayName,
+                snapshot?.username,
+                snapshot?.nickname
+            ];
+            const name = candidates.map((value) => String(value || '').trim()).find(Boolean) || 'パートナー';
+            return name.length > 12 ? `${name.slice(0, 12)}…` : name;
+        },
+
+        getPartnerActiveChild(partnerRoot = null) {
+            const root = partnerRoot || this.getPartnerWorkspaceRoot();
+            if (!root) return null;
+            const activePartnerId = String(root.activeChildId || '').trim();
+            if (activePartnerId && root.children?.[activePartnerId]) {
+                return root.children[activePartnerId];
+            }
+            return null;
+        },
+
+        isSamePartnerChild(leftChild, rightChild) {
+            if (!leftChild || !rightChild) return false;
+            const leftId = String(leftChild.meta?.id || '').trim();
+            const rightId = String(rightChild.meta?.id || '').trim();
+            if (leftId && rightId && leftId === rightId) return true;
+            return getChildWorkspaceSlotKey(leftChild) === getChildWorkspaceSlotKey(rightChild);
+        },
+
+        doesPartnerActiveChildMatchLocal(localChild, partnerChild) {
+            if (!localChild || !partnerChild) return false;
+            const linkedPartnerChild = this.getLinkedPartnerChildForChild(localChild);
+            if (linkedPartnerChild && this.isSamePartnerChild(linkedPartnerChild, partnerChild)) {
+                return true;
+            }
+            return getChildWorkspaceSlotKey(localChild) === getChildWorkspaceSlotKey(partnerChild);
+        },
+
+        getLocalChildForPartnerActiveChild(partnerChild) {
+            if (!partnerChild || !this.root) return null;
+            return Object.values(this.root.children || {}).find((localChild) =>
+                this.doesPartnerActiveChildMatchLocal(localChild, partnerChild)
+            ) || null;
+        },
+
+        getPartnerPresenceForChild(child) {
+            if (!child || !this.root) return null;
+            const inRoom = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
+            const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
+            if (!inRoom || !hasPartner) return null;
+
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            const partnerActiveChild = this.getPartnerActiveChild(partnerRoot);
+            if (!partnerActiveChild || !this.doesPartnerActiveChildMatchLocal(child, partnerActiveChild)) return null;
+
+            const partnerName = this.getPartnerPresenceName();
+            const isLocalActive = String(child.meta?.id || '').trim() === String(this.root.activeChildId || '').trim();
+            return {
+                kind: isLocalActive ? 'same' : 'viewing',
+                text: isLocalActive ? `${partnerName}も選択中` : `${partnerName}が選択中`
+            };
+        },
+
+        getPartnerPresenceForPartnerChild(partnerChild) {
+            const inRoom = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
+            const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
+            if (!partnerChild || !inRoom || !hasPartner) return null;
+            const partnerActiveChild = this.getPartnerActiveChild();
+            if (!this.isSamePartnerChild(partnerChild, partnerActiveChild)) return null;
+            return {
+                kind: 'viewing',
+                text: `${this.getPartnerPresenceName()}が選択中`
+            };
+        },
+
+        buildPartnerPresenceBadge(presence) {
+            if (!presence || !presence.text) return '';
+            const className = presence.kind === 'away' ? 'meimay-child-partner-presence away' : 'meimay-child-partner-presence';
+            return `<div class="${className}"><span class="meimay-child-partner-presence-dot" aria-hidden="true"></span>${escapeHtml(presence.text)}</div>`;
+        },
+
+        getManagerChildPartnerSummary(child) {
+            if (!child) return '';
+            const inRoom = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.roomCode;
+            const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
+            if (!inRoom || !hasPartner) return '';
+            const partnerRoot = this.getPartnerWorkspaceRoot();
+            if (!partnerRoot) return 'パートナー：読み込み中';
+            const linkedPartnerChild = this.getLinkedPartnerChildForChild(child);
+            if (linkedPartnerChild && this.isPartnerChildLinkConfirmed(child, linkedPartnerChild)) {
+                return `パートナー：${getChildWorkspaceOwnerLabel(linkedPartnerChild, '相手の子')}${getGenderEmoji(linkedPartnerChild.meta?.gender)}`;
+            }
+            return 'パートナー：未確認';
+        },
+
+        getCopySourceChildIds(excludedChildId = '') {
+            return this.buildOrderedChildIds(this.root).filter((id) => id !== excludedChildId);
+        },
+
+        getDefaultCopySourceId(childIds = []) {
+            return this.root?.activeChildId && childIds.includes(this.root.activeChildId)
+                ? this.root.activeChildId
+                : childIds[0] || '';
+        },
+
+        buildCopySourceOptions(excludedChildId = '', selectedSourceId = '') {
+            const childIds = this.getCopySourceChildIds(excludedChildId);
             if (childIds.length === 0) {
                 return '<option value="">引き継げる子がいません</option>';
             }
-            const defaultSourceId = this.root?.activeChildId && childIds.includes(this.root.activeChildId)
-                ? this.root.activeChildId
-                : childIds[0];
+            const defaultSourceId = selectedSourceId && childIds.includes(selectedSourceId)
+                ? selectedSourceId
+                : this.getDefaultCopySourceId(childIds);
             return childIds.map((childId) => {
                 const label = this.getFormattedChildLabel(childId);
                 return `<option value="${escapeHtml(childId)}"${childId === defaultSourceId ? ' selected' : ''}>${escapeHtml(label)}</option>`;
             }).join('');
+        },
+
+        buildCopySourceControl(excludedChildId = '', selectedSourceId = '') {
+            const childIds = this.getCopySourceChildIds(excludedChildId);
+            if (childIds.length === 0) {
+                return `
+                    <div class="meimay-child-field">
+                        <input type="hidden" id="mcw-child-copy-source" value="">
+                        <div class="meimay-child-copy-source-note muted">引き継げる子がいません</div>
+                    </div>
+                `;
+            }
+            const defaultSourceId = selectedSourceId && childIds.includes(selectedSourceId)
+                ? selectedSourceId
+                : this.getDefaultCopySourceId(childIds);
+            if (childIds.length === 1) {
+                return `
+                    <div class="meimay-child-field">
+                        <input type="hidden" id="mcw-child-copy-source" value="${escapeHtml(defaultSourceId)}">
+                        <div class="meimay-child-copy-source-note">${escapeHtml(this.getFormattedChildLabel(defaultSourceId))}から引き継ぎます</div>
+                    </div>
+                `;
+            }
+            return `
+                <div class="meimay-child-field">
+                    <label class="meimay-child-field-label" for="mcw-child-copy-source">どの子から引き継ぎますか</label>
+                    <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions(excludedChildId, defaultSourceId)}</select>
+                </div>
+            `;
         },
 
         buildCopySectionButtons(selectedSections = ['reading', 'kanji', 'saved'], sourceChildId = '') {
@@ -2687,7 +3339,10 @@
                 const isSelected = selected.has(section.key);
                 return `
                     <button type="button" class="meimay-child-toggle-btn${isSelected ? ' selected' : ''}" data-copy-section="${section.key}" aria-pressed="${isSelected ? 'true' : 'false'}" onclick="MeimayChildWorkspaces.toggleChildModalCopySection('${section.key}')">
-                        <span>${escapeHtml(section.label)}</span>
+                        <span class="meimay-child-toggle-main">
+                            <span class="meimay-child-toggle-check" aria-hidden="true">✓</span>
+                            <span>${escapeHtml(section.label)}</span>
+                        </span>
                         <span class="meimay-child-toggle-count" data-copy-section-count="${section.key}">${escapeHtml(section.count)}</span>
                     </button>
                 `;
@@ -2733,23 +3388,38 @@
             const isActive = childId === this.root?.activeChildId;
             const title = escapeHtml(this.getManagerChildTitle(childId) || child.meta?.displayLabel || '第一子');
             const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
+            const partnerSummary = this.getManagerChildPartnerSummary(child);
+            const partnerPresence = this.getPartnerPresenceForChild(child);
+            const editButton = `<button type="button" class="meimay-child-modal-btn meimay-child-manager-edit" onclick="MeimayChildWorkspaces.openChildModal('edit', '${escapeHtml(childId)}')">設定を編集</button>`;
+            const switchButton = `<button type="button" class="meimay-child-modal-btn meimay-child-manager-switch" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')">切り替える</button>`;
             return `
                 <div class="meimay-child-card${isActive ? ' active' : ''}">
                     <div class="meimay-child-card-head">
                         <div>
                             <div class="meimay-child-card-title">${title}</div>
                             <div class="meimay-child-card-meta">${escapeHtml(counts)}</div>
+                            ${partnerSummary ? `<div class="meimay-child-card-meta">${escapeHtml(partnerSummary)}</div>` : ''}
+                            ${this.buildPartnerPresenceBadge(partnerPresence)}
                         </div>
-                        ${isActive
-                            ? '<div class="meimay-child-badge">編集中</div>'
-                            : `<button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')">切り替える</button>`}
+                        ${editButton}
                     </div>
                     <div class="meimay-child-card-actions">
-                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('edit', '${escapeHtml(childId)}')">設定を編集</button>
+                        ${isActive ? '<div class="meimay-child-current-status">編集中</div>' : switchButton}
                     </div>
                 </div>
             `;
         },
+
+        refreshOpenManagerModal() {
+            if (!this.root) return;
+            const modal = document.getElementById('meimay-child-manager-modal');
+            if (!modal) return;
+            const stack = modal.querySelector('[data-child-manager-card-stack]');
+            if (stack) {
+                stack.innerHTML = this.buildOrderedChildIds(this.root).map((childId) => this.buildManagerChildCard(childId)).join('');
+            }
+        },
+
         openManagerModal() {
             if (!this.initialized) return;
             this.persistActiveChildSnapshot('open-manager');
@@ -2778,9 +3448,13 @@
                             const genderVal = partnerChild.meta?.gender;
                             const genderEmoji = genderVal === 'male' ? '👦' : genderVal === 'female' ? '👧' : '👶';
                             const label = (partnerChild.meta?.displayLabel || '第一子') + genderEmoji;
+                            const partnerPresence = this.getPartnerPresenceForPartnerChild(partnerChild);
                             return `<div class="meimay-child-card meimay-partner-child-card">
                                 <div class="meimay-child-card-head" style="justify-content:space-between;align-items:center;">
-                                    <div class="meimay-child-card-title" style="margin:0;">${escapeHtml(label)}</div>
+                                    <div>
+                                        <div class="meimay-child-card-title" style="margin:0;">${escapeHtml(label)}</div>
+                                        ${this.buildPartnerPresenceBadge(partnerPresence)}
+                                    </div>
                                     <span class="mcw-partner-badge" style="flex-shrink:0;">パートナーが追加</span>
                                 </div>
                                 <div class="meimay-child-card-actions">
@@ -2805,13 +3479,13 @@
                     </div>
                     <div class="meimay-child-modal-section">
                         <div class="meimay-child-modal-section-title">進める子を切り替える</div>
-                        <div class="meimay-child-modal-stack">${childCards}</div>
+                        <div class="meimay-child-modal-stack" data-child-manager-card-stack>${childCards}</div>
                     </div>
                     ${partnerChildrenHtml}
                     <div class="meimay-child-modal-section">
                         <div class="meimay-child-modal-section-title">新しい子を追加</div>
                         <div class="meimay-child-card-actions" style="margin-top:12px">
-                            <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.openChildModal('create')" ${canAddMore ? '' : 'disabled'}>追加する</button>
+                            <button type="button" class="meimay-child-modal-btn meimay-child-add-action" onclick="MeimayChildWorkspaces.openChildModal('create')" ${canAddMore ? '' : 'disabled'}>＋ 追加する</button>
                         </div>
                     </div>
                 </div>
@@ -2832,15 +3506,42 @@
             const selectedGender = isEdit
                 ? normalizeGenderValue(child?.meta?.gender)
                 : normalizeGenderValue(typeof gender !== 'undefined' ? gender : 'neutral');
-            const selectedOrder = isEdit
+            const incompleteMultipleSuggestion = isEdit
+                ? null
+                : this.getIncompleteMultipleGroupSuggestion(this.root?.activeChildId);
+            const selectedInternalOrder = isEdit
                 ? normalizePositiveInteger(child?.meta?.birthOrder, this.getSuggestedBirthOrder())
-                : this.getSuggestedBirthOrder();
+                : (incompleteMultipleSuggestion?.birthOrder || this.getSuggestedBirthOrder());
             const selectedMultipleIndex = isEdit
                 ? normalizeTwinIndex(child?.meta?.birthGroupIndex ?? child?.meta?.twinIndex ?? null)
-                : null;
-            const selectedSourceId = this.root?.activeChildId && this.getChildById(this.root.activeChildId)
-                ? this.root.activeChildId
-                : this.buildOrderedChildIds(this.root)[0] || '';
+                : (incompleteMultipleSuggestion ? incompleteMultipleSuggestion.multipleIndex : null);
+            const multipleChecked = selectedMultipleIndex !== null;
+            const selectedOrder = multipleChecked
+                ? selectedInternalOrder + selectedMultipleIndex
+                : selectedInternalOrder;
+            const selectedMultipleForOptions = multipleChecked
+                ? selectedMultipleIndex
+                : this.getSuggestedMultipleIndexForBirthOrder(selectedInternalOrder, isEdit ? childId : null);
+            const selectedMultipleCount = multipleChecked
+                ? (isEdit
+                    ? normalizeMultipleCount(
+                        child?.meta?.birthGroupSize ?? child?.meta?.multipleCount ?? child?.meta?.twinCount,
+                        Math.max(this.getExistingMultipleGroupSizeForBirthOrder(selectedInternalOrder) || 2, selectedMultipleForOptions + 1, 2)
+                    )
+                    : normalizeMultipleCount(
+                        incompleteMultipleSuggestion?.multipleCount ?? this.getExistingMultipleGroupSizeForBirthOrder(selectedInternalOrder),
+                        Math.max(selectedMultipleForOptions + 1, 2)
+                    ))
+                : normalizeMultipleCount(this.getExistingMultipleGroupSizeForBirthOrder(selectedInternalOrder), 2);
+            const selectedGroupLabel = getMultipleGroupLabel(selectedMultipleCount);
+            const selectedMultipleHint = isEdit
+                ? `${selectedGroupLabel}として設定しています。予定日・誕生日は同じ日付を使います。`
+                : selectedMultipleIndex !== null && selectedMultipleIndex > 0
+                    ? `${getJapaneseOrderLabel(selectedInternalOrder)}と${selectedGroupLabel}として追加します。予定日・誕生日は同じ日付を使います。`
+                    : `${selectedGroupLabel}として追加します。予定日・誕生日は同じ日付を使います。`;
+            const multipleCountLocked = !isEdit && !!incompleteMultipleSuggestion;
+            const copySourceIds = this.getCopySourceChildIds();
+            const selectedSourceId = this.getDefaultCopySourceId(copySourceIds);
             const defaultSections = ['reading', 'kanji', 'saved'];
             const showDeleteButton = isEdit && this.buildOrderedChildIds(this.root).length > 1 && !child?.meta?.createdByPartner;
             const showLeaveButton = isEdit && !!child?.meta?.createdByPartner;
@@ -2851,6 +3552,11 @@
                 if (event.target === modal) this.closeChildModal();
             };
             const savedDueDate = isEdit ? (child?.meta?.dueDate || child?.meta?.birthDate || '') : '';
+            const editSummary = isEdit ? this.getDisplayChildSummary(childId) : null;
+            const editSummaryLabel = editSummary
+                ? `読み ${editSummary.readingCount} / 漢字 ${editSummary.kanjiCount} / 保存 ${editSummary.savedCount}`
+                : '';
+            const editChildLabel = isEdit ? (this.getManagerChildTitle(childId) || child?.meta?.displayLabel || '第一子') : '';
             modal.innerHTML = `
                 <div class="meimay-child-modal-sheet">
                     <div class="meimay-child-modal-header">
@@ -2861,28 +3567,53 @@
                             <div class="meimay-child-modal-title">${isEdit ? '子どもの設定' : '新しい子を追加'}</div>
                         </div>
                     </div>
+                    ${isEdit ? `
+                        <div class="meimay-child-editor-current">
+                            <div class="meimay-child-editor-current-kicker">編集中</div>
+                            <div class="meimay-child-editor-current-title">${escapeHtml(editChildLabel)}</div>
+                            <div class="meimay-child-editor-current-meta">${escapeHtml(editSummaryLabel)}</div>
+                        </div>
+                    ` : ''}
                     <input type="hidden" id="mcw-child-gender" value="${escapeHtml(selectedGender)}">
-                    <div class="meimay-child-field">
+                    <input type="hidden" id="mcw-child-id" value="${escapeHtml(isEdit ? childId : '')}">
+                    <input type="hidden" id="mcw-child-modal-mode" value="${isEdit ? 'edit' : 'create'}">
+                    <input type="hidden" id="mcw-child-multiple-base-order" value="${escapeHtml(multipleChecked ? selectedInternalOrder : '')}">
+                    <input type="hidden" id="mcw-child-multiple-index-override" value="${escapeHtml(selectedMultipleIndex ?? '')}">
+                    <input type="hidden" id="mcw-child-multiple-count-locked" value="${multipleCountLocked ? '1' : ''}">
+                    <input type="hidden" id="mcw-child-multiple-order" value="${escapeHtml((selectedMultipleForOptions ?? 0) + 1)}">
+                    <div class="meimay-child-field meimay-child-editor-field">
                         <div class="meimay-child-step-label">STEP 1</div>
                         <label class="meimay-child-field-label" for="mcw-child-order">生まれ順</label>
-                        <select id="mcw-child-order" class="wiz-birth-order-select meimay-child-select">${this.buildBirthOrderOptions(selectedOrder, isEdit ? childId : null, { includeTaken: true })}</select>
+                        <select id="mcw-child-order" class="wiz-birth-order-select meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalMultipleVisibility(true)">${this.buildBirthOrderOptions(selectedOrder, isEdit ? childId : null)}</select>
+                        <label class="meimay-child-multiple-toggle" for="mcw-child-multiple-enabled">
+                            <input type="checkbox" id="mcw-child-multiple-enabled" ${multipleChecked ? 'checked' : ''} onchange="MeimayChildWorkspaces.updateChildModalMultipleVisibility(true)">
+                            <span>
+                                <span class="meimay-child-multiple-title">双子・三つ子などの場合</span>
+                                <span class="meimay-child-multiple-desc">双子・三つ子などの場合だけ選びます。</span>
+                            </span>
+                        </label>
+                        <div id="mcw-child-multiple-area" class="meimay-child-multiple-area" ${multipleChecked ? '' : 'hidden'}>
+                            <div class="meimay-child-multiple-grid">
+                                <div>
+                                    <label class="meimay-child-field-label" for="mcw-child-multiple-count">何人ですか</label>
+                                    <select id="mcw-child-multiple-count" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalMultipleVisibility(false)" ${multipleCountLocked ? 'disabled' : ''}>${this.buildMultipleCountOptions(selectedMultipleCount)}</select>
+                                </div>
+                            </div>
+                            <div id="mcw-child-multiple-hint" class="meimay-child-field-hint">${escapeHtml(selectedMultipleHint)}</div>
+                        </div>
                     </div>
-                    <div class="meimay-child-field">
-                        <label class="meimay-child-field-label" for="mcw-child-multiple-order">双子・三つ子など</label>
-                        <select id="mcw-child-multiple-order" class="meimay-child-select">${this.buildMultipleOrderOptions(selectedMultipleIndex)}</select>
-                        <div class="meimay-child-field-hint">同じ生まれ順で複数いる場合だけ選びます。五つ子まで A〜E で分けられます。</div>
-                    </div>
-                    <div class="meimay-child-field">
+                    <div id="mcw-child-single-gender-field" class="meimay-child-field meimay-child-editor-field">
                         <div class="meimay-child-step-label">STEP 2</div>
                         <label class="meimay-child-field-label">性別</label>
                         <div class="wiz-baby-gender-grid meimay-child-gender-grid">${this.buildChildModalGenderButtons(selectedGender, isEdit ? (this.getPartnerChildForChild(child)?.meta?.gender || null) : null)}</div>
                     </div>
-                    <div class="meimay-child-field">
+                    <div class="meimay-child-field meimay-child-editor-field">
                         <div class="meimay-child-step-label">STEP 3</div>
                         <label class="meimay-child-field-label" for="mcw-child-date-value">予定日・誕生日</label>
                         <input type="date" id="mcw-child-date-value" class="meimay-child-select" style="width:100%;" value="${escapeHtml(savedDueDate)}" placeholder="未定">
                         <div class="meimay-child-field-hint">未定の場合は空欄のままにしてください</div>
                     </div>
+                    ${isEdit ? this.buildChildPartnerLinkSection(child) : ''}
                     ${isEdit ? '' : `
                         <div class="meimay-child-field">
                             <div class="meimay-child-step-label">STEP 4</div>
@@ -2898,7 +3629,7 @@
                                 <label class="meimay-child-radio-option" data-start-mode="copy">
                                     <input type="radio" name="mcw-start-mode" value="copy" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">
                                     <div>
-                                        <div class="meimay-child-radio-title">ほかの子の候補をコピーする</div>
+                                        <div class="meimay-child-radio-title">ほかの子の候補を引き継ぐ</div>
                                         <div class="meimay-child-radio-desc">読み・漢字・保存候補を引き継いで始めます。</div>
                                     </div>
                                 </label>
@@ -2906,10 +3637,7 @@
                         </div>
                         <div id="mcw-child-copy-area" style="display:none">
                             <div class="meimay-child-copy-panel">
-                                <div class="meimay-child-field">
-                                    <label class="meimay-child-field-label" for="mcw-child-copy-source">コピー元</label>
-                                    <select id="mcw-child-copy-source" class="meimay-child-select" onchange="MeimayChildWorkspaces.updateChildModalStartModeVisibility()">${this.buildCopySourceOptions()}</select>
-                                </div>
+                                ${this.buildCopySourceControl('', selectedSourceId)}
                                 <div class="meimay-child-field">
                                     <label class="meimay-child-field-label">引き継ぐ内容（複数選択）</label>
                                     <div class="meimay-child-toggle-grid">${this.buildCopySectionButtons(defaultSections, selectedSourceId)}</div>
@@ -2918,7 +3646,7 @@
                         </div>
                     `}
                     <div class="meimay-child-editor-actions">
-                        <button type="button" class="meimay-child-modal-btn" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
+                        <button type="button" class="meimay-child-modal-btn meimay-child-save-action" onclick="MeimayChildWorkspaces.saveChildModal('${isEdit ? 'edit' : 'create'}', ${isEdit ? `'${escapeHtml(childId)}'` : 'null'})">保存</button>
                         ${showDeleteButton ? `<button type="button" class="meimay-child-modal-btn meimay-child-danger" onclick="MeimayChildWorkspaces.deleteChild('${escapeHtml(childId)}')">削除</button>` : ''}
                         ${showLeaveButton ? `<button type="button" class="meimay-child-modal-btn meimay-child-leave" onclick="MeimayChildWorkspaces.leavePartnerChild('${escapeHtml(childId)}')">参加をやめる</button>` : ''}
                     </div>
@@ -2927,6 +3655,7 @@
             document.body.appendChild(modal);
             this.syncChildModalDeleteButtonState();
             this.selectChildModalGender(selectedGender);
+            this.updateChildModalMultipleVisibility(false);
             this.updateChildModalStartModeVisibility();
             this.updateChildModalCopySummary();
             this.updateChildModalPartnerSelectionHint();
@@ -2936,13 +3665,25 @@
         },
 
         saveChildModal(mode = 'create', childId = null) {
-            const birthOrder = normalizePositiveInteger(document.getElementById('mcw-child-order')?.value, 1);
-            const multipleOrderRaw = String(document.getElementById('mcw-child-multiple-order')?.value || '').trim();
-            const parsedMultipleOrder = multipleOrderRaw ? parseInt(multipleOrderRaw, 10) : NaN;
-            const twinIndex = Number.isFinite(parsedMultipleOrder) && parsedMultipleOrder > 0 ? parsedMultipleOrder - 1 : null;
+            const multipleSlot = this.getSelectedChildModalMultipleSlot();
+            const birthOrder = multipleSlot.birthOrder;
+            const twinIndex = multipleSlot.twinIndex;
+            const multipleCount = multipleSlot.multipleCount;
+            const multipleEnabled = twinIndex !== null;
+            if (multipleEnabled && (twinIndex === null || twinIndex >= multipleCount)) {
+                this.notify('人数を確認してください。', '!');
+                return;
+            }
             const genderValue = this.getSelectedChildModalGender();
-            const displayLabel = buildDisplayLabel(birthOrder, twinIndex);
-            const slotValidation = this.validateChildSlotSelection(birthOrder, twinIndex, mode === 'edit' ? childId : null);
+            const multipleGenders = twinIndex === null
+                ? {}
+                : { [twinIndex]: genderValue };
+            const selectedGenderValue = twinIndex === null
+                ? genderValue
+                : normalizeGenderValue(multipleGenders[twinIndex] || genderValue);
+            const displayLabel = buildDisplayLabel(birthOrder, twinIndex, multipleCount);
+            const existingGroupDate = twinIndex === null ? '' : this.getExistingMultipleGroupDateForBirthOrder(birthOrder, mode === 'edit' ? childId : null);
+            const slotValidation = this.validateChildSlotSelection(birthOrder, twinIndex, mode === 'edit' ? childId : null, multipleCount);
             if (!slotValidation.ok) {
                 this.notify(slotValidation.message, '!');
                 return;
@@ -2950,13 +3691,13 @@
 
             if (mode === 'edit' && childId) {
                 if (this.isDisplayLabelTaken(displayLabel, childId)) {
-                    this.notify('同じ表示ラベルの子どもがいます。多胎なら A〜E で分けてください。', '!');
+                    this.notify('同じ表示ラベルの子どもがいます。多胎なら、どの子かを変えてください。', '!');
                     return;
                 }
                 
                 // 1. まず現在の作業状態をバックアップ（この際、Active Child のオブジェクトが作り替えられる可能性がある）
                 this.persistActiveChildSnapshot('before-edit-child');
-                this.promoteSingletonChildToMultipleBase(birthOrder, twinIndex, childId);
+                this.promoteSingletonChildToMultipleBase(birthOrder, twinIndex, childId, multipleCount);
                 
                 // 2. 作り替えられた可能性があるため、最新の参照を取得し直す
                 const child = this.getChildById(childId);
@@ -2967,13 +3708,20 @@
                 child.meta.birthGroupIndex = twinIndex;
                 child.meta.twinIndex = twinIndex;
                 child.meta.birthGroupId = twinIndex === null ? null : `bg_${birthOrder}`;
+                child.meta.birthGroupSize = twinIndex === null ? null : multipleCount;
+                child.meta.multipleCount = child.meta.birthGroupSize;
                 child.meta.twinGroupId = child.meta.birthGroupId;
                 child.meta.displayLabel = displayLabel;
-                child.meta.gender = genderValue;
+                child.meta.gender = selectedGenderValue;
                 const dateInfo = this.getSelectedChildModalDateInfo();
-                child.meta.dueDate = dateInfo.dueDate;
+                const effectiveDueDate = dateInfo.dueDate || existingGroupDate;
+                child.meta.dueDate = effectiveDueDate;
                 child.meta.birthDate = '';
+                child.meta.twinCount = child.meta.birthGroupSize;
                 child.meta.updatedAt = getNowIso();
+                const editGroupSync = twinIndex === null
+                    ? null
+                    : this.ensureMultipleGroupSiblings({ birthOrder, multipleCount, dueDate: effectiveDueDate, gendersByIndex: multipleGenders });
 
                 // 4. 重要: 保存 (saveRoot) する前にグローバル変数を更新する！
                 // これにより、saveRoot がフックされて再度 Snapshot が走っても、正しい値が読み込まれるようになる
@@ -2989,7 +3737,8 @@
                 this.closeManagerModal();
                 this.refreshVisibleUI('edit-child');
                 this.renderSwitchers();
-                this.notify('子どもの設定を更新しました', '✓');
+                const editAutoNotice = this.buildMultipleAutoCreateNotice(multipleCount, editGroupSync?.createdCount || 0);
+                this.notify(editAutoNotice ? `子どもの設定を更新しました。${editAutoNotice}` : '子どもの設定を更新しました', '✓');
                 return;
             }
 
@@ -2997,24 +3746,29 @@
             const sourceChildId = this.getSelectedChildModalCopySourceId();
             const copySections = Array.from(this.getSelectedChildModalCopySections());
             if (startMode === 'copy' && (!sourceChildId || !this.getChildById(sourceChildId))) {
-                this.notify('コピー元の子を選んでください。', '!');
+                this.notify('引き継ぐ子を選んでください。', '!');
                 return;
             }
 
             this.persistActiveChildSnapshot('before-create-child');
-            this.promoteSingletonChildToMultipleBase(birthOrder, twinIndex);
+            this.promoteSingletonChildToMultipleBase(birthOrder, twinIndex, null, multipleCount);
             const nextId = this.generateChildId();
             const createDateInfo = this.getSelectedChildModalDateInfo();
+            const createEffectiveDueDate = createDateInfo.dueDate || existingGroupDate;
             this.root.children[nextId] = this.buildChildRecordForCreate({
                 id: nextId,
                 birthOrder,
                 multipleIndex: twinIndex,
-                gender: genderValue,
-                dueDate: createDateInfo.dueDate,
+                multipleCount,
+                gender: selectedGenderValue,
+                dueDate: createEffectiveDueDate,
                 startMode,
                 sourceChildId,
                 copySections
             });
+            const createGroupSync = twinIndex === null
+                ? null
+                : this.ensureMultipleGroupSiblings({ birthOrder, multipleCount, dueDate: createEffectiveDueDate, gendersByIndex: multipleGenders });
             this.root.childOrder = this.buildOrderedChildIds(this.root);
             this.root.activeChildId = nextId;
             this.saveRoot(this.root);
@@ -3023,7 +3777,8 @@
             this.applyActiveChildToGlobals({ reason: 'create-child' });
             this.refreshVisibleUI('create-child');
             this.renderSwitchers();
-            this.notify(`${this.getChildLabel(nextId)} を追加しました`, '✓');
+            const createAutoNotice = this.buildMultipleAutoCreateNotice(multipleCount, createGroupSync?.createdCount || 0);
+            this.notify(createAutoNotice ? `${this.getChildLabel(nextId)} を追加しました。${createAutoNotice}` : `${this.getChildLabel(nextId)} を追加しました`, '✓');
         },
 
         buildInitialLibrariesForCreate(startMode = 'blank', sourceChildId = '', copySections = []) {
