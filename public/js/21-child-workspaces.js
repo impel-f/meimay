@@ -1101,6 +1101,7 @@
                     soundPreferenceData: typeof soundPreferenceData !== 'undefined' ? soundPreferenceData : { liked: [], noped: [] }
                 },
                 sharedLibraries: this.root?.family?.sharedLibraries || createBlankFamilyState().sharedLibraries,
+                partnerChildLinks: this.root?.family?.partnerChildLinks || {},
                 appSettings: {
                     shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
                     showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji === true : false
