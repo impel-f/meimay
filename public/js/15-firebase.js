@@ -2356,9 +2356,8 @@ function syncPairingRoleSelectionFromProfile() {
 
     const subtextEl = document.getElementById('pairing-role-subtext');
     if (subtextEl) {
-        subtextEl.textContent = preferredRoleLabel
-            ? `${preferredRoleLabel}としてパートナー連携します`
-            : '連携前にママ / パパを選んでください';
+        subtextEl.hidden = !!preferredRoleLabel;
+        subtextEl.textContent = preferredRoleLabel ? '' : '連携前にママ / パパを選んでください';
     }
 
     const actionEl = document.getElementById('pairing-role-action-label');

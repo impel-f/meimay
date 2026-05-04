@@ -3298,7 +3298,10 @@
                 ? `${getChildWorkspaceOwnerLabel(candidatePartnerChild, 'パートナーの子')}${getGenderEmoji(candidatePartnerChild.meta?.gender)}`
                 : '読み込み中';
             const localLabel = `${getChildWorkspaceOwnerLabel(child, 'この子')}${getGenderEmoji(child.meta?.gender)}`;
-            const statusLabel = !partnerRoot ? '読み込み中' : (linked ? '確認済み' : '未確認');
+            const statusLabel = !partnerRoot ? '読み込み中' : (linked ? '確認済み' : '');
+            const statusHtml = statusLabel
+                ? `<div class="meimay-child-partner-link-kicker">${escapeHtml(statusLabel)}</div>`
+                : '';
             const title = linked
                 ? `${localLabel} ↔ ${partnerLabel}`
                 : '一緒に進める子を確認できます';
@@ -3319,7 +3322,7 @@
                 <div class="meimay-child-modal-section">
                     <div class="meimay-child-modal-section-title">パートナーと一緒に進める子</div>
                     <div class="meimay-child-partner-link-status">
-                        <div class="meimay-child-partner-link-kicker">${escapeHtml(statusLabel)}</div>
+                        ${statusHtml}
                         <div class="meimay-child-partner-link-title">${escapeHtml(title)}</div>
                         <div class="meimay-child-partner-link-desc">${escapeHtml(desc)}</div>
                         ${issueHtml}
@@ -3483,12 +3486,12 @@
             const hasPartner = typeof MeimayPairing !== 'undefined' && !!MeimayPairing.partnerUid;
             if (!inRoom || !hasPartner) return '';
             const partnerRoot = this.getPartnerWorkspaceRoot();
-            if (!partnerRoot) return 'パートナー：読み込み中';
+            if (!partnerRoot) return '';
             const linkedPartnerChild = this.getLinkedPartnerChildForChild(child);
             if (linkedPartnerChild && this.isPartnerChildLinkConfirmed(child, linkedPartnerChild)) {
                 return `パートナー：${getChildWorkspaceOwnerLabel(linkedPartnerChild, '相手の子')}${getGenderEmoji(linkedPartnerChild.meta?.gender)}`;
             }
-            return 'パートナー：未確認';
+            return '';
         },
 
         getCopySourceChildIds(excludedChildId = '') {

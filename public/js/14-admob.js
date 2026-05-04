@@ -15,7 +15,7 @@ const AdMobConfig = {
 };
 
 const AdMobTestAdConfig = {
-    enabled: true,
+    enabled: false,
     androidBannerId: 'ca-app-pub-3940256099942544/6300978111',
     iosBannerId: 'ca-app-pub-3940256099942544/2934735716'
 };
