@@ -685,19 +685,19 @@ function renderDrawerMenu() {
             ]
         },
         {
+            title: 'ツール',
+            items: [
+                { id: 'drawer-search', target: 'search', icon: '📖', label: '漢字検索' },
+                { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' }
+            ]
+        },
+        {
             title: '保存・整理',
             items: [
                 { id: 'drawer-stock', target: 'stock', icon: '📋', label: 'ストック' },
                 { id: 'drawer-build', target: 'build', icon: '🛠️', label: 'ビルド' },
                 { id: 'drawer-saved', target: 'saved', icon: '💾', label: '保存済み' },
                 { id: 'drawer-encountered', target: 'encountered', icon: '🗂️', label: '出会った候補' }
-            ]
-        },
-        {
-            title: 'ツール',
-            items: [
-                { id: 'drawer-search', target: 'search', icon: '📖', label: '漢字検索' },
-                { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' }
             ]
         },
         {

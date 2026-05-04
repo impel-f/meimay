@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "npx serve public",
-    "build": "echo 'No build step required'",
+    "build": "npm run build:tailwind",
     "deploy": "vercel --prod",
     "cap:add:ios": "npx cap add ios",
     "cap:add:android": "npx cap add android",
@@ -15,7 +15,8 @@
     "cap:open:android": "npx cap open android",
     "build:reading-segment-review": "node scripts/build_reading_segment_review.js",
     "build:caution-kanji-list": "node scripts/build_caution_kanji_list.js",
-    "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js"
+    "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js",
+    "build:tailwind": "tailwindcss -c tailwind.config.js -i ./public/css/tailwind-source.css -o ./public/css/tailwind.generated.css --minify"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.3.1",
+    "tailwindcss": "^3.4.17",
     "vercel": "^33.0.0"
   }
 }

@@ -52,6 +52,7 @@ const PremiumManager = {
     _remoteTrialConsumedAt: null,
     _remoteTrialConsumedByRoom: false,
     _userDocUnsub: null,
+    _userDocPermissionDenied: false,
     _trialStartInProgress: false,
     _purchaseInProgress: false,
     _silentStoreSyncInFlight: false,
@@ -193,7 +194,7 @@ const PremiumManager = {
     },
 
     bindToUserDoc: async function (user) {
-        if (!user || typeof firebaseDb === 'undefined' || !firebaseDb) return;
+        if (!user || typeof firebaseDb === 'undefined' || !firebaseDb || this._userDocPermissionDenied) return;
 
         const token = this.getAppAccountToken();
         if (!token) return;
@@ -233,6 +234,11 @@ const PremiumManager = {
                 this._lastPremiumLinkFingerprint = linkFingerprint;
                 this._setLinkCacheFingerprint(linkFingerprint);
             } catch (e) {
+                if (this.isPermissionDeniedError(e)) {
+                    this._userDocPermissionDenied = true;
+                    console.info('PREMIUM: user doc link is not permitted by current Firestore rules; store purchase sync will continue locally.');
+                    return;
+                }
                 console.warn('PREMIUM: Failed to link appAccountToken', e);
             }
         } else {
@@ -285,8 +291,26 @@ const PremiumManager = {
                 }
             }
         }, (error) => {
+            if (this.isPermissionDeniedError(error)) {
+                this._userDocPermissionDenied = true;
+                if (this._userDocUnsub) {
+                    this._userDocUnsub();
+                    this._userDocUnsub = null;
+                }
+                console.info('PREMIUM: user doc subscription is not permitted by current Firestore rules; store purchase sync will continue locally.');
+                return;
+            }
             console.warn('PREMIUM: Failed to subscribe user doc', error);
         });
+    },
+
+    isPermissionDeniedError: function (error) {
+        const code = String(error?.code || '').toLowerCase();
+        const message = String(error?.message || error || '').toLowerCase();
+        return code.includes('permission')
+            || code.includes('denied')
+            || message.includes('missing or insufficient permissions')
+            || message.includes('permission denied');
     }
 };
 
@@ -1764,6 +1788,7 @@ const PremiumTrialNudge = {
     KEY: 'meimay_premium_trial_nudge_v1',
     COOLDOWN_MS: 3 * 24 * 60 * 60 * 1000,
     REPEAT_MS: 24 * 60 * 60 * 1000,
+    SUPPRESS_AFTER_PARTNER_MS: 5 * 60 * 1000,
     MIN_SWIPES: 12,
     MAX_SHOWS: 3,
     _timer: null,
@@ -1820,6 +1845,8 @@ const PremiumTrialNudge = {
             next.buildCount = Math.max(1, Number(next.buildCount || 0) + 1);
         } else if (trigger === 'partner') {
             next.partnerLinked = true;
+            next.partnerLinkedAt = now;
+            next.suppressUntil = Math.max(Number(next.suppressUntil || 0), now + this.SUPPRESS_AFTER_PARTNER_MS);
         } else if (String(trigger || '').includes('swipe')) {
             const swipeCount = Number(payload.swipeCount);
             next.swipeSignals = Number(next.swipeSignals || 0) + 1;
@@ -1866,7 +1893,9 @@ const PremiumTrialNudge = {
         const dismissedAt = Number(state.dismissedAt || 0);
         const shownAt = Number(state.shownAt || 0);
         const shownCount = Number(state.shownCount || 0);
+        const suppressUntil = Number(state.suppressUntil || 0);
         if (shownCount >= this.MAX_SHOWS) return false;
+        if (suppressUntil && now < suppressUntil) return false;
         if (dismissedAt && now - dismissedAt < this.COOLDOWN_MS) return false;
         if (shownAt && now - shownAt < this.REPEAT_MS) return false;
 

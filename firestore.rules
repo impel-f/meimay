@@ -190,25 +190,7 @@ service cloud.firestore {
         && isValidBackupRoom(request.resource.data.pairRoomCode);
 
       allow update: if isSelf(userId)
-        && request.resource.data.keys().hasOnly([
-          'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt',
-          'revenueCatAppUserId', 'revenueCatPlatform', 'revenueCatLinkedAt', 'updatedAt',
-          'meimayBackup', 'backup', 'meimayBackupFingerprint', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',
-          'savedNames', 'readingStock', 'encounteredReadings', 'likedRemoved',
-          'isPremium', 'premiumSource', 'subscriptionStatus', 'premiumStatus', 'latestNotificationType', 'latestNotificationUUID',
-          'appStoreLastNotificationType', 'appStoreLastSubtype', 'appStoreEnvironment', 'appStoreProductId',
-          'premiumProductId', 'appStoreOriginalTransactionId', 'originalTransactionId', 'appStoreTransactionId',
-          'appStoreExpiresAt', 'premiumExpiresAt', 'appStoreLastEventAt', 'appStoreLastEventAtMs',
-          'appStoreLastVerifiedAt', 'lastVerifiedAt', 'appStoreUpdatedAt',
-          'revenueCatLastEventType', 'revenueCatLastEventId', 'revenueCatStore', 'revenueCatEnvironment',
-          'revenueCatProductId', 'revenueCatTransactionId', 'revenueCatOriginalTransactionId',
-          'revenueCatPresentedOfferingId', 'revenueCatPeriodType', 'revenueCatPurchasedAt',
-          'revenueCatExpiresAt', 'revenueCatLastEventAt', 'revenueCatLastEventAtMs',
-          'revenueCatUpdatedAt',
-          'trialStatus', 'trialStartedAt', 'trialEndsAt', 'trialConsumedAt', 'trialSource',
-          'trialRoomCode', 'trialConsumedByRoom'
-        ])
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'appAccountToken', 'premiumPlatform', 'appStoreBundleId', 'premiumLinkedAt',
           'revenueCatAppUserId', 'revenueCatPlatform', 'revenueCatLinkedAt', 'updatedAt',
           'meimayBackup', 'backup', 'meimayBackupFingerprint', 'meimayBackupUpdatedAt', 'pairRoomCode', 'roomCode', 'hiddenReadings', 'liked',

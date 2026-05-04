@@ -3008,7 +3008,7 @@
                     class="w-full rounded-2xl border border-[#dfc596] bg-[#fff8e8] px-3 py-3 text-left transition-transform active:scale-[0.98]">
                     <div class="flex items-center justify-between gap-3">
                         <div class="min-w-0">
-                            <div class="text-[12px] font-black text-[#5d5444]">パートナーと名づけ帳をそろえる</div>
+                            <div class="text-[12px] font-black text-[#5d5444]">パートナーと名づけ帳を確認</div>
                             <div class="mt-1 text-[10px] font-bold leading-relaxed text-[#9a7d4f]">${escapeHtml(issueText)}</div>
                         </div>
                         <span class="shrink-0 rounded-full bg-[#b9965b] px-2.5 py-1 text-[10px] font-black text-white">確認</span>
@@ -3096,7 +3096,7 @@
             const partnerSlotKey = getChildWorkspaceSlotKey(partnerChild);
             const desc = issueList.length > 0
                 ? '同じ生まれ順の名づけ帳ですが、設定が違います。必要なところだけ選んでそろえます。'
-                : '性別と予定日・誕生日は一致しています。同じ名づけ帳として一緒に進められます。';
+                : '性別と予定日・誕生日は一致しています。このまま一緒に進められます。';
             return `
                 <div class="meimay-child-align-pair-card">
                     <div class="meimay-child-align-pair-head">
@@ -3111,7 +3111,7 @@
                     ${this.buildPartnerAlignmentResolutionControls(localChild, partnerChild)}
                     <div class="meimay-child-card-actions" style="margin-top:12px">
                         ${canConfirm
-                            ? `<button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(partnerSlotKey)}', '${escapeHtml(localChildId)}')">${issueList.length > 0 ? 'この内容でそろえる' : '一緒に進める'}</button>`
+                            ? `<button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.confirmPartnerChildLink('${escapeHtml(partnerSlotKey)}', '${escapeHtml(localChildId)}')">${issueList.length > 0 ? 'この内容でそろえる' : 'このまま一緒に進める'}</button>`
                             : '<div class="meimay-child-current-status">確認済み</div>'}
                     </div>
                 </div>
@@ -3156,8 +3156,8 @@
             }).join('');
             const allClear = rows.length > 0 && rows.every((row) => !row.missingLocal && row.linked && row.issues.length === 0);
             const note = allClear
-                ? '名づけ帳はそろっています。性別や予定日・誕生日も一致しています。'
-                : '同じ生まれ順は同じ名づけ帳としてそろえます。第一子と第二子など、生まれ順が違うものは別の名づけ帳として扱います。';
+                ? '性別や予定日・誕生日は一致しています。'
+                : '同じ生まれ順は一緒に使う名づけ帳として確認します。第一子と第二子など、生まれ順が違うものは別の名づけ帳として扱います。';
 
             this.closePartnerAlignmentModal();
             const modal = document.createElement('div');
@@ -3174,7 +3174,7 @@
                             <button type="button" class="meimay-child-modal-close" aria-label="閉じる" onclick="MeimayChildWorkspaces.closePartnerAlignmentModal()">×</button>
                         </div>
                         <div class="meimay-child-modal-copy">
-                            <div class="meimay-child-modal-title">名づけ帳をそろえる</div>
+                            <div class="meimay-child-modal-title">名づけ帳を確認</div>
                         </div>
                     </div>
                     <div class="meimay-child-align-note">

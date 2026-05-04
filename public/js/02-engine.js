@@ -1341,15 +1341,15 @@ function buildSwipeStackCandidates(options = {}) {
             : minorReadings;
 
         // 読みマッチング判定
-        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 部分一致
-        // ※ ぶった切り（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
+        // 優先順位：メジャー完全一致 > マイナー完全一致 > 清音化一致 > 一部読み一致
+        // ※ 一部読み一致（isPartial）は名乗りを対象外にする（音読み・訓読みのみ）
         const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : normalizedTarget;
         const allowVoicedFallback = slotIdx > 0 && isLeadingDakutenVariant(normalizedTarget, targetSeion);
         const isMajorExact = majorStrictReadings.includes(normalizedTarget);
         const isMinorExact = minorStrictReadings.includes(normalizedTarget);
         // 清音化一致：メジャー読みのみを対象（名乗りは除外）
         const isSeionMatch = allowVoicedFallback && majorStrictReadings.includes(targetSeion);
-        // 部分一致（ぶった切り）：音読み・訓読みのみ（名乗りは除外）
+        // 一部読み一致：音読み・訓読みのみ（名乗りは除外）
         const isPartial = majorReadings.some(r => r.startsWith(normalizedTarget)) ||
             (allowVoicedFallback && majorReadings.some(r => r.startsWith(targetSeion)));
 
@@ -1463,7 +1463,7 @@ function buildSwipeStackCandidates(options = {}) {
         if (a['漢字'] === '々') return -1;
         if (b['漢字'] === '々') return 1;
 
-        // まず読みの優先度 (1:完全一致, 2:清音一致, 3:部分一致)
+        // まず読みの優先度 (1:完全一致, 2:清音一致, 3:一部読み一致)
         if (a.priority !== b.priority) return a.priority - b.priority;
 
         // 同じpriority内でメジャー/マイナー区分（readingTier）
