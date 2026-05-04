@@ -2339,6 +2339,15 @@ body.has-ad-banner #scr-legal {
     min-height: 0;
 }
 
+#scr-legal,
+#legal-scroll-area,
+#legal-content,
+#legal-content * {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
+
 /* Build screen: keep the save button above the ad banner for free users */
 #build-screen-shell {
     height: calc(100dvh - var(--top-bar-height) - 92px - env(safe-area-inset-bottom, 0px)) !important;

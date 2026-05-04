@@ -37,49 +37,10 @@ function switchLegalTab(type) {
         }
     }
 
-    updateLegalCopyButtonLabel(normalizedType);
-
     const scrollArea = document.getElementById('legal-scroll-area');
     if (scrollArea) {
         scrollArea.scrollTop = 0;
     }
-}
-
-function getLegalTabLabel(type = currentLegalTabType) {
-    if (type === 'privacy') return 'プライバシーポリシー';
-    if (type === 'contact') return 'お問い合わせ案内';
-    return '利用規約';
-}
-
-function updateLegalCopyButtonLabel(type = currentLegalTabType) {
-    const button = document.getElementById('legal-copy-button');
-    if (!button) return;
-    button.textContent = `${getLegalTabLabel(type)}をコピー`;
-}
-
-function getLegalDocumentText(type = currentLegalTabType) {
-    const legalDocs = window.MeimayLegalDocs || {};
-    const contentByType = {
-        terms: legalDocs.termsOfService || '',
-        privacy: legalDocs.privacyPolicy || '',
-        contact: legalDocs.contactGuide || ''
-    };
-    const html = contentByType[type] || contentByType.terms || '';
-    const scratch = document.createElement('div');
-    scratch.innerHTML = html;
-    return (scratch.innerText || scratch.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function copyCurrentLegalContent() {
-    const label = getLegalTabLabel(currentLegalTabType);
-    const text = getLegalDocumentText(currentLegalTabType);
-    if (!text) {
-        if (typeof showToast === 'function') {
-            showToast('コピーする内容がありません', '⚠');
-        }
-        return;
-    }
-    copySupportText(`${label}\n\n${text}`, `${label}をコピーしました`);
 }
 
 function getMeimaySupportEmail() {
@@ -404,7 +365,6 @@ async function copySupportInfo() {
 
 window.openLegalScreen = openLegalScreen;
 window.switchLegalTab = switchLegalTab;
-window.copyCurrentLegalContent = copyCurrentLegalContent;
 window.openSupportEmail = openSupportEmail;
 window.updateSupportCategoryHelp = updateSupportCategoryHelp;
 window.openSupportEmailFromSelect = openSupportEmailFromSelect;
