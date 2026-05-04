@@ -2257,9 +2257,11 @@ function getHomeOwnershipSummary() {
     };
 }
 
-function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
+function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing, options = {}) {
     const wizard = getWizardHomeState();
-    const buildCount = typeof getHomeBuildPatternCount === 'function' ? getHomeBuildPatternCount() : 0;
+    const buildCount = Number.isFinite(Number(options.buildCount))
+        ? Number(options.buildCount)
+        : (typeof getHomeBuildPatternCount === 'function' ? getHomeBuildPatternCount() : 0);
 
     if ((pairing?.matchedNameCount || 0) >= 1) {
         return {
@@ -2516,7 +2518,22 @@ function selectHomeStageTab(stageKey) {
     if (!allowed.has(stageKey)) return;
     window.MeimayHomeStageFocus = stageKey;
     window.MeimayHomeStageFocusSource = 'manual';
-    if (typeof renderHomeProfile === 'function') renderHomeProfile();
+    const cached = window.MeimayHomeLastRenderState;
+    const homeScreen = document.getElementById('scr-mode');
+    if (cached && homeScreen?.classList.contains('active') && typeof renderHomeStageTrack === 'function') {
+        renderHomeStageTrack(
+            cached.likedCount,
+            cached.readingStockCount,
+            cached.savedCount,
+            cached.stageSnapshot || {}
+        );
+        return;
+    }
+    if (typeof requestRenderHomeProfile === 'function') {
+        requestRenderHomeProfile({ afterPaint: false });
+    } else if (typeof renderHomeProfile === 'function') {
+        renderHomeProfile();
+    }
 }
 
 function getHomeStageFocusAction(stageKey, likedCount, readingStockCount, savedCount, pairing) {
@@ -3151,6 +3168,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: aggregateCounts.likedCount,
             savedCount: aggregateCounts.savedCount,
             buildCount: aggregateBuildCount,
+            readingStock: aggregateReadingStock,
             actions: {
                 reading: aggregateCounts.readingStockCount > 0 ? 'stock-reading' : 'sound',
                 kanji: aggregateCounts.likedCount > 0 ? 'stock' : aggregateFallbackAction,
@@ -3172,6 +3190,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: partnerKanjiCount,
             savedCount: partnerSavedCount,
             buildCount: partnerBuildCount,
+            readingStock: partnerReadingStock,
             actions: {
                 reading: 'partner-reading',
                 kanji: 'partner-liked',
@@ -3194,6 +3213,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             likedCount: ownKanjiCount,
             savedCount: ownSavedCount,
             buildCount: ownBuildCount,
+            readingStock: ownReadingStock,
             actions: {
                 reading: ownReadingCount > 0 ? 'stock-reading' : 'sound',
                 kanji: ownKanjiCount > 0 ? 'stock' : selfFallbackAction,
@@ -3216,9 +3236,21 @@ function renderHomeProfile() {
         ? getHomePreferenceSummary(homeOwnership.ownLikedItems)
         : { shortText: 'まだ傾向なし' };
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
-    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
+    const nextStep = getHomeNextStep(
+        stageSnapshot.likedCount,
+        stageSnapshot.readingStockCount,
+        stageSnapshot.savedCount,
+        pairing,
+        { buildCount: stageSnapshot.buildCount }
+    );
     stageSnapshot.recommendedKey = getHomeOverviewInitialStageKey(stageSnapshot, nextStep);
+    window.MeimayHomeLastRenderState = {
+        likedCount: stageSnapshot.likedCount,
+        readingStockCount: stageSnapshot.readingStockCount,
+        savedCount: stageSnapshot.savedCount,
+        stageSnapshot
+    };
 
     const screen = document.getElementById('scr-mode');
     const heroCard = document.getElementById('home-hero-card');
@@ -3428,9 +3460,21 @@ function renderHomeProfileV2() {
     const savedCount = homeOwnership.ownSavedCount;
     const readingStockCount = homeOwnership.ownReadingCount;
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
-    const nextStep = getHomeNextStep(likedCount, readingStockCount, savedCount, pairing);
     const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
+    const nextStep = getHomeNextStep(
+        stageSnapshot.likedCount,
+        stageSnapshot.readingStockCount,
+        stageSnapshot.savedCount,
+        pairing,
+        { buildCount: stageSnapshot.buildCount }
+    );
     stageSnapshot.recommendedKey = getHomeOverviewInitialStageKey(stageSnapshot, nextStep);
+    window.MeimayHomeLastRenderState = {
+        likedCount: stageSnapshot.likedCount,
+        readingStockCount: stageSnapshot.readingStockCount,
+        savedCount: stageSnapshot.savedCount,
+        stageSnapshot
+    };
     const mount = document.getElementById('home-overview-mount');
     const heroCard = document.getElementById('home-hero-card');
     const statusLineEl = document.getElementById('home-status-line');

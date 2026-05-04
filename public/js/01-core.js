@@ -170,14 +170,26 @@ let _homeRenderRequest = null;
 /**
  * ホーム画面の更新を予約（連打防止・GPU負荷軽減）
  */
-function requestRenderHomeProfile() {
+function requestRenderHomeProfile(options = {}) {
     if (_homeRenderRequest) return;
-    _homeRenderRequest = requestAnimationFrame(() => {
+    const run = () => {
         _homeRenderRequest = null;
         if (typeof renderHomeProfile === 'function') {
             renderHomeProfile();
         }
-    });
+    };
+
+    _homeRenderRequest = true;
+    const afterPaint = options.afterPaint !== false;
+    if (afterPaint && typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(run, 0));
+        return;
+    }
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(run);
+        return;
+    }
+    setTimeout(run, 0);
 }
 window.requestRenderHomeProfile = requestRenderHomeProfile;
 
