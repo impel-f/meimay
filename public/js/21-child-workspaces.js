@@ -205,6 +205,15 @@
         return `${getJapaneseOrderLabel(normalizePositiveInteger(order, 1) + normalizedTwinIndex)}（${getMultipleGroupLabel(safeCount)}）`;
     }
 
+    function stripMultipleLabel(label) {
+        return String(label || '').replace(/（(?:双子|三つ子|四つ子|五つ子|\d+つ子)）/g, '');
+    }
+
+    function getChildGenderToneClass(gender) {
+        const safeGender = normalizeGenderValue(gender);
+        return `gender-${safeGender}`;
+    }
+
     function getWorkspaceSavedCombinationKey(item) {
         if (!item) return '';
         if (Array.isArray(item.combination) && item.combination.length > 0) {
@@ -372,10 +381,6 @@
     if (typeof window !== 'undefined') {
         window.getMeimaySavedCanvasState = getSavedCanvasStateSnapshot;
         window.setMeimaySavedCanvasState = setSavedCanvasStateSnapshot;
-    }
-
-    function getGenderEmoji(gender) {
-        return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '👶';
     }
 
     function hasChildWorkspaceData(state) {
@@ -557,8 +562,11 @@
             const style = document.createElement('style');
             style.id = 'meimay-child-workspaces-style';
             style.textContent = `
-                .meimay-child-header-btn{display:inline-flex;align-items:center;justify-content:center;max-width:min(46vw, 160px);min-width:86px;padding:9px 14px;border:1px solid #d4c5af;border-radius:9999px;background:#fff;color:#5d5444;font-size:11px;font-weight:900;line-height:1.1;box-shadow:0 8px 18px -20px rgba(123,104,83,.28);transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
-                .meimay-child-header-btn:active{transform:scale(.97)}
+                .meimay-child-header-btn{position:absolute;right:1rem;top:50%;display:inline-flex;align-items:center;justify-content:center;height:28px;max-width:min(44vw, 150px);min-width:76px;transform:translateY(-50%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 12px;border:1px solid #d4c5af;border-radius:9999px;background:linear-gradient(180deg,#fffdf8 0%,#f4eadb 100%);color:#6a4a2f;font-size:10px;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 3px 10px rgba(109,78,51,.08);transition:transform .15s ease,box-shadow .15s ease,background .15s ease,border-color .15s ease,color .15s ease}
+                .meimay-child-header-btn:active{transform:translateY(-50%) scale(.97)}
+                .meimay-child-header-btn.gender-male{border-color:#b8d7ee;background:linear-gradient(180deg,#f5fbff 0%,#e8f5ff 100%);color:#4f6f88}
+                .meimay-child-header-btn.gender-female{border-color:#efc7d6;background:linear-gradient(180deg,#fff8fb 0%,#ffeef5 100%);color:#8b5f70}
+                .meimay-child-header-btn.gender-neutral{border-color:#d8c7b0;background:linear-gradient(180deg,#fffdf8 0%,#f4eadb 100%);color:#6a4a2f}
                 .meimay-child-switcher{display:none}
                 .meimay-child-switcher.compact{display:none}
                 .meimay-child-switcher-header{display:none}
@@ -582,8 +590,17 @@
                 .meimay-child-modal-section-title{color:#4f4536;font-size:14px;font-weight:850;letter-spacing:0}
                 .meimay-child-modal-stack{display:grid;gap:12px;margin-top:12px}
                 .meimay-child-card{position:relative;margin-top:0;padding:14px;border:1px solid #eadfce;border-radius:16px;background:#fffdf8;box-shadow:0 10px 24px -22px rgba(74,58,37,.34);overflow:hidden}
-                .meimay-child-card.active{background:#fff8e8;border-color:#d4b887;box-shadow:0 12px 26px -21px rgba(157,120,57,.42)}
+                .meimay-child-card.gender-male{border-color:#cfe3f3;background:linear-gradient(180deg,#f6fbff 0%,#fffdf8 100%)}
+                .meimay-child-card.gender-female{border-color:#f2d1dd;background:linear-gradient(180deg,#fff7fa 0%,#fffdf8 100%)}
+                .meimay-child-card.gender-neutral{border-color:#eadfce;background:#fffdf8}
+                .meimay-child-card.active{box-shadow:0 12px 26px -21px rgba(157,120,57,.42)}
                 .meimay-child-card.active:before{content:"";position:absolute;left:0;top:13px;bottom:13px;width:4px;border-radius:0 9999px 9999px 0;background:#c79a52}
+                .meimay-child-card.active.gender-male{background:#eef8ff;border-color:#9ecbe8;box-shadow:0 12px 26px -21px rgba(92,143,184,.42)}
+                .meimay-child-card.active.gender-male:before{background:#7db9df}
+                .meimay-child-card.active.gender-female{background:#fff0f6;border-color:#e7adc4;box-shadow:0 12px 26px -21px rgba(189,108,140,.36)}
+                .meimay-child-card.active.gender-female:before{background:#dc91ad}
+                .meimay-child-card.active.gender-neutral{background:#fff8e8;border-color:#d4b887}
+                .meimay-child-card.active.gender-neutral:before{background:#c79a52}
                 .meimay-child-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
                 .meimay-child-card-title{color:#3f372d;font-size:15px;font-weight:850;line-height:1.35}
                 .meimay-child-card-meta{margin-top:4px;color:#81715d;font-size:11px;font-weight:700;line-height:1.45}
@@ -654,7 +671,6 @@
                 .meimay-child-align-pair-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
                 .meimay-child-align-pair-title{color:#4f4536;font-size:18px;font-weight:900;line-height:1.3}
                 .meimay-child-align-pair-desc{margin-top:7px;color:#7d725f;font-size:12px;font-weight:750;line-height:1.55}
-                .meimay-child-align-status{margin-top:10px;color:#8b7e66;font-size:11px;font-weight:900;line-height:1.45}
                 .meimay-child-align-summary{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
                 .meimay-child-align-summary span{display:inline-flex;align-items:center;gap:4px;border-radius:9999px;background:#fff8e8;border:1px solid #eadfce;color:#6f604c;padding:6px 9px;font-size:11px;font-weight:900;line-height:1.25}
                 .meimay-child-align-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
@@ -1609,9 +1625,16 @@
             const child = this.getChildById(childId);
             if (!child) return '第一子';
             const baseLabel = child.meta.displayLabel || '第一子';
-            const emoji = getGenderEmoji(child.meta.gender);
             const matchedName = this.getMatchedNameForChild(childId);
-            return matchedName ? `${baseLabel}${emoji}：${matchedName}` : `${baseLabel}${emoji}`;
+            return matchedName ? `${baseLabel}：${matchedName}` : baseLabel;
+        },
+
+        getHeaderChildLabel(childId) {
+            const child = this.getChildById(childId);
+            if (!child) return '第一子';
+            const baseLabel = stripMultipleLabel(child.meta.displayLabel || '第一子');
+            const matchedName = this.getMatchedNameForChild(childId);
+            return matchedName ? `${baseLabel}：${matchedName}` : baseLabel;
         },
 
         getMatchedNameForChild(childId) {
@@ -1771,9 +1794,7 @@
         buildSwitcherMarkup(screenId) {
             const activeChild = this.getActiveChild();
             const activeId = activeChild?.meta?.id || '';
-            const activeLabel = activeChild?.meta?.displayLabel || '第一子';
             const matchedName = this.getMatchedNameForChild(activeId);
-            const emoji = getGenderEmoji(activeChild?.meta?.gender);
             
             const activeGender = getGenderLabel(activeChild?.meta?.gender || 'neutral');
             const summary = this.getDisplayChildSummary(activeId);
@@ -2271,7 +2292,7 @@
                 button = document.createElement('button');
                 button.id = 'top-bar-child-button';
                 button.type = 'button';
-                button.className = 'absolute right-4 top-1/2 inline-flex h-[28px] max-w-[44vw] -translate-y-1/2 items-center justify-center whitespace-nowrap rounded-full border border-[#d8c7b0] bg-[linear-gradient(180deg,#fffdf8_0%,#f4eadb_100%)] px-3 text-[10px] font-black leading-none text-[#6a4a2f] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_3px_10px_rgba(109,78,51,0.08)] transition-all active:scale-95';
+                button.className = 'meimay-child-header-btn gender-neutral';
                 button.addEventListener('click', () => {
                     if (window.MeimayChildWorkspaces && typeof MeimayChildWorkspaces.openManagerModal === 'function') {
                         MeimayChildWorkspaces.openManagerModal();
@@ -2287,7 +2308,8 @@
             }
 
             const activeChild = this.getActiveChild();
-            const label = activeChild ? this.getFormattedChildLabel(activeChild.meta.id) : '第一子';
+            const label = activeChild ? this.getHeaderChildLabel(activeChild.meta.id) : '第一子';
+            button.className = `meimay-child-header-btn ${getChildGenderToneClass(activeChild?.meta?.gender)}`;
             button.textContent = label;
             button.title = label;
             button.setAttribute('aria-label', label);
@@ -3150,7 +3172,7 @@
             return `
                 <div class="meimay-child-align-person">
                     <div class="meimay-child-align-owner">${escapeHtml(ownerLabel)}</div>
-                    <div class="meimay-child-align-title">${escapeHtml(title)}${getGenderEmoji(child?.meta?.gender)}</div>
+                    <div class="meimay-child-align-title">${escapeHtml(title)}</div>
                     <div class="meimay-child-align-meta">${escapeHtml(getGenderLabel(child?.meta?.gender))}</div>
                     <div class="meimay-child-align-meta">予定日 ${escapeHtml(getChildWorkspaceDateText(child))}</div>
                 </div>
@@ -3218,10 +3240,6 @@
             const issueHtml = issueList.length > 0
                 ? `<div class="meimay-child-align-issues">${issueList.map((issue) => `<span>${escapeHtml(issue)}</span>`).join('')}</div>`
                 : '';
-            const linked = options.linked === true;
-            const statusHtml = linked && issueList.length === 0
-                ? '<div class="meimay-child-align-status">確認済み</div>'
-                : (issueList.length === 0 ? '<div class="meimay-child-align-status">この内容で一緒に進められます。</div>' : '');
             return `
                 <div class="meimay-child-align-pair-card">
                     <div class="meimay-child-align-pair-head">
@@ -3229,11 +3247,10 @@
                         ${issueHtml}
                     </div>
                     ${issueList.length === 0 ? `<div class="meimay-child-align-summary">
-                        <span>${getGenderEmoji(localChild?.meta?.gender) || '⚪'} ${escapeHtml(getGenderLabel(localChild?.meta?.gender))}</span>
+                        <span>${escapeHtml(getGenderLabel(localChild?.meta?.gender))}</span>
                         <span>📅 ${escapeHtml(getChildWorkspaceDateText(localChild))}</span>
                     </div>` : ''}
                     ${this.buildPartnerAlignmentResolutionControls(localChild, partnerChild)}
-                    ${statusHtml}
                 </div>
             `;
         },
@@ -3244,11 +3261,11 @@
             return `
                 <div class="meimay-child-align-pair-card">
                     <div class="meimay-child-align-pair-head">
-                        <div class="meimay-child-align-pair-title">${escapeHtml(title)}${getGenderEmoji(partnerChild?.meta?.gender)}</div>
+                        <div class="meimay-child-align-pair-title">${escapeHtml(title)}</div>
                         <div class="meimay-child-align-issues"><span>別の子として追加</span></div>
                     </div>
                     <div class="meimay-child-align-summary">
-                        <span>${getGenderEmoji(partnerChild?.meta?.gender) || '⚪'} ${escapeHtml(getGenderLabel(partnerChild?.meta?.gender))}</span>
+                        <span>${escapeHtml(getGenderLabel(partnerChild?.meta?.gender))}</span>
                         <span>📅 ${escapeHtml(getChildWorkspaceDateText(partnerChild))}</span>
                     </div>
                     <div class="meimay-child-align-pair-desc">この端末にはまだない生まれ順です。第一子と第二子などは混ぜず、別の名づけ帳として追加します。</div>
@@ -3550,10 +3567,10 @@
             const linked = !!(candidatePartnerChild && this.isPartnerChildLinkConfirmed(child, candidatePartnerChild));
             const issues = candidatePartnerChild ? this.getPartnerAlignmentIssues(child, candidatePartnerChild, { allowDifferentSlot: linked }) : [];
             const partnerLabel = candidatePartnerChild
-                ? `${getChildWorkspaceOwnerLabel(candidatePartnerChild, 'パートナーの子')}${getGenderEmoji(candidatePartnerChild.meta?.gender)}`
+                ? getChildWorkspaceOwnerLabel(candidatePartnerChild, 'パートナーの子')
                 : '読み込み中';
-            const localLabel = `${getChildWorkspaceOwnerLabel(child, 'この子')}${getGenderEmoji(child.meta?.gender)}`;
-            const statusLabel = !partnerRoot ? '読み込み中' : (linked ? '確認済み' : '');
+            const localLabel = getChildWorkspaceOwnerLabel(child, 'この子');
+            const statusLabel = !partnerRoot ? '読み込み中' : '';
             const statusHtml = statusLabel
                 ? `<div class="meimay-child-partner-link-kicker">${escapeHtml(statusLabel)}</div>`
                 : '';
@@ -3870,10 +3887,11 @@
             const counts = `読み ${summary.readingCount} / 漢字 ${summary.kanjiCount} / 保存 ${summary.savedCount}`;
             const partnerSummary = this.getManagerChildPartnerSummary(child);
             const partnerPresence = this.getPartnerPresenceForChild(child);
+            const genderToneClass = getChildGenderToneClass(child.meta?.gender);
             const editButton = `<button type="button" class="meimay-child-modal-btn meimay-child-manager-edit" onclick="MeimayChildWorkspaces.openChildModal('edit', '${escapeHtml(childId)}')">設定を編集</button>`;
             const switchButton = `<button type="button" class="meimay-child-modal-btn meimay-child-manager-switch" onclick="MeimayChildWorkspaces.switchChild('${escapeHtml(childId)}')">切り替える</button>`;
             return `
-                <div class="meimay-child-card${isActive ? ' active' : ''}">
+                <div class="meimay-child-card ${genderToneClass}${isActive ? ' active' : ''}">
                     <div class="meimay-child-card-head">
                         <div>
                             <div class="meimay-child-card-title">${title}</div>
@@ -3926,10 +3944,10 @@
                         ${unacceptedPartnerChildren.map((partnerChild) => {
                             const slotKey = getChildWorkspaceSlotKey(partnerChild);
                             const genderVal = partnerChild.meta?.gender;
-                            const genderEmoji = genderVal === 'male' ? '👦' : genderVal === 'female' ? '👧' : '👶';
-                            const label = (partnerChild.meta?.displayLabel || '第一子') + genderEmoji;
+                            const label = partnerChild.meta?.displayLabel || '第一子';
+                            const genderToneClass = getChildGenderToneClass(genderVal);
                             const partnerPresence = this.getPartnerPresenceForPartnerChild(partnerChild);
-                            return `<div class="meimay-child-card meimay-partner-child-card">
+                            return `<div class="meimay-child-card ${genderToneClass} meimay-partner-child-card">
                                 <div class="meimay-child-card-head" style="justify-content:space-between;align-items:center;">
                                     <div>
                                         <div class="meimay-child-card-title" style="margin:0;">${escapeHtml(label)}</div>
@@ -4304,7 +4322,7 @@
             if (valueNode) {
                 valueNode.textContent = label + (label.includes('：') ? '' : ` ・ ${getGenderLabel(activeChild.meta.gender)}`);
             }
-            if (iconNode) iconNode.textContent = '👶';
+            if (iconNode) iconNode.textContent = '子';
             item.onclick = () => this.openManagerModal();
         }
     };
