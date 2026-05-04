@@ -4093,7 +4093,6 @@
                         <input type="date" id="mcw-child-date-value" class="meimay-child-select" style="width:100%;" value="${escapeHtml(savedDueDate)}" placeholder="未定">
                         <div class="meimay-child-field-hint">未定の場合は空欄のままにしてください</div>
                     </div>
-                    ${isEdit ? this.buildChildPartnerLinkSection(child) : ''}
                     ${isEdit ? '' : `
                         <div class="meimay-child-field">
                             <div class="meimay-child-step-label">STEP 4</div>
