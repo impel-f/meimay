@@ -4932,15 +4932,59 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerLikedItems = this.getPartnerLiked();
     const ownSavedItems = this.getOwnSaved();
     const partnerSavedItems = this.getPartnerSaved();
-    const matchedReadingItems = this.getMatchedReadingItems();
-    const matchedLikedItems = this.getMatchedLikedItems();
-    const matchedSavedItems = this.getMatchedSavedItems();
+    const partnerReadingKeys = new Set(partnerReadingItems.map(item => this.buildReadingStockKey(item)).filter(Boolean));
+    const seenReadingKeys = new Set();
+    const matchedReadingItems = ownReadingItems.filter(item => {
+        const key = this.buildReadingStockKey(item);
+        if (!key || !partnerReadingKeys.has(key) || seenReadingKeys.has(key)) return false;
+        seenReadingKeys.add(key);
+        return true;
+    });
+
+    const partnerLikedKeys = new Set(partnerLikedItems.map(item => this.buildLikedMatchKey(item)).filter(Boolean));
+    const seenLikedKeys = new Set();
+    const matchedLikedItems = ownLikedItems.filter(item => {
+        const key = this.buildLikedMatchKey(item);
+        if (!key || !partnerLikedKeys.has(key) || seenLikedKeys.has(key)) return false;
+        seenLikedKeys.add(key);
+        return true;
+    });
+
+    const ownSavedKeys = new Set(ownSavedItems.map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+    const partnerSavedKeys = new Set(partnerSavedItems.map(item => this.buildSavedMatchKey(item)).filter(Boolean));
+    const matchedSavedKeys = new Set();
+    ownSavedItems
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .filter(Boolean)
+        .forEach(key => {
+            if (partnerSavedKeys.has(key)) matchedSavedKeys.add(key);
+        });
+    partnerSavedItems
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .filter(Boolean)
+        .forEach(key => {
+            if (ownSavedKeys.has(key)) matchedSavedKeys.add(key);
+        });
+    const representativeSavedByKey = new Map();
+    ownSavedItems.forEach(item => {
+        const key = this.buildSavedMatchKey(item);
+        if (!key || !matchedSavedKeys.has(key)) return;
+        const existing = representativeSavedByKey.get(key);
+        if (!existing || (existing.approvedFromPartner && !item.approvedFromPartner)) {
+            representativeSavedByKey.set(key, item);
+        }
+    });
+    const matchedSavedItems = Array.from(matchedSavedKeys)
+        .map(key => representativeSavedByKey.get(key))
+        .filter(Boolean);
     const partnerName = this.getPartnerDisplayName();
     const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : ownLikedItems.length;
     const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function'
         ? window.getVisibleKanjiStockCardCount('partner', partnerLikedItems)
         : partnerLikedItems.length;
-    const matchedKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('matched') : matchedLikedItems.length;
+    const matchedKanjiCount = matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
@@ -4983,7 +5027,18 @@ MeimayPartnerInsights.getSummary = function () {
                 saved: matchedSavedItems.length
             }
         },
-        previewLabels: previewLabels
+        previewLabels: previewLabels,
+        _homeData: {
+            ownReadingItems,
+            partnerReadingItems,
+            ownLikedItems,
+            partnerLikedItems,
+            ownSavedItems,
+            partnerSavedItems,
+            matchedReadingItems,
+            matchedLikedItems,
+            matchedSavedItems
+        }
     };
 };
 

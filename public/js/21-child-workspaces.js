@@ -1828,7 +1828,10 @@
 
         refreshVisibleUI(reason = 'refresh') {
             const activeScreen = document.querySelector('.screen.active')?.id || '';
-            if (activeScreen === 'scr-mode' && typeof renderHomeProfile === 'function') renderHomeProfile();
+            if (activeScreen === 'scr-mode') {
+                if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile();
+                else if (typeof renderHomeProfile === 'function') renderHomeProfile();
+            }
             if (activeScreen === 'scr-settings' && typeof renderSettingsScreen === 'function') renderSettingsScreen();
             if (activeScreen === 'scr-build' && typeof renderBuildSelection === 'function') renderBuildSelection();
             if (activeScreen === 'scr-saved' && typeof renderSavedScreen === 'function') renderSavedScreen();

@@ -385,7 +385,11 @@ window.onload = () => {
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
             if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-                renderHomeProfile();
+                if (typeof requestRenderHomeProfile === 'function') {
+                    requestRenderHomeProfile();
+                } else {
+                    renderHomeProfile();
+                }
             }
 
             // UI更新 (今日の一字)

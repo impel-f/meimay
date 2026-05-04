@@ -1197,14 +1197,22 @@ function dismissHomePairCard(event) {
     try {
         localStorage.setItem(HOME_PAIR_CARD_DISMISSED_KEY, 'true');
     } catch (e) { }
-    renderHomeProfile();
+    if (typeof requestRenderHomeProfile === 'function') {
+        requestRenderHomeProfile();
+    } else {
+        renderHomeProfile();
+    }
 }
 
 function restoreHomePairCard() {
     try {
         localStorage.removeItem(HOME_PAIR_CARD_DISMISSED_KEY);
     } catch (e) { }
-    renderHomeProfile();
+    if (typeof requestRenderHomeProfile === 'function') {
+        requestRenderHomeProfile();
+    } else {
+        renderHomeProfile();
+    }
 }
 
 
@@ -1328,7 +1336,11 @@ window.copyHomePairCode = copyHomePairCode;
 setTimeout(() => {
     const curScreen = document.querySelector('.screen.active');
     if (curScreen && curScreen.id === 'scr-mode') {
-        renderHomeProfile();
+        if (typeof requestRenderHomeProfile === 'function') {
+            requestRenderHomeProfile();
+        } else {
+            renderHomeProfile();
+        }
     }
 }, 500);
 function updateSwipeMainState() {
@@ -1549,7 +1561,8 @@ async function handleHomePairQuickJoin(event) {
         if (result.success) {
             if (input) input.value = '';
             toggleHomePairJoinRow(null, false);
-            if (typeof renderHomeProfile === 'function') renderHomeProfile();
+            if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile();
+            else if (typeof renderHomeProfile === 'function') renderHomeProfile();
             if (typeof showToast === 'function') showToast('パートナーと連携しました', '💞');
         } else if (result.error && typeof showToast === 'function') {
             showToast(result.error, '⚠️');
@@ -2205,15 +2218,20 @@ function getHomeOwnershipSummary() {
         ? window.MeimayPartnerInsights
         : null;
     const pairing = getPairingHomeSummary();
+    const pairingHomeData = pairing?._homeData || {};
     const isPaired = !!(pairing && pairing.roomCode);
 
     // デフォルトでは「自分のアイテム」を取得
-    const ownLikedItems = pairInsights?.getOwnLiked
+    const ownLikedItems = Array.isArray(pairingHomeData.ownLikedItems)
+        ? pairingHomeData.ownLikedItems
+        : pairInsights?.getOwnLiked
         ? pairInsights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
             ? liked.filter(item => !item?.fromPartner)
             : []);
-    const ownSavedItems = pairInsights?.getOwnSaved
+    const ownSavedItems = Array.isArray(pairingHomeData.ownSavedItems)
+        ? pairingHomeData.ownSavedItems
+        : pairInsights?.getOwnSaved
         ? pairInsights.getOwnSaved()
         : (() => {
             const savedSource = typeof getSavedNames === 'function'
@@ -2224,26 +2242,42 @@ function getHomeOwnershipSummary() {
     const visibleOwnSavedItems = Array.isArray(ownSavedItems)
         ? ownSavedItems.filter(item => !item?.fromPartner && !item?.approvedFromPartner)
         : [];
-    const ownReadingItems = pairInsights?.getOwnReadingStock
+    const ownReadingItems = Array.isArray(pairingHomeData.ownReadingItems)
+        ? pairingHomeData.ownReadingItems
+        : pairInsights?.getOwnReadingStock
         ? pairInsights.getOwnReadingStock()
         : ((typeof getReadingStock === 'function') ? getReadingStock() : []);
 
     // 連携時はマージされた（自分＋パートナーの）総数を表示に利用する
-    const displayLikedCount = isPaired && typeof getMergedLikedCandidates === 'function'
-        ? getMergedLikedCandidates().length
-        : ownLikedItems.length;
-
-    const displaySavedCount = isPaired && typeof getMergedSavedNames === 'function'
-        ? getMergedSavedNames().length
-        : visibleOwnSavedItems.length;
-
-    const displayReadingCount = isPaired && pairInsights?.getPartnerReadingStock
-        ? (() => {
-            const merged = new Set(ownReadingItems.map(it => it.id || it.reading));
-            pairInsights.getPartnerReadingStock().forEach(it => merged.add(it.id || it.reading));
-            return merged.size;
-        })()
+    const summaryCounts = pairing?.counts || {};
+    const readSummaryCount = (section, key, fallback = 0) => {
+        const value = summaryCounts?.[section]?.[key] ?? pairing?.[`${section}${key.charAt(0).toUpperCase()}${key.slice(1)}Count`];
+        return Number.isFinite(Number(value)) ? Number(value) : fallback;
+    };
+    const displayReadingCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'reading', ownReadingItems.length)
+                + readSummaryCount('partner', 'reading', 0)
+                - readSummaryCount('matched', 'reading', 0)
+        )
         : ownReadingItems.length;
+    const displayLikedCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'kanji', ownLikedItems.length)
+                + readSummaryCount('partner', 'kanji', 0)
+                - readSummaryCount('matched', 'kanji', 0)
+        )
+        : ownLikedItems.length;
+    const displaySavedCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'saved', visibleOwnSavedItems.length)
+                + readSummaryCount('partner', 'saved', 0)
+                - readSummaryCount('matched', 'saved', 0)
+        )
+        : visibleOwnSavedItems.length;
 
     return {
         pairInsights,
@@ -3008,9 +3042,20 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
         ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
         : 0;
 
+    const hasPartnerCounts = !!(
+        pairing?.hasPartner
+        || counts?.partner
+        || Number.isFinite(Number(pairing?.partnerKanjiCount))
+        || Number.isFinite(Number(pairing?.partnerReadingCount))
+    );
+
     return {
         readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
-        likedCount: typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all') : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount),
+        likedCount: hasPartnerCounts
+            ? Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)
+            : (typeof window.getVisibleKanjiStockCardCount === 'function'
+                ? window.getVisibleKanjiStockCardCount('all')
+                : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)),
         savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
     };
 }
@@ -3135,18 +3180,27 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         }
     };
     const insights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const pairingHomeData = pairing?._homeData || {};
     const wizard = getWizardHomeState();
     const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
-    const ownLikedItems = insights?.getOwnLiked
+    const ownLikedItems = Array.isArray(pairingHomeData.ownLikedItems)
+        ? pairingHomeData.ownLikedItems
+        : insights?.getOwnLiked
         ? insights.getOwnLiked()
         : ((typeof liked !== 'undefined' && Array.isArray(liked))
             ? liked.filter(item => !item?.fromPartner)
             : []);
-    const partnerLikedItems = insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
-    const ownReadingStock = insights?.getOwnReadingStock
+    const partnerLikedItems = Array.isArray(pairingHomeData.partnerLikedItems)
+        ? pairingHomeData.partnerLikedItems
+        : insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
+    const ownReadingStock = Array.isArray(pairingHomeData.ownReadingItems)
+        ? pairingHomeData.ownReadingItems
+        : insights?.getOwnReadingStock
         ? insights.getOwnReadingStock()
         : (typeof getReadingStock === 'function' ? getReadingStock() : []);
-    const partnerReadingStock = insights?.getPartnerReadingStock
+    const partnerReadingStock = Array.isArray(pairingHomeData.partnerReadingItems)
+        ? pairingHomeData.partnerReadingItems
+        : insights?.getPartnerReadingStock
         ? insights.getPartnerReadingStock()
         : [];
     const partnerLikedItemsVisible = partnerLikedItems;
@@ -3224,6 +3278,13 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     }
     // aggregateCountsを後続で使えるように付与しておく
     result.aggregateCounts = aggregateCounts;
+    result.pairing = pairing;
+    result.savedCanvasState = result.savedCount > 0
+        && typeof window !== 'undefined'
+        && window.MeimayPartnerInsights
+        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+            ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+            : null;
     return result;
 }
 
@@ -3881,12 +3942,16 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
-    const pairing = getPairingHomeSummary();
-    const savedCanvasState = typeof window !== 'undefined'
-        && window.MeimayPartnerInsights
-        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
-        ? window.MeimayPartnerInsights.getSavedNameCanvasState()
-        : null;
+    const pairing = options.pairing || getPairingHomeSummary();
+    const hasCachedSavedCanvasState = Object.prototype.hasOwnProperty.call(options, 'savedCanvasState');
+    const savedCanvasState = hasCachedSavedCanvasState
+        ? options.savedCanvasState
+        : (savedCount > 0
+            && typeof window !== 'undefined'
+            && window.MeimayPartnerInsights
+            && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+                ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+                : null);
     const hasPartnerLinked = !!pairing?.hasPartner;
     const savedStateLabel = savedCount > 0
         ? (hasPartnerLinked
@@ -3905,7 +3970,8 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     const focusKey = getHomeStageFocus(initialFocusKey);
     const focusCopy = getHomeStageFocusCopy(focusKey, likedCount, readingStockCount, savedCount, pairing, {
         buildCount,
-        readingStock
+        readingStock,
+        savedCanvasState
     });
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
@@ -4034,7 +4100,7 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
-    const pairing = getPairingHomeSummary();
+    const pairing = options.pairing || getPairingHomeSummary();
     const buildCount = Number.isFinite(Number(options.buildCount))
         ? Number(options.buildCount)
         : getHomeBuildPatternCount();
@@ -4045,7 +4111,10 @@ function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, o
     const selectedTabKey = getHomeStageFocus(initialFocusKey);
     const focusCopy = getHomeStagePanelCopy(selectedTabKey, likedCount, readingStockCount, savedCount, pairing, {
         buildCount,
-        readingStock
+        readingStock,
+        ...(Object.prototype.hasOwnProperty.call(options, 'savedCanvasState')
+            ? { savedCanvasState: options.savedCanvasState }
+            : {})
     });
     const heroCard = document.getElementById('home-hero-card');
     const summaryPanel = document.getElementById('home-summary-panel');
@@ -4168,11 +4237,15 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     const unresolvedReadingCount = readingCount === 0
         ? 0
         : Math.max(0, Math.min(readingCount, Number(unresolvedReadingCountRaw) || 0));
-    const savedCanvasState = typeof window !== 'undefined'
-        && window.MeimayPartnerInsights
-        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
-        ? window.MeimayPartnerInsights.getSavedNameCanvasState()
-        : null;
+    const hasCachedSavedCanvasState = Object.prototype.hasOwnProperty.call(options, 'savedCanvasState');
+    const savedCanvasState = hasCachedSavedCanvasState
+        ? options.savedCanvasState
+        : (stageKey === 'save'
+            && typeof window !== 'undefined'
+            && window.MeimayPartnerInsights
+            && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+                ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+                : null);
     const copy = {
         stageLabel: '',
         mainText: '',
