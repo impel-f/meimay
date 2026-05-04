@@ -6,16 +6,16 @@ const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 
 const MODEL_PRIORITY_GROUPS = [
   {
+    label: "Gemini 3.1 Flash-Lite",
+    candidates: ["gemini-3.1-flash-lite-preview"],
+  },
+  {
     label: "Gemini 3 Flash",
     candidates: ["gemini-3-flash-preview"],
   },
   {
     label: "Gemini 2.5 Flash",
     candidates: ["gemini-2.5-flash", "gemini-2.5-flash-preview-09-2025"],
-  },
-  {
-    label: "Gemini 3.1 Flash-Lite",
-    candidates: ["gemini-3.1-flash-lite-preview"],
   },
   {
     label: "Gemini 2.5 Flash-Lite",
@@ -54,6 +54,15 @@ function summarizeModelError(error) {
       ? ` statusText=${error.statusText}`
       : "";
   return `${error.name || "Error"}: ${error.message || String(error)}${status}${statusText}`;
+}
+
+function isPrepaymentCreditsDepleted(error) {
+  const message = `${error?.message || ""} ${error?.statusText || ""}`.toLowerCase();
+  return (
+    error?.status === 429 &&
+    (message.includes("prepayment credits are depleted") ||
+      (message.includes("credits") && message.includes("depleted")))
+  );
 }
 
 function buildModel(genAI, modelName) {
@@ -109,6 +118,16 @@ async function generateWithFallback(genAI, prompt) {
         console.warn(
           `API: ${group.label} failed on ${modelName}: ${summarizeModelError(error)}`
         );
+
+        if (isPrepaymentCreditsDepleted(error)) {
+          const billingError = new Error(
+            "Gemini API prepayment credits are depleted. Please add credits or update billing in AI Studio."
+          );
+          billingError.cause = error;
+          billingError.statusCode = 402;
+          billingError.attempts = attempts;
+          throw billingError;
+        }
       }
     }
   }
@@ -152,7 +171,7 @@ module.exports = async (req, res) => {
     });
   } catch (error) {
     console.error("API Exception:", error);
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       error: "AI Generation Failed",
       details: error.message,
       attempts: error.attempts,

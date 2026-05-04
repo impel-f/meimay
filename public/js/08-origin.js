@@ -666,6 +666,62 @@ function isLikelyTruncatedSection(text) {
     return false;
 }
 
+function isOriginSectionTooShallow(text, groundedHint = null) {
+    const normalized = sanitizeKanjiAiText(text);
+    if (!normalized) return true;
+    if (normalized.length < 12) return true;
+    if (/[、,・\/／:：]$/.test(normalized)) return true;
+    if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 24) return true;
+    if (groundedHint && !cachedKanjiDetailMatchesHint(normalized, groundedHint)) return true;
+    return false;
+}
+
+function getKanjiDetailCompletionStatus(aiText, groundedHint = null) {
+    const sectionMap = extractKanjiDetailSectionMap(aiText);
+    const originSection = sectionMap.get('成り立ち') || '';
+    const meaningSection = sectionMap.get('意味の深掘り') || '';
+    const idiomsSection = sectionMap.get('代表的な熟語') || '';
+    const idiomsCount = countRepresentativeIdiomCandidates(idiomsSection);
+    const missingSections = [];
+
+    if (isOriginSectionTooShallow(originSection, groundedHint)) missingSections.push('成り立ち');
+    if (isMeaningSectionTooShallow(meaningSection)) missingSections.push('意味の深掘り');
+    if (idiomsCount < 3) missingSections.push('代表的な熟語');
+
+    return {
+        complete: missingSections.length === 0,
+        missingSections,
+        originSection,
+        meaningSection,
+        idiomsSection,
+        idiomsCount
+    };
+}
+
+function applyKanjiDetailRepairText(baseText, repairText, status) {
+    const repairSections = extractKanjiDetailSectionMap(repairText);
+    let nextText = sanitizeKanjiAiText(baseText);
+    const completion = status || getKanjiDetailCompletionStatus(nextText);
+
+    const repairedOrigin = sanitizeKanjiAiText(repairSections.get('成り立ち') || '');
+    if (completion.missingSections.includes('成り立ち') && repairedOrigin) {
+        nextText = upsertKanjiDetailSection(nextText, '成り立ち', repairedOrigin);
+    }
+
+    const repairedMeaning = sanitizeKanjiAiText(repairSections.get('意味の深掘り') || '');
+    if (completion.missingSections.includes('意味の深掘り') && repairedMeaning) {
+        nextText = upsertKanjiDetailSection(nextText, '意味の深掘り', repairedMeaning);
+    }
+
+    const repairedIdioms = repairSections.get('代表的な熟語') || '';
+    if (completion.missingSections.includes('代表的な熟語') && repairedIdioms) {
+        const mergedIdioms = mergeRepresentativeIdiomSectionText(completion.idiomsSection, repairedIdioms);
+        if (mergedIdioms) nextText = upsertKanjiDetailSection(nextText, '代表的な熟語', mergedIdioms);
+    }
+
+    return canonicalizeKanjiDetailText(nextText);
+}
+
 function formatRepresentativeIdiomContent(content) {
     const parsed = parseRepresentativeIdiomLines(content);
     return dedupeRepresentativeIdiomLines(parsed).join('\n');
@@ -691,12 +747,12 @@ function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
 意味: ${meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
 
-以下の順番と見出しで回答してください。見出しはこの3種類以外を使わず、文字列を完全一致させてください。
+以下の3項目をすべて必ず出力してください。1項目でも欠けた回答は失敗です。順番と見出しは完全一致させてください。
 
 【成り立ち】
 ${groundedHint?.promptContext
         ? 'この漢字がどのように作られたか（象形・会意・形声など）を、50〜80文字で説明してください。'
-        : '部品やつくりを確実に断定できる場合にのみ、50〜80文字で説明してください。少しでも自信がない場合は、このセクション自体を出力しないでください。'}
+        : '部品やつくりを確実に断定できる範囲で、50〜80文字で説明してください。断定できない場合も、このセクションは省略せず、「一般には字形・字義の変化を踏まえて説明されます」のように不確かさを明記して必ず出力してください。'}
 
 【意味の深掘り】
 字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。必ず句点で終えてください。
@@ -706,6 +762,7 @@ ${groundedHint?.promptContext
 
 【絶対に守るルール】
 ・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
+・【成り立ち】【意味の深掘り】【代表的な熟語】の3セクションを必ずすべて出力してください。意味だけで終わらせないでください。
 ・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・口調は必ずです・ます調で統一してください。
@@ -720,7 +777,7 @@ ${groundedHint?.promptContext
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
-・部品、つくり、声符を推測で書かないでください。確信がない場合は【成り立ち】を出力しないでください。
+・部品、つくり、声符を推測で書かないでください。確信がない場合でも【成り立ち】は省略せず、不確かさが残る説明として出力してください。
 ・検証済み情報が与えられている場合は、必ずそれに従ってください。勝手に別の部品へ言い換えないでください。
 `.trim();
 }
@@ -753,7 +810,7 @@ function isMeaningSectionTooShallow(text) {
 function buildKanjiDetailRepairPrompt(kanji, readings, meaning, groundedHint, currentMeaning, currentIdioms) {
     const currentIdiomsCount = countRepresentativeIdiomCandidates(currentIdioms);
     return `
-漢字「${kanji}」の説明を修正してください。
+漢字「${kanji}」の説明を完全な形に修正してください。
 
 【入力情報】
 読み: ${readings || '不明'}
@@ -767,15 +824,16 @@ ${currentIdioms || 'なし'}
 現在の代表的な熟語数: ${currentIdiomsCount}個
 
 【お願い】
-・足りない部分だけを直してください。
-・出力順は必ず【意味の深掘り】→【代表的な熟語】にしてください。
-・見出しは【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
+・足りない部分を補い、必ず3セクションをすべて出力してください。
+・出力順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
+・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
+・【成り立ち】は、この漢字がどのように作られたかを50〜80文字で書いてください。不確かな部品や声符は断定せず、不確かさを明記してください。
 ・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
 ・【代表的な熟語】は、実在する2字熟語または3字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。4字以上の語は書かないでください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
-・出力は【意味の深掘り】と【代表的な熟語】だけにしてください。
+・意味だけ、熟語だけ、成り立ちだけで終わらせないでください。
 `.trim();
 }
 
@@ -858,27 +916,7 @@ async function generateKanjiDetail(kanji, currentReading) {
     const resultEl = document.getElementById('ai-kanji-result');
     if (!resultEl) return;
 
-    const cachedText = getStoredKanjiDetailAiText(kanji);
-    if (cachedText && !hasKanjiDetailReset(kanji, currentReading)) {
-        renderKanjiDetailSections(resultEl, cachedText);
-        return;
-    }
-
     const shouldRefundOnFailure = !(typeof isPremiumAccessActive === 'function' && isPremiumAccessActive());
-    if (!consumeDailyKanjiDetailUse()) {
-        if (typeof showToast === 'function') {
-            showToast('今日の無料AIは使い切りました', '🌙');
-        }
-        return;
-    }
-
-    resultEl.innerHTML = `
-        <div class="flex items-center justify-center py-6">
-            <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
-            <span class="text-sm text-[#7a6f5a]">AIが分析中です...</span>
-        </div>
-    `;
-
     const kanjiData = Array.isArray(master)
         ? master.find((item) => item && item['漢字'] === kanji)
         : null;
@@ -908,6 +946,38 @@ async function generateKanjiDetail(kanji, currentReading) {
     let finalIdiomsCount = 0;
 
     try {
+        const localCachedText = getStoredKanjiDetailAiText(kanji);
+        if (localCachedText && !cacheResetMarked) {
+            const mergedLocalText = mergeKanjiDetailSectionsFromDataset(localCachedText, datasetEntry);
+            const localStatus = getKanjiDetailCompletionStatus(mergedLocalText, groundedHint);
+            if (localStatus.complete) {
+                renderKanjiDetailSections(resultEl, canonicalizeKanjiDetailText(mergedLocalText));
+                return;
+            }
+            console.warn('AI_KANJI_DETAIL: local cached explanation rejected', {
+                kanji,
+                missingSections: localStatus.missingSections,
+                idiomCount: localStatus.idiomsCount
+            });
+            if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeKanjiAiCache === 'function') {
+                StorageBox.removeKanjiAiCache(kanji);
+            }
+        }
+
+        if (!consumeDailyKanjiDetailUse()) {
+            if (typeof showToast === 'function') {
+                showToast('今日の無料AIは使い切りました', '🌙');
+            }
+            return;
+        }
+
+        resultEl.innerHTML = `
+            <div class="flex items-center justify-center py-6">
+                <div class="w-6 h-6 border-3 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mr-3"></div>
+                <span class="text-sm text-[#7a6f5a]">AIが分析中です...</span>
+            </div>
+        `;
+
         let cacheHit = false;
         if (typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
@@ -915,18 +985,16 @@ async function generateKanjiDetail(kanji, currentReading) {
                 const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
                 if (cachedText) {
                     const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
-                    const cachedSections = extractKanjiDetailSectionMap(mergedCachedText);
-                    const cachedMeaningSection = cachedSections.get('意味の深掘り') || '';
-                    const cachedIdiomsSection = cachedSections.get('代表的な熟語') || '';
-                    const cachedIdiomsCount = countRepresentativeIdiomCandidates(cachedIdiomsSection);
-                    if (!isMeaningSectionTooShallow(cachedMeaningSection) && cachedIdiomsCount >= 3) {
-                        baseText = mergedCachedText;
+                    const cachedStatus = getKanjiDetailCompletionStatus(mergedCachedText, groundedHint);
+                    if (cachedStatus.complete) {
+                        baseText = canonicalizeKanjiDetailText(mergedCachedText);
+                        finalIdiomsCount = cachedStatus.idiomsCount;
                         cacheHit = true;
                     } else {
                         console.warn('AI_KANJI_DETAIL: cached explanation rejected', {
                             kanji,
-                            meaningLength: cachedMeaningSection.length,
-                            idiomCount: cachedIdiomsCount
+                            missingSections: cachedStatus.missingSections,
+                            idiomCount: cachedStatus.idiomsCount
                         });
                     }
                 }
@@ -973,81 +1041,37 @@ async function generateKanjiDetail(kanji, currentReading) {
             baseFreshGenerated = true;
 
             if (baseFreshGenerated) {
-                const generatedSections = extractKanjiDetailSectionMap(baseText);
-                let currentMeaningSection = generatedSections.get('意味の深掘り') || '';
-                let currentIdiomsSection = generatedSections.get('代表的な熟語') || '';
-                const needsMeaningRepair = isMeaningSectionTooShallow(currentMeaningSection);
-                let needsIdiomsRepair = countRepresentativeIdiomCandidates(currentIdiomsSection) < 3;
+                for (let repairAttempt = 0; repairAttempt < 2; repairAttempt += 1) {
+                    const status = getKanjiDetailCompletionStatus(baseText, groundedHint);
+                    if (status.complete) break;
 
-                if (needsMeaningRepair || needsIdiomsRepair) {
                     try {
-                        if (needsMeaningRepair) {
-                            const repairController = new AbortController();
-                            const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
-                            const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    prompt: buildKanjiDetailRepairPrompt(
-                                        kanji,
-                                        readings,
-                                        meaning,
-                                        groundedHint,
-                                        currentMeaningSection,
-                                        currentIdiomsSection
-                                    )
-                                }),
-                                signal: repairController.signal
-                            });
-                            clearTimeout(repairTimeoutId);
+                        const repairController = new AbortController();
+                        const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
+                        const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                prompt: buildKanjiDetailRepairPrompt(
+                                    kanji,
+                                    readings,
+                                    meaning,
+                                    groundedHint,
+                                    status.meaningSection,
+                                    status.idiomsSection
+                                )
+                            }),
+                            signal: repairController.signal
+                        });
+                        clearTimeout(repairTimeoutId);
 
-                            if (repairResponse.ok) {
-                                const repairData = await repairResponse.json();
-                                const repairSections = extractKanjiDetailSectionMap(repairData.text || '');
-                                const repairedMeaning = sanitizeKanjiAiText(repairSections.get('意味の深掘り') || '');
-                                if (repairedMeaning) {
-                                    currentMeaningSection = repairedMeaning;
-                                    baseText = upsertKanjiDetailSection(baseText, '意味の深掘り', repairedMeaning);
-                                }
-                            }
-                        }
-
-                        if (needsIdiomsRepair) {
-                            if (countRepresentativeIdiomCandidates(currentIdiomsSection) < 3) {
-                                const repairController = new AbortController();
-                                const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
-                                const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        prompt: buildKanjiDetailRepairPrompt(
-                                            kanji,
-                                            readings,
-                                            meaning,
-                                            groundedHint,
-                                            currentMeaningSection,
-                                            currentIdiomsSection
-                                        )
-                                    }),
-                                    signal: repairController.signal
-                                });
-                                clearTimeout(repairTimeoutId);
-
-                                if (repairResponse.ok) {
-                                    const repairData = await repairResponse.json();
-                                    const repairSections = extractKanjiDetailSectionMap(repairData.text || '');
-                                    const repairedIdiomsText = repairSections.get('代表的な熟語') || '';
-                                    const mergedIdioms = mergeRepresentativeIdiomSectionText(currentIdiomsSection, repairedIdiomsText);
-
-                                    if (mergedIdioms) {
-                                        currentIdiomsSection = mergedIdioms;
-                                        baseText = upsertKanjiDetailSection(baseText, '代表的な熟語', mergedIdioms);
-                                    }
-                                }
-                            }
+                        if (repairResponse.ok) {
+                            const repairData = await repairResponse.json();
+                            baseText = applyKanjiDetailRepairText(baseText, repairData.text || '', status);
                         }
                     } catch (repairError) {
                         console.warn('AI_KANJI_DETAIL: base repair failed', repairError);
+                        break;
                     }
                 }
             }
@@ -1078,7 +1102,12 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
 
             baseText = canonicalizeKanjiDetailText(baseText);
-            const shouldPersistBaseText = finalIdiomsCount >= 3;
+            const finalStatus = getKanjiDetailCompletionStatus(baseText, groundedHint);
+            finalIdiomsCount = finalStatus.idiomsCount;
+            if (!finalStatus.complete) {
+                throw new Error(`AI説明の必須項目が不足しています: ${finalStatus.missingSections.join('、')}`);
+            }
+            const shouldPersistBaseText = finalStatus.complete;
 
             if (shouldPersistBaseText) {
                 try {

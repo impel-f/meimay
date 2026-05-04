@@ -454,12 +454,9 @@ function resolveEncounteredKanjiStrokes(item) {
     return Number.isFinite(Number(raw)) ? Number(raw) : '−';
 }
 
-function renderEncounteredStateBadge({ isLiked = false, isMatched = false, isNope = false }) {
+function renderEncounteredStateBadge({ isLiked = false } = {}) {
     if (isLiked) {
         return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#fde8e5] px-1 text-[10px] font-black text-[#dd7d73]">❤️</span>';
-    }
-    if (isNope) {
-        return '<span class="absolute top-1 right-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#f2efea] px-1 text-[10px] font-black text-[#a6967a]">×</span>';
     }
     return '';
 }
@@ -519,7 +516,6 @@ function renderEncounteredLibrary() {
                                     ? liked.some(likedItem => (likedItem['漢字'] || likedItem['\u8c8c\uff61\u87c4\uff65'] || likedItem['\u8c8d\uff62\u87c4\u30fb'] || likedItem.kanji) === item.kanji)
                                     : false;
                                 const isMatched = false;
-                                const isNope = !isLiked && item.lastAction === 'nope';
                                 const strokes = resolveEncounteredKanjiStrokes(item);
                                 const readings = String(item.kanjiReading || item.snapshot?.kanji_reading || '')
                                     .split(/[、,\s/]+/)
@@ -531,16 +527,14 @@ function renderEncounteredLibrary() {
                                     ? 'border-[#e7d39b] bg-[#fff9ec]'
                                     : isLiked
                                         ? 'border-[#f2b2b2] bg-[#fff1f1]'
-                                        : isNope
-                                            ? 'border-[#ddd6ca] bg-[#fbfaf8]'
-                                            : 'border-[#eee5d8] bg-[#fdfaf5]';
+                                        : 'border-[#eee5d8] bg-[#fdfaf5]';
 
                                 return `
                                     <div class="relative w-full" style="padding-bottom:100%;">
                                         <button
                                             onclick="openEncounteredKanjiDetail('${escapeEncounteredHtml(item.key || item.kanji)}')"
                                             class="absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-xl shadow-sm border transition-all active:scale-95 ${toneClass}">
-                                            ${renderEncounteredStateBadge({ isLiked, isMatched, isNope })}
+                                            ${renderEncounteredStateBadge({ isLiked })}
                                             <span class="text-2xl font-black text-[#5d5444] leading-none">${escapeEncounteredHtml(item.kanji)}</span>
                                             <span class="mt-1 text-[8px] text-[#a6967a]">${strokes}画</span>
                                             <span class="mt-1 text-[7px] text-[#bca37f] truncate w-full text-center px-1">${escapeEncounteredHtml(readings)}</span>
@@ -574,18 +568,15 @@ function renderEncounteredLibrary() {
                                     return sReading === displayReading || sReading === item.reading;
                                 })
                                 : false;
-                            const isNope = !isStocked && item.lastAction === 'nope';
                             const toneClass = isStocked
                                 ? 'border-[#f2b2b2] bg-[#fff1f1]'
-                                : isNope
-                                    ? 'border-[#ddd6ca] bg-[#fbfaf8]'
-                                    : 'border-[#eee5d8] bg-[#fdfaf5]';
+                                : 'border-[#eee5d8] bg-[#fdfaf5]';
 
                             return `
                                 <button
                                     onclick="useEncounteredReading('${escapeEncounteredHtml(item.key || item.reading)}')"
                                     class="relative min-h-[68px] rounded-xl border px-3 py-2 text-left shadow-sm transition-all active:scale-95 ${toneClass}">
-                                    ${renderEncounteredStateBadge({ isLiked: isStocked, isMatched: false, isNope })}
+                                    ${renderEncounteredStateBadge({ isLiked: isStocked })}
                                     <div class="pr-5">
                                         <div class="text-[18px] font-black leading-none text-[#5d5444] truncate">${escapeEncounteredHtml(displayReading)}</div>
                                     </div>
