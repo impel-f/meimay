@@ -51,6 +51,13 @@ const PremiumManager = {
     _remoteTrialEndsAt: null,
     _remoteTrialConsumedAt: null,
     _remoteTrialConsumedByRoom: false,
+    _storePremium: null,
+    _storePremiumSource: null,
+    _storeStatus: null,
+    _storeAppStoreExpiresAt: null,
+    _storeExpiresAt: null,
+    _storeProductId: null,
+    _storeLastNotificationType: null,
     _userDocUnsub: null,
     _userDocPermissionDenied: false,
     _trialStartInProgress: false,
@@ -70,6 +77,16 @@ const PremiumManager = {
     },
 
     getPublicPremiumSnapshot: function () {
+        const storeRecord = typeof getRevenueCatPremiumRecordFromManager === 'function'
+            ? getRevenueCatPremiumRecordFromManager()
+            : null;
+        if (storeRecord && typeof buildPremiumMembershipState === 'function') {
+            const storeState = buildPremiumMembershipState(storeRecord, 'self', { allowLocalFallback: false });
+            if (storeState && (storeState.active || storeState.expired)) {
+                return buildPublicPremiumSnapshotFromRecord(storeRecord, storeState);
+            }
+        }
+
         const remoteStatus = String(this._remoteStatus || '').trim().toLowerCase();
         const remoteTrialStatus = String(this._remoteTrialStatus || '').trim().toLowerCase();
         const remotePremiumSource = String(this._remotePremiumSource || '').trim().toLowerCase();
@@ -1353,6 +1370,55 @@ function buildPremiumMembershipState(record, source, options = {}) {
     };
 }
 
+function getRevenueCatPremiumRecordFromManager() {
+    if (typeof PremiumManager === 'undefined' || !PremiumManager) return null;
+    const hasStoreData = typeof PremiumManager._storePremium === 'boolean'
+        || !!PremiumManager._storeStatus
+        || !!PremiumManager._storeAppStoreExpiresAt
+        || !!PremiumManager._storeExpiresAt
+        || !!PremiumManager._storeProductId;
+    if (!hasStoreData) return null;
+
+    return {
+        isPremium: PremiumManager._storePremium,
+        premiumSource: PremiumManager._storePremiumSource || 'revenuecat',
+        subscriptionStatus: PremiumManager._storeStatus || null,
+        appStoreExpiresAt: PremiumManager._storeAppStoreExpiresAt || null,
+        premiumExpiresAt: PremiumManager._storeExpiresAt || null,
+        appStoreProductId: PremiumManager._storeProductId || null,
+        premiumProductId: PremiumManager._storeProductId || null,
+        appStoreLastNotificationType: PremiumManager._storeLastNotificationType || null,
+        latestNotificationType: PremiumManager._storeLastNotificationType || null,
+        trialStatus: null,
+        trialStartedAt: null,
+        trialEndsAt: null,
+        trialConsumedAt: null,
+        trialConsumedByRoom: false
+    };
+}
+
+function buildPublicPremiumSnapshotFromRecord(record, state) {
+    const sourceRecord = record || {};
+    const membership = state || buildPremiumMembershipState(sourceRecord, 'self', { allowLocalFallback: false });
+    return {
+        isPremium: !!(membership && membership.active),
+        premiumSource: sourceRecord.premiumSource || null,
+        subscriptionStatus: sourceRecord.subscriptionStatus || null,
+        premiumStatus: sourceRecord.subscriptionStatus || null,
+        appStoreExpiresAt: sourceRecord.appStoreExpiresAt || null,
+        premiumExpiresAt: sourceRecord.premiumExpiresAt || sourceRecord.appStoreExpiresAt || null,
+        appStoreProductId: sourceRecord.appStoreProductId || sourceRecord.premiumProductId || null,
+        premiumProductId: sourceRecord.premiumProductId || sourceRecord.appStoreProductId || null,
+        appStoreLastNotificationType: sourceRecord.appStoreLastNotificationType || sourceRecord.latestNotificationType || null,
+        latestNotificationType: sourceRecord.latestNotificationType || sourceRecord.appStoreLastNotificationType || null,
+        trialStatus: sourceRecord.trialStatus || null,
+        trialStartedAt: sourceRecord.trialStartedAt || null,
+        trialEndsAt: sourceRecord.trialEndsAt || null,
+        trialConsumedAt: sourceRecord.trialConsumedAt || null,
+        trialConsumedByRoom: sourceRecord.trialConsumedByRoom === true
+    };
+}
+
 function getSelfPremiumMembershipState() {
     const localPreviewMode = typeof getLocalPremiumQueryPreviewMode === 'function'
         ? getLocalPremiumQueryPreviewMode()
@@ -1360,6 +1426,16 @@ function getSelfPremiumMembershipState() {
     const localPreviewTrialEndsAt = localPreviewMode === 'trial'
         ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
         : null;
+    const storeRecord = !localPreviewMode && typeof getRevenueCatPremiumRecordFromManager === 'function'
+        ? getRevenueCatPremiumRecordFromManager()
+        : null;
+    const storeState = storeRecord
+        ? buildPremiumMembershipState(storeRecord, 'self', { allowLocalFallback: false })
+        : null;
+
+    if (storeState && (storeState.active || storeState.expired)) {
+        return storeState;
+    }
 
     return buildPremiumMembershipState({
         isPremium: localPreviewMode ? true : PremiumManager._remotePremium,
@@ -1619,13 +1695,24 @@ PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackPr
     const expired = !!expiresAt && expiresAt.getTime() <= Date.now();
     const active = entitlementActive && !expired;
 
-    this._remotePremium = active;
-    this._remotePremiumSource = 'revenuecat';
-    this._remoteStatus = active ? 'active' : (expired ? 'expired' : 'inactive');
-    this._remoteAppStoreExpiresAt = expiresAt ? expiresAt.toISOString() : null;
-    this._remoteExpiresAt = expiresAt ? expiresAt.toISOString() : null;
-    this._remoteProductId = productId || this._remoteProductId || null;
-    this._remoteLastNotificationType = 'revenuecat_customer_info';
+    this._storePremium = active;
+    this._storePremiumSource = 'revenuecat';
+    this._storeStatus = active ? 'active' : (expired ? 'expired' : 'inactive');
+    this._storeAppStoreExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+    this._storeExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+    this._storeProductId = productId || this._storeProductId || null;
+    this._storeLastNotificationType = 'revenuecat_customer_info';
+
+    if (active || expired || this._remotePremiumSource === 'revenuecat') {
+        this._remotePremium = active;
+        this._remotePremiumSource = 'revenuecat';
+        this._remoteStatus = active ? 'active' : (expired ? 'expired' : 'inactive');
+        this._remoteAppStoreExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+        this._remoteExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+        this._remoteProductId = productId || this._remoteProductId || null;
+        this._remoteLastNotificationType = 'revenuecat_customer_info';
+    }
+
     if (active) {
         this._remoteTrialStatus = null;
         this._remoteTrialStartedAt = null;
@@ -2298,7 +2385,18 @@ async function syncPurchaseStateFromPremiumModal() {
 
     try {
         await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
-        const isActive = PremiumManager.isPremium();
+        let isActive = PremiumManager.isPremium();
+        const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
+            ? MeimayAuth.getCurrentUser()
+            : null;
+        if (!isActive && user && typeof PremiumManager.syncPurchasesSilently === 'function') {
+            await PremiumManager.syncPurchasesSilently(user, {
+                force: true,
+                reason: 'premium-modal',
+                cooldownMs: 0
+            });
+            isActive = PremiumManager.isPremium();
+        }
         if (typeof updatePremiumUI === 'function') {
             updatePremiumUI();
         }
