@@ -38,6 +38,7 @@ const PremiumManager = {
     DEV_FALLBACK_KEY: 'meimay_allow_local_premium',
     TOKEN_KEY: 'meimay_app_account_token',
     LINK_CACHE_KEY: 'meimay_premium_link_cache_v1',
+    SILENT_STORE_SYNC_KEY: 'meimay_premium_silent_store_sync_v1',
     _remotePremium: null,
     _remotePremiumSource: null,
     _remoteStatus: null,
@@ -53,6 +54,7 @@ const PremiumManager = {
     _userDocUnsub: null,
     _trialStartInProgress: false,
     _purchaseInProgress: false,
+    _silentStoreSyncInFlight: false,
 
     getLocalPremiumState: function () {
         try {
@@ -618,6 +620,22 @@ const RevenueCatBridge = {
         return null;
     },
 
+    syncPurchases: async function (user) {
+        const plugin = await this.configure(user);
+        if (typeof plugin.syncPurchases === 'function') {
+            const result = await plugin.syncPurchases();
+            if (result) return result;
+            if (typeof plugin.getCustomerInfo === 'function') {
+                return plugin.getCustomerInfo();
+            }
+            return null;
+        }
+        if (typeof plugin.getCustomerInfo === 'function') {
+            return plugin.getCustomerInfo();
+        }
+        return null;
+    },
+
     purchaseProduct: async function (productId, user) {
         const plugin = await this.configure(user);
         const offerings = await this.getOfferings(user);
@@ -719,7 +737,8 @@ function getBottomFooterHeight() {
 }
 
 const AD_BANNER_GAP = 8;
-const AD_SCREEN_SAFE_SPACE_MIN = 148;
+const AD_BANNER_DOCK_TUCK = 12;
+const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
 let adBannerVisible = false;
@@ -731,6 +750,10 @@ let nativeAdMobBannerFailed = false;
 let adBannerSuppressedByOverlay = false;
 let adOverlayObserverReady = false;
 let adOverlaySyncTimer = null;
+
+function getAdBannerFooterMargin() {
+    return Math.max(0, getBottomFooterHeight() - AD_BANNER_DOCK_TUCK);
+}
 
 function measureAdBannerHeight(container) {
     if (!container) return 0;
@@ -815,7 +838,7 @@ function updateAdLayoutSpacing(bannerHeight) {
 
     const container = document.getElementById('admob-banner');
     ensureAdOverlayObserver();
-    const footerHeight = getBottomFooterHeight();
+    const footerMargin = getAdBannerFooterMargin();
     let measuredHeight = typeof bannerHeight === 'number' ? bannerHeight : 0;
 
     if (adBannerVisible && measuredHeight <= 0) {
@@ -827,11 +850,11 @@ function updateAdLayoutSpacing(bannerHeight) {
     }
 
     if ((adBannerMode === 'web' || adBannerMode === 'native-fallback') && container) {
-        container.style.bottom = `${footerHeight}px`;
+        container.style.bottom = `${footerMargin}px`;
     }
 
     if (measuredHeight > 0) {
-        const safeSpace = Math.max(AD_SCREEN_SAFE_SPACE_MIN, footerHeight + measuredHeight + AD_BANNER_GAP);
+        const safeSpace = Math.max(AD_SCREEN_SAFE_SPACE_MIN, footerMargin + measuredHeight + AD_BANNER_GAP);
         document.body.style.setProperty('--ad-screen-safe-space', `${safeSpace}px`);
         document.body.classList.add('has-ad-banner');
         return safeSpace;
@@ -877,8 +900,8 @@ function showNativeAdMobFallbackBanner(reason, error) {
     adBannerMode = 'native-fallback';
     adBannerSuppressedByOverlay = hasActiveAdBlockingOverlay();
 
-    const footerHeight = getBottomFooterHeight();
-    container.style.bottom = `${footerHeight}px`;
+    const footerMargin = getAdBannerFooterMargin();
+    container.style.bottom = `${footerMargin}px`;
     container.style.display = 'flex';
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
     container.innerHTML = `
@@ -979,7 +1002,7 @@ function initAdMob() {
 async function initNativeAdMob(platform) {
     ensureAdOverlayObserver();
     const config = platform === 'ios' ? AdMobConfig.ios : AdMobConfig.android;
-    const footerHeight = getBottomFooterHeight();
+    const footerMargin = getAdBannerFooterMargin();
 
     try {
         const AdMob = getAdMobPlugin();
@@ -1012,7 +1035,7 @@ async function initNativeAdMob(platform) {
             adId: getAdMobBannerId(platform, config),
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
-            margin: footerHeight,
+            margin: footerMargin,
             isTesting: isAdMobTestAdMode()
         });
 
@@ -1059,8 +1082,8 @@ function showWebAdBanner() {
     adBannerVisible = true;
     adBannerMode = 'web';
     adBannerSuppressedByOverlay = hasActiveAdBlockingOverlay();
-    const footerHeight = getBottomFooterHeight();
-    container.style.bottom = `${footerHeight}px`;
+    const footerMargin = getAdBannerFooterMargin();
+    container.style.bottom = `${footerMargin}px`;
     container.style.display = 'flex';
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
     container.innerHTML = `
@@ -1599,6 +1622,56 @@ PremiumManager.refreshRevenueCatCustomerInfo = async function (user, restore = f
     return this._applyRevenueCatCustomerInfo(result);
 };
 
+PremiumManager.shouldRunSilentStoreSync = function (user, options = {}) {
+    if (options.force === true) return true;
+    if (!user || !user.uid) return false;
+    if (this.isPremium()) return false;
+    if (!RevenueCatBridge.isAvailable()) return false;
+
+    const key = `${this.SILENT_STORE_SYNC_KEY}:${user.uid}`;
+    const cooldownMs = Number(options.cooldownMs) || (24 * 60 * 60 * 1000);
+    try {
+        const lastAt = Number(localStorage.getItem(key) || 0);
+        if (lastAt > 0 && Date.now() - lastAt < cooldownMs) return false;
+    } catch (_) {
+        return true;
+    }
+    return true;
+};
+
+PremiumManager.markSilentStoreSyncAttempt = function (user) {
+    if (!user || !user.uid) return;
+    try {
+        localStorage.setItem(`${this.SILENT_STORE_SYNC_KEY}:${user.uid}`, String(Date.now()));
+    } catch (_) {}
+};
+
+PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
+    if (!user || !user.uid) return false;
+    if (this._silentStoreSyncInFlight) return false;
+    if (!this.shouldRunSilentStoreSync(user, options)) return false;
+
+    this._silentStoreSyncInFlight = true;
+    this.markSilentStoreSyncAttempt(user);
+    try {
+        await this.bindToUserDoc(user);
+        const result = await RevenueCatBridge.syncPurchases(user);
+        const active = await this._applyRevenueCatCustomerInfo(result);
+        if (active && typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
+            const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
+                ? this.getPublicPremiumSnapshot()
+                : null;
+            await MeimayShare.syncPremiumState(publicPremiumState);
+        }
+        return active;
+    } catch (error) {
+        console.warn('PREMIUM: silent store purchase sync failed', error);
+        return false;
+    } finally {
+        this._silentStoreSyncInFlight = false;
+    }
+};
+
 PremiumManager.startPurchase = async function (productId) {
     const plan = getPremiumProductPlan(productId);
     if (!plan) {
@@ -2056,13 +2129,7 @@ function renderPremiumComparisonMatrix() {
 }
 
 function getPremiumModalSubtitle(state) {
-    if (state && state.active) {
-        return '';
-    }
-    if (state && state.expired) {
-        return '期限が切れています。必要なときに再開できます。';
-    }
-    return 'プレミアムを3日間無料で体験できます。';
+    return '';
 }
 
 function renderPremiumStatusCard(state) {
@@ -2130,9 +2197,12 @@ function renderPremiumPlanCards(state) {
 
     return ''
         + '<div class="overflow-hidden rounded-[20px] border border-[#e3d6c2] bg-white shadow-[0_12px_28px_rgba(123,95,52,0.08)]">'
-        + '<div class="flex items-center justify-between gap-3 border-b border-[#eee3d2] bg-[#fbf6ed] px-4 py-3">'
+        + '<div class="border-b border-[#eee3d2] bg-[#fbf6ed] px-4 py-3">'
+        + '<div class="flex items-center justify-between gap-3">'
         + '<div class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">有料プラン</div>'
         + '<div class="shrink-0 text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">購入・返金はストアで管理</div>'
+        + '</div>'
+        + '<p class="mt-1.5 text-[11px] sm:text-[12px] leading-[1.55] font-bold text-[#7a6a52]">有料プランを購入すると、連携中のパートナーも特典としてプレミアム機能を使えます。</p>'
         + '</div>'
         + '<div class="divide-y divide-[#f0e7d8]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
@@ -2146,7 +2216,7 @@ function renderPremiumPlanCards(state) {
                 + (note ? '<span class="text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">' + escapePremiumHtml(note) + '</span>' : '')
                 + '</div>'
                 + '<div class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
-                + '<span class="text-[24px] sm:text-[26px] font-black leading-none tracking-normal">' + escapePremiumHtml(plan.price) + '</span>'
+                + '<span class="text-[21px] sm:text-[23px] font-black leading-none tracking-normal">' + escapePremiumHtml(plan.price) + '</span>'
                 + (plan.description ? '<span class="text-[10px] font-medium text-[#8b7e66]">' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'

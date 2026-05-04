@@ -1775,7 +1775,7 @@ function renderStockSuperStars(item) {
         self: superFlags.self,
         partner: superFlags.partner,
         className: 'stock-stars',
-        style: 'display:flex;justify-content:center;gap:2px;font-size:13px;line-height:1;margin-top:4px;pointer-events:none;'
+        style: 'display:flex;justify-content:center;gap:2px;font-size:12px;line-height:1;margin-top:3px;pointer-events:none;'
     });
 }
 

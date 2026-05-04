@@ -128,6 +128,12 @@ if (firebaseAuth) {
             }
             if (window.PremiumManager && typeof window.PremiumManager.refreshPurchaseState === 'function') {
                 window.PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'auth-ready' })
+                    .then(() => {
+                        if (window.PremiumManager && typeof window.PremiumManager.syncPurchasesSilently === 'function') {
+                            return window.PremiumManager.syncPurchasesSilently(user, { reason: 'auth-ready' });
+                        }
+                        return false;
+                    })
                     .catch((error) => console.warn('PREMIUM: silent purchase sync failed', error));
             }
             if (window.MeimayUserBackup && typeof window.MeimayUserBackup.bootstrapForUser === 'function') {

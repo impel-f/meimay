@@ -781,10 +781,10 @@ body.has-ad-banner #uni-swipe-action-btns {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 1px;
+    gap: 2px;
     min-height: auto;
     padding: 0;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1;
     color: var(--super);
     font-weight: 900;
@@ -792,11 +792,10 @@ body.has-ad-banner #uni-swipe-action-btns {
     border-radius: 0;
     box-shadow: none;
     pointer-events: none;
-    position: absolute;
-    left: 8px;
-    bottom: 8px;
+    position: static;
     transform: none;
-    margin-top: 0;
+    margin-top: 3px;
+    width: 100%;
 }
 
 .stock-strokes {
@@ -988,14 +987,14 @@ body.has-ad-banner #uni-swipe-action-btns {
 body.has-ad-banner .overlay,
 body.has-ad-banner .modal-overlay-dark,
 body.has-ad-banner .meimay-child-modal-overlay {
-    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + 14px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + 14px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner .detail-sheet,
 body.has-ad-banner .modal-sheet,
 body.has-ad-banner .choice-sheet,
 body.has-ad-banner .meimay-child-modal-sheet {
-    max-height: min(82vh, calc(100vh - var(--ad-screen-safe-space, 148px) - 40px)) !important;
+    max-height: min(82vh, calc(100vh - var(--ad-screen-safe-space, 124px) - 40px)) !important;
 }
 
 .detail-sheet {
@@ -2312,16 +2311,16 @@ select.wiz-birth-order-select:active {
 
 /* 広告あり: JS の --ad-screen-safe-space を優先して、余白を詰めすぎず広げすぎない */
 body.has-ad-banner .screen {
-    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner #scr-mode {
-    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner #scr-main,
 body.has-ad-banner #scr-swipe-universal {
-    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-legal {
@@ -2329,7 +2328,7 @@ body.has-ad-banner #scr-swipe-universal {
 }
 
 body.has-ad-banner #scr-legal {
-    padding-bottom: calc(var(--ad-screen-safe-space, 148px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-legal > div {
@@ -2347,7 +2346,7 @@ body.has-ad-banner #scr-legal {
 }
 
 body.has-ad-banner #scr-build > #build-screen-shell {
-    height: calc(100dvh - var(--top-bar-height) - var(--ad-screen-safe-space, 148px) - env(safe-area-inset-bottom, 0px)) !important;
+    height: calc(100dvh - var(--top-bar-height) - var(--ad-screen-safe-space, 124px) - env(safe-area-inset-bottom, 0px)) !important;
     padding-bottom: 8px !important;
 }
 
@@ -3150,7 +3149,7 @@ body.has-ad-banner #universal-footer {
 }
 
 body.has-ad-banner .context-coachmark--bottom {
-    bottom: calc(var(--ad-screen-safe-space, 148px) + 14px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--ad-screen-safe-space, 124px) + 14px + env(safe-area-inset-bottom, 0px));
 }
 
 .context-coachmark--top {
@@ -3162,16 +3161,19 @@ body.has-ad-banner .context-coachmark--bottom {
 }
 
 body.has-ad-banner .context-coachmark--above-actions {
-    bottom: calc(var(--ad-screen-safe-space, 148px) + 104px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--ad-screen-safe-space, 124px) + 104px + env(safe-area-inset-bottom, 0px));
 }
 
 .kanji-detail-reading-list {
+    align-content: flex-start;
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    max-height: 92px;
+    max-height: 52px;
+    min-height: 0;
     overflow-y: auto;
-    padding-right: 2px;
+    padding: 0 2px 2px 0;
+    scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
@@ -3262,7 +3264,7 @@ body.has-ad-banner .context-coachmark--above-actions {
     }
 
     body.has-ad-banner .context-coachmark--bottom {
-        bottom: calc(var(--ad-screen-safe-space, 148px) + 12px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--ad-screen-safe-space, 124px) + 12px + env(safe-area-inset-bottom, 0px));
     }
 
     .context-coachmark--above-actions {
@@ -3270,7 +3272,7 @@ body.has-ad-banner .context-coachmark--above-actions {
     }
 
     body.has-ad-banner .context-coachmark--above-actions {
-        bottom: calc(var(--ad-screen-safe-space, 148px) + 88px + env(safe-area-inset-bottom, 0px));
+        bottom: calc(var(--ad-screen-safe-space, 124px) + 88px + env(safe-area-inset-bottom, 0px));
     }
 
     .context-coachmark-title {

@@ -1021,7 +1021,7 @@ function showSavedNameDetail(index, source = 'own') {
 
                     ${item.message ? `
                     <div class="mb-8 p-5 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
-                        <div class="text-[9px] font-black text-[#a6967a] absolute -top-2.5 left-6 bg-white px-2 py-0.5 rounded-full border border-[#eee5d8] tracking-widest">メモ・願い</div>
+                        <div class="text-[13px] font-black text-[#a6967a] absolute -top-2.5 left-6 bg-white px-2 py-0.5 rounded-full border border-[#eee5d8] leading-none">📝</div>
                         <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
                     </div>
                     ` : ''}
@@ -2265,7 +2265,7 @@ function renderSavedScreen() {
                                     <div class="min-w-0 flex-1">
                                         ${readingText ? `<div class="text-[10px] font-bold leading-none" style="color:${textColor};">${readingText}</div>` : ''}
                                         <div data-fit-saved-name="card" class="${readingText ? 'mt-0.5' : 'mt-0'} w-full overflow-hidden whitespace-nowrap text-ellipsis text-[17px] font-black leading-tight text-[#5d5444]">${nameText}</div>
-                                        ${messageText ? `<div class="mt-1 text-[10px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                                        ${messageText ? `<div class="mt-1 text-[10px] text-[#bca37f]">📝 ${messageText}</div>` : ''}
                                     </div>
                                     <div class="flex shrink-0 flex-col items-end gap-2">
                                         <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[5.8rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
@@ -2288,7 +2288,7 @@ function renderSavedScreen() {
                             <div class="min-w-0 flex-1">
                                 ${readingText ? `<div class="text-[10px] font-bold leading-none" style="color:${textColor};">${readingText}</div>` : ''}
                                 <div data-fit-saved-name="card" class="${readingText ? 'mt-0.5' : 'mt-0'} w-full overflow-hidden whitespace-nowrap text-ellipsis text-[17px] font-black leading-tight text-[#5d5444]">${nameText}</div>
-                                ${messageText ? `<div class="mt-1 text-[10px] text-[#bca37f]">メモ ${messageText}</div>` : ''}
+                                ${messageText ? `<div class="mt-1 text-[10px] text-[#bca37f]">📝 ${messageText}</div>` : ''}
                             </div>
                             <div class="flex shrink-0 flex-col items-end gap-2">
                                 <button onclick="event.stopPropagation(); ${buttonAction}" ${selected ? 'disabled' : ''} class="min-w-[5.8rem] rounded-full px-3 py-1.5 text-[10px] font-black ${buttonClass}">
