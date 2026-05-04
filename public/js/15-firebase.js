@@ -136,6 +136,13 @@ if (firebaseAuth) {
                     })
                     .catch((error) => console.warn('PREMIUM: silent purchase sync failed', error));
             }
+            const skipDataRestore = typeof wasMeimayAppDataRecentlyDeleted === 'function'
+                && wasMeimayAppDataRecentlyDeleted();
+            if (skipDataRestore) {
+                console.log('FIREBASE: Data restore skipped after app data deletion');
+                seedReadingStatsFromLocalHistory();
+                return;
+            }
             if (window.MeimayUserBackup && typeof window.MeimayUserBackup.bootstrapForUser === 'function') {
                 await window.MeimayUserBackup.bootstrapForUser(user);
             }
@@ -1004,8 +1011,19 @@ const MeimayPairing = {
     _syncInProgress: false,
     _syncPending: false,
 
+    beginAppDataDeletion: function () {
+        this._syncPending = false;
+        this._isLeavingRoom = true;
+        try {
+            this._stopListening?.();
+        } catch (e) {
+            console.warn('PAIRING: Stop listening failed before app data deletion', e);
+        }
+    },
+
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
+        if (typeof wasMeimayAppDataRecentlyDeleted === 'function' && wasMeimayAppDataRecentlyDeleted()) return;
         const code = localStorage.getItem('meimay_room_code');
         const slot = localStorage.getItem('meimay_room_slot');
         const role = localStorage.getItem('meimay_my_role');
@@ -1345,6 +1363,7 @@ const MeimayPairing = {
 
     // 閾ｪ蛻・・繝・・繧ｿ繧偵Ν繝ｼ繝縺ｫ繧｢繝・・繝ｭ繝ｼ繝会ｼ亥酔譛滂ｼ・
     syncMyData: async function () {
+        if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
         const user = MeimayAuth.getCurrentUser();
         if (!user || !this.roomCode || this._isLeavingRoom) return;
 
@@ -2698,6 +2717,9 @@ async function handleEnterCode() {
 MeimayPairing._autoSyncDebounced = (function () {
     let timer = null;
     return function (reason = 'unknown') {
+        if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) {
+            return;
+        }
         // 復元中はデバウンスされた実行もスキップ
         if (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight) {
             return;
@@ -2711,6 +2733,7 @@ MeimayPairing._autoSyncDebounced = (function () {
 })();
 
 function queuePartnerStockSync(reason = 'stock') {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return false;
     if (typeof MeimayPairing === 'undefined' || !MeimayPairing.roomCode) return false;
     if (typeof MeimayPairing._autoSyncDebounced !== 'function') return false;
     MeimayPairing._autoSyncDebounced(reason);
@@ -2721,6 +2744,7 @@ window.queuePartnerStockSync = queuePartnerStockSync;
 
 let roomSyncSuspendInFlight = false;
 function flushRoomSyncOnSuspend() {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     if (roomSyncSuspendInFlight) return;
     if (!MeimayPairing || !MeimayPairing.roomCode || typeof MeimayPairing.syncMyData !== 'function') return;
 
@@ -4313,6 +4337,7 @@ function getRoomSyncLikedItems() {
 }
 
 MeimayPairing.syncMyData = async function () {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     const user = MeimayAuth.getCurrentUser();
     if (!user || !this.roomCode) return;
     
@@ -5107,6 +5132,24 @@ const MeimayUserBackup = {
     _restoreKeyLength: 16,
     _restoreKeyAlphabet: '23456789ABCDEFGHJKLMNPQRSTUVWXYZ',
     _restoreApiPath: '/api/backup-restore',
+
+    _isAppDataDeletionInProgress: function () {
+        return typeof isMeimayAppDataDeletionInProgress === 'function'
+            && isMeimayAppDataDeletionInProgress();
+    },
+
+    _wasAppDataRecentlyDeleted: function () {
+        return typeof wasMeimayAppDataRecentlyDeleted === 'function'
+            && wasMeimayAppDataRecentlyDeleted();
+    },
+
+    beginAppDataDeletion: function () {
+        this._remoteBackupDisabled = true;
+        this._restoreInFlight = true;
+        this._syncInFlight = false;
+        clearTimeout(this._syncTimer);
+        this._syncTimer = null;
+    },
 
     _isPermissionDeniedError: function (error) {
         const code = String(error?.code || error?.name || '').toLowerCase();
@@ -5972,6 +6015,7 @@ const MeimayUserBackup = {
 
     syncLocalToRemote: async function (user = null, options = {}) {
         const currentUser = user || this._currentUser();
+        if (this._isAppDataDeletionInProgress()) return false;
         if (this._remoteBackupDisabled) return false;
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return false;
 
@@ -6004,6 +6048,7 @@ const MeimayUserBackup = {
 
     bootstrapForUser: async function (user = null) {
         const currentUser = user || this._currentUser();
+        if (this._wasAppDataRecentlyDeleted()) return false;
         if (this._remoteBackupDisabled) return false;
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return false;
         if (this._restoreInFlight) return false;
@@ -6096,6 +6141,7 @@ const MeimayUserBackup = {
     },
 
     scheduleSync: function (reason = 'save') {
+        if (this._isAppDataDeletionInProgress()) return;
         if (this._restoreInFlight) return;
         if (this._remoteBackupDisabled) return;
         const currentUser = this._currentUser();

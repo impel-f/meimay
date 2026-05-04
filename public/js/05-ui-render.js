@@ -2311,9 +2311,9 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing) {
     }
     if (readingStockCount === 0) {
         return {
-            title: 'まずは響きから探しましょう',
+            title: 'まずは読みをさがしましょう',
             detail: '好きな響きや呼びたい音から、名前の読み候補を集めます。',
-            actionLabel: '響きを探す',
+            actionLabel: '読みをさがす',
             action: 'sound'
         };
     }
@@ -2524,7 +2524,7 @@ function getHomeStageFocusAction(stageKey, likedCount, readingStockCount, savedC
     const hasReadingCandidate = readingStockCount > 0 || wizard.hasReadingCandidate === true;
 
     if (stageKey === 'reading') {
-        return hasReadingCandidate ? 'reading' : 'sound';
+        return readingStockCount > 0 ? 'stock-reading' : 'sound';
     }
 
     if (stageKey === 'kanji') {
@@ -2927,7 +2927,7 @@ function openHomeInsightsModal() {
             <button class="modal-close-x" onclick="closeHomeInsightsModal()">✕</button>
             <div class="pt-4 pb-2">
                 <h3 class="text-[24px] font-black text-[#4f4639]">名づけの進み具合</h3>
-                <p class="mt-2 text-[12px] leading-relaxed text-[#8b7e66]">いま集まっている候補と、次にやることだけをまとめています。</p>
+                <p class="mt-2 text-[12px] leading-relaxed text-[#8b7e66]">いま集まっている候補と、ここでやることだけをまとめています。</p>
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3">
                 ${cardHtml}
@@ -3514,7 +3514,7 @@ function renderHomeProfileV2() {
                 </div>
 
                 <div class="mt-4 rounded-2xl border border-white/70 bg-white/70 px-4 py-3">
-                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">次にやること</div>
+                    <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">ここでやること</div>
                     <div class="mt-1 text-sm font-black text-[#4f4639]">${nextStep?.title || '次に進める候補を育てよう'}</div>
                     <div class="mt-1 text-[11px] leading-relaxed text-[#8b7e66]">${nextStep?.detail || '読みや漢字を少しずつ集めるほど、ふたりの候補が見えやすくなります。'}</div>
                     <div class="mt-3 flex items-center gap-2">
@@ -3671,7 +3671,7 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
 
     switch (action) {
     case 'sound':
-        config.title = '響きをさがす';
+        config.title = '読みをさがす';
         config.detailHtml = '好きな響きから<br>読み候補を探します';
         config.alternateAction = 'reading';
         config.alternateLabel = '漢字をさがす';
@@ -3733,7 +3733,7 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
     }
 
     if (action === 'sound') {
-        config.title = '響きをさがす';
+        config.title = '読みをさがす';
     }
     if (action === 'reading') {
         config.title = '漢字をさがす';
@@ -3958,7 +3958,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
             <div class="rounded-[24px] px-5 py-5">
                 <div class="flex items-center justify-between gap-3">
-                    <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡次にやること</div>
+                    <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡ここでやること</div>
                     <button type="button" onclick="showHomeNextActionHint(event)" class="shrink-0 rounded-full border border-[#eadfce] bg-white/80 px-3 py-1.5 text-[10px] font-black text-[#b9965b] shadow-sm active:scale-95">
                         ヒント
                     </button>
@@ -4154,8 +4154,8 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
 
     const readingEmptyLines = hasWizardReadingCandidate
         ? [
-            '読み候補がある状態です。',
-            'まずはその読みで使いたい漢字を探しましょう。'
+            '読み候補はまだストックに入っていません。',
+            '気になる読みを入力するか、響きから探して候補に残しましょう。'
         ]
         : [
             '名づけはまだ最初の段階です。',
@@ -4178,16 +4178,14 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
 
         return setCopy(
             '読み',
-            isReadingEmpty && hasWizardReadingCandidate ? 'reading' : 'sound',
-            isReadingEmpty
-                ? (hasWizardReadingCandidate ? '漢字を探す' : '響きを探す')
-                : '響きを探す',
+            'sound',
+            '読みをさがす',
             statusLines,
             [{ label: '読み', value: readingCount, unit: '件' }],
             readingCount > 0
                 ? 'stock-reading'
-                : (hasWizardReadingCandidate ? 'sound' : ''),
-            readingCount > 0 ? '集めた読みを見る' : '響きも探す'
+                : '',
+            readingCount > 0 ? '集めた読みを見る' : ''
         );
     }
 

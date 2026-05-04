@@ -245,6 +245,19 @@
         return `${givenName}::${combinationKey}::${givenReading}`.trim();
     }
 
+    function getSavedItemWorkspaceChildId(item) {
+        return String(item?.workspaceChildId || item?.meimayChildId || item?.childWorkspaceId || '').trim();
+    }
+
+    function stampSavedItemWorkspaceChild(item, childId) {
+        const safeChildId = String(childId || '').trim();
+        const next = cloneData(item, null);
+        if (!next || !safeChildId) return next;
+        next.workspaceChildId = safeChildId;
+        next.meimayChildId = safeChildId;
+        return next;
+    }
+
     function canonicalizeWorkspaceSavedKey(value) {
         const raw = String(value || '').trim();
         if (!raw) return '';
@@ -840,7 +853,7 @@
                     kanjiStock: this.normalizeKanjiLibrary(childRecord?.libraries?.kanjiStock, {
                         likedRemovalSource: options.likedRemovalSource
                     }),
-                    savedNames: this.normalizeSavedLibrary(childRecord?.libraries?.savedNames),
+                    savedNames: this.normalizeSavedLibrary(childRecord?.libraries?.savedNames, { childId: safeId }),
                     readingHistory: cloneData(childRecord?.libraries?.readingHistory, []),
                     hiddenReadings: cloneData(childRecord?.libraries?.hiddenReadings, []),
                     noped: cloneData(childRecord?.libraries?.noped, [])
@@ -1202,7 +1215,7 @@
                 libraries: {
                     readingStock: this.normalizeReadingLibrary(typeof getReadingStock === 'function' ? getReadingStock() : readJsonArray('meimay_reading_stock')),
                     kanjiStock: this.normalizeKanjiLibrary(typeof liked !== 'undefined' ? liked : []),
-                    savedNames: this.normalizeSavedLibrary(typeof getSavedNames === 'function' ? getSavedNames() : (typeof savedNames !== 'undefined' ? savedNames : [])),
+                    savedNames: this.normalizeSavedLibrary(typeof savedNames !== 'undefined' ? savedNames : (typeof getSavedNames === 'function' ? getSavedNames() : []), { childId: String(existingMeta.id || '').trim() }),
                     readingHistory: cloneData(typeof getReadingHistory === 'function' ? getReadingHistory() : readJsonArray('meimay_reading_history'), []),
                     hiddenReadings: cloneData(readJsonArray('meimay_hidden_readings'), []),
                     noped: typeof noped !== 'undefined' ? cloneData(Array.from(noped), []) : []
@@ -1251,6 +1264,16 @@
 
         getActiveChild() {
             return this.getChildById(this.root?.activeChildId);
+        },
+
+        getActiveChildId() {
+            return String(this.root?.activeChildId || '').trim();
+        },
+
+        getActiveSavedNames() {
+            const child = this.getActiveChild();
+            const childId = String(child?.meta?.id || this.getActiveChildId()).trim();
+            return this.normalizeSavedLibrary(child?.libraries?.savedNames || [], { childId });
         },
 
         normalizeReadingLibrary(items) {
@@ -1305,16 +1328,21 @@
             return cloneData(next, []);
         },
 
-        normalizeSavedLibrary(items) {
+        normalizeSavedLibrary(items, options = {}) {
             const source = Array.isArray(items) ? items : [];
+            const ownerChildId = String(options.childId || '').trim();
             const hydrated = source.map((item) => (
                 typeof window !== 'undefined'
                     && window.MeimayFirestorePayload
                     && typeof window.MeimayFirestorePayload.hydrateSavedItem === 'function'
                     ? window.MeimayFirestorePayload.hydrateSavedItem(item)
                     : item
-            )).filter(Boolean);
-            return this.mergeSavedLibraries([], hydrated).items;
+            )).filter((item) => {
+                if (!item) return false;
+                const itemChildId = getSavedItemWorkspaceChildId(item);
+                return !ownerChildId || !itemChildId || itemChildId === ownerChildId;
+            }).map((item) => ownerChildId ? stampSavedItemWorkspaceChild(item, ownerChildId) : item);
+            return this.mergeSavedLibraries([], hydrated, ownerChildId ? { targetChildId: ownerChildId } : {}).items;
         },
 
         mergeReadingLibraries(targetItems = [], sourceItems = []) {
@@ -1364,13 +1392,16 @@
             let addedCount = 0;
             (Array.isArray(sourceItems) ? sourceItems : []).forEach((item) => {
                 if (item?.fromPartner === true) return;
-                const normalized = cloneData(item, null);
+                let normalized = cloneData(item, null);
                 if (!normalized) return;
                 const key = this.getSavedItemKey(normalized);
                 if (!key || seenKeys.has(key)) return;
                 seenKeys.add(key);
                 normalized.copiedFromChildId = options.sourceChildId || '';
                 normalized.copiedFromChildLabel = options.sourceLabel || '';
+                if (options.targetChildId) {
+                    normalized = stampSavedItemWorkspaceChild(normalized, options.targetChildId);
+                }
                 merged.push(normalized);
                 addedCount += 1;
             });
@@ -1426,6 +1457,7 @@
         },
 
         persistActiveChildSnapshot(reason = 'manual') {
+            if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
             if (!this.initialized || this._persistenceLocked || !this.root) return;
             const activeChild = this.getActiveChild();
             if (!activeChild) return;
@@ -1862,7 +1894,7 @@
                     imageTags: Array.isArray(prefs.imageTags) && prefs.imageTags.length > 0 ? cloneData(prefs.imageTags, ['none']) : ['none']
                 },
                 draft: createBlankChildDraft(),
-                libraries: this.buildInitialLibrariesForCreate(options.startMode, options.sourceChildId)
+                libraries: this.buildInitialLibrariesForCreate(options.startMode, options.sourceChildId, options.copySections, id)
             };
         },
 
@@ -1888,7 +1920,11 @@
             const target = this.getActiveChild();
             target.libraries.readingStock = this.mergeReadingLibraries(target.libraries.readingStock, sourceChild.libraries.readingStock).items;
             target.libraries.kanjiStock = this.mergeKanjiLibraries(target.libraries.kanjiStock, sourceChild.libraries.kanjiStock, { sourceChildId, sourceLabel: sourceChild.meta.displayLabel }).items;
-            target.libraries.savedNames = this.mergeSavedLibraries(target.libraries.savedNames, sourceChild.libraries.savedNames, { sourceChildId, sourceLabel: sourceChild.meta.displayLabel }).items;
+            target.libraries.savedNames = this.mergeSavedLibraries(target.libraries.savedNames, sourceChild.libraries.savedNames, {
+                sourceChildId,
+                sourceLabel: sourceChild.meta.displayLabel,
+                targetChildId: target.meta.id
+            }).items;
             target.meta.updatedAt = getNowIso();
             this.saveRoot(this.root);
             this.applyActiveChildToGlobals({ reason: 'copy-child' });
@@ -4001,7 +4037,7 @@
             this.notify(createAutoNotice ? `${this.getChildLabel(nextId)} を追加しました。${createAutoNotice}` : `${this.getChildLabel(nextId)} を追加しました`, '✓');
         },
 
-        buildInitialLibrariesForCreate(startMode = 'blank', sourceChildId = '', copySections = []) {
+        buildInitialLibrariesForCreate(startMode = 'blank', sourceChildId = '', copySections = [], targetChildId = '') {
             const blank = createBlankChildLibraries();
             if (startMode !== 'copy') return blank;
             const sourceChild = this.getChildById(sourceChildId);
@@ -4019,7 +4055,8 @@
             if (selected.has('saved')) {
                 next.savedNames = this.mergeSavedLibraries([], sourceChild.libraries?.savedNames, {
                     sourceChildId,
-                    sourceLabel: sourceChild.meta?.displayLabel || '第一子'
+                    sourceLabel: sourceChild.meta?.displayLabel || '第一子',
+                    targetChildId
                 }).items;
             }
             return next;

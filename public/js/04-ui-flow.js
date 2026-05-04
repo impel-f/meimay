@@ -3711,8 +3711,8 @@ const CONTEXT_COACH_CONFIGS = {
         target: '#home-stage-track',
         placement: 'bottom',
         kicker: 'はじめてのヒント',
-        title: '迷ったら「次にやること」から',
-        body: 'ホームでは、読み・漢字・ビルド・保存の進み具合を確認できます。迷ったときは「次にやること」を見れば、今進める場所が分かります。'
+        title: '迷ったら「ここでやること」から',
+        body: 'ホームでは、読み・漢字・ビルド・保存の進み具合を確認できます。迷ったときは「ここでやること」を見れば、今進める場所が分かります。'
     },
     'scr-input-sound-entry': () => {
         if (document.getElementById('search-method-choice-list')) {
@@ -4036,7 +4036,7 @@ function maybeShowHomeNextActionCoach(nextStep, options = {}) {
     writeContextCoachState(state);
 
     const title = String(nextStep.title || '次はここから').trim();
-    const detail = String(nextStep.detail || 'ホームの次にやることが更新されました。').trim();
+    const detail = String(nextStep.detail || 'ホームのここでやることが更新されました。').trim();
     const delay = Number.isFinite(options.delay) ? options.delay : 680;
 
     if (contextCoachTimer) {
@@ -4053,7 +4053,7 @@ function maybeShowHomeNextActionCoach(nextStep, options = {}) {
             key: 'home-next-action',
             target: '#home-next-action-card',
             placement: 'bottom',
-            kicker: '次にやること',
+            kicker: 'ここでやること',
             title: `次は「${title}」`,
             body: detail
         }, { force: true });

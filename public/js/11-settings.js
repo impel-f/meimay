@@ -527,6 +527,26 @@ async function deleteMeimayAppData() {
     setDeleteAppDataStatus('削除しています。画面を閉じずにお待ちください。');
 
     const warnings = [];
+    const deletionStamp = typeof markMeimayAppDataDeletionInProgress === 'function'
+        ? markMeimayAppDataDeletionInProgress()
+        : new Date().toISOString();
+
+    try {
+        if (typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup.beginAppDataDeletion === 'function') {
+            MeimayUserBackup.beginAppDataDeletion();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to suspend remote backup before data deletion', error);
+    }
+
+    try {
+        if (typeof MeimayPairing !== 'undefined' && MeimayPairing && typeof MeimayPairing.beginAppDataDeletion === 'function') {
+            MeimayPairing.beginAppDataDeletion();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to suspend pairing before data deletion', error);
+    }
+
     try {
         if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.stopListening === 'function') {
             MeimayShare.stopListening();
@@ -558,18 +578,46 @@ async function deleteMeimayAppData() {
     const currentUser = (typeof firebaseAuth !== 'undefined' && firebaseAuth && firebaseAuth.currentUser)
         ? firebaseAuth.currentUser
         : (typeof MeimayAuth !== 'undefined' && MeimayAuth ? MeimayAuth.getCurrentUser() : null);
+    let anonymousDeleteFailed = false;
     try {
         if (currentUser && typeof currentUser.delete === 'function') {
             await currentUser.delete();
         }
     } catch (error) {
         console.warn('SETTINGS: Failed to delete anonymous Firebase user', error);
-        warnings.push('匿名IDの削除に失敗しました');
+        anonymousDeleteFailed = true;
+    }
+
+    try {
+        if (typeof firebaseAuth !== 'undefined' && firebaseAuth && typeof firebaseAuth.signOut === 'function' && firebaseAuth.currentUser) {
+            await firebaseAuth.signOut();
+        }
+    } catch (error) {
+        console.warn('SETTINGS: Failed to sign out Firebase user after data deletion', error);
+        warnings.push(anonymousDeleteFailed ? '匿名IDの削除と切断に失敗しました' : '匿名IDの切断に失敗しました');
+    }
+
+    try {
+        if (Array.isArray(liked)) liked.splice(0, liked.length);
+        if (Array.isArray(savedNames)) savedNames.splice(0, savedNames.length);
+        if (typeof seen !== 'undefined' && seen && typeof seen.clear === 'function') seen.clear();
+        if (typeof noped !== 'undefined' && noped && typeof noped.clear === 'function') noped.clear();
+        if (typeof segments !== 'undefined') segments = [];
+        if (typeof surnameStr !== 'undefined') surnameStr = '';
+        if (typeof surnameReading !== 'undefined') surnameReading = '';
+        if (typeof surnameData !== 'undefined') surnameData = [];
+    } catch (error) {
+        console.warn('SETTINGS: Failed to clear in-memory state during data deletion', error);
     }
 
     try {
         localStorage.clear();
         sessionStorage.clear();
+        if (typeof markMeimayAppDataDeleted === 'function') {
+            markMeimayAppDataDeleted(deletionStamp);
+        } else {
+            localStorage.setItem('meimay_app_data_deleted_at_v1', deletionStamp);
+        }
     } catch (error) {
         console.warn('SETTINGS: Failed to clear local storage', error);
     }

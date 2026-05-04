@@ -218,6 +218,9 @@ const StorageBox = {
      * 全状態を保存
      */
     saveAll: function (options = {}) {
+        if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) {
+            return false;
+        }
         try {
             const safeLiked = this._filterRemovedLikedItems(Array.isArray(liked) ? liked : []);
             if (typeof syncReadingStockFromLiked === 'function') {
@@ -714,6 +717,7 @@ const StorageBox = {
 
 // 定期的な自動保存（30秒ごと）
 setInterval(() => {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     if (liked.length > 0 || savedNames.length > 0) {
         StorageBox.saveAll({ skipPartnerSync: true });
     }
@@ -721,6 +725,7 @@ setInterval(() => {
 
 // ページ離脱時に保存
 window.addEventListener('beforeunload', () => {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     StorageBox.saveAll();
 });
 

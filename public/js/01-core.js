@@ -25,6 +25,9 @@ let prioritizeFortune = false;
 let savedNames = [];
 
 const MEIMAY_PRODUCTION_API_ORIGIN = 'https://meimay.vercel.app';
+const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
+const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
+const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
 
 function isNativeAppRuntime() {
     try {
@@ -47,6 +50,42 @@ function getMeimayApiUrl(path) {
         : normalizedPath;
 }
 window.getMeimayApiUrl = getMeimayApiUrl;
+
+function isMeimayAppDataDeletionInProgress() {
+    if (window.__meimayDeletingAppData === true) return true;
+    try {
+        return sessionStorage.getItem(MEIMAY_APP_DATA_DELETE_FLAG_KEY) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+window.isMeimayAppDataDeletionInProgress = isMeimayAppDataDeletionInProgress;
+
+function wasMeimayAppDataRecentlyDeleted() {
+    if (isMeimayAppDataDeletionInProgress()) return true;
+    try {
+        const raw = localStorage.getItem(MEIMAY_APP_DATA_DELETED_AT_KEY) || '';
+        const timestamp = Date.parse(raw);
+        return Number.isFinite(timestamp) && (Date.now() - timestamp) < MEIMAY_APP_DATA_DELETE_RECENT_MS;
+    } catch (e) {
+        return false;
+    }
+}
+window.wasMeimayAppDataRecentlyDeleted = wasMeimayAppDataRecentlyDeleted;
+
+function markMeimayAppDataDeletionInProgress(stamp = new Date().toISOString()) {
+    window.__meimayDeletingAppData = true;
+    try { sessionStorage.setItem(MEIMAY_APP_DATA_DELETE_FLAG_KEY, '1'); } catch (e) { }
+    try { localStorage.setItem(MEIMAY_APP_DATA_DELETED_AT_KEY, stamp); } catch (e) { }
+    return stamp;
+}
+window.markMeimayAppDataDeletionInProgress = markMeimayAppDataDeletionInProgress;
+
+function markMeimayAppDataDeleted(stamp = new Date().toISOString()) {
+    try { localStorage.setItem(MEIMAY_APP_DATA_DELETED_AT_KEY, stamp); } catch (e) { }
+    return stamp;
+}
+window.markMeimayAppDataDeleted = markMeimayAppDataDeleted;
 
 function formatSwipeProgressText(options = {}) {
     const toCount = (value) => {

@@ -197,6 +197,13 @@ function executeSaveWithMessage() {
 
     const saved = getSavedNames();
     const wasFirstSavedName = saved.length === 0;
+    const activeWorkspaceChildId = String(
+        (typeof window !== 'undefined'
+            && window.MeimayChildWorkspaces
+            && typeof window.MeimayChildWorkspaces.getActiveChildId === 'function')
+            ? window.MeimayChildWorkspaces.getActiveChildId()
+            : ''
+    ).trim();
 
     // 重複チェック (名前の文字列だけでなく、構成も完全に一致する場合のみ重複とみなす)
     const duplicateItem = saved.find(item =>
@@ -221,6 +228,10 @@ function executeSaveWithMessage() {
         ...currentBuildResult,
         message: message,
         savedAt: new Date().toISOString(),
+        ...(activeWorkspaceChildId ? {
+            workspaceChildId: activeWorkspaceChildId,
+            meimayChildId: activeWorkspaceChildId
+        } : {}),
         readingStatsTracked: isDuplicate ? duplicateItem?.readingStatsTracked === true : true
     };
 
@@ -1399,6 +1410,21 @@ console.log("HISTORY: Module loaded (v2.0)");
 
 function getSavedNames() {
     try {
+        const childManager = typeof window !== 'undefined' ? window.MeimayChildWorkspaces : null;
+        if (
+            childManager
+            && childManager.initialized
+            && !childManager._persistenceLocked
+            && typeof childManager.getActiveSavedNames === 'function'
+        ) {
+            const childList = childManager.getActiveSavedNames();
+            if (Array.isArray(childList)) {
+                const list = childList.filter(item => !item?.fromPartner);
+                if (typeof savedNames !== 'undefined') savedNames = list;
+                return list;
+            }
+        }
+
         const data = localStorage.getItem('meimay_saved');
         const hadSavedState = data !== null || localStorage.getItem('meimay_saved_cleared_at') !== null;
         const rawList = data ? JSON.parse(data) : [];
