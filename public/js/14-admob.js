@@ -2097,6 +2097,16 @@ function updatePremiumUI() {
         renderSavedScreen();
     }
 
+    const stockScreen = document.getElementById('scr-stock');
+    if (typeof renderStock === 'function' && stockScreen && stockScreen.classList.contains('active')) {
+        renderStock();
+    }
+
+    const buildScreen = document.getElementById('scr-build');
+    if (typeof renderBuildSelection === 'function' && buildScreen && buildScreen.classList.contains('active')) {
+        renderBuildSelection();
+    }
+
     if (typeof updateDailyRemainingDisplay === 'function') {
         updateDailyRemainingDisplay();
     }
@@ -2289,6 +2299,9 @@ async function syncPurchaseStateFromPremiumModal() {
     try {
         await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
         const isActive = PremiumManager.isPremium();
+        if (typeof updatePremiumUI === 'function') {
+            updatePremiumUI();
+        }
         if (isActive && !wasActive) {
             showPremiumModal({ skipAutoSync: true, syncMessage: '購入状態を同期しました。' });
         } else {
@@ -2334,6 +2347,12 @@ function showPremiumModal(options = {}) {
 
     if (!state.active && !(options && options.skipAutoSync)) {
         setTimeout(syncPurchaseStateFromPremiumModal, 120);
+    } else if (state.active) {
+        setTimeout(() => {
+            if (typeof updatePremiumUI === 'function') {
+                updatePremiumUI();
+            }
+        }, 0);
     }
 }
 
