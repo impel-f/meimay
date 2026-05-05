@@ -363,7 +363,7 @@ const PREMIUM_PRODUCT_PLANS = [
 
 const RevenueCatConfig = {
     iosPublicSdkKey: 'appl_iANPgUKzgQIuwcKXMrvmSKkxIhX',
-    androidPublicSdkKey: '',
+    androidPublicSdkKey: 'goog_nGTVnxTHOlZfOYFgSSbqXwtOyIE',
     entitlementId: 'premium',
     offeringId: 'default',
     packageIdentifiersByProductId: {
