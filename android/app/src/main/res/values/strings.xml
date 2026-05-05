@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">メイメー</string>
+    <string name="title_activity_main">メイメー</string>
+    <string name="package_name">com.impelf.meimay</string>
+    <string name="custom_url_scheme">com.impelf.meimay</string>
+    <string name="admob_app_id">ca-app-pub-9172754377890289~3397321817</string>
+</resources>

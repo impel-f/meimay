@@ -2070,6 +2070,14 @@ function renderSavedScreen() {
 
     const ownVisibleItems = ownDecoratedAll.filter(entry => entry.isVisibleOwn);
 
+    const shouldShowPartnerSavedEntry = (item) => {
+        if (!item) return false;
+        // 相手がこちらの候補を本命にしただけのコピーは、相手の候補としては並べない。
+        // 本命キーの判定には partnerSaved 全体を使うので、一致表示は維持される。
+        if (item.approvedFromPartner === true) return false;
+        return true;
+    };
+
     const partnerDecorated = partnerSaved.map((item, index) => {
         const key = getSavedCandidateKey(item);
         const ownSelected = !!canvasState.ownKey && key === canvasState.ownKey;
@@ -2082,7 +2090,7 @@ function renderSavedScreen() {
             ownSelected,
             partnerSelected,
             shared,
-            showInList: true
+            showInList: shouldShowPartnerSavedEntry(item)
         };
     }).filter(entry => entry.showInList).sort((a, b) => {
         if (a.partnerSelected !== b.partnerSelected) return a.partnerSelected ? -1 : 1;

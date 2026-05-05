@@ -3260,7 +3260,6 @@
 
         buildPartnerAlignmentSeparateCard(partnerChild) {
             const title = getChildWorkspaceOwnerLabel(partnerChild, 'パートナーの子');
-            const slotKey = getChildWorkspaceSlotKey(partnerChild);
             return `
                 <div class="meimay-child-align-pair-card">
                     <div class="meimay-child-align-pair-head">
@@ -3272,21 +3271,19 @@
                         <span>📅 ${escapeHtml(getChildWorkspaceDateText(partnerChild))}</span>
                     </div>
                     <div class="meimay-child-align-pair-desc">この端末にはまだない生まれ順です。第一子と第二子などは混ぜず、別の名づけ帳として追加します。</div>
-                    <div class="meimay-child-card-actions" style="margin-top:12px">
-                        <button type="button" class="meimay-child-modal-btn meimay-child-accept" onclick="MeimayChildWorkspaces.addPartnerChildAsSeparate('${escapeHtml(slotKey)}')">この子を追加する</button>
-                    </div>
                 </div>
             `;
         },
 
         getPartnerAlignmentConfirmableRows(rows = this.buildPartnerAlignmentRows()) {
-            return (Array.isArray(rows) ? rows : []).filter((row) =>
-                row
-                && !row.missingLocal
-                && row.localChild
-                && row.partnerChild
-                && (!row.linked || (Array.isArray(row.issues) && row.issues.length > 0))
-            );
+            return (Array.isArray(rows) ? rows : []).filter((row) => {
+                if (!row || !row.partnerChild) return false;
+                if (row.missingLocal) return true;
+                return !!(
+                    row.localChild
+                    && (!row.linked || (Array.isArray(row.issues) && row.issues.length > 0))
+                );
+            });
         },
 
         openPartnerAlignmentModal(partnerChildSlotKey = '', localChildId = '') {
@@ -3425,6 +3422,19 @@
             let linkedCount = 0;
 
             rows.forEach((row) => {
+                if (row.missingLocal) {
+                    const partnerSlotKeyForNewChild = getChildWorkspaceSlotKey(row.partnerChild);
+                    const addedChild = this.acceptPartnerChild(partnerSlotKeyForNewChild, {
+                        allowNextBirthOrder: true,
+                        linkPartnerChild: true,
+                        silent: true,
+                        preserveActive: true,
+                        skipSave: true
+                    });
+                    if (addedChild) linkedCount += 1;
+                    return;
+                }
+
                 const localChildId = String(row.localChild?.meta?.id || '').trim();
                 const partnerSlotKey = getChildWorkspaceSlotKey(row.partnerChild);
                 const localChild = localChildId ? this.getChildById(localChildId) : this.getLocalChildBySlotKey(row.slotKey);

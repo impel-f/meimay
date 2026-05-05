@@ -1,4 +1,57 @@
 workflows:
+  android-capacitor-debug:
+    name: Android Capacitor debug build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: v22.11.0
+      java: 21
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor Android project
+        script: npx cap sync android
+      - name: Build Android debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
+
+  android-release-aab:
+    name: Android release AAB
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - android-signing
+      vars:
+        ANDROID_VERSION_NAME: "1.0"
+      node: v22.11.0
+      java: 21
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor Android project
+        script: npx cap sync android
+      - name: Prepare Android keystore
+        script: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$CM_BUILD_DIR/android/release.keystore"
+            export ANDROID_KEYSTORE_PATH="$CM_BUILD_DIR/android/release.keystore"
+          fi
+      - name: Build Android release bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/mapping/release/mapping.txt
+
   ios-capacitor-smoke:
     name: iOS Capacitor smoke build
     max_build_duration: 60
