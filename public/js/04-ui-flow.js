@@ -1139,6 +1139,10 @@ const READING_CARD_GENDER_BORDERS = {
 };
 
 const readingKanjiCache = new Map();
+const SWIPE_STOCK_TOAST_LIMITS = {
+    reading: { count: 0 },
+    kanji: { count: 0 }
+};
 let readingCombinationModalState = null;
 let readingCombinationModalOpenedAt = 0;
 let readingDetailAdvanceOnClose = null;
@@ -2698,7 +2702,7 @@ function initUniversalSwipePhysics(card) {
         active = true;
         card.style.willChange = 'transform, opacity';
         card.style.transition = 'none';
-        card.style.zIndex = '1000';
+        card.style.zIndex = '1500';
     };
 
     card.onpointermove = e => {
@@ -3949,12 +3953,15 @@ function showContextualCoachmark(config, options = {}) {
     contextCoachActiveTarget.classList.add('context-coach-target');
     contextCoachActiveTarget.setAttribute('data-context-coach-active', 'true');
 
-    if (config.demoTarget) {
+    const demoKey = `${config.key}:demo`;
+    const shouldRunDemo = !!config.demoTarget && !hasContextCoachShown(demoKey);
+    if (shouldRunDemo) {
         contextCoachDemoTarget = document.querySelector(config.demoTarget);
         if (contextCoachDemoTarget) {
             contextCoachDemoTarget.classList.remove('swipe-hint-peek-active');
             void contextCoachDemoTarget.offsetWidth;
             contextCoachDemoTarget.classList.add('swipe-hint-peek-active');
+            markContextCoachShown(demoKey);
         }
     }
 
@@ -3991,9 +3998,7 @@ function showContextualCoachmark(config, options = {}) {
     document.body.appendChild(coach);
     bindContextCoachOutsideDismiss();
 
-    if (!options.force) {
-        markContextCoachShown(config.key);
-    }
+    markContextCoachShown(config.key);
 }
 
 function maybeShowContextualCoachmark(screenId, options = {}) {
@@ -4530,10 +4535,7 @@ function maybeShowReadingSwipeCompletionCoach() {
 }
 
 function notifyReadingSwipeStockAdded(item, action) {
-    if (maybeShowReadingSwipeCompletionCoach()) return;
-    if (typeof showToast === 'function') {
-        showToast(getReadingSwipeStockToastText(item, action), action === 'super' ? '★' : '📖');
-    }
+    showSwipeStockToast('reading', getReadingSwipeStockToastText(item, action), action === 'super' ? '★' : '📖');
 }
 
 function getCurrentKanjiSwipeReading() {
@@ -4573,9 +4575,22 @@ function getKanjiSwipeStockToastText(item, action) {
 }
 
 function notifyKanjiSwipeStockAdded(item, action) {
-    if (typeof showToast === 'function') {
-        showToast(getKanjiSwipeStockToastText(item, action), action === 'up' ? '★' : '📚');
-    }
+    showSwipeStockToast('kanji', getKanjiSwipeStockToastText(item, action), action === 'up' ? '★' : '📚');
+}
+
+function showSwipeStockToast(kind, message, icon) {
+    if (typeof showToast !== 'function') return;
+    const key = kind === 'kanji' ? 'kanji' : 'reading';
+    const bucket = SWIPE_STOCK_TOAST_LIMITS[key] || (SWIPE_STOCK_TOAST_LIMITS[key] = { count: 0 });
+    bucket.count += 1;
+
+    if (bucket.count > 3 && bucket.count % 10 !== 0) return;
+
+    showToast(message, icon, null, {
+        placement: 'bottom',
+        compact: true,
+        duration: 1400
+    });
 }
 
 function syncReadingStockFromLiked(items = liked) {
@@ -5616,7 +5631,11 @@ function showUniversalSwipeCheckpointNudge() {
         const message = isReadingSwipe
             ? `${keptCount}件の読みをストック中です。一区切りで完了を押せます`
             : `${keptCount}件を候補に追加中です`;
-        showToast(message, '✓');
+        showToast(message, '✓', null, {
+            placement: 'bottom',
+            compact: true,
+            duration: 1600
+        });
     }
 }
 
@@ -5646,7 +5665,11 @@ function showKanjiSwipeCheckpointNudge(slotIdx = currentPos) {
         const message = keptCount > 0
             ? `${keptCount}件を候補に追加中です。一区切りで候補を確認できます`
             : '10枚見ました。気になる漢字は候補か本命に残せます';
-        showToast(message, '✓');
+        showToast(message, '✓', null, {
+            placement: 'bottom',
+            compact: true,
+            duration: 1600
+        });
     }
 }
 
@@ -5929,6 +5952,7 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
     curatedCandidates.forEach((kanji, index) => {
         const normalizedKanji = String(kanji || '').trim();
         if (!normalizedKanji || seen.has(normalizedKanji)) return;
+        if (shouldExcludeReadingSegmentKanji(segment, normalizedKanji, targetGender)) return;
         seen.add(normalizedKanji);
 
         const masterItem = Array.isArray(master)
@@ -5968,6 +5992,16 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
     });
 
     return items;
+}
+
+function shouldExcludeReadingSegmentKanji(segment, kanji, targetGender = gender || 'neutral') {
+    const normalizedSegment = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(segment)
+        : String(segment || '').trim();
+    const normalizedKanji = String(kanji || '').trim();
+    if (!normalizedSegment || !normalizedKanji) return false;
+
+    return targetGender === 'male' && normalizedSegment === 'こ' && normalizedKanji === '子';
 }
 
 function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = gender || 'neutral', options = {}) {
@@ -6610,6 +6644,7 @@ function getDirectCuratedReadingExamples(reading) {
     return curated
         .map((label) => String(label || '').trim())
         .filter(Boolean)
+        .filter((label) => !shouldExcludeReadingSegmentKanji(normalizedReading, label, gender || 'neutral'))
         .map((label) => ({
             label,
             locked: !isSampleKanjiAccessibleForCurrentMembership(label)
@@ -6713,13 +6748,26 @@ function selectBalancedReadingSampleExamples(examples, limit = 4) {
 
 function renderReadingModalCandidateName(candidate) {
     const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
+    const givenName = String(candidate?.givenName || '').trim();
     const locked = isReadingCandidateLockedForCurrentMembership(candidate);
-    const nameHtml = Array.from(fullName).map((char) => {
+
+    const renderGivenNameChars = (value) => Array.from(String(value || '')).map((char) => {
         if (!locked || /\s/.test(char) || isReadingNameCharAccessibleForCurrentMembership(char)) {
             return escapeHtmlText(char);
         }
         return `<span class="reading-modal-candidate-char--locked">${escapeHtmlText(char)}</span>`;
     }).join('');
+
+    let nameHtml = '';
+    if (givenName && fullName.includes(givenName)) {
+        const start = fullName.lastIndexOf(givenName);
+        const end = start + givenName.length;
+        nameHtml = escapeHtmlText(fullName.slice(0, start))
+            + renderGivenNameChars(fullName.slice(start, end))
+            + escapeHtmlText(fullName.slice(end));
+    } else {
+        nameHtml = renderGivenNameChars(fullName);
+    }
 
     return '<div class="reading-modal-candidate-name">'
         + '<span class="reading-modal-candidate-text">'

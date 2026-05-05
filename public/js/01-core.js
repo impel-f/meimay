@@ -108,7 +108,7 @@ function formatSwipeProgressText(options = {}) {
 // ============================================================
 // TOAST UTILITY
 // ============================================================
-function showToast(message, icon = '✨', onAction = null) {
+function showToast(message, icon = '✨', onAction = null, options = {}) {
     if (!document.getElementById('meimay-toast-style')) {
         const style = document.createElement('style');
         style.id = 'meimay-toast-style';
@@ -124,14 +124,17 @@ function showToast(message, icon = '✨', onAction = null) {
 
     const toast = document.createElement('div');
     toast.id = 'meimay-toast';
+    const placement = options && options.placement ? String(options.placement) : 'top';
+    const compact = !!(options && options.compact);
     toast.style.cssText = `
-        position: fixed; top: calc(60px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
-        background: rgba(93,84,68,0.95); color: white; padding: 12px 20px;
-        border-radius: 16px; font-size: 13px; font-weight: 700;
+        position: fixed; ${placement === 'bottom' ? 'top:auto;' : 'top: calc(60px + env(safe-area-inset-top, 0px));'} left: 50%; transform: translateX(-50%);
+        ${placement === 'bottom' ? 'bottom: calc(var(--ad-screen-safe-space, 0px) + 86px + env(safe-area-inset-bottom, 0px));' : ''}
+        background: rgba(93,84,68,0.95); color: white; padding: ${compact ? '10px 14px' : '12px 20px'};
+        border-radius: 16px; font-size: ${compact ? '12px' : '13px'}; font-weight: 700;
         z-index: 99999; display: flex; align-items: center; gap: 8px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.3); backdrop-filter: blur(12px);
         animation: toastIn 0.3s ease-out;
-        width: max-content; max-width: 90vw; line-height: 1.45; text-align: center;
+        width: max-content; max-width: ${compact ? 'min(78vw, 360px)' : '90vw'}; line-height: 1.45; text-align: center;
     `;
 
     const iconEl = document.createElement('span');
@@ -162,7 +165,7 @@ function showToast(message, icon = '✨', onAction = null) {
         if (!toast.parentElement) return;
         toast.style.animation = 'toastOut 0.3s ease-in forwards';
         setTimeout(() => toast.remove(), 300);
-    }, onAction ? 10000 : 4000);
+    }, Number.isFinite(options?.duration) ? Math.max(700, Number(options.duration)) : (onAction ? 10000 : 4000));
 }
 window.showToast = showToast;
 

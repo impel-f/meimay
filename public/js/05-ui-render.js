@@ -636,6 +636,8 @@ async function showKanjiDetail(data) {
     const headerMeaningEl = document.getElementById('header-meaning');
     const headerReadingEl = document.getElementById('header-reading'); // v14.3 New
     const headerBg = document.getElementById('modal-header-bg');
+    const aiButtonSlot = document.getElementById('modal-ai-button-slot');
+    const aiResultEl = document.getElementById('ai-kanji-result');
 
     if (!kanjiEl || !yojijukugoEl) return;
 
@@ -741,6 +743,8 @@ async function showKanjiDetail(data) {
     // AI生成ボタン
     const existingAiBtn = modal.querySelector('#btn-ai-kanji-detail');
     if (existingAiBtn) existingAiBtn.remove();
+    if (aiButtonSlot) aiButtonSlot.innerHTML = '';
+    if (aiResultEl) aiResultEl.innerHTML = '';
 
     if (isKanaDetail) {
         yojijukugoEl.innerHTML = '';
@@ -773,7 +777,7 @@ async function showKanjiDetail(data) {
 
         const aiSection = document.createElement('div');
         aiSection.id = 'btn-ai-kanji-detail';
-        aiSection.className = 'mb-4';
+        aiSection.className = 'w-full';
         const aiAvailable = isKanjiDetailAiAvailableForCurrentUser();
         const aiButtonClass = aiAvailable
             ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
@@ -787,13 +791,16 @@ async function showKanjiDetail(data) {
                 <span>🤖</span> ${aiButtonLabel}
             </button>
             ${aiAvailable ? '' : '<p id="kanji-detail-ai-limit-note" class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
-            <div id="ai-kanji-result" class="mt-3"></div>
         `;
 
-        // 四字熟語の上に挿入
-        const yojiWrapperAi = yojijukugoEl.parentNode;
-        if (yojiWrapperAi && yojiWrapperAi.parentNode) {
-            yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
+        // 上部の固定エリアにボタンだけ置き、結果はスクロールエリアに表示する。
+        if (aiButtonSlot) {
+            aiButtonSlot.appendChild(aiSection);
+        } else {
+            const yojiWrapperAi = yojijukugoEl.parentNode;
+            if (yojiWrapperAi && yojiWrapperAi.parentNode) {
+                yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
+            }
         }
 
         const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');

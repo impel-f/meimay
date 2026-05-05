@@ -82,7 +82,7 @@ function setupPhysics(card, data) {
         // GPU加速を有効化
         card.style.willChange = 'transform, opacity';
         card.style.transition = 'none';
-        card.style.zIndex = '1000';
+        card.style.zIndex = '1500';
     };
 
     // ポインター移動

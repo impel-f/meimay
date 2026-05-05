@@ -16,12 +16,38 @@ const AdMobConfig = {
 
 const AdMobTestAdConfig = {
     enabled: false,
+    storageKey: 'meimay_admob_test_ads',
     androidBannerId: 'ca-app-pub-3940256099942544/6300978111',
     iosBannerId: 'ca-app-pub-3940256099942544/2934735716'
 };
 
+function getAdMobTestAdFlagFromRuntime() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('admobTest') === '1' || params.get('testAds') === '1') return true;
+        if (params.get('admobTest') === '0' || params.get('testAds') === '0') return false;
+    } catch (e) { }
+
+    try {
+        return localStorage.getItem(AdMobTestAdConfig.storageKey) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function setAdMobTestAdMode(enabled) {
+    try {
+        localStorage.setItem(AdMobTestAdConfig.storageKey, enabled ? '1' : '0');
+    } catch (e) { }
+
+    hideAdBanner();
+    setTimeout(() => {
+        initAdMob();
+    }, 250);
+}
+
 function isAdMobTestAdMode() {
-    return AdMobTestAdConfig.enabled === true;
+    return AdMobTestAdConfig.enabled === true || getAdMobTestAdFlagFromRuntime();
 }
 
 function getAdMobBannerId(platform, config) {
@@ -1205,6 +1231,14 @@ window.MeimayAdMobDebug = {
             nativeFailed: nativeAdMobBannerFailed,
             safeSpace: document.body.style.getPropertyValue('--ad-screen-safe-space') || ''
         };
+    },
+    enableTestAds: function () {
+        setAdMobTestAdMode(true);
+        return this.getState();
+    },
+    disableTestAds: function () {
+        setAdMobTestAdMode(false);
+        return this.getState();
     }
 };
 

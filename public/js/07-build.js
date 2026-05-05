@@ -1320,6 +1320,33 @@ function getLikedCandidateDisplayKey(item) {
     return `${item?.fromPartner ? 'partner' : 'self'}::${baseKey}`;
 }
 
+function normalizeLikedCandidateSegmentKey(segment) {
+    const raw = String(segment || '').trim();
+    if (!raw) return '';
+    return typeof toHira === 'function' ? toHira(raw) : raw;
+}
+
+function getSegmentKanjiCandidateKey(item, segment) {
+    const kanjiKey = getLikedCandidateKanjiKey(item);
+    const segmentKey = normalizeLikedCandidateSegmentKey(segment);
+    if (!kanjiKey || !segmentKey) return '';
+    return `${segmentKey}::${kanjiKey}`;
+}
+
+function mergeLikedCandidateOwnershipState(target, source) {
+    if (!target || !source) return target;
+    const targetFromPartner = !!target.fromPartner;
+    const sourceFromPartner = !!source.fromPartner;
+    const hasBothSides = !!target.partnerAlsoPicked || !!source.partnerAlsoPicked || targetFromPartner !== sourceFromPartner;
+    target.fromPartner = hasBothSides ? false : (targetFromPartner || sourceFromPartner);
+    target.partnerAlsoPicked = hasBothSides;
+    target.partnerName = target.partnerName || source.partnerName || '';
+    target.ownSuper = !!target.ownSuper || !!source.ownSuper || (!source.fromPartner && !!source.isSuper);
+    target.partnerSuper = !!target.partnerSuper || !!source.partnerSuper || (source.fromPartner && !!source.isSuper);
+    target.isSuper = !!target.ownSuper || !!target.partnerSuper || !!target.isSuper || !!source.isSuper;
+    return target;
+}
+
 function matchesLikedCandidateTarget(item, target) {
     const normalizedTarget = String(target || '').trim();
     if (!item || !normalizedTarget) return false;
@@ -1532,20 +1559,14 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
             : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
-        const kanjiKey = getLikedCandidateDisplayKey(item);
-        const dup = segGroups[seg].find(entry => getLikedCandidateDisplayKey(entry) === kanjiKey);
+        const kanjiKey = getSegmentKanjiCandidateKey(item, seg) || getLikedCandidateDisplayKey(item);
+        const dup = segGroups[seg].find(entry => (getSegmentKanjiCandidateKey(entry, seg) || getLikedCandidateDisplayKey(entry)) === kanjiKey);
         if (!dup) {
             segGroups[seg].push(item);
             return;
         }
 
-        dup.isSuper = dup.isSuper || !!item.isSuper;
-        dup.fromPartner = dup.fromPartner || !!item.fromPartner;
-        dup.partnerAlsoPicked = dup.partnerAlsoPicked || !!item.partnerAlsoPicked;
-        dup.partnerName = dup.partnerName || item.partnerName || '';
-        dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
-        dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
-        dup.isSuper = dup.ownSuper || dup.partnerSuper;
+        mergeLikedCandidateOwnershipState(dup, item);
     });
 
     return Object.values(segGroups).reduce((sum, items) => sum + items.length, 0);
@@ -1651,13 +1672,20 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
 
 function getUniqueBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const candidates = getBuildSlotCandidates(seg, idx, currentReading, options);
-    const seen = new Set();
-    return candidates.filter(item => {
-        const buildKey = buildLikedCandidateKey(item);
-        if (seen.has(buildKey)) return false;
-        seen.add(buildKey);
-        return true;
+    const seen = new Map();
+    const unique = [];
+    candidates.forEach(item => {
+        const buildKey = getSegmentKanjiCandidateKey(item, seg) || buildLikedCandidateKey(item);
+        if (!buildKey) return;
+        if (seen.has(buildKey)) {
+            mergeLikedCandidateOwnershipState(seen.get(buildKey), item);
+            return;
+        }
+        const nextItem = item && typeof item === 'object' ? { ...item } : item;
+        seen.set(buildKey, nextItem);
+        unique.push(nextItem);
     });
+    return unique;
 }
 
 function autoSelectSingleBuildCandidates() {
@@ -1825,6 +1853,8 @@ function renderStock() {
             : `${item.sessionReading || ''}::${item['漢字'] || item.kanji}`;
         if (!uniqueMap.has(key)) {
             uniqueMap.set(key, item);
+        } else {
+            mergeLikedCandidateOwnershipState(uniqueMap.get(key), item);
         }
     });
     let validItems = Array.from(uniqueMap.values());
@@ -1860,18 +1890,13 @@ function renderStock() {
         const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
         if (!segGroups[seg]) segGroups[seg] = [];
 
-const dup = segGroups[seg].find(e => buildLikedCandidateKey(e) === buildLikedCandidateKey(item));
-if (!dup) {
-    segGroups[seg].push(item);
-} else {
-    dup.isSuper = dup.isSuper || !!item.isSuper;
-    dup.fromPartner = dup.fromPartner || !!item.fromPartner;
-    dup.partnerAlsoPicked = dup.partnerAlsoPicked || !!item.partnerAlsoPicked;
-    dup.partnerName = dup.partnerName || item.partnerName || '';
-    dup.ownSuper = dup.ownSuper || !!item.ownSuper || (!item.fromPartner && !!item.isSuper);
-    dup.partnerSuper = dup.partnerSuper || !!item.partnerSuper || (item.fromPartner && !!item.isSuper);
-    dup.isSuper = dup.ownSuper || dup.partnerSuper;
-}
+        const itemSegmentKey = getSegmentKanjiCandidateKey(item, seg) || buildLikedCandidateKey(item);
+        const dup = segGroups[seg].find(e => (getSegmentKanjiCandidateKey(e, seg) || buildLikedCandidateKey(e)) === itemSegmentKey);
+        if (!dup) {
+            segGroups[seg].push(item);
+        } else {
+            mergeLikedCandidateOwnershipState(dup, item);
+        }
     });
 
     const sortedKeys = Object.keys(segGroups).sort((a, b) => {
@@ -3874,28 +3899,9 @@ function showFortuneRanking() {
 function generateAllCombinations() {
     const currentReading = getSafeBuildCurrentReading();
     const slotArrays = segments.map((seg, idx) => {
-        let items = getBuildSlotCandidates(seg, idx, currentReading, {
+        return getUniqueBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
         });
-
-        const displaySeen = new Set();
-        items = items.filter(item => {
-            const displayKey = getLikedCandidateDisplayKey(item);
-            if (!displayKey || displaySeen.has(displayKey)) return false;
-            displaySeen.add(displayKey);
-            return true;
-        });
-        return items;
-        if (false) {
-        const seen = new Set();
-        items = items.filter(item => {
-            if (seen.has(item['漢字'])) return false;
-            seen.add(item['漢字']);
-            return true;
-        });
-
-        return items;
-        }
     });
     if (slotArrays.some(arr => arr.length === 0)) return [];
 
