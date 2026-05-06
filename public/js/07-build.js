@@ -1143,6 +1143,8 @@ function openFreeBuild() {
         if (typeof showToast === 'function') showToast('まずスワイプで漢字をストックしてください', '!');
         return;
     }
+    const buildScreen = document.getElementById('scr-build');
+    const wasBuildActive = !!(buildScreen && buildScreen.classList.contains('active'));
     buildMode = 'free';
     fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
@@ -1154,8 +1156,11 @@ function openFreeBuild() {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
-    changeScreen('scr-build');
-    requestRenderBuildSelection('open-free-build', { delayMs: 0 });
+    if (!wasBuildActive) {
+        changeScreen('scr-build');
+        showBuildPreparingState();
+    }
+    requestRenderBuildSelection('open-free-build', { delayMs: 0, immediate: wasBuildActive });
 }
 
 /**
@@ -2575,7 +2580,16 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 function openBuild(options = {}) {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
-    changeScreen('scr-build');
+    const buildScreen = document.getElementById('scr-build');
+    const wasBuildActive = !!(buildScreen && buildScreen.classList.contains('active'));
+    if (!wasBuildActive) {
+        changeScreen('scr-build');
+        const container = document.getElementById('build-selection');
+        const headerContainer = document.getElementById('build-header-sticky');
+        if ((!container || container.children.length === 0) && (!headerContainer || headerContainer.children.length === 0)) {
+            showBuildPreparingState();
+        }
+    }
 
     const prepareBuildScreen = () => {
         if (typeof options.beforePrepare === 'function') {
@@ -2617,6 +2631,7 @@ function openBuild(options = {}) {
             : null;
         requestRenderBuildSelection('open-build', {
             delayMs: 0,
+            immediate: wasBuildActive,
             afterRender: () => {
                 if (typeof additionalAfterRender === 'function') {
                     additionalAfterRender();
@@ -2629,7 +2644,9 @@ function openBuild(options = {}) {
         scheduleBuildCacheWarmup('open-build', 20, { idle: false });
     };
 
-    if (typeof requestAnimationFrame === 'function') {
+    if (wasBuildActive) {
+        prepareBuildScreen();
+    } else if (typeof requestAnimationFrame === 'function') {
         requestAnimationFrame(() => setTimeout(prepareBuildScreen, 0));
     } else {
         setTimeout(prepareBuildScreen, 0);
@@ -2642,6 +2659,8 @@ function openBuild(options = {}) {
 function openBuildFreeMode() {
     console.log("BUILD: Opening build screen in free mode");
     window._addMoreFromBuild = false;
+    const buildScreen = document.getElementById('scr-build');
+    const wasBuildActive = !!(buildScreen && buildScreen.classList.contains('active'));
     if (typeof window.clearCompoundBuildFlow === 'function') {
         window.clearCompoundBuildFlow();
     }
@@ -2652,14 +2671,19 @@ function openBuildFreeMode() {
     resetBuildCandidateVisibleLimits();
     invalidateBuildReadingChoicesCache();
     excludedKanjiFromBuild = []; // 除外リストをリセット
-    changeScreen('scr-build');
-    requestRenderBuildSelection('open-build-free-mode', { delayMs: 0 });
+    if (!wasBuildActive) {
+        changeScreen('scr-build');
+        showBuildPreparingState();
+    }
+    requestRenderBuildSelection('open-build-free-mode', { delayMs: 0, immediate: wasBuildActive });
 }
 window.openBuildFreeMode = openBuildFreeMode;
 
 function openBuildFreeModeWithChoices(choices = [], reading = '') {
     console.log("BUILD: Opening build screen in free mode with seeded choices");
     window._addMoreFromBuild = false;
+    const buildScreen = document.getElementById('scr-build');
+    const wasBuildActive = !!(buildScreen && buildScreen.classList.contains('active'));
     if (typeof window.clearCompoundBuildFlow === 'function') {
         window.clearCompoundBuildFlow();
     }
@@ -2680,9 +2704,13 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
         ? [{ reading: fbSelectedReading, score: 999999 }]
         : [];
 
-    changeScreen('scr-build');
+    if (!wasBuildActive) {
+        changeScreen('scr-build');
+        showBuildPreparingState();
+    }
     requestRenderBuildSelection('open-build-free-mode-with-choices', {
         delayMs: 0,
+        immediate: wasBuildActive,
         afterRender: () => {
             if (typeof executeFbBuild === 'function' && fbChoices.length > 0) {
                 executeFbBuild();
@@ -2715,7 +2743,7 @@ function setBuildMode(mode) {
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
-    requestRenderBuildSelection('set-build-mode', { delayMs: 0 });
+    requestRenderBuildSelection('set-build-mode', { delayMs: 0, immediate: true });
 }
 window.setBuildMode = setBuildMode;
 
@@ -2985,8 +3013,8 @@ function renderBuildSelection() {
         currentFbRecommendedReadings = [];
     }
 
-    container.innerHTML = '';
-    headerContainer.innerHTML = '';
+    const nextHeader = document.createDocumentFragment();
+    const nextContent = document.createDocumentFragment();
 
     const currentReading = getSafeBuildCurrentReading();
     const renderCandidateSource = buildMode === 'reading'
@@ -3025,14 +3053,15 @@ function renderBuildSelection() {
     namePreview.id = 'build-name-preview';
     namePreview.className = 'mt-3 mb-1 -mx-2';
 
-    headerContainer.appendChild(modeBar);
-    headerContainer.appendChild(namePreview);
-
-    updateNamePreview();
-    scheduleBuildReadingChoicesWarmup();
+    nextHeader.appendChild(modeBar);
+    nextHeader.appendChild(namePreview);
 
     if (buildMode === 'free') {
-        renderBuildFreeMode(container);
+        renderBuildFreeMode(nextContent);
+        headerContainer.replaceChildren(nextHeader);
+        container.replaceChildren(nextContent);
+        updateNamePreview();
+        scheduleBuildReadingChoicesWarmup();
         return;
     }
 
@@ -3188,7 +3217,7 @@ function renderBuildSelection() {
         }
 
         row.appendChild(scrollBox);
-        container.appendChild(row);
+        nextContent.appendChild(row);
     });
 
     const rankingBtnWrapper = document.createElement('div');
@@ -3197,8 +3226,12 @@ function renderBuildSelection() {
         <div class="text-sm font-bold">\u904b\u52e2TOP10</div>
         <div class="text-[10px] font-medium opacity-80">\u5019\u88dc\u304b\u3089\u904b\u52e2\u304c\u9ad8\u3044\u3082\u306e\u3092\u8868\u793a\u3057\u307e\u3059</div>
     </button>`;
-    if (false) container.appendChild(rankingBtnWrapper);
+    if (false) nextContent.appendChild(rankingBtnWrapper);
 
+    headerContainer.replaceChildren(nextHeader);
+    container.replaceChildren(nextContent);
+    updateNamePreview();
+    scheduleBuildReadingChoicesWarmup();
     console.log('=== BUILD DEBUG END ===');
 }
 
@@ -3211,7 +3244,7 @@ function requestRenderBuildSelection(reason = 'build', options = {}) {
         clearTimeout(buildSelectionRenderTimer);
         buildSelectionRenderTimer = null;
     }
-    buildSelectionRenderTimer = setTimeout(() => {
+    const runRender = () => {
         buildSelectionRenderTimer = null;
         const buildScreen = document.getElementById('scr-build');
         if (buildScreen && !buildScreen.classList.contains('active')) {
@@ -3227,7 +3260,12 @@ function requestRenderBuildSelection(reason = 'build', options = {}) {
                 console.error('BUILD: after render callback failed', error);
             }
         });
-    }, delayMs);
+    };
+    if (options.immediate === true) {
+        runRender();
+        return;
+    }
+    buildSelectionRenderTimer = setTimeout(runRender, delayMs);
 }
 
 window.requestRenderBuildSelection = requestRenderBuildSelection;
@@ -3346,11 +3384,7 @@ function computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, curre
         if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
         renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
     };
-    if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(compute, { timeout: 300 });
-        return;
-    }
-    setTimeout(compute, 32);
+    setTimeout(compute, 0);
 }
 
 /**
@@ -3366,7 +3400,7 @@ function toggleReadingDropdown() {
         hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
-        requestRenderBuildSelection('toggle-reading-mode', { delayMs: 0 });
+        requestRenderBuildSelection('toggle-reading-mode', { delayMs: 0, immediate: true });
         scheduleBuildCacheWarmup('toggle-reading-mode', 20, { idle: false });
         // 再描画（初回タップではドロップダウンを開かない）
         return;

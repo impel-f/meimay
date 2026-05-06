@@ -4147,7 +4147,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         heroCard.removeAttribute('onkeydown');
         heroCard.classList.remove('cursor-pointer', 'active:scale-[0.98]');
         heroCard.classList.add('cursor-default');
-        heroCard.style.cssText = 'border:1px solid rgba(224,232,238,0.96);background:linear-gradient(145deg, #f7fbff 0%, #eef7ff 54%, #fffdf7 100%);box-shadow:none;';
+        heroCard.style.cssText = `${tone.panel}box-shadow:none;`;
     }
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
