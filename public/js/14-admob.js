@@ -788,6 +788,41 @@ function getAdMobPlugin() {
         : null;
 }
 
+async function ensureNativeAdMobTrackingAuthorization(platform, AdMob) {
+    if (platform !== 'ios' || !AdMob) return;
+
+    if (nativeAdMobTrackingAuthorizationPromise) {
+        await nativeAdMobTrackingAuthorizationPromise;
+        return;
+    }
+
+    if (typeof AdMob.trackingAuthorizationStatus !== 'function'
+        || typeof AdMob.requestTrackingAuthorization !== 'function') {
+        console.warn('ADMOB: ATT API is unavailable on this AdMob plugin');
+        return;
+    }
+
+    nativeAdMobTrackingAuthorizationPromise = (async () => {
+        try {
+            const current = await AdMob.trackingAuthorizationStatus();
+            const status = String(current && current.status ? current.status : '').trim();
+            const normalizedStatus = status.toLowerCase().replace(/[_\s-]/g, '');
+            console.log('ADMOB: ATT status before ads:', status || '(unknown)');
+
+            if (normalizedStatus === 'notdetermined') {
+                await AdMob.requestTrackingAuthorization();
+                const next = await AdMob.trackingAuthorizationStatus();
+                console.log('ADMOB: ATT status after request:', next && next.status ? next.status : '(unknown)');
+            }
+        } catch (error) {
+            nativeAdMobTrackingAuthorizationPromise = null;
+            console.warn('ADMOB: ATT authorization request failed', error);
+        }
+    })();
+
+    await nativeAdMobTrackingAuthorizationPromise;
+}
+
 function getBottomFooterHeight() {
     const candidates = [
         document.getElementById('bottom-nav'),
@@ -811,6 +846,7 @@ const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
 let adBannerVisible = false;
 let adBannerMode = null;
 let nativeAdMobInitializePromise = null;
+let nativeAdMobTrackingAuthorizationPromise = null;
 let nativeAdMobListenersReady = false;
 let nativeAdMobBannerLoaded = false;
 let nativeAdMobBannerFailed = false;
@@ -1086,6 +1122,8 @@ async function initNativeAdMob(platform) {
             updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
             return;
         }
+
+        await ensureNativeAdMobTrackingAuthorization(platform, AdMob);
 
         if (!nativeAdMobInitializePromise) {
             nativeAdMobInitializePromise = AdMob.initialize({
