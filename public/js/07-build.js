@@ -101,29 +101,29 @@ function cloneBuildCandidateList(items) {
     ));
 }
 
+function getBuildEdgeSamples(list, count, getStamp) {
+    if (!Array.isArray(list) || list.length === 0 || typeof getStamp !== 'function') return [];
+    const sampleCount = Math.max(0, Number(count) || 0);
+    if (sampleCount === 0) return [];
+    const indexes = [];
+    const firstEnd = Math.min(sampleCount, list.length);
+    for (let index = 0; index < firstEnd; index += 1) indexes.push(index);
+    const lastStart = Math.max(firstEnd, list.length - sampleCount);
+    for (let index = lastStart; index < list.length; index += 1) indexes.push(index);
+    return indexes.map(index => getStamp(list[index], index));
+}
+
 function getBuildCandidateCollectionStamp(items) {
     const list = Array.isArray(items) ? items : [];
-    let latest = 0;
-    let hash = 0;
-    const samples = [];
-    list.forEach((item, index) => {
-        const time = Date.parse(item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || '') || 0;
-        if (time > latest) latest = time;
-        const itemStamp = [
-            item?.sessionReading || item?.reading || '',
-            item?.slot ?? '',
-            resolveLikedCandidateKanji(item),
-            item?.fromPartner ? 'p' : 's',
-            item?.isSuper ? 'super' : ''
-        ].join(':');
-        for (let i = 0; i < itemStamp.length; i += 1) {
-            hash = ((hash * 31) + itemStamp.charCodeAt(i)) >>> 0;
-        }
-        if (index < 4 || index >= list.length - 4) {
-            samples.push(itemStamp);
-        }
-    });
-    return `${list.length}:${latest}:${hash}:${samples.join('|')}`;
+    const samples = getBuildEdgeSamples(list, 4, (item) => [
+        item?.sessionReading || item?.reading || '',
+        item?.slot ?? '',
+        resolveLikedCandidateKanji(item),
+        item?.fromPartner ? 'p' : 's',
+        item?.isSuper ? 'super' : '',
+        item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || ''
+    ].join(':'));
+    return `${list.length}:${samples.join('|')}`;
 }
 
 function getBuildPairingStamp(pairInsights = null) {
@@ -154,20 +154,32 @@ function scheduleBuildReadingChoicesWarmup() {
         if (buildReadingChoicesCacheSignature) return;
         getBuildReadingChoices();
     };
-    if (typeof requestIdleCallback === 'function') {
-        buildReadingChoicesWarmupTimer = {
-            type: 'idle',
-            id: requestIdleCallback(warmup, { timeout: 600 })
-        };
-        return;
-    }
     buildReadingChoicesWarmupTimer = {
         type: 'timer',
-        id: setTimeout(warmup, 160)
+        id: setTimeout(warmup, 80)
     };
 }
 
-function teardownBuildScreenForNavigation() {
+function clearBuildScreenDomAfterNavigation() {
+    const buildScreen = document.getElementById('scr-build');
+    if (buildScreen && buildScreen.classList.contains('active')) return;
+
+    const headerContainer = document.getElementById('build-header-sticky');
+    const container = document.getElementById('build-selection');
+    const resultArea = document.getElementById('build-result-area');
+    if (headerContainer) headerContainer.innerHTML = '';
+    if (container) container.innerHTML = '';
+    if (resultArea) resultArea.innerHTML = '';
+}
+
+function restoreBuildScreenAfterNavigation() {
+    const buildScreen = document.getElementById('scr-build');
+    if (!buildScreen) return;
+    buildScreen.style.display = '';
+    buildScreen.style.contentVisibility = '';
+}
+
+function teardownBuildScreenForNavigation(options = {}) {
     if (buildSelectionRenderTimer) {
         clearTimeout(buildSelectionRenderTimer);
         buildSelectionRenderTimer = null;
@@ -178,15 +190,22 @@ function teardownBuildScreenForNavigation() {
     buildReadingDropdownChoices = [];
     buildReadingDropdownVisibleLimit = 0;
 
-    const headerContainer = document.getElementById('build-header-sticky');
-    const container = document.getElementById('build-selection');
-    const resultArea = document.getElementById('build-result-area');
-    if (headerContainer) headerContainer.innerHTML = '';
-    if (container) container.innerHTML = '';
-    if (resultArea) resultArea.innerHTML = '';
+    const buildScreen = document.getElementById('scr-build');
+    if (buildScreen && options.defer) {
+        buildScreen.style.contentVisibility = 'hidden';
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => setTimeout(clearBuildScreenDomAfterNavigation, 0));
+        } else {
+            setTimeout(clearBuildScreenDomAfterNavigation, 16);
+        }
+        return;
+    }
+
+    clearBuildScreenDomAfterNavigation();
 }
 
 window.teardownBuildScreenForNavigation = teardownBuildScreenForNavigation;
+window.restoreBuildScreenAfterNavigation = restoreBuildScreenAfterNavigation;
 
 function getBuildSlotVisibleKey(seg, idx, currentReading) {
     return [
@@ -337,7 +356,7 @@ function isVisibleOwnKanjiBuildItem(item) {
     return Number(item.slot) >= 0 && item.sessionReading !== 'SEARCH';
 }
 
-function getVisibleOwnKanjiBuildCandidates() {
+function getVisibleOwnKanjiBuildCandidates(options = {}) {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const source = pairInsights?.getOwnLiked
         ? pairInsights.getOwnLiked()
@@ -351,30 +370,34 @@ function getVisibleOwnKanjiBuildCandidates() {
     ].join('||');
 
     if (signature && signature === buildOwnCandidatesCacheSignature) {
-        return cloneBuildCandidateList(buildOwnCandidatesCache);
+        return options.returnCache === true
+            ? buildOwnCandidatesCache
+            : cloneBuildCandidateList(buildOwnCandidatesCache);
     }
 
     buildOwnCandidatesCacheSignature = signature;
     buildOwnCandidatesCache = source
         .map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true }))
         .filter(item => !!item && isVisibleOwnKanjiBuildItem(item));
-    return cloneBuildCandidateList(buildOwnCandidatesCache);
+    return options.returnCache === true
+        ? buildOwnCandidatesCache
+        : cloneBuildCandidateList(buildOwnCandidatesCache);
 }
 
 /**
  * 自由組み立て用：自分＋パートナー両方の漢字候補を返す
  */
-function getVisibleAllKanjiBuildCandidates() {
+function getVisibleAllKanjiBuildCandidates(options = {}) {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const isPaired = !!(pairInsights && typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode);
 
     if (!isPaired) {
         // 未連携時は自分のストックのみ
-        return getVisibleOwnKanjiBuildCandidates();
+        return getVisibleOwnKanjiBuildCandidates(options);
     }
 
     // 自分の候補
-    const ownItems = getVisibleOwnKanjiBuildCandidates();
+    const ownItems = getVisibleOwnKanjiBuildCandidates({ returnCache: true });
 
     // パートナーの候補
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
@@ -389,7 +412,9 @@ function getVisibleAllKanjiBuildCandidates() {
     ].join('||');
 
     if (signature && signature === buildAllCandidatesCacheSignature) {
-        return cloneBuildCandidateList(buildAllCandidatesCache);
+        return options.returnCache === true
+            ? buildAllCandidatesCache
+            : cloneBuildCandidateList(buildAllCandidatesCache);
     }
 
     const partnerItems = Array.isArray(partnerLikedSource)
@@ -409,10 +434,12 @@ function getVisibleAllKanjiBuildCandidates() {
 
     buildAllCandidatesCacheSignature = signature;
     buildAllCandidatesCache = [...ownItems, ...uniquePartnerItems];
-    return cloneBuildCandidateList(buildAllCandidatesCache);
+    return options.returnCache === true
+        ? buildAllCandidatesCache
+        : cloneBuildCandidateList(buildAllCandidatesCache);
 }
 
-function getVisibleReadingModeKanjiBuildCandidates() {
+function getVisibleReadingModeKanjiBuildCandidates(options = {}) {
     const isPaired = typeof window.MeimayPartnerInsights !== 'undefined'
         && typeof MeimayPairing !== 'undefined'
         && !!MeimayPairing.roomCode;
@@ -424,14 +451,18 @@ function getVisibleReadingModeKanjiBuildCandidates() {
             getBuildCandidateCollectionStamp(merged)
         ].join('||');
         if (signature && signature === buildReadingModeCandidatesCacheSignature) {
-            return cloneBuildCandidateList(buildReadingModeCandidatesCache);
+            return options.returnCache === true
+                ? buildReadingModeCandidatesCache
+                : cloneBuildCandidateList(buildReadingModeCandidatesCache);
         }
         buildReadingModeCandidatesCacheSignature = signature;
         buildReadingModeCandidatesCache = merged
             .filter(item => !!item && !isImportedKanjiLibraryItem(item));
-        return cloneBuildCandidateList(buildReadingModeCandidatesCache);
+        return options.returnCache === true
+            ? buildReadingModeCandidatesCache
+            : cloneBuildCandidateList(buildReadingModeCandidatesCache);
     }
-    return getVisibleOwnKanjiBuildCandidates();
+    return getVisibleOwnKanjiBuildCandidates(options);
 }
 
 function rememberBuildCandidateExclusions(target) {
@@ -741,23 +772,16 @@ function getBuildReadingChoiceSources() {
         ownLikedItems: Array.isArray(ownLikedItems) ? ownLikedItems : [],
         partnerLikedItems: Array.isArray(partnerLikedItems) ? partnerLikedItems : [],
         ownReadingStock: typeof getReadingStock === 'function' ? getReadingStock() : [],
-        partnerReadingStock: pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [],
-        candidateSource: getVisibleReadingModeKanjiBuildCandidates()
+        partnerReadingStock: pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : []
     };
 }
 
 function getBuildReadingCollectionStamp(items, getKey) {
     const list = Array.isArray(items) ? items : [];
-    let latest = 0;
-    const samples = [];
-    list.forEach((item, index) => {
-        const time = Date.parse(item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || '') || 0;
-        if (time > latest) latest = time;
-        if (index < 3 || index >= list.length - 3) {
-            samples.push(getKey(item));
-        }
-    });
-    return `${list.length}:${latest}:${samples.join('|')}`;
+    const samples = getBuildEdgeSamples(list, 3, (item) => (
+        `${getKey(item)}:${item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || ''}`
+    ));
+    return `${list.length}:${samples.join('|')}`;
 }
 
 function getBuildReadingChoicesSignature(sources, options = {}) {
@@ -769,14 +793,12 @@ function getBuildReadingChoicesSignature(sources, options = {}) {
         }
     })();
     return [
-        options.readyOnly === false ? 'all' : 'ready',
+        'fast',
         hiddenRaw,
-        Array.isArray(excludedKanjiFromBuild) ? excludedKanjiFromBuild.join('|') : '',
         getBuildReadingCollectionStamp(sources.ownLikedItems, (item) => `${item?.sessionReading || item?.reading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}`),
         getBuildReadingCollectionStamp(sources.partnerLikedItems, (item) => `${item?.sessionReading || item?.reading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}`),
         getBuildReadingCollectionStamp(sources.ownReadingStock, (item) => `${item?.id || item?.reading || item?.sessionReading || ''}:${Array.isArray(item?.segments) ? item.segments.join('/') : ''}`),
-        getBuildReadingCollectionStamp(sources.partnerReadingStock, (item) => `${item?.id || item?.reading || item?.sessionReading || ''}:${Array.isArray(item?.segments) ? item.segments.join('/') : ''}`),
-        getBuildReadingCollectionStamp(sources.candidateSource, (item) => `${item?.sessionReading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}:${item?.fromPartner ? 'p' : 's'}`)
+        getBuildReadingCollectionStamp(sources.partnerReadingStock, (item) => `${item?.id || item?.reading || item?.sessionReading || ''}:${Array.isArray(item?.segments) ? item.segments.join('/') : ''}`)
     ].join('||');
 }
 
@@ -840,7 +862,6 @@ function getBuildReadingChoices(options = {}) {
     const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
         ? getLatestReadingHistoryLookup()
         : {};
-    const segmentCandidateIndex = createBuildReadingSegmentCandidateIndex(sources.candidateSource, excludedKanjiFromBuild);
     const choices = new Map();
 
     const addChoice = (rawReading, rawSegments = [], source = 'self', sourceItem = null) => {
@@ -862,7 +883,8 @@ function getBuildReadingChoices(options = {}) {
             hasPartner: false,
             isSuper: false,
             addedAt: '',
-            kanjiCount: 0
+            kanjiCount: 0,
+            _candidateKeys: new Set()
         };
 
         if (source === 'partner') existing.hasPartner = true;
@@ -871,6 +893,14 @@ function getBuildReadingChoices(options = {}) {
         const addedAt = String(sourceItem?.addedAt || sourceItem?.timestamp || sourceItem?.savedAt || '');
         if (addedAt && (!existing.addedAt || Date.parse(addedAt) > Date.parse(existing.addedAt || ''))) {
             existing.addedAt = addedAt;
+        }
+        const kanjiKey = resolveLikedCandidateKanji(sourceItem);
+        if (kanjiKey) {
+            const slot = Number(sourceItem?.slot);
+            const segmentKey = Number.isFinite(slot) && slot >= 0 && candidateSegments[slot]
+                ? normalizeLikedCandidateSegmentKey(candidateSegments[slot])
+                : candidateSegments.map(normalizeLikedCandidateSegmentKey).join('/');
+            existing._candidateKeys.add(`${segmentKey || reading}::${kanjiKey}`);
         }
         choices.set(key, existing);
     };
@@ -908,24 +938,13 @@ function getBuildReadingChoices(options = {}) {
 
     const result = Array.from(choices.values())
         .map(choice => {
-            const candidateKeys = new Set();
-            const ready = (Array.isArray(choice.segments) ? choice.segments : []).every((segment) => {
-                const segmentKey = normalizeLikedCandidateSegmentKey(segment);
-                const candidates = segmentCandidateIndex.get(segmentKey);
-                if (!candidates || candidates.size === 0) return false;
-                candidates.forEach((item, key) => {
-                    if (key) candidateKeys.add(key);
-                });
-                return true;
-            });
-            if (options.readyOnly !== false && !ready) return null;
+            const candidateKeys = choice._candidateKeys instanceof Set ? choice._candidateKeys : new Set();
+            const { _candidateKeys, ...safeChoice } = choice;
             return {
-                ...choice,
+                ...safeChoice,
                 kanjiCount: candidateKeys.size
             };
         })
-        .filter(Boolean)
-        .filter(choice => choice.kanjiCount > 0)
         .sort((a, b) => {
             const aSourceRank = a.hasSelf && a.hasPartner ? 0 : a.hasSelf ? 1 : 2;
             const bSourceRank = b.hasSelf && b.hasPartner ? 0 : b.hasSelf ? 1 : 2;
@@ -946,7 +965,12 @@ function getBuildReadingChoices(options = {}) {
 
 function getReadyBuildReadingCandidate() {
     const choices = getBuildReadingChoices();
-    const first = choices[0];
+    const candidateSource = getVisibleReadingModeKanjiBuildCandidates({ returnCache: true });
+    const slotCandidateCache = new Map();
+    const first = choices.find(choice => isBuildReadingReady(choice.reading, choice.segments, {
+        candidateSource,
+        slotCandidateCache
+    }));
     return first ? { reading: first.reading, segments: first.segments } : null;
 }
 
@@ -1075,7 +1099,6 @@ function openFreeBuild() {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
-    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-free-build', { delayMs: 0 });
 }
@@ -2577,7 +2600,6 @@ function openBuildFreeMode() {
     resetBuildCandidateVisibleLimits();
     invalidateBuildReadingChoicesCache();
     excludedKanjiFromBuild = []; // 除外リストをリセット
-    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-build-free-mode', { delayMs: 0 });
 }
@@ -2606,7 +2628,6 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
         ? [{ reading: fbSelectedReading, score: 999999 }]
         : [];
 
-    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-build-free-mode-with-choices', {
         delayMs: 0,
@@ -2632,7 +2653,6 @@ function setBuildMode(mode) {
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
         resetBuildCandidateVisibleLimits();
-        invalidateBuildReadingChoicesCache();
         if (mode === 'reading') {
             hydrateCompoundBuildSelections();
         }
@@ -2643,9 +2663,6 @@ function setBuildMode(mode) {
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
-    if (prevMode !== mode) {
-        showBuildPreparingState();
-    }
     requestRenderBuildSelection('set-build-mode', { delayMs: 0 });
 }
 window.setBuildMode = setBuildMode;
@@ -2921,7 +2938,7 @@ function renderBuildSelection() {
 
     const currentReading = getSafeBuildCurrentReading();
     const renderCandidateSource = buildMode === 'reading'
-        ? getVisibleReadingModeKanjiBuildCandidates()
+        ? getVisibleReadingModeKanjiBuildCandidates({ returnCache: true })
         : null;
     const renderSlotCandidateCache = new Map();
 
@@ -3236,13 +3253,14 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
                 : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
         const isCurrent = choice.reading === currentReading
             && displaySegments.join('/') === currentSegments.join('/');
+        const countLabel = Number(choice.kanjiCount) > 0 ? `${choice.kanjiCount}個` : '読み';
         return `<button onclick="selectReadingForBuildByIndex(${index})"
             class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
             <span class="min-w-0 flex-1 pr-3">
                 <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(display)}${isCurrent ? '（現在）' : ''}</span>
                 <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
             </span>
-            <span class="shrink-0 text-[10px] text-[#a6967a]">${choice.kanjiCount}個</span>
+            <span class="shrink-0 text-[10px] text-[#a6967a]">${countLabel}</span>
         </button>`;
     }).join('') + (buildReadingDropdownChoices.length > visibleChoices.length
         ? `<button type="button" onclick="showMoreBuildReadingDropdownChoices()" class="w-full px-4 py-3 text-center text-xs font-black text-[#8b7e66] bg-[#fffbeb] active:bg-[#faf8f5]">
@@ -3320,13 +3338,9 @@ function toggleReadingDropdown() {
     if (caret) caret.textContent = '▲';
     buildReadingDropdownVisibleLimit = BUILD_READING_DROPDOWN_INITIAL_LIMIT;
 
-    if (buildReadingChoicesCacheSignature) {
-        buildReadingDropdownChoices = buildReadingChoicesCache;
-        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
-    } else {
-        renderBuildReadingDropdownLoading(dropdown);
-        computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, currentSegments, renderToken);
-    }
+    buildReadingDropdownChoices = getBuildReadingChoices({ returnCache: true });
+    if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+    renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
@@ -3375,7 +3389,7 @@ window.selectReadingForBuild = selectReadingForBuild;
 function renderBuildFreeMode(container) {
     const seen = new Set();
     const allKanji = [];
-    const freeModeSource = getVisibleAllKanjiBuildCandidates();
+    const freeModeSource = getVisibleAllKanjiBuildCandidates({ returnCache: true });
     const pushCandidate = (item) => {
         if (!item) return;
         if (isBuildCandidateExcluded(item)) return;

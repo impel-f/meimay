@@ -730,13 +730,17 @@ function changeScreen(id) {
     const shouldFocusSink = !shouldKeepNativeTextEditingForScreen(id);
     const activeScreen = document.querySelector('.screen.active');
 
+    if (id === 'scr-build' && typeof window.restoreBuildScreenAfterNavigation === 'function') {
+        window.restoreBuildScreenAfterNavigation();
+    }
+
     if (
         activeScreen &&
         activeScreen.id === 'scr-build' &&
         id !== 'scr-build' &&
         typeof window.teardownBuildScreenForNavigation === 'function'
     ) {
-        window.teardownBuildScreenForNavigation();
+        window.teardownBuildScreenForNavigation({ defer: true });
     }
 
     clearNativeTextEditingContext({

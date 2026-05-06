@@ -4156,6 +4156,8 @@ function closeTutorial() {
 // ==========================================
 
 const READING_STOCK_KEY = 'meimay_reading_stock';
+let readingStockCacheRaw = null;
+let readingStockCacheItems = [];
 
 function getReadingStockKey(reading, segments = []) {
     return `${reading || ''}::${Array.isArray(segments) ? segments.join('/') : ''}`;
@@ -4393,10 +4395,16 @@ function getVisibleReadingStock() {
 
 function getReadingStock() {
     try {
-        const data = localStorage.getItem(READING_STOCK_KEY);
+        const data = localStorage.getItem(READING_STOCK_KEY) || '';
+        if (data === readingStockCacheRaw) return readingStockCacheItems;
         const raw = data ? JSON.parse(data) : [];
-        return Array.isArray(raw) ? raw.map(normalizeReadingStockItem).filter(Boolean) : [];
+        const normalized = Array.isArray(raw) ? raw.map(normalizeReadingStockItem).filter(Boolean) : [];
+        readingStockCacheRaw = data;
+        readingStockCacheItems = normalized;
+        return readingStockCacheItems;
     } catch (e) {
+        readingStockCacheRaw = null;
+        readingStockCacheItems = [];
         return [];
     }
 }
@@ -4406,7 +4414,10 @@ function saveReadingStock(stock, options = {}) {
         const normalizedStock = Array.isArray(stock)
             ? stock.map(normalizeReadingStockItem).filter(Boolean)
             : [];
-        localStorage.setItem(READING_STOCK_KEY, JSON.stringify(normalizedStock));
+        const serialized = JSON.stringify(normalizedStock);
+        localStorage.setItem(READING_STOCK_KEY, serialized);
+        readingStockCacheRaw = serialized;
+        readingStockCacheItems = normalizedStock;
     } catch (e) {
         console.error("STOCK: Failed to save reading stock", e);
     }
