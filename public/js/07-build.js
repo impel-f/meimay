@@ -937,7 +937,7 @@ function renderFbFortune(choices) {
 
 // 自由ビルド確定
 function getFreeBuildRankingCandidatePool() {
-    const source = getVisibleOwnKanjiBuildCandidates();
+    const source = getVisibleAllKanjiBuildCandidates();
     const seen = new Set();
     const pool = [];
 
@@ -1100,36 +1100,57 @@ function getFortuneRankingScore(fortune, pieces = []) {
     return score;
 }
 
-function buildFreeBuildFortuneRanking() {
-    const pool = getFreeBuildRankingCandidatePool();
-    if (pool.length === 0) return [];
+const FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT = 50000;
+const FREE_BUILD_FORTUNE_BUCKET_COMBO_LIMIT = 150000;
 
-    const totalSlots = Math.max(1, Math.min(3, Number(shownFbSlots) || fbChoices.length || 1));
-    const fixedFirstKanji = totalSlots > 1 ? String(fbChoices[0] || '').trim() : '';
-    const fixedPieces = fixedFirstKanji ? [getFreeBuildRankingCandidateItem(fixedFirstKanji, pool)].filter(Boolean) : [];
-    const variableSlots = Math.max(1, totalSlots - fixedPieces.length);
-    const resolvedSurnameData = getBuildFortuneSurnameData();
+function estimateFreeBuildFortuneCombinationCount(sourceCount, variableSlots) {
+    const count = Math.max(0, Number(sourceCount) || 0);
+    const slots = Math.max(0, Number(variableSlots) || 0);
+    if (slots === 0) return 1;
+    return Math.pow(count, slots);
+}
+
+function createFreeBuildFortuneRankingItem(pieces, resolvedSurnameData) {
+    const safePieces = Array.isArray(pieces) ? pieces.filter(Boolean) : [];
+    const givArr = safePieces.map((piece) => ({
+        kanji: piece['漢字'],
+        strokes: parseInt(piece['画数']) || 0
+    }));
+    const fortune = typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate
+        ? FortuneLogic.calculate(resolvedSurnameData, givArr)
+        : null;
+
+    return {
+        combination: {
+            pieces: safePieces,
+            name: safePieces.map((piece) => piece['漢字']).join(''),
+            reading: '',
+            readingLabel: ''
+        },
+        fortune,
+        score: getFortuneRankingScore(fortune, safePieces)
+    };
+}
+
+function attachFreeBuildFortuneReadingInfo(item) {
+    const choices = item.combination.pieces.map((piece) => piece['漢字']);
+    const readingInfo = getFreeBuildReadingInfo(choices);
+    return {
+        ...item,
+        combination: {
+            ...item.combination,
+            reading: readingInfo.reading,
+            readingLabel: readingInfo.label || readingInfo.reading
+        }
+    };
+}
+
+function buildExactFreeBuildFortuneRanking(pool, fixedPieces, variableSlots, resolvedSurnameData) {
     const ranked = [];
 
     function walk(depth, pieces) {
         if (depth === variableSlots) {
-            const givArr = pieces.map((piece) => ({
-                kanji: piece['漢字'],
-                strokes: parseInt(piece['画数']) || 0
-            }));
-            const fortune = typeof FortuneLogic !== 'undefined' && FortuneLogic.calculate
-                ? FortuneLogic.calculate(resolvedSurnameData, givArr)
-                : null;
-            ranked.push({
-                combination: {
-                    pieces,
-                    name: pieces.map((piece) => piece['漢字']).join(''),
-                    reading: '',
-                    readingLabel: ''
-                },
-                fortune,
-                score: getFortuneRankingScore(fortune, pieces)
-            });
+            ranked.push(createFreeBuildFortuneRankingItem(pieces, resolvedSurnameData));
             return;
         }
 
@@ -1139,22 +1160,126 @@ function buildFreeBuildFortuneRanking() {
     }
 
     walk(0, fixedPieces);
+    return ranked;
+}
+
+function getFreeBuildFortuneBucketKey(item) {
+    const strokes = parseInt(item?.['画数'] || item?.strokes) || 0;
+    const isSuper = item?.isSuper ? '1' : '0';
+    return `${strokes}::${isSuper}`;
+}
+
+function buildFreeBuildFortuneBuckets(pool) {
+    const buckets = [];
+    const bucketMap = new Map();
+
+    pool.forEach((item) => {
+        const key = getFreeBuildFortuneBucketKey(item);
+        if (!bucketMap.has(key)) {
+            const bucket = { key, items: [] };
+            bucketMap.set(key, bucket);
+            buckets.push(bucket);
+        }
+        bucketMap.get(key).items.push(item);
+    });
+
+    return buckets;
+}
+
+function expandFreeBuildFortuneBucketCombination(fixedPieces, buckets, limit, seenNames) {
+    const lists = buckets.map((bucket) => bucket.items.slice(0, Math.max(1, limit)));
+    const combinations = [];
+
+    function walk(index, pieces) {
+        if (combinations.length >= limit) return;
+        if (index >= lists.length) {
+            const nextPieces = [...fixedPieces, ...pieces];
+            const name = nextPieces.map((piece) => piece?.['漢字'] || piece?.kanji || '').join('');
+            if (!name || seenNames.has(name)) return;
+            seenNames.add(name);
+            combinations.push(nextPieces);
+            return;
+        }
+
+        lists[index].forEach((item) => {
+            walk(index + 1, [...pieces, item]);
+        });
+    }
+
+    walk(0, []);
+    return combinations;
+}
+
+function buildBucketedFreeBuildFortuneRanking(pool, fixedPieces, variableSlots, resolvedSurnameData) {
+    let buckets = buildFreeBuildFortuneBuckets(pool);
+    if (buckets.length === 0) return [];
+
+    const bucketComboEstimate = estimateFreeBuildFortuneCombinationCount(buckets.length, variableSlots);
+    if (bucketComboEstimate > FREE_BUILD_FORTUNE_BUCKET_COMBO_LIMIT) {
+        const maxBuckets = Math.max(1, Math.floor(Math.pow(FREE_BUILD_FORTUNE_BUCKET_COMBO_LIMIT, 1 / Math.max(1, variableSlots))));
+        buckets = buckets.slice(0, maxBuckets);
+    }
+
+    const bucketRankings = [];
+    function walk(depth, bucketPieces) {
+        if (depth === variableSlots) {
+            const representativePieces = [
+                ...fixedPieces,
+                ...bucketPieces.map((bucket) => bucket.items[0]).filter(Boolean)
+            ];
+            const rankingItem = createFreeBuildFortuneRankingItem(representativePieces, resolvedSurnameData);
+            bucketRankings.push({
+                buckets: bucketPieces,
+                score: rankingItem.score
+            });
+            return;
+        }
+
+        buckets.forEach((bucket) => {
+            walk(depth + 1, [...bucketPieces, bucket]);
+        });
+    }
+
+    walk(0, []);
+    bucketRankings.sort((a, b) => b.score - a.score);
+
+    const ranked = [];
+    const seenNames = new Set();
+    const topBucketCombinations = bucketRankings.slice(0, 40);
+    topBucketCombinations.forEach((entry) => {
+        if (ranked.length >= 30) return;
+        const expandedPieces = expandFreeBuildFortuneBucketCombination(
+            fixedPieces,
+            entry.buckets,
+            Math.max(10, 30 - ranked.length),
+            seenNames
+        );
+        expandedPieces.forEach((pieces) => {
+            ranked.push(createFreeBuildFortuneRankingItem(pieces, resolvedSurnameData));
+        });
+    });
+
+    return ranked;
+}
+
+function buildFreeBuildFortuneRanking() {
+    const pool = getFreeBuildRankingCandidatePool();
+    if (pool.length === 0) return [];
+
+    const totalSlots = Math.max(1, Math.min(3, Number(shownFbSlots) || fbChoices.length || 1));
+    const fixedFirstKanji = totalSlots > 1 ? String(fbChoices[0] || '').trim() : '';
+    const fixedPieces = fixedFirstKanji ? [getFreeBuildRankingCandidateItem(fixedFirstKanji, pool)].filter(Boolean) : [];
+    const variableSlots = Math.max(1, totalSlots - fixedPieces.length);
+    const resolvedSurnameData = getBuildFortuneSurnameData();
+    const estimatedCombinations = estimateFreeBuildFortuneCombinationCount(pool.length, variableSlots);
+    const ranked = estimatedCombinations <= FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT
+        ? buildExactFreeBuildFortuneRanking(pool, fixedPieces, variableSlots, resolvedSurnameData)
+        : buildBucketedFreeBuildFortuneRanking(pool, fixedPieces, variableSlots, resolvedSurnameData);
 
     return ranked
         .sort((a, b) => b.score - a.score)
         .slice(0, 10)
-        .map((item) => {
-            const choices = item.combination.pieces.map((piece) => piece['漢字']);
-            const readingInfo = getFreeBuildReadingInfo(choices);
-            return {
-                ...item,
-                combination: {
-                    ...item.combination,
-                    reading: readingInfo.reading,
-                    readingLabel: readingInfo.label || readingInfo.reading
-                }
-            };
-        });
+        .map(attachFreeBuildFortuneReadingInfo);
 }
 
 function applyFreeRankedCombination(combination) {

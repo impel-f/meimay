@@ -2694,9 +2694,10 @@ async function handleEnterCode() {
 
             if (typeof saveReadingStock === 'function') {
                 const originalSaveReadingStock = saveReadingStock.bind(window);
-                saveReadingStock = function (stock) {
-                    const result = originalSaveReadingStock(stock);
-                    if (MeimayPairing.roomCode) {
+                saveReadingStock = function (...args) {
+                    const result = originalSaveReadingStock(...args);
+                    const options = args[1] && typeof args[1] === 'object' ? args[1] : {};
+                    if (!options.skipPartnerSync && MeimayPairing.roomCode) {
                         MeimayPairing._autoSyncDebounced?.();
                     }
                     return result;
@@ -6253,7 +6254,8 @@ const MeimayUserBackup = {
             const manager = this;
             saveReadingStock = function (...args) {
                 const result = originalSaveReadingStock(...args);
-                if (!manager._restoreInFlight) manager.scheduleSync('saveReadingStock');
+                const options = args[1] && typeof args[1] === 'object' ? args[1] : {};
+                if (!options.skipBackupSync && !manager._restoreInFlight) manager.scheduleSync('saveReadingStock');
                 return result;
             };
             saveReadingStock._meimayBackupWrapped = true;

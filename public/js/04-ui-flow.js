@@ -4401,7 +4401,7 @@ function getReadingStock() {
     }
 }
 
-function saveReadingStock(stock) {
+function saveReadingStock(stock, options = {}) {
     try {
         const normalizedStock = Array.isArray(stock)
             ? stock.map(normalizeReadingStockItem).filter(Boolean)
@@ -4410,10 +4410,10 @@ function saveReadingStock(stock) {
     } catch (e) {
         console.error("STOCK: Failed to save reading stock", e);
     }
-    if (typeof queuePartnerStockSync === 'function') {
+    if (!options.skipPartnerSync && typeof queuePartnerStockSync === 'function') {
         queuePartnerStockSync('saveReadingStock');
     }
-    if (typeof notifyStockStateChanged === 'function') {
+    if (!options.skipNotify && typeof notifyStockStateChanged === 'function') {
         notifyStockStateChanged('reading-stock');
     }
 }
@@ -4432,8 +4432,25 @@ function notifyStockStateChanged(reason = 'stock') {
     }
 }
 
-function addReadingToStock(reading, baseNickname, tags, options = {}) {
-    const stock = getReadingStock();
+function areReadingStockFieldValuesEqual(currentValue, nextValue) {
+    if (Array.isArray(currentValue) || Array.isArray(nextValue)) {
+        const currentArray = Array.isArray(currentValue) ? currentValue : [];
+        const nextArray = Array.isArray(nextValue) ? nextValue : [];
+        if (currentArray.length !== nextArray.length) return false;
+        return currentArray.every((value, index) => value === nextArray[index]);
+    }
+    return currentValue === nextValue;
+}
+
+function assignReadingStockField(entry, key, value) {
+    if (areReadingStockFieldValuesEqual(entry[key], value)) return false;
+    entry[key] = Array.isArray(value) ? [...value] : value;
+    return true;
+}
+
+function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {}) {
+    if (!Array.isArray(stock)) return { entry: null, changed: false, created: false };
+
     const shouldTrackStats = false;
     const normalizedBaseNickname = typeof baseNickname === 'string' ? baseNickname.trim() : '';
     const normalizedTags = Array.isArray(tags)
@@ -4447,26 +4464,35 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     const existing = stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true });
 
     if (existing) {
-        existing.tags = [...new Set([...(existing.tags || []), ...normalizedTags])];
+        let changed = false;
+        const nextTags = [...new Set([...(existing.tags || []), ...normalizedTags])];
+        changed = assignReadingStockField(existing, 'tags', nextTags) || changed;
         if (!existing.baseNickname && normalizedBaseNickname) {
-            existing.baseNickname = normalizedBaseNickname;
+            changed = assignReadingStockField(existing, 'baseNickname', normalizedBaseNickname) || changed;
         }
-        existing.basePosition = basePosition || (existing.basePosition === 'prefix' ? 'prefix' : '');
-        existing.readingPromoted = !!(existing.readingPromoted || readingPromoted);
-        existing.segments = existing.readingPromoted
+        const nextBasePosition = basePosition || (existing.basePosition === 'prefix' ? 'prefix' : '');
+        changed = assignReadingStockField(existing, 'basePosition', nextBasePosition) || changed;
+        const nextReadingPromoted = !!(existing.readingPromoted || readingPromoted);
+        changed = assignReadingStockField(existing, 'readingPromoted', nextReadingPromoted) || changed;
+        const nextSegments = nextReadingPromoted
             ? (readingPromoted ? normalizedSegments : (Array.isArray(existing.segments) ? existing.segments.filter(Boolean) : []))
             : [];
-        existing.id = getReadingStockKey(reading, existing.readingPromoted ? existing.segments : []);
-        if (options.gender) existing.gender = options.gender;
-        existing.isSuper = existing.isSuper || !!options.isSuper;
-        existing.ownSuper = existing.ownSuper || existing.isSuper;
-        existing.partnerSuper = existing.partnerSuper || !!options.partnerSuper;
-        if (options.source) existing.source = options.source;
-        saveReadingStock(stock);
-        if (options.clearHidden) {
-            forgetHiddenReading(reading);
+        changed = assignReadingStockField(existing, 'segments', nextSegments) || changed;
+        const nextId = getReadingStockKey(reading, nextReadingPromoted ? nextSegments : []);
+        changed = assignReadingStockField(existing, 'id', nextId) || changed;
+        if (options.gender) {
+            changed = assignReadingStockField(existing, 'gender', options.gender) || changed;
         }
-        return existing;
+        const nextIsSuper = !!(existing.isSuper || options.isSuper);
+        changed = assignReadingStockField(existing, 'isSuper', nextIsSuper) || changed;
+        const nextOwnSuper = !!(existing.ownSuper || nextIsSuper);
+        changed = assignReadingStockField(existing, 'ownSuper', nextOwnSuper) || changed;
+        const nextPartnerSuper = !!(existing.partnerSuper || options.partnerSuper);
+        changed = assignReadingStockField(existing, 'partnerSuper', nextPartnerSuper) || changed;
+        if (options.source) {
+            changed = assignReadingStockField(existing, 'source', options.source) || changed;
+        }
+        return { entry: existing, changed, created: false };
     }
 
     const entry = normalizeReadingStockItem({
@@ -4487,12 +4513,24 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     if (options.source) entry.source = options.source;
 
     stock.push(entry);
-    saveReadingStock(stock);
+    return { entry, changed: true, created: true };
+}
+
+function addReadingToStock(reading, baseNickname, tags, options = {}) {
+    const stock = getReadingStock();
+    const result = upsertReadingStockEntry(stock, reading, baseNickname, tags, options);
+    if (!result.entry) return null;
+
+    if (result.changed) {
+        saveReadingStock(stock);
+    }
     if (options.clearHidden) {
         forgetHiddenReading(reading);
     }
-    console.log("STOCK: Added reading to stock:", entry);
-    return entry;
+    if (result.created) {
+        console.log("STOCK: Added reading to stock:", result.entry);
+    }
+    return result.entry;
 }
 
 function getReadingSwipeStockToastText(item, action) {
@@ -4611,6 +4649,8 @@ function showSwipeStockToast(kind, message, icon) {
 
 function syncReadingStockFromLiked(items = liked) {
     const likedItems = Array.isArray(items) ? items : [];
+    const stock = getReadingStock();
+    let changed = false;
     const blockedReadings = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
     let hiddenReadings = new Set();
     try {
@@ -4642,7 +4682,8 @@ function syncReadingStockFromLiked(items = liked) {
         const normalizedReading = normalizeHiddenReading(reading);
         if (hiddenReadingSet.has(normalizedReading)) return;
         const readingPromoted = !!item.readingPromoted;
-        addReadingToStock(
+        const result = upsertReadingStockEntry(
+            stock,
             reading,
             item.baseNickname || '',
             Array.isArray(item.tags) ? item.tags : [],
@@ -4655,7 +4696,11 @@ function syncReadingStockFromLiked(items = liked) {
                 basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
             }
         );
+        changed = result.changed || changed;
     });
+    if (changed) {
+        saveReadingStock(stock, { skipPartnerSync: true, skipNotify: true, skipBackupSync: true });
+    }
 }
 
 function removeReadingFromStock(target) {
@@ -6993,6 +7038,68 @@ function getReadingVariants(rawStr) {
     });
 }
 
+function getKanjiSearchReadingEntries(rawStr, options = {}) {
+    const includeStem = options && options.includeStem === true;
+    if (!rawStr) return [];
+    const entries = [];
+
+    splitKanjiReadingEntries(rawStr).forEach((raw) => {
+        const label = String(raw || '').trim();
+        if (!label) return;
+
+        const hira = typeof toHira === 'function' ? toHira(label) : label;
+        const full = normalizeReadingComparisonValue(hira);
+        if (full) {
+            entries.push({ value: full, label, kind: 'full' });
+        }
+
+        if (!includeStem) return;
+        const stemBreaks = ['.', '（', '(']
+            .map(marker => hira.indexOf(marker))
+            .filter(index => index > 0);
+        if (stemBreaks.length === 0) return;
+
+        const stem = normalizeReadingComparisonValue(hira.slice(0, Math.min(...stemBreaks)));
+        if (stem && stem !== full) {
+            entries.push({ value: stem, label, kind: 'stem' });
+        }
+    });
+
+    return entries;
+}
+
+function findKanjiSearchReadingMatch(k, query) {
+    if (!query) return null;
+
+    const onEntries = getKanjiSearchReadingEntries(k['音'] || '');
+    const kunEntries = getKanjiSearchReadingEntries(k['訓'] || '');
+    const noriEntries = getKanjiSearchReadingEntries(k['伝統名のり'] || '');
+    const exact = [...onEntries, ...kunEntries, ...noriEntries]
+        .find(entry => entry.value === query);
+
+    if (exact) {
+        return { tier: 1, label: exact.label, value: exact.value };
+    }
+
+    if (!searchFlexibleMode) return null;
+
+    const flexibleEntries = [
+        ...getKanjiSearchReadingEntries(k['音'] || '', { includeStem: true }),
+        ...getKanjiSearchReadingEntries(k['訓'] || '', { includeStem: true })
+    ];
+    const stem = flexibleEntries.find(entry => entry.kind === 'stem' && entry.value === query);
+    if (stem) {
+        return { tier: 2, label: stem.label, value: stem.value };
+    }
+
+    const prefix = flexibleEntries.find(entry => entry.value.startsWith(query));
+    if (prefix) {
+        return { tier: 3, label: prefix.label, value: prefix.value };
+    }
+
+    return null;
+}
+
 function executeKanjiSearch() {
     const input = document.getElementById('kanji-search-input');
     const container = document.getElementById('kanji-search-results');
@@ -7028,27 +7135,14 @@ function executeKanjiSearch() {
         const matchKanji = k['漢字'] === rawQuery;
 
         if (query || rawQuery) {
-            // 1. 完全一致 (Tier 1) - 厳格モードでも送り仮名は無視する
-            const onFull = getFullReadings(k['音'] || '');
-            const kunFull = getFullReadings(k['訓'] || '');
-            const noriFull = getFullReadings(k['伝統名のり'] || '');
-            const isExact = [...onFull, ...kunFull, ...noriFull].some(r => r === query);
+            const readingMatch = findKanjiSearchReadingMatch(k, query);
 
-            if (isExact || matchKanji) {
+            if (matchKanji) {
                 tier = 1;
-            } else if (searchFlexibleMode) {
-                // 2. 語幹一致 (Tier 2) - 柔軟モードのみ
-                const onVar = getReadingVariants(k['音'] || '');
-                const kunVar = getReadingVariants(k['訓'] || '');
-                const isStem = [...onVar, ...kunVar].some(r => r === query);
-
-                if (isStem) {
-                    tier = 2;
-                } else {
-                    // 3. 前方一致 (Tier 3) - 柔軟モードのみ
-                    const isPrefix = [...onVar, ...kunVar].some(r => r.startsWith(query));
-                    if (isPrefix) tier = 3;
-                }
+            } else if (readingMatch) {
+                tier = readingMatch.tier;
+                k._searchMatchedReading = readingMatch.label;
+                k._searchMatchedReadingValue = readingMatch.value;
             }
 
             // ヒットしない場合は除外
@@ -7100,10 +7194,18 @@ function executeKanjiSearch() {
     results.slice(0, 200).forEach(k => {
         const isStocked = liked.some(l => l['漢字'] === k['漢字']);
         const strokes = parseInt(k['画数']) || '?';
-        const readings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
+        let readings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
             .split(/[、,，\s/]+/)
             .filter(x => clean(x))
-            .slice(0, 2);
+        const matchedReading = clean(k._searchMatchedReading || '');
+        if (matchedReading) {
+            const matchedValue = normalizeReadingComparisonValue(matchedReading);
+            readings = [
+                matchedReading,
+                ...readings.filter(reading => normalizeReadingComparisonValue(reading) !== matchedValue)
+            ];
+        }
+        readings = readings.slice(0, 2);
         // padding-bottom:100% で正方形を確保するラッパー（aspect-ratio はブラウザ依存のため使わない）
         const cell = document.createElement('div');
         cell.style.cssText = 'position:relative; width:100%; padding-bottom:100%;';
