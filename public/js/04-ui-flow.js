@@ -4825,68 +4825,81 @@ function hideReadingFromStock(target) {
 function openBuildFromReading(reading, preferredSegments = []) {
     const normalizedReading = getReadingBaseReading(reading);
     const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
-    const entry = getReadingHistoryEntryByReading(reading, normalizedSegments);
-    clearCompoundBuildFlow();
-    const nameInput = document.getElementById('in-name');
-    if (nameInput) nameInput.value = normalizedReading || reading;
-
-    let restoredFlow = null;
-    if (entry && entry.compoundFlow) {
-        restoredFlow = setCompoundBuildFlow(entry.compoundFlow);
-    }
-    if (shouldRebuildCompoundFlow(restoredFlow)) {
-        restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry, normalizedSegments) || restoredFlow;
-    }
-
-    if (restoredFlow && Array.isArray(restoredFlow.segments) && restoredFlow.segments.length > 0) {
-        segments = [...restoredFlow.segments];
-    } else if (entry && entry.segments) {
-        segments = [...entry.segments];
-    } else if (normalizedSegments.length > 0) {
-        segments = [...normalizedSegments];
-    } else if (typeof getPreferredReadingSegments === 'function') {
-        const preferred = getPreferredReadingSegments(normalizedReading || reading);
-        segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
-    }
-    restoreKanaCandidateSettingForReadingEntry(entry, segments);
     const oldSelected = (Array.isArray(selectedPieces) ? [...selectedPieces] : []).filter(Boolean);
     const oldSegments = (Array.isArray(segments) ? [...segments] : []).filter(Boolean);
 
-    if (typeof openBuild === 'function') openBuild({ preserveReading: true });
+    const prepareReadingBuildTarget = () => {
+        const entry = getReadingHistoryEntryByReading(reading, normalizedSegments);
+        clearCompoundBuildFlow();
+        const nameInput = document.getElementById('in-name');
+        if (nameInput) nameInput.value = normalizedReading || reading;
 
-    // 区切り変更時に選択状態を引き継ぐ試み
-    let restoredSelection = false;
-    if (oldSelected.length > 0 && Array.isArray(segments) && Array.isArray(selectedPieces)) {
-        segments.forEach((seg, idx) => {
-            if (selectedPieces[idx]) return; // すでに固定などで埋まっている場合はスキップ
-            const hSeg = typeof toHira === 'function' ? toHira(seg) : seg;
-            // 前の構成で、同じ読みの部分に選んでいた漢字があればセット
-            const match = oldSelected.find((p, pIdx) => {
-                const pSeg = oldSegments[pIdx] || '';
-                const hPSeg = typeof toHira === 'function' ? toHira(pSeg) : pSeg;
-                return hPSeg === hSeg;
+        let restoredFlow = null;
+        if (entry && entry.compoundFlow) {
+            restoredFlow = setCompoundBuildFlow(entry.compoundFlow);
+        }
+        if (shouldRebuildCompoundFlow(restoredFlow)) {
+            restoredFlow = restoreCompoundBuildFlowFromLiked(reading, entry, normalizedSegments) || restoredFlow;
+        }
+
+        if (restoredFlow && Array.isArray(restoredFlow.segments) && restoredFlow.segments.length > 0) {
+            segments = [...restoredFlow.segments];
+        } else if (entry && entry.segments) {
+            segments = [...entry.segments];
+        } else if (normalizedSegments.length > 0) {
+            segments = [...normalizedSegments];
+        } else if (typeof getPreferredReadingSegments === 'function') {
+            const preferred = getPreferredReadingSegments(normalizedReading || reading);
+            segments = Array.isArray(preferred) && preferred.length > 0 ? [...preferred] : [normalizedReading || reading];
+        }
+        restoreKanaCandidateSettingForReadingEntry(entry, segments);
+    };
+
+    const restoreBuildSelectionAfterOpen = () => {
+        // 区切り変更時に選択状態を引き継ぐ試み
+        let restoredSelection = false;
+        if (oldSelected.length > 0 && Array.isArray(segments) && Array.isArray(selectedPieces)) {
+            segments.forEach((seg, idx) => {
+                if (selectedPieces[idx]) return; // すでに固定などで埋まっている場合はスキップ
+                const hSeg = typeof toHira === 'function' ? toHira(seg) : seg;
+                // 前の構成で、同じ読みの部分に選んでいた漢字があればセット
+                const match = oldSelected.find((p, pIdx) => {
+                    const pSeg = oldSegments[pIdx] || '';
+                    const hPSeg = typeof toHira === 'function' ? toHira(pSeg) : pSeg;
+                    return hPSeg === hSeg;
+                });
+                if (match) {
+                    selectedPieces[idx] = { ...match };
+                    restoredSelection = true;
+                }
             });
-            if (match) {
-                selectedPieces[idx] = { ...match };
-                restoredSelection = true;
-            }
-        });
-    }
+        }
 
-    const autoSelected = typeof autoSelectSingleBuildCandidates === 'function'
-        ? autoSelectSingleBuildCandidates()
-        : false;
-    if (restoredSelection || autoSelected) {
-        const runAfterRender = () => {
+        const autoSelected = typeof autoSelectSingleBuildCandidates === 'function'
+            ? autoSelectSingleBuildCandidates()
+            : false;
+        if (!restoredSelection && !autoSelected) return null;
+        return () => {
             if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
                 executeBuild();
             }
         };
+    };
+
+    if (typeof openBuild === 'function') {
+        openBuild({
+            preserveReading: true,
+            beforePrepare: prepareReadingBuildTarget,
+            afterPrepare: restoreBuildSelectionAfterOpen
+        });
+    } else {
+        prepareReadingBuildTarget();
+        const runAfterRender = restoreBuildSelectionAfterOpen();
         if (typeof requestRenderBuildSelection === 'function') {
             requestRenderBuildSelection('open-build-from-reading-selection', { delayMs: 0, afterRender: runAfterRender });
         } else {
             if (typeof renderBuildSelection === 'function') renderBuildSelection();
-            runAfterRender();
+            if (typeof runAfterRender === 'function') runAfterRender();
         }
     }
 }

@@ -15,6 +15,9 @@ let buildReadingDropdownChoices = [];
 let buildReadingDropdownRenderToken = 0;
 let buildSelectionRenderTimer = null;
 let buildSelectionRenderCallbacks = [];
+let buildReadingChoicesCacheSignature = '';
+let buildReadingChoicesCache = [];
+let buildReadingChoicesWarmupTimer = null;
 let buildKanjiMasterIndexSource = null;
 let buildKanjiMasterIndex = null;
 const BUILD_READING_SLOT_INITIAL_LIMIT = 48;
@@ -57,6 +60,46 @@ function findBuildMasterItem(kanji) {
 function resetBuildCandidateVisibleLimits() {
     buildSlotVisibleLimits = {};
     buildFreeSlotVisibleLimits = {};
+}
+
+function invalidateBuildReadingChoicesCache() {
+    buildReadingChoicesCacheSignature = '';
+    buildReadingChoicesCache = [];
+}
+
+function cloneBuildReadingChoice(choice) {
+    return {
+        ...choice,
+        segments: Array.isArray(choice?.segments) ? [...choice.segments] : []
+    };
+}
+
+function scheduleBuildReadingChoicesWarmup() {
+    if (buildReadingChoicesWarmupTimer) {
+        if (buildReadingChoicesWarmupTimer.type === 'idle' && typeof cancelIdleCallback === 'function') {
+            cancelIdleCallback(buildReadingChoicesWarmupTimer.id);
+        } else {
+            clearTimeout(buildReadingChoicesWarmupTimer.id);
+        }
+        buildReadingChoicesWarmupTimer = null;
+    }
+    const warmup = () => {
+        buildReadingChoicesWarmupTimer = null;
+        const buildScreen = document.getElementById('scr-build');
+        if (buildScreen && !buildScreen.classList.contains('active')) return;
+        getBuildReadingChoices();
+    };
+    if (typeof requestIdleCallback === 'function') {
+        buildReadingChoicesWarmupTimer = {
+            type: 'idle',
+            id: requestIdleCallback(warmup, { timeout: 600 })
+        };
+        return;
+    }
+    buildReadingChoicesWarmupTimer = {
+        type: 'timer',
+        id: setTimeout(warmup, 160)
+    };
 }
 
 function getBuildSlotVisibleKey(seg, idx, currentReading) {
@@ -562,19 +605,117 @@ function getBuildReadingChoiceKanjiCount(reading, candidateSegments = [], option
     return seen.size;
 }
 
+function getBuildReadingChoiceSources() {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const ownLikedItems = pairInsights?.getOwnLiked
+        ? pairInsights.getOwnLiked()
+        : (Array.isArray(liked) ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)) : []);
+    const partnerLikedItems = pairInsights?.getPartnerLiked
+        ? pairInsights.getPartnerLiked()
+        : [];
+    return {
+        pairInsights,
+        ownLikedItems: Array.isArray(ownLikedItems) ? ownLikedItems : [],
+        partnerLikedItems: Array.isArray(partnerLikedItems) ? partnerLikedItems : [],
+        ownReadingStock: typeof getReadingStock === 'function' ? getReadingStock() : [],
+        partnerReadingStock: pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [],
+        candidateSource: getVisibleReadingModeKanjiBuildCandidates()
+    };
+}
+
+function getBuildReadingCollectionStamp(items, getKey) {
+    const list = Array.isArray(items) ? items : [];
+    let latest = 0;
+    const samples = [];
+    list.forEach((item, index) => {
+        const time = Date.parse(item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || '') || 0;
+        if (time > latest) latest = time;
+        if (index < 3 || index >= list.length - 3) {
+            samples.push(getKey(item));
+        }
+    });
+    return `${list.length}:${latest}:${samples.join('|')}`;
+}
+
+function getBuildReadingChoicesSignature(sources, options = {}) {
+    const hiddenRaw = (() => {
+        try {
+            return localStorage.getItem('meimay_hidden_readings') || '';
+        } catch (error) {
+            return '';
+        }
+    })();
+    return [
+        options.readyOnly === false ? 'all' : 'ready',
+        hiddenRaw,
+        Array.isArray(excludedKanjiFromBuild) ? excludedKanjiFromBuild.join('|') : '',
+        getBuildReadingCollectionStamp(sources.ownLikedItems, (item) => `${item?.sessionReading || item?.reading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}`),
+        getBuildReadingCollectionStamp(sources.partnerLikedItems, (item) => `${item?.sessionReading || item?.reading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}`),
+        getBuildReadingCollectionStamp(sources.ownReadingStock, (item) => `${item?.id || item?.reading || item?.sessionReading || ''}:${Array.isArray(item?.segments) ? item.segments.join('/') : ''}`),
+        getBuildReadingCollectionStamp(sources.partnerReadingStock, (item) => `${item?.id || item?.reading || item?.sessionReading || ''}:${Array.isArray(item?.segments) ? item.segments.join('/') : ''}`),
+        getBuildReadingCollectionStamp(sources.candidateSource, (item) => `${item?.sessionReading || ''}:${item?.slot ?? ''}:${resolveLikedCandidateKanji(item)}:${item?.fromPartner ? 'p' : 's'}`)
+    ].join('||');
+}
+
+function createBuildReadingSegmentCandidateIndex(candidateSource, excluded = []) {
+    const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
+    const segmentMap = new Map();
+
+    const addCandidate = (segment, item) => {
+        const segmentKey = normalizeLikedCandidateSegmentKey(segment);
+        if (!segmentKey || !item) return;
+        const displayKey = getLikedCandidateDisplayKey(item);
+        const baseKey = buildLikedCandidateKey(item);
+        const kanjiKey = getLikedCandidateKanjiKey(item);
+        const rawKanji = resolveLikedCandidateKanji(item);
+        if ([displayKey, baseKey, kanjiKey, rawKanji].some((key) => key && excludeSet.has(key))) return;
+
+        if (!segmentMap.has(segmentKey)) segmentMap.set(segmentKey, new Map());
+        const candidates = segmentMap.get(segmentKey);
+        const uniqueKey = getSegmentKanjiCandidateKey(item, segmentKey) || displayKey || baseKey || kanjiKey;
+        if (!uniqueKey) return;
+        if (candidates.has(uniqueKey)) {
+            mergeLikedCandidateOwnershipState(candidates.get(uniqueKey), item);
+        } else {
+            candidates.set(uniqueKey, item && typeof item === 'object' ? { ...item } : item);
+        }
+    };
+
+    (Array.isArray(candidateSource) ? candidateSource : []).forEach((item) => {
+        if (!item) return;
+
+        if (item.sessionReading === 'FREE') {
+            const readings = String(item.kanji_reading || '')
+                .split(/[\u3001,\uff0c\s/]+/)
+                .map(reading => typeof toHira === 'function' ? toHira(reading) : reading)
+                .filter(Boolean);
+            readings.forEach((reading) => addCandidate(reading, item));
+        }
+
+        let itemSegment = '';
+        if (Array.isArray(item.sessionSegments) && item.slot >= 0 && item.slot < item.sessionSegments.length) {
+            itemSegment = item.sessionSegments[item.slot];
+        } else if (item.sessionReading && !item.sessionReading.includes('::') && !item.sessionReading.includes('/')) {
+            itemSegment = item.sessionReading;
+        }
+        addCandidate(itemSegment, item);
+    });
+
+    return segmentMap;
+}
+
 function getBuildReadingChoices(options = {}) {
+    const sources = getBuildReadingChoiceSources();
+    const signature = getBuildReadingChoicesSignature(sources, options);
+    if (signature && signature === buildReadingChoicesCacheSignature) {
+        return buildReadingChoicesCache.map(cloneBuildReadingChoice);
+    }
+
     const hiddenSet = getBuildHiddenReadingSet();
     const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
         ? getLatestReadingHistoryLookup()
         : {};
-    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
-    const candidateSource = getVisibleReadingModeKanjiBuildCandidates();
-    const slotCandidateCache = new Map();
-    const candidateOptions = {
-        excluded: excludedKanjiFromBuild,
-        candidateSource,
-        slotCandidateCache
-    };
+    const segmentCandidateIndex = createBuildReadingSegmentCandidateIndex(sources.candidateSource, excludedKanjiFromBuild);
     const choices = new Map();
 
     const addChoice = (rawReading, rawSegments = [], source = 'self', sourceItem = null) => {
@@ -622,15 +763,8 @@ function getBuildReadingChoices(options = {}) {
         });
     };
 
-    const ownLikedItems = pairInsights?.getOwnLiked
-        ? pairInsights.getOwnLiked()
-        : (Array.isArray(liked) ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item)) : []);
-    addFromLiked(ownLikedItems, 'self');
-
-    const partnerLikedItems = pairInsights?.getPartnerLiked
-        ? pairInsights.getPartnerLiked()
-        : [];
-    addFromLiked(partnerLikedItems, 'partner');
+    addFromLiked(sources.ownLikedItems, 'self');
+    addFromLiked(sources.partnerLikedItems, 'partner');
 
     const addFromReadingStock = (items, source) => {
         (Array.isArray(items) ? items : []).forEach(item => {
@@ -644,17 +778,25 @@ function getBuildReadingChoices(options = {}) {
         });
     };
 
-    addFromReadingStock(typeof getReadingStock === 'function' ? getReadingStock() : [], 'self');
-    addFromReadingStock(pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [], 'partner');
+    addFromReadingStock(sources.ownReadingStock, 'self');
+    addFromReadingStock(sources.partnerReadingStock, 'partner');
 
-    return Array.from(choices.values())
+    const result = Array.from(choices.values())
         .map(choice => {
-            if (options.readyOnly !== false && !isBuildReadingReady(choice.reading, choice.segments, candidateOptions)) {
-                return null;
-            }
+            const candidateKeys = new Set();
+            const ready = (Array.isArray(choice.segments) ? choice.segments : []).every((segment) => {
+                const segmentKey = normalizeLikedCandidateSegmentKey(segment);
+                const candidates = segmentCandidateIndex.get(segmentKey);
+                if (!candidates || candidates.size === 0) return false;
+                candidates.forEach((item, key) => {
+                    if (key) candidateKeys.add(key);
+                });
+                return true;
+            });
+            if (options.readyOnly !== false && !ready) return null;
             return {
                 ...choice,
-                kanjiCount: getBuildReadingChoiceKanjiCount(choice.reading, choice.segments, candidateOptions)
+                kanjiCount: candidateKeys.size
             };
         })
         .filter(Boolean)
@@ -669,6 +811,10 @@ function getBuildReadingChoices(options = {}) {
             if (aTime !== bTime) return bTime - aTime;
             return a.reading.localeCompare(b.reading, 'ja');
         });
+
+    buildReadingChoicesCacheSignature = signature;
+    buildReadingChoicesCache = result.map(cloneBuildReadingChoice);
+    return result.map(cloneBuildReadingChoice);
 }
 
 function getReadyBuildReadingCandidate() {
@@ -793,6 +939,7 @@ function openFreeBuild() {
     currentFbRecommendedReadings = [];
     selectedPieces = [];
     resetBuildCandidateVisibleLimits();
+    invalidateBuildReadingChoicesCache();
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
@@ -1910,18 +2057,26 @@ function getUniqueBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     return unique;
 }
 
-function autoSelectSingleBuildCandidates() {
+function autoSelectSingleBuildCandidates(options = {}) {
     if (buildMode !== 'reading') return false;
     if (!Array.isArray(segments) || segments.length === 0) return false;
     if (!Array.isArray(selectedPieces)) selectedPieces = [];
 
     const currentReading = getSafeBuildCurrentReading();
+    const slotCandidateCache = options.slotCandidateCache instanceof Map
+        ? options.slotCandidateCache
+        : new Map();
+    const candidateSource = Array.isArray(options.candidateSource)
+        ? options.candidateSource
+        : getVisibleReadingModeKanjiBuildCandidates();
     let changed = false;
 
     segments.forEach((seg, idx) => {
         if (selectedPieces[idx]) return;
         const items = getUniqueBuildSlotCandidates(seg, idx, currentReading, {
-            excluded: excludedKanjiFromBuild
+            excluded: excludedKanjiFromBuild,
+            candidateSource,
+            slotCandidateCache
         });
         if (items.length !== 1) return;
         selectedPieces[idx] = { ...items[0] };
@@ -2193,40 +2348,66 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 function openBuild(options = {}) {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
-    hydrateCompoundBuildSelections();
-    buildMode = 'reading';
-    fbChoices = []; fbChoicesUseMark = {};
-    resetBuildCandidateVisibleLimits();
-    excludedKanjiFromBuild = []; // 除外リストをリセット
-    if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
-        excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
-    }
-    if (!options.preserveReading) {
-        const currentReading = getSafeBuildCurrentReading();
-        const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
-        if (!isBuildReadingReady(currentReading, currentSegments)) {
-            const readyReading = getReadyBuildReadingCandidate();
-            if (readyReading) {
-                const nameInput = document.getElementById('in-name');
-                if (nameInput) nameInput.value = readyReading.reading;
-                segments = [...readyReading.segments];
-                selectedPieces = [];
-                if (typeof clearCompoundBuildFlow === 'function') {
-                    clearCompoundBuildFlow();
+    changeScreen('scr-build');
+    showBuildPreparingState();
+
+    const prepareBuildScreen = () => {
+        if (typeof options.beforePrepare === 'function') {
+            try {
+                options.beforePrepare();
+            } catch (error) {
+                console.error('BUILD: before prepare callback failed', error);
+            }
+        }
+        hydrateCompoundBuildSelections();
+        buildMode = 'reading';
+        fbChoices = []; fbChoicesUseMark = {};
+        resetBuildCandidateVisibleLimits();
+        invalidateBuildReadingChoicesCache();
+        excludedKanjiFromBuild = []; // 除外リストをリセット
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
+            excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
+        }
+        const candidateSource = getVisibleReadingModeKanjiBuildCandidates();
+        const slotCandidateCache = new Map();
+        if (!options.preserveReading) {
+            const currentReading = getSafeBuildCurrentReading();
+            const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
+            if (!isBuildReadingReady(currentReading, currentSegments, { candidateSource, slotCandidateCache })) {
+                const readyReading = getReadyBuildReadingCandidate();
+                if (readyReading) {
+                    const nameInput = document.getElementById('in-name');
+                    if (nameInput) nameInput.value = readyReading.reading;
+                    segments = [...readyReading.segments];
+                    selectedPieces = [];
+                    if (typeof clearCompoundBuildFlow === 'function') {
+                        clearCompoundBuildFlow();
+                    }
                 }
             }
         }
-    }
-    autoSelectSingleBuildCandidates();
-    changeScreen('scr-build');
-    requestRenderBuildSelection('open-build', {
-        delayMs: 0,
-        afterRender: () => {
-            if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
-                executeBuild();
+        autoSelectSingleBuildCandidates({ candidateSource, slotCandidateCache });
+        const additionalAfterRender = typeof options.afterPrepare === 'function'
+            ? options.afterPrepare()
+            : null;
+        requestRenderBuildSelection('open-build', {
+            delayMs: 0,
+            afterRender: () => {
+                if (typeof additionalAfterRender === 'function') {
+                    additionalAfterRender();
+                }
+                if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
+                    executeBuild();
+                }
             }
-        }
-    });
+        });
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(prepareBuildScreen, 0));
+    } else {
+        setTimeout(prepareBuildScreen, 0);
+    }
 }
 
 /**
@@ -2243,6 +2424,7 @@ function openBuildFreeMode() {
     fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
     resetBuildCandidateVisibleLimits();
+    invalidateBuildReadingChoicesCache();
     excludedKanjiFromBuild = []; // 除外リストをリセット
     changeScreen('scr-build');
     requestRenderBuildSelection('open-build-free-mode', { delayMs: 0 });
@@ -2262,6 +2444,7 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
     shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
     fbSelectedReading = reading || null;
     resetBuildCandidateVisibleLimits();
+    invalidateBuildReadingChoicesCache();
     excludedKanjiFromBuild = [];
 
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
@@ -2296,6 +2479,7 @@ function setBuildMode(mode) {
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
         resetBuildCandidateVisibleLimits();
+        invalidateBuildReadingChoicesCache();
         if (mode === 'reading') {
             hydrateCompoundBuildSelections();
         }
@@ -2342,6 +2526,17 @@ function syncBuildSaveButton(canSave) {
         } else {
             detailEl.textContent = '漢字を選ぶと保存できます';
         }
+    }
+}
+
+function showBuildPreparingState() {
+    const container = document.getElementById('build-selection');
+    const headerContainer = document.getElementById('build-header-sticky');
+    if (headerContainer) {
+        headerContainer.innerHTML = '<div class="rounded-2xl border border-[#eee5d8] bg-white px-4 py-3 text-sm font-bold text-[#8b7e66] shadow-sm">ビルドを準備中...</div>';
+    }
+    if (container) {
+        container.innerHTML = '<div class="px-4 py-12 text-center text-sm font-bold text-[#a6967a]">候補を準備しています</div>';
     }
 }
 
@@ -2566,6 +2761,10 @@ function renderBuildSelection() {
     headerContainer.innerHTML = '';
 
     const currentReading = getSafeBuildCurrentReading();
+    const renderCandidateSource = buildMode === 'reading'
+        ? getVisibleReadingModeKanjiBuildCandidates()
+        : null;
+    const renderSlotCandidateCache = new Map();
 
     const modeBar = document.createElement('div');
     modeBar.className = 'relative w-full';
@@ -2602,6 +2801,7 @@ function renderBuildSelection() {
     headerContainer.appendChild(namePreview);
 
     updateNamePreview();
+    scheduleBuildReadingChoicesWarmup();
 
     if (buildMode === 'free') {
         renderBuildFreeMode(container);
@@ -2648,7 +2848,9 @@ function renderBuildSelection() {
         scrollBox.className = 'flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1';
 
         let items = getUniqueBuildSlotCandidates(seg, idx, currentReading, {
-            excluded: excludedKanjiFromBuild
+            excluded: excludedKanjiFromBuild,
+            candidateSource: renderCandidateSource,
+            slotCandidateCache: renderSlotCandidateCache
         });
 
         if (items.length === 0) {
@@ -2888,6 +3090,7 @@ function toggleReadingDropdown() {
         fbChoices = []; fbChoicesUseMark = {};
         selectedPieces = [];
         resetBuildCandidateVisibleLimits();
+        invalidateBuildReadingChoicesCache();
         hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
@@ -2910,17 +3113,12 @@ function toggleReadingDropdown() {
     const currentReading = getSafeBuildCurrentReading();
     const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
     const renderToken = ++buildReadingDropdownRenderToken;
-    buildReadingDropdownChoices = [];
-    dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読み候補を準備中...</div>';
     dropdown.classList.remove('hidden');
     if (caret) caret.textContent = '▲';
 
-    setTimeout(() => {
-        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
-        buildReadingDropdownChoices = getBuildReadingChoices();
-        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
-        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
-    }, 0);
+    buildReadingDropdownChoices = getBuildReadingChoices();
+    if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+    renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
@@ -2951,6 +3149,7 @@ function selectReadingForBuild(reading, preferredSegments = []) {
     const caret = document.getElementById('reading-mode-caret');
     if (caret) caret.textContent = '▼';
     excludedKanjiFromBuild = []; // 読みを変更した際も除外リストをリセット
+    invalidateBuildReadingChoicesCache();
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
