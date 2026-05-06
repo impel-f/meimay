@@ -8,6 +8,7 @@
  */
 function setupPhysics(card, data) {
     let sx, sy, dx = 0, dy = 0, active = false;
+    let moveFrame = null;
 
     const bL = document.getElementById('badge-like');
     const bN = document.getElementById('badge-nope');
@@ -85,6 +86,22 @@ function setupPhysics(card, data) {
         card.style.zIndex = '1500';
     };
 
+    const renderDragFrame = () => {
+        moveFrame = null;
+        if (!active) return;
+
+        // translate3dでハードウェアアクセラレーション
+        const rotate = dx / 15;
+        card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
+
+        updateSwipeStamps();
+    };
+
+    const requestDragFrame = () => {
+        if (moveFrame !== null) return;
+        moveFrame = requestAnimationFrame(renderDragFrame);
+    };
+
     // ポインター移動
     card.onpointermove = e => {
         if (!active) return;
@@ -92,17 +109,7 @@ function setupPhysics(card, data) {
 
         dx = e.clientX - sx;
         dy = e.clientY - sy;
-
-        // フレーム最適化
-        requestAnimationFrame(() => {
-            if (!active) return;
-
-            // translate3dでハードウェアアクセラレーション
-            const rotate = dx / 15;
-            card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
-
-            updateSwipeStamps();
-        });
+        requestDragFrame();
     };
 
     // ポインターアップ
@@ -110,6 +117,10 @@ function setupPhysics(card, data) {
         if (!active) return;
 
         active = false;
+        if (moveFrame !== null) {
+            cancelAnimationFrame(moveFrame);
+            moveFrame = null;
+        }
         if (e.cancelable) e.preventDefault();
         try { card.releasePointerCapture(e.pointerId); } catch (err) { }
         card.style.willChange = 'auto'; // GPU解放
@@ -152,6 +163,10 @@ function setupPhysics(card, data) {
     // ポインターキャンセル時もナビ復元
     card.onpointercancel = () => {
         active = false;
+        if (moveFrame !== null) {
+            cancelAnimationFrame(moveFrame);
+            moveFrame = null;
+        }
         resetSwipeStamps();
         const _nav = document.getElementById('bottom-nav');
         if (_nav) _nav.style.pointerEvents = '';
@@ -229,7 +244,13 @@ function executeSwipe(dir, data) {
     // NOPEの場合はnopedセットに追加
     if (data && dir === 'left') {
         noped.add(data['漢字']);
-        if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
+        if (typeof StorageBox !== 'undefined') {
+            if (typeof StorageBox.saveNopedDeferred === 'function') {
+                StorageBox.saveNopedDeferred();
+            } else {
+                StorageBox.saveNoped();
+            }
+        }
     }
 
     if (data && !premiumActive) {
@@ -292,7 +313,14 @@ function executeSwipe(dir, data) {
     }
 
     // 即座に保存＆クラウド同期トリガー
-    if (data && typeof recordEncounteredSwipeItem === 'function') {
+    if (data && typeof scheduleEncounteredSwipeItem === 'function') {
+        const encounteredAction = dir === 'left'
+            ? 'nope'
+            : dir === 'up'
+                ? 'super'
+                : 'like';
+        scheduleEncounteredSwipeItem(data, encounteredAction);
+    } else if (data && typeof recordEncounteredSwipeItem === 'function') {
         const encounteredAction = dir === 'left'
             ? 'nope'
             : dir === 'up'
@@ -302,7 +330,11 @@ function executeSwipe(dir, data) {
     }
 
     if ((dir === 'right' || dir === 'up') && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
-        StorageBox.saveLiked();
+        if (typeof StorageBox.saveLikedDeferred === 'function') {
+            StorageBox.saveLikedDeferred();
+        } else {
+            StorageBox.saveLiked();
+        }
         if (addedToStock && typeof notifyKanjiSwipeStockAdded === 'function') {
             notifyKanjiSwipeStockAdded(data, dir);
         }

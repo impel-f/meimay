@@ -10,6 +10,10 @@ let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 let soundEntryMode = 'browse';
 let readingStockSoundFilter = null;
+let readingStockDeferredSaveTimer = null;
+let readingStockDeferredSerialized = null;
+let readingStockDeferredItems = null;
+let readingStockDeferredOptions = null;
 // gender is defined in 01-core.js
 
 function normalizeReadingStockSoundValue(value) {
@@ -113,6 +117,8 @@ function getCompoundBuildFlow() {
 }
 
 const ENCOUNTERED_LIBRARY_KEY = 'meimay_encountered_library_v1';
+let encounteredSwipeQueue = [];
+let encounteredSwipeFlushTimer = null;
 
 function isLegacySyntheticEncounteredReading(item) {
     if (!item || item.encounterOrigin) return false;
@@ -897,7 +903,7 @@ function saveEncounteredLibrary(library, options = {}) {
 
 function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
     if (!kind || !key) return;
-    const library = getEncounteredLibrary();
+    const library = options.library || getEncounteredLibrary();
     const list = kind === 'reading' ? library.readings : library.kanji;
     const index = list.findIndex(item => item && item.key === key);
     const now = new Date().toISOString();
@@ -946,12 +952,18 @@ function updateEncounteredLibraryEntry(kind, key, payload = {}, options = {}) {
         list.unshift(next);
     }
 
-    saveEncounteredLibrary(library);
+    if (!options.skipSave) {
+        saveEncounteredLibrary(library);
+    }
+    return library;
 
 }
 
-function recordEncounteredSwipeItem(item, action) {
+function recordEncounteredSwipeItem(item, action, options = {}) {
     if (!item) return;
+    const updateOptions = options.library
+        ? { ...options, skipSave: true }
+        : options;
 
     if (item['漢字']) {
         const encounteredStrokes = item.isKanaCandidate && typeof getKanaStrokeCount === 'function'
@@ -976,6 +988,7 @@ function recordEncounteredSwipeItem(item, action) {
                 sessionDisplaySegments: Array.isArray(item.sessionDisplaySegments) ? [...item.sessionDisplaySegments] : []
             }
         }, {
+            ...updateOptions,
             action,
             incrementSeen: true,
             incrementLike: action === 'like' || action === 'super',
@@ -990,12 +1003,40 @@ function recordEncounteredSwipeItem(item, action) {
             examples: Array.isArray(item.examples) ? [...item.examples] : [],
             mode: SwipeState.mode || ''
         }, {
+            ...updateOptions,
             action,
             incrementSeen: true,
             incrementLike: action === 'like' || action === 'super',
             incrementNope: action === 'nope'
         });
     }
+}
+
+function flushEncounteredSwipeQueue() {
+    if (encounteredSwipeFlushTimer) {
+        clearTimeout(encounteredSwipeFlushTimer);
+        encounteredSwipeFlushTimer = null;
+    }
+    if (!Array.isArray(encounteredSwipeQueue) || encounteredSwipeQueue.length === 0) return;
+    const queued = encounteredSwipeQueue.splice(0);
+    const library = getEncounteredLibrary();
+    queued.forEach(({ item, action }) => {
+        recordEncounteredSwipeItem(item, action, { library, skipSave: true });
+    });
+    saveEncounteredLibrary(library);
+}
+
+function scheduleEncounteredSwipeItem(item, action) {
+    if (!item) return;
+    encounteredSwipeQueue.push({ item, action });
+    if (encounteredSwipeFlushTimer) clearTimeout(encounteredSwipeFlushTimer);
+    encounteredSwipeFlushTimer = setTimeout(flushEncounteredSwipeQueue, 650);
+}
+
+if (typeof window !== 'undefined') {
+    window.scheduleEncounteredSwipeItem = scheduleEncounteredSwipeItem;
+    window.flushEncounteredSwipeQueue = flushEncounteredSwipeQueue;
+    window.addEventListener('pagehide', flushEncounteredSwipeQueue);
 }
 
 
@@ -1973,14 +2014,13 @@ function advanceReadingSwipeAfterDetailSelection(pending) {
     SwipeState.liked.push(currentItem);
     if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
         learnSoundPreference(currentItem, action);
-        if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
-            rerankRemainingSoundCandidates();
-        }
     }
     if (currentItem.tags && currentItem.tags.length > 0 && typeof updateTagScore === 'function') {
         updateTagScore(currentItem.tags, 1);
     }
-    if (typeof recordEncounteredSwipeItem === 'function') {
+    if (typeof scheduleEncounteredSwipeItem === 'function') {
+        scheduleEncounteredSwipeItem(currentItem, action);
+    } else if (typeof recordEncounteredSwipeItem === 'function') {
         recordEncounteredSwipeItem(currentItem, action);
     }
     SwipeState.history.push({ action, item: currentItem });
@@ -1995,6 +2035,9 @@ function advanceReadingSwipeAfterDetailSelection(pending) {
     }
 
     const finish = () => {
+        if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
+            rerankRemainingSoundCandidates();
+        }
         SwipeState.currentIndex++;
         renderUniversalCard();
     };
@@ -2654,6 +2697,7 @@ function renderUniversalCard() {
 
 function initUniversalSwipePhysics(card) {
     let sx, sy, dx = 0, dy = 0, active = false;
+    let moveFrame = null;
 
     const bL = document.getElementById('badge-like-uni');
     const bN = document.getElementById('badge-nope-uni');
@@ -2705,25 +2749,35 @@ function initUniversalSwipePhysics(card) {
         card.style.zIndex = '1500';
     };
 
+    const renderDragFrame = () => {
+        moveFrame = null;
+        if (!active) return;
+        const rotate = dx / 15;
+        card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
+        updateSwipeStamps();
+    };
+
+    const requestDragFrame = () => {
+        if (moveFrame !== null) return;
+        moveFrame = requestAnimationFrame(renderDragFrame);
+    };
+
     card.onpointermove = e => {
         if (!active) return;
         if (e.cancelable) e.preventDefault();
         dx = e.clientX - sx;
         dy = e.clientY - sy;
-
-        requestAnimationFrame(() => {
-            if (!active) return;
-            const rotate = dx / 15;
-            card.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg) scale(1.03)`;
-
-            updateSwipeStamps();
-        });
+        requestDragFrame();
     };
 
     card.onpointerup = e => {
         if (!active) return;
         if (e.cancelable) e.preventDefault();
         active = false;
+        if (moveFrame !== null) {
+            cancelAnimationFrame(moveFrame);
+            moveFrame = null;
+        }
         try { card.releasePointerCapture(e.pointerId); } catch (err) { }
         card.style.willChange = 'auto';
 
@@ -2757,6 +2811,10 @@ function initUniversalSwipePhysics(card) {
 
     card.onpointercancel = () => {
         active = false;
+        if (moveFrame !== null) {
+            cancelAnimationFrame(moveFrame);
+            moveFrame = null;
+        }
         resetSwipeStamps();
     };
 
@@ -2792,9 +2850,6 @@ function universalSwipeAction(action) {
     // AI: 好みの音パターン学習（nickname / sound モード共通）
     if (SwipeState.mode === 'nickname' || SwipeState.mode === 'sound') {
         learnSoundPreference(item, action);
-        if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
-            rerankRemainingSoundCandidates();
-        }
     }
 
     if (action === 'nope') {
@@ -2803,7 +2858,13 @@ function universalSwipeAction(action) {
         } else if (item.reading) {
             noped.add(item.reading);
         }
-        if (typeof StorageBox !== 'undefined') StorageBox.saveNoped();
+        if (typeof StorageBox !== 'undefined') {
+            if (typeof StorageBox.saveNopedDeferred === 'function') {
+                StorageBox.saveNopedDeferred();
+            } else {
+                StorageBox.saveNoped();
+            }
+        }
     }
 
     // タグスコア更新（soundモード等、タグを持っている候補の場合）
@@ -2812,7 +2873,11 @@ function universalSwipeAction(action) {
         updateTagScore(item.tags, delta);
     }
 
-    recordEncounteredSwipeItem(item, action);
+    if (typeof scheduleEncounteredSwipeItem === 'function') {
+        scheduleEncounteredSwipeItem(item, action);
+    } else if (typeof recordEncounteredSwipeItem === 'function') {
+        recordEncounteredSwipeItem(item, action);
+    }
 
     SwipeState.history.push({ action: action, item: item });
     if (SwipeState.dailyLimitMode === 'reading' && typeof addDailyReadingSwipeCount === 'function') {
@@ -2847,6 +2912,9 @@ function universalSwipeAction(action) {
         }
 
         setTimeout(() => {
+            if (SwipeState.mode === 'sound' && typeof rerankRemainingSoundCandidates === 'function') {
+                rerankRemainingSoundCandidates();
+            }
             SwipeState.currentIndex++;
             renderUniversalCard();
         }, 300);
@@ -4395,6 +4463,9 @@ function getVisibleReadingStock() {
 
 function getReadingStock() {
     try {
+        if (readingStockDeferredSerialized !== null && Array.isArray(readingStockDeferredItems)) {
+            return readingStockDeferredItems;
+        }
         const data = localStorage.getItem(READING_STOCK_KEY) || '';
         if (data === readingStockCacheRaw) return readingStockCacheItems;
         const raw = data ? JSON.parse(data) : [];
@@ -4409,12 +4480,66 @@ function getReadingStock() {
     }
 }
 
+function flushDeferredReadingStockSave() {
+    if (readingStockDeferredSaveTimer) {
+        clearTimeout(readingStockDeferredSaveTimer);
+        readingStockDeferredSaveTimer = null;
+    }
+    if (readingStockDeferredSerialized === null) return;
+    const serialized = readingStockDeferredSerialized;
+    const normalizedStock = Array.isArray(readingStockDeferredItems) ? readingStockDeferredItems : [];
+    const options = readingStockDeferredOptions || {};
+    readingStockDeferredSerialized = null;
+    readingStockDeferredItems = null;
+    readingStockDeferredOptions = null;
+
+    try {
+        localStorage.setItem(READING_STOCK_KEY, serialized);
+        readingStockCacheRaw = serialized;
+        readingStockCacheItems = normalizedStock;
+    } catch (e) {
+        console.error("STOCK: Failed to save reading stock", e);
+    }
+    if (!options.skipPartnerSync && typeof queuePartnerStockSync === 'function') {
+        queuePartnerStockSync('saveReadingStock');
+    }
+    if (!options.skipNotify && typeof notifyStockStateChanged === 'function') {
+        notifyStockStateChanged('reading-stock');
+    }
+}
+
+function scheduleDeferredReadingStockSave(normalizedStock, serialized, options = {}) {
+    readingStockCacheRaw = serialized;
+    readingStockCacheItems = normalizedStock;
+    readingStockDeferredSerialized = serialized;
+    readingStockDeferredItems = normalizedStock;
+    readingStockDeferredOptions = {
+        skipPartnerSync: readingStockDeferredOptions
+            ? readingStockDeferredOptions.skipPartnerSync && options.skipPartnerSync === true
+            : options.skipPartnerSync === true,
+        skipNotify: readingStockDeferredOptions
+            ? readingStockDeferredOptions.skipNotify && options.skipNotify === true
+            : options.skipNotify === true
+    };
+    if (readingStockDeferredSaveTimer) clearTimeout(readingStockDeferredSaveTimer);
+    readingStockDeferredSaveTimer = setTimeout(flushDeferredReadingStockSave, 650);
+}
+
+if (typeof window !== 'undefined') {
+    window.flushDeferredReadingStockSave = flushDeferredReadingStockSave;
+    window.addEventListener('pagehide', flushDeferredReadingStockSave);
+}
+
 function saveReadingStock(stock, options = {}) {
     try {
         const normalizedStock = Array.isArray(stock)
             ? stock.map(normalizeReadingStockItem).filter(Boolean)
             : [];
         const serialized = JSON.stringify(normalizedStock);
+        if (options.defer === true) {
+            scheduleDeferredReadingStockSave(normalizedStock, serialized, options);
+            return;
+        }
         localStorage.setItem(READING_STOCK_KEY, serialized);
         readingStockCacheRaw = serialized;
         readingStockCacheItems = normalizedStock;
@@ -4533,7 +4658,7 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     if (!result.entry) return null;
 
     if (result.changed) {
-        saveReadingStock(stock);
+        saveReadingStock(stock, { defer: options.deferSave === true });
     }
     if (options.clearHidden) {
         forgetHiddenReading(reading);
@@ -8944,7 +9069,8 @@ async function startNicknameCandidateSwipe(baseReading) {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
                     clearHidden: true,
-                    basePosition: nicknamePosition === 'prefix' ? 'prefix' : ''
+                    basePosition: nicknamePosition === 'prefix' ? 'prefix' : '',
+                    deferSave: true
                 });
             }
             notifyReadingSwipeStockAdded(item, action);
@@ -8971,7 +9097,8 @@ function initSoundMode() {
                 addReadingToStock(item.reading, '', item.tags || [], {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
-                    clearHidden: true
+                    clearHidden: true,
+                    deferSave: true
                 });
             }
             notifyReadingSwipeStockAdded(item, action);

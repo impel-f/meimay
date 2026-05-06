@@ -27,6 +27,9 @@ const StorageBox = {
     KEY_HOME_PAIR_CARD_DISMISSED: 'meimay_home_pair_card_dismissed_v1',
     KEY_BUILD_EXCLUDED: 'meimay_build_excluded',
     KEY_LIKED_REMOVED: 'meimay_liked_removed_v1',
+    _likedDeferredSaveTimer: null,
+    _likedDeferredSaveOptions: null,
+    _nopedDeferredSaveTimer: null,
 
     _readStoredArray: function (key) {
         try {
@@ -466,6 +469,21 @@ const StorageBox = {
         return result;
     },
 
+    saveLikedDeferred: function (options = {}) {
+        this._likedDeferredSaveOptions = {
+            skipPartnerSync: this._likedDeferredSaveOptions
+                ? this._likedDeferredSaveOptions.skipPartnerSync && options.skipPartnerSync === true
+                : options.skipPartnerSync === true
+        };
+        if (this._likedDeferredSaveTimer) {
+            clearTimeout(this._likedDeferredSaveTimer);
+        }
+        this._likedDeferredSaveTimer = setTimeout(() => {
+            this.flushDeferredSaves('liked');
+        }, 650);
+        return true;
+    },
+
     saveNoped: function () {
         try {
             localStorage.setItem(this.KEY_NOPED, JSON.stringify(Array.from(noped)));
@@ -473,6 +491,38 @@ const StorageBox = {
         } catch (e) {
             console.error("STORAGE: Save noped failed", e);
             return false;
+        }
+    },
+
+    saveNopedDeferred: function () {
+        if (this._nopedDeferredSaveTimer) {
+            clearTimeout(this._nopedDeferredSaveTimer);
+        }
+        this._nopedDeferredSaveTimer = setTimeout(() => {
+            this.flushDeferredSaves('noped');
+        }, 650);
+        return true;
+    },
+
+    flushDeferredSaves: function (scope = 'all') {
+        if (scope === 'all' || scope === 'liked') {
+            if (this._likedDeferredSaveTimer) {
+                clearTimeout(this._likedDeferredSaveTimer);
+                this._likedDeferredSaveTimer = null;
+            }
+            if (this._likedDeferredSaveOptions) {
+                const options = this._likedDeferredSaveOptions;
+                this._likedDeferredSaveOptions = null;
+                this.saveLiked(options);
+            }
+        }
+
+        if (scope === 'all' || scope === 'noped') {
+            if (this._nopedDeferredSaveTimer) {
+                clearTimeout(this._nopedDeferredSaveTimer);
+                this._nopedDeferredSaveTimer = null;
+                this.saveNoped();
+            }
         }
     },
 
@@ -902,5 +952,13 @@ function receiveSharedData() {
 
 window.shareData = shareData;
 window.receiveSharedData = receiveSharedData;
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', () => {
+        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox.flushDeferredSaves === 'function') {
+            StorageBox.flushDeferredSaves();
+        }
+    });
+}
 
 console.log("STORAGE: Module loaded (with sharing)");
