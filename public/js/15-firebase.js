@@ -5169,7 +5169,11 @@ function refreshPartnerAwareUI() {
         if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     }
     if (document.getElementById('scr-build')?.classList.contains('active')) {
-        if (typeof renderBuildSelection === 'function') renderBuildSelection();
+        if (typeof requestRenderBuildSelection === 'function') {
+            requestRenderBuildSelection('partner-aware-ui');
+        } else if (typeof renderBuildSelection === 'function') {
+            renderBuildSelection();
+        }
     }
     if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
 }

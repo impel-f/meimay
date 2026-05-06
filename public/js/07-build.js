@@ -12,6 +12,8 @@ let fbSelectedReading = null;
 let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
 let buildReadingDropdownChoices = [];
+let buildReadingDropdownRenderToken = 0;
+let buildSelectionRenderTimer = null;
 
 function escapeBuildHtml(value) {
     return String(value ?? '')
@@ -456,7 +458,7 @@ function getBuildCandidateSegmentsForReading(reading, segmentsSource = [], histo
     return reading ? [String(reading)] : [];
 }
 
-function isBuildReadingReady(reading, candidateSegments = []) {
+function isBuildReadingReady(reading, candidateSegments = [], options = {}) {
     const safeReading = typeof getReadingBaseReading === 'function'
         ? getReadingBaseReading(reading)
         : String(reading || '').trim().split('::')[0].trim();
@@ -467,7 +469,9 @@ function isBuildReadingReady(reading, candidateSegments = []) {
 
     return safeSegments.every((seg, idx) => {
         const candidates = getBuildSlotCandidates(seg, idx, safeReading, {
-            excluded: excludedKanjiFromBuild
+            excluded: options.excluded || excludedKanjiFromBuild,
+            candidateSource: options.candidateSource,
+            slotCandidateCache: options.slotCandidateCache
         });
         return Array.isArray(candidates) && candidates.length > 0;
     });
@@ -489,11 +493,13 @@ function getBuildHiddenReadingSet() {
     );
 }
 
-function getBuildReadingChoiceKanjiCount(reading, candidateSegments = []) {
+function getBuildReadingChoiceKanjiCount(reading, candidateSegments = [], options = {}) {
     const seen = new Set();
     (Array.isArray(candidateSegments) ? candidateSegments : []).forEach((seg, idx) => {
         const candidates = getUniqueBuildSlotCandidates(seg, idx, reading, {
-            excluded: excludedKanjiFromBuild
+            excluded: options.excluded || excludedKanjiFromBuild,
+            candidateSource: options.candidateSource,
+            slotCandidateCache: options.slotCandidateCache
         });
         candidates.forEach(item => {
             const key = getLikedCandidateDisplayKey(item) || buildLikedCandidateKey(item);
@@ -509,6 +515,13 @@ function getBuildReadingChoices(options = {}) {
         ? getLatestReadingHistoryLookup()
         : {};
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const candidateSource = getVisibleReadingModeKanjiBuildCandidates();
+    const slotCandidateCache = new Map();
+    const candidateOptions = {
+        excluded: excludedKanjiFromBuild,
+        candidateSource,
+        slotCandidateCache
+    };
     const choices = new Map();
 
     const addChoice = (rawReading, rawSegments = [], source = 'self', sourceItem = null) => {
@@ -518,7 +531,6 @@ function getBuildReadingChoices(options = {}) {
         if (!reading || hiddenSet.has(reading)) return;
         const candidateSegments = getBuildCandidateSegmentsForReading(reading, rawSegments, historyLookup);
         if (!Array.isArray(candidateSegments) || candidateSegments.length === 0) return;
-        if (options.readyOnly !== false && !isBuildReadingReady(reading, candidateSegments)) return;
 
         const key = typeof getReadingStockKey === 'function'
             ? getReadingStockKey(reading, candidateSegments)
@@ -541,7 +553,6 @@ function getBuildReadingChoices(options = {}) {
         if (addedAt && (!existing.addedAt || Date.parse(addedAt) > Date.parse(existing.addedAt || ''))) {
             existing.addedAt = addedAt;
         }
-        existing.kanjiCount = Math.max(existing.kanjiCount || 0, getBuildReadingChoiceKanjiCount(reading, candidateSegments));
         choices.set(key, existing);
     };
 
@@ -584,6 +595,16 @@ function getBuildReadingChoices(options = {}) {
     addFromReadingStock(pairInsights?.getPartnerReadingStock ? pairInsights.getPartnerReadingStock() : [], 'partner');
 
     return Array.from(choices.values())
+        .map(choice => {
+            if (options.readyOnly !== false && !isBuildReadingReady(choice.reading, choice.segments, candidateOptions)) {
+                return null;
+            }
+            return {
+                ...choice,
+                kanjiCount: getBuildReadingChoiceKanjiCount(choice.reading, choice.segments, candidateOptions)
+            };
+        })
+        .filter(Boolean)
         .filter(choice => choice.kanjiCount > 0)
         .sort((a, b) => {
             const aSourceRank = a.hasSelf && a.hasPartner ? 0 : a.hasSelf ? 1 : 2;
@@ -1711,22 +1732,43 @@ function getVisibleKanjiStockItemCount(candidatePoolOverride = null) {
     }).length;
 }
 
+function getBuildSlotCandidateCacheKey(seg, idx, currentReading, options = {}) {
+    const excluded = Array.isArray(options.excluded) ? options.excluded : [];
+    return [
+        String(idx),
+        String(seg || ''),
+        String(currentReading || ''),
+        options.partnerOnly ? 'partner' : '',
+        options.matchedOnly ? 'matched' : '',
+        excluded.join('|')
+    ].join('::');
+}
+
 function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     const {
         excluded = [],
         partnerOnly = false,
         matchedOnly = false
     } = options;
+    const cache = options.slotCandidateCache instanceof Map ? options.slotCandidateCache : null;
+    const cacheKey = cache ? getBuildSlotCandidateCacheKey(seg, idx, currentReading, options) : '';
+    if (cache && cache.has(cacheKey)) {
+        return cache.get(cacheKey).slice();
+    }
 
     const fixedPiece = getCompoundFixedPieceForSlot(idx);
     if (fixedPiece) {
-        return [{ ...fixedPiece }];
+        const fixedResult = [{ ...fixedPiece }];
+        if (cache) cache.set(cacheKey, fixedResult);
+        return fixedResult.slice();
     }
 
     const excludeSet = new Set(Array.isArray(excluded) ? excluded : []);
-    const source = (partnerOnly || matchedOnly) && typeof getMergedLikedCandidates === 'function'
-        ? getMergedLikedCandidates()
-        : getVisibleReadingModeKanjiBuildCandidates();
+    const source = Array.isArray(options.candidateSource)
+        ? options.candidateSource
+        : ((partnerOnly || matchedOnly) && typeof getMergedLikedCandidates === 'function'
+            ? getMergedLikedCandidates()
+            : getVisibleReadingModeKanjiBuildCandidates());
     const stockCandidates = source.filter((item) => {
         const slotMatch = item.slot === idx;
         const readingMatch = !item.sessionReading || item.sessionReading === currentReading;
@@ -1763,7 +1805,8 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
     });
 
     if (partnerOnly || matchedOnly || typeof window.getKanaCandidatesForSegment !== 'function') {
-        return stockCandidates;
+        if (cache) cache.set(cacheKey, stockCandidates);
+        return stockCandidates.slice();
     }
 
     const kanaCandidates = window.getKanaCandidatesForSegment(seg, idx, {
@@ -1792,7 +1835,9 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         return !excludedByRequest && !alreadyInStock;
     });
 
-    return [...filteredKanaCandidates, ...stockCandidates];
+    const result = [...filteredKanaCandidates, ...stockCandidates];
+    if (cache) cache.set(cacheKey, result);
+    return result.slice();
 }
 
 function getUniqueBuildSlotCandidates(seg, idx, currentReading, options = {}) {
@@ -2626,6 +2671,22 @@ function renderBuildSelection() {
 
     console.log('=== BUILD DEBUG END ===');
 }
+
+function requestRenderBuildSelection(reason = 'build', options = {}) {
+    const delayMs = Number.isFinite(Number(options.delayMs)) ? Math.max(0, Number(options.delayMs)) : 80;
+    if (buildSelectionRenderTimer) {
+        clearTimeout(buildSelectionRenderTimer);
+        buildSelectionRenderTimer = null;
+    }
+    buildSelectionRenderTimer = setTimeout(() => {
+        buildSelectionRenderTimer = null;
+        const buildScreen = document.getElementById('scr-build');
+        if (buildScreen && !buildScreen.classList.contains('active')) return;
+        renderBuildSelection();
+    }, delayMs);
+}
+
+window.requestRenderBuildSelection = requestRenderBuildSelection;
 function deleteStockGroup(reading) {
     if (!confirm(`「${reading}」のストックをすべて削除しますか？\n（${liked.filter(i => i.sessionReading === reading).length} 件）`)) {
         return;
@@ -2674,6 +2735,36 @@ function deleteStockGroup(reading) {
 // グローバルに公開
 window.deleteStockGroup = deleteStockGroup;
 
+function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments) {
+    if (!dropdown) return;
+
+    if (buildReadingDropdownChoices.length === 0) {
+        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">ビルドできる読み候補がありません</div>';
+        return;
+    }
+
+    dropdown.innerHTML = buildReadingDropdownChoices.map((choice, index) => {
+        const displaySegments = Array.isArray(choice.segments) ? choice.segments : [];
+        const display = displaySegments.length > 0 ? displaySegments.join(' / ') : choice.reading;
+        const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
+        const sourceClass = choice.hasSelf && choice.hasPartner
+            ? 'bg-[#fff3d8] text-[#9a7841] border-[#ead7ac]'
+            : choice.hasPartner
+                ? 'bg-[#fff0f5] text-[#a25f78] border-[#f4d3df]'
+                : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
+        const isCurrent = choice.reading === currentReading
+            && displaySegments.join('/') === currentSegments.join('/');
+        return `<button onclick="selectReadingForBuildByIndex(${index})"
+            class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
+            <span class="min-w-0 flex-1 pr-3">
+                <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(display)}${isCurrent ? '（現在）' : ''}</span>
+                <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
+            </span>
+            <span class="shrink-0 text-[10px] text-[#a6967a]">${choice.kanjiCount}個</span>
+        </button>`;
+    }).join('');
+}
+
 /**
  * 読みドロップダウンの開閉
  */
@@ -2696,41 +2787,26 @@ function toggleReadingDropdown() {
     const caret = document.getElementById('reading-mode-caret');
 
     if (!dropdown.classList.contains('hidden')) {
+        buildReadingDropdownRenderToken += 1;
         dropdown.classList.add('hidden');
         if (caret) caret.textContent = '▼';
         return;
     }
 
-    buildReadingDropdownChoices = getBuildReadingChoices();
     const currentReading = getSafeBuildCurrentReading();
     const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
-
-    if (buildReadingDropdownChoices.length === 0) {
-        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">ビルドできる読み候補がありません</div>';
-    } else {
-        dropdown.innerHTML = buildReadingDropdownChoices.map((choice, index) => {
-            const displaySegments = Array.isArray(choice.segments) ? choice.segments : [];
-            const display = displaySegments.length > 0 ? displaySegments.join(' / ') : choice.reading;
-            const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
-            const sourceClass = choice.hasSelf && choice.hasPartner
-                ? 'bg-[#fff3d8] text-[#9a7841] border-[#ead7ac]'
-                : choice.hasPartner
-                    ? 'bg-[#fff0f5] text-[#a25f78] border-[#f4d3df]'
-                    : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
-            const isCurrent = choice.reading === currentReading
-                && displaySegments.join('/') === currentSegments.join('/');
-            return `<button onclick="selectReadingForBuildByIndex(${index})"
-                class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
-                <span class="min-w-0 flex-1 pr-3">
-                    <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(display)}${isCurrent ? '（現在）' : ''}</span>
-                    <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
-                </span>
-                <span class="shrink-0 text-[10px] text-[#a6967a]">${choice.kanjiCount}個</span>
-            </button>`;
-        }).join('');
-    }
+    const renderToken = ++buildReadingDropdownRenderToken;
+    buildReadingDropdownChoices = [];
+    dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読み候補を準備中...</div>';
     dropdown.classList.remove('hidden');
     if (caret) caret.textContent = '▲';
+
+    setTimeout(() => {
+        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+        buildReadingDropdownChoices = getBuildReadingChoices();
+        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+    }, 0);
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
@@ -2738,6 +2814,7 @@ function toggleReadingDropdown() {
     setTimeout(() => {
         document.addEventListener('click', function closeDD(e) {
             if (!dropdown.contains(e.target)) {
+                buildReadingDropdownRenderToken += 1;
                 dropdown.classList.add('hidden');
                 if (caret) caret.textContent = '▼';
                 document.removeEventListener('click', closeDD);
