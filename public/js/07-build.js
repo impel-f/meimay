@@ -13,6 +13,7 @@ let currentFbRecommendedReadings = [];
 let excludedKanjiFromBuild = [];
 let buildReadingDropdownChoices = [];
 let buildReadingDropdownRenderToken = 0;
+let buildReadingDropdownVisibleLimit = 0;
 let buildSelectionRenderTimer = null;
 let buildSelectionRenderCallbacks = [];
 let buildReadingChoicesCacheSignature = '';
@@ -20,10 +21,20 @@ let buildReadingChoicesCache = [];
 let buildReadingChoicesWarmupTimer = null;
 let buildKanjiMasterIndexSource = null;
 let buildKanjiMasterIndex = null;
-const BUILD_READING_SLOT_INITIAL_LIMIT = 48;
-const BUILD_READING_SLOT_INCREMENT = 48;
-const BUILD_FREE_SLOT_INITIAL_LIMIT = 64;
-const BUILD_FREE_SLOT_INCREMENT = 64;
+let buildOwnCandidatesCacheSignature = '';
+let buildOwnCandidatesCache = [];
+let buildAllCandidatesCacheSignature = '';
+let buildAllCandidatesCache = [];
+let buildReadingModeCandidatesCacheSignature = '';
+let buildReadingModeCandidatesCache = [];
+let buildMergedLikedCandidatesCacheSignature = '';
+let buildMergedLikedCandidatesCache = [];
+const BUILD_READING_SLOT_INITIAL_LIMIT = 20;
+const BUILD_READING_SLOT_INCREMENT = 24;
+const BUILD_FREE_SLOT_INITIAL_LIMIT = 24;
+const BUILD_FREE_SLOT_INCREMENT = 24;
+const BUILD_READING_DROPDOWN_INITIAL_LIMIT = 40;
+const BUILD_READING_DROPDOWN_INCREMENT = 40;
 let buildSlotVisibleLimits = {};
 let buildFreeSlotVisibleLimits = {};
 
@@ -67,6 +78,16 @@ function invalidateBuildReadingChoicesCache() {
     buildReadingChoicesCache = [];
 }
 
+function cancelBuildReadingChoicesWarmup() {
+    if (!buildReadingChoicesWarmupTimer) return;
+    if (buildReadingChoicesWarmupTimer.type === 'idle' && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(buildReadingChoicesWarmupTimer.id);
+    } else {
+        clearTimeout(buildReadingChoicesWarmupTimer.id);
+    }
+    buildReadingChoicesWarmupTimer = null;
+}
+
 function cloneBuildReadingChoice(choice) {
     return {
         ...choice,
@@ -74,19 +95,63 @@ function cloneBuildReadingChoice(choice) {
     };
 }
 
-function scheduleBuildReadingChoicesWarmup() {
-    if (buildReadingChoicesWarmupTimer) {
-        if (buildReadingChoicesWarmupTimer.type === 'idle' && typeof cancelIdleCallback === 'function') {
-            cancelIdleCallback(buildReadingChoicesWarmupTimer.id);
-        } else {
-            clearTimeout(buildReadingChoicesWarmupTimer.id);
+function cloneBuildCandidateList(items) {
+    return (Array.isArray(items) ? items : []).map(item => (
+        item && typeof item === 'object' ? { ...item } : item
+    ));
+}
+
+function getBuildCandidateCollectionStamp(items) {
+    const list = Array.isArray(items) ? items : [];
+    let latest = 0;
+    let hash = 0;
+    const samples = [];
+    list.forEach((item, index) => {
+        const time = Date.parse(item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || '') || 0;
+        if (time > latest) latest = time;
+        const itemStamp = [
+            item?.sessionReading || item?.reading || '',
+            item?.slot ?? '',
+            resolveLikedCandidateKanji(item),
+            item?.fromPartner ? 'p' : 's',
+            item?.isSuper ? 'super' : ''
+        ].join(':');
+        for (let i = 0; i < itemStamp.length; i += 1) {
+            hash = ((hash * 31) + itemStamp.charCodeAt(i)) >>> 0;
         }
-        buildReadingChoicesWarmupTimer = null;
-    }
+        if (index < 4 || index >= list.length - 4) {
+            samples.push(itemStamp);
+        }
+    });
+    return `${list.length}:${latest}:${hash}:${samples.join('|')}`;
+}
+
+function getBuildPairingStamp(pairInsights = null) {
+    const room = typeof MeimayPairing !== 'undefined'
+        ? `${MeimayPairing.roomCode || ''}:${MeimayPairing.partnerUid || ''}`
+        : '';
+    const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : '';
+    return `${room}:${partnerName}`;
+}
+
+function invalidateBuildCandidateSourceCaches() {
+    buildOwnCandidatesCacheSignature = '';
+    buildOwnCandidatesCache = [];
+    buildAllCandidatesCacheSignature = '';
+    buildAllCandidatesCache = [];
+    buildReadingModeCandidatesCacheSignature = '';
+    buildReadingModeCandidatesCache = [];
+    buildMergedLikedCandidatesCacheSignature = '';
+    buildMergedLikedCandidatesCache = [];
+}
+
+function scheduleBuildReadingChoicesWarmup() {
+    cancelBuildReadingChoicesWarmup();
     const warmup = () => {
         buildReadingChoicesWarmupTimer = null;
         const buildScreen = document.getElementById('scr-build');
         if (buildScreen && !buildScreen.classList.contains('active')) return;
+        if (buildReadingChoicesCacheSignature) return;
         getBuildReadingChoices();
     };
     if (typeof requestIdleCallback === 'function') {
@@ -101,6 +166,27 @@ function scheduleBuildReadingChoicesWarmup() {
         id: setTimeout(warmup, 160)
     };
 }
+
+function teardownBuildScreenForNavigation() {
+    if (buildSelectionRenderTimer) {
+        clearTimeout(buildSelectionRenderTimer);
+        buildSelectionRenderTimer = null;
+    }
+    buildSelectionRenderCallbacks = [];
+    cancelBuildReadingChoicesWarmup();
+    buildReadingDropdownRenderToken += 1;
+    buildReadingDropdownChoices = [];
+    buildReadingDropdownVisibleLimit = 0;
+
+    const headerContainer = document.getElementById('build-header-sticky');
+    const container = document.getElementById('build-selection');
+    const resultArea = document.getElementById('build-result-area');
+    if (headerContainer) headerContainer.innerHTML = '';
+    if (container) container.innerHTML = '';
+    if (resultArea) resultArea.innerHTML = '';
+}
+
+window.teardownBuildScreenForNavigation = teardownBuildScreenForNavigation;
 
 function getBuildSlotVisibleKey(seg, idx, currentReading) {
     return [
@@ -210,6 +296,8 @@ function normalizeSingleKanjiStock() {
     }
 
     liked = safeLiked;
+    invalidateBuildCandidateSourceCaches();
+    invalidateBuildReadingChoicesCache();
     try {
         const serialized = JSON.stringify(safeLiked);
         localStorage.setItem('naming_app_liked_chars', serialized);
@@ -256,10 +344,21 @@ function getVisibleOwnKanjiBuildCandidates() {
         : (Array.isArray(liked)
             ? liked.filter(item => !item?.fromPartner && !isImportedKanjiLibraryItem(item))
             : []);
+    const signature = [
+        'own',
+        getBuildPairingStamp(pairInsights),
+        getBuildCandidateCollectionStamp(source)
+    ].join('||');
 
-    return source
+    if (signature && signature === buildOwnCandidatesCacheSignature) {
+        return cloneBuildCandidateList(buildOwnCandidatesCache);
+    }
+
+    buildOwnCandidatesCacheSignature = signature;
+    buildOwnCandidatesCache = source
         .map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true }))
         .filter(item => !!item && isVisibleOwnKanjiBuildItem(item));
+    return cloneBuildCandidateList(buildOwnCandidatesCache);
 }
 
 /**
@@ -282,6 +381,17 @@ function getVisibleAllKanjiBuildCandidates() {
     const partnerLikedSource = pairInsights?.getPartnerLiked
         ? pairInsights.getPartnerLiked()
         : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
+    const signature = [
+        'all',
+        getBuildPairingStamp(pairInsights),
+        buildOwnCandidatesCacheSignature,
+        getBuildCandidateCollectionStamp(partnerLikedSource)
+    ].join('||');
+
+    if (signature && signature === buildAllCandidatesCacheSignature) {
+        return cloneBuildCandidateList(buildAllCandidatesCache);
+    }
+
     const partnerItems = Array.isArray(partnerLikedSource)
         ? partnerLikedSource
             .map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName }))
@@ -297,7 +407,9 @@ function getVisibleAllKanjiBuildCandidates() {
         return k && !ownKanjiSet.has(k);
     });
 
-    return [...ownItems, ...uniquePartnerItems];
+    buildAllCandidatesCacheSignature = signature;
+    buildAllCandidatesCache = [...ownItems, ...uniquePartnerItems];
+    return cloneBuildCandidateList(buildAllCandidatesCache);
 }
 
 function getVisibleReadingModeKanjiBuildCandidates() {
@@ -305,8 +417,19 @@ function getVisibleReadingModeKanjiBuildCandidates() {
         && typeof MeimayPairing !== 'undefined'
         && !!MeimayPairing.roomCode;
     if (isPaired && typeof getMergedLikedCandidates === 'function') {
-        return getMergedLikedCandidates()
+        const merged = getMergedLikedCandidates();
+        const signature = [
+            'reading',
+            buildMergedLikedCandidatesCacheSignature,
+            getBuildCandidateCollectionStamp(merged)
+        ].join('||');
+        if (signature && signature === buildReadingModeCandidatesCacheSignature) {
+            return cloneBuildCandidateList(buildReadingModeCandidatesCache);
+        }
+        buildReadingModeCandidatesCacheSignature = signature;
+        buildReadingModeCandidatesCache = merged
             .filter(item => !!item && !isImportedKanjiLibraryItem(item));
+        return cloneBuildCandidateList(buildReadingModeCandidatesCache);
     }
     return getVisibleOwnKanjiBuildCandidates();
 }
@@ -708,7 +831,9 @@ function getBuildReadingChoices(options = {}) {
     const sources = getBuildReadingChoiceSources();
     const signature = getBuildReadingChoicesSignature(sources, options);
     if (signature && signature === buildReadingChoicesCacheSignature) {
-        return buildReadingChoicesCache.map(cloneBuildReadingChoice);
+        return options.returnCache === true
+            ? buildReadingChoicesCache
+            : buildReadingChoicesCache.map(cloneBuildReadingChoice);
     }
 
     const hiddenSet = getBuildHiddenReadingSet();
@@ -814,7 +939,9 @@ function getBuildReadingChoices(options = {}) {
 
     buildReadingChoicesCacheSignature = signature;
     buildReadingChoicesCache = result.map(cloneBuildReadingChoice);
-    return result.map(cloneBuildReadingChoice);
+    return options.returnCache === true
+        ? buildReadingChoicesCache
+        : result.map(cloneBuildReadingChoice);
 }
 
 function getReadyBuildReadingCandidate() {
@@ -898,10 +1025,10 @@ function openStock(tab, options = {}) {
     console.log("BUILD: Opening stock screen");
     changeScreen('scr-stock');
     const targetTab = tab || currentStockTab || 'kanji';
-    switchStockTab(targetTab);
+    switchStockTab(targetTab, { skipRender: true });
 
     // 描画処理を遅延させて、画面遷移のレスポンスを最優先にする
-    setTimeout(() => {
+    const renderStockAfterPaint = () => {
         try {
             if (targetTab === 'reading') {
                 if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
@@ -920,7 +1047,12 @@ function openStock(tab, options = {}) {
                 `;
             }
         }
-    }, 10);
+    };
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(renderStockAfterPaint, 0));
+    } else {
+        setTimeout(renderStockAfterPaint, 16);
+    }
 }
 
 /**
@@ -943,6 +1075,7 @@ function openFreeBuild() {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
+    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-free-build', { delayMs: 0 });
 }
@@ -1537,7 +1670,7 @@ function confirmFbBuild() {
     }
 }
 
-function switchStockTab(tab) {
+function switchStockTab(tab, options = {}) {
     currentStockTab = tab;
 
     const readingTab = document.getElementById('stock-tab-reading');
@@ -1563,12 +1696,12 @@ function switchStockTab(tab) {
     if (tab === 'reading') {
         if (readingTab) readingTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (readingPanel) readingPanel.classList.remove('hidden');
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        if (!options.skipRender && typeof renderReadingStockSection === 'function') renderReadingStockSection();
     } else {
         // kanji (default)
         if (kanjiTab) kanjiTab.className = 'flex-1 rounded-xl px-3 py-2 text-sm font-bold text-center bg-[#fffbeb] text-[#5d5444] shadow-sm transition-all';
         if (kanjiPanel) kanjiPanel.classList.remove('hidden');
-        if (typeof renderStock === 'function') renderStock();
+        if (!options.skipRender && typeof renderStock === 'function') renderStock();
     }
 }
 
@@ -1577,6 +1710,8 @@ window.switchStockTab = switchStockTab;
 if (typeof window !== 'undefined' && !window.__meimayStockRenderListenerBound) {
     window.__meimayStockRenderListenerBound = true;
     window.addEventListener('meimay:stock-changed', () => {
+        invalidateBuildCandidateSourceCaches();
+        invalidateBuildReadingChoicesCache();
         const stockScreen = document.getElementById('scr-stock');
         if (!stockScreen || !stockScreen.classList.contains('active')) return;
         if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
@@ -1772,15 +1907,27 @@ function hydrateLikedCandidate(item, options = {}) {
 }
 
 function getMergedLikedCandidates() {
-    const localLikedItems = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true })).filter(Boolean)
-        : [];
-    const ownItems = localLikedItems.filter(item => !item.fromPartner);
+    const localLikedSource = (typeof liked !== 'undefined' && Array.isArray(liked)) ? liked : [];
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const partnerName = pairInsights?.getPartnerDisplayName ? pairInsights.getPartnerDisplayName() : 'パートナー';
     const partnerLikedSource = pairInsights?.getPartnerLiked
         ? pairInsights.getPartnerLiked()
         : (pairInsights?.getPartnerLikedRaw ? pairInsights.getPartnerLikedRaw() : []);
+    const signature = [
+        'merged',
+        getBuildPairingStamp(pairInsights),
+        getBuildCandidateCollectionStamp(localLikedSource),
+        getBuildCandidateCollectionStamp(partnerLikedSource)
+    ].join('||');
+
+    if (signature && signature === buildMergedLikedCandidatesCacheSignature) {
+        return cloneBuildCandidateList(buildMergedLikedCandidatesCache);
+    }
+
+    const localLikedItems = Array.isArray(localLikedSource)
+        ? localLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true })).filter(Boolean)
+        : [];
+    const ownItems = localLikedItems.filter(item => !item.fromPartner);
     const partnerItems = [
         ...(Array.isArray(partnerLikedSource)
             ? partnerLikedSource.map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName })).filter(Boolean)
@@ -1827,7 +1974,9 @@ function getMergedLikedCandidates() {
     ownItems.forEach(item => processItem(item, false));
     partnerItems.forEach(item => processItem(item, true));
 
-    return [...merged.values()];
+    buildMergedLikedCandidatesCacheSignature = signature;
+    buildMergedLikedCandidatesCache = [...merged.values()];
+    return cloneBuildCandidateList(buildMergedLikedCandidatesCache);
 }
 
 
@@ -2348,8 +2497,8 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 function openBuild(options = {}) {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
-    changeScreen('scr-build');
     showBuildPreparingState();
+    changeScreen('scr-build');
 
     const prepareBuildScreen = () => {
         if (typeof options.beforePrepare === 'function') {
@@ -2363,7 +2512,9 @@ function openBuild(options = {}) {
         buildMode = 'reading';
         fbChoices = []; fbChoicesUseMark = {};
         resetBuildCandidateVisibleLimits();
-        invalidateBuildReadingChoicesCache();
+        if (!options.preserveReading) {
+            invalidateBuildReadingChoicesCache();
+        }
         excludedKanjiFromBuild = []; // 除外リストをリセット
         if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
             excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
@@ -2426,6 +2577,7 @@ function openBuildFreeMode() {
     resetBuildCandidateVisibleLimits();
     invalidateBuildReadingChoicesCache();
     excludedKanjiFromBuild = []; // 除外リストをリセット
+    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-build-free-mode', { delayMs: 0 });
 }
@@ -2454,6 +2606,7 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
         ? [{ reading: fbSelectedReading, score: 999999 }]
         : [];
 
+    showBuildPreparingState();
     changeScreen('scr-build');
     requestRenderBuildSelection('open-build-free-mode-with-choices', {
         delayMs: 0,
@@ -2490,6 +2643,9 @@ function setBuildMode(mode) {
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
+    if (prevMode !== mode) {
+        showBuildPreparingState();
+    }
     requestRenderBuildSelection('set-build-mode', { delayMs: 0 });
 }
 window.setBuildMode = setBuildMode;
@@ -2532,6 +2688,9 @@ function syncBuildSaveButton(canSave) {
 function showBuildPreparingState() {
     const container = document.getElementById('build-selection');
     const headerContainer = document.getElementById('build-header-sticky');
+    if (typeof syncBuildSaveButton === 'function') {
+        syncBuildSaveButton(false);
+    }
     if (headerContainer) {
         headerContainer.innerHTML = '<div class="rounded-2xl border border-[#eee5d8] bg-white px-4 py-3 text-sm font-bold text-[#8b7e66] shadow-sm">ビルドを準備中...</div>';
     }
@@ -2975,7 +3134,8 @@ function renderBuildSelection() {
 }
 
 function requestRenderBuildSelection(reason = 'build', options = {}) {
-    const delayMs = Number.isFinite(Number(options.delayMs)) ? Math.max(0, Number(options.delayMs)) : 80;
+    const requestedDelayMs = Number.isFinite(Number(options.delayMs)) ? Math.max(0, Number(options.delayMs)) : 80;
+    const delayMs = requestedDelayMs === 0 ? 16 : requestedDelayMs;
     const afterRender = typeof options.afterRender === 'function' ? options.afterRender : null;
     if (afterRender) buildSelectionRenderCallbacks.push(afterRender);
     if (buildSelectionRenderTimer) {
@@ -3058,7 +3218,14 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
         return;
     }
 
-    dropdown.innerHTML = buildReadingDropdownChoices.map((choice, index) => {
+    const visibleLimit = Math.min(
+        buildReadingDropdownChoices.length,
+        buildReadingDropdownVisibleLimit || BUILD_READING_DROPDOWN_INITIAL_LIMIT
+    );
+    buildReadingDropdownVisibleLimit = visibleLimit;
+    const visibleChoices = buildReadingDropdownChoices.slice(0, visibleLimit);
+
+    dropdown.innerHTML = visibleChoices.map((choice, index) => {
         const displaySegments = Array.isArray(choice.segments) ? choice.segments : [];
         const display = displaySegments.length > 0 ? displaySegments.join(' / ') : choice.reading;
         const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
@@ -3077,7 +3244,43 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
             </span>
             <span class="shrink-0 text-[10px] text-[#a6967a]">${choice.kanjiCount}個</span>
         </button>`;
-    }).join('');
+    }).join('') + (buildReadingDropdownChoices.length > visibleChoices.length
+        ? `<button type="button" onclick="showMoreBuildReadingDropdownChoices()" class="w-full px-4 py-3 text-center text-xs font-black text-[#8b7e66] bg-[#fffbeb] active:bg-[#faf8f5]">
+                もっと表示（残り${buildReadingDropdownChoices.length - visibleChoices.length}件）
+            </button>`
+        : '');
+}
+
+function showMoreBuildReadingDropdownChoices() {
+    buildReadingDropdownVisibleLimit = Math.min(
+        buildReadingDropdownChoices.length,
+        (buildReadingDropdownVisibleLimit || BUILD_READING_DROPDOWN_INITIAL_LIMIT) + BUILD_READING_DROPDOWN_INCREMENT
+    );
+    const dropdown = document.getElementById('reading-dropdown');
+    const currentReading = getSafeBuildCurrentReading();
+    const currentSegments = getBuildCandidateSegmentsForReading(currentReading, Array.isArray(segments) ? segments : []);
+    renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+}
+
+window.showMoreBuildReadingDropdownChoices = showMoreBuildReadingDropdownChoices;
+
+function renderBuildReadingDropdownLoading(dropdown) {
+    if (!dropdown) return;
+    dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読み候補を準備しています...</div>';
+}
+
+function computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, currentSegments, renderToken) {
+    const compute = () => {
+        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+        buildReadingDropdownChoices = getBuildReadingChoices({ returnCache: true });
+        if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
+        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+    };
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(compute, { timeout: 300 });
+        return;
+    }
+    setTimeout(compute, 32);
 }
 
 /**
@@ -3115,10 +3318,15 @@ function toggleReadingDropdown() {
     const renderToken = ++buildReadingDropdownRenderToken;
     dropdown.classList.remove('hidden');
     if (caret) caret.textContent = '▲';
+    buildReadingDropdownVisibleLimit = BUILD_READING_DROPDOWN_INITIAL_LIMIT;
 
-    buildReadingDropdownChoices = getBuildReadingChoices();
-    if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
-    renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+    if (buildReadingChoicesCacheSignature) {
+        buildReadingDropdownChoices = buildReadingChoicesCache;
+        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+    } else {
+        renderBuildReadingDropdownLoading(dropdown);
+        computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, currentSegments, renderToken);
+    }
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
@@ -3149,7 +3357,6 @@ function selectReadingForBuild(reading, preferredSegments = []) {
     const caret = document.getElementById('reading-mode-caret');
     if (caret) caret.textContent = '▼';
     excludedKanjiFromBuild = []; // 読みを変更した際も除外リストをリセット
-    invalidateBuildReadingChoicesCache();
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }

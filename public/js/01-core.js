@@ -728,6 +728,16 @@ installNativeUndoSuppression();
 function changeScreen(id) {
     console.log(`CORE: Screen transition -> ${id}`);
     const shouldFocusSink = !shouldKeepNativeTextEditingForScreen(id);
+    const activeScreen = document.querySelector('.screen.active');
+
+    if (
+        activeScreen &&
+        activeScreen.id === 'scr-build' &&
+        id !== 'scr-build' &&
+        typeof window.teardownBuildScreenForNavigation === 'function'
+    ) {
+        window.teardownBuildScreenForNavigation();
+    }
 
     clearNativeTextEditingContext({
         focusSink: shouldFocusSink
