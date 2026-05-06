@@ -585,13 +585,59 @@ function escapeKanjiDetailHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-function renderKanjiDetailReadingChips(readings) {
+function normalizeKanjiDetailReadingForCompare(value) {
+    return clean(value).replace(/[（）()]/g, '').trim();
+}
+
+function getKanjiDetailCurrentReading(data, isKanaDetail) {
+    if (!data || isKanaDetail) return null;
+
+    const mainSwipeScreen = document.getElementById('scr-main');
+    const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
+
+    if (inActiveSwipe && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
+        return null;
+    }
+
+    if (
+        inActiveSwipe &&
+        typeof segments !== 'undefined' &&
+        typeof currentPos !== 'undefined' &&
+        segments &&
+        segments[currentPos]
+    ) {
+        return clean(segments[currentPos]);
+    }
+
+    if (typeof liked !== 'undefined') {
+        const likedItem = liked.find(l =>
+            l['漢字'] === data['漢字'] && l.slot >= 0 &&
+            l.sessionReading && l.sessionReading !== 'FREE' &&
+            l.sessionReading !== 'SEARCH' && l.sessionReading !== 'SHARED'
+        );
+        if (likedItem) {
+            const segs = (typeof readingToSegments !== 'undefined') ? readingToSegments[likedItem.sessionReading] : null;
+            if (segs && segs[likedItem.slot]) {
+                return clean(segs[likedItem.slot]);
+            }
+        }
+    }
+
+    return null;
+}
+
+function renderKanjiDetailReadingChips(readings, activeReading = null) {
     const list = Array.isArray(readings) ? readings.filter(Boolean) : [];
     if (list.length === 0) {
-        return '<span class="text-xs font-bold text-[#c2b196]">読みデータなし</span>';
+        return '<span class="text-xs font-medium text-[#c2b196]">読みデータなし</span>';
     }
+    const active = normalizeKanjiDetailReadingForCompare(activeReading);
     return list
-        .map(reading => `<span class="kanji-detail-reading-chip">${escapeKanjiDetailHtml(reading)}</span>`)
+        .map(reading => {
+            const isActive = active && normalizeKanjiDetailReadingForCompare(reading) === active;
+            const chipClass = isActive ? 'kanji-detail-reading-chip is-active' : 'kanji-detail-reading-chip';
+            return `<span class="${chipClass}">${escapeKanjiDetailHtml(reading)}</span>`;
+        })
         .join('');
 }
 
@@ -687,6 +733,7 @@ async function showKanjiDetail(data) {
         .split(/[、,，\s/]+/)
         .map(x => clean(x))
         .filter(x => x);
+    const currentReadingForDetail = getKanjiDetailCurrentReading(data, isKanaDetail);
 
     if (headerReadingEl) {
         const readingLabel = isKanaDetail ? '読み' : '読み・名乗り';
@@ -696,7 +743,7 @@ async function showKanjiDetail(data) {
                     <span>📖</span> ${readingLabel}
                 </div>
                 <div class="kanji-detail-reading-list mt-1">
-                    ${renderKanjiDetailReadingChips(readings)}
+                    ${renderKanjiDetailReadingChips(readings, currentReadingForDetail)}
                 </div>
             </div>
         `;
@@ -749,31 +796,7 @@ async function showKanjiDetail(data) {
     if (isKanaDetail) {
         yojijukugoEl.innerHTML = '';
     } else {
-        // 現在の読み（名乗り）を特定
-        // scr-main アクティブ（スワイプ中）の場合のみ segments[currentPos] を信頼する。
-        // それ以外（ストック/検索等から開いた場合）は liked 配列からその漢字の読みを引く。
-        let currentReadingForAI = null;
-        const mainSwipeScreen = document.getElementById('scr-main');
-        const inActiveSwipe = mainSwipeScreen && mainSwipeScreen.classList.contains('active');
-
-        if (inActiveSwipe && typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
-            // フリーモード時の名乗り漏れを防ぐ
-            currentReadingForAI = null;
-        } else if (inActiveSwipe && segments && segments[currentPos]) {
-            currentReadingForAI = segments[currentPos];
-        } else if (typeof liked !== 'undefined') {
-            const likedItem = liked.find(l =>
-                l['漢字'] === data['漢字'] && l.slot >= 0 &&
-                l.sessionReading && l.sessionReading !== 'FREE' &&
-                l.sessionReading !== 'SEARCH' && l.sessionReading !== 'SHARED'
-            );
-            if (likedItem) {
-                const segs = (typeof readingToSegments !== 'undefined') ? readingToSegments[likedItem.sessionReading] : null;
-                if (segs && segs[likedItem.slot]) {
-                    currentReadingForAI = segs[likedItem.slot];
-                }
-            }
-        }
+        const currentReadingForAI = currentReadingForDetail;
 
         const aiSection = document.createElement('div');
         aiSection.id = 'btn-ai-kanji-detail';
