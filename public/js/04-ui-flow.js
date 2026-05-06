@@ -3971,8 +3971,22 @@ function showContextualCoachmark(config, options = {}) {
     coach.setAttribute('role', 'dialog');
     coach.setAttribute('aria-live', 'polite');
 
+    const mascot = document.createElement('div');
+    mascot.className = 'context-coachmark-mascot';
+    mascot.setAttribute('aria-hidden', 'true');
+
+    const mascotImage = document.createElement('img');
+    mascotImage.src = '/meimay-mascot-cutout.png';
+    mascotImage.alt = '';
+    mascotImage.decoding = 'async';
+    mascotImage.loading = 'lazy';
+    mascot.appendChild(mascotImage);
+
     const header = document.createElement('div');
     header.className = 'context-coachmark-header';
+
+    const headerLead = document.createElement('div');
+    headerLead.className = 'context-coachmark-header-lead';
 
     const kicker = document.createElement('div');
     kicker.className = 'context-coachmark-kicker';
@@ -3981,7 +3995,9 @@ function showContextualCoachmark(config, options = {}) {
     const closeButton = createContextCoachButton('×', 'context-coachmark-close', dismissContextCoach);
     closeButton.setAttribute('aria-label', 'ヒントを閉じる');
 
-    header.appendChild(kicker);
+    headerLead.appendChild(mascot);
+    headerLead.appendChild(kicker);
+    header.appendChild(headerLead);
     header.appendChild(closeButton);
 
     const title = document.createElement('div');
