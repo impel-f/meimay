@@ -1679,25 +1679,139 @@ function getHomeActiveChildDateValue() {
 }
 
 function getHomeChildDateLabel() {
+    const model = getHomeChildDateModel();
+    return model ? model.fullLabel : '';
+}
+
+function getHomeChildDateModel() {
     const date = parseHomeChildDate(getHomeActiveChildDateValue());
-    if (!date) return '';
+    if (!date) return null;
 
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     const isDueDate = dateStart.getTime() > todayStart.getTime();
     const label = isDueDate ? '予定日' : '誕生日';
+    const dateLabel = formatHomeChildDate(dateStart);
     const countdownLabel = isDueDate ? getHomeChildDateCountdownLabel(dateStart, todayStart) : '';
-    return `${label} ${formatHomeChildDate(dateStart)}${countdownLabel}`;
+    return {
+        label,
+        dateLabel,
+        countdownLabel,
+        fullLabel: `${label} ${dateLabel}${countdownLabel}`
+    };
 }
 
 function renderHomeChildDateLabel() {
     const labelEl = document.getElementById('home-child-date-label');
     if (!labelEl) return;
 
-    const label = getHomeChildDateLabel();
-    labelEl.textContent = label;
-    labelEl.classList.toggle('hidden', !label);
+    const model = getHomeChildDateModel();
+    labelEl.innerHTML = '';
+    labelEl.classList.toggle('hidden', !model);
+    if (!model) return;
+
+    const main = document.createElement('span');
+    main.className = 'home-child-date-main';
+    main.textContent = `${model.label} ${model.dateLabel}`;
+    labelEl.appendChild(main);
+
+    if (model.countdownLabel) {
+        const countdown = document.createElement('span');
+        countdown.className = 'home-child-date-countdown';
+        countdown.textContent = model.countdownLabel;
+        labelEl.appendChild(countdown);
+    }
+}
+
+function normalizeHomeMembershipDate(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isFinite(date.getTime()) ? date : null;
+}
+
+function formatHomeMembershipDate(value) {
+    const date = normalizeHomeMembershipDate(value);
+    if (!date) return '';
+
+    const today = new Date();
+    const monthDay = (date.getMonth() + 1) + '/' + date.getDate();
+    return date.getFullYear() === today.getFullYear()
+        ? monthDay
+        : date.getFullYear() + '/' + monthDay;
+}
+
+function getHomeMembershipStatusModel() {
+    const fallback = {
+        text: '無料プラン｜常用漢字のみ',
+        state: 'free',
+        title: '無料プランでは常用漢字のみ使えます。'
+    };
+
+    if (typeof PremiumManager === 'undefined' || !PremiumManager) return fallback;
+
+    try {
+        const membership = typeof PremiumManager.getMembershipState === 'function'
+            ? PremiumManager.getMembershipState()
+            : null;
+        const display = typeof PremiumManager.getDisplayStatus === 'function'
+            ? PremiumManager.getDisplayStatus()
+            : null;
+        const dateLabel = formatHomeMembershipDate(membership?.expiresAt);
+        const periodLabel = dateLabel ? `${dateLabel}まで` : '期限なし';
+
+        if (membership?.active && membership.isTrial) {
+            return {
+                text: `プレミアム体験中👑${dateLabel ? `｜${dateLabel}まで` : ''}`,
+                state: 'trial',
+                title: display?.homeDetail || '無料体験中はプレミアム機能を使えます。'
+            };
+        }
+
+        if (membership?.active) {
+            const partnerActive = membership.source === 'partner';
+            const ownerLabel = partnerActive ? 'プレミアム👑（パートナー特典）' : 'プレミアム👑';
+            return {
+                text: dateLabel ? `${ownerLabel}｜${periodLabel}` : ownerLabel,
+                state: partnerActive ? 'partner' : 'premium',
+                title: display?.homeDetail || (dateLabel
+                    ? `${dateLabel}までプレミアムが有効です。`
+                    : '期限なしでプレミアムが有効です。')
+            };
+        }
+
+        if (membership?.expired || display?.kind === 'expired') {
+            return {
+                text: fallback.text,
+                state: 'free',
+                title: 'プレミアム期限切れです。無料プランでは常用漢字のみ使えます。'
+            };
+        }
+
+        if (display?.kind === 'free-used-trial') {
+            return {
+                text: fallback.text,
+                state: 'free',
+                title: '無料体験は利用済みです。無料プランでは常用漢字のみ使えます。'
+            };
+        }
+    } catch (e) {
+        return fallback;
+    }
+
+    return fallback;
+}
+
+function renderHomeMembershipStatus() {
+    const statusEl = document.getElementById('home-membership-status');
+    if (!statusEl) return;
+
+    const status = getHomeMembershipStatusModel();
+    statusEl.textContent = status.text;
+    statusEl.title = status.title;
+    statusEl.setAttribute('aria-label', status.title);
+    statusEl.dataset.planState = status.state;
+    statusEl.classList.toggle('hidden', !status.text);
 }
 
 function getMeimayPartnerViewState() {
@@ -2468,6 +2582,21 @@ function ensureHomeStageTrack() {
     return stageTrack;
 }
 
+function ensureHomeNextActionPanel() {
+    const anchor = document.getElementById('home-next-action-anchor');
+    if (!anchor) return null;
+
+    let panel = document.getElementById('home-next-action-panel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'home-next-action-panel';
+        anchor.appendChild(panel);
+    }
+    panel.className = '';
+
+    return panel;
+}
+
 function getHomeStageTrackTone(mode) {
     const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
@@ -3170,6 +3299,7 @@ function renderHomeOverviewSwitch(pairing) {
     const options = getHomeOverviewSwitchOptions(pairing);
     const activeMode = getHomeOverviewMode(pairing);
     const activeOption = options.find(option => option.mode === activeMode) || options[0];
+    const activeLabel = activeOption.label;
     const switchStyle = getHomeOverviewSwitchStyle(activeOption.mode);
     const canCycle = options.length > 1;
     mount.innerHTML = `
@@ -3180,7 +3310,7 @@ function renderHomeOverviewSwitch(pairing) {
             style="${switchStyle.button}">
             <div class="flex flex-col items-center justify-center">
                 <div class="whitespace-nowrap text-[8px] font-black leading-tight md:text-[9px]" style="color:${switchStyle.text};">
-                    ${activeOption.label}
+                    ${activeLabel}
                 </div>
                 <div class="${canCycle ? '' : 'hidden'} mt-0.5 whitespace-nowrap text-[7px] font-medium leading-tight md:text-[8px]" style="color:${switchStyle.sub};">
                     タップで切り替え
@@ -3356,6 +3486,7 @@ function renderHomeProfile() {
     if (heroCard) heroCard.style.cssText = '';
 
     renderHomeOverviewSwitch(pairing);
+    renderHomeMembershipStatus();
     renderHomeChildDateLabel();
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
@@ -3391,6 +3522,7 @@ window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
+window.renderHomeMembershipStatus = renderHomeMembershipStatus;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -3601,6 +3733,7 @@ function renderHomeProfileV2() {
     if (restoreBtn) restoreBtn.classList.add('hidden');
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
+    renderHomeMembershipStatus();
     renderHomeChildDateLabel();
 
     const overview = getHomeOverviewModel(pairing, nextStep, stageSnapshot.aggregateCounts);
@@ -3969,6 +4102,7 @@ function getHomePrimaryActionCardConfig(focusCopy, fallbackStageKey, readingStoc
 function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options = {}) {
     const stageTrack = ensureHomeStageTrack();
     if (!stageTrack) return;
+    const nextActionPanel = ensureHomeNextActionPanel();
 
     const timeline = getHomeStageTrackTimeline(likedCount, readingStockCount, savedCount, options);
     const tone = getHomeStageTrackTone(options.mode);
@@ -4013,7 +4147,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         heroCard.removeAttribute('onkeydown');
         heroCard.classList.remove('cursor-pointer', 'active:scale-[0.98]');
         heroCard.classList.add('cursor-default');
-        heroCard.style.cssText = tone.panel;
+        heroCard.style.cssText = 'border:1px solid rgba(224,232,238,0.96);background:linear-gradient(145deg, #f7fbff 0%, #eef7ff 54%, #fffdf7 100%);box-shadow:none;';
     }
     if (summaryPanel) {
         summaryPanel.classList.remove('hidden');
@@ -4038,6 +4172,25 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
         }, secondaryDetailHtml)
         : '';
     const pairingWaitButton = renderHomePairingWaitActionButton(pairing, actionCardConfig.action, focusCopy.secondaryAction);
+    const nextActionMarkup = `
+        <div class="home-next-action-section">
+            <div class="flex items-center justify-between gap-3">
+                <div class="home-next-action-heading">
+                    <span class="home-next-action-heading-icon" aria-hidden="true">💡</span>
+                    <span>ここでやること</span>
+                </div>
+                <button type="button" onclick="showHomeNextActionHint(event)" class="home-next-action-hint-button">
+                    <span aria-hidden="true">💡</span>
+                    <span>ヒント</span>
+                </button>
+            </div>
+            <div class="mt-3">
+                ${primaryCard}
+                ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
+                ${pairingWaitButton ? `<div class="mt-3">${pairingWaitButton}</div>` : ''}
+            </div>
+        </div>
+    `;
     const displayedSteps = timeline.steps.map((step) => {
         const selected = step.key === focusKey;
         return {
@@ -4048,7 +4201,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
-        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+        <div class="home-stage-grid grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
             ${displayedSteps.map((step, index) => {
                 const cardStyle = step.selected
                     ? tone.cardRecommended
@@ -4070,7 +4223,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     data-home-stage-button="true"
                     onclick="event.stopPropagation(); selectHomeStageTab('${step.key}')"
                     aria-pressed="${step.selected ? 'true' : 'false'}"
-                    class="mx-auto w-full max-w-[88px] min-h-[68px] rounded-[1.05rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:max-w-[114px] md:min-h-[106px] md:rounded-[1.4rem] md:px-1 md:py-1.5"
+                    class="home-stage-card mx-auto w-full max-w-[88px] min-h-[68px] rounded-[1.05rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:max-w-[114px] md:min-h-[106px] md:rounded-[1.4rem] md:px-1 md:py-1.5"
                     style="${cardStyle}">
                     <div class="flex h-full flex-col items-center justify-start">
                         <div class="flex items-center justify-center gap-0.5 text-[8px] font-black leading-tight text-center md:gap-1 md:text-[10px]" style="color:${tone.text};">
@@ -4083,34 +4236,21 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
                             ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
-                        ${step.selected ? `<div class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">今ここ</div>` : ''}
+                        ${step.selected ? `<div data-home-stage-current="true" class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">今ここ</div>` : ''}
                     </div>
-                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]" style="color:${tone.sub};">▶</div>` : ''}
+                </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="home-stage-connector flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]"><span>▶</span></div>` : ''}
             `;
             }).join('')}
         </div>
-        <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
-            <div class="rounded-[24px] px-5 py-5">
-                <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">✨今の状況</div>
-                <div class="mt-3 whitespace-pre-line text-[14px] font-normal leading-[1.8] text-[#4f4639] md:text-[15px]">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
-            </div>
+        <div class="home-status-copy-block">
+            <div class="home-status-copy-text">${formatHomeStatusBodyText(focusCopy.mainText)}</div>
         </div>
-        <div class="mt-4 rounded-[24px] px-0 py-0" style="${tone.cardIdle}">
-            <div class="rounded-[24px] px-5 py-5">
-                <div class="flex items-center justify-between gap-3">
-                    <div class="text-[12px] font-black tracking-[0.18em] text-[#b9965b]">💡ここでやること</div>
-                    <button type="button" onclick="showHomeNextActionHint(event)" class="shrink-0 rounded-full border border-[#eadfce] bg-white/80 px-3 py-1.5 text-[10px] font-black text-[#b9965b] shadow-sm active:scale-95">
-                        ヒント
-                    </button>
-                </div>
-                <div class="mt-3">
-                ${primaryCard}
-                ${secondaryButton ? `<div class="mt-3">${secondaryButton}</div>` : ''}
-                ${pairingWaitButton ? `<div class="mt-3">${pairingWaitButton}</div>` : ''}
-                </div>
-            </div>
-        </div>
+        ${nextActionPanel ? '' : nextActionMarkup}
     `;
+
+    if (nextActionPanel) {
+        nextActionPanel.innerHTML = nextActionMarkup;
+    }
 
     Array.from(stageTrack.querySelectorAll('[data-home-stage-button]')).forEach((button, index) => {
         const badge = button.querySelector('span');
@@ -4306,7 +4446,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         ]
         : [
             '名づけはまだ最初の段階です。',
-            '気になる響きをいくつか残すと、次に漢字を選べます。'
+            'まずは気になる響きを残しましょう。'
         ];
 
     if (stageKey === 'reading') {

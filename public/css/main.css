@@ -3004,20 +3004,258 @@ body.has-ad-banner #universal-footer {
     container-type: inline-size;
 }
 
+#scr-mode #home-hero-card {
+    padding: 1.05rem 0.95rem 1.15rem !important;
+    border-radius: 28px !important;
+    position: relative;
+    z-index: 1;
+    box-shadow: none !important;
+}
+
+#scr-mode .home-hero-top-accent {
+    display: none;
+}
+
+#scr-mode .home-status-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.78rem;
+}
+
 #scr-mode .home-status-title {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
     overflow: hidden;
     text-overflow: clip;
     white-space: nowrap;
-    font-size: clamp(14px, 12cqw, 18px) !important;
+    font-size: clamp(19px, 12.5cqw, 24px) !important;
     letter-spacing: 0;
 }
 
+#scr-mode .home-status-sparkles {
+    flex: 0 0 auto;
+    font-size: 0.98em;
+    line-height: 1;
+}
+
+#scr-mode .home-status-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.72rem;
+}
+
+#scr-mode .home-status-actions #home-overview-switch {
+    margin-left: auto;
+}
+
+#scr-mode #home-summary-panel {
+    margin-top: 0.85rem !important;
+    padding: 0 !important;
+}
+
+#scr-mode .home-stage-divider {
+    height: 1px;
+    margin: 0 0 0.78rem;
+    background: linear-gradient(90deg, rgba(226, 214, 196, 0.08), rgba(205, 190, 167, 0.82), rgba(226, 214, 196, 0.08));
+}
+
 #scr-mode .home-child-date-fit {
+    display: inline-flex;
+    align-items: center;
+    min-height: 18px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: clip;
     white-space: nowrap;
-    font-size: clamp(9px, 3.2cqw, 11px) !important;
+    margin-top: 0.48rem;
+    padding: 0 2px;
+    color: #5b7699;
+    font-size: clamp(10.5px, 4.2cqw, 13px) !important;
+    font-weight: 900;
+    line-height: 1;
     letter-spacing: 0;
+}
+
+#scr-mode .home-child-date-main {
+    color: #5f7895;
+}
+
+#scr-mode .home-child-date-countdown {
+    margin-left: 0.34rem;
+    color: #486d95;
+}
+
+#scr-mode .home-child-date-fit.hidden {
+    display: none !important;
+}
+
+#scr-mode #home-child-date-label:not(.hidden) + #home-stage-track-anchor {
+    margin-top: 0.35rem !important;
+}
+
+#scr-mode .home-membership-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 19px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+    border: 1px solid rgba(218, 199, 165, 0.9);
+    border-radius: 999px;
+    background: rgba(255, 253, 247, 0.78);
+    padding: 3px 7px;
+    color: #7c6541;
+    font-size: 10px !important;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0;
+    cursor: pointer;
+    transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+#scr-mode .home-membership-status:active {
+    transform: scale(0.97);
+}
+
+#scr-mode .home-membership-status:focus-visible {
+    outline: 2px solid rgba(185, 150, 91, 0.45);
+    outline-offset: 2px;
+}
+
+#scr-mode .home-membership-status.hidden {
+    display: none !important;
+}
+
+#scr-mode .home-membership-status[data-plan-state="premium"] {
+    border-color: rgba(225, 194, 124, 0.95);
+    background: rgba(255, 248, 223, 0.86);
+    color: #72572a;
+}
+
+#scr-mode .home-membership-status[data-plan-state="trial"] {
+    border-color: rgba(177, 207, 234, 0.95);
+    background: rgba(237, 247, 255, 0.82);
+    color: #536f91;
+}
+
+#scr-mode .home-membership-status[data-plan-state="partner"] {
+    max-width: 100%;
+    border-color: rgba(203, 190, 233, 0.95);
+    background: rgba(246, 242, 255, 0.84);
+    color: #67528f;
+    font-size: 8px !important;
+}
+
+#scr-mode .home-membership-status[data-plan-state="expired"] {
+    border-color: rgba(239, 200, 189, 0.92);
+    background: rgba(255, 242, 238, 0.8);
+    color: #9b574d;
+}
+
+#scr-mode .home-stage-grid {
+    align-items: center;
+}
+
+#scr-mode .home-stage-card {
+    box-shadow: 0 8px 22px rgba(95, 73, 42, 0.06);
+}
+
+#scr-mode [data-home-stage-current="true"] {
+    opacity: 0.68;
+    font-size: 6.5px !important;
+}
+
+#scr-mode .home-stage-connector span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 999px;
+    background: #86a6c9;
+    color: #fff;
+    font-size: 8px;
+    line-height: 1;
+    box-shadow: 0 4px 10px rgba(78, 111, 150, 0.2);
+}
+
+#scr-mode .home-status-copy-block {
+    padding: 1rem 0.35rem 0.1rem;
+    text-align: center;
+}
+
+#scr-mode .home-status-copy-text {
+    white-space: pre-line;
+    color: #4f4639;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.72;
+    letter-spacing: 0;
+}
+
+#scr-mode #home-next-action-anchor {
+    width: 100%;
+    position: relative;
+    z-index: 2;
+    margin-top: 0.95rem !important;
+}
+
+#scr-mode .home-next-action-section {
+    border: 1px solid rgba(234, 223, 206, 0.86);
+    border-radius: 28px;
+    background: rgba(255, 253, 249, 0.96);
+    padding: 1rem;
+    box-shadow: none;
+}
+
+#scr-mode .home-next-action-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #4f4639;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+#scr-mode .home-next-action-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #fff1c7;
+    font-size: 16px;
+}
+
+#scr-mode .home-next-action-hint-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    min-height: 30px;
+    border: 1px solid #eadfce;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0 0.8rem;
+    color: #9b7845;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 6px 14px rgba(108, 87, 58, 0.06);
+}
+
+#scr-mode .home-next-action-section #home-next-action-card {
+    border-color: #d9b56f !important;
+    border-width: 2px !important;
+    border-radius: 22px !important;
+    background: linear-gradient(135deg, #fffaf0 0%, #fffdf8 100%) !important;
+    box-shadow: none !important;
 }
 
 #scr-mode #home-overview-switch button > div > div:first-child {
