@@ -1797,6 +1797,42 @@ const MeimayPartnerInsights = {
         }
     },
 
+    _cacheVersion: 0,
+    _cache: {},
+
+    clearCache: function () {
+        this._cacheVersion += 1;
+        this._cache = {};
+    },
+
+    _getPartnerContextCacheKey: function () {
+        const context = this._getPartnerChildContext();
+        const activeChildId = String(context.activeChild?.id || context.activeChild?.childId || context.activeChild?.meta?.id || '').trim();
+        const partnerChildId = String(context.partnerChild?.id || context.partnerChild?.childId || context.partnerChild?.meta?.id || context.partnerRoot?.activeChildId || '').trim();
+        const snapshotStamp = String(MeimayShare?.partnerSnapshot?.meimayStateV2UpdatedAt || '').trim();
+        return [
+            this._cacheVersion,
+            activeChildId,
+            partnerChildId,
+            context.localChildCount || 0,
+            context.partnerChildCount || 0,
+            context.requiresScopedChild ? 1 : 0,
+            snapshotStamp
+        ].join(':');
+    },
+
+    _getCachedPartnerValue: function (key) {
+        return this._cache && Object.prototype.hasOwnProperty.call(this._cache, key)
+            ? this._cache[key]
+            : null;
+    },
+
+    _setCachedPartnerValue: function (key, value) {
+        if (!this._cache) this._cache = {};
+        this._cache[key] = value;
+        return value;
+    },
+
     getOwnHiddenReadingSet: function () {
         return new Set(readNormalizedHiddenReadings());
     },
@@ -1940,14 +1976,20 @@ const MeimayPartnerInsights = {
     },
 
     getPartnerLiked: function () {
+        const cacheKey = `partner-liked:${this._getPartnerContextCacheKey()}`;
+        const cached = this._getCachedPartnerValue(cacheKey);
+        if (cached) return cached;
         const hiddenSet = this.getPartnerHiddenReadingSet();
         const partnerLiked = this.getPartnerLikedRaw();
-        return partnerLiked.filter(item => !this._isHiddenReadingItem(item, hiddenSet));
+        return this._setCachedPartnerValue(cacheKey, partnerLiked.filter(item => !this._isHiddenReadingItem(item, hiddenSet)));
     },
 
     getPartnerLikedRaw: function () {
+        const cacheKey = `partner-liked-raw:${this._getPartnerContextCacheKey()}`;
+        const cached = this._getCachedPartnerValue(cacheKey);
+        if (cached) return cached;
         if (this._shouldSuppressUnscopedPartnerFallback()) {
-            return [];
+            return this._setCachedPartnerValue(cacheKey, []);
         }
         const snapshot = MeimayShare.partnerSnapshot || {};
         const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
@@ -1980,23 +2022,23 @@ const MeimayPartnerInsights = {
         };
         const partnerLibraries = this._getPartnerChildLibraries();
         if (this._shouldUseScopedPartnerChildOnly()) {
-            return normalizeLikedItems(partnerLibraries?.kanjiStock || [], 'child-library');
+            return this._setCachedPartnerValue(cacheKey, normalizeLikedItems(partnerLibraries?.kanjiStock || [], 'child-library'));
         }
         // 子ワークスペースのライブラリが存在し、かつデータがある場合のみ使用（空なら flat フォールバックへ）
         if (partnerLibraries && Array.isArray(partnerLibraries.kanjiStock) && partnerLibraries.kanjiStock.length > 0) {
-            return normalizeLikedItems(partnerLibraries.kanjiStock, 'child-library');
+            return this._setCachedPartnerValue(cacheKey, normalizeLikedItems(partnerLibraries.kanjiStock, 'child-library'));
         }
         const backupLiked = Array.isArray(backup.liked)
             ? normalizeLikedItems(backup.liked, 'backup-liked')
             : [];
         const snapshotLiked = normalizeLikedItems(snapshot.liked, 'snapshot-liked');
         if (snapshotLiked.length > 0) {
-            return snapshotLiked;
+            return this._setCachedPartnerValue(cacheKey, snapshotLiked);
         }
         if (backupLiked.length > 0) {
-            return backupLiked;
+            return this._setCachedPartnerValue(cacheKey, backupLiked);
         }
-        return [];
+        return this._setCachedPartnerValue(cacheKey, []);
     },
 
     getOwnSaved: function () {
@@ -4618,10 +4660,13 @@ MeimayShare.syncProfileAppearance = async function () {
 };
 
 MeimayPartnerInsights.getPartnerReadingStock = function () {
+    const cacheKey = `partner-reading-stock:${this._getPartnerContextCacheKey()}`;
+    const cached = this._getCachedPartnerValue(cacheKey);
+    if (cached) return cached;
     const partnerLibraries = this._getPartnerChildLibraries();
     if (this._shouldUseScopedPartnerChildOnly()) {
         const hiddenSet = this.getPartnerHiddenReadingSet();
-        return Array.isArray(partnerLibraries?.readingStock)
+        const scopedItems = Array.isArray(partnerLibraries?.readingStock)
             ? partnerLibraries.readingStock
                 .map((item) => (typeof normalizeReadingStockItem === 'function'
                     ? normalizeReadingStockItem(this._safeClone(item))
@@ -4629,9 +4674,10 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
                 .filter(Boolean)
                 .filter(item => !this._isHiddenReadingItem(item, hiddenSet))
             : [];
+        return this._setCachedPartnerValue(cacheKey, scopedItems);
     }
     if (!partnerLibraries && this._shouldSuppressUnscopedPartnerFallback()) {
-        return [];
+        return this._setCachedPartnerValue(cacheKey, []);
     }
     const snapshot = MeimayShare.partnerSnapshot || {};
     const backup = snapshot.partnerUserBackup || snapshot.meimayBackup || snapshot.backup || {};
@@ -4642,7 +4688,7 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
             ? snapshot.readingStock
             : (Array.isArray(backup.readingStock) ? backup.readingStock : []));
     const hiddenSet = this.getPartnerHiddenReadingSet();
-    return Array.isArray(partnerReadings)
+    const visibleReadings = Array.isArray(partnerReadings)
         ? partnerReadings
             .map((item) => (typeof normalizeReadingStockItem === 'function'
                 ? normalizeReadingStockItem(this._safeClone(item))
@@ -4650,6 +4696,7 @@ MeimayPartnerInsights.getPartnerReadingStock = function () {
             .filter(Boolean)
             .filter(item => !this._isHiddenReadingItem(item, hiddenSet))
         : [];
+    return this._setCachedPartnerValue(cacheKey, visibleReadings);
 };
 
 
@@ -6540,6 +6587,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 backup: roomBackup,
                 partnerUserBackup
             };
+            if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
+                MeimayPartnerInsights.clearCache('partner-snapshot');
+            }
+            if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+                window.invalidateBuildDataCaches('partner-snapshot');
+            }
             this.partnerUserSnapshot = partnerPremiumSnapshot;
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();
@@ -6554,6 +6607,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             // 子ワークスペース状態（本命選択など）をリアルタイムに反映
             if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
                 MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
+                if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
+                    MeimayPartnerInsights.clearCache('partner-child-workspace');
+                }
+                if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+                    window.invalidateBuildDataCaches('partner-child-workspace');
+                }
                 if (typeof updatePairingUI === 'function') {
                     updatePairingUI();
                 }
@@ -6579,6 +6638,12 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub = null;
     }
     this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
+        MeimayPartnerInsights.clearCache('partner-stop');
+    }
+    if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+        window.invalidateBuildDataCaches('partner-stop');
+    }
     this.partnerUserSnapshot = null;
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();

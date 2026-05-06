@@ -29,6 +29,7 @@ let buildReadingModeCandidatesCacheSignature = '';
 let buildReadingModeCandidatesCache = [];
 let buildMergedLikedCandidatesCacheSignature = '';
 let buildMergedLikedCandidatesCache = [];
+let buildCacheWarmupTimer = null;
 const BUILD_READING_SLOT_INITIAL_LIMIT = 20;
 const BUILD_READING_SLOT_INCREMENT = 24;
 const BUILD_FREE_SLOT_INITIAL_LIMIT = 24;
@@ -88,6 +89,16 @@ function cancelBuildReadingChoicesWarmup() {
     buildReadingChoicesWarmupTimer = null;
 }
 
+function cancelBuildCacheWarmup() {
+    if (!buildCacheWarmupTimer) return;
+    if (buildCacheWarmupTimer.type === 'idle' && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(buildCacheWarmupTimer.id);
+    } else {
+        clearTimeout(buildCacheWarmupTimer.id);
+    }
+    buildCacheWarmupTimer = null;
+}
+
 function cloneBuildReadingChoice(choice) {
     return {
         ...choice,
@@ -145,6 +156,49 @@ function invalidateBuildCandidateSourceCaches() {
     buildMergedLikedCandidatesCache = [];
 }
 
+function warmBuildScreenCaches() {
+    buildCacheWarmupTimer = null;
+    try {
+        getVisibleReadingModeKanjiBuildCandidates({ returnCache: true });
+        getVisibleAllKanjiBuildCandidates({ returnCache: true });
+        getBuildReadingChoices({ returnCache: true });
+    } catch (error) {
+        console.warn('BUILD: cache warmup failed', error);
+    }
+}
+
+function scheduleBuildCacheWarmup(reason = 'build-cache', delayMs = 120, options = {}) {
+    cancelBuildCacheWarmup();
+    const warmup = () => warmBuildScreenCaches(reason);
+    const useIdle = options.idle !== false && typeof requestIdleCallback === 'function';
+    if (useIdle) {
+        buildCacheWarmupTimer = {
+            type: 'idle',
+            id: requestIdleCallback(warmup, { timeout: Math.max(300, Number(delayMs) || 0) })
+        };
+        return;
+    }
+    buildCacheWarmupTimer = {
+        type: 'timer',
+        id: setTimeout(warmup, Math.max(0, Number(delayMs) || 0))
+    };
+}
+
+function invalidateBuildDataCaches(reason = 'build-data') {
+    invalidateBuildCandidateSourceCaches();
+    invalidateBuildReadingChoicesCache();
+    scheduleBuildCacheWarmup(reason);
+}
+
+window.invalidateBuildDataCaches = invalidateBuildDataCaches;
+window.scheduleBuildCacheWarmup = scheduleBuildCacheWarmup;
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('meimay:stock-changed', () => {
+        invalidateBuildDataCaches('stock-changed');
+    });
+}
+
 function scheduleBuildReadingChoicesWarmup() {
     cancelBuildReadingChoicesWarmup();
     const warmup = () => {
@@ -193,6 +247,7 @@ function teardownBuildScreenForNavigation(options = {}) {
     const buildScreen = document.getElementById('scr-build');
     if (buildScreen && options.defer) {
         buildScreen.style.contentVisibility = 'hidden';
+        buildScreen.style.display = 'none';
         if (typeof requestAnimationFrame === 'function') {
             requestAnimationFrame(() => setTimeout(clearBuildScreenDomAfterNavigation, 0));
         } else {
@@ -2520,7 +2575,6 @@ window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
 function openBuild(options = {}) {
     console.log("BUILD: Opening build screen");
     window._addMoreFromBuild = false; // addMoreToSlot フラグをクリア
-    showBuildPreparingState();
     changeScreen('scr-build');
 
     const prepareBuildScreen = () => {
@@ -2535,14 +2589,11 @@ function openBuild(options = {}) {
         buildMode = 'reading';
         fbChoices = []; fbChoicesUseMark = {};
         resetBuildCandidateVisibleLimits();
-        if (!options.preserveReading) {
-            invalidateBuildReadingChoicesCache();
-        }
         excludedKanjiFromBuild = []; // 除外リストをリセット
         if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
             excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
         }
-        const candidateSource = getVisibleReadingModeKanjiBuildCandidates();
+        const candidateSource = getVisibleReadingModeKanjiBuildCandidates({ returnCache: true });
         const slotCandidateCache = new Map();
         if (!options.preserveReading) {
             const currentReading = getSafeBuildCurrentReading();
@@ -2575,6 +2626,7 @@ function openBuild(options = {}) {
                 }
             }
         });
+        scheduleBuildCacheWarmup('open-build', 20, { idle: false });
     };
 
     if (typeof requestAnimationFrame === 'function') {
@@ -3311,11 +3363,11 @@ function toggleReadingDropdown() {
         fbChoices = []; fbChoicesUseMark = {};
         selectedPieces = [];
         resetBuildCandidateVisibleLimits();
-        invalidateBuildReadingChoicesCache();
         hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
         requestRenderBuildSelection('toggle-reading-mode', { delayMs: 0 });
+        scheduleBuildCacheWarmup('toggle-reading-mode', 20, { idle: false });
         // 再描画（初回タップではドロップダウンを開かない）
         return;
     }
@@ -3338,9 +3390,14 @@ function toggleReadingDropdown() {
     if (caret) caret.textContent = '▲';
     buildReadingDropdownVisibleLimit = BUILD_READING_DROPDOWN_INITIAL_LIMIT;
 
-    buildReadingDropdownChoices = getBuildReadingChoices({ returnCache: true });
-    if (renderToken !== buildReadingDropdownRenderToken || dropdown.classList.contains('hidden')) return;
-    renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+    if (buildReadingChoicesCacheSignature) {
+        buildReadingDropdownChoices = buildReadingChoicesCache;
+        renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegments);
+        scheduleBuildCacheWarmup('reading-dropdown-refresh', 40, { idle: false });
+    } else {
+        renderBuildReadingDropdownLoading(dropdown);
+        computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, currentSegments, renderToken);
+    }
 
     // dropdown と modeBar がヘッダー(z-50)の下に潜るように z-index を操作しない（相対配置のみ使用）
 
