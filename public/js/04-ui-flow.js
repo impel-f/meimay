@@ -4877,9 +4877,16 @@ function openBuildFromReading(reading, preferredSegments = []) {
         ? autoSelectSingleBuildCandidates()
         : false;
     if (restoredSelection || autoSelected) {
-        if (typeof renderBuildSelection === 'function') renderBuildSelection();
-        if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
-            executeBuild();
+        const runAfterRender = () => {
+            if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
+                executeBuild();
+            }
+        };
+        if (typeof requestRenderBuildSelection === 'function') {
+            requestRenderBuildSelection('open-build-from-reading-selection', { delayMs: 0, afterRender: runAfterRender });
+        } else {
+            if (typeof renderBuildSelection === 'function') renderBuildSelection();
+            runAfterRender();
         }
     }
 }

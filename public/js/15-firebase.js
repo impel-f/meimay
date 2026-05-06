@@ -5162,7 +5162,8 @@ function refreshPartnerAwareUI() {
         renderSettingsScreen();
     }
     if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
-        MeimayChildWorkspaces.renderSwitchers();
+        const activeScreenId = document.querySelector('.screen.active')?.id || '';
+        MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
     }
     if (document.getElementById('scr-stock')?.classList.contains('active')) {
         if (typeof renderStock === 'function') renderStock();

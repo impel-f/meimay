@@ -19,6 +19,8 @@
     const MAX_BIRTH_ORDER = 10;
     const MAX_MULTIPLE_CHILDREN = 5;
     const MULTIPLE_CHILD_LABELS = ['ひとりめ', 'ふたりめ', 'さんにんめ', 'よにんめ', 'ごにんめ'];
+    let masterKanjiIndexSource = null;
+    let masterKanjiIndex = null;
 
     function cloneData(value, fallback) {
         if (value === undefined) return cloneFallback(fallback);
@@ -449,9 +451,25 @@
         return String(item?.[KANJI_KEY] || item?.kanji || '').trim();
     }
 
+    function getMasterKanjiIndex() {
+        if (!Array.isArray(master)) return null;
+        if (masterKanjiIndex && masterKanjiIndexSource === master) return masterKanjiIndex;
+        masterKanjiIndexSource = master;
+        masterKanjiIndex = new Map();
+        master.forEach((entry) => {
+            const kanji = getKanjiValue(entry);
+            if (kanji && !masterKanjiIndex.has(kanji)) {
+                masterKanjiIndex.set(kanji, entry);
+            }
+        });
+        return masterKanjiIndex;
+    }
+
     function findMasterKanjiItem(kanji) {
-        if (!kanji || !Array.isArray(master)) return null;
-        return master.find((entry) => getKanjiValue(entry) === kanji) || null;
+        const key = String(kanji || '').trim();
+        if (!key) return null;
+        const index = getMasterKanjiIndex();
+        return index ? (index.get(key) || null) : null;
     }
 
     function filterRemovedLikedItems(items, removalSource = null) {
@@ -1769,12 +1787,22 @@
             };
         },
 
-        renderSwitchers() {
+        renderSwitchers(screenIds = null) {
             if (!this.initialized || !this.root) return;
+            const targetScreens = Array.isArray(screenIds)
+                ? screenIds.filter((screenId) => KNOWN_SCREENS.includes(screenId))
+                : KNOWN_SCREENS;
             
-            // 縺吶∋縺ｦ縺ｮ繧ｹ繧､繝繧√繝｣繧ｯ繝ｪ繧｢                document.querySelectorAll('.meimay-child-switcher').forEach((node) => node.remove());
+            // 既存の切替UIを消してから描き直す
+            if (targetScreens.length === KNOWN_SCREENS.length) {
+                document.querySelectorAll('.meimay-child-switcher').forEach((node) => node.remove());
+            } else {
+                targetScreens.forEach((screenId) => {
+                    document.querySelectorAll(`.meimay-child-switcher[data-screen-id="${screenId}"]`).forEach((node) => node.remove());
+                });
+            }
             
-            KNOWN_SCREENS.forEach((screenId) => {
+            targetScreens.forEach((screenId) => {
                 const host = document.querySelector(SCREEN_HOST_SELECTORS[screenId]);
                 if (!host) return;
                 const element = document.createElement('div');
@@ -1833,7 +1861,10 @@
                 else if (typeof renderHomeProfile === 'function') renderHomeProfile();
             }
             if (activeScreen === 'scr-settings' && typeof renderSettingsScreen === 'function') renderSettingsScreen();
-            if (activeScreen === 'scr-build' && typeof renderBuildSelection === 'function') renderBuildSelection();
+            if (activeScreen === 'scr-build') {
+                if (typeof requestRenderBuildSelection === 'function') requestRenderBuildSelection('child-workspace-refresh');
+                else if (typeof renderBuildSelection === 'function') renderBuildSelection();
+            }
             if (activeScreen === 'scr-saved' && typeof renderSavedScreen === 'function') renderSavedScreen();
             if (activeScreen === 'scr-history' && typeof renderHistoryScreen === 'function') renderHistoryScreen();
             if (activeScreen === 'scr-stock') {

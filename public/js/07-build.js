@@ -14,6 +14,15 @@ let excludedKanjiFromBuild = [];
 let buildReadingDropdownChoices = [];
 let buildReadingDropdownRenderToken = 0;
 let buildSelectionRenderTimer = null;
+let buildSelectionRenderCallbacks = [];
+let buildKanjiMasterIndexSource = null;
+let buildKanjiMasterIndex = null;
+const BUILD_READING_SLOT_INITIAL_LIMIT = 48;
+const BUILD_READING_SLOT_INCREMENT = 48;
+const BUILD_FREE_SLOT_INITIAL_LIMIT = 64;
+const BUILD_FREE_SLOT_INCREMENT = 64;
+let buildSlotVisibleLimits = {};
+let buildFreeSlotVisibleLimits = {};
 
 function escapeBuildHtml(value) {
     return String(value ?? '')
@@ -22,6 +31,52 @@ function escapeBuildHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function getBuildKanjiMasterIndex() {
+    if (typeof master === 'undefined' || !Array.isArray(master)) return null;
+    if (buildKanjiMasterIndex && buildKanjiMasterIndexSource === master) return buildKanjiMasterIndex;
+    buildKanjiMasterIndexSource = master;
+    buildKanjiMasterIndex = new Map();
+    master.forEach((entry) => {
+        const kanji = String(entry?.['漢字'] || entry?.kanji || '').trim();
+        if (kanji && !buildKanjiMasterIndex.has(kanji)) {
+            buildKanjiMasterIndex.set(kanji, entry);
+        }
+    });
+    return buildKanjiMasterIndex;
+}
+
+function findBuildMasterItem(kanji) {
+    const key = String(kanji || '').trim();
+    if (!key) return null;
+    const index = getBuildKanjiMasterIndex();
+    return index ? (index.get(key) || null) : null;
+}
+
+function resetBuildCandidateVisibleLimits() {
+    buildSlotVisibleLimits = {};
+    buildFreeSlotVisibleLimits = {};
+}
+
+function getBuildSlotVisibleKey(seg, idx, currentReading) {
+    return [
+        String(currentReading || ''),
+        String(idx),
+        String(seg || '')
+    ].join('::');
+}
+
+function getBuildVisibleLimit(map, key, total, initialLimit) {
+    if (!Number.isFinite(total) || total <= initialLimit) return total;
+    const current = Number(map[key] || 0);
+    return Math.min(total, Math.max(initialLimit, current || initialLimit));
+}
+
+function increaseBuildVisibleLimit(map, key, total, increment, initialLimit) {
+    const current = getBuildVisibleLimit(map, key, total, initialLimit);
+    map[key] = Math.min(total, current + increment);
+    return map[key];
 }
 
 /**
@@ -64,9 +119,7 @@ function flattenBuildCombination(pieces) {
         const chars = Array.from(kanji);
         if (piece.isCompound && chars.length > 1) {
             chars.forEach((char) => {
-                const masterItem = Array.isArray(master)
-                    ? master.find(entry => entry['漢字'] === char)
-                    : null;
+                const masterItem = findBuildMasterItem(char);
                 flattened.push({
                     ...(masterItem || {}),
                     '漢字': char,
@@ -739,11 +792,12 @@ function openFreeBuild() {
     fbSelectedReading = null;
     currentFbRecommendedReadings = [];
     selectedPieces = [];
+    resetBuildCandidateVisibleLimits();
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
     }
-    renderBuildSelection();
     changeScreen('scr-build');
+    requestRenderBuildSelection('open-free-build', { delayMs: 0 });
 }
 
 /**
@@ -994,7 +1048,7 @@ function getFreeBuildRankingCandidateItem(kanji, pool = getFreeBuildRankingCandi
     if (poolItem) return poolItem;
 
     if (typeof master !== 'undefined' && Array.isArray(master)) {
-        const masterItem = master.find((entry) => String(entry?.['漢字'] || entry?.kanji || '').trim() === key);
+        const masterItem = findBuildMasterItem(key);
         if (masterItem) {
             return {
                 ...masterItem,
@@ -1021,7 +1075,7 @@ function getFreeBuildReadingInfo(choices) {
     const selectedName = choices.join('');
 
     function getKanjiReadings(kanji, mode = 'all') {
-        const rec = master.find((m) => m['漢字'] === kanji);
+        const rec = findBuildMasterItem(kanji);
         if (!rec) return [];
         const raw = mode === 'on'
             ? (rec['音'] || '')
@@ -1547,9 +1601,7 @@ function hydrateLikedCandidate(item, options = {}) {
         : { kanji };
     const fromPartner = options.fromPartner ?? sourceItem?.fromPartner === true;
 
-    const masterItem = typeof master !== 'undefined' && Array.isArray(master)
-        ? master.find(entry => entry['\u6f22\u5b57'] === kanji)
-        : null;
+    const masterItem = findBuildMasterItem(kanji);
 
     return {
         ...(masterItem || {}),
@@ -2113,7 +2165,7 @@ function renderStock() {
 
             let displayStrokes = item['画数'];
             if (displayStrokes === undefined && typeof master !== 'undefined') {
-                const m = master.find(k => k['漢字'] === item['漢字']);
+                const m = findBuildMasterItem(item['漢字']);
                 if (m) displayStrokes = m['画数'];
             }
 
@@ -2144,6 +2196,7 @@ function openBuild(options = {}) {
     hydrateCompoundBuildSelections();
     buildMode = 'reading';
     fbChoices = []; fbChoicesUseMark = {};
+    resetBuildCandidateVisibleLimits();
     excludedKanjiFromBuild = []; // 除外リストをリセット
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
         excludedKanjiFromBuild = StorageBox._loadBuildExclusionState();
@@ -2165,11 +2218,15 @@ function openBuild(options = {}) {
         }
     }
     autoSelectSingleBuildCandidates();
-    renderBuildSelection();
     changeScreen('scr-build');
-    if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
-        executeBuild();
-    }
+    requestRenderBuildSelection('open-build', {
+        delayMs: 0,
+        afterRender: () => {
+            if (selectedPieces.filter(Boolean).length === segments.length && typeof executeBuild === 'function') {
+                executeBuild();
+            }
+        }
+    });
 }
 
 /**
@@ -2185,9 +2242,10 @@ function openBuildFreeMode() {
     buildMode = 'free';
     fbChoices = []; fbChoicesUseMark = {};
     shownFbSlots = 1;
+    resetBuildCandidateVisibleLimits();
     excludedKanjiFromBuild = []; // 除外リストをリセット
-    renderBuildSelection();
     changeScreen('scr-build');
+    requestRenderBuildSelection('open-build-free-mode', { delayMs: 0 });
 }
 window.openBuildFreeMode = openBuildFreeMode;
 
@@ -2203,6 +2261,7 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
     fbChoices = (Array.isArray(choices) ? choices : []).filter(Boolean);
     shownFbSlots = Math.max(1, Math.min(3, fbChoices.length || 1));
     fbSelectedReading = reading || null;
+    resetBuildCandidateVisibleLimits();
     excludedKanjiFromBuild = [];
 
     if (typeof StorageBox !== 'undefined' && typeof StorageBox._loadBuildExclusionState === 'function') {
@@ -2212,12 +2271,15 @@ function openBuildFreeModeWithChoices(choices = [], reading = '') {
         ? [{ reading: fbSelectedReading, score: 999999 }]
         : [];
 
-    renderBuildSelection();
     changeScreen('scr-build');
-
-    if (typeof executeFbBuild === 'function' && fbChoices.length > 0) {
-        executeFbBuild();
-    }
+    requestRenderBuildSelection('open-build-free-mode-with-choices', {
+        delayMs: 0,
+        afterRender: () => {
+            if (typeof executeFbBuild === 'function' && fbChoices.length > 0) {
+                executeFbBuild();
+            }
+        }
+    });
 }
 window.openBuildFreeModeWithChoices = openBuildFreeModeWithChoices;
 
@@ -2233,6 +2295,7 @@ function setBuildMode(mode) {
         fbChoices = []; fbChoicesUseMark = {};
         if (mode === 'free') shownFbSlots = 1;
         selectedPieces = [];
+        resetBuildCandidateVisibleLimits();
         if (mode === 'reading') {
             hydrateCompoundBuildSelections();
         }
@@ -2243,7 +2306,7 @@ function setBuildMode(mode) {
     }
     const resultArea = document.getElementById('build-result-area');
     if (resultArea) resultArea.innerHTML = '';
-    renderBuildSelection();
+    requestRenderBuildSelection('set-build-mode', { delayMs: 0 });
 }
 window.setBuildMode = setBuildMode;
 
@@ -2375,7 +2438,7 @@ function updateNamePreview() {
                 if (found) return { kanji: ch, strokes: parseInt(found['画数'] || found['\u753b\u6570']) || 0 };
             }
             if (typeof master !== 'undefined' && master) {
-                const m = master.find(m => m['漢字'] === ch || m['\u6f22\u5b57'] === ch);
+                const m = findBuildMasterItem(ch);
                 if (m) return { kanji: ch, strokes: parseInt(m['画数'] || m['\u753b\u6570']) || 0 };
             }
             return { kanji: ch, strokes: 0 };
@@ -2606,18 +2669,34 @@ function renderBuildSelection() {
                 items = sortByFortune(items, idx);
             }
 
-            items.forEach((item, itemIdx) => {
+            const selectedKeyForSlot = selectedPieces[idx]
+                ? getLikedCandidateDisplayKey(hydrateLikedCandidate(selectedPieces[idx], { fromPartner: selectedPieces[idx]?.fromPartner === true }))
+                : '';
+            const usedBuildKeys = new Set(
+                (Array.isArray(selectedPieces) ? selectedPieces : [])
+                    .filter(Boolean)
+                    .map((piece) => getLikedCandidateDisplayKey(piece))
+                    .filter(Boolean)
+            );
+            const totalItems = items.length;
+            const slotLimitKey = getBuildSlotVisibleKey(seg, idx, currentReading);
+            const visibleLimit = getBuildVisibleLimit(buildSlotVisibleLimits, slotLimitKey, totalItems, BUILD_READING_SLOT_INITIAL_LIMIT);
+            let visibleItems = items.slice(0, visibleLimit);
+            if (selectedKeyForSlot && !visibleItems.some((item) => getLikedCandidateDisplayKey(item) === selectedKeyForSlot)) {
+                const selectedVisibleItem = items.find((item) => getLikedCandidateDisplayKey(item) === selectedKeyForSlot);
+                if (selectedVisibleItem) {
+                    visibleItems = [
+                        selectedVisibleItem,
+                        ...visibleItems.filter((item) => getLikedCandidateDisplayKey(item) !== selectedKeyForSlot)
+                    ].slice(0, visibleLimit);
+                }
+            }
+
+            visibleItems.forEach((item, itemIdx) => {
                 const btn = document.createElement('button');
-                const selectedKey = selectedPieces[idx]
-                    ? getLikedCandidateDisplayKey(hydrateLikedCandidate(selectedPieces[idx], { fromPartner: selectedPieces[idx]?.fromPartner === true }))
-                    : '';
                 const itemKey = getLikedCandidateDisplayKey(item);
-                const isSelected = selectedKey && selectedKey === itemKey;
-                const isUsed = !isSelected && selectedPieces.some(p => {
-                    if (!p) return false;
-                    const pk = getLikedCandidateDisplayKey(p);
-                    return pk === itemKey;
-                });
+                const isSelected = selectedKeyForSlot && selectedKeyForSlot === itemKey;
+                const isUsed = !isSelected && usedBuildKeys.has(itemKey);
                 const buildTarget = itemKey;
                 btn.className = `build-piece-btn relative ${isSelected ? 'selected' : ''} ${isUsed ? 'opacity-40' : ''}`;
                 btn._buildPieceData = item;
@@ -2644,7 +2723,7 @@ function renderBuildSelection() {
                 }
 
                 const strokes = item['\u753b\u6570'] !== undefined ? item['\u753b\u6570']
-                    : (typeof master !== 'undefined' ? master.find(m => m['\u6f22\u5b57'] === item['\u6f22\u5b57'])?.['\u753b\u6570'] : undefined) ?? '--';
+                    : findBuildMasterItem(item['\u6f22\u5b57'])?.['\u753b\u6570'] ?? '--';
 
                 btn.innerHTML = `
                     <div class="build-kanji-text ${item['\u6f22\u5b57'] && item['\u6f22\u5b57'].length > 1 ? 'is-compound' : ''}">${item['\u6f22\u5b57']}</div>
@@ -2655,6 +2734,27 @@ function renderBuildSelection() {
                 applyBuildPieceVisualState(btn, item, isSelected);
                 scrollBox.appendChild(btn);
             });
+
+            if (totalItems > visibleItems.length) {
+                const remain = totalItems - visibleItems.length;
+                const moreBtn = document.createElement('button');
+                moreBtn.type = 'button';
+                moreBtn.className = 'build-piece-btn relative min-w-[92px] text-[11px] font-black text-[#8b7e66] border-dashed';
+                moreBtn.innerHTML = `<div class="leading-tight">もっと表示</div><div class="mt-1 text-[10px] text-[#bca37f]">${remain}件</div>`;
+                moreBtn.onclick = () => {
+                    withScrollPreservation(() => {
+                        increaseBuildVisibleLimit(
+                            buildSlotVisibleLimits,
+                            slotLimitKey,
+                            totalItems,
+                            BUILD_READING_SLOT_INCREMENT,
+                            BUILD_READING_SLOT_INITIAL_LIMIT
+                        );
+                        renderBuildSelection();
+                    });
+                };
+                scrollBox.appendChild(moreBtn);
+            }
         }
 
         row.appendChild(scrollBox);
@@ -2674,6 +2774,8 @@ function renderBuildSelection() {
 
 function requestRenderBuildSelection(reason = 'build', options = {}) {
     const delayMs = Number.isFinite(Number(options.delayMs)) ? Math.max(0, Number(options.delayMs)) : 80;
+    const afterRender = typeof options.afterRender === 'function' ? options.afterRender : null;
+    if (afterRender) buildSelectionRenderCallbacks.push(afterRender);
     if (buildSelectionRenderTimer) {
         clearTimeout(buildSelectionRenderTimer);
         buildSelectionRenderTimer = null;
@@ -2681,8 +2783,19 @@ function requestRenderBuildSelection(reason = 'build', options = {}) {
     buildSelectionRenderTimer = setTimeout(() => {
         buildSelectionRenderTimer = null;
         const buildScreen = document.getElementById('scr-build');
-        if (buildScreen && !buildScreen.classList.contains('active')) return;
+        if (buildScreen && !buildScreen.classList.contains('active')) {
+            buildSelectionRenderCallbacks = [];
+            return;
+        }
         renderBuildSelection();
+        const callbacks = buildSelectionRenderCallbacks.splice(0);
+        callbacks.forEach((callback) => {
+            try {
+                callback();
+            } catch (error) {
+                console.error('BUILD: after render callback failed', error);
+            }
+        });
     }, delayMs);
 }
 
@@ -2774,10 +2887,11 @@ function toggleReadingDropdown() {
         buildMode = 'reading';
         fbChoices = []; fbChoicesUseMark = {};
         selectedPieces = [];
+        resetBuildCandidateVisibleLimits();
         hydrateCompoundBuildSelections();
         const resultArea = document.getElementById('build-result-area');
         if (resultArea) resultArea.innerHTML = '';
-        renderBuildSelection();
+        requestRenderBuildSelection('toggle-reading-mode', { delayMs: 0 });
         // 再描画（初回タップではドロップダウンを開かない）
         return;
     }
@@ -2891,6 +3005,19 @@ function renderBuildFreeMode(container) {
     for (let slotIdx = 0; slotIdx < shownFbSlots; slotIdx++) {
         const label = `${slotIdx + 1}\u6587\u5b57\u76ee`;
         const selected = fbChoices[slotIdx] || null;
+        const freeSlotKey = String(slotIdx);
+        const totalAllKanji = allKanji.length;
+        const visibleLimit = getBuildVisibleLimit(buildFreeSlotVisibleLimits, freeSlotKey, totalAllKanji, BUILD_FREE_SLOT_INITIAL_LIMIT);
+        let visibleAllKanji = allKanji.slice(0, visibleLimit);
+        if (selected && !visibleAllKanji.some((item) => String(item?.['\u6f22\u5b57'] || item?.kanji || '') === selected)) {
+            const selectedItem = allKanji.find((item) => String(item?.['\u6f22\u5b57'] || item?.kanji || '') === selected);
+            if (selectedItem) {
+                visibleAllKanji = [
+                    selectedItem,
+                    ...visibleAllKanji.filter((item) => String(item?.['\u6f22\u5b57'] || item?.kanji || '') !== selected)
+                ].slice(0, visibleLimit);
+            }
+        }
 
         const slotDiv = document.createElement('div');
         slotDiv.className = 'mb-3';
@@ -2906,11 +3033,11 @@ function renderBuildFreeMode(container) {
         `;
 
         const scrollHtml = `<div class="flex overflow-x-auto pt-3 pb-3 -mt-3 no-scrollbar gap-1">
-            ${allKanji.map(item => {
+            ${visibleAllKanji.map(item => {
                 const k = item['\u6f22\u5b57'];
                 const buildTarget = item._buildTarget || getLikedCandidateDisplayKey(item);
                 const strokes = item['\u753b\u6570'] !== undefined ? item['\u753b\u6570']
-                    : (typeof master !== 'undefined' ? master.find(m => m['\u6f22\u5b57'] === k)?.['\u753b\u6570'] : undefined) ?? '--';
+                    : findBuildMasterItem(k)?.['\u753b\u6570'] ?? '--';
                 const isSelected = fbChoices[slotIdx] === k;
                 const isUsed = fbChoices.includes(k) && !isSelected;
                 const surfaceStyle = getBuildPieceSurfaceStyle(item, isSelected);
@@ -2928,6 +3055,12 @@ function renderBuildFreeMode(container) {
                         ${renderBuildSuperStars(item)}
                     </button>`;
         }).join('')}
+            ${totalAllKanji > visibleAllKanji.length
+                ? `<button type="button" onclick="showMoreFreeBuildSlot(${slotIdx}, ${totalAllKanji})" class="build-piece-btn relative min-w-[92px] text-[11px] font-black text-[#8b7e66] border-dashed">
+                        <div class="leading-tight">もっと表示</div>
+                        <div class="mt-1 text-[10px] text-[#bca37f]">${totalAllKanji - visibleAllKanji.length}件</div>
+                    </button>`
+                : ''}
         </div>`;
 
         slotDiv.innerHTML = headerHtml + scrollHtml;
@@ -2951,6 +3084,21 @@ function renderBuildFreeMode(container) {
         suggestReadingsForKanji(fbChoices, container);
     }
 }
+
+function showMoreFreeBuildSlot(slotIdx, total) {
+    const key = String(Number(slotIdx) || 0);
+    withScrollPreservation(() => {
+        increaseBuildVisibleLimit(
+            buildFreeSlotVisibleLimits,
+            key,
+            Number(total) || 0,
+            BUILD_FREE_SLOT_INCREMENT,
+            BUILD_FREE_SLOT_INITIAL_LIMIT
+        );
+        renderBuildSelection();
+    });
+}
+window.showMoreFreeBuildSlot = showMoreFreeBuildSlot;
 function normalizeReadingLookupKey(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -2995,7 +3143,7 @@ function suggestReadingsForKanji(choices, container) {
         if (kanji === '々' && idx > 0) {
             return getKanjiReadings(choices[idx - 1], idx - 1, mode);
         }
-        const rec = master.find(m => m['漢字'] === kanji);
+        const rec = findBuildMasterItem(kanji);
         if (!rec) return [];
         const raw = mode === 'on'
             ? (rec['音'] || '')
@@ -3239,9 +3387,7 @@ function closeKanjiActionMenu() {
 function openKanjiDetailFromBuild(target) {
     const kanjiStr = typeof resolveLikedCandidateKanji === 'function' ? resolveLikedCandidateKanji(target) : String(target || '').trim();
     const likedItem = findLikedCandidateByTarget(target) || null;
-    const masterItem = (typeof master !== 'undefined' && Array.isArray(master))
-        ? master.find(item => item['漢字'] === kanjiStr)
-        : null;
+    const masterItem = findBuildMasterItem(kanjiStr);
     const detailItem = { ...(masterItem || {}), ...(likedItem || {}) };
 
     closeKanjiActionMenu();
