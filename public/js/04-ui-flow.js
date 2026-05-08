@@ -7112,26 +7112,26 @@ function toggleSearchShowAllKanji() {
 function updateSearchModeToggle() {
     const btn = document.getElementById('search-mode-toggle');
     if (!btn) return;
-    btn.className = 'px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0';
+    btn.className = 'h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0';
     if (searchFlexibleMode) {
         btn.textContent = '読み柔軟';
-        btn.style.cssText = 'width:88px;background:#bca37f;color:#fff;border:1px solid #bca37f;';
+        btn.style.cssText = 'width:88px;height:26px;background:#bca37f;color:#fff;border:1px solid #bca37f;';
     } else {
         btn.textContent = '読み厳格';
-        btn.style.cssText = 'width:88px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
+        btn.style.cssText = 'width:88px;height:26px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
     }
 }
 
 function updateSearchAllKanjiToggle() {
     const btn = document.getElementById('search-all-kanji-toggle');
     if (!btn) return;
-    btn.className = 'px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0';
+    btn.className = 'h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0';
     if (searchShowAllKanji) {
         btn.textContent = 'すべての漢字';
-        btn.style.cssText = 'width:88px;background:#f0efec;color:#6f6a62;border:1px solid #ded8cf;';
+        btn.style.cssText = 'width:88px;height:26px;background:#f0efec;color:#6f6a62;border:1px solid #ded8cf;';
     } else {
         btn.textContent = 'おすすめ漢字';
-        btn.style.cssText = 'width:88px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
+        btn.style.cssText = 'width:88px;height:26px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
     }
 }
 
