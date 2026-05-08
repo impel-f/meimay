@@ -2796,6 +2796,7 @@ body.has-ad-banner #universal-footer {
     transform: scale(0.98);
 }
 
+#build-origin-btn:disabled,
 #build-save-btn:disabled {
     background: rgba(255, 255, 255, 0.55) !important;
     border-color: #eee5d8 !important;
@@ -2806,6 +2807,7 @@ body.has-ad-banner #universal-footer {
     transform: none !important;
 }
 
+#build-origin-btn:disabled:hover,
 #build-save-btn:disabled:hover {
     background: rgba(255, 255, 255, 0.55) !important;
     border-color: #eee5d8 !important;
@@ -2813,6 +2815,12 @@ body.has-ad-banner #universal-footer {
     transform: none !important;
 }
 
+#build-save-area .build-footer-action-btn {
+    min-width: 0;
+}
+
+#build-origin-btn .build-save-btn-title,
+#build-origin-btn .build-save-btn-detail,
 #build-save-btn .build-save-btn-title,
 #build-save-btn .build-save-btn-detail {
     max-width: calc(100% - 20px);
@@ -3455,17 +3463,19 @@ body.has-ad-banner #universal-footer {
         font-size: clamp(1rem, 4vw, 1.25rem);
     }
 
+    #build-origin-btn,
     #build-save-btn {
-        max-width: 280px;
         padding-top: 0.55rem !important;
         padding-bottom: 0.55rem !important;
         border-radius: 20px;
     }
 
+    #build-origin-btn .build-save-btn-title,
     #build-save-btn .build-save-btn-title {
         font-size: 13px !important;
     }
 
+    #build-origin-btn .build-save-btn-detail,
     #build-save-btn .build-save-btn-detail {
         font-size: 9px !important;
     }

@@ -955,6 +955,26 @@ function showSavedNameDetail(index, source = 'own') {
     const localDeleteIndex = source === 'own' ? index : -1;
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
     const f = item.fortune;
+    const originText = typeof getNameOriginDisplayTextForItem === 'function'
+        ? getNameOriginDisplayTextForItem(item)
+        : String(item.origin || '').trim();
+    const safeOriginText = typeof escapeHtml === 'function'
+        ? escapeHtml(originText)
+        : String(originText || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    const canCreateOrigin = !!originText
+        || typeof canUseDailyNameOriginAI !== 'function'
+        || canUseDailyNameOriginAI();
+    const originButtonClass = canCreateOrigin
+        ? 'bg-[#5d5444] text-white shadow-sm active:scale-95'
+        : 'bg-[#efe9df] text-[#a59683] border border-[#e0d8c9] cursor-not-allowed';
+    const originButtonLabel = originText
+        ? '由来を見る'
+        : (canCreateOrigin ? '🤖AIで由来を作る' : '今日のAIは終了');
 
     const displayParts = getSavedCandidateDisplayParts(item);
     const surStr = displayParts.surname || '';
@@ -1028,6 +1048,25 @@ function showSavedNameDetail(index, source = 'own') {
                     </div>
                     ` : ''}
 
+                    <div class="mb-8 rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f7efe2] p-5 shadow-[0_18px_45px_-36px_rgba(93,84,68,0.5)]">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">由来案</div>
+                                <div class="mt-1 text-[12px] font-bold text-[#5d5444]">名前に込める願い</div>
+                            </div>
+                            <button id="saved-origin-btn" data-name-origin-action="saved" onclick="generateOriginFromSaved(${index}, '${source}')"
+                                    class="shrink-0 rounded-2xl px-3.5 py-2.5 text-[11px] font-black transition ${originButtonClass}"
+                                    ${canCreateOrigin ? '' : 'disabled aria-disabled="true"'}>
+                                ${originButtonLabel}
+                            </button>
+                        </div>
+                        ${originText ? `
+                            <p class="line-clamp-2 text-[13px] font-medium leading-relaxed text-[#5d5444]">${safeOriginText}</p>
+                        ` : `
+                            <p class="text-[12px] font-medium leading-relaxed text-[#8b7e66]">まだ由来案はありません。</p>
+                        `}
+                    </div>
+
                     <!-- 姓名判断エリア (タイトル中央・リンク右下) -->
                     <div class="mb-8">
                         <div onclick="showFortuneDetailFromSaved(${index}, '${source}')"
@@ -1062,6 +1101,9 @@ function showSavedNameDetail(index, source = 'own') {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modal);
+    if (typeof attachSavedNameOriginLongPress === 'function') {
+        attachSavedNameOriginLongPress(index, source);
+    }
 }
 
 /**

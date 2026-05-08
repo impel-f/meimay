@@ -15,6 +15,7 @@ const StorageBox = {
     KEY_SEGMENTS: 'naming_app_segments',
     KEY_SETTINGS: 'naming_app_settings',
     KEY_KANJI_AI_CACHE: 'naming_app_kanji_ai_cache',
+    KEY_NAME_ORIGIN_CACHE: 'meimay_name_origin_cache_v1',
     KEY_USER_TAGS: 'meimay_user_tags',
     KEY_NOPED: 'meimay_noped',
     KEY_SOUND_PREFERENCES: 'meimay_sound_preferences',
@@ -588,6 +589,55 @@ const StorageBox = {
             return true;
         } catch (e) {
             console.error("STORAGE: kanji AI cache remove failed", e);
+            return false;
+        }
+    },
+
+    saveNameOriginCache: function (key, text) {
+        try {
+            const safeKey = String(key || '').trim();
+            const safeText = String(text || '').trim();
+            if (!safeKey || !safeText) return false;
+            const raw = localStorage.getItem(this.KEY_NAME_ORIGIN_CACHE);
+            const cache = raw ? JSON.parse(raw) : {};
+            cache[safeKey] = {
+                text: safeText,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(this.KEY_NAME_ORIGIN_CACHE, JSON.stringify(cache));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: name origin cache save failed", e);
+            return false;
+        }
+    },
+
+    getNameOriginCache: function (key) {
+        try {
+            const safeKey = String(key || '').trim();
+            if (!safeKey) return null;
+            const raw = localStorage.getItem(this.KEY_NAME_ORIGIN_CACHE);
+            if (!raw) return null;
+            const cache = JSON.parse(raw);
+            return cache && typeof cache === 'object' ? cache[safeKey] || null : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    removeNameOriginCache: function (key) {
+        try {
+            const safeKey = String(key || '').trim();
+            if (!safeKey) return false;
+            const raw = localStorage.getItem(this.KEY_NAME_ORIGIN_CACHE);
+            if (!raw) return true;
+            const cache = JSON.parse(raw);
+            if (!cache || typeof cache !== 'object') return true;
+            delete cache[safeKey];
+            localStorage.setItem(this.KEY_NAME_ORIGIN_CACHE, JSON.stringify(cache));
+            return true;
+        } catch (e) {
+            console.error("STORAGE: name origin cache remove failed", e);
             return false;
         }
     },

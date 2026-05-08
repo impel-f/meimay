@@ -4,157 +4,441 @@
  * ============================================================
  */
 
-async function generateOrigin() {
-    console.log("ORIGIN: generateOrigin called");
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v2_20260508';
+const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
+const DAILY_NAME_ORIGIN_LIMIT = 1;
+let nameOriginGenerationInFlight = false;
 
-    if (!currentBuildResult || !currentBuildResult.givenName) {
-        alert('名前が決定されていません');
-        return;
+function _getDailyNameOriginKey() {
+    const d = new Date();
+    return `meimay_daily_name_origin_${d.getFullYear()}_${d.getMonth()}_${d.getDate()}`;
+}
+
+function getDailyNameOriginUseCount() {
+    try {
+        const count = Number(localStorage.getItem(_getDailyNameOriginKey()) || 0);
+        return Number.isFinite(count) && count > 0 ? count : 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function canUseDailyNameOriginAI() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return true;
+    return getDailyNameOriginUseCount() < DAILY_NAME_ORIGIN_LIMIT;
+}
+
+function consumeDailyNameOriginUse() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return true;
+    if (!canUseDailyNameOriginAI()) return false;
+    try {
+        localStorage.setItem(_getDailyNameOriginKey(), String(getDailyNameOriginUseCount() + 1));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function refundDailyNameOriginUse() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return;
+    try {
+        const nextCount = Math.max(0, getDailyNameOriginUseCount() - 1);
+        if (nextCount === 0) localStorage.removeItem(_getDailyNameOriginKey());
+        else localStorage.setItem(_getDailyNameOriginKey(), String(nextCount));
+    } catch (error) { }
+}
+
+function normalizeNameOriginText(text) {
+    return String(text || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/^[「『\s]+|[」』\s]+$/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
+function getNameOriginKanjiValue(part) {
+    if (typeof part === 'string') return part.trim();
+    return String(part?.['漢字'] || part?.kanji || part?.displayKanji || '').trim();
+}
+
+function getNameOriginCombination(result = currentBuildResult) {
+    if (Array.isArray(result?.combination) && result.combination.length > 0) {
+        return result.combination;
+    }
+    if (Array.isArray(result?.combinationKeys) && result.combinationKeys.length > 0) {
+        return result.combinationKeys.map(key => ({ '漢字': key }));
+    }
+    return [];
+}
+
+function getNameOriginCombinationKey(result = currentBuildResult) {
+    return getNameOriginCombination(result).map(getNameOriginKanjiValue).filter(Boolean).join('');
+}
+
+function getNameOriginGivenName(result = currentBuildResult) {
+    const direct = String(result?.givenName || '').trim();
+    if (direct) return direct;
+    const combo = getNameOriginCombinationKey(result);
+    if (combo) return combo;
+    const fullName = String(result?.fullName || '').trim();
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : fullName;
+}
+
+function getNameOriginGivenReading(result = currentBuildResult) {
+    const direct = String(result?.givenReading || result?.givenNameReading || '').trim();
+    if (direct) return direct;
+    const reading = String(result?.reading || '').trim();
+    const parts = reading.split(/\s+/).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 1] : reading;
+}
+
+function getNameOriginCacheKey(result = currentBuildResult) {
+    const givenName = getNameOriginGivenName(result);
+    const givenReading = getNameOriginGivenReading(result);
+    const combinationKey = getNameOriginCombinationKey(result) || givenName;
+    if (!givenName && !combinationKey) return '';
+    return [
+        NAME_ORIGIN_PROMPT_VERSION,
+        encodeURIComponent(givenName),
+        encodeURIComponent(givenReading || ''),
+        encodeURIComponent(combinationKey)
+    ].join('__');
+}
+
+function readNameOriginCacheMap() {
+    try {
+        const raw = localStorage.getItem(NAME_ORIGIN_CACHE_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function getCachedNameOriginEntry(result = currentBuildResult) {
+    const key = getNameOriginCacheKey(result);
+    if (!key) return null;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.getNameOriginCache === 'function') {
+        return StorageBox.getNameOriginCache(key);
+    }
+    const cache = readNameOriginCacheMap();
+    return cache[key] || null;
+}
+
+function saveNameOriginCache(result, text) {
+    const key = getNameOriginCacheKey(result);
+    const cleanText = normalizeNameOriginText(text);
+    if (!key || !cleanText) return false;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNameOriginCache === 'function') {
+        StorageBox.saveNameOriginCache(key, cleanText);
+        return true;
+    }
+    try {
+        const cache = readNameOriginCacheMap();
+        cache[key] = {
+            text: cleanText,
+            promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+            savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(NAME_ORIGIN_CACHE_KEY, JSON.stringify(cache));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function removeNameOriginCache(result = currentBuildResult) {
+    const key = getNameOriginCacheKey(result);
+    if (!key) return false;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeNameOriginCache === 'function') {
+        return StorageBox.removeNameOriginCache(key);
+    }
+    try {
+        const cache = readNameOriginCacheMap();
+        delete cache[key];
+        localStorage.setItem(NAME_ORIGIN_CACHE_KEY, JSON.stringify(cache));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function getNameOriginDisplayTextForItem(item) {
+    const direct = normalizeNameOriginText(item?.origin);
+    if (direct) return direct;
+    const cached = getCachedNameOriginEntry(item);
+    return normalizeNameOriginText(cached?.text);
+}
+
+function isSameNameOriginTarget(a, b) {
+    const keyA = getNameOriginCacheKey(a);
+    const keyB = getNameOriginCacheKey(b);
+    return !!keyA && keyA === keyB;
+}
+
+function persistNameOriginToSavedItems(target, originText, options = {}) {
+    if (typeof savedNames === 'undefined' || !Array.isArray(savedNames)) return false;
+    const cleanText = normalizeNameOriginText(originText);
+    if (!cleanText) return false;
+
+    let changed = false;
+    if (options.source === 'own' && Number.isInteger(options.savedIndex) && savedNames[options.savedIndex]) {
+        savedNames[options.savedIndex] = { ...savedNames[options.savedIndex], origin: cleanText };
+        changed = true;
+    } else {
+        savedNames = savedNames.map(item => {
+            if (!isSameNameOriginTarget(item, target)) return item;
+            changed = true;
+            return { ...item, origin: cleanText };
+        });
     }
 
-    const { givenName, combination } = currentBuildResult;
-    console.log("ORIGIN_START: AI由来生成開始");
+    if (changed) {
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+            StorageBox.saveSavedNames();
+        } else {
+            localStorage.setItem('meimay_saved', JSON.stringify(savedNames));
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+        if (typeof persistActiveChildWorkspaceSnapshot === 'function') {
+            persistActiveChildWorkspaceSnapshot('name-origin-update');
+        }
+    }
+    return changed;
+}
 
-    const modal = document.getElementById('modal-origin');
-    if (!modal) {
-        console.error("ORIGIN: modal-origin not found");
-        return;
+function clearPersistedNameOrigin(target, options = {}) {
+    removeNameOriginCache(target);
+    if (target) target.origin = '';
+    if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
+        currentBuildResult.origin = '';
     }
 
-    // Modal Display (Loading)
-    modal.classList.add('active');
-    modal.innerHTML = `
-        <div class="detail-sheet animate-fade-in flex flex-col items-center">
-            <div class="text-[10px] font-black text-[#bca37f] mb-8 tracking-widest opacity-60 uppercase">AI Writing Service</div>
-            <div class="flex flex-col items-center py-20 text-center">
-                <div class="w-10 h-10 border-4 border-[#eee5d8] border-t-[#bca37f] rounded-full animate-spin mb-6"></div>
-                <p class="text-[12px] font-bold text-[#7a6f5a] leading-loose">
-                    「${givenName}」の由来を<br>生成しています。
-                </p>
-            </div>
-        </div>
-    `;
+    let changed = false;
+    if (typeof savedNames !== 'undefined' && Array.isArray(savedNames)) {
+        if (options.source === 'own' && Number.isInteger(options.savedIndex) && savedNames[options.savedIndex]) {
+            savedNames[options.savedIndex] = { ...savedNames[options.savedIndex], origin: '' };
+            changed = true;
+        } else {
+            savedNames = savedNames.map(item => {
+                if (!isSameNameOriginTarget(item, target) || !item?.origin) return item;
+                changed = true;
+                return { ...item, origin: '' };
+            });
+        }
+    }
 
-    // Prepare Prompt
-    const originDetails = combination.map(c => {
-        const src = (typeof liked !== 'undefined') ? liked.find(l => l['漢字'] === c['漢字']) : null;
-        return `【${c['漢字']}】：${src ? src['意味'] : "良い意味"}`;
+    if (changed) {
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+            StorageBox.saveSavedNames();
+        } else {
+            localStorage.setItem('meimay_saved', JSON.stringify(savedNames));
+        }
+        if (typeof persistActiveChildWorkspaceSnapshot === 'function') {
+            persistActiveChildWorkspaceSnapshot('name-origin-clear');
+        }
+    }
+    if (typeof syncBuildSaveButton === 'function') {
+        syncBuildSaveButton(!!(currentBuildResult && currentBuildResult.fullName));
+    }
+    return true;
+}
+
+function findNameOriginSourceItem(part) {
+    const kanji = getNameOriginKanjiValue(part);
+    if (!kanji) return null;
+    if (part && typeof part === 'object' && part['意味']) return part;
+    if (typeof liked !== 'undefined' && Array.isArray(liked)) {
+        const likedItem = liked.find(item => getNameOriginKanjiValue(item) === kanji);
+        if (likedItem) return likedItem;
+    }
+    if (typeof master !== 'undefined' && Array.isArray(master)) {
+        return master.find(item => getNameOriginKanjiValue(item) === kanji) || null;
+    }
+    return null;
+}
+
+function getNameOriginMeaning(part) {
+    const source = findNameOriginSourceItem(part);
+    const raw = source?.['意味'] || source?.meaning || part?.['意味'] || '';
+    const cleaned = typeof clean === 'function'
+        ? clean(raw)
+        : String(raw || '').replace(/\s+/g, ' ').trim();
+    return cleaned || '名前に込めたい印象を持つ漢字';
+}
+
+function buildNameOriginPrompt(result = currentBuildResult) {
+    const givenName = getNameOriginGivenName(result);
+    const givenReading = getNameOriginGivenReading(result);
+    const originDetails = getNameOriginCombination(result).map((part, index) => {
+        const kanji = getNameOriginKanjiValue(part);
+        const meaning = kanji === '々'
+            ? '直前の漢字を重ねる記号。前の字の印象を重ねて響かせる。'
+            : getNameOriginMeaning(part);
+        return `${index + 1}. 「${kanji}」: ${meaning}`;
     }).join('\n');
 
-    const prompt = `
-名前「${givenName}」の由来を、以下の漢字データのみを使って、漢字の意味を生かして100文字から150文字程度で簡潔に作成してください。
+    return `
+名前「${givenName}」（読み: ${givenReading || '未指定'}）の由来案を、180〜220字程度の自然な日本語で作成してください。
 
-【禁止事項 - 厳守】
-・「生命の誕生は～」「親の愛は～」などの前置きは一切不要。
-・名字についての言及、名字との響きについての解説も一切書かないでください。
-・架空の人物・著名人への言及は絶対にしないでください。
-・存在しない故事やことわざを捏造しないでください。
-
-【作成ルール】
-・提示された漢字の意味に直結した、一人の人間としての成長や願いを直球で書いてください。
-・漢字の実際の意味のみに基づいてください。
+【必ず守ること】
+・以下の漢字データだけを根拠にし、漢字ごとの意味を自然につなげる。
+・親がそのまま説明に使える、あたたかく上質な一段落にする。
+・「本来の語源」と断定せず、「願いを込められます」「想いを重ねられます」のように由来案として書く。
+・読みの響きには、必要な場合だけ一文以内で軽く触れる。
+・名字、名字との相性、架空の故事・ことわざ・人物・有名人には触れない。
+・漢字データにない意味、縁起、宗教的な断定、将来の保証を書かない。
+・前置きや見出しは不要。本文だけを出力する。
 
 【漢字データ】
 ${originDetails}
 `.trim();
+}
+
+async function generateOrigin(options = {}) {
+    if (nameOriginGenerationInFlight) return;
+
+    const target = options.result || currentBuildResult;
+    const givenName = getNameOriginGivenName(target);
+    const combination = getNameOriginCombination(target);
+    if (!target || !givenName || combination.length === 0) {
+        alert('名前が決定されていません');
+        return;
+    }
+
+    const cachedText = getNameOriginDisplayTextForItem(target);
+    if (cachedText && !options.force) {
+        target.origin = cachedText;
+        if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
+            currentBuildResult.origin = cachedText;
+        }
+        saveNameOriginCache(target, cachedText);
+        persistNameOriginToSavedItems(target, cachedText, options);
+        renderAIOriginResult(target, cachedText);
+        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
+        return;
+    }
+
+    if (!consumeDailyNameOriginUse()) {
+        if (typeof showToast === 'function') showToast('今日の無料AI由来は使い切りました', '🌙');
+        else alert('今日の無料AI由来は使い切りました');
+        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
+        return;
+    }
+
+    const modal = document.getElementById('modal-origin');
+    if (!modal) {
+        console.error("ORIGIN: modal-origin not found");
+        refundDailyNameOriginUse();
+        return;
+    }
+
+    nameOriginGenerationInFlight = true;
+    renderNameOriginLoading(target);
 
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-        console.log("ORIGIN: Fetching from API...");
         const response = await fetch(getMeimayApiUrl('/api/gemini'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt }),
+            body: JSON.stringify({ prompt: buildNameOriginPrompt(target) }),
             signal: controller.signal
         });
 
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-            let errorMsg = `API疎通エラー (Status: ${response.status})`;
+            let errorMsg = `API Error: ${response.status}`;
             try {
                 const errData = await response.json();
                 if (errData.error) errorMsg += `\n${errData.error}`;
                 if (errData.details) errorMsg += `\n${errData.details}`;
-                if (errData.available_models) errorMsg += `\nAvailable Models:\n${errData.available_models.join('\n')}`;
-                if (errData.debug_model_codes) errorMsg += `\nCodes: ${JSON.stringify(errData.debug_model_codes)}`;
-            } catch (e) {
-                // JSON parse error, ignore
-            }
+            } catch (parseError) { }
             throw new Error(errorMsg);
         }
 
         const data = await response.json();
-        const aiText = data.text || '由来を生成できませんでした。';
-        console.log("ORIGIN: API Success", aiText);
+        const aiText = normalizeNameOriginText(data.text);
+        if (!aiText) throw new Error('由来文を取得できませんでした。');
 
-        // Update Data
-        currentBuildResult.origin = aiText;
-        if (typeof savedNames !== 'undefined') {
-            const index = savedNames.findIndex(n => n.fullName === currentBuildResult.fullName);
-            if (index !== -1) {
-                savedNames[index].origin = aiText;
-                if (typeof StorageBox !== 'undefined' && StorageBox.saveSavedNames) {
-                    StorageBox.saveSavedNames();
-                }
-                console.log("ORIGIN: 保存済みデータの由来を更新しました。");
-            }
+        target.origin = aiText;
+        if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
+            currentBuildResult.origin = aiText;
         }
-
-        renderAIOriginResult(givenName, aiText);
-
+        saveNameOriginCache(target, aiText);
+        persistNameOriginToSavedItems(target, aiText, options);
+        renderAIOriginResult(target, aiText);
     } catch (err) {
-        console.error("AI_FAILURE:", err);
-        // Alert the user about the specific error for debugging
-        alert(`AIエラーが発生しました:\n${err.message}\n(詳細なログはコンソールを確認してください)`);
-
+        refundDailyNameOriginUse();
+        console.warn("AI_NAME_ORIGIN_FAILURE:", err);
         const fallbackText = generateFallbackOrigin(givenName, combination);
-        currentBuildResult.origin = fallbackText;
-
-        renderAIOriginResult(givenName, fallbackText, true);
+        renderAIOriginResult(target, fallbackText, true);
+        if (typeof showToast === 'function') showToast('AI由来を作れませんでした', '!');
+    } finally {
+        nameOriginGenerationInFlight = false;
+        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(!!(currentBuildResult && currentBuildResult.fullName));
     }
 }
 
 function generateFallbackOrigin(givenName, combination) {
-    const meanings = combination.map(c => {
-        const src = (typeof liked !== 'undefined') ? liked.find(l => l['漢字'] === c['漢字']) : null;
-        const m = src ? clean(src['意味']) : '良い意味';
-        return m.split(/[。、]/)[0].substring(0, 20);
+    const meanings = combination.map((part, index) => {
+        const kanji = getNameOriginKanjiValue(part);
+        const meaning = getNameOriginMeaning(part).split(/[。、]/)[0].substring(0, 24);
+        return `「${kanji}」には${meaning}という意味`;
     });
-
-    const templates = [
-        `「${givenName}」という名前には、${meanings.map(m => `「${m}」`).join('、')}という漢字の意味が込められています。この名前を持つ子が、それぞれの漢字が示すように、${meanings[0]}を大切にし、心豊かに成長してほしいという願いが込められています。`,
-
-        `${givenName}。${combination.length}つの漢字それぞれに、深い意味が込められています。${meanings.map((m, i) => `${i + 1}文字目の「${combination[i]['漢字']}」は${m}を表し`).join('、')}ます。これらが組み合わさることで、唯一無二の名前が生まれました。`,
-
-        `この名前を選んだ理由は明確です。${meanings.map((m, i) => `「${combination[i]['漢字']}」には${m}という意味があり`).join('、')}、これらすべてが「${givenName}」という名前に込められた願いを表しています。`
-    ];
-
-    return templates[Math.floor(Math.random() * templates.length)];
+    return `「${givenName}」には、${meanings.join('、')}を重ねた由来案を込められます。ひとつひとつの漢字が持つ印象を大切にしながら、自分らしく歩み、周りにもあたたかな気持ちを届けられる人に育ってほしいという願いを表せます。`;
 }
 
-function renderAIOriginResult(givenName, text, isFallback = false) {
+function renderNameOriginLoading(result = currentBuildResult) {
     const modal = document.getElementById('modal-origin');
     if (!modal) return;
+    const givenName = escapeHtml(getNameOriginGivenName(result));
+    const givenReading = escapeHtml(getNameOriginGivenReading(result));
+    modal.classList.add('active', 'modal-overlay-dark');
     modal.innerHTML = `
-        <div class="detail-sheet animate-fade-in flex flex-col items-center max-w-[420px]">
-            <div class="text-[10px] font-black text-[#bca37f] mb-8 tracking-widest opacity-60 uppercase">
-                ${isFallback ? 'Template Origin' : 'The Origin Story'}
+        <div class="detail-sheet animate-fade-in max-w-[420px]">
+            <div class="flex flex-col items-center py-12 text-center">
+                <div class="mb-4 text-[10px] font-black tracking-[0.18em] text-[#bca37f]">名前に込める願い</div>
+                <div class="mb-2 text-4xl font-black tracking-[0.08em] text-[#5d5444]">${givenName}</div>
+                ${givenReading ? `<div class="mb-10 text-[11px] font-bold text-[#a6967a]">${givenReading}</div>` : '<div class="mb-10"></div>'}
+                <div class="mb-5 h-10 w-10 rounded-full border-4 border-[#eee5d8] border-t-[#bca37f] animate-spin"></div>
+                <p class="text-[12px] font-bold leading-loose text-[#7a6f5a]">漢字の意味をつないでいます。</p>
             </div>
-            <div class="text-6xl font-black text-[#5d5444] mb-10 tracking-tight">${givenName}</div>
-            <div class="w-full bg-[#fdfaf5] border border-[#eee5d8] rounded-[40px] p-8 mb-10 shadow-inner overflow-y-auto max-h-[50vh] no-scrollbar">
-                <p class="text-[14px] leading-relaxed text-[#5d5444] font-bold whitespace-pre-wrap">${text}</p>
+        </div>
+    `;
+}
+
+function renderAIOriginResult(resultOrName, text, isFallback = false) {
+    const modal = document.getElementById('modal-origin');
+    if (!modal) return;
+    const result = typeof resultOrName === 'string'
+        ? { givenName: resultOrName, reading: '', combination: [] }
+        : (resultOrName || currentBuildResult);
+    const givenName = escapeHtml(getNameOriginGivenName(result));
+    const givenReading = escapeHtml(getNameOriginGivenReading(result));
+    const originText = escapeHtml(normalizeNameOriginText(text));
+    modal.classList.add('active', 'modal-overlay-dark');
+    modal.innerHTML = `
+        <div class="detail-sheet animate-fade-in max-w-[440px]">
+            <div class="mb-6 text-center">
+                <div class="mb-3 text-[10px] font-black tracking-[0.18em] text-[#bca37f]">${isFallback ? '由来案' : '名前に込める願い'}</div>
+                <div class="text-5xl font-black leading-none tracking-[0.08em] text-[#5d5444]">${givenName}</div>
+                ${givenReading ? `<div class="mt-3 text-[12px] font-bold text-[#a6967a]">${givenReading}</div>` : ''}
+            </div>
+            <div class="relative mb-5 overflow-hidden rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f7efe2] p-5 shadow-[0_18px_45px_-34px_rgba(93,84,68,0.55)]">
+                <div class="absolute left-0 top-0 h-full w-1 bg-[#d8b56f] opacity-70"></div>
+                <p id="name-origin-text" class="whitespace-pre-wrap text-[14px] font-medium leading-[1.95] text-[#4f4639]">${originText}</p>
             </div>
             ${isFallback ? `
-                <p class="text-xs text-[#a6967a] mb-4 text-center">
-                    ⚠️ AIサービスが利用できないため、テンプレートで生成しました
+                <p class="mb-4 text-center text-[11px] font-bold leading-relaxed text-[#a6967a]">
+                    AIサービスに接続できなかったため、端末内の情報で下書きを表示しています。
                 </p>
             ` : ''}
-            <div class="flex flex-col gap-3 w-full">
-                <button onclick="copyOriginToClipboard()" class="w-full py-5 bg-[#5d5444] text-white rounded-[35px] font-black uppercase tracking-widest active:scale-95 transition-transform">📋 由来をコピー</button>
-                <button onclick="closeOriginModal()" class="w-full py-5 bg-white border border-[#eee5d8] rounded-[35px] text-[#a6967a] font-black uppercase tracking-widest">閉じる</button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="copyOriginToClipboard()" class="rounded-2xl bg-[#5d5444] px-4 py-4 text-[12px] font-black text-white shadow-sm transition active:scale-95">コピー</button>
+                <button onclick="closeOriginModal()" class="rounded-2xl border border-[#eadfce] bg-white px-4 py-4 text-[12px] font-black text-[#8b7e66] transition active:scale-95">閉じる</button>
             </div>
         </div>
     `;
@@ -162,14 +446,115 @@ function renderAIOriginResult(givenName, text, isFallback = false) {
 
 function closeOriginModal() {
     const m = document.getElementById('modal-origin');
-    if (m) m.classList.remove('active');
+    if (m) {
+        m.classList.remove('active');
+        m.innerHTML = '';
+    }
 }
 
 function copyOriginToClipboard() {
-    const p = document.querySelector('#modal-origin p');
-    if (p) {
-        navigator.clipboard.writeText(p.innerText.trim()).then(() => alert("由来をコピーしました。"));
-    }
+    const p = document.getElementById('name-origin-text');
+    if (!p) return;
+    navigator.clipboard.writeText(p.innerText.trim()).then(() => {
+        if (typeof showToast === 'function') showToast('由来をコピーしました', '✓');
+        else alert("由来をコピーしました。");
+    });
+}
+
+function getNameOriginSavedItem(index, source = 'own') {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const ownSaved = typeof getSavedNames === 'function'
+        ? getSavedNames()
+        : (Array.isArray(savedNames) ? savedNames : []);
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : ownSaved;
+    return sourceSaved[index] || null;
+}
+
+async function generateOriginFromSaved(index, source = 'own') {
+    const item = getNameOriginSavedItem(index, source);
+    if (!item) return;
+    currentBuildResult = JSON.parse(JSON.stringify(item));
+    closeSavedNameDetail();
+    await generateOrigin({
+        result: currentBuildResult,
+        savedIndex: index,
+        source
+    });
+}
+
+function clearNameOriginFromSaved(index, source = 'own') {
+    const item = getNameOriginSavedItem(index, source);
+    if (!item) return false;
+    clearPersistedNameOrigin(item, {
+        savedIndex: index,
+        source
+    });
+    if (typeof showToast === 'function') showToast('由来キャッシュをクリアしました', '✓');
+    return true;
+}
+
+function clearCurrentBuildNameOrigin() {
+    if (!currentBuildResult || !getNameOriginGivenName(currentBuildResult)) return false;
+    clearPersistedNameOrigin(currentBuildResult);
+    if (typeof showToast === 'function') showToast('由来キャッシュをクリアしました', '✓');
+    return true;
+}
+
+function attachNameOriginLongPress(button, getTarget) {
+    if (!button || button._meimayNameOriginLongPressAttached) return;
+    button._meimayNameOriginLongPressAttached = true;
+    let longPressTimer = null;
+    let longPressTriggered = false;
+
+    const clearTimer = () => {
+        if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+        }
+    };
+    const startLongPress = () => {
+        clearTimer();
+        longPressTriggered = false;
+        longPressTimer = setTimeout(() => {
+            longPressTriggered = true;
+            const target = typeof getTarget === 'function' ? getTarget() : {};
+            if (target?.savedIndex != null) {
+                clearNameOriginFromSaved(target.savedIndex, target.source || 'own');
+            } else {
+                clearCurrentBuildNameOrigin();
+            }
+        }, 5000);
+    };
+
+    button.addEventListener('mousedown', startLongPress);
+    button.addEventListener('touchstart', startLongPress, { passive: true });
+    button.addEventListener('mouseup', clearTimer);
+    button.addEventListener('mouseleave', clearTimer);
+    button.addEventListener('touchend', clearTimer);
+    button.addEventListener('touchcancel', clearTimer);
+    button.addEventListener('click', (event) => {
+        if (!longPressTriggered) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        longPressTriggered = false;
+    }, true);
+}
+
+function bindBuildNameOriginLongPress() {
+    const button = document.getElementById('build-origin-btn');
+    attachNameOriginLongPress(button, () => ({ result: currentBuildResult }));
+}
+
+function attachSavedNameOriginLongPress(index, source = 'own') {
+    const button = document.getElementById('saved-origin-btn');
+    attachNameOriginLongPress(button, () => ({ savedIndex: index, source }));
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindBuildNameOriginLongPress);
+} else {
+    bindBuildNameOriginLongPress();
 }
 
 /**
@@ -1261,6 +1646,10 @@ function renderKanjiDetailSections(resultEl, aiText) {
 
 // Global Exports
 window.generateOrigin = generateOrigin;
+window.generateOriginFromSaved = generateOriginFromSaved;
+window.getNameOriginDisplayTextForItem = getNameOriginDisplayTextForItem;
+window.canUseDailyNameOriginAI = canUseDailyNameOriginAI;
+window.attachSavedNameOriginLongPress = attachSavedNameOriginLongPress;
 window.generateKanjiDetail = generateKanjiDetail;
 window.canUseDailyKanjiDetailAI = canUseDailyKanjiDetailAI;
 window.consumeDailyKanjiDetailUse = consumeDailyKanjiDetailUse;

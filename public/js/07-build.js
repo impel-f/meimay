@@ -2791,32 +2791,62 @@ window.setBuildMode = setBuildMode;
  */
 function syncBuildSaveButton(canSave) {
     const btn = document.getElementById('build-save-btn');
-    if (!btn) return;
-    btn.disabled = !canSave;
-    btn.setAttribute('aria-disabled', String(!canSave));
-
-    const titleEl = btn.querySelector('.build-save-btn-title');
-    const detailEl = btn.querySelector('.build-save-btn-detail');
+    const originBtn = document.getElementById('build-origin-btn');
     const missingSlots = buildMode === 'reading' && Array.isArray(segments)
         ? segments
             .map((seg, idx) => ({ seg, idx, selected: !!selectedPieces[idx] }))
             .filter(item => !item.selected)
         : [];
 
-    if (titleEl) {
-        titleEl.textContent = canSave
-            ? '💾 保存'
-            : (missingSlots.length > 0 ? `保存まであと${missingSlots.length}文字` : '保存できません');
+    if (btn) {
+        btn.disabled = !canSave;
+        btn.setAttribute('aria-disabled', String(!canSave));
+
+        const titleEl = btn.querySelector('.build-save-btn-title');
+        const detailEl = btn.querySelector('.build-save-btn-detail');
+
+        if (titleEl) {
+            titleEl.textContent = canSave
+                ? '💾 保存'
+                : (missingSlots.length > 0 ? `保存まであと${missingSlots.length}文字` : '保存できません');
+        }
+
+        if (detailEl) {
+            if (canSave) {
+                detailEl.textContent = '今の名前を保存';
+            } else if (missingSlots.length > 0) {
+                const next = missingSlots[0];
+                detailEl.textContent = `${next.idx + 1}文字目「${next.seg}」を選ぶ`;
+            } else {
+                detailEl.textContent = '漢字を選ぶと保存できます';
+            }
+        }
     }
 
-    if (detailEl) {
-        if (canSave) {
-            detailEl.textContent = '今の名前を保存';
-        } else if (missingSlots.length > 0) {
-            const next = missingSlots[0];
-            detailEl.textContent = `${next.idx + 1}文字目「${next.seg}」を選ぶ`;
-        } else {
-            detailEl.textContent = '漢字を選ぶと保存できます';
+    if (originBtn) {
+        const hasOriginText = canSave
+            && typeof getNameOriginDisplayTextForItem === 'function'
+            && getNameOriginDisplayTextForItem(currentBuildResult);
+        const hasDailyOriginUse = typeof canUseDailyNameOriginAI !== 'function' || canUseDailyNameOriginAI();
+        const originEnabled = !!canSave && (!!hasOriginText || hasDailyOriginUse);
+        originBtn.disabled = !originEnabled;
+        originBtn.setAttribute('aria-disabled', String(!originEnabled));
+
+        const originTitleEl = originBtn.querySelector('.build-save-btn-title');
+        const originDetailEl = originBtn.querySelector('.build-save-btn-detail');
+        if (originTitleEl) {
+            originTitleEl.textContent = '🤖AIで由来を作る';
+        }
+        if (originDetailEl) {
+            if (!canSave) {
+                originDetailEl.textContent = missingSlots.length > 0 ? '漢字がそろうと作れます' : '名前ができると作れます';
+            } else if (hasOriginText) {
+                originDetailEl.textContent = '作成済みの由来を表示';
+            } else if (!hasDailyOriginUse) {
+                originDetailEl.textContent = '今日の無料分は終了';
+            } else {
+                originDetailEl.textContent = '名前の願いを文章に';
+            }
         }
     }
 }
