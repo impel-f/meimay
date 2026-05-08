@@ -1116,6 +1116,7 @@ function getSwipeStackContext(slotIdx = currentPos, options = {}) {
         normalizedTarget,
         activeRule,
         includeNoped: options.includeNoped === true,
+        includeInappropriate: options.includeInappropriate === true,
         premiumOverride: options.premiumOverride === true,
         suppressLogs: options.suppressLogs === true
     };
@@ -1269,6 +1270,7 @@ function buildSwipeStackCandidates(options = {}) {
         normalizedTarget,
         activeRule,
         includeNoped,
+        includeInappropriate,
         premiumOverride,
         suppressLogs
     } = getSwipeStackContext(options.slotIdx, options);
@@ -1288,7 +1290,7 @@ function buildSwipeStackCandidates(options = {}) {
         // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
-            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+            if (!includeInappropriate && (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji)) return false;
         }
 
         if (isKanjiGenderMismatch(k)) {
@@ -1513,8 +1515,18 @@ function getSwipeEmptyStateActionCounts(slotIdx = currentPos) {
     const counts = {
         revisit: countAdditionalSwipeCandidates(revisitCandidates, baseCandidates),
         flexible: 0,
-        premium: 0
+        premium: 0,
+        inappropriate: 0
     };
+
+    const inappropriateCandidates = buildSwipeStackCandidates({
+        slotIdx,
+        ruleOverride: activeRule,
+        includeNoped: false,
+        includeInappropriate: true,
+        suppressLogs: true
+    });
+    counts.inappropriate = countAdditionalSwipeCandidates(inappropriateCandidates, baseCandidates);
 
     if (activeRule === 'strict') {
         const flexibleCandidates = buildSwipeStackCandidates({
@@ -1558,6 +1570,11 @@ function loadStack() {
     const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
     const includeNopedForThisLoad = window._includeNopedForSlot === currentPos;
     window._includeNopedForSlot = null;
+    const includeInappropriateForThisLoad = window._includeInappropriateForSlot === currentPos;
+    window._includeInappropriateForSlot = null;
+    if (!includeInappropriateForThisLoad) {
+        window._kanjiSwipeExpandedInappropriateSlot = null;
+    }
     const additionalFilter = window._swipeAdditionalBaseKeysForSlot;
     const additionalBaseKeysForThisLoad = additionalFilter && additionalFilter.slotIdx === currentPos && Array.isArray(additionalFilter.keys)
         ? new Set(additionalFilter.keys)
@@ -1687,6 +1704,7 @@ function loadStack() {
         slotIdx: currentPos,
         ruleOverride: activeRule,
         includeNoped: includeNopedForThisLoad,
+        includeInappropriate: includeInappropriateForThisLoad,
         additionalBaseKeys: additionalBaseKeysForThisLoad
     });
 

@@ -132,6 +132,43 @@ function openKanjiSearchFromSwipeEmptyState() {
 }
 window.openKanjiSearchFromSwipeEmptyState = openKanjiSearchFromSwipeEmptyState;
 
+function continueKanjiSwipeWithInappropriateFromEmptyState() {
+    const slotIdx = typeof currentPos === 'number' ? currentPos : 0;
+    const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(slotIdx) : rule;
+    let baseKeys = [];
+
+    if (typeof buildSwipeStackCandidates === 'function') {
+        const baseCandidates = buildSwipeStackCandidates({
+            slotIdx,
+            ruleOverride: activeRule,
+            includeNoped: false,
+            suppressLogs: true
+        });
+        baseKeys = (Array.isArray(baseCandidates) ? baseCandidates : [])
+            .map(item => typeof getSwipeCandidateDisplayKey === 'function'
+                ? getSwipeCandidateDisplayKey(item)
+                : String(item?.['漢字'] || item?.kanji || '').trim())
+            .filter(Boolean);
+    }
+
+    window._swipeAdditionalBaseKeysForSlot = baseKeys.length > 0
+        ? { slotIdx, keys: baseKeys }
+        : null;
+    window._includeInappropriateForSlot = slotIdx;
+    window._kanjiSwipeExpandedInappropriateSlot = slotIdx;
+    currentIdx = 0;
+    swipes = 0;
+
+    changeScreen('scr-main');
+    if (typeof loadStack === 'function') {
+        loadStack();
+    }
+    if (typeof updateSwipeMainState === 'function') {
+        updateSwipeMainState();
+    }
+}
+window.continueKanjiSwipeWithInappropriateFromEmptyState = continueKanjiSwipeWithInappropriateFromEmptyState;
+
 function isSwipeEmptyStateSearchReadingMatched(item, query) {
     if (!item || !query) return false;
     const readingSources = [item['音'], item['訓'], item['伝統名のり']];
@@ -272,6 +309,17 @@ function render() {
             return;
         }
 
+        if (window._kanjiSwipeExpandedInappropriateSlot === currentPos) {
+            window._kanjiSwipeExpandedInappropriateSlot = null;
+            window._swipeAdditionalBaseKeysForSlot = null;
+            window._includeInappropriateForSlot = null;
+            currentIdx = 0;
+            swipes = 0;
+            if (typeof showToast === 'function') {
+                showToast('すべての漢字を確認しました', '✓');
+            }
+        }
+
         // addMoreToSlot から来た場合 / 最後の文字スロットの場合 → ビルドへ
         const goToBuild = window._addMoreFromBuild || currentPos >= segments.length - 1;
         const activeRule = typeof getActiveSwipeRule === 'function' ? getActiveSwipeRule(currentPos) : rule;
@@ -279,8 +327,7 @@ function render() {
         const actionCounts = typeof getSwipeEmptyStateActionCounts === 'function'
             ? getSwipeEmptyStateActionCounts(currentPos)
             : null;
-        const searchReading = getCurrentSwipeEmptyStateSearchReading();
-        const allKanjiSearchCount = getSwipeEmptyStateAllKanjiSearchCount(searchReading);
+        const inappropriateSwipeCount = Number(actionCounts?.inappropriate || 0);
         const expansionActions = [
             {
                 show: !premiumActive && (!actionCounts || actionCounts.premium > 0),
@@ -307,12 +354,12 @@ function render() {
                 onclick: 'retrySwipeEmptyState({ includeNoped: true })'
             },
             {
-                show: allKanjiSearchCount > 0,
-                label: premiumActive ? 'すべての漢字から探す' : 'すべての常用漢字から探す',
-                detail: '名づけに不適当な可能性がある漢字も含める',
-                count: allKanjiSearchCount,
+                show: inappropriateSwipeCount > 0,
+                label: premiumActive ? 'すべての漢字をカードで見る' : 'すべての常用漢字をカードで見る',
+                detail: '注意が必要な漢字も含めてスワイプ',
+                count: inappropriateSwipeCount,
                 tone: 'gray',
-                onclick: 'openKanjiSearchFromSwipeEmptyState()'
+                onclick: 'continueKanjiSwipeWithInappropriateFromEmptyState()'
             }
         ].filter(action => action.show);
         const expansionHtml = expansionActions

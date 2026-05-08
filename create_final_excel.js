@@ -24,7 +24,7 @@ for (let i = data.length - 1; i >= 0; i--) {
 
 // 3. Prepare data for the new Excel sheet
 const rsData = [];
-rsData.push(['漢字', '分類', '総合スコア', '男スコア', '女スコア', 'フラグ', '判定', '備考']);
+rsData.push(['漢字', '字形種別', '標準字体', '分類', '総合スコア', '男スコア', '女スコア', 'フラグ', '判定', '備考']);
 
 uniqueExcel.forEach(kanji => {
     let item = dataMap.get(kanji);
@@ -33,6 +33,8 @@ uniqueExcel.forEach(kanji => {
         let status = (flagVal === 1) ? '要注意' : 'OK';
         rsData.push([
             kanji,
+            item['字形種別'] || '',
+            item['標準字体'] || '',
             item['分類'] || '',
             item['おすすめ度'],
             item['男のおすすめ度'],
@@ -42,7 +44,7 @@ uniqueExcel.forEach(kanji => {
             ''
         ]);
     } else {
-        rsData.push([kanji, '', '', '', '', '', '', 'データ未存在（空白）']);
+        rsData.push([kanji, '', '', '', '', '', '', '', '', 'データ未存在（空白）']);
     }
 });
 
@@ -54,15 +56,15 @@ const outputPath = 'kanji_master_2999_final.xlsx';
 XLSX.writeFile(wb, outputPath);
 
 // 5. Write CSV just in case
-let csv = '\uFEFF漢字,分類,総合スコア,男スコア,女スコア,フラグ,判定,備考\n';
+let csv = '\uFEFF漢字,字形種別,標準字体,分類,総合スコア,男スコア,女スコア,フラグ,判定,備考\n';
 uniqueExcel.forEach(kanji => {
     let item = dataMap.get(kanji);
     if (item) {
         let flagVal = (item['不適切フラグ'] === 1 || item['不適切フラグ'] === '1') ? 1 : 0;
         let status = (flagVal === 1) ? '要注意' : 'OK';
-        csv += `${kanji},"${item['分類'] || ''}",${item['おすすめ度']},${item['男のおすすめ度']},${item['女のおすすめ度']},${flagVal},${status},\n`;
+        csv += `${kanji},"${item['字形種別'] || ''}","${item['標準字体'] || ''}","${item['分類'] || ''}",${item['おすすめ度']},${item['男のおすすめ度']},${item['女のおすすめ度']},${flagVal},${status},\n`;
     } else {
-        csv += `${kanji},,,,,,データ未存在（空白）\n`;
+        csv += `${kanji},,,,,,,,,データ未存在（空白）\n`;
     }
 });
 fs.writeFileSync('kanji_master_2999_final.csv', csv, 'utf8');

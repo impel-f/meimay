@@ -8,6 +8,8 @@ const CSV_PATH = path.join(ROOT, 'kanji_caution_list.csv');
 const XLSX_PATH = path.join(ROOT, 'kanji_caution_list.xlsx');
 
 const KANJI = '\u6f22\u5b57';
+const GLYPH_TYPE = '\u5b57\u5f62\u7a2e\u5225';
+const STANDARD_GLYPH = '\u6a19\u6e96\u5b57\u4f53';
 const STROKES = '\u753b\u6570';
 const JOYO = '\u5e38\u7528\u6f22\u5b57';
 const ON = '\u97f3';
@@ -39,6 +41,8 @@ function buildRows(data) {
     .filter((row) => isCautionFlag(row[FLAG]))
     .map((row) => ({
       '漢字': normalizeCell(row[KANJI]),
+      '字形種別': normalizeCell(row[GLYPH_TYPE]),
+      '標準字体': normalizeCell(row[STANDARD_GLYPH]),
       '画数': normalizeCell(row[STROKES]),
       '常用漢字': row[JOYO] === true ? '常用' : '',
       '音': normalizeCell(row[ON]),
