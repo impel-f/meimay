@@ -86,6 +86,9 @@ const PremiumManager = {
     _storeLastNotificationType: null,
     _userDocUnsub: null,
     _userDocPermissionDenied: false,
+    _purchaseStateCheckInFlight: false,
+    _purchaseStateCheckStartedAt: 0,
+    _purchaseStateCheckCompletedAt: 0,
     _trialStartInProgress: false,
     _purchaseInProgress: false,
     _silentStoreSyncInFlight: false,
@@ -843,6 +846,9 @@ const AD_BANNER_DOCK_TUCK = 12;
 const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
+const AD_PREMIUM_STATE_GRACE_MS = 12000;
+const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
+const PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 let adBannerVisible = false;
 let adBannerMode = null;
 let nativeAdMobInitializePromise = null;
@@ -853,6 +859,66 @@ let nativeAdMobBannerFailed = false;
 let adBannerSuppressedByOverlay = false;
 let adOverlayObserverReady = false;
 let adOverlaySyncTimer = null;
+let adMobPremiumRetryTimer = null;
+let adSystemStartedAt = Date.now();
+
+function getPremiumAdSuppressionCache() {
+    try {
+        const raw = localStorage.getItem(PREMIUM_AD_SUPPRESSION_CACHE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function setPremiumAdSuppressionCache(record = {}) {
+    try {
+        localStorage.setItem(PREMIUM_AD_SUPPRESSION_CACHE_KEY, JSON.stringify({
+            active: true,
+            productId: String(record.productId || '').trim(),
+            premiumSource: String(record.premiumSource || 'revenuecat').trim(),
+            expiresAt: record.expiresAt || null,
+            updatedAtMs: Date.now()
+        }));
+    } catch (e) { }
+}
+
+function clearPremiumAdSuppressionCache() {
+    try {
+        localStorage.removeItem(PREMIUM_AD_SUPPRESSION_CACHE_KEY);
+    } catch (e) { }
+}
+
+function hasFreshPremiumAdSuppressionCache() {
+    const cache = getPremiumAdSuppressionCache();
+    if (!cache || cache.active !== true) return false;
+    const updatedAtMs = Number(cache.updatedAtMs) || 0;
+    if (updatedAtMs > 0 && Date.now() - updatedAtMs > PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS) return false;
+    const expiresAt = normalizePremiumDate(cache.expiresAt);
+    return !expiresAt || expiresAt.getTime() > Date.now();
+}
+
+function getAdMobPremiumHoldReason() {
+    if (PremiumManager.isPremium()) return 'premium-active';
+    if (hasFreshPremiumAdSuppressionCache()) return 'premium-cache';
+    if (PremiumManager.isPurchaseStateCheckPending && PremiumManager.isPurchaseStateCheckPending()) {
+        return 'premium-check';
+    }
+    const completed = PremiumManager.hasCompletedPurchaseStateCheck && PremiumManager.hasCompletedPurchaseStateCheck();
+    if (!completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS) {
+        return 'startup-premium-grace';
+    }
+    return '';
+}
+
+function scheduleDeferredAdMobInit(reason = '') {
+    if (reason === 'premium-active' || reason === 'premium-cache') return;
+    if (adMobPremiumRetryTimer) return;
+    adMobPremiumRetryTimer = setTimeout(() => {
+        adMobPremiumRetryTimer = null;
+        initAdMob();
+    }, 1200);
+}
 
 function getAdBannerFooterMargin() {
     return Math.max(0, getBottomFooterHeight() - AD_BANNER_DOCK_TUCK);
@@ -905,6 +971,28 @@ function syncAdBannerOverlaySuppression() {
     }
 
     if (!shouldSuppress && !PremiumManager.isPremium()) {
+        showAdBanner();
+    }
+}
+
+function setAdBannerOverlaySuppressed(suppressed, reason = '') {
+    const shouldSuppress = suppressed === true && !PremiumManager.isPremium();
+    adBannerSuppressedByOverlay = shouldSuppress;
+    setHtmlAdBannerSuppressed(shouldSuppress);
+
+    const AdMob = getAdMobPlugin();
+    if (AdMob) {
+        try {
+            const result = shouldSuppress ? AdMob.hideBanner() : null;
+            if (result && typeof result.catch === 'function') {
+                result.catch((e) => console.warn('ADMOB: forced banner visibility change failed', reason, e));
+            }
+        } catch (e) {
+            console.warn('ADMOB: forced banner visibility change failed', reason, e);
+        }
+    }
+
+    if (!shouldSuppress && !hasActiveAdBlockingOverlay()) {
         showAdBanner();
     }
 }
@@ -1078,9 +1166,11 @@ function setupNativeAdMobBannerListeners(AdMob) {
 
 function initAdMob() {
     ensureAdOverlayObserver();
-    if (PremiumManager.isPremium()) {
-        console.log('ADMOB: Hidden for premium user');
+    const holdReason = getAdMobPremiumHoldReason();
+    if (holdReason) {
+        console.log('ADMOB: Hidden while premium state is protected:', holdReason);
         hideAdBanner();
+        scheduleDeferredAdMobInit(holdReason);
         return;
     }
 
@@ -1167,7 +1257,12 @@ async function initNativeAdMob(platform) {
 
 function showAdBanner() {
     ensureAdOverlayObserver();
-    if (PremiumManager.isPremium()) return;
+    const holdReason = getAdMobPremiumHoldReason();
+    if (holdReason) {
+        hideAdBanner();
+        scheduleDeferredAdMobInit(holdReason);
+        return;
+    }
     const platform = getPlatform();
     const AdMob = getAdMobPlugin();
     if (AdMob) {
@@ -1676,6 +1771,27 @@ PremiumManager.getDisplayStatus = function () {
     };
 };
 
+PremiumManager.beginPurchaseStateCheck = function () {
+    this._purchaseStateCheckInFlight = true;
+    this._purchaseStateCheckStartedAt = Date.now();
+    try {
+        hideAdBanner();
+    } catch (e) { }
+};
+
+PremiumManager.endPurchaseStateCheck = function () {
+    this._purchaseStateCheckInFlight = false;
+    this._purchaseStateCheckCompletedAt = Date.now();
+};
+
+PremiumManager.isPurchaseStateCheckPending = function () {
+    return this._purchaseStateCheckInFlight === true || this._silentStoreSyncInFlight === true;
+};
+
+PremiumManager.hasCompletedPurchaseStateCheck = function () {
+    return Number(this._purchaseStateCheckCompletedAt || 0) > 0;
+};
+
 PremiumManager.refreshPurchaseState = async function (restore = true, options = {}) {
     const silent = options && typeof options === 'object' && options.silent === true;
     const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
@@ -1683,12 +1799,14 @@ PremiumManager.refreshPurchaseState = async function (restore = true, options = 
         : null;
 
     if (!user) {
+        this.endPurchaseStateCheck();
         if (!silent && typeof showToast === 'function') {
             showToast('購入の復元にはサインインが必要です', 'i');
         }
         return false;
     }
 
+    this.beginPurchaseStateCheck();
     try {
         await this.bindToUserDoc(user);
         let revenueCatChecked = false;
@@ -1715,6 +1833,11 @@ PremiumManager.refreshPurchaseState = async function (restore = true, options = 
             showToast('購入情報を確認できませんでした', '!');
         }
         return false;
+    } finally {
+        this.endPurchaseStateCheck();
+        if (getAdMobPremiumHoldReason() === '') {
+            showAdBanner();
+        }
     }
 };
 
@@ -1774,6 +1897,16 @@ PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackPr
     this._storeExpiresAt = expiresAt ? expiresAt.toISOString() : null;
     this._storeProductId = productId || this._storeProductId || null;
     this._storeLastNotificationType = 'revenuecat_customer_info';
+
+    if (active) {
+        setPremiumAdSuppressionCache({
+            productId,
+            premiumSource: 'revenuecat',
+            expiresAt: expiresAt ? expiresAt.toISOString() : null
+        });
+    } else {
+        clearPremiumAdSuppressionCache();
+    }
 
     if (active || expired || this._remotePremiumSource === 'revenuecat') {
         this._remotePremium = active;
@@ -1835,6 +1968,7 @@ PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
     if (!this.shouldRunSilentStoreSync(user, options)) return false;
 
     this._silentStoreSyncInFlight = true;
+    this.beginPurchaseStateCheck();
     this.markSilentStoreSyncAttempt(user);
     try {
         await this.bindToUserDoc(user);
@@ -1852,6 +1986,10 @@ PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
         return false;
     } finally {
         this._silentStoreSyncInFlight = false;
+        this.endPurchaseStateCheck();
+        if (getAdMobPremiumHoldReason() === '') {
+            showAdBanner();
+        }
     }
 };
 
@@ -2540,3 +2678,5 @@ window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
+window.setAdBannerOverlaySuppressed = setAdBannerOverlaySuppressed;
+window.syncAdBannerOverlaySuppression = syncAdBannerOverlaySuppression;

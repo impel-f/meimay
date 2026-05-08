@@ -1011,6 +1011,95 @@ const MeimayPairing = {
     _syncInProgress: false,
     _syncPending: false,
 
+    _readLocalRoomState: function () {
+        try {
+            return {
+                code: String(localStorage.getItem('meimay_room_code') || '').trim().toUpperCase(),
+                slot: String(localStorage.getItem('meimay_room_slot') || '').trim(),
+                role: String(localStorage.getItem('meimay_my_role') || '').trim()
+            };
+        } catch (e) {
+            return { code: '', slot: '', role: '' };
+        }
+    },
+
+    _persistUserRoomLink: async function (reason = '') {
+        const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
+        if (!user || !user.uid || !firebaseDb || !this.roomCode) return false;
+        try {
+            await firebaseDb.collection('users').doc(user.uid).set({
+                pairRoomCode: String(this.roomCode || '').trim(),
+                roomCode: String(this.roomCode || '').trim(),
+                pairRoomSlot: this.mySlot || null,
+                pairRoomRole: this.myRole || null,
+                pairRoomLinkReason: reason || null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return true;
+        } catch (error) {
+            console.warn('PAIRING: Failed to persist room link to user doc', error);
+            return false;
+        }
+    },
+
+    _clearUserRoomLink: async function () {
+        const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
+        if (!user || !user.uid || !firebaseDb) return false;
+        try {
+            await firebaseDb.collection('users').doc(user.uid).set({
+                pairRoomCode: null,
+                roomCode: null,
+                pairRoomSlot: null,
+                pairRoomRole: null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return true;
+        } catch (error) {
+            console.warn('PAIRING: Failed to clear room link from user doc', error);
+            return false;
+        }
+    },
+
+    _restoreLocalRoomFromUserDoc: async function () {
+        const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
+        if (!user || !user.uid || !firebaseDb) return false;
+
+        try {
+            const userDoc = await firebaseDb.collection('users').doc(user.uid).get();
+            const userData = userDoc.exists ? (userDoc.data() || {}) : {};
+            const backup = userData.meimayBackup || userData.backup || {};
+            const code = String(
+                userData.pairRoomCode
+                || userData.roomCode
+                || backup.pairRoomCode
+                || backup.roomCode
+                || ''
+            ).trim().toUpperCase();
+            if (!code) return false;
+
+            const roomDoc = await firebaseDb.collection('rooms').doc(code).get();
+            if (!roomDoc.exists) return false;
+
+            const roomData = roomDoc.data() || {};
+            const isMemberA = roomData.memberAUid === user.uid;
+            const isMemberB = roomData.memberBUid === user.uid;
+            if (!isMemberA && !isMemberB) return false;
+
+            const slot = isMemberA ? 'memberA' : 'memberB';
+            const role = roomData[`${slot}Role`] || userData.pairRoomRole || getPreferredPairingRole() || '';
+            if (!role) return false;
+
+            localStorage.setItem('meimay_room_code', code);
+            localStorage.setItem('meimay_room_slot', slot);
+            localStorage.setItem('meimay_my_role', role);
+            console.log(`PAIRING: Restored local room link from user doc (${code})`);
+            return true;
+        } catch (error) {
+            console.warn('PAIRING: Failed to restore local room link from user doc', error);
+            return false;
+        }
+    },
+
     beginAppDataDeletion: function () {
         this._syncPending = false;
         this._isLeavingRoom = true;
@@ -1024,9 +1113,12 @@ const MeimayPairing = {
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
         if (typeof wasMeimayAppDataRecentlyDeleted === 'function' && wasMeimayAppDataRecentlyDeleted()) return;
-        const code = localStorage.getItem('meimay_room_code');
-        const slot = localStorage.getItem('meimay_room_slot');
-        const role = localStorage.getItem('meimay_my_role');
+        let { code, slot, role } = this._readLocalRoomState();
+        if (!code || !slot || !role) {
+            const restored = await this._restoreLocalRoomFromUserDoc();
+            if (!restored) return;
+            ({ code, slot, role } = this._readLocalRoomState());
+        }
         if (!code || !slot || !role) return;
 
         this.roomCode = code;
@@ -1048,8 +1140,10 @@ const MeimayPairing = {
             this.partnerSlot = this.mySlot === 'memberA' ? 'memberB' : 'memberA';
             this.myRole = data[`${this.mySlot}Role`] || role;
             this._isLeavingRoom = false;
+            localStorage.setItem('meimay_room_code', code);
             localStorage.setItem('meimay_room_slot', this.mySlot);
             localStorage.setItem('meimay_my_role', this.myRole || role);
+            await this._persistUserRoomLink('resume');
 
             const partnerUid = data[`${this.partnerSlot}Uid`];
             const partnerRole = data[`${this.partnerSlot}Role`];
@@ -1143,6 +1237,7 @@ const MeimayPairing = {
             localStorage.setItem('meimay_room_code', code);
             localStorage.setItem('meimay_room_slot', 'memberA');
             localStorage.setItem('meimay_my_role', role);
+            await this._persistUserRoomLink('create');
 
             this._listenRoom();
             updatePairingUI();
@@ -1263,6 +1358,7 @@ const MeimayPairing = {
             localStorage.setItem('meimay_room_code', upperCode);
             localStorage.setItem('meimay_room_slot', 'memberB');
             localStorage.setItem('meimay_my_role', role);
+            await this._persistUserRoomLink('join');
 
             this._listenRoom();
             MeimayShare.listenPartnerData(this.partnerUid);
@@ -1333,6 +1429,7 @@ const MeimayPairing = {
 
             if (user) {
                 await roomRef.collection('data').doc(user.uid).delete();
+                await this._clearUserRoomLink();
             }
 
             const currentUid = user?.uid || firebaseAuth?.currentUser?.uid || '';

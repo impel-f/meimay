@@ -2330,29 +2330,66 @@ function getStockOwnershipKind(item) {
     return 'self';
 }
 
+function getStockPaletteHex(palette, key, fallback) {
+    const value = typeof palette?.[key] === 'string' ? palette[key].trim() : '';
+    return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+function mixStockHexColor(color, amount = 0.16, base = '#ffffff') {
+    const target = String(color || '').trim();
+    const baseColor = String(base || '#ffffff').trim();
+    const match = /^#?([0-9a-fA-F]{6})$/.exec(target);
+    const baseMatch = /^#?([0-9a-fA-F]{6})$/.exec(baseColor);
+    if (!match || !baseMatch) return color || base;
+    const targetHex = match[1];
+    const baseHex = baseMatch[1];
+    const ratio = Math.max(0, Math.min(1, Number(amount) || 0));
+    const channel = (idx) => {
+        const targetValue = parseInt(targetHex.slice(idx, idx + 2), 16);
+        const baseValue = parseInt(baseHex.slice(idx, idx + 2), 16);
+        return Math.round(baseValue + (targetValue - baseValue) * ratio)
+            .toString(16)
+            .padStart(2, '0');
+    };
+    return `#${channel(0)}${channel(2)}${channel(4)}`;
+}
+
 function getStockCardSurfaceStyle(kind) {
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
         ? window.getMeimayOwnershipPalette(kind)
         : null;
     if (!palette) {
         return {
-            card: '',
+            card: 'border:1px solid #eadfce;background:linear-gradient(145deg, #fff8ec 0%, #ffffff 100%);',
             kanjiColor: '#5d5444',
             strokesColor: '#a6967a'
         };
     }
+    const accent = getStockPaletteHex(palette, 'accent', kind === 'partner' ? '#f2a2b8' : '#8fbff8');
+    const accentAlt = getStockPaletteHex(palette, 'accentAlt', accent);
+    const border = getStockPaletteHex(palette, 'border', '#eadfce');
+    const borderAlt = getStockPaletteHex(palette, 'borderAlt', border);
     if (kind === 'matched') {
+        const selfSoft = mixStockHexColor(accent, 0.22);
+        const partnerSoft = mixStockHexColor(accentAlt, 0.22);
+        const centerSoft = mixStockHexColor('#b9965b', 0.09, '#fffaf2');
         return {
-            card: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            kanjiColor: '#5d5444',
-            strokesColor: '#8c7281'
+            card: `border:1.5px solid transparent;background:linear-gradient(135deg, ${selfSoft} 0%, ${centerSoft} 46%, ${partnerSoft} 100%) padding-box, linear-gradient(135deg, ${border} 0%, #d8b36f 48%, ${borderAlt} 100%) border-box;box-shadow:0 8px 18px rgba(185,150,91,0.14);`,
+            kanjiColor: '#4f463a',
+            strokesColor: '#7d6671'
         };
     }
+    const cardStart = mixStockHexColor(accent, 0.16);
+    const cardEnd = mixStockHexColor(accent, 0.07);
     return {
-        card: `border:1px solid ${palette.border};background:${palette.surface};`,
-        kanjiColor: '#5d5444',
+        card: `border:1px solid ${border};background:linear-gradient(145deg, ${cardStart} 0%, ${cardEnd} 62%, #ffffff 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.72);`,
+        kanjiColor: '#514839',
         strokesColor: palette.text || '#a6967a'
     };
+}
+
+function isStockMutualCard(item, kind = getStockOwnershipKind(item)) {
+    return kind === 'matched' || !!item?.partnerAlsoPicked;
 }
 
 function getBuildPieceSurfaceStyle(item, isSelected) {
@@ -2546,8 +2583,11 @@ function renderStock() {
 
         items.forEach(item => {
             const card = document.createElement('div');
+            const ownershipKind = getStockOwnershipKind(item);
             const hasStockStars = !!item?.isSuper || !!item?.ownSuper || !!item?.partnerSuper;
-            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}`;
+            const isMutualStock = isStockMutualCard(item, ownershipKind);
+            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}${isMutualStock ? ' stock-card-mutual' : ''}`;
+            card.dataset.stockOwnership = ownershipKind;
             card.onclick = () => showDetailByData(item);
 
             let displayStrokes = item['画数'];
@@ -2556,7 +2596,6 @@ function renderStock() {
                 if (m) displayStrokes = m['画数'];
             }
 
-            const ownershipKind = getStockOwnershipKind(item);
             const surfaceStyle = getStockCardSurfaceStyle(ownershipKind);
             card.style.cssText = `${surfaceStyle.card}; padding:10px 6px;`;
 
@@ -2912,29 +2951,25 @@ function updateNamePreview() {
 
     // \u30dc\u30bf\u30f3\u5185\u306e\u30e9\u30d9\u30eb
     const fortuneLabel = fortuneData ? `
-        <div class="flex items-center justify-center gap-1 mb-0.5 px-1">
+        <div class="build-action-fortune-summary flex items-center justify-center gap-1 px-1">
             <span class="text-[8px] font-bold text-[#a6967a] leading-none">総格</span>
             <span class="text-[10px] font-black ${fortuneData.so.res.color} leading-none whitespace-nowrap">${fortuneData.so.res.label}</span>
         </div>
-        <span class="text-[15px] leading-none mb-0.5">\ud83d\udd2e</span>
-        <span class="text-[7px] font-bold text-[#bca37f] leading-none">運勢詳細</span>
+        <span class="build-action-icon">\ud83d\udd2e</span>
+        <span class="build-action-label build-action-label--fortune text-[#bca37f]">運勢詳細</span>
     ` : `
-        <span class="text-[15px] leading-none mb-0.5 text-[#d4c5af]">\ud83d\udd2e</span>
-        <span class="text-[7px] font-bold text-[#d4c5af] leading-none">運勢</span>
+        <span class="build-action-icon text-[#d4c5af]">\ud83d\udd2e</span>
+        <span class="build-action-label text-[#d4c5af]">運勢</span>
     `;
 
     // キャンバスと横幅を左右対称にするため w-[64px] に統一
     const BTN_W = 'w-[64px]';
-    const rightButtons = `<div class="build-right-actions flex flex-col gap-1.5 flex-shrink-0 self-stretch justify-center">
-        <button onclick="showFortuneRanking()" class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105">
-            <span class="text-[15px] leading-none mb-0.5">🏆</span>
-            <span class="text-[7px] font-bold leading-none text-[#5d5444] whitespace-nowrap">運勢TOP10</span>
+    const rightButtons = `<div class="build-right-actions flex-shrink-0 self-stretch">
+        <button onclick="showFortuneRanking()" class="build-action-button flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105">
+            <span class="build-action-icon">🏆</span>
+            <span class="build-action-label text-[#5d5444]">運勢TOP10</span>
         </button>
-        <button onclick="saveName()" ${canSave ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canSave ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
-            <span class="text-[18px] leading-none mb-1">\ud83d\udcbe</span>
-            <span class="text-[8px] font-bold leading-none ${canSave ? 'text-[#5d5444]' : 'text-[#a6967a]'}">保存</span>
-        </button>
-        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="flex-1 flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
+        <button onclick="${canFortune ? 'showFortuneDetail()' : ''}" ${canFortune ? '' : 'disabled'} class="build-action-button flex flex-col items-center justify-center px-1 rounded-xl border ${BTN_W} transition-all active:scale-95 ${canFortune ? 'bg-[#fdfaf5] border-[#bca37f] shadow-sm hover:scale-105' : 'bg-white/50 border-[#eee5d8] opacity-40 cursor-not-allowed'}">
             ${fortuneLabel}
         </button>
     </div>`;

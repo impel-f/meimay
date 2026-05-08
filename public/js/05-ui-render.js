@@ -2597,6 +2597,26 @@ function ensureHomeNextActionPanel() {
     return panel;
 }
 
+function mixHomeHexColor(color, amount = 0.16, base = '#ffffff') {
+    const normalize = (value) => {
+        const raw = String(value || '').trim();
+        const match = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+        if (!match) return null;
+        const hex = match[1].length === 3
+            ? match[1].split('').map(char => char + char).join('')
+            : match[1];
+        return [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16));
+    };
+    const fg = normalize(color);
+    const bg = normalize(base);
+    if (!fg || !bg) return color || base;
+    const ratio = Math.max(0, Math.min(1, amount));
+    return '#' + fg.map((channel, index) => {
+        const mixed = Math.round(channel * ratio + bg[index] * (1 - ratio));
+        return mixed.toString(16).padStart(2, '0');
+    }).join('');
+}
+
 function getHomeStageTrackTone(mode) {
     const kind = mode === 'shared' ? 'matched' : mode === 'partner' ? 'partner' : 'self';
     const palette = typeof window.getMeimayOwnershipPalette === 'function'
@@ -2627,12 +2647,24 @@ function getHomeStageTrackTone(mode) {
     }
 
     if (kind === 'matched') {
+        const selfAccent = pairPalettes?.self?.accent || pairPalettes?.self?.accentStrong || palette.accent;
+        const partnerAccent = pairPalettes?.partner?.accent || pairPalettes?.partner?.accentStrong || palette.accentAlt || palette.accent;
+        const panelSelf = mixHomeHexColor(selfAccent, 0.22);
+        const panelPartner = mixHomeHexColor(partnerAccent, 0.22);
+        const cardSelfSoft = mixHomeHexColor(selfAccent, 0.12);
+        const cardPartnerSoft = mixHomeHexColor(partnerAccent, 0.12);
+        const cardSelfMid = mixHomeHexColor(selfAccent, 0.19);
+        const cardPartnerMid = mixHomeHexColor(partnerAccent, 0.19);
+        const matchedCardDone = `border:1px solid rgba(226,214,196,0.94);background:linear-gradient(135deg, ${cardSelfMid} 0%, rgba(255,255,255,0.86) 50%, ${cardPartnerMid} 100%);`;
+        const matchedCardActive = `border:1px solid rgba(226,214,196,0.9);background:linear-gradient(135deg, ${cardSelfSoft} 0%, rgba(255,255,255,0.76) 48%, ${cardPartnerSoft} 100%);`;
+        const matchedCardIdle = `border:1px solid rgba(234,223,206,0.84);background:linear-gradient(135deg, ${cardSelfSoft} 0%, rgba(255,255,255,0.66) 52%, ${cardPartnerSoft} 100%);`;
+        const matchedCardRecommended = `border:2px solid #b9965b;background:linear-gradient(135deg, #fff8ec 0%, ${mixHomeHexColor(selfAccent, 0.14, '#fff8ec')} 52%, ${mixHomeHexColor(partnerAccent, 0.14, '#fff8ec')} 100%);box-shadow:0 10px 22px rgba(185,150,91,0.16);`;
         return {
-            panel: `border:1px solid transparent;background:${palette.surface} padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
-            cardDone,
-            cardActive,
-            cardIdle,
-            cardRecommended,
+            panel: `border:1px solid transparent;background:linear-gradient(135deg, ${panelSelf} 0%, #fffdfb 44%, ${panelPartner} 100%) padding-box, linear-gradient(135deg, ${palette.border} 0%, ${palette.borderAlt} 100%) border-box;`,
+            cardDone: matchedCardDone,
+            cardActive: matchedCardActive,
+            cardIdle: matchedCardIdle,
+            cardRecommended: matchedCardRecommended,
             badgeDone: `background:linear-gradient(135deg, ${pairPalettes.self.accentStrong} 0%, ${pairPalettes.partner.accentStrong} 100%);color:#fff;`,
             badgeActive: 'background:rgba(255,255,255,0.92);color:#7d6671;border:1px solid rgba(255,255,255,0.86);',
             badgeIdle: 'background:rgba(255,255,255,0.82);color:#846d78;',
@@ -2642,12 +2674,23 @@ function getHomeStageTrackTone(mode) {
         };
     }
 
+    const accent = palette.accent || palette.accentStrong || palette.text;
+    const panelStart = mixHomeHexColor(accent, 0.14);
+    const panelMid = mixHomeHexColor(accent, 0.24);
+    const panelEnd = mixHomeHexColor(accent, 0.1);
+    const cardSoft = mixHomeHexColor(accent, 0.12);
+    const cardMid = mixHomeHexColor(accent, 0.2);
+    const themedCardDone = `border:1px solid ${palette.border};background:linear-gradient(145deg, rgba(255,255,255,0.9) 0%, ${cardMid} 100%);`;
+    const themedCardActive = `border:1px solid ${palette.border};background:linear-gradient(145deg, ${cardMid} 0%, rgba(255,255,255,0.78) 100%);`;
+    const themedCardIdle = `border:1px solid ${palette.border};background:linear-gradient(145deg, rgba(255,255,255,0.72) 0%, ${cardSoft} 100%);`;
+    const themedCardRecommended = `border:2px solid #b9965b;background:linear-gradient(145deg, #fff8ec 0%, ${mixHomeHexColor(accent, 0.16, '#fff8ec')} 100%);box-shadow:0 10px 22px rgba(185,150,91,0.16);`;
+
     return {
-        panel: `border:1px solid ${palette.border};background:${palette.surface};`,
-        cardDone,
-        cardActive,
-        cardIdle,
-        cardRecommended,
+        panel: `border:1px solid ${palette.border};background:linear-gradient(145deg, ${panelStart} 0%, ${panelMid} 52%, ${panelEnd} 100%);`,
+        cardDone: themedCardDone,
+        cardActive: themedCardActive,
+        cardIdle: themedCardIdle,
+        cardRecommended: themedCardRecommended,
         badgeDone: `background:${palette.accentStrong || palette.accent};color:#fff;`,
         badgeActive: `background:${palette.accentSoft || palette.mist || '#fff7ef'};color:${palette.text || '#8b7e66'};`,
         badgeIdle: `background:rgba(255,255,255,0.86);color:${palette.text || '#8b7e66'};`,
@@ -4180,7 +4223,6 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     <span>ここでやること</span>
                 </div>
                 <button type="button" onclick="showHomeNextActionHint(event)" class="home-next-action-hint-button">
-                    <span aria-hidden="true">💡</span>
                     <span>ヒント</span>
                 </button>
             </div>
@@ -4225,18 +4267,18 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     aria-pressed="${step.selected ? 'true' : 'false'}"
                     class="home-stage-card mx-auto w-full max-w-[88px] min-h-[68px] rounded-[1.05rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:max-w-[114px] md:min-h-[106px] md:rounded-[1.4rem] md:px-1 md:py-1.5"
                     style="${cardStyle}">
-                    <div class="flex h-full flex-col items-center justify-start">
-                        <div class="flex items-center justify-center gap-0.5 text-[8px] font-black leading-tight text-center md:gap-1 md:text-[10px]" style="color:${tone.text};">
+                    <div class="home-stage-card-inner flex h-full flex-col items-center justify-start">
+                        <div class="home-stage-label-row flex items-center justify-center gap-0.5 text-[8px] font-black leading-tight text-center md:gap-1 md:text-[10px]" style="color:${tone.text};">
                             <span class="inline-flex h-[17px] w-[17px] items-center justify-center rounded-full text-[10px] font-black leading-none md:h-5 md:w-5 md:text-[13px]" style="${badgeStyle}">${step.selected ? '●' : (step.done ? '✓' : '-')}</span>
                             <span>${step.label}</span>
                         </div>
-                        <div class="mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
+                        <div class="home-stage-count-block mt-0.5 whitespace-nowrap text-[14px] font-black leading-none md:mt-1.5 md:text-[20px]" style="color:${tone.text};">
                             <span data-home-stage-count="${step.key}">${step.metric.countNumber}</span><span class="ml-0.5 text-[7px] md:ml-1 md:text-[11px]" style="color:${tone.sub};">${step.metric.countUnit}</span>
                             ${step.key === 'save' && savedStateLabel ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">${savedStateLabel}</div>` : ''}
                             ${step.key === 'reading' && matchedReadingCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedReadingCount}件）</div>` : ''}
                             ${step.key === 'kanji' && matchedKanjiCount > 0 ? `<div class="mt-0.5 text-[8.5px] md:mt-1 md:text-[10px] font-bold" style="color:${tone.text};">（一致:${matchedKanjiCount}字）</div>` : ''}
                         </div>
-                        ${step.selected ? `<div data-home-stage-current="true" class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">今ここ</div>` : ''}
+                        ${step.selected ? `<div data-home-stage-current="true" class="mt-auto pt-1 text-[7px] font-black text-center whitespace-nowrap leading-none md:pt-2 md:text-[9px]" style="color:${tone.sub};">▼今ここ</div>` : ''}
                     </div>
                 </button>${index < timeline.steps.length - 1 ? `<div aria-hidden="true" class="home-stage-connector flex items-center justify-center text-[10px] font-black leading-none md:text-[14px]"><span>▶</span></div>` : ''}
             `;

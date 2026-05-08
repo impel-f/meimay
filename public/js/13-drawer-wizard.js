@@ -553,6 +553,9 @@ function openDrawer() {
     const drawer = document.getElementById('side-drawer');
     const overlay = document.getElementById('drawer-overlay');
     clearDrawerOverlayHideTimer();
+    if (typeof window !== 'undefined' && typeof window.setAdBannerOverlaySuppressed === 'function') {
+        window.setAdBannerOverlaySuppressed(true, 'drawer-open');
+    }
     if (drawer) {
         drawer.classList.add('open');
         drawer.style.removeProperty('--drawer-x');
@@ -585,6 +588,9 @@ function closeDrawer() {
         drawerOverlayHideTimer = setTimeout(() => {
             overlay.classList.add('hidden');
             drawerOverlayHideTimer = null;
+            if (typeof window !== 'undefined' && typeof window.setAdBannerOverlaySuppressed === 'function') {
+                window.setAdBannerOverlaySuppressed(false, 'drawer-close');
+            }
         }, 300);
     }
 }
