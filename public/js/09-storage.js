@@ -671,7 +671,7 @@ const StorageBox = {
                 prioritizeFortune,
                 imageTags: typeof selectedImageTags !== 'undefined' ? selectedImageTags : ['none'],
                 shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
-                showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji : false
+                showInappropriateKanji: false
             },
             userTags: typeof userTags !== 'undefined' ? userTags : {},
             noped: Array.from(typeof noped !== 'undefined' ? noped : []),
@@ -737,9 +737,7 @@ const StorageBox = {
                     if (typeof shareMode !== 'undefined' && data.settings.shareMode) {
                         shareMode = data.settings.shareMode;
                     }
-                    if (typeof showInappropriateKanji !== 'undefined') {
-                        showInappropriateKanji = data.settings.showInappropriateKanji === true;
-                    }
+                    if (typeof showInappropriateKanji !== 'undefined') showInappropriateKanji = false;
                 }
 
                 if (typeof userTags !== 'undefined') {
@@ -784,7 +782,7 @@ const StorageBox = {
                     prioritizeFortune: prioritizeFortune,
                     segments: segments,
                     shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
-                    showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji : false
+                    showInappropriateKanji: false
                 }));
 
                 if (data.localPremiumState) {

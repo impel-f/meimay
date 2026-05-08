@@ -43,6 +43,15 @@ function normalizeKana(str) {
     });
 }
 
+function escapeSwipeEmptyStateText(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'warm' }) {
     const tones = {
         premium: {
@@ -62,6 +71,12 @@ function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'wa
             label: 'text-[#4f6f9b]',
             detail: 'text-[#7b94b7]',
             count: 'border-[#c7d8ee] bg-white text-[#5f7ea8]'
+        },
+        gray: {
+            wrap: 'border-[#ded8cf] bg-[#f3f1ed]',
+            label: 'text-[#6f6a62]',
+            detail: 'text-[#8b857b]',
+            count: 'border-[#d8d1c7] bg-white text-[#746d63]'
         }
     };
     const style = tones[tone] || tones.warm;
@@ -73,10 +88,10 @@ function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'wa
     return `
         <button onclick="${onclick}" class="w-full rounded-[20px] border ${style.wrap} px-4 py-3 text-left transition active:scale-[0.99]">
             <div class="flex items-center justify-between gap-3">
-                <span class="min-w-0 text-[13px] font-black ${style.label}">${label}</span>
+                <span class="min-w-0 text-[13px] font-black ${style.label}">${escapeSwipeEmptyStateText(label)}</span>
                 ${countBadge}
             </div>
-            <div class="mt-1 text-[11px] font-bold leading-relaxed ${style.detail}">${detail}</div>
+            <div class="mt-1 text-[11px] font-bold leading-relaxed ${style.detail}">${escapeSwipeEmptyStateText(detail)}</div>
         </button>
     `;
 }
@@ -92,6 +107,68 @@ function openPremiumExpansionFromEmptyState() {
     }
 }
 window.openPremiumExpansionFromEmptyState = openPremiumExpansionFromEmptyState;
+
+function getCurrentSwipeEmptyStateSearchReading() {
+    const slotReading = (
+        typeof segments !== 'undefined' &&
+        Array.isArray(segments) &&
+        typeof currentPos !== 'undefined' &&
+        segments[currentPos] &&
+        !String(segments[currentPos]).startsWith('__compound_slot_')
+    ) ? String(segments[currentPos]) : '';
+    const sessionReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : '';
+    return clean(slotReading || sessionReading || '');
+}
+
+function openKanjiSearchFromSwipeEmptyState() {
+    const reading = getCurrentSwipeEmptyStateSearchReading();
+    if (typeof openKanjiSearch === 'function') {
+        openKanjiSearch({
+            query: reading,
+            flexible: false,
+            showAllKanji: true
+        });
+    }
+}
+window.openKanjiSearchFromSwipeEmptyState = openKanjiSearchFromSwipeEmptyState;
+
+function isSwipeEmptyStateSearchReadingMatched(item, query) {
+    if (!item || !query) return false;
+    const readingSources = [item['音'], item['訓'], item['伝統名のり']];
+
+    return readingSources.some((source) => {
+        if (!source) return false;
+        if (typeof getKanjiSearchReadingEntries === 'function') {
+            return getKanjiSearchReadingEntries(source).some(entry => entry.value === query);
+        }
+        return String(source)
+            .split(/[、,，\s/]+/)
+            .map(entry => typeof normalizeReadingComparisonValue === 'function'
+                ? normalizeReadingComparisonValue(entry)
+                : String(entry || '').trim())
+            .filter(Boolean)
+            .includes(query);
+    });
+}
+
+function getSwipeEmptyStateAllKanjiSearchCount(reading) {
+    const query = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(reading)
+        : String(reading || '').trim();
+    if (!query || typeof master === 'undefined' || !Array.isArray(master) || master.length === 0) return 0;
+
+    const seenKanji = new Set();
+    return master.reduce((count, item) => {
+        const kanji = String(item?.['漢字'] || '').trim();
+        if (!kanji || seenKanji.has(kanji)) return count;
+        if (!isSwipeEmptyStateSearchReadingMatched(item, query)) return count;
+        const accessible = typeof isKanjiAccessibleForCurrentMembership !== 'function'
+            || isKanjiAccessibleForCurrentMembership(item);
+        if (!accessible) return count;
+        seenKanji.add(kanji);
+        return count + 1;
+    }, 0);
+}
 
 function isKanjiDetailAiAvailableForCurrentUser() {
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
@@ -202,6 +279,8 @@ function render() {
         const actionCounts = typeof getSwipeEmptyStateActionCounts === 'function'
             ? getSwipeEmptyStateActionCounts(currentPos)
             : null;
+        const searchReading = getCurrentSwipeEmptyStateSearchReading();
+        const allKanjiSearchCount = getSwipeEmptyStateAllKanjiSearchCount(searchReading);
         const expansionActions = [
             {
                 show: !premiumActive && (!actionCounts || actionCounts.premium > 0),
@@ -212,6 +291,14 @@ function render() {
                 onclick: "openPremiumExpansionFromEmptyState()"
             },
             {
+                show: canOfferFlexibleRetry && (!actionCounts || actionCounts.flexible > 0),
+                label: '柔軟モードで探す',
+                detail: '読みを少し広げて追加候補を確認',
+                count: actionCounts?.flexible,
+                tone: 'cool',
+                onclick: "retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })"
+            },
+            {
                 show: !actionCounts || actionCounts.revisit > 0,
                 label: '見送った候補を戻す',
                 detail: 'さっき見送った漢字をもう一度確認',
@@ -220,12 +307,12 @@ function render() {
                 onclick: 'retrySwipeEmptyState({ includeNoped: true })'
             },
             {
-                show: canOfferFlexibleRetry && (!actionCounts || actionCounts.flexible > 0),
-                label: '柔軟モードで探す',
-                detail: '読みを少し広げて追加候補を確認',
-                count: actionCounts?.flexible,
-                tone: 'cool',
-                onclick: "retrySwipeEmptyState({ includeNoped: true, nextRule: 'lax' })"
+                show: allKanjiSearchCount > 0,
+                label: premiumActive ? 'すべての漢字から探す' : 'すべての常用漢字から探す',
+                detail: '名づけに不適当な可能性がある漢字も含める',
+                count: allKanjiSearchCount,
+                tone: 'gray',
+                onclick: 'openKanjiSearchFromSwipeEmptyState()'
             }
         ].filter(action => action.show);
         const expansionHtml = expansionActions
@@ -237,10 +324,10 @@ function render() {
             : '今の条件で追加できる候補はありません。';
         container.innerHTML = `
             <div class="flex items-center justify-center h-full text-center px-6">
-                <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-6 shadow-[0_18px_45px_rgba(93,84,68,0.12)]">
+                <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-5 shadow-[0_18px_45px_rgba(93,84,68,0.12)] flex flex-col" style="max-height:calc(100% - 24px);">
                     <p class="text-[#5d5444] font-black text-lg">☑候補をすべてみました</p>
                     <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
-                    ${expansionHtml ? `<div class="my-5 flex flex-col gap-2.5">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
+                    ${expansionHtml ? `<div class="my-4 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1" style="max-height:min(46vh, 340px); overscroll-behavior:contain;">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
                     ${goToBuild ?
                 '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold w-full py-4">ビルド画面へ →</button>' :
                 '<button onclick="proceedToNextSlot()" class="btn-gold w-full py-4">次の文字へ進む →</button>'

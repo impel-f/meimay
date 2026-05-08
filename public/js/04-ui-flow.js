@@ -7052,6 +7052,7 @@ window.getCompoundReadingOptions = getCompoundReadingOptions;
  */
 var searchClassFilter = '';  // '', '#自然', etc.
 var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
+var searchShowAllKanji = false;
 
 function getKanjiSearchScreenTitleParts() {
     const premiumActive = typeof PremiumManager !== 'undefined'
@@ -7072,19 +7073,28 @@ function updateKanjiSearchTitle() {
         : title.main;
 }
 
-function openKanjiSearch() {
+function openKanjiSearch(options = {}) {
+    const config = options && typeof options === 'object' ? options : {};
     changeScreen('scr-kanji-search');
-    searchClassFilter = '';
-    searchFlexibleMode = false;
+    searchClassFilter = config.classFilter || '';
+    searchFlexibleMode = config.flexible === true;
+    searchShowAllKanji = config.showAllKanji === true;
     const input = document.getElementById('kanji-search-input');
-    if (input) input.value = '';
+    if (input) input.value = typeof config.query === 'string' ? config.query : '';
     updateKanjiSearchTitle();
     renderSearchFilters();
     updateSearchModeToggle();
+    updateSearchAllKanjiToggle();
     const container = document.getElementById('kanji-search-results');
-    if (container) {
+    if (config.query || config.classFilter) {
+        executeKanjiSearch();
+    } else if (container) {
         container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
     }
+}
+
+function handleKanjiSearchInput() {
+    executeKanjiSearch();
 }
 
 function toggleSearchFlexibleMode() {
@@ -7093,15 +7103,35 @@ function toggleSearchFlexibleMode() {
     executeKanjiSearch();
 }
 
+function toggleSearchShowAllKanji() {
+    searchShowAllKanji = !searchShowAllKanji;
+    updateSearchAllKanjiToggle();
+    executeKanjiSearch();
+}
+
 function updateSearchModeToggle() {
     const btn = document.getElementById('search-mode-toggle');
     if (!btn) return;
+    btn.className = 'px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0';
     if (searchFlexibleMode) {
         btn.textContent = '読み柔軟';
-        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#bca37f] text-white transition-all active:scale-95 flex-shrink-0';
+        btn.style.cssText = 'width:88px;background:#bca37f;color:#fff;border:1px solid #bca37f;';
     } else {
         btn.textContent = '読み厳格';
-        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0';
+        btn.style.cssText = 'width:88px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
+    }
+}
+
+function updateSearchAllKanjiToggle() {
+    const btn = document.getElementById('search-all-kanji-toggle');
+    if (!btn) return;
+    btn.className = 'px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0';
+    if (searchShowAllKanji) {
+        btn.textContent = 'すべての漢字';
+        btn.style.cssText = 'width:88px;background:#f0efec;color:#6f6a62;border:1px solid #ded8cf;';
+    } else {
+        btn.textContent = 'おすすめ漢字';
+        btn.style.cssText = 'width:88px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
     }
 }
 
@@ -7127,6 +7157,7 @@ function renderSearchFilters() {
             { val: '#調和', label: '調和', icon: '🤝' },
             { val: '#伝統', label: '伝統', icon: '⛩️' },
             { val: '#奏楽', label: '奏楽', icon: '🎵' },
+            { val: '#その他', label: 'その他', icon: '📝' },
         ];
         classContainer.innerHTML = classes.map(c => `
             <button onclick="setClassFilter('${c.val}')"
@@ -7136,6 +7167,22 @@ function renderSearchFilters() {
             </button>
         `).join('');
     }
+}
+
+function getKanjiSearchClassTags(item) {
+    return String(item?.['分類'] || '')
+        .split(/[\s,，、]+/)
+        .map(tag => tag.trim())
+        .filter(tag => tag.startsWith('#'));
+}
+
+function matchesKanjiSearchClassFilter(item, classFilter) {
+    if (!classFilter) return true;
+    const tags = getKanjiSearchClassTags(item);
+    if (classFilter === '#その他') {
+        return tags.length === 0 || tags.includes('#その他');
+    }
+    return tags.includes(classFilter);
 }
 
 function setClassFilter(val) {
@@ -7256,6 +7303,72 @@ function findKanjiSearchReadingMatch(k, query) {
     return null;
 }
 
+function buildKanjiSearchResultItem(k, rawQuery, query) {
+    if (!k) return null;
+
+    // 不適切フラグチェック
+    const showFlaggedKanji = searchShowAllKanji
+        || (typeof showInappropriateKanji !== 'undefined' && showInappropriateKanji === true);
+    if (isKanjiSearchFlagged(k) && !showFlaggedKanji) return null;
+
+    // 直接検索のときは NOPE 済みでも候補を確認できるようにする
+    if (!query && !rawQuery && typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
+
+    let tier = 99; // 1: Exact, 2: Stem(Flex), 3: Prefix(Flex), 4: OtherMatch
+    const matchKanji = k['漢字'] === rawQuery;
+    const resultItem = { ...k };
+
+    if (query || rawQuery) {
+        const readingMatch = findKanjiSearchReadingMatch(k, query);
+
+        if (matchKanji) {
+            tier = 1;
+        } else if (readingMatch) {
+            tier = readingMatch.tier;
+            resultItem._searchMatchedReading = readingMatch.label;
+            resultItem._searchMatchedReadingValue = readingMatch.value;
+        }
+
+        // ヒットしない場合は除外
+        if (tier === 99) return null;
+    }
+
+    // 分類フィルター（テキスト検索がある場合はAND、ない場合は単独フィルター）
+    if (searchClassFilter && !matchesKanjiSearchClassFilter(k, searchClassFilter)) return null;
+
+    resultItem.tier = tier;
+    return resultItem;
+}
+
+function isKanjiSearchFlagged(item) {
+    const flag = item?.['不適切フラグ'];
+    return !!flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE';
+}
+
+function isKanjiSearchRecommendedScopeItem(item) {
+    if (!item) return false;
+    if (!isKanjiSearchFlagged(item)) return true;
+    return searchShowAllKanji
+        || (typeof showInappropriateKanji !== 'undefined' && showInappropriateKanji === true);
+}
+
+function appendKanjiSearchPremiumCta(container, lockedCount) {
+    if (!container || !lockedCount) return;
+    const cta = document.createElement('button');
+    cta.type = 'button';
+    cta.className = 'col-span-4 mt-3 mb-4 rounded-2xl border px-4 py-3 text-left shadow-sm active:scale-[0.99] transition';
+    cta.style.backgroundColor = '#fff2dc';
+    cta.style.borderColor = '#dfc28f';
+    cta.innerHTML = `
+        <div class="text-[12px] font-black" style="color:#7b5a25;">👑 プレミアムで人名用漢字をあと${lockedCount}文字見る</div>
+        <div class="mt-1 text-[10px] font-bold leading-relaxed" style="color:#8d6d38;">常用漢字に加えて、人名に使える漢字まで検索できます。</div>
+    `;
+    cta.onclick = () => {
+        if (typeof showPremiumModal === 'function') showPremiumModal();
+    };
+    container.appendChild(cta);
+}
+
 function executeKanjiSearch() {
     const input = document.getElementById('kanji-search-input');
     const container = document.getElementById('kanji-search-results');
@@ -7272,45 +7385,29 @@ function executeKanjiSearch() {
 
     // フィルターが何も設定されていない場合はメッセージ表示
     if (!query && !rawQuery && !searchClassFilter) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+        const scopeText = searchShowAllKanji
+            ? '読みまたは漢字を入力すると、<br>すべての漢字から探せます'
+            : '読みまたは漢字で検索するか、<br>分類を選択してください';
+        container.innerHTML = `<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">${scopeText}</div>`;
         return;
     }
 
+    const lockedPremiumKanji = new Set();
+    const premiumActive = typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
     let results = master.map(k => {
-        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(k)) {
+        const resultItem = buildKanjiSearchResultItem(k, rawQuery, query);
+        if (!resultItem) return null;
+
+        const accessible = typeof isKanjiAccessibleForCurrentMembership !== 'function'
+            || isKanjiAccessibleForCurrentMembership(k);
+        if (!accessible) {
+            const lockedKanji = String(k['漢字'] || '').trim();
+            if (lockedKanji && !premiumActive) lockedPremiumKanji.add(lockedKanji);
             return null;
         }
-        // 不適切フラグチェック
-        const flag = k['不適切フラグ'];
-        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return null;
 
-        // 直接検索のときは NOPE 済みでも候補を確認できるようにする
-        if (!query && !rawQuery && typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
-
-        let tier = 99; // 1: Exact, 2: Stem(Flex), 3: Prefix(Flex), 4: OtherMatch
-        const matchKanji = k['漢字'] === rawQuery;
-
-        if (query || rawQuery) {
-            const readingMatch = findKanjiSearchReadingMatch(k, query);
-
-            if (matchKanji) {
-                tier = 1;
-            } else if (readingMatch) {
-                tier = readingMatch.tier;
-                k._searchMatchedReading = readingMatch.label;
-                k._searchMatchedReadingValue = readingMatch.value;
-            }
-
-            // ヒットしない場合は除外
-            if (tier === 99) return null;
-        }
-
-        // 分類フィルター（テキスト検索がある場合はAND、ない場合は単独フィルター）
-        if (searchClassFilter) {
-            if (!(k['分類'] || '').includes(searchClassFilter)) return null;
-        }
-
-        return { ...k, tier };
+        if (!isKanjiSearchRecommendedScopeItem(k)) return null;
+        return resultItem;
     }).filter(Boolean);
 
     // 漢字の重複排除
@@ -7336,6 +7433,7 @@ function executeKanjiSearch() {
     // 表示
     if (results.length === 0) {
         container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">該当する漢字がありません</div>';
+        appendKanjiSearchPremiumCta(container, lockedPremiumKanji.size);
         return;
     }
 
@@ -7344,11 +7442,13 @@ function executeKanjiSearch() {
     // 結果件数
     const countDiv = document.createElement('div');
     countDiv.className = 'col-span-4 text-center text-[10px] text-[#a6967a] py-2';
-    countDiv.innerText = `${results.length}件${results.length > 200 ? '（上位200件表示）' : ''}`;
+    countDiv.innerText = `${results.length}件`;
     container.appendChild(countDiv);
 
-    results.slice(0, 200).forEach(k => {
+    const resultFragment = document.createDocumentFragment();
+    results.forEach(k => {
         const isStocked = liked.some(l => l['漢字'] === k['漢字']);
+        const isFlagged = isKanjiSearchFlagged(k);
         const strokes = parseInt(k['画数']) || '?';
         let readings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
             .split(/[、,，\s/]+/)
@@ -7367,12 +7467,19 @@ function executeKanjiSearch() {
         cell.style.cssText = 'position:relative; width:100%; padding-bottom:100%;';
 
         const btn = document.createElement('button');
+        const cardStyle = isFlagged
+            ? { bg: '#e8ebee', border: '#c3c9cf', kanji: '#565f68', meta: '#7a838c', reading: '#69737d' }
+            : (isStocked
+                ? { bg: '#fffbeb', border: '#bca37f', kanji: '#5d5444', meta: '#a6967a', reading: '#bca37f' }
+                : { bg: '#ffffff', border: '#eee5d8', kanji: '#5d5444', meta: '#a6967a', reading: '#bca37f' });
         btn.className = `absolute inset-0 flex flex-col items-center justify-center overflow-hidden rounded-xl shadow-sm border transition-all active:scale-95
-            ${isStocked ? 'border-[#bca37f] bg-[#fffbeb]' : 'bg-white border-[#eee5d8]'}`;
+            ${isFlagged ? 'shadow-none' : ''}`;
+        btn.style.backgroundColor = cardStyle.bg;
+        btn.style.borderColor = cardStyle.border;
         btn.innerHTML = `
-            <span class="text-2xl font-black text-[#5d5444]">${k['漢字']}</span>
-            <span class="text-[8px] text-[#a6967a]">${strokes}画</span>
-            <span class="text-[7px] text-[#bca37f] truncate w-full text-center px-0.5">${readings.join(',')}</span>
+            <span class="text-2xl font-black" style="color:${cardStyle.kanji};">${k['漢字']}</span>
+            <span class="text-[8px]" style="color:${cardStyle.meta};">${strokes}画</span>
+            <span class="text-[7px] truncate w-full text-center px-0.5" style="color:${cardStyle.reading};">${readings.join(',')}</span>
             ${isStocked ? '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>' : ''}
         `;
         // タップで漢字詳細を表示
@@ -7381,8 +7488,10 @@ function executeKanjiSearch() {
             else toggleSearchStock(k, btn);
         };
         cell.appendChild(btn);
-        container.appendChild(cell);
+        resultFragment.appendChild(cell);
     });
+    container.appendChild(resultFragment);
+    appendKanjiSearchPremiumCta(container, lockedPremiumKanji.size);
 }
 
 function toggleSearchStock(k, btn) {

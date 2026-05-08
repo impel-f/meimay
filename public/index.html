@@ -646,20 +646,28 @@
     </div> <!-- Kanji Search/Filter Screen -->
     <div id="scr-kanji-search" class="screen">
         <div class="w-full max-w-md pt-2 px-4 mx-auto flex flex-col min-h-0">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center gap-2 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 id="kanji-search-title" class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
-                <button id="search-mode-toggle" onclick="toggleSearchFlexibleMode()"
-                    class="px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#5d5444] text-white transition-all active:scale-95 flex-shrink-0">
-                    読み厳格
-                </button>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <button id="search-mode-toggle" onclick="toggleSearchFlexibleMode()"
+                        class="px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0"
+                        style="width:88px">
+                        読み厳格
+                    </button>
+                    <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
+                        class="px-2 py-1.5 rounded-full text-[10px] font-bold transition-all active:scale-95 flex-shrink-0"
+                        style="width:88px">
+                        おすすめ漢字
+                    </button>
+                </div>
             </div>
 
             <!-- Search Input -->
             <div class="mb-2">
                 <input type="text" id="kanji-search-input" placeholder="読みまたは漢字で検索"
                     class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
-                    oninput="executeKanjiSearch()">
+                    oninput="handleKanjiSearchInput()">
             </div>
 
             <!-- Classification Filter -->
@@ -1508,14 +1516,14 @@
     <script src="/js/01-core.js?v=26.15"></script>
 <script src="/js/02-engine.js?v=25.35"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-<script src="/js/04-ui-flow.js?v=26.52"></script>
-<script src="/js/05-ui-render.js?v=25.79"></script>
+<script src="/js/04-ui-flow.js?v=26.58"></script>
+<script src="/js/05-ui-render.js?v=25.85"></script>
     <script src="/js/06-ui-physics.js?v=25.19"></script>
     <script src="/js/07-build.js?v=25.68"></script>
 <script src="/js/08-origin.js?v=25.52"></script>
-    <script src="/js/09-storage.js?v=26.06"></script>
+    <script src="/js/09-storage.js?v=26.07"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.39"></script>
+    <script src="/js/11-settings.js?v=25.40"></script>
     <script src="/js/12-history.js?v=25.61"></script>
     <script src="/js/13-drawer-wizard.js?v=25.30"></script>
     <script src="/js/14-admob.js?v=25.76"></script>
@@ -1525,7 +1533,7 @@
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
     <script src="/js/18-ranking.js?v=25.40"></script>
-    <script src="/js/21-child-workspaces.js?v=26.70"></script>
+    <script src="/js/21-child-workspaces.js?v=26.71"></script>
 
 
 </body>

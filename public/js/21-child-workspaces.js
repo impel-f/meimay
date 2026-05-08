@@ -837,7 +837,7 @@
                     : {},
                 appSettings: {
                     shareMode: String(family?.appSettings?.shareMode || base.appSettings.shareMode).trim() || 'auto',
-                    showInappropriateKanji: family?.appSettings?.showInappropriateKanji === true
+                    showInappropriateKanji: false
                 }
             };
         },
@@ -1180,7 +1180,7 @@
                 partnerChildLinks: this.root?.family?.partnerChildLinks || {},
                 appSettings: {
                     shareMode: typeof shareMode !== 'undefined' ? shareMode : 'auto',
-                    showInappropriateKanji: typeof showInappropriateKanji !== 'undefined' ? showInappropriateKanji === true : false
+                    showInappropriateKanji: false
                 }
             });
         },
@@ -1553,7 +1553,7 @@
                 if (typeof excludedKanjiFromBuild !== 'undefined') excludedKanjiFromBuild = cloneData(draft.excludedKanjiFromBuild, []);
                 if (typeof currentBuildResult !== 'undefined') currentBuildResult = cloneData(draft.currentBuildResult, createBlankBuildResult());
                 if (typeof shareMode !== 'undefined') shareMode = family.appSettings.shareMode || 'auto';
-                if (typeof showInappropriateKanji !== 'undefined') showInappropriateKanji = family.appSettings.showInappropriateKanji === true;
+                if (typeof showInappropriateKanji !== 'undefined') showInappropriateKanji = false;
                 if (typeof soundPreferenceData !== 'undefined') soundPreferenceData = cloneData(family.preferenceModel.soundPreferenceData, { liked: [], noped: [] });
                 if (typeof seen !== 'undefined') {
                     seen = new Set((Array.isArray(liked) ? liked : []).map((item) => getKanjiValue(item)).filter(Boolean));
@@ -1610,7 +1610,7 @@
                     prioritizeFortune: child.prefs.prioritizeFortune === true,
                     segments: child.draft.segments || [],
                     shareMode: family.appSettings.shareMode || 'auto',
-                    showInappropriateKanji: family.appSettings.showInappropriateKanji === true
+                    showInappropriateKanji: false
                 }));
             } catch (error) {
                 console.warn('CHILD_WORKSPACES: legacy sync failed', error);

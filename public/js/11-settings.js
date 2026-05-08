@@ -26,7 +26,7 @@ const IMAGE_TAGS = [
 // グローバル変数
 let selectedImageTags = ['none'];
 let shareMode = 'auto'; // 'auto' or 'manual'
-let showInappropriateKanji = false; // 不適切フラグがある漢字を表示するかどうか
+let showInappropriateKanji = false; // 検索画面の「すべて」でのみ一時的に表示する
 
 const PROFILE_THEME_OPTIONS = [
     {
@@ -351,7 +351,6 @@ function renderSettingsScreen() {
     const roleText = wizData?.role === 'papa' ? 'パパ' : wizData?.role === 'mama' ? 'ママ' : '未設定';
     const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
     const activeChildText = getSettingsActiveChildSummary();
-    const kanjiRangeText = showInappropriateKanji ? 'すべて' : 'おすすめ';
 
 
     // Partner linking status
@@ -432,7 +431,6 @@ function renderSettingsScreen() {
 
             ${renderSection('データと表示', `
                 ${renderItem({ title: 'バックアップと復元', value: '復元キー', onClick: 'openTransferModal()' })}
-                ${renderItem({ title: '表示する漢字の範囲', value: kanjiRangeText, onClick: 'openKanjiRangeSettingModal()' })}
                 ${renderItem({ title: 'アプリデータを削除', value: '初期化', valueStyle: 'color:#c56555;font-weight:800;', onClick: 'openDeleteAppDataSheet()' })}
             `)}
 
@@ -1209,31 +1207,14 @@ function showGuide() {
  * 不適切設定の切り替え
  */
 function setKanjiRangeSetting(value) {
-    showInappropriateKanji = value === 'all';
+    showInappropriateKanji = false;
     saveSettings();
     renderSettingsScreen();
-    showToast(`表示範囲を${showInappropriateKanji ? 'すべて' : 'おすすめ'}にしました`);
+    showToast('注意が必要な漢字は検索画面の「すべて」で確認できます');
 }
 
 function openKanjiRangeSettingModal() {
-    showChoiceModal(
-        '表示する漢字の範囲',
-        '通常は「おすすめ」のままで大丈夫です。人名に使える漢字を広く確認したいときだけ「すべて」を選びます。',
-        [
-            {
-                value: 'recommended',
-                label: 'おすすめ',
-                desc: '名づけで使いやすい漢字を中心に表示します。'
-            },
-            {
-                value: 'all',
-                label: 'すべて',
-                desc: '人名に使える漢字を広く表示します。候補が増える分、注意が必要な漢字も含まれます。'
-            }
-        ],
-        showInappropriateKanji ? 'all' : 'recommended',
-        setKanjiRangeSetting
-    );
+    setKanjiRangeSetting('recommended');
 }
 
 function toggleInappropriateSetting() {
@@ -1405,7 +1386,7 @@ function saveSettings() {
         prioritizeFortune: prioritizeFortune,
         segments: segments,
         shareMode: shareMode,
-        showInappropriateKanji: showInappropriateKanji
+        showInappropriateKanji: false
     };
     localStorage.setItem('meimay_settings', JSON.stringify(settings));
     if (typeof MeimayPairing !== 'undefined'
@@ -1433,7 +1414,7 @@ function loadSettings() {
             prioritizeFortune = settings.prioritizeFortune !== undefined ? settings.prioritizeFortune : false;
             segments = settings.segments || [];
             shareMode = settings.shareMode || 'auto';
-            showInappropriateKanji = settings.showInappropriateKanji || false;
+            showInappropriateKanji = false;
             console.log('SETTINGS: Loaded', settings);
         } catch (e) {
             console.error('SETTINGS: Failed to load', e);
