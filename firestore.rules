@@ -226,6 +226,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /name_origin_explanations/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /name_origin_daily_usage/{docId} {
+      allow read, write: if false;
+    }
+
     match /billingPending/{docId} {
       allow read, write: if false;
     }

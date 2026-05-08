@@ -10,6 +10,10 @@
       "destination": "/api/kanji-cache.js"
     },
     {
+      "source": "/api/name-origin-cache",
+      "destination": "/api/name-origin-cache.js"
+    },
+    {
       "source": "/api/stats",
       "destination": "/api/stats.js"
     },
@@ -35,6 +39,9 @@
       "maxDuration": 120
     },
     "api/kanji-cache.js": {
+      "maxDuration": 120
+    },
+    "api/name-origin-cache.js": {
       "maxDuration": 120
     },
     "api/stats.js": {

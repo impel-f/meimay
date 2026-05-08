@@ -6,6 +6,7 @@
 
 const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v2_20260508';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
+const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 let nameOriginGenerationInFlight = false;
 
@@ -106,6 +107,43 @@ function getNameOriginCacheKey(result = currentBuildResult) {
     ].join('__');
 }
 
+function getNameOriginResetKey(result = currentBuildResult) {
+    const cacheKey = getNameOriginCacheKey(result);
+    return cacheKey ? `meimay_name_origin_reset_${cacheKey}` : '';
+}
+
+function markNameOriginCacheReset(result = currentBuildResult) {
+    const key = getNameOriginResetKey(result);
+    if (!key) return false;
+    try {
+        localStorage.setItem(key, String(Date.now()));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function clearNameOriginCacheReset(result = currentBuildResult) {
+    const key = getNameOriginResetKey(result);
+    if (!key) return false;
+    try {
+        localStorage.removeItem(key);
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function hasNameOriginCacheReset(result = currentBuildResult) {
+    const key = getNameOriginResetKey(result);
+    if (!key) return false;
+    try {
+        return !!localStorage.getItem(key);
+    } catch (error) {
+        return false;
+    }
+}
+
 function readNameOriginCacheMap() {
     try {
         const raw = localStorage.getItem(NAME_ORIGIN_CACHE_KEY);
@@ -119,6 +157,7 @@ function readNameOriginCacheMap() {
 function getCachedNameOriginEntry(result = currentBuildResult) {
     const key = getNameOriginCacheKey(result);
     if (!key) return null;
+    if (hasNameOriginCacheReset(result)) return null;
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.getNameOriginCache === 'function') {
         return StorageBox.getNameOriginCache(key);
     }
@@ -130,6 +169,7 @@ function saveNameOriginCache(result, text) {
     const key = getNameOriginCacheKey(result);
     const cleanText = normalizeNameOriginText(text);
     if (!key || !cleanText) return false;
+    clearNameOriginCacheReset(result);
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNameOriginCache === 'function') {
         StorageBox.saveNameOriginCache(key, cleanText);
         return true;
@@ -162,6 +202,144 @@ function removeNameOriginCache(result = currentBuildResult) {
     } catch (error) {
         return false;
     }
+}
+
+function getNameOriginCloudPayload(result = currentBuildResult) {
+    const cacheKey = getNameOriginCacheKey(result);
+    const combination = getNameOriginCombination(result)
+        .map(getNameOriginKanjiValue)
+        .filter(Boolean);
+    return {
+        cacheKey,
+        promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+        givenName: getNameOriginGivenName(result),
+        givenReading: getNameOriginGivenReading(result),
+        combination
+    };
+}
+
+async function getNameOriginCloudDocId(cacheKey) {
+    const key = String(cacheKey || '').trim();
+    if (!key || !window.crypto || !window.crypto.subtle || typeof TextEncoder === 'undefined') return '';
+    try {
+        const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+        return Array.from(new Uint8Array(digest))
+            .map((value) => value.toString(16).padStart(2, '0'))
+            .join('');
+    } catch (error) {
+        console.warn('NAME_ORIGIN_CACHE: doc id hash failed', error);
+        return '';
+    }
+}
+
+async function callNameOriginCacheApi(payload, options = {}) {
+    let headers = { 'Content-Type': 'application/json' };
+    if (options.auth !== false && typeof getFirebaseRequestHeaders === 'function') {
+        headers = await getFirebaseRequestHeaders();
+    }
+    if (!headers['Content-Type'] && !headers['content-type']) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(getMeimayApiUrl(NAME_ORIGIN_CACHE_API_PATH), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+        signal: options.signal
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) {
+        const error = new Error(data.details || data.error || `Name origin cache API returned ${response.status}`);
+        error.code = data.error || data.code || 'name_origin_cache_api_failed';
+        error.status = response.status;
+        error.data = data;
+        throw error;
+    }
+    return data;
+}
+
+async function readNameOriginCloudCache(result = currentBuildResult) {
+    if (hasNameOriginCacheReset(result)) return null;
+    const payload = getNameOriginCloudPayload(result);
+    if (!payload.cacheKey) return null;
+
+    if (typeof firebaseDb !== 'undefined' && firebaseDb) {
+        try {
+            const docId = await getNameOriginCloudDocId(payload.cacheKey);
+            if (docId) {
+                const doc = await firebaseDb.collection('name_origin_explanations').doc(docId).get();
+                const text = normalizeNameOriginText(doc.exists ? doc.data()?.text : '');
+                if (text) return { text, source: 'firestore' };
+            }
+        } catch (error) {
+            console.warn('NAME_ORIGIN_CACHE: firestore read failed', error);
+        }
+    }
+
+    try {
+        const data = await callNameOriginCacheApi({
+            action: 'get',
+            cacheKey: payload.cacheKey
+        }, { auth: false });
+        const text = normalizeNameOriginText(data?.text);
+        return data?.hit && text ? { text, source: 'cloud' } : null;
+    } catch (error) {
+        console.warn('NAME_ORIGIN_CACHE: cloud read failed', error);
+        return null;
+    }
+}
+
+async function saveNameOriginCloudCache(result = currentBuildResult, text) {
+    const payload = getNameOriginCloudPayload(result);
+    const cleanText = normalizeNameOriginText(text);
+    if (!payload.cacheKey || !cleanText) return false;
+    try {
+        await callNameOriginCacheApi({
+            action: 'save',
+            ...payload,
+            text: cleanText
+        });
+        return true;
+    } catch (error) {
+        console.warn('NAME_ORIGIN_CACHE: cloud save failed', error);
+        return false;
+    }
+}
+
+async function consumeDailyNameOriginUseForGeneration() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) {
+        return { ok: true, consumed: false, premium: true, source: 'local-premium' };
+    }
+
+    try {
+        const data = await callNameOriginCacheApi({ action: 'consumeDaily' });
+        return { ok: true, consumed: data?.consumed === true, premium: data?.premium === true, source: 'cloud' };
+    } catch (error) {
+        if (Number(error.status) === 429 || error.code === 'daily_limit_exceeded') {
+            return { ok: false, limit: true, source: 'cloud' };
+        }
+        console.warn('NAME_ORIGIN_DAILY: cloud consume failed, falling back to local counter', error);
+    }
+
+    if (!consumeDailyNameOriginUse()) {
+        return { ok: false, limit: true, source: 'local' };
+    }
+    return { ok: true, consumed: true, premium: false, source: 'local' };
+}
+
+async function refundDailyNameOriginUseForGeneration(consumption) {
+    if (!consumption || !consumption.consumed || consumption.premium) return;
+
+    if (consumption.source === 'cloud') {
+        try {
+            await callNameOriginCacheApi({ action: 'refundDaily' });
+            return;
+        } catch (error) {
+            console.warn('NAME_ORIGIN_DAILY: cloud refund failed', error);
+        }
+    }
+
+    refundDailyNameOriginUse();
 }
 
 function getNameOriginDisplayTextForItem(item) {
@@ -210,6 +388,7 @@ function persistNameOriginToSavedItems(target, originText, options = {}) {
 
 function clearPersistedNameOrigin(target, options = {}) {
     removeNameOriginCache(target);
+    markNameOriginCacheReset(target);
     if (target) target.origin = '';
     if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
         currentBuildResult.origin = '';
@@ -320,7 +499,8 @@ async function generateOrigin(options = {}) {
         return;
     }
 
-    if (!consumeDailyNameOriginUse()) {
+    const consumption = await consumeDailyNameOriginUseForGeneration();
+    if (!consumption.ok) {
         if (typeof showToast === 'function') showToast('今日の無料AI由来は使い切りました', '🌙');
         else alert('今日の無料AI由来は使い切りました');
         if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
@@ -330,7 +510,7 @@ async function generateOrigin(options = {}) {
     const modal = document.getElementById('modal-origin');
     if (!modal) {
         console.error("ORIGIN: modal-origin not found");
-        refundDailyNameOriginUse();
+        await refundDailyNameOriginUseForGeneration(consumption);
         return;
     }
 
@@ -338,6 +518,18 @@ async function generateOrigin(options = {}) {
     renderNameOriginLoading(target);
 
     try {
+        const cloudCached = await readNameOriginCloudCache(target);
+        if (cloudCached?.text) {
+            target.origin = cloudCached.text;
+            if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
+                currentBuildResult.origin = cloudCached.text;
+            }
+            saveNameOriginCache(target, cloudCached.text);
+            persistNameOriginToSavedItems(target, cloudCached.text, options);
+            renderAIOriginResult(target, cloudCached.text);
+            return;
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         const response = await fetch(getMeimayApiUrl('/api/gemini'), {
@@ -368,10 +560,11 @@ async function generateOrigin(options = {}) {
             currentBuildResult.origin = aiText;
         }
         saveNameOriginCache(target, aiText);
+        saveNameOriginCloudCache(target, aiText);
         persistNameOriginToSavedItems(target, aiText, options);
         renderAIOriginResult(target, aiText);
     } catch (err) {
-        refundDailyNameOriginUse();
+        await refundDailyNameOriginUseForGeneration(consumption);
         console.warn("AI_NAME_ORIGIN_FAILURE:", err);
         const fallbackText = generateFallbackOrigin(givenName, combination);
         renderAIOriginResult(target, fallbackText, true);
@@ -391,6 +584,24 @@ function generateFallbackOrigin(givenName, combination) {
     return `「${givenName}」には、${meanings.join('、')}を重ねた由来案を込められます。ひとつひとつの漢字が持つ印象を大切にしながら、自分らしく歩み、周りにもあたたかな気持ちを届けられる人に育ってほしいという願いを表せます。`;
 }
 
+function renderNameOriginKanjiStrip(result = currentBuildResult) {
+    const parts = getNameOriginCombination(result)
+        .map((part) => {
+            const kanji = escapeHtml(getNameOriginKanjiValue(part));
+            if (!kanji) return '';
+            const meaning = escapeHtml(getNameOriginMeaning(part).split(/[。、]/)[0].substring(0, 18));
+            return `
+                <div class="name-origin-kanji-chip">
+                    <span class="name-origin-kanji-char">${kanji}</span>
+                    <span class="name-origin-kanji-meaning">${meaning || '願い'}</span>
+                </div>
+            `;
+        })
+        .filter(Boolean)
+        .join('');
+    return parts ? `<div class="name-origin-kanji-strip">${parts}</div>` : '';
+}
+
 function renderNameOriginLoading(result = currentBuildResult) {
     const modal = document.getElementById('modal-origin');
     if (!modal) return;
@@ -398,13 +609,14 @@ function renderNameOriginLoading(result = currentBuildResult) {
     const givenReading = escapeHtml(getNameOriginGivenReading(result));
     modal.classList.add('active', 'modal-overlay-dark');
     modal.innerHTML = `
-        <div class="detail-sheet animate-fade-in max-w-[420px]">
-            <div class="flex flex-col items-center py-12 text-center">
-                <div class="mb-4 text-[10px] font-black tracking-[0.18em] text-[#bca37f]">名前に込める願い</div>
-                <div class="mb-2 text-4xl font-black tracking-[0.08em] text-[#5d5444]">${givenName}</div>
-                ${givenReading ? `<div class="mb-10 text-[11px] font-bold text-[#a6967a]">${givenReading}</div>` : '<div class="mb-10"></div>'}
-                <div class="mb-5 h-10 w-10 rounded-full border-4 border-[#eee5d8] border-t-[#bca37f] animate-spin"></div>
-                <p class="text-[12px] font-bold leading-loose text-[#7a6f5a]">漢字の意味をつないでいます。</p>
+        <div class="detail-sheet animate-fade-in name-origin-sheet">
+            <div class="flex flex-col items-center text-center">
+                <div class="name-origin-eyebrow">名前に込める願い</div>
+                <div class="name-origin-title">${givenName}</div>
+                ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
+                ${renderNameOriginKanjiStrip(result)}
+                <div class="name-origin-loading-mark" aria-hidden="true"></div>
+                <p class="name-origin-loading-text">漢字の意味をつないでいます。</p>
             </div>
         </div>
     `;
@@ -421,24 +633,24 @@ function renderAIOriginResult(resultOrName, text, isFallback = false) {
     const originText = escapeHtml(normalizeNameOriginText(text));
     modal.classList.add('active', 'modal-overlay-dark');
     modal.innerHTML = `
-        <div class="detail-sheet animate-fade-in max-w-[440px]">
-            <div class="mb-6 text-center">
-                <div class="mb-3 text-[10px] font-black tracking-[0.18em] text-[#bca37f]">${isFallback ? '由来案' : '名前に込める願い'}</div>
-                <div class="text-5xl font-black leading-none tracking-[0.08em] text-[#5d5444]">${givenName}</div>
-                ${givenReading ? `<div class="mt-3 text-[12px] font-bold text-[#a6967a]">${givenReading}</div>` : ''}
+        <div class="detail-sheet animate-fade-in name-origin-sheet">
+            <div class="name-origin-header">
+                <div class="name-origin-eyebrow">${isFallback ? '由来案' : '名前に込める願い'}</div>
+                <div class="name-origin-title">${givenName}</div>
+                ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
+                ${renderNameOriginKanjiStrip(result)}
             </div>
-            <div class="relative mb-5 overflow-hidden rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f7efe2] p-5 shadow-[0_18px_45px_-34px_rgba(93,84,68,0.55)]">
-                <div class="absolute left-0 top-0 h-full w-1 bg-[#d8b56f] opacity-70"></div>
-                <p id="name-origin-text" class="whitespace-pre-wrap text-[14px] font-medium leading-[1.95] text-[#4f4639]">${originText}</p>
+            <div class="name-origin-card">
+                <p id="name-origin-text" class="name-origin-body">${originText}</p>
             </div>
             ${isFallback ? `
-                <p class="mb-4 text-center text-[11px] font-bold leading-relaxed text-[#a6967a]">
+                <p class="name-origin-note">
                     AIサービスに接続できなかったため、端末内の情報で下書きを表示しています。
                 </p>
             ` : ''}
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="copyOriginToClipboard()" class="rounded-2xl bg-[#5d5444] px-4 py-4 text-[12px] font-black text-white shadow-sm transition active:scale-95">コピー</button>
-                <button onclick="closeOriginModal()" class="rounded-2xl border border-[#eadfce] bg-white px-4 py-4 text-[12px] font-black text-[#8b7e66] transition active:scale-95">閉じる</button>
+            <div class="name-origin-actions">
+                <button onclick="copyOriginToClipboard()" class="name-origin-primary-action">コピー</button>
+                <button onclick="closeOriginModal()" class="name-origin-secondary-action">閉じる</button>
             </div>
         </div>
     `;
