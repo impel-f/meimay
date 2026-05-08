@@ -7356,12 +7356,12 @@ function appendKanjiSearchPremiumCta(container, lockedCount) {
     if (!container || !lockedCount) return;
     const cta = document.createElement('button');
     cta.type = 'button';
-    cta.className = 'col-span-4 mt-3 mb-4 rounded-2xl border px-4 py-3 text-left shadow-sm active:scale-[0.99] transition';
+    cta.className = 'col-span-4 mt-3 mb-4 min-h-[76px] rounded-2xl border px-4 py-4 text-center shadow-sm active:scale-[0.99] transition';
     cta.style.backgroundColor = '#fff2dc';
     cta.style.borderColor = '#dfc28f';
     cta.innerHTML = `
-        <div class="text-[12px] font-black" style="color:#7b5a25;">👑 プレミアムで人名用漢字をあと${lockedCount}文字見る</div>
-        <div class="mt-1 text-[10px] font-bold leading-relaxed" style="color:#8d6d38;">常用漢字に加えて、人名に使える漢字まで検索できます。</div>
+        <div class="text-[12px] font-black leading-snug" style="color:#7b5a25;">👑プレミアム案内👑</div>
+        <div class="mt-1.5 text-[11px] font-bold leading-relaxed" style="color:#8d6d38;">人名用漢字をあと${lockedCount}文字見る</div>
     `;
     cta.onclick = () => {
         if (typeof showPremiumModal === 'function') showPremiumModal();
