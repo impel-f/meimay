@@ -968,14 +968,21 @@ function getNameOriginCheckCategory(line) {
     return normalized.replace(/[「」『』。、，,.・\s]/g, '').slice(0, 24);
 }
 
+function splitNameOriginCheckSegments(value) {
+    return normalizeNameOriginText(value)
+        .split(/\n+/)
+        .flatMap(line => line
+            .replace(/\s*また(?=「?[^。！？!?]{0,30}(?:旧字体|異体字|別体|大字|字形|届出|表記|初見|読みにく|読みづら|ローマ字|アルファベット|縦割れ))/g, '\nまた')
+            .match(/[^。！？!?]+[。！？!?]?/g) || [])
+        .map(line => normalizeNameOriginSectionValue(line, 120))
+        .filter(Boolean);
+}
+
 function mergeNameOriginCheckText(aiCheck, localCheck) {
     const lines = [];
     const categories = new Set();
     [localCheck, aiCheck].forEach((value) => {
-        normalizeNameOriginText(value)
-            .split(/\n+/)
-            .map(line => normalizeNameOriginSectionValue(line, 120))
-            .filter(Boolean)
+        splitNameOriginCheckSegments(value)
             .forEach((line) => {
                 const category = getNameOriginCheckCategory(line);
                 if (category && categories.has(category)) return;
@@ -1364,7 +1371,7 @@ function renderAIOriginResult(resultOrName, text, isFallback = false, options = 
                 </p>
             ` : ''}
             <div class="name-origin-actions">
-                <button onclick="copyOriginToClipboard()" class="name-origin-primary-action">由来をコピー</button>
+                <button onclick="saveCurrentNameFromOrigin()" class="name-origin-primary-action">保存</button>
                 <button onclick="regenerateCurrentNameOrigin()" class="name-origin-secondary-action">もう一度生成</button>
             </div>
             <button onclick="closeOriginModal()" class="name-origin-close-action">閉じる</button>
@@ -1419,6 +1426,33 @@ function copyOriginToClipboard() {
         if (typeof showToast === 'function') showToast('由来をコピーしました', '✓');
         else alert("由来をコピーしました。");
     });
+}
+
+function saveCurrentNameFromOrigin() {
+    const target = currentNameOriginRenderTarget || currentBuildResult;
+    if (!target || !getNameOriginGivenName(target)) {
+        alert('保存する名前がありません');
+        return;
+    }
+
+    if (typeof currentBuildResult !== 'undefined') {
+        currentBuildResult = target;
+    }
+
+    const originText = normalizeNameOriginText(target.origin);
+    if (originText) {
+        saveNameOriginCache(target, originText);
+        persistNameOriginToSavedItems(target, originText, currentNameOriginRenderOptions);
+    }
+
+    closeOriginModal();
+    if (typeof saveName === 'function') {
+        saveName();
+    } else if (typeof showToast === 'function') {
+        showToast('保存画面を開けませんでした', '!');
+    } else {
+        alert('保存画面を開けませんでした');
+    }
 }
 
 function getNameOriginSavedItem(index, source = 'own') {
@@ -2619,6 +2653,7 @@ window.renderKanjiDetailSections = renderKanjiDetailSections;
 window.resetKanjiDetailCache = resetKanjiDetailCache;
 window.closeOriginModal = closeOriginModal;
 window.copyOriginToClipboard = copyOriginToClipboard;
+window.saveCurrentNameFromOrigin = saveCurrentNameFromOrigin;
 window.regenerateCurrentNameOrigin = regenerateCurrentNameOrigin;
 window.openNameOriginKanjiDetail = openNameOriginKanjiDetail;
 
