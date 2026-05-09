@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v12_20260509';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v13_20260509';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -606,6 +606,76 @@ function getNameOriginReadingBucketsForPart(part) {
     };
 }
 
+function getNameOriginSegmentReadingStatus(part, segment) {
+    const normalizedSegment = normalizeNameOriginReadingValue(segment);
+    if (!normalizedSegment) return 'empty';
+    const buckets = getNameOriginReadingBucketsForPart(part);
+    if (buckets.majorExact.has(normalizedSegment)) return 'major-exact';
+    if (buckets.majorLoose.has(normalizedSegment)) return 'major-loose';
+    if (buckets.minorExact.has(normalizedSegment)) return 'minor-exact';
+    if (buckets.minorLoose.has(normalizedSegment)) return 'minor-loose';
+    return 'unknown';
+}
+
+function hasNameOriginExactReadingExample(result = currentBuildResult) {
+    const givenName = getNameOriginGivenName(result);
+    const givenReading = normalizeNameOriginReadingValue(getNameOriginGivenReading(result));
+    if (!givenName || !givenReading) return false;
+
+    const containsGivenName = (examples) => {
+        const list = Array.isArray(examples)
+            ? examples
+            : String(examples || '').split(/[\s、,，]+/);
+        return list.map(item => String(item || '').trim()).includes(givenName);
+    };
+
+    const yomiMatch = typeof yomiSearchData !== 'undefined' && Array.isArray(yomiSearchData)
+        ? yomiSearchData.some(item =>
+            normalizeNameOriginReadingValue(item?.yomi) === givenReading && containsGivenName(item?.examples)
+        )
+        : false;
+    if (yomiMatch) return true;
+
+    return typeof readingsData !== 'undefined' && Array.isArray(readingsData)
+        ? readingsData.some(item =>
+            normalizeNameOriginReadingValue(item?.reading) === givenReading && containsGivenName(item?.examples)
+        )
+        : false;
+}
+
+function getNameOriginReadingCandidatesForPart(part) {
+    const buckets = getNameOriginReadingBucketsForPart(part);
+    return [...new Set([
+        ...buckets.majorExact,
+        ...buckets.majorLoose,
+        ...buckets.minorExact,
+        ...buckets.minorLoose
+    ])].filter(Boolean).sort((a, b) => b.length - a.length);
+}
+
+function inferNameOriginReadableSegmentsFromParts(result = currentBuildResult, parts = null) {
+    const targetParts = Array.isArray(parts) ? parts : getNameOriginCombination(result);
+    const normalizedGivenReading = normalizeNameOriginReadingValue(getNameOriginGivenReading(result));
+    if (!normalizedGivenReading || targetParts.length === 0) return [];
+
+    const candidatesByPart = targetParts.map(part => getNameOriginReadingCandidatesForPart(part));
+    if (candidatesByPart.some(candidates => candidates.length === 0)) return [];
+
+    const path = [];
+    const walk = (partIndex, offset) => {
+        if (partIndex === candidatesByPart.length) return offset === normalizedGivenReading.length;
+        for (const candidate of candidatesByPart[partIndex]) {
+            if (!normalizedGivenReading.startsWith(candidate, offset)) continue;
+            path[partIndex] = candidate;
+            if (walk(partIndex + 1, offset + candidate.length)) return true;
+        }
+        path.length = partIndex;
+        return false;
+    };
+
+    return walk(0, 0) ? [...path] : [];
+}
+
 function getNameOriginReadableSegments(result = currentBuildResult, parts = null) {
     const targetParts = Array.isArray(parts) ? parts : getNameOriginCombination(result);
     const givenReading = getNameOriginGivenReading(result);
@@ -647,7 +717,7 @@ function getNameOriginReadableSegments(result = currentBuildResult, parts = null
         if (match) return match.map(segment => String(segment || '').trim());
     }
 
-    return [];
+    return inferNameOriginReadableSegmentsFromParts(result, targetParts);
 }
 
 function getNameOriginReadingDifficultyCheckText(result = currentBuildResult) {
@@ -659,26 +729,23 @@ function getNameOriginReadingDifficultyCheckText(result = currentBuildResult) {
     const segmentsForCheck = getNameOriginReadableSegments(result, parts);
     if (segmentsForCheck.length !== parts.length || !segmentsForCheck.every(Boolean)) return '';
 
-    let unknownCount = 0;
-    let nonObviousCount = 0;
+    const statuses = [];
     parts.forEach((part, index) => {
         if (part?._compoundOrigin) return;
         const segment = normalizeNameOriginReadingValue(segmentsForCheck[index]);
         if (!segment) return;
-        const buckets = getNameOriginReadingBucketsForPart(part);
-        if (buckets.majorExact.has(segment)) return;
-        if (buckets.majorLoose.has(segment)) {
-            nonObviousCount += 1;
-            return;
-        }
-        if (buckets.minorExact.has(segment) || buckets.minorLoose.has(segment)) {
-            nonObviousCount += 1;
-            return;
-        }
-        unknownCount += 1;
+        statuses.push(getNameOriginSegmentReadingStatus(part, segment));
     });
 
-    if (unknownCount > 0 || nonObviousCount >= 2) {
+    const unknownCount = statuses.filter(status => status === 'unknown').length;
+    const nonObviousCount = statuses.filter(status => status === 'major-loose' || status === 'minor-exact' || status === 'minor-loose').length;
+    const exactExampleExists = hasNameOriginExactReadingExample(result);
+    const mixedButUnattested = !exactExampleExists
+        && statuses.length === parts.length
+        && nonObviousCount >= 1
+        && statuses.some(status => status === 'major-exact' || status === 'major-loose');
+
+    if (unknownCount > 0 || nonObviousCount >= 2 || mixedButUnattested) {
         return `「${givenName}」は初見では「${givenReading}」と読みにくい可能性があります。読みを添えて伝えると安心です。`;
     }
     return '';
@@ -1116,6 +1183,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
 ・possibleHardToRead はアプリ側の候補判定であり、必ず書く必要はない。AIが一般的な人名感覚でも初見で迷われやすいと判断した場合だけ書く。
+・possibleHardToRead が空でも、入力された名前と読みを独自に見て、初見でその読みにはなりにくいと明確に判断できる場合はcheckに書く。
 ・AIが一般的な読みづらさ、一般語としての受け取られ方、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
 ・名前全体が「寿司」「今日」のような実在する一般語・日常語・料理名・物の名として強く認識される場合は、確認材料に記載がなくてもcheckでやさしく触れてよい。
 ・漢字データや確認材料にない縁起、故事、ことわざ、宗教的な断定、将来の保証を書かない。
@@ -1371,7 +1439,10 @@ function renderAIOriginResult(resultOrName, text, isFallback = false, options = 
                 </p>
             ` : ''}
             <div class="name-origin-actions">
-                <button onclick="saveCurrentNameFromOrigin()" class="name-origin-primary-action">保存</button>
+                <button onclick="saveCurrentNameFromOrigin()" class="name-origin-save-action">
+                    <div class="build-save-btn-title">💾 保存</div>
+                    <div class="build-save-btn-detail">今の名前を保存</div>
+                </button>
                 <button onclick="regenerateCurrentNameOrigin()" class="name-origin-secondary-action">もう一度生成</button>
             </div>
             <button onclick="closeOriginModal()" class="name-origin-close-action">閉じる</button>

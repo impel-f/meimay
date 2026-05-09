@@ -3014,6 +3014,7 @@ body.has-ad-banner #universal-footer {
     gap: 10px;
 }
 
+.name-origin-save-action,
 .name-origin-primary-action,
 .name-origin-secondary-action {
     min-height: 48px;
@@ -3021,6 +3022,37 @@ body.has-ad-banner #universal-footer {
     font-size: 12px;
     font-weight: 900;
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.name-origin-save-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: 2px solid #bca37f;
+    background: #fff;
+    color: #bca37f;
+    box-shadow: 0 8px 18px -16px rgba(93, 84, 68, 0.68);
+}
+
+.name-origin-save-action .build-save-btn-title,
+.name-origin-save-action .build-save-btn-detail {
+    max-width: calc(100% - 20px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.name-origin-save-action .build-save-btn-title {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.name-origin-save-action .build-save-btn-detail {
+    font-size: 10px;
+    font-weight: 800;
+    opacity: 0.78;
 }
 
 .name-origin-primary-action {
@@ -3035,6 +3067,7 @@ body.has-ad-banner #universal-footer {
     color: #8b7e66;
 }
 
+.name-origin-save-action:active,
 .name-origin-primary-action:active,
 .name-origin-secondary-action:active {
     transform: scale(0.96);
