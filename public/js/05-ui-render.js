@@ -4634,7 +4634,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
     const readingEmptyLines = hasWizardReadingCandidate
         ? [
             '読み候補はまだストックに入っていません。',
-            '気になる読みを入力するか、響きから探して候補に残しましょう。'
+            '気になる読みを入力するか、\n響きから探して候補に残しましょう。'
         ]
         : [
             '名づけはまだ最初の段階です。',
@@ -4648,11 +4648,11 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
             : readingCount <= 9
                 ? [
                     '読み候補が集まってきています。',
-                    '気になる読みを見返しながら、さらに候補を広げられます。'
+                    '気になる読みを見返しながら、\nさらに候補を広げられます。'
                 ]
                 : [
                     '読み候補はしっかり集まっています。',
-                    '次は使いたい読みを選び、漢字探しに進みましょう。'
+                    '使いたい読みを選んで、\n漢字探しに進みましょう。'
                 ];
 
         return setCopy(
@@ -4673,25 +4673,25 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
             if (readingCount === 0 && kanjiCount === 0) return readingEmptyLines;
             if (readingCount === 0 && kanjiCount > 0) {
                 return [
-                    '漢字候補はありますが、読み候補がまだありません。',
-                    '読みを決めると、集めた漢字を名前作りに活かしやすくなります。'
+                    '漢字候補はありますが、\n読み候補がまだありません。',
+                    '読みを決めると、\n集めた漢字を名前作りに活かせます。'
                 ];
             }
             if (readingCount > 0 && kanjiCount === 0) {
                 return [
                     'まだ漢字候補はありません。',
-                    '気になる読みから、名前に使いたい漢字を集めましょう。'
+                    '気になる読みから、\n名前に使いたい漢字を集めましょう。'
                 ];
             }
             if (unresolvedReadingCount > 0) {
                 return [
                     '漢字候補が集まってきています。',
-                    `まだ漢字を選んでいない読みが${unresolvedReadingCount}件あります。そこから候補を広げましょう。`
+                    `未選択の読みが${unresolvedReadingCount}件あります。\nそこから候補を広げましょう。`
                 ];
             }
             return [
                 '漢字候補はしっかり集まっています。',
-                '次は読みと漢字を組み合わせて、名前候補を作りましょう。'
+                '読みと漢字を組み合わせて、\n名前候補を作りましょう。'
             ];
         })();
 
@@ -4713,14 +4713,14 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         const statusLines = (() => {
             if (buildCount >= 6) {
                 return [
-                    '名前候補をしっかりビルドできています。',
-                    '候補を見比べながら、残したい名前を保存しましょう。'
+                    '名前候補がしっかりできています。',
+                    '候補を見比べながら、\n残したい名前を保存しましょう。'
                 ];
             }
             if (buildCount >= 1) {
                 return [
                     '名前候補ができています。',
-                    'さらに組み合わせを増やすか、気になる名前を保存しましょう。'
+                    '組み合わせを増やすか、\n気になる名前を保存しましょう。'
                 ];
             }
             if (readingCount > 0 && kanjiCount > 0) {
@@ -4732,7 +4732,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
             if (readingCount > 0 && kanjiCount === 0) {
                 return [
                     'まだ漢字候補がありません。',
-                    '先に読みへ合う漢字を集めると、名前をビルドできます。'
+                    '先に読みへ合う漢字を集めると、\n名前をビルドできます。'
                 ];
             }
             return readingEmptyLines;
@@ -4757,37 +4757,37 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         if (savedCanvasState?.matched) {
             return [
                 '二人の本命が一致しています。',
-                '大切な候補として、理由や印象も一緒に見返しましょう。'
+                '大切な候補として、\n理由や印象も一緒に見返しましょう。'
             ];
         }
         if (savedTotal >= 4) {
             return [
                 '保存した候補がしっかり集まっています。',
-                '似た響きや漢字を見比べながら、残したい名前を整理しましょう。'
+                '似た響きや漢字を見比べながら、\n残したい名前を整理しましょう。'
             ];
         }
         if (savedTotal >= 1) {
             return [
                 '保存した候補があります。',
-                '比較しながら、もう少し候補を増やすか絞り込むかを決められます。'
+                '比較しながら、\n増やすか絞るかを決められます。'
             ];
         }
         if (buildCount > 0) {
             return [
                 'まだ保存した名前はありません。',
-                'ビルドした候補の中から、残したい名前を保存しましょう。'
+                'ビルドした候補の中から、\n残したい名前を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount > 0) {
             return [
                 'まだ保存した名前はありません。',
-                'まずは名前をビルドして、残したい候補を保存しましょう。'
+                'まずは名前をビルドして、\n残したい候補を保存しましょう。'
             ];
         }
         if (readingCount > 0 && kanjiCount === 0) {
             return [
                 'まだ保存した名前はありません。',
-                '先に読みへ合う漢字を集めて、候補作りに進みましょう。'
+                '先に読みへ合う漢字を集めて、\n候補作りに進みましょう。'
             ];
         }
         return readingEmptyLines;

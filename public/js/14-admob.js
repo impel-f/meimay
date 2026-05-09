@@ -1743,7 +1743,7 @@ PremiumManager.getDisplayStatus = function () {
             active: false,
             expired: true,
             kind: 'expired',
-            drawerLines: ['プレミアム期限切れ', '再開できます'],
+            drawerLines: ['プレミアム期限切れ', '無料プラン'],
             homeTitle: '無料プラン',
             homeDetail: 'プレミアム期限切れ',
             shortLabel: '無料プラン'
@@ -2596,7 +2596,7 @@ function renderPremiumStatusCard(state) {
     const body = active
         ? ''
         : (display.kind === 'expired'
-            ? '現在は無料プランです。再開するとプレミアム機能を利用できます。'
+            ? '現在は無料プランです。'
             : '現在は無料プランです。必要になったらプレミアムへ進めます。');
     const toneClass = active
         ? 'border-[#d5b677] bg-[#fff7e4] text-[#4b3a24]'
