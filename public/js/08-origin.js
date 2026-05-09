@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v10_20260509';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v11_20260509';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -793,14 +793,15 @@ function getNameOriginFullNameCharacters(result = currentBuildResult) {
     return Array.from(`${surname || ''}${givenName || ''}`).filter(Boolean);
 }
 
-function getNameOriginLocalCheckText(result = currentBuildResult) {
+function getNameOriginLocalCheckText(result = currentBuildResult, options = {}) {
+    const includeReadingDifficulty = options.includeReadingDifficulty !== false;
     const checks = [];
     const givenName = getNameOriginGivenName(result);
     const surname = getNameOriginSurnameValue(result);
     const chars = getNameOriginCharacterParts(result);
     const kanjiChars = chars.map(item => item.kanji);
     const readingDifficultyCheck = getNameOriginReadingDifficultyCheckText(result);
-    if (readingDifficultyCheck) checks.push(readingDifficultyCheck);
+    if (includeReadingDifficulty && readingDifficultyCheck) checks.push(readingDifficultyCheck);
 
     Object.entries(NAME_ORIGIN_HARD_COMPOUND_NOTES).forEach(([compound, note]) => {
         if (givenName.includes(compound)) checks.push(note);
@@ -927,7 +928,7 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
             wish: '',
             sound: givenReading ? `「${givenReading}」は、落ち着いて呼びやすい響きです。` : '',
             familyLine: givenName ? `「${givenName}」には、漢字の意味を大切にした願いを込めました。` : '',
-            check: getNameOriginLocalCheckText(result)
+            check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
         };
     }
 
@@ -936,7 +937,7 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
         wish: '人にやさしく、自分らしさを大切にしながら歩んでほしいという願いを込められます。',
         sound: givenReading ? `「${givenReading}」は、やさしく落ち着いた印象で、日常でも呼びやすい響きです。` : '',
         familyLine: givenName ? `「${givenName}」には、漢字の意味を大切にした願いを込めました。` : '',
-        check: getNameOriginLocalCheckText(result)
+        check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
     };
 }
 
@@ -986,8 +987,9 @@ function mergeNameOriginCheckText(aiCheck, localCheck) {
 }
 
 function getNameOriginCheckMaterials(result = currentBuildResult) {
+    const readingDifficultyCheck = getNameOriginReadingDifficultyCheckText(result);
     const itemsByCategory = {};
-    getNameOriginLocalCheckText(result)
+    getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
         .split(/\n+/)
         .map(line => normalizeNameOriginSectionValue(line, 120))
         .filter(Boolean)
@@ -997,7 +999,7 @@ function getNameOriginCheckMaterials(result = currentBuildResult) {
         });
 
     return {
-        hardToRead: itemsByCategory['reading-difficulty'] || '',
+        possibleHardToRead: readingDifficultyCheck || '',
         compoundReading: itemsByCategory['compound-reading'] || '',
         initials: itemsByCategory['alphabet-initials'] || '',
         verticalSplit: itemsByCategory['vertical-split'] || '',
@@ -1021,7 +1023,7 @@ function getNameOriginCheckMaterials(result = currentBuildResult) {
 function getNameOriginStructuredModel(result = currentBuildResult, text = '') {
     const parsed = parseNameOriginStructuredText(text);
     const fallback = buildFallbackNameOriginModel(result, parsed ? '' : text);
-    const localCheck = getNameOriginLocalCheckText(result);
+    const localCheck = getNameOriginLocalCheckText(result, { includeReadingDifficulty: false });
     return {
         decision: normalizeNameOriginSectionValue(parsed?.decision || fallback.decision),
         wish: normalizeNameOriginSectionValue(parsed?.wish || fallback.wish),
@@ -1090,7 +1092,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・wish：漢字データの意味を出発点にし、親が込められる願いを自然な名付けの言葉で書く。
 ・sound：入力された読みの響きにだけ軽く触れる。漢字の意味は書かない。
 ・familyLine：家族や祖父母にそのまま説明できる一文にする。決め手の言い換えにしない。
-・check：確認材料に基づき、親が確認するとよい点だけをやさしく書く。初見で読みづらい名前は必ず触れる。気になる点がなければ空文字にする。
+・check：確認材料に基づき、親が確認するとよい点だけをやさしく書く。気になる点がなければ空文字にする。
 
 【書き分け】
 ・decision は「この名前を選びたくなる理由」を書く。「〜してほしい」という願い中心にしない。
@@ -1106,6 +1108,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語の別読みが強い、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
+・possibleHardToRead はアプリ側の候補判定であり、必ず書く必要はない。AIが一般的な人名感覚でも初見で迷われやすいと判断した場合だけ書く。
 ・AIが一般的な読みづらさ、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
 ・ただし、一般語として別の読みが強い熟字訓への言及は、確認材料に記載がある場合のみ行う。
 ・漢字データや確認材料にない縁起、故事、ことわざ、宗教的な断定、将来の保証を書かない。
