@@ -711,6 +711,14 @@ function getBuildSlotDisplayLabel(seg, idx) {
     return `${idx + 1}文字目: ${seg}`;
 }
 
+function getBuildSlotSearchLabel(seg, idx) {
+    if (isCompoundSlotPlaceholder(seg)) {
+        const label = extractSlotReadingLabel(getBuildSlotDisplayLabel(seg, idx));
+        return label && !isCompoundSlotPlaceholder(label) ? label : '';
+    }
+    return String(seg || '').trim();
+}
+
 function getSafeBuildCurrentReading() {
     const currentReading = typeof getCurrentSessionReading === 'function'
         ? getCurrentSessionReading()
@@ -3135,9 +3143,12 @@ function renderBuildSelection() {
     segments.forEach((seg, idx) => {
         const row = document.createElement('div');
         row.className = 'mb-6';
-        const isFixedSlot = !!getCompoundFixedPieceForSlot(idx);
-        const slotLabel = getBuildSlotDisplayLabel(seg, idx);
-        const addSearchLabel = seg ? `+ ${escapeBuildHtml(String(seg).slice(0, 5))}を探す` : '+ 追加する';
+        const isFixedSlot = !!getCompoundFixedPieceForSlot(idx) || !!selectedPieces[idx]?._compoundFixed;
+        const slotLabel = isFixedSlot
+            ? '<span class="inline-flex items-center justify-center px-3 py-1 rounded-full border border-[#eadfce] bg-[#fff8ef] text-[10px] font-black text-[#b9965b] leading-none">固定</span>'
+            : getBuildSlotDisplayLabel(seg, idx);
+        const searchLabel = getBuildSlotSearchLabel(seg, idx);
+        const addSearchLabel = searchLabel ? `+ ${escapeBuildHtml(searchLabel.slice(0, 5))}を探す` : '+ 追加する';
 
         row.innerHTML = `
     <div class="flex items-center justify-between mb-3" >
@@ -3145,7 +3156,7 @@ function renderBuildSelection() {
                     <span class="bg-[#bca37f] text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">${idx + 1}</span>
                     ${slotLabel}
                 </p>
-                <div class="flex gap-2">
+                <div class="flex gap-2" data-build-slot-actions>
                     <button onclick="addMoreToSlot(${idx})" class="text-[10px] font-bold text-[#5d5444] hover:text-[#bca37f] transition-colors px-3 py-1 border border-[#bca37f] rounded-full bg-white">
                         ${addSearchLabel}
                     </button>
@@ -3160,9 +3171,9 @@ function renderBuildSelection() {
         }
 
         if (isFixedSlot) {
-            const rowActions = row.querySelector('.flex.gap-2');
+            const rowActions = row.querySelector('[data-build-slot-actions]');
             if (rowActions) {
-                rowActions.innerHTML = '<span class="text-[10px] font-bold text-[#b9965b] px-3 py-1 border border-[#eadfce] rounded-full bg-[#fff8ef]">\u56fa\u5b9a</span>';
+                rowActions.innerHTML = '';
             }
         }
 
