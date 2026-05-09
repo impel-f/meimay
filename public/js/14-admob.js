@@ -591,9 +591,12 @@ function getRevenueCatEntitlement(customerInfo) {
 
 function getRevenueCatEntitlementActive(customerInfo) {
     const info = customerInfo?.customerInfo || customerInfo || {};
+    const entitlement = getRevenueCatEntitlement(customerInfo);
     return !!(info.entitlements
         && info.entitlements.active
-        && info.entitlements.active[RevenueCatConfig.entitlementId]);
+        && info.entitlements.active[RevenueCatConfig.entitlementId])
+        || entitlement?.isActive === true
+        || entitlement?.active === true;
 }
 
 function getRevenueCatEntitlementDate(entitlement, keys) {
@@ -749,9 +752,7 @@ function buildPremiumState(source, activeHint, status, expiresAt) {
             expired: true,
             title: 'プレミアム期限切れ',
             subtitle: '',
-            detail: expiresDate
-                ? `有効期限は${formatPremiumDateLabel(expiresDate)}まででした。`
-                : 'プレミアム会員の有効期限は切れています。'
+            detail: '現在は無料プランです。'
         };
     }
 
@@ -1399,7 +1400,10 @@ function openPremiumModalFromDrawer() {
 
 function closePremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+        modal.classList.remove('active');
+        delete modal.dataset.meimayModalKind;
+    }
 }
 
 // 初期化
@@ -1512,9 +1516,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
         }
     } else if (expired) {
         label = 'プレミアム期限切れ';
-        detail = expiresLabel
-            ? '有効期限は' + expiresLabel + 'まででした。'
-            : 'プレミアムの有効期限が切れています。';
+        detail = '現在は無料プランです。';
     }
 
     return {
@@ -1741,7 +1743,7 @@ PremiumManager.getDisplayStatus = function () {
             active: false,
             expired: true,
             kind: 'expired',
-            drawerLines: ['プレミアム期限切れ', dateLabel ? `${dateLabel}まででした` : '再開できます'],
+            drawerLines: ['プレミアム期限切れ', '再開できます'],
             homeTitle: '無料プラン',
             homeDetail: 'プレミアム期限切れ',
             shortLabel: '無料プラン'
@@ -1846,6 +1848,43 @@ function getPremiumProductPlan(productId) {
     return PREMIUM_PRODUCT_PLANS.find((plan) => plan.id === normalized) || null;
 }
 
+function getFuturePremiumIsoDate(value) {
+    const date = normalizePremiumDate(value);
+    if (!date || date.getTime() <= Date.now()) return null;
+    return date.toISOString();
+}
+
+function refreshPremiumModalIfOpen(options = {}) {
+    const modal = document.getElementById('modal-ai-sound');
+    if (!modal || !modal.classList.contains('active') || modal.dataset.meimayModalKind !== 'premium') return;
+    if (!modal.querySelector('[data-premium-modal-root="true"]')) return;
+    if (typeof showPremiumModal !== 'function') return;
+
+    const syncMessage = String(options.syncMessage || '').trim();
+    showPremiumModal({
+        skipAutoSync: true,
+        skipPostShowUiRefresh: true,
+        syncMessage
+    });
+}
+
+function refreshPremiumDependentScreens() {
+    const searchScreen = document.getElementById('scr-kanji-search');
+    if (searchScreen && searchScreen.classList.contains('active')) {
+        if (typeof updateKanjiSearchTitle === 'function') updateKanjiSearchTitle();
+        if (typeof updateSearchModeToggle === 'function') updateSearchModeToggle();
+        if (typeof updateSearchAllKanjiToggle === 'function') updateSearchAllKanjiToggle();
+        if (typeof executeKanjiSearch === 'function') executeKanjiSearch();
+    }
+
+    const rankingScreen = document.getElementById('scr-ranking');
+    if (rankingScreen && rankingScreen.classList.contains('active') && typeof loadRanking === 'function') {
+        Promise.resolve(loadRanking({ forceRefresh: true })).catch((error) => {
+            console.warn('PREMIUM: failed to refresh ranking after premium state update', error);
+        });
+    }
+}
+
 PremiumManager._syncCurrentPremiumState = async function () {
     if (this.isPremium()) {
         hideAdBanner();
@@ -1853,6 +1892,9 @@ PremiumManager._syncCurrentPremiumState = async function () {
         showAdBanner();
     }
     updatePremiumUI();
+    refreshPremiumModalIfOpen({
+        syncMessage: this.isPremium() ? 'プレミアムが有効になりました。' : ''
+    });
 
     if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
         const publicPremiumState = typeof this.getPublicPremiumSnapshot === 'function'
@@ -1862,6 +1904,49 @@ PremiumManager._syncCurrentPremiumState = async function () {
             await MeimayShare.syncPremiumState(publicPremiumState);
         }
     }
+};
+
+PremiumManager._applyImmediateTrialResult = async function (result = {}) {
+    const status = String(result?.status || '').trim();
+    if (!['started', 'trial_active', 'paid_active'].includes(status)) return false;
+
+    const nowIso = new Date().toISOString();
+
+    if (status === 'paid_active') {
+        const paidExpiresAt = getFuturePremiumIsoDate(this._storeExpiresAt || this._remoteExpiresAt || this._remoteAppStoreExpiresAt);
+        const existingPaidSource = this._remotePremiumSource && this._remotePremiumSource !== 'trial'
+            ? this._remotePremiumSource
+            : null;
+        this._remotePremium = true;
+        this._remotePremiumSource = this._storePremiumSource || existingPaidSource || 'app_store';
+        this._remoteStatus = 'active';
+        this._remoteAppStoreExpiresAt = paidExpiresAt;
+        this._remoteExpiresAt = paidExpiresAt;
+        this._remoteProductId = this._remoteProductId || this._storeProductId || null;
+        this._remoteLastNotificationType = this._remoteLastNotificationType || 'premium_trial_api_paid_active';
+        this._remoteTrialStatus = null;
+        this._remoteTrialStartedAt = null;
+        this._remoteTrialEndsAt = null;
+        this._remoteTrialConsumedAt = null;
+        this._remoteTrialConsumedByRoom = false;
+    } else {
+        const trialEndsAt = getFuturePremiumIsoDate(result?.trialEndsAt || this._remoteTrialEndsAt || this._remoteExpiresAt);
+        this._remotePremium = true;
+        this._remotePremiumSource = 'trial';
+        this._remoteStatus = 'trialing';
+        this._remoteAppStoreExpiresAt = null;
+        this._remoteExpiresAt = trialEndsAt;
+        this._remoteProductId = null;
+        this._remoteLastNotificationType = 'premium_trial_api_active';
+        this._remoteTrialStatus = 'active';
+        this._remoteTrialStartedAt = result?.trialStartedAt || this._remoteTrialStartedAt || nowIso;
+        this._remoteTrialEndsAt = trialEndsAt;
+        this._remoteTrialConsumedAt = this._remoteTrialConsumedAt || nowIso;
+        this._remoteTrialConsumedByRoom = result?.consumesRoom === true;
+    }
+
+    await this._syncCurrentPremiumState();
+    return this.isPremium();
 };
 
 PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackProductId = '') {
@@ -2349,6 +2434,9 @@ PremiumManager.startTrial = async function () {
             PremiumTrialNudge.markTrialStatus(result.status);
         }
 
+        if (typeof this._applyImmediateTrialResult === 'function') {
+            await this._applyImmediateTrialResult(result);
+        }
         await this.refreshPurchaseState();
         if (typeof showPremiumModal === 'function') showPremiumModal();
         return result.status === 'started' || result.status === 'trial_active' || result.status === 'paid_active';
@@ -2408,9 +2496,29 @@ function updatePremiumUI() {
         updateDailyRemainingDisplay();
     }
 
+    const kanjiDetailModal = document.getElementById('modal-kanji-detail');
+    if (kanjiDetailModal
+        && kanjiDetailModal.classList.contains('active')
+        && typeof refreshKanjiDetailAiButtonState === 'function') {
+        refreshKanjiDetailAiButtonState();
+    }
+
     if (typeof renderUniversalCard === 'function') {
         const universalScreen = document.getElementById('scr-swipe-universal');
         if (universalScreen && universalScreen.classList.contains('active')) {
+            if (state.active
+                && typeof SwipeState !== 'undefined'
+                && SwipeState
+                && SwipeState.dailyLimitMode === 'reading'
+                && Array.isArray(SwipeState.premiumUnlockCandidates)
+                && SwipeState.premiumUnlockCandidates.length > 0) {
+                SwipeState.candidates = SwipeState.premiumUnlockCandidates.slice();
+                SwipeState.currentIndex = Math.min(
+                    Number(SwipeState.currentIndex) || 0,
+                    SwipeState.candidates.length
+                );
+                SwipeState.dailyLimitMode = null;
+            }
             renderUniversalCard();
         }
     }
@@ -2419,7 +2527,13 @@ function updatePremiumUI() {
         const kanjiSwipeScreen = document.getElementById('scr-main');
         if (kanjiSwipeScreen && kanjiSwipeScreen.classList.contains('active')) {
             const stackExhausted = Array.isArray(stack) && currentIdx >= stack.length;
-            if (state.active && stackExhausted && Array.isArray(segments) && segments.length > 0 && typeof loadStack === 'function') {
+            if (state.active
+                && stackExhausted
+                && typeof isFreeSwipeMode !== 'undefined'
+                && isFreeSwipeMode
+                && typeof startFreeSwiping === 'function') {
+                startFreeSwiping();
+            } else if (state.active && stackExhausted && Array.isArray(segments) && segments.length > 0 && typeof loadStack === 'function') {
                 currentIdx = 0;
                 loadStack();
             } else {
@@ -2431,6 +2545,8 @@ function updatePremiumUI() {
     if (typeof renderSettingsScreen === 'function') {
         renderSettingsScreen();
     }
+
+    refreshPremiumDependentScreens();
 }
 
 function formatPremiumMatrixCell(value) {
@@ -2636,8 +2752,9 @@ function showPremiumModal(options = {}) {
     const syncMessage = options && typeof options === 'object' ? String(options.syncMessage || '') : '';
 
     modal.classList.add('active');
+    modal.dataset.meimayModalKind = 'premium';
     modal.innerHTML = ''
-        + '<div class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; border-radius:30px; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">'
+        + '<div data-premium-modal-root="true" class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; border-radius:30px; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">'
         + '<button class="modal-close-btn" style="top:14px;right:14px;width:40px;height:40px;font-size:22px;background:rgba(255,255,255,0.72);border:1px solid #eadfcd;" onclick="closePremiumModal()">×</button>'
         + '<div class="space-y-3">'
         + '<div class="text-center px-10 sm:px-0">'
@@ -2655,7 +2772,7 @@ function showPremiumModal(options = {}) {
 
     if (!state.active && !(options && options.skipAutoSync)) {
         setTimeout(syncPurchaseStateFromPremiumModal, 120);
-    } else if (state.active) {
+    } else if (state.active && !(options && options.skipPostShowUiRefresh)) {
         setTimeout(() => {
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();

@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
     <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.1">
-    <link rel="stylesheet" href="/css/main.css?v=26.17">
+    <link rel="stylesheet" href="/css/main.css?v=26.20">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.20">
 
     <!-- Google AdSense -->
@@ -649,16 +649,10 @@
             <div class="flex items-center gap-2 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 id="kanji-search-title" class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
-                <div class="flex flex-col items-stretch gap-1 flex-shrink-0">
+                <div class="flex items-center flex-shrink-0">
                     <button id="search-mode-toggle" onclick="toggleSearchFlexibleMode()"
-                        class="h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0"
-                        style="width:88px;height:26px">
+                        class="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none">
                         読み厳格
-                    </button>
-                    <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
-                        class="h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0"
-                        style="width:88px;height:26px">
-                        おすすめ漢字
                     </button>
                 </div>
             </div>
@@ -671,10 +665,23 @@
             </div>
 
             <!-- Classification Filter -->
-            <div class="mb-2">
-                <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
-                <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                    <!-- JS populated -->
+            <div class="mb-2 flex items-start gap-3">
+                <div class="shrink-0">
+                    <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">表示する漢字</p>
+                    <div class="flex gap-1.5 pb-1">
+                        <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
+                            class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all outline-none focus:outline-none"
+                            style="width:72px">
+                            おすすめ
+                        </button>
+                    </div>
+                </div>
+                <div aria-hidden="true" class="shrink-0 rounded-full" style="width:2px;height:32px;margin-top:19px;background:#c7ad83;"></div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
+                    <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+                        <!-- JS populated -->
+                    </div>
                 </div>
             </div>
 
@@ -1514,19 +1521,19 @@
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
     <script src="/js/01-core.js?v=26.15"></script>
-<script src="/js/02-engine.js?v=25.36"></script>
+<script src="/js/02-engine.js?v=25.38"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-<script src="/js/04-ui-flow.js?v=26.61"></script>
-<script src="/js/05-ui-render.js?v=25.87"></script>
+<script src="/js/04-ui-flow.js?v=26.70"></script>
+<script src="/js/05-ui-render.js?v=25.88"></script>
     <script src="/js/06-ui-physics.js?v=25.19"></script>
     <script src="/js/07-build.js?v=25.68"></script>
-<script src="/js/08-origin.js?v=25.52"></script>
+<script src="/js/08-origin.js?v=25.58"></script>
     <script src="/js/09-storage.js?v=26.07"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.40"></script>
     <script src="/js/12-history.js?v=25.61"></script>
     <script src="/js/13-drawer-wizard.js?v=25.30"></script>
-    <script src="/js/14-admob.js?v=25.76"></script>
+    <script src="/js/14-admob.js?v=25.78"></script>
 <script src="/js/15-firebase.js?v=26.42"></script>
     <script src="/js/data/legal-docs.js?v=25.18"></script>
     <script src="/js/16-legal.js?v=25.19"></script>

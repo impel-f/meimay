@@ -836,6 +836,22 @@ async function showKanjiDetail(data) {
     kanjiEl.style.color = '#5d5444';
     kanjiEl.style.display = 'block';
 
+    let glyphVariantEl = document.getElementById('detail-glyph-variant');
+    const glyphVariantHtml = typeof renderKanjiGlyphVariantBadge === 'function'
+        ? renderKanjiGlyphVariantBadge(data, { mode: 'detail' })
+        : '';
+    if (glyphVariantHtml) {
+        if (!glyphVariantEl) {
+            glyphVariantEl = document.createElement('div');
+            glyphVariantEl.id = 'detail-glyph-variant';
+            glyphVariantEl.className = 'mb-2 flex w-full justify-center';
+            kanjiEl.insertAdjacentElement('afterend', glyphVariantEl);
+        }
+        glyphVariantEl.innerHTML = glyphVariantHtml;
+    } else if (glyphVariantEl) {
+        glyphVariantEl.remove();
+    }
+
     // 分類タグ（data['分類']のみ使用）
     const unifiedTags = getUnifiedTags(data['分類'] || '');
 

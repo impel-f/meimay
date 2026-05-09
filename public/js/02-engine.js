@@ -545,6 +545,12 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
     }
 }
 
+function isAwkwardYoonLongVowelBoundary(part, remaining) {
+    const normalizedPart = normalizeReadingComparisonValue(part);
+    const normalizedRemaining = normalizeReadingComparisonValue(remaining);
+    return /[ゃゅょ]$/.test(normalizedPart) && normalizedRemaining.startsWith('う');
+}
+
 function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const nameReading = expandKanaIterationMarks(toHira((rawReading || '').trim()));
     if (!nameReading || !/^[ぁ-ゖー]+$/.test(nameReading)) {
@@ -584,9 +590,11 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
 
         for (let i = 1; i <= Math.min(3, remaining.length); i++) {
             const part = remaining.slice(0, i);
+            const nextRemaining = remaining.slice(i);
+            if (isAwkwardYoonLongVowelBoundary(part, nextRemaining)) continue;
             if (canUseReadingSegment(part)) {
                 currentPath.push(part);
-                findPath(remaining.slice(i), currentPath);
+                findPath(nextRemaining, currentPath);
                 currentPath.pop();
             }
         }
@@ -1213,6 +1221,7 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
     const {
         slotIdx,
         includeNoped,
+        includeInappropriate,
         premiumOverride,
         suppressLogs
     } = context || {};
@@ -1231,6 +1240,13 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
             : (premiumOverride === true);
 
         if (!accessible && premiumOverride !== true) return;
+        if (!masterItem) return;
+
+        const flag = masterItem['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (!includeInappropriate && (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji)) return;
+        }
+        if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem)) return;
 
         const alreadyLiked = Array.isArray(liked)
             ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji)
@@ -1243,7 +1259,6 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
 
         let item = byKanji.get(kanji);
         if (!item) {
-            if (!masterItem) return;
             item = { ...masterItem };
             list.push(item);
             byKanji.set(kanji, item);
@@ -1450,6 +1465,7 @@ function buildSwipeStackCandidates(options = {}) {
     candidates = markApprovedSwipeCandidates(candidates, approvedKanjiList, {
         slotIdx,
         includeNoped,
+        includeInappropriate,
         premiumOverride,
         suppressLogs
     });

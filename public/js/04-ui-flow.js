@@ -78,6 +78,49 @@ function filterEncounteredSoundCandidates(candidates) {
     });
 }
 
+function getNopedReadingCandidateSet() {
+    const keys = new Set();
+    const addReading = (value) => {
+        const raw = String(value || '').trim();
+        if (!raw) return;
+        keys.add(raw);
+        const normalized = normalizeReadingStockSoundValue(raw);
+        if (normalized) keys.add(normalized);
+    };
+
+    if (typeof noped !== 'undefined' && noped && typeof noped.forEach === 'function') {
+        noped.forEach(addReading);
+    }
+
+    if (Array.isArray(soundPreferenceData?.noped)) {
+        soundPreferenceData.noped.forEach(addReading);
+    }
+
+    const library = typeof getEncounteredLibrary === 'function' ? getEncounteredLibrary() : null;
+    const readings = Array.isArray(library?.readings) ? library.readings : [];
+    readings.forEach((entry) => {
+        if (!entry || entry.lastAction !== 'nope') return;
+        addReading(entry.reading || entry.key || entry.sessionReading || '');
+    });
+
+    return keys;
+}
+
+function filterNopedReadingCandidates(candidates) {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (list.length === 0) return [];
+
+    const nopedReadings = getNopedReadingCandidateSet();
+    if (nopedReadings.size === 0) return list;
+
+    return list.filter((item) => {
+        const reading = String(item?.reading || item?.sessionReading || item?.yomi || '').trim();
+        if (!reading) return true;
+        const normalized = normalizeReadingStockSoundValue(reading);
+        return !nopedReadings.has(reading) && (!normalized || !nopedReadings.has(normalized));
+    });
+}
+
 // Vibe Data — 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
 const VIBES = [
     { id: 'none', label: 'こだわらない', icon: '⚪' },
@@ -1231,6 +1274,45 @@ function escapeHtmlText(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function getKanjiGlyphVariantMeta(item) {
+    if (!item) return null;
+    const kind = String(item['字形種別'] || '').trim();
+    const standard = String(item['標準字体'] || '').trim();
+    if (!kind && !standard) return null;
+
+    const label = kind || '異体字';
+    const shortLabel = label.includes('旧')
+        ? '旧'
+        : (label.includes('異') ? '異' : '別');
+
+    return {
+        label,
+        shortLabel,
+        standard,
+        standardLabel: standard ? `標準字体: ${standard}` : ''
+    };
+}
+
+function renderKanjiGlyphVariantBadge(item, options = {}) {
+    const meta = getKanjiGlyphVariantMeta(item);
+    if (!meta) return '';
+
+    const mode = options.mode || 'compact';
+    if (mode === 'detail') {
+        const standardHtml = meta.standard
+            ? `<span class="rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-[#8b7e66]">${escapeHtmlText(meta.standardLabel)}</span>`
+            : '';
+        return `
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-[#eadfce] bg-white/70 px-2.5 py-1 text-[10px] font-black text-[#8b7e66] shadow-sm">
+                <span class="text-[#b9965b]">${escapeHtmlText(meta.label)}</span>
+                ${standardHtml}
+            </span>
+        `;
+    }
+
+    return `<span class="absolute top-0.5 left-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full border border-[#eadfce] bg-white/90 px-1 text-[9px] font-black text-[#8b7e66] shadow-sm">${escapeHtmlText(meta.shortLabel)}</span>`;
 }
 
 function getAdaptiveReadingHeadingStyle(reading, options = {}) {
@@ -2391,7 +2473,8 @@ const SwipeState = {
     history: [], // For undo
     config: {}, // { title, subtitle, renderCard, onNext }
     soundSession: null,
-    dailyLimitMode: null
+    dailyLimitMode: null,
+    premiumUnlockCandidates: []
 };
 
 // Common Kanji Map
@@ -2502,9 +2585,13 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
 
     const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
     let candidateList = Array.isArray(candidates) ? candidates.slice() : [];
+    if (['sound', 'nickname', 'adana'].includes(mode) && typeof filterNopedReadingCandidates === 'function') {
+        candidateList = filterNopedReadingCandidates(candidateList);
+    }
     if (mode === 'sound' && typeof filterEncounteredSoundCandidates === 'function') {
         candidateList = filterEncounteredSoundCandidates(candidateList);
     }
+    const premiumUnlockCandidates = candidateList.slice();
     const limitedReadingMode = isDailyReadingSwipeLimitedMode(mode);
     if (limitedReadingMode && !premiumActive) {
         const remaining = getDailyReadingSwipeRemainingCount();
@@ -2517,6 +2604,7 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
             SwipeState.history = [];
             SwipeState.config = configOverride;
             SwipeState.dailyLimitMode = 'reading';
+            SwipeState.premiumUnlockCandidates = premiumUnlockCandidates;
             SwipeState.soundSession = mode === 'sound' && typeof createSoundSessionState === 'function'
                 ? createSoundSessionState()
                 : null;
@@ -2547,6 +2635,7 @@ function startUniversalSwipe(mode, candidates, configOverride = {}) {
     SwipeState.history = [];
     SwipeState.config = configOverride;
     SwipeState.dailyLimitMode = limitedReadingMode && !premiumActive ? 'reading' : null;
+    SwipeState.premiumUnlockCandidates = premiumUnlockCandidates;
     SwipeState.soundSession = mode === 'sound' && typeof createSoundSessionState === 'function'
         ? createSoundSessionState()
         : null;
@@ -7053,6 +7142,14 @@ window.getCompoundReadingOptions = getCompoundReadingOptions;
 var searchClassFilter = '';  // '', '#自然', etc.
 var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 var searchShowAllKanji = false;
+const KANJI_SEARCH_GLYPH_ALIASES = {
+    '叱': '𠮟'
+};
+
+function normalizeKanjiSearchGlyph(value) {
+    const normalized = String(value || '').trim();
+    return KANJI_SEARCH_GLYPH_ALIASES[normalized] || normalized;
+}
 
 function getKanjiSearchScreenTitleParts() {
     const premiumActive = typeof PremiumManager !== 'undefined'
@@ -7104,7 +7201,11 @@ function toggleSearchFlexibleMode() {
 }
 
 function toggleSearchShowAllKanji() {
-    searchShowAllKanji = !searchShowAllKanji;
+    setSearchShowAllKanji(!searchShowAllKanji);
+}
+
+function setSearchShowAllKanji(showAll) {
+    searchShowAllKanji = showAll === true;
     updateSearchAllKanjiToggle();
     executeKanjiSearch();
 }
@@ -7112,27 +7213,25 @@ function toggleSearchShowAllKanji() {
 function updateSearchModeToggle() {
     const btn = document.getElementById('search-mode-toggle');
     if (!btn) return;
-    btn.className = 'h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0';
+    btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none';
     if (searchFlexibleMode) {
         btn.textContent = '読み柔軟';
-        btn.style.cssText = 'width:88px;height:26px;background:#bca37f;color:#fff;border:1px solid #bca37f;';
+        btn.style.cssText = 'background:#bca37f;color:#fff;border:1px solid #bca37f;';
     } else {
         btn.textContent = '読み厳格';
-        btn.style.cssText = 'width:88px;height:26px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
+        btn.style.cssText = 'background:#5d5444;color:#fff;border:1px solid #5d5444;';
     }
 }
 
 function updateSearchAllKanjiToggle() {
     const btn = document.getElementById('search-all-kanji-toggle');
+    const baseClass = 'shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 outline-none focus:outline-none';
     if (!btn) return;
-    btn.className = 'h-[26px] px-2 py-0 rounded-full text-[10px] leading-none font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0';
-    if (searchShowAllKanji) {
-        btn.textContent = 'すべての漢字';
-        btn.style.cssText = 'width:88px;height:26px;background:#f0efec;color:#6f6a62;border:1px solid #ded8cf;';
-    } else {
-        btn.textContent = 'おすすめ漢字';
-        btn.style.cssText = 'width:88px;height:26px;background:#5d5444;color:#fff;border:1px solid #5d5444;';
-    }
+    btn.className = searchShowAllKanji
+        ? `${baseClass} bg-[#ece9e3] border border-[#d8d0c4] text-[#6f6a62]`
+        : `${baseClass} bg-[#bca37f] text-white`;
+    btn.style.cssText = 'width:72px;';
+    btn.textContent = searchShowAllKanji ? 'すべて' : 'おすすめ';
 }
 
 function renderSearchFilters() {
@@ -7315,7 +7414,8 @@ function buildKanjiSearchResultItem(k, rawQuery, query) {
     if (!query && !rawQuery && typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
 
     let tier = 99; // 1: Exact, 2: Stem(Flex), 3: Prefix(Flex), 4: OtherMatch
-    const matchKanji = k['漢字'] === rawQuery;
+    const normalizedKanjiQuery = normalizeKanjiSearchGlyph(rawQuery);
+    const matchKanji = k['漢字'] === rawQuery || (!!normalizedKanjiQuery && k['漢字'] === normalizedKanjiQuery);
     const resultItem = { ...k };
 
     if (query || rawQuery) {
@@ -7360,7 +7460,7 @@ function appendKanjiSearchPremiumCta(container, lockedCount) {
     cta.style.backgroundColor = '#fff2dc';
     cta.style.borderColor = '#dfc28f';
     cta.innerHTML = `
-        <div class="text-[12px] font-black leading-snug" style="color:#7b5a25;">👑プレミアム案内👑</div>
+        <div class="text-[14px] font-black leading-snug" style="color:#7b5a25;">👑プレミアム👑</div>
         <div class="mt-1.5 text-[11px] font-bold leading-relaxed" style="color:#8d6d38;">人名用漢字をあと${lockedCount}文字見る</div>
     `;
     cta.onclick = () => {
@@ -7385,10 +7485,16 @@ function executeKanjiSearch() {
 
     // フィルターが何も設定されていない場合はメッセージ表示
     if (!query && !rawQuery && !searchClassFilter) {
-        const scopeText = searchShowAllKanji
-            ? '読みまたは漢字を入力すると、<br>すべての漢字から探せます'
-            : '読みまたは漢字で検索するか、<br>分類を選択してください';
-        container.innerHTML = `<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">${scopeText}</div>`;
+        if (searchShowAllKanji) {
+            container.innerHTML = `
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">
+                    <div>読みまたは漢字を入力すると、<br>すべての漢字から探せます</div>
+                    <div class="mt-3 text-[11px] font-bold text-[#b48642]">※名づけに不適当な漢字が出る可能性があります</div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+        }
         return;
     }
 
@@ -8012,7 +8118,9 @@ window.updateSoundEntryModeUI = updateSoundEntryModeUI;
 window.submitSoundEntry = submitSoundEntry;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
+window.setSearchShowAllKanji = setSearchShowAllKanji;
 window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;
+window.toggleSearchShowAllKanji = toggleSearchShowAllKanji;
 window.executeKanjiSearch = executeKanjiSearch;
 window.toggleSearchStock = toggleSearchStock;
 window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
@@ -8484,7 +8592,7 @@ function aiReorderCandidates(candidates) {
 }
 
 function prepareAdaptiveReadingCandidates(candidates) {
-    return aiReorderCandidates(filterEncounteredSoundCandidates(Array.isArray(candidates) ? candidates : []));
+    return aiReorderCandidates(filterEncounteredSoundCandidates(filterNopedReadingCandidates(Array.isArray(candidates) ? candidates : [])));
 }
 
 function processNickname() {
@@ -9158,7 +9266,7 @@ async function startNicknameCandidateSwipe(baseReading) {
         return;
     }
 
-    const candidates = generateNameCandidates(flowBaseReading, gender, nicknamePosition)
+    const candidates = filterNopedReadingCandidates(generateNameCandidates(flowBaseReading, gender, nicknamePosition))
         .map(item => ({
             ...item,
             gender: item.gender || gender || 'neutral'

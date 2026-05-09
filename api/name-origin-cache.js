@@ -1,8 +1,6 @@
-const crypto = require('crypto');
 const { FieldValue, getAdminFirestore, verifyRequestAuth } = require('./_lib/firebase-admin');
 
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const NAME_ORIGIN_CACHE_COLLECTION = 'name_origin_explanations';
 const NAME_ORIGIN_USAGE_COLLECTION = 'name_origin_daily_usage';
 
 function setCorsHeaders(res) {
@@ -24,18 +22,6 @@ function normalizeString(value, maxLength = 2000) {
   const text = String(value || '').trim();
   if (!text || text.length > maxLength) return '';
   return text;
-}
-
-function normalizeArray(value, maxItems = 6, maxItemLength = 32) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => normalizeString(item, maxItemLength))
-    .filter(Boolean)
-    .slice(0, maxItems);
-}
-
-function getCacheDocId(cacheKey) {
-  return crypto.createHash('sha256').update(String(cacheKey || ''), 'utf8').digest('hex');
 }
 
 function getJstDateKey(date = new Date()) {
@@ -111,66 +97,6 @@ async function hasPremiumAccess(tx, db, uid, nowMs) {
   }
 
   return { active: false, source: '' };
-}
-
-async function handleGet(db, body, res) {
-  const cacheKey = normalizeString(body.cacheKey, 1500);
-  if (!cacheKey) {
-    return buildErrorResponse(res, 400, 'invalid_cache_key');
-  }
-
-  const doc = await db.collection(NAME_ORIGIN_CACHE_COLLECTION).doc(getCacheDocId(cacheKey)).get();
-  if (!doc.exists) {
-    return res.status(200).json({ ok: true, hit: false });
-  }
-
-  const data = doc.data() || {};
-  const text = normalizeString(data.text, 1200);
-  if (!text) {
-    return res.status(200).json({ ok: true, hit: false });
-  }
-
-  return res.status(200).json({
-    ok: true,
-    hit: true,
-    text,
-    promptVersion: data.promptVersion || '',
-    updatedAt: data.updatedAt || null,
-  });
-}
-
-async function handleSave(db, body, req, res) {
-  let auth;
-  try {
-    auth = await verifyRequestAuth(req);
-  } catch (error) {
-    return buildErrorResponse(res, Number(error?.statusCode) || 401, 'authentication_failed', error?.message);
-  }
-
-  const uid = normalizeString(auth?.uid, 128);
-  const cacheKey = normalizeString(body.cacheKey, 1500);
-  const text = normalizeString(body.text, 1200);
-  if (!uid || !cacheKey || !text) {
-    return buildErrorResponse(res, 400, 'invalid_cache_payload');
-  }
-
-  const givenName = normalizeString(body.givenName, 64);
-  const givenReading = normalizeString(body.givenReading, 128);
-  const combination = normalizeArray(body.combination);
-  const promptVersion = normalizeString(body.promptVersion, 80);
-
-  await db.collection(NAME_ORIGIN_CACHE_COLLECTION).doc(getCacheDocId(cacheKey)).set({
-    cacheKey,
-    givenName,
-    givenReading,
-    combination,
-    promptVersion,
-    text,
-    updatedByUid: uid,
-    updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
-
-  return res.status(200).json({ ok: true });
 }
 
 async function handleConsumeDaily(db, req, res) {
@@ -299,8 +225,6 @@ module.exports = async (req, res) => {
 
   try {
     const db = getAdminFirestore();
-    if (action === 'get') return await handleGet(db, body, res);
-    if (action === 'save') return await handleSave(db, body, req, res);
     if (action === 'consumeDaily') return await handleConsumeDaily(db, req, res);
     if (action === 'refundDaily') return await handleRefundDaily(db, req, res);
     return buildErrorResponse(res, 400, 'unsupported_action');
