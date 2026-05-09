@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v11_20260509';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v12_20260509';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -1106,11 +1106,11 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・decision、wish、familyLine では、漢字データをもとにAIの一般的な日本語感覚・名付け文としての表現力を使ってよい。
 ・ただし、漢字データにない意味を「漢字の意味」として足さない。
 ・sound は、入力された読みの音の印象だけを根拠にする。
-・check は原則として空文字でよい。ただし、初見で読みづらい、一般語の別読みが強い、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
+・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
 ・possibleHardToRead はアプリ側の候補判定であり、必ず書く必要はない。AIが一般的な人名感覚でも初見で迷われやすいと判断した場合だけ書く。
-・AIが一般的な読みづらさ、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
-・ただし、一般語として別の読みが強い熟字訓への言及は、確認材料に記載がある場合のみ行う。
+・AIが一般的な読みづらさ、一般語としての受け取られ方、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
+・名前全体が「寿司」「今日」のような実在する一般語・日常語・料理名・物の名として強く認識される場合は、確認材料に記載がなくてもcheckでやさしく触れてよい。
 ・漢字データや確認材料にない縁起、故事、ことわざ、宗教的な断定、将来の保証を書かない。
 ・根拠が足りない場合は無理に補わず、控えめに書く。
 
@@ -1126,7 +1126,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・sound では、性別らしさ、流行、人気、年代感を断定しない。
 ・sound では、言葉の由来、古くから親しまれてきた言葉、いろは歌のような連想を書かない。音の並び、母音、呼びやすさだけに触れる。
 ・checkでは欠点のように強く言わず、「確認しておくと安心です」のようにやさしく書く。
-・「心太」「海月」のように一般語として別の読みが強い熟字訓は、確認材料に記載がある場合のみ、初見で読み方を迷われる可能性に触れる。
+・「心太」「海月」のように確認材料に記載された熟字訓は優先して扱う。名前全体が一般語としても成立する場合は、否定ではなく「別の言葉として受け取られる場合があります」の温度感で書く。
 
 【JSON形式】
 {"decision":"","wish":"","sound":"","familyLine":"","check":""}
@@ -1247,7 +1247,7 @@ function renderNameOriginLoading(result = currentBuildResult) {
                 ${renderNameOriginHeaderCards(result, { disabled: true })}
                 ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
                 <div class="name-origin-loading-mark" aria-hidden="true"></div>
-                <p class="name-origin-loading-text">漢字の意味をつないでいます。</p>
+                <p class="name-origin-loading-text">名前に込める願いを整えています</p>
             </div>
         </div>
     `;
