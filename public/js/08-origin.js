@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v9_20260509';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v10_20260509';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -253,10 +253,14 @@ function getNameOriginSurnameReading(result = currentBuildResult) {
 function getNameOriginCacheKey(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
     const givenReading = getNameOriginGivenReading(result);
+    const surname = getNameOriginSurnameValue(result);
+    const surnameReadingValue = getNameOriginSurnameReading(result);
     const combinationKey = getNameOriginCombinationKey(result) || givenName;
     if (!givenName && !combinationKey) return '';
     return [
         NAME_ORIGIN_PROMPT_VERSION,
+        encodeURIComponent(surname || ''),
+        encodeURIComponent(surnameReadingValue || ''),
         encodeURIComponent(givenName),
         encodeURIComponent(givenReading || ''),
         encodeURIComponent(combinationKey)
@@ -936,18 +940,82 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     };
 }
 
+function getNameOriginCheckCategory(line) {
+    const normalized = String(line || '').replace(/\s+/g, '');
+    if (!normalized) return '';
+    if (/ローマ字|アルファベット|頭文字|イニシャル|[Ww]\.?[Cc]\.?|[Nn]\.?[Gg]\.?|[Ss]\.?[Mm]\.?|[Aa]\.?[Vv]\.?|[Dd]\.?[Vv]\.?/.test(normalized)) {
+        return 'alphabet-initials';
+    }
+    if (/縦書き|縦に並べる|縦割れ|左右に分かれる|割れて見える/.test(normalized)) {
+        return 'vertical-split';
+    }
+    if (/熟字訓|心太|海月|日常語|一般語|まとめ読み/.test(normalized)) {
+        return 'compound-reading';
+    }
+    if (/初見|読みにく|読みづら|読み方|読むのが難しい|読みを添え|読みを確認/.test(normalized)) {
+        return 'reading-difficulty';
+    }
+    if (/旧字体|異体字|別体|大字|字形|届出|表記/.test(normalized)) {
+        return 'glyph-form';
+    }
+    if (/画数|手書き/.test(normalized)) {
+        return 'stroke-count';
+    }
+    if (/へん|偏り|重なる|統一感/.test(normalized)) {
+        return 'visual-balance';
+    }
+    return normalized.replace(/[「」『』。、，,.・\s]/g, '').slice(0, 24);
+}
+
 function mergeNameOriginCheckText(aiCheck, localCheck) {
     const lines = [];
-    [aiCheck, localCheck].forEach((value) => {
+    const categories = new Set();
+    [localCheck, aiCheck].forEach((value) => {
         normalizeNameOriginText(value)
             .split(/\n+/)
             .map(line => normalizeNameOriginSectionValue(line, 120))
             .filter(Boolean)
             .forEach((line) => {
+                const category = getNameOriginCheckCategory(line);
+                if (category && categories.has(category)) return;
                 if (!lines.includes(line)) lines.push(line);
+                if (category) categories.add(category);
             });
     });
     return lines.slice(0, 3).join('\n');
+}
+
+function getNameOriginCheckMaterials(result = currentBuildResult) {
+    const itemsByCategory = {};
+    getNameOriginLocalCheckText(result)
+        .split(/\n+/)
+        .map(line => normalizeNameOriginSectionValue(line, 120))
+        .filter(Boolean)
+        .forEach((line) => {
+            const category = getNameOriginCheckCategory(line) || 'note';
+            if (!itemsByCategory[category]) itemsByCategory[category] = line;
+        });
+
+    return {
+        hardToRead: itemsByCategory['reading-difficulty'] || '',
+        compoundReading: itemsByCategory['compound-reading'] || '',
+        initials: itemsByCategory['alphabet-initials'] || '',
+        verticalSplit: itemsByCategory['vertical-split'] || '',
+        glyphForm: itemsByCategory['glyph-form'] || '',
+        strokeCount: itemsByCategory['stroke-count'] || '',
+        visualBalance: itemsByCategory['visual-balance'] || '',
+        notes: Object.entries(itemsByCategory)
+            .filter(([category]) => ![
+                'reading-difficulty',
+                'compound-reading',
+                'alphabet-initials',
+                'vertical-split',
+                'glyph-form',
+                'stroke-count',
+                'visual-balance'
+            ].includes(category))
+            .map(([, line]) => line)
+    };
 }
 
 function getNameOriginStructuredModel(result = currentBuildResult, text = '') {
@@ -993,7 +1061,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
     const givenReading = getNameOriginGivenReading(result);
     const surname = getNameOriginSurnameValue(result);
     const surnameYomi = getNameOriginSurnameReading(result);
-    const localCheck = getNameOriginLocalCheckText(result);
+    const checkMaterials = getNameOriginCheckMaterials(result);
     const originDetails = getNameOriginCombination(result).map((part) => {
         const kanji = getNameOriginKanjiValue(part);
         const meaning = kanji === '々'
@@ -1002,10 +1070,11 @@ function buildNameOriginPrompt(result = currentBuildResult) {
         return { kanji, meaning };
     }).filter(item => item.kanji && item.meaning);
     const originDataText = JSON.stringify(originDetails);
+    const checkMaterialsText = JSON.stringify(checkMaterials);
 
     return `
-名前「${givenName}」（読み: ${givenReading || '未指定'}）について、親が名前を決める材料になる短い由来案を作成してください。
-${surname ? `名字: ${surname}（読み: ${surnameYomi || '未指定'}）` : ''}
+あなたは名付けアプリの由来案を作成するライターです。
+親が名前を決める材料になる、短く自然な由来案を作成してください。
 
 【出力ルール】
 ・出力はJSONだけにする。前置き、見出し、Markdown、コードブロックは不要。
@@ -1019,7 +1088,7 @@ ${surname ? `名字: ${surname}（読み: ${surnameYomi || '未指定'}）` : ''
 【各項目の役割】
 ・decision：この名前を選ぶ後押しになる「決め手」を短く書く。願いではなく、意味の取り合わせや名前としての良さを書く。
 ・wish：漢字データの意味を出発点にし、親が込められる願いを自然な名付けの言葉で書く。
-・sound：読み「${givenReading || '未指定'}」の響きにだけ軽く触れる。漢字の意味は書かない。
+・sound：入力された読みの響きにだけ軽く触れる。漢字の意味は書かない。
 ・familyLine：家族や祖父母にそのまま説明できる一文にする。決め手の言い換えにしない。
 ・check：確認材料に基づき、親が確認するとよい点だけをやさしく書く。初見で読みづらい名前は必ず触れる。気になる点がなければ空文字にする。
 
@@ -1034,7 +1103,7 @@ ${surname ? `名字: ${surname}（読み: ${surnameYomi || '未指定'}）` : ''
 ・漢字の意味そのものは漢字データを主根拠にする。
 ・decision、wish、familyLine では、漢字データをもとにAIの一般的な日本語感覚・名付け文としての表現力を使ってよい。
 ・ただし、漢字データにない意味を「漢字の意味」として足さない。
-・sound は、読み「${givenReading || '未指定'}」の音の印象だけを根拠にする。
+・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語の別読みが強い、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
 ・AIが一般的な読みづらさ、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
@@ -1046,7 +1115,7 @@ ${surname ? `名字: ${surname}（読み: ${surnameYomi || '未指定'}）` : ''
 ・親が家族にそのまま話せる自然な言葉にする。
 ・「〜になるでしょう」「必ず〜」のように将来を断定しない。
 ・「人生という舞台」「人生の景色を描く」「自分にしか果たせない役割」「道しるべ」「未来を切り開く」「温かく照らす」「輝く未来」のような抽象的でテンプレート感のある表現は使わない。
-・名前をかぎ括弧で書く場合は、必ず「${givenName}」のように開き括弧から書く。
+・名前をかぎ括弧で書く場合は、必ず入力された名前を開き括弧から書く。
 ・decision、wish、sound、familyLine では名字や名字との相性には触れない。
 ・checkでは、確認材料に名字を含む縦割れやローマ字頭文字の注意がある場合だけ名字情報に触れてよい。
 ・架空の故事・ことわざ・人物・有名人には触れない。
@@ -1059,11 +1128,13 @@ ${surname ? `名字: ${surname}（読み: ${surnameYomi || '未指定'}）` : ''
 【JSON形式】
 {"decision":"","wish":"","sound":"","familyLine":"","check":""}
 
-【漢字データ】
-${originDataText}
-
-【確認材料】
-${localCheck || ''}
+【入力】
+名前: ${givenName || ''}
+読み: ${givenReading || ''}
+名字: ${surname || ''}
+名字読み: ${surnameYomi || ''}
+漢字データ: ${originDataText}
+確認材料: ${checkMaterialsText}
 `.trim();
 }
 
