@@ -4,13 +4,14 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v13_20260509';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v14_20260510';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
+let activeNameOriginGenerationToken = 0;
 
 const NAME_ORIGIN_LEFT_RIGHT_KANJI = new Set(Array.from(
     '明朋服期朝湖瑚珊理琉璃珠玲玖珂珀瑛瑞琳瑠環瑶琴珈祐祥裕俊侑佑佐佳依怜悟恒想惟慎拓陽陸陵梨桜桃椿楓柚梓樹波海洋浬渚治浩洸清淳湊満潤澪瀬沙汐汰江沖河晴暖昭時智暉彩結紗絢綾緒純紬詩誠語諒謙護証論'
@@ -721,13 +722,34 @@ function getNameOriginReadableSegments(result = currentBuildResult, parts = null
 }
 
 function getNameOriginReadingDifficultyCheckText(result = currentBuildResult) {
+    const clarity = getNameOriginReadingClarity(result);
+    return clarity.suggestedCheck || '';
+}
+
+function getNameOriginReadingClarity(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
     const givenReading = getNameOriginGivenReading(result);
     const parts = getNameOriginCombination(result);
-    if (!givenName || !givenReading || parts.length <= 1) return '';
+    const empty = {
+        level: 'unknown',
+        label: '判定なし',
+        segments: [],
+        statusSummary: [],
+        appReason: '',
+        suggestedCheck: ''
+    };
+    if (!givenName || !givenReading || parts.length <= 1) return empty;
 
     const segmentsForCheck = getNameOriginReadableSegments(result, parts);
-    if (segmentsForCheck.length !== parts.length || !segmentsForCheck.every(Boolean)) return '';
+    if (segmentsForCheck.length !== parts.length || !segmentsForCheck.every(Boolean)) {
+        return {
+            ...empty,
+            level: 'hard',
+            label: '読めない',
+            appReason: 'アプリ側の読み候補では、名前全体の読みを自然に分割できませんでした。',
+            suggestedCheck: `「${givenName}」は初見では「${givenReading}」と読むのが難しい可能性があります。読みを添えて伝えると安心です。`
+        };
+    }
 
     const statuses = [];
     parts.forEach((part, index) => {
@@ -745,10 +767,41 @@ function getNameOriginReadingDifficultyCheckText(result = currentBuildResult) {
         && nonObviousCount >= 1
         && statuses.some(status => status === 'major-exact' || status === 'major-loose');
 
-    if (unknownCount > 0 || nonObviousCount >= 2 || mixedButUnattested) {
-        return `「${givenName}」は初見では「${givenReading}」と読みにくい可能性があります。読みを添えて伝えると安心です。`;
+    let level = 'obvious';
+    let label = '誰でも読める';
+    let appReason = '主要な読みの組み合わせとして自然に読める可能性が高いです。';
+    let suggestedCheck = '';
+
+    if (unknownCount > 0) {
+        level = exactExampleExists ? 'often-misread' : 'hard';
+        label = exactExampleExists ? 'よく読み間違われる' : '読めない';
+        appReason = '一部の漢字に、入力された読みが一般的な読み候補として見つかりませんでした。';
+        suggestedCheck = `「${givenName}」は初見では「${givenReading}」と読むのが難しい可能性があります。読みを添えて伝えると安心です。`;
+    } else if (nonObviousCount >= 2) {
+        level = exactExampleExists ? 'rare-misread' : 'often-misread';
+        label = exactExampleExists ? 'まれに読み違いがある可能性' : 'よく読み間違われる';
+        appReason = exactExampleExists
+            ? '実例はありますが、複数の漢字で読み方に揺れが出る可能性があります。'
+            : '複数の漢字で、主要読みから少し外れる読み方が使われています。';
+        suggestedCheck = exactExampleExists
+            ? `「${givenName}」は比較的読みやすい名前ですが、初対面では念のため「${givenReading}」と読みを添えるとより伝わりやすいです。`
+            : `「${givenName}」は初見では別の読みを想像される可能性があります。読みを添えて伝えると安心です。`;
+    } else if (nonObviousCount === 1 || mixedButUnattested) {
+        level = 'rare-misread';
+        label = 'まれに読み違いがある可能性';
+        appReason = 'おおむね読めますが、一部の読みで別読みを想像される可能性があります。';
+        suggestedCheck = `「${givenName}」は比較的読みやすい名前ですが、初対面では念のため「${givenReading}」と読みを添えるとより伝わりやすいです。`;
     }
-    return '';
+
+    return {
+        level,
+        label,
+        segments: segmentsForCheck,
+        statusSummary: statuses,
+        exactExampleExists,
+        appReason,
+        suggestedCheck
+    };
 }
 
 function kanaToNameOriginRomaji(value) {
@@ -1061,7 +1114,7 @@ function mergeNameOriginCheckText(aiCheck, localCheck) {
 }
 
 function getNameOriginCheckMaterials(result = currentBuildResult) {
-    const readingDifficultyCheck = getNameOriginReadingDifficultyCheckText(result);
+    const readingClarity = getNameOriginReadingClarity(result);
     const itemsByCategory = {};
     getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
         .split(/\n+/)
@@ -1073,7 +1126,8 @@ function getNameOriginCheckMaterials(result = currentBuildResult) {
         });
 
     return {
-        possibleHardToRead: readingDifficultyCheck || '',
+        readingClarity,
+        possibleHardToRead: readingClarity.suggestedCheck || '',
         compoundReading: itemsByCategory['compound-reading'] || '',
         initials: itemsByCategory['alphabet-initials'] || '',
         verticalSplit: itemsByCategory['vertical-split'] || '',
@@ -1162,16 +1216,16 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・decision、wish、familyLine は同じ内容を繰り返さない。
 
 【各項目の役割】
-・decision：この名前を選ぶ後押しになる「決め手」を短く書く。願いではなく、意味の取り合わせや名前としての良さを書く。
-・wish：漢字データの意味を出発点にし、親が込められる願いを自然な名付けの言葉で書く。
+・decision：その名前を選ぶ理由を書く。字面、意味、響きがどうまとまっているかを中心にし、親の願いは書かない。
+・wish：子どもにどう育ってほしいかを書く。漢字データの意味を出発点に、親の気持ちとして自然に書く。
 ・sound：入力された読みの響きにだけ軽く触れる。漢字の意味は書かない。
-・familyLine：家族や祖父母にそのまま説明できる一文にする。決め手の言い換えにしない。
+・familyLine：祖父母や家族に説明するときの自然な一文にする。そのまま使える言葉で、decisionやwishの言い換えにしない。
 ・check：確認材料に基づき、親が確認するとよい点だけをやさしく書く。気になる点がなければ空文字にする。
 
 【書き分け】
-・decision は「この名前を選びたくなる理由」を書く。「〜してほしい」という願い中心にしない。
-・wish は「親が子どもに込める願い」を書く。
-・familyLine は「家族に説明するときの一文」として書く。
+・decision は「この名前を選びたくなる理由」を書く。字面、意味の取り合わせ、響きのまとまり、名前としての印象を扱う。
+・wish は「親が子どもに込める願い」を書く。「〜してほしい」「〜を大切にしてほしい」のような親の気持ちを扱う。
+・familyLine は「家族に説明するときの一文」として書く。意味の説明と願いを短くまとめ、会話でそのまま言える形にする。
 ・3項目で同じ表現や同じ結論を繰り返さない。
 ・decision と familyLine は特に重複しやすいので、同じ語尾・同じ中心表現を避ける。
 
@@ -1182,7 +1236,12 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
-・possibleHardToRead はアプリ側の候補判定であり、必ず書く必要はない。AIが一般的な人名感覚でも初見で迷われやすいと判断した場合だけ書く。
+・readingClarity はアプリ側の参考判定であり、最終判断はAIの一般的な人名感覚も使ってよい。
+・読みやすさは「誰でも読める」「まれに読み違いがある可能性」「よく読み間違われる」「読めない」の4段階で考える。
+・「誰でも読める」と判断できる場合、読みづらさのcheckは書かない。
+・「まれに読み違いがある可能性」の場合だけ、必要なら「比較的読みやすい名前ですが、初対面では念のため読みを添えるとより伝わりやすいです。」の温度感で書く。「読み方が分かれやすい」と強く言わない。
+・「よく読み間違われる」「読めない」と判断できる場合は、別読みや初見で迷われる点をやさしく書く。
+・possibleHardToRead はアプリ側の候補文であり、そのまま採用せず、4段階に合わせて自然に書き直す。不要なら書かない。
 ・possibleHardToRead が空でも、入力された名前と読みを独自に見て、初見でその読みにはなりにくいと明確に判断できる場合はcheckに書く。
 ・AIが一般的な読みづらさ、一般語としての受け取られ方、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
 ・名前全体が「寿司」「今日」のような実在する一般語・日常語・料理名・物の名として強く認識される場合は、確認材料に記載がなくてもcheckでやさしく触れてよい。
@@ -1256,6 +1315,7 @@ async function generateOrigin(options = {}) {
     }
 
     nameOriginGenerationInFlight = true;
+    const generationToken = ++activeNameOriginGenerationToken;
     renderNameOriginLoading(target);
 
     try {
@@ -1290,13 +1350,17 @@ async function generateOrigin(options = {}) {
         }
         saveNameOriginCache(target, aiText);
         persistNameOriginToSavedItems(target, aiText, options);
-        renderAIOriginResult(target, aiText, false, options);
+        if (generationToken === activeNameOriginGenerationToken) {
+            renderAIOriginResult(target, aiText, false, options);
+        }
     } catch (err) {
         await refundDailyNameOriginUseForGeneration(consumption);
         console.warn("AI_NAME_ORIGIN_FAILURE:", err);
         const fallbackText = generateFallbackOrigin(givenName, combination);
-        renderAIOriginResult(target, fallbackText, true, options);
-        if (typeof showToast === 'function') showToast('AI由来を作れませんでした', '!');
+        if (generationToken === activeNameOriginGenerationToken) {
+            renderAIOriginResult(target, fallbackText, true, options);
+            if (typeof showToast === 'function') showToast('AI由来を作れませんでした', '!');
+        }
     } finally {
         nameOriginGenerationInFlight = false;
         if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(!!(currentBuildResult && currentBuildResult.fullName));
@@ -1315,12 +1379,18 @@ function renderNameOriginLoading(result = currentBuildResult) {
     if (!modal) return;
     const givenReading = escapeHtml(getNameOriginGivenReading(result));
     modal.classList.add('active', 'modal-overlay-dark');
+    modal.onclick = (event) => {
+        if (event.target === modal) closeOriginModal();
+    };
     modal.innerHTML = `
         <div class="detail-sheet animate-fade-in name-origin-sheet">
-            <div class="flex flex-col items-center text-center">
+            <button type="button" class="name-origin-dismiss-action" onclick="closeOriginModal()" aria-label="閉じる">×</button>
+            <div class="name-origin-header">
                 <div class="name-origin-eyebrow">名前に込める願い</div>
                 ${renderNameOriginHeaderCards(result, { disabled: true })}
                 ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
+            </div>
+            <div class="name-origin-loading-content">
                 <div class="name-origin-loading-mark" aria-hidden="true"></div>
                 <p class="name-origin-loading-text">名前に込める願いを整えています</p>
             </div>
@@ -1423,29 +1493,34 @@ function renderAIOriginResult(resultOrName, text, isFallback = false, options = 
     currentNameOriginRenderTarget = result;
     currentNameOriginRenderOptions = { ...options };
     modal.classList.add('active', 'modal-overlay-dark');
+    modal.onclick = (event) => {
+        if (event.target === modal) closeOriginModal();
+    };
     modal.innerHTML = `
         <div class="detail-sheet animate-fade-in name-origin-sheet">
+            <button type="button" class="name-origin-dismiss-action" onclick="closeOriginModal()" aria-label="閉じる">×</button>
             <div class="name-origin-header">
                 <div class="name-origin-eyebrow">${isFallback ? '由来案' : '名前に込める願い'}</div>
                 ${renderNameOriginHeaderCards(result)}
                 ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
             </div>
-            <div class="name-origin-card">
-                ${renderNameOriginStructuredBody(result, text)}
+            <div class="name-origin-scroll-area">
+                <div class="name-origin-card">
+                    ${renderNameOriginStructuredBody(result, text)}
+                </div>
+                ${isFallback ? `
+                    <p class="name-origin-note">
+                        AIサービスに接続できなかったため、端末内の情報で下書きを表示しています。
+                    </p>
+                ` : ''}
+                <div class="name-origin-actions">
+                    <button onclick="saveCurrentNameFromOrigin()" class="name-origin-save-action">
+                        <div class="build-save-btn-title">💾 保存</div>
+                        <div class="build-save-btn-detail">今の名前を保存</div>
+                    </button>
+                </div>
+                <button onclick="closeOriginModal()" class="name-origin-close-action">閉じる</button>
             </div>
-            ${isFallback ? `
-                <p class="name-origin-note">
-                    AIサービスに接続できなかったため、端末内の情報で下書きを表示しています。
-                </p>
-            ` : ''}
-            <div class="name-origin-actions">
-                <button onclick="saveCurrentNameFromOrigin()" class="name-origin-save-action">
-                    <div class="build-save-btn-title">💾 保存</div>
-                    <div class="build-save-btn-detail">今の名前を保存</div>
-                </button>
-                <button onclick="regenerateCurrentNameOrigin()" class="name-origin-secondary-action">もう一度生成</button>
-            </div>
-            <button onclick="closeOriginModal()" class="name-origin-close-action">閉じる</button>
         </div>
     `;
 }
@@ -1466,8 +1541,10 @@ function openNameOriginKanjiDetail(index) {
 
 function closeOriginModal() {
     const m = document.getElementById('modal-origin');
+    activeNameOriginGenerationToken += 1;
     if (m) {
         m.classList.remove('active');
+        m.onclick = null;
         m.innerHTML = '';
     }
     currentNameOriginRenderTarget = null;

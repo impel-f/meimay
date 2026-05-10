@@ -109,6 +109,37 @@ function setupWizChildDatePicker() {
     });
 }
 
+function syncWizSurnamePreview() {
+    const surnameInput = document.getElementById('wiz-surname');
+    const readingInput = document.getElementById('wiz-surname-reading');
+    const surnameGroup = document.getElementById('wiz-surname-preview-group');
+    const surnamePreview = document.getElementById('wiz-surname-preview');
+    const readingPreview = document.getElementById('wiz-surname-reading-preview');
+    const surnameText = surnameInput && surnameInput.value.trim() ? surnameInput.value.trim().slice(0, 12) : '';
+    const readingText = readingInput && readingInput.value.trim()
+        ? readingInput.value.trim().slice(0, 24)
+        : '';
+
+    if (surnamePreview) surnamePreview.textContent = surnameText;
+    if (readingPreview) readingPreview.textContent = readingText;
+    if (surnameGroup) surnameGroup.classList.toggle('is-empty', !surnameText && !readingText);
+}
+
+function setupWizSurnamePreview() {
+    const inputs = [
+        document.getElementById('wiz-surname'),
+        document.getElementById('wiz-surname-reading')
+    ];
+
+    inputs.forEach(input => {
+        if (!input || input.dataset.surnamePreviewReady === 'true') return;
+        input.dataset.surnamePreviewReady = 'true';
+        input.addEventListener('input', syncWizSurnamePreview);
+    });
+
+    syncWizSurnamePreview();
+}
+
 // ==========================================
 // WIZARD FUNCTIONS
 // ==========================================
@@ -143,6 +174,7 @@ function selectWizReadingCandidate(hasCandidate) {
     document.querySelectorAll('[data-reading-candidate]').forEach(btn => {
         const isSelected = btn.getAttribute('data-reading-candidate') === (hasCandidate ? 'yes' : 'no');
         btn.classList.toggle('selected', isSelected);
+        btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
 }
 
@@ -150,15 +182,15 @@ function syncWizardReadingChoiceCopy() {
     const yesCopy = document.querySelector('[data-reading-candidate="yes"] .wiz-reading-choice-copy');
     if (yesCopy) {
         const spans = yesCopy.querySelectorAll('span');
-        if (spans[0]) spans[0].textContent = '読み候補がある';
-        if (spans[1]) spans[1].innerHTML = '希望の読みから<br>理想の漢字をさがします';
+        if (spans[0]) spans[0].textContent = '読みが決まっている';
+        if (spans[1]) spans[1].textContent = '「はると」「みなと」など、使いたい読みから漢字を探します';
     }
 
     const noCopy = document.querySelector('[data-reading-candidate="no"] .wiz-reading-choice-copy');
     if (noCopy) {
         const spans = noCopy.querySelectorAll('span');
-        if (spans[0]) spans[0].textContent = 'まだない';
-        if (spans[1]) spans[1].innerHTML = '響きから<br>読みの候補をさがします';
+        if (spans[0]) spans[0].textContent = '読みはまだ決まっていない';
+        if (spans[1]) spans[1].textContent = '響きや入れたい音から、読み候補を探します';
     }
 }
 
@@ -224,18 +256,35 @@ function wizNext(currentStep) {
             btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
         });
     }
+    if (currentStep + 1 === 4 && wizHasReadingCandidate === null) {
+        selectWizReadingCandidate(false);
+    }
 
     // Update dots
     updateWizardDots(currentStep + 1);
 }
 
+function wizPrev(currentStep) {
+    const safeStep = parseInt(currentStep, 10);
+    if (!Number.isFinite(safeStep) || safeStep <= 1) return;
+
+    const current = document.getElementById(`wiz-step-${safeStep}`);
+    const prev = document.getElementById(`wiz-step-${safeStep - 1}`);
+    if (current) current.classList.remove('active');
+    if (prev) prev.classList.add('active');
+    updateWizardDots(safeStep - 1);
+}
+
 function updateWizardDots(step) {
+    const currentStep = Math.min(4, Math.max(1, parseInt(step, 10) || 1));
     for (let i = 1; i <= 4; i++) {
         const dot = document.getElementById(`wiz-dot-${i}`);
         if (dot) {
-            dot.classList.toggle('active', i === step);
+            dot.classList.toggle('active', i === currentStep);
         }
     }
+    const label = document.getElementById('wizard-progress-label');
+    if (label) label.textContent = `${currentStep}/4`;
 }
 
 function wizFinish(mode) {
@@ -320,6 +369,9 @@ function wizFinish(mode) {
 }
 
 function wizStartNaming() {
+    if (wizHasReadingCandidate === null) {
+        selectWizReadingCandidate(false);
+    }
     wizFinish();
 }
 
@@ -328,6 +380,7 @@ window.selectWizGender = selectWizGender;
 window.selectWizBirthOrder = selectWizBirthOrder;
 window.syncWizChildDateLabel = syncWizChildDateLabel;
 window.wizStartNaming = wizStartNaming;
+window.wizPrev = wizPrev;
 
 const DRAWER_EDGE_SWIPE_ZONE = 24;
 const DRAWER_SWIPE_START_THRESHOLD = 10;
@@ -790,7 +843,7 @@ function updateTopBarTitle(screenId) {
         'scr-vibe': 'イメージ',
         'scr-input-nickname': 'ニックネーム',
         'scr-segment': '分け方選択',
-        'scr-surname-settings': '苗字入力',
+        'scr-surname-settings': '名字入力',
         'scr-swipe-universal': 'スワイプ',
         'scr-free-mode': '自由モード',
         'scr-kanji-search': '漢字検索',
@@ -813,6 +866,7 @@ function initDrawerWizard() {
     syncWizardReadingChoiceCopy();
     setupWizChildDatePicker();
     syncWizChildDateLabel();
+    setupWizSurnamePreview();
     renderDrawerMenu();
     setupDrawerSwipeGestures();
 

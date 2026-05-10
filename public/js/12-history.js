@@ -1156,7 +1156,7 @@ function closeSavedNameDetail() {
 }
 
 /**
- * 保存済み名前を読み込む（苗字を含めず、元のビルドモードを復元）
+ * 保存済み名前を読み込む（名字を含めず、元のビルドモードを復元）
  */
 function loadSavedName(index, source = 'own') {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
@@ -1170,7 +1170,7 @@ function loadSavedName(index, source = 'own') {
     // ビルド画面の初期化
     if (typeof clearBuildSelection === 'function') clearBuildSelection();
 
-    // 苗字の特定と反映
+    // 名字の特定と反映
     const nameParts = (item.fullName || '').split(' ');
     if (nameParts.length > 1) {
         if (typeof surnameStr !== 'undefined') {
@@ -1195,7 +1195,7 @@ function loadSavedName(index, source = 'own') {
             segments = [...item.segments];
         } else {
             // セグメントがない場合は読みを1文字ずつにするが、
-            // 苗字が混ざらないよう givenReading を使用する
+            // 名字が混ざらないよう givenReading を使用する
             segments = givenReading.split('');
         }
 

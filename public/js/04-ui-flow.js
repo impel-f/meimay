@@ -9,6 +9,9 @@ let selectedVibes = new Set();
 let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 let soundEntryMode = 'browse';
+let searchMethodSelection = 'sound-browse';
+let searchMethodReturnToChooser = false;
+let searchMethodSubmitInProgress = false;
 let readingStockSoundFilter = null;
 let readingStockDeferredSaveTimer = null;
 let readingStockDeferredSerialized = null;
@@ -342,6 +345,9 @@ window.clearCompoundBuildFlow = clearCompoundBuildFlow;
 
 function startMode(mode) {
     console.log(`UI_FLOW: Start mode ${mode}`);
+    if (!searchMethodSubmitInProgress) {
+        searchMethodReturnToChooser = false;
+    }
     appMode = mode;
     window._addMoreFromBuild = false;
     clearCompoundBuildFlow();
@@ -604,45 +610,144 @@ function initSoundModeEntry() {
 }
 
 function openSearchMethodChooser() {
+    searchMethodReturnToChooser = false;
     changeScreen('scr-input-sound-entry');
     renderSearchMethodChooserScreen();
+    selectSearchMethodChoice(searchMethodSelection);
 }
 
-function renderSearchMethodChooserScreen() {
+function getSearchMethodDefaultChoice() {
+    let readingStockCount = 0;
+    try {
+        if (typeof getReadingStockPickerUniqueCount === 'function') {
+            readingStockCount = getReadingStockPickerUniqueCount();
+        } else if (typeof getReadingStock === 'function') {
+            const stock = getReadingStock();
+            readingStockCount = Array.isArray(stock) ? stock.length : 0;
+        }
+    } catch (e) {
+        readingStockCount = 0;
+    }
+
+    if (readingStockCount > 0) return 'reading';
+
+    const wizard = (typeof WizardData !== 'undefined' && typeof WizardData.get === 'function')
+        ? (WizardData.get() || {})
+        : {};
+    return wizard.hasReadingCandidate === true ? 'reading' : 'sound-browse';
+}
+
+function getSearchMethodSubmitLabel() {
+    if (searchMethodSelection === 'reading') return '漢字を探す';
+    return '読み候補を探す';
+}
+
+function selectSearchMethodChoice(method) {
+    searchMethodSelection = method === 'reading' ? 'reading' : 'sound-browse';
+    const soundChoice = document.getElementById('search-method-sound');
+    const readingChoice = document.getElementById('search-method-reading');
+    const submitBtn = document.getElementById('btn-search-method-submit');
+
+    if (soundChoice) {
+        const selected = searchMethodSelection === 'sound-browse';
+        soundChoice.classList.toggle('selected', selected);
+        soundChoice.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    }
+    if (readingChoice) {
+        const selected = searchMethodSelection === 'reading';
+        readingChoice.classList.toggle('selected', selected);
+        readingChoice.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    }
+    if (submitBtn) {
+        submitBtn.innerHTML = `${getSearchMethodSubmitLabel()} <span aria-hidden="true">›</span>`;
+    }
+    const scrollArea = document.querySelector('.search-method-shell .choice-flow-scroll');
+    if (scrollArea) scrollArea.scrollTop = 0;
+}
+
+function submitSearchMethodChoice() {
+    searchMethodReturnToChooser = true;
+    if (searchMethodSelection === 'reading') {
+        searchMethodSubmitInProgress = true;
+        startMode('reading');
+        searchMethodSubmitInProgress = false;
+        return;
+    }
+
+    initSoundModeEntry();
+}
+
+function returnToSearchMethodChooser() {
+    searchMethodReturnToChooser = false;
+    changeScreen('scr-input-sound-entry');
+    renderSearchMethodChooserScreen(true);
+    selectSearchMethodChoice(searchMethodSelection);
+}
+
+function renderSearchMethodChooserScreen(preserveSelection = false) {
     const screen = document.getElementById('scr-input-sound-entry');
     if (!screen) return;
+    if (!preserveSelection) {
+        searchMethodSelection = getSearchMethodDefaultChoice();
+    }
+    const isReadingSelected = searchMethodSelection === 'reading';
 
     screen.innerHTML = `
-        <div class="w-full max-w-sm text-center mt-2 mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">名前のさがし方</h2>
-            <p class="text-xs text-[#a6967a] text-center mb-8">さがし方を選んでください</p>
+        <div class="w-full max-w-sm text-center mt-2 mx-auto search-method-shell choice-flow-shell">
+            <div class="choice-flow-scroll">
+                <h2 class="method-choice-heading">名前の探し方を選ぶ</h2>
+                <p class="method-choice-lead">今の状況に近いものを選んでください</p>
 
-            <div id="search-method-choice-list" class="flex flex-col gap-3 text-left mb-4">
-                <button id="search-method-reading" onclick="startMode('reading')" class="wiz-gender-btn wiz-reading-choice">
-                    <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">漢字をさがす</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>合う漢字を探します</span>
-                    </div>
-                    <div class="wiz-mini-preview" aria-hidden="true">
-                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
-                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
-                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
-                    </div>
-                </button>
+                <div id="search-method-choice-list" class="method-choice-list text-left mb-4">
+                    <button id="search-method-sound" onclick="selectSearchMethodChoice('sound-browse')" class="wiz-gender-btn wiz-reading-choice method-choice-card search-method-card ${!isReadingSelected ? 'selected' : ''}" data-reading-candidate="no" aria-pressed="${!isReadingSelected ? 'true' : 'false'}">
+                        <div class="wiz-reading-choice-copy">
+                            <div class="method-choice-header">
+                                <div class="method-choice-radio" aria-hidden="true"></div>
+                                <span class="method-choice-title">読みはまだ決まっていない</span>
+                            </div>
+                            <span class="method-choice-desc">響きや入れたい音から、読み候補を探します</span>
+                        </div>
+                        <div class="method-choice-footer" aria-hidden="true">
+                            <span class="method-choice-next-copy">
+                                <span class="method-choice-next-pill">次へ</span>
+                                <span class="method-choice-next-label">読み候補を探します</span>
+                            </span>
+                            <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
+                                <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
+                                <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff5df;">みなと</div>
+                            </div>
+                            <span class="method-choice-arrow">›</span>
+                        </div>
+                    </button>
 
-                <button id="search-method-sound" onclick="startMode('sound')" class="wiz-gender-btn wiz-reading-choice">
-                    <div class="wiz-reading-choice-copy">
-                        <span class="block text-base font-bold text-[#5d5444]">響きをさがす</span>
-                        <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">好きな響きから<br>読み候補を探します</span>
-                    </div>
-                    <div class="wiz-mini-preview" aria-hidden="true">
-                        <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひ</div>
-                        <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">び</div>
-                        <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">き</div>
-                    </div>
-                </button>
+                    <button id="search-method-reading" onclick="selectSearchMethodChoice('reading')" class="wiz-gender-btn wiz-reading-choice method-choice-card search-method-card ${isReadingSelected ? 'selected' : ''}" data-reading-candidate="yes" aria-pressed="${isReadingSelected ? 'true' : 'false'}">
+                        <div class="wiz-reading-choice-copy">
+                            <div class="method-choice-header">
+                                <div class="method-choice-radio" aria-hidden="true"></div>
+                                <span class="method-choice-title">読みが決まっている</span>
+                            </div>
+                            <span class="method-choice-desc">「はると」「みなと」など、使いたい読みから漢字を探します</span>
+                        </div>
+                        <div class="method-choice-footer" aria-hidden="true">
+                            <span class="method-choice-next-copy">
+                                <span class="method-choice-next-pill">次へ</span>
+                                <span class="method-choice-next-label">漢字を探します</span>
+                            </span>
+                            <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">陽</div>
+                                <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">暖</div>
+                                <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">悠</div>
+                            </div>
+                            <span class="method-choice-arrow">›</span>
+                        </div>
+                    </button>
+                </div>
             </div>
-            <button onclick="changeScreen('scr-mode')" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+            <div class="choice-flow-actions">
+                <button id="btn-search-method-submit" onclick="submitSearchMethodChoice()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">${getSearchMethodSubmitLabel()} <span aria-hidden="true">›</span></button>
+                <button onclick="changeScreen('scr-mode')" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+            </div>
         </div>
     `;
 }
@@ -652,71 +757,96 @@ function renderSoundEntryScreen() {
     if (!screen) return;
 
     screen.innerHTML = `
-        <div class="w-full max-w-sm text-center mt-2 mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
+        <div class="w-full max-w-sm text-center mt-2 mx-auto sound-entry-shell choice-flow-shell">
+            <div class="choice-flow-scroll">
+                <h2 class="method-choice-heading">読み候補を探す</h2>
+                <p class="method-choice-lead">好みに近い探し方を選んでください</p>
 
-            <div class="space-y-2.5 text-left mb-4">
-                <button
-                    id="sound-entry-choice-browse"
-                    onclick="selectSoundEntryMode('browse')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div id="sound-entry-dot-browse" class="dot-selector active"></div>
-                    <div class="sound-entry-choice-copy">
-                        <div class="sound-entry-choice-title font-bold text-[#5d5444]">響きを見ながら探す</div>
-                        <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">人気の響きを見ながら、好みを探す</p>
-                    </div>
-                    <div class="sound-entry-preview" aria-hidden="true">
-                        <div class="sound-entry-preview-card sound-entry-preview-card-back">あおい</div>
-                        <div class="sound-entry-preview-card sound-entry-preview-card-center">ひなた</div>
-                        <div class="sound-entry-preview-card sound-entry-preview-card-front">みなと</div>
-                    </div>
-                </button>
+                <div class="method-choice-list text-left mb-4">
+                    <button
+                        id="sound-entry-choice-browse"
+                        onclick="selectSoundEntryMode('browse')"
+                        class="wiz-gender-btn wiz-reading-choice method-choice-card sound-entry-card selected"
+                        aria-pressed="true">
+                        <div class="sound-entry-choice-copy">
+                            <div class="method-choice-header">
+                                <div id="sound-entry-dot-browse" class="method-choice-radio" aria-hidden="true"></div>
+                                <span class="method-choice-title">響きを見ながら選ぶ</span>
+                            </div>
+                            <span class="method-choice-desc">おすすめの響きから、好みに合う候補を探します</span>
+                        </div>
+                        <div class="method-choice-footer" aria-hidden="true">
+                            <span class="method-choice-next-copy">
+                                <span class="method-choice-next-pill">次へ</span>
+                                <span class="method-choice-next-label">候補を見ます</span>
+                            </span>
+                            <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
+                                <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
+                                <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff5df;">みなと</div>
+                            </div>
+                            <span class="method-choice-arrow">›</span>
+                        </div>
+                    </button>
 
-                <button
-                    id="sound-entry-choice-input"
-                    onclick="selectSoundEntryMode('input')"
-                    class="w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] bg-white/70 border-[#ede5d8]">
-                    <div id="sound-entry-dot-input" class="dot-selector"></div>
-                    <div class="sound-entry-choice-copy">
-                        <div class="sound-entry-choice-title font-bold text-[#5d5444]">入れたい音から探す</div>
-                        <p class="mt-1 text-[10px] leading-relaxed text-[#a6967a]">例: 「はる」から始まる名前を探す</p>
-                    </div>
-                    <div class="sound-entry-preview" aria-hidden="true">
-                        <div class="sound-entry-preview-card sound-entry-preview-card-back">はると</div>
-                        <div class="sound-entry-preview-card sound-entry-preview-card-center">はるか</div>
-                        <div class="sound-entry-preview-card sound-entry-preview-card-front">はるみ</div>
-                    </div>
-                </button>
-            </div>
+                    <button
+                        id="sound-entry-choice-input"
+                        onclick="selectSoundEntryMode('input')"
+                        class="wiz-gender-btn wiz-reading-choice method-choice-card sound-entry-card"
+                        aria-pressed="false">
+                        <div class="sound-entry-choice-copy">
+                            <div class="method-choice-header">
+                                <div id="sound-entry-dot-input" class="method-choice-radio" aria-hidden="true"></div>
+                                <span class="method-choice-title">入れたい音から探す</span>
+                            </div>
+                            <span class="method-choice-desc">「はる」など、入れたい音を含む読みを探します</span>
+                        </div>
+                        <div class="method-choice-footer" aria-hidden="true">
+                            <span class="method-choice-next-copy">
+                                <span class="method-choice-next-pill">次へ</span>
+                                <span class="method-choice-next-label">音を入力します</span>
+                            </span>
+                            <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">はると</div>
+                                <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">はるか</div>
+                                <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">はるみ</div>
+                            </div>
+                            <span class="method-choice-arrow">›</span>
+                        </div>
+                    </button>
+                </div>
 
-            <div id="sound-entry-input-slot" class="hidden mt-0 mb-4">
-                <div
-                    id="sound-entry-input-panel"
-                    class="hidden min-h-[176px] rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
-                    <p class="label-mini mb-2">入れたい音</p>
-                    <input
-                        id="in-sound-entry"
-                        type="text"
-                        maxlength="8"
-                        inputmode="kana"
-                        placeholder="例: はる"
-                        class="premium-input mb-0 text-center"
-                        style="font-size:1.7rem; padding:10px 0;"
-                        onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
-                    <div class="mt-3 grid grid-cols-2 gap-2">
-                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
-                            <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
-                            <span class="text-[11px] font-bold">「○○」から始まる</span>
-                        </label>
-                        <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
-                            <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
-                            <span class="text-[11px] font-bold">「○○」で終わる</span>
-                        </label>
+                <div id="sound-entry-input-slot" class="hidden mt-0 mb-4">
+                    <div
+                        id="sound-entry-input-panel"
+                        class="hidden min-h-[176px] rounded-[28px] border border-[#ede5d8] bg-white/80 px-4 pt-4 pb-3 text-left shadow-sm">
+                        <p class="label-mini mb-2">入れたい音</p>
+                        <input
+                            id="in-sound-entry"
+                            type="text"
+                            maxlength="8"
+                            inputmode="kana"
+                            placeholder="例: はる"
+                            class="premium-input mb-0 text-center"
+                            style="font-size:1.7rem; padding:10px 0;"
+                            onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                        <div class="mt-3 grid grid-cols-2 gap-2">
+                            <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                                <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
+                                <span class="text-[11px] font-bold">「○○」から始まる</span>
+                            </label>
+                            <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
+                                <input type="radio" name="sound-entry-position" value="suffix" class="sr-only" onchange="updateSoundEntryModeUI()">
+                                <span class="text-[11px] font-bold">「○○」で終わる</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
-            <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 screen-wide-btn">響きを見ながら探す</button>
-            <button onclick="goBack()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+            <div class="choice-flow-actions">
+                <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">響きを見ながら探す <span aria-hidden="true">›</span></button>
+                <button onclick="goBack()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+            </div>
         </div>
     `;
 }
@@ -740,11 +870,13 @@ function updateSoundEntryModeUI() {
     const submitBtn = document.getElementById('btn-sound-entry-submit');
 
     if (inputChoice) {
-        inputChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        inputChoice.className = `wiz-gender-btn wiz-reading-choice method-choice-card sound-entry-card ${isInputMode ? 'selected' : ''}`;
+        inputChoice.setAttribute('aria-pressed', isInputMode ? 'true' : 'false');
     }
 
     if (browseChoice) {
-        browseChoice.className = `w-full rounded-2xl border px-4 py-3 shadow-sm transition-all active:scale-[0.99] ${!isInputMode ? 'border-[#b9965b] bg-[#fffbef]' : 'border-[#ede5d8] bg-white/70'}`;
+        browseChoice.className = `wiz-gender-btn wiz-reading-choice method-choice-card sound-entry-card ${!isInputMode ? 'selected' : ''}`;
+        browseChoice.setAttribute('aria-pressed', !isInputMode ? 'true' : 'false');
     }
 
     if (inputDot) inputDot.classList.toggle('active', isInputMode);
@@ -759,7 +891,8 @@ function updateSoundEntryModeUI() {
     }
 
     if (submitBtn) {
-        submitBtn.textContent = isInputMode ? 'この音で探す' : '響きを見ながら探す';
+        const label = isInputMode ? 'この音で探す' : '響きを見ながら探す';
+        submitBtn.innerHTML = `${label} <span aria-hidden="true">›</span>`;
     }
 
     const posLabels = document.querySelectorAll('.sound-entry-pos-label');
@@ -1186,7 +1319,7 @@ function toggleVibe(id, btn) {
 
 /**
  * イメージ確定 -> 各入力画面へ
- * 苗字はウィザードで設定済みなのでスキップ
+ * 名字はウィザードで設定済みなのでスキップ
  */
 function submitVibe() {
     // グローバル変数更新
@@ -1203,7 +1336,7 @@ function submitVibe() {
     } else {
         isFreeSwipeMode = false;
         window._addMoreFromBuild = false;
-        // 苗字はウィザードで設定済みなので直接スワイプ開始
+        // 名字はウィザードで設定済みなので直接スワイプ開始
         startSwiping();
     }
 }
@@ -2380,7 +2513,7 @@ function proceedWithSoundReading(reading) {
 }
 
 /**
- * 戻るボタン処理（性別・苗字画面はスキップ済み）
+ * 戻るボタン処理（性別・名字画面はスキップ済み）
  */
 function goBack() {
     const active = document.querySelector('.screen.active');
@@ -2390,8 +2523,20 @@ function goBack() {
     if (id === 'scr-gender') {
         changeScreen('scr-mode');
     } else if (id === 'scr-input-sound-entry') {
+        if (document.getElementById('search-method-choice-list')) {
+            changeScreen('scr-mode');
+            return;
+        }
+        if (searchMethodReturnToChooser) {
+            returnToSearchMethodChooser();
+            return;
+        }
         changeScreen('scr-mode');
     } else if (id === 'scr-input-reading' || id === 'scr-input-nickname') {
+        if ((id === 'scr-input-reading' || id === 'scr-input-nickname') && searchMethodReturnToChooser) {
+            returnToSearchMethodChooser();
+            return;
+        }
         if (id === 'scr-input-nickname' && soundModeEntryOrigin) {
             // 響きモードエントリーから来た場合はオーバーレイに戻る
             soundModeEntryOrigin = false;
@@ -2432,6 +2577,10 @@ function goBack() {
         if (soundModeEntryOrigin) {
             soundModeEntryOrigin = false;
             initSoundModeEntry();
+            return;
+        }
+        if (searchMethodReturnToChooser) {
+            returnToSearchMethodChooser();
             return;
         }
         if (appMode === 'sound') {
@@ -3876,16 +4025,6 @@ const CONTEXT_COACH_CONFIGS = {
         body: 'ホームでは、読み・漢字・ビルド・保存の進み具合を確認できます。迷ったときは「ここでやること」を見れば、今進める場所が分かります。'
     },
     'scr-input-sound-entry': () => {
-        if (document.getElementById('search-method-choice-list')) {
-            return {
-                key: 'search-method',
-                target: '#search-method-choice-list',
-                placement: 'bottom',
-                kicker: '入口のヒント',
-                title: '読みがあるかで選ぶ',
-                body: '読み候補があるなら漢字から。まだ決まっていないなら響きから始めると、候補を広げながら好みを見つけられます。'
-            };
-        }
         if (document.getElementById('sound-entry-choice-browse')) {
             return {
                 key: 'sound-entry',

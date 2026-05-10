@@ -1336,7 +1336,7 @@ function getBuildFortuneSurnameData() {
 function renderFbFortune(choices) {
     const fortuneSurnameData = getBuildFortuneSurnameData();
     if (!fortuneSurnameData || fortuneSurnameData.length === 0) {
-        return '<button type="button" onclick="promptSurnameForFortuneRanking()" class="w-full rounded-xl border border-dashed border-[#d4c5af] bg-[#fffaf4] px-3 py-2 text-[10px] font-black text-[#8b7e66] active:scale-95 transition-transform">苗字を入力して運勢を見る</button>';
+        return '<button type="button" onclick="promptSurnameForFortuneRanking()" class="w-full rounded-xl border border-dashed border-[#d4c5af] bg-[#fffaf4] px-3 py-2 text-[10px] font-black text-[#8b7e66] active:scale-95 transition-transform">名字を入力して運勢を見る</button>';
     }
     if (typeof FortuneLogic === 'undefined' || !FortuneLogic.calculate) {
         return '<p class="text-[10px] text-[#a6967a]">姓名判断機能が読み込まれていません</p>';
@@ -4438,7 +4438,7 @@ function showFortuneDetail() {
     container.className = "flex flex-col w-full relative";
 
     // 姓のデータ（画数込み）
-    const surChars = (surnameData || []).filter(s => s.kanji);
+    const surChars = getBuildFortuneSurnameData().filter(s => s.kanji);
     const givChars = givens;
     const nSur = surChars.length;
     const nGiv = givChars.length;
@@ -4728,7 +4728,7 @@ function promptSurnameForFortuneRanking() {
     }
 
     if (typeof showToast === 'function') {
-        showToast('運勢TOP10には苗字が必要です', '✏️');
+        showToast('運勢TOP10には名字が必要です', '✏️');
     }
 
     openSurnameInput({
@@ -4736,7 +4736,7 @@ function promptSurnameForFortuneRanking() {
             const resolvedSurnameData = getBuildFortuneSurnameData();
             if (!resolvedSurnameData || resolvedSurnameData.length === 0) {
                 if (typeof showToast === 'function') {
-                    showToast('苗字を入力すると運勢TOP10を見られます', '✏️');
+                    showToast('名字を入力すると運勢TOP10を見られます', '✏️');
                 }
                 return;
             }

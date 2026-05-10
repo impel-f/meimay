@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
     <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.1">
-    <link rel="stylesheet" href="/css/main.css?v=26.22">
+    <link rel="stylesheet" href="/css/main.css?v=26.43">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.20">
 
     <!-- Google AdSense -->
@@ -50,7 +50,7 @@
                 <span id="drawer-username-text">ゲスト</span>
                 <span id="drawer-premium-crown" class="hidden text-[#f4c542] text-sm leading-none" aria-hidden="true">👑</span>
             </div>
-            <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@苗字未設定</div>
+            <div class="text-xs text-[#a6967a]" id="drawer-surname-display">@名字未設定</div>
             <!-- パートナー状態 -->
             <button id="drawer-partner-status-button" onclick="closeDrawer(); changeScreen('scr-login')"
                 class="mt-3 w-full min-h-[3rem] px-3 py-2 border border-[#d9d4ca] bg-[#f4f4f1] text-[#a39b8d] rounded-full text-[11px] font-bold leading-snug text-center flex flex-col items-center justify-center gap-0.5 transition-all">
@@ -74,11 +74,11 @@
             </div>
             <button onclick="drawerNavigate('mode-sound')" class="drawer-menu-item" id="drawer-mode-sound">
                 <span class="drawer-icon">🎵</span>
-                <span>響きをさがす</span>
+                <span>響きを探す</span>
             </button>
             <button onclick="drawerNavigate('mode-reading')" class="drawer-menu-item" id="drawer-mode-reading">
                 <span class="drawer-icon">🔤</span>
-                <span>漢字をさがす</span>
+                <span>漢字を探す</span>
             </button>
 
             <!-- ツール -->
@@ -125,7 +125,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v1.0.9
+            メイメー v1.1.0
         </div>
     </aside>
 
@@ -152,148 +152,212 @@
          INITIAL WIZARD
          ============================================================ -->
     <div id="scr-wizard" class="screen">
-        <div class="w-full max-w-sm mx-auto flex flex-col items-center pt-8 pb-10 min-h-full">
+        <div class="wizard-shell w-full max-w-sm mx-auto flex flex-col items-center">
             <!-- Progress -->
-            <div class="flex gap-2 mb-8">
-                <div class="wizard-dot active" id="wiz-dot-1"></div>
-                <div class="wizard-dot" id="wiz-dot-2"></div>
-                <div class="wizard-dot" id="wiz-dot-3"></div>
-                <div class="wizard-dot" id="wiz-dot-4"></div>
+            <div class="wizard-progress-wrap" aria-label="ウィザードの進捗">
+                <div class="wizard-progress flex gap-2" aria-hidden="true">
+                    <div class="wizard-dot active" id="wiz-dot-1"></div>
+                    <div class="wizard-dot" id="wiz-dot-2"></div>
+                    <div class="wizard-dot" id="wiz-dot-3"></div>
+                    <div class="wizard-dot" id="wiz-dot-4"></div>
+                </div>
+                <div id="wizard-progress-label" class="wizard-progress-label">1/4</div>
             </div>
 
             <!-- Step 1: Welcome -->
             <div id="wiz-step-1" class="wizard-step active w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">ようこそ</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">まずはあなたについて教えてください</p>
+                <div class="wizard-step-scroll">
+                    <h1 class="wizard-title">ようこそ</h1>
+                    <p class="wizard-lead">表示名や呼びかけの調整に使います</p>
 
-                <div class="mb-6">
-                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block">あなたの呼び名</label>
-                    <input type="text" id="wiz-username" placeholder="例：たかし" maxlength="10"
-                        class="w-full px-4 py-3.5 bg-white border-2 border-[#eee5d8] rounded-2xl text-base font-bold text-[#5d5444] focus:border-[#bca37f] outline-none transition-all">
-                </div>
-
-                <div class="mb-8">
-                    <label class="text-xs font-bold text-[#8b7e66] mb-3 block">あなたの役割</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <button onclick="selectWizRole('papa')" class="wiz-role-btn" data-role="papa">
-                            <div class="text-2xl mb-1">👨</div>
-                            <div class="text-xs font-bold">パパ</div>
-                        </button>
-                        <button onclick="selectWizRole('mama')" class="wiz-role-btn" data-role="mama">
-                            <div class="text-2xl mb-1">👩</div>
-                            <div class="text-xs font-bold">ママ</div>
-                        </button>
-                        <button onclick="selectWizRole('other')" class="wiz-role-btn" data-role="other">
-                            <div class="text-2xl mb-1">👤</div>
-                            <div class="text-xs font-bold">その他</div>
-                        </button>
+                    <div class="wizard-field-group mb-6">
+                        <label class="wizard-label">あなたの呼び名（任意）</label>
+                        <input type="text" id="wiz-username" placeholder="例：たかし" maxlength="10"
+                            class="wizard-input">
                     </div>
+
+                    <div class="wizard-field-group">
+                        <label class="wizard-label mb-3">あなたの役割（任意）</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button onclick="selectWizRole('papa')" class="wiz-role-btn" data-role="papa">
+                                <div class="text-2xl mb-1">👨</div>
+                                <div class="text-xs font-bold">パパ</div>
+                            </button>
+                            <button onclick="selectWizRole('mama')" class="wiz-role-btn" data-role="mama">
+                                <div class="text-2xl mb-1">👩</div>
+                                <div class="text-xs font-bold">ママ</div>
+                            </button>
+                            <button onclick="selectWizRole('other')" class="wiz-role-btn" data-role="other">
+                                <div class="text-2xl mb-1">👤</div>
+                                <div class="text-xs font-bold">その他</div>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="wizard-optional-note">未入力でも次へ進めます</p>
                 </div>
 
-                <button onclick="wizNext(1)" class="btn-gold py-4 shadow-lg">次へ</button>
+                <div class="wizard-action-area">
+                    <button onclick="wizNext(1)" class="btn-gold py-4 shadow-lg wizard-primary-btn">次へ</button>
+                </div>
             </div>
 
             <!-- Step 2: Surname -->
             <div id="wiz-step-2" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">苗字を入力</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">姓名判断・字面バランスの計算に使います</p>
+                <div class="wizard-step-scroll">
+                    <h1 class="wizard-title">名字を入力</h1>
+                    <p class="wizard-lead">名字と合わせた名前の見え方を確認できます</p>
 
-                <div class="mb-8">
-                    <input type="text" id="wiz-surname" placeholder="例：山田"
-                        class="w-full px-4 py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-2xl font-black text-[#5d5444] text-center focus:border-[#bca37f] outline-none transition-all">
-                    <input type="text" id="wiz-surname-reading" placeholder="例：やまだ"
-                        class="w-full mt-3 px-4 py-3.5 bg-white border-2 border-[#eee5d8] rounded-2xl text-base font-bold text-[#5d5444] text-center focus:border-[#bca37f] outline-none transition-all">
+                    <div class="wizard-field-group mb-5">
+                        <label class="wizard-label">名字（任意）</label>
+                        <input type="text" id="wiz-surname" placeholder="例：佐藤" maxlength="12"
+                            class="wizard-input">
+                    </div>
+                    <div class="wizard-field-group">
+                        <label class="wizard-label">ふりがな（任意）</label>
+                        <input type="text" id="wiz-surname-reading" placeholder="例：さとう" maxlength="24"
+                            class="wizard-input">
+                    </div>
+
+                    <div class="wizard-name-canvas-sample" aria-label="名前の見え方プレビュー">
+                        <div class="wizard-name-canvas-label">名前の見え方</div>
+                        <p class="wizard-name-canvas-help">名字と合わせた字面を確認できます</p>
+                        <div class="wizard-name-canvas-card">
+                            <div class="wizard-name-canvas-inner">
+                                <div id="wiz-surname-preview-group" class="wizard-name-canvas-part is-empty">
+                                    <p id="wiz-surname-reading-preview" class="wizard-name-canvas-reading"></p>
+                                    <p id="wiz-surname-preview" class="wizard-name-canvas-name"></p>
+                                </div>
+                                <div class="wizard-name-canvas-part">
+                                    <p class="wizard-name-canvas-reading">○○○</p>
+                                    <p class="wizard-name-canvas-name wizard-name-canvas-placeholder">○○</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <button onclick="wizNext(2)" class="btn-gold py-4 shadow-lg mb-3">次へ</button>
-                <button onclick="wizNext(2)" class="text-sm text-[#bca37f] hover:underline">あとで設定する</button>
+                <div class="wizard-action-area">
+                    <button onclick="wizNext(2)" class="btn-gold py-4 shadow-lg wizard-primary-btn">次へ</button>
+                    <button onclick="wizPrev(2)" class="wizard-secondary-btn">戻る</button>
+                </div>
             </div>
 
             <!-- Step 4: Reading preference -->
             <div id="wiz-step-4" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-3">名前のさがし方</h1>
-                <p class="text-xs text-[#a6967a] text-center mb-8">読み候補があるか教えてください</p>
+                <div class="wizard-step-scroll">
+                    <h1 class="method-choice-heading">名前の探し方を選ぶ</h1>
+                    <p class="method-choice-lead">読みが決まっているかだけ教えてください</p>
 
-                <div class="mb-8">
-                    <div class="flex flex-col gap-3">
-                        <button onclick="selectWizReadingCandidate(true)" class="wiz-gender-btn wiz-reading-choice" data-reading-candidate="yes">
-                            <div class="wiz-reading-choice-copy">
-                                <span class="block text-base font-bold text-[#5d5444]">読み候補がある</span>
-                                <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">希望の読みから<br>理想の漢字をさがします</span>
-                            </div>
-                            <div class="wiz-mini-preview" aria-hidden="true">
-                                <div class="wiz-mini-card wiz-mini-card-back" style="background:#E8F5E9;">環</div>
-                                <div class="wiz-mini-card wiz-mini-card-center" style="background:#FFFDE7;">歓</div>
-                                <div class="wiz-mini-card wiz-mini-card-front" style="background:#FFEBEE;">漢</div>
-                            </div>
-                        </button>
-                        <button onclick="selectWizReadingCandidate(false)" class="wiz-gender-btn wiz-reading-choice" data-reading-candidate="no">
-                            <div class="wiz-reading-choice-copy">
-                                <span class="block text-base font-bold text-[#5d5444]">まだない</span>
-                                <span class="block mt-1 text-[10px] leading-relaxed text-[#8b7e66]">響きから<br>読みの候補をさがします</span>
-                            </div>
-                            <div class="wiz-mini-preview" aria-hidden="true">
-                                <div class="wiz-mini-card wiz-mini-card-back" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">みなと</div>
-                                <div class="wiz-mini-card wiz-mini-card-center" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひなた</div>
-                                <div class="wiz-mini-card wiz-mini-card-front" style="background:linear-gradient(145deg,#fdf7ef,#f0e0c4); font-size:10px;">ひびき</div>
-                            </div>
-                        </button>
+                    <div class="wizard-field-group method-choice-field">
+                        <div class="method-choice-list">
+                            <button onclick="selectWizReadingCandidate(false)" class="wiz-gender-btn wiz-reading-choice method-choice-card" data-reading-candidate="no" aria-pressed="false">
+                                <div class="wiz-reading-choice-copy">
+                                    <div class="method-choice-header">
+                                        <div class="method-choice-radio" aria-hidden="true"></div>
+                                        <span class="method-choice-title">読みはまだ決まっていない</span>
+                                    </div>
+                                    <span class="method-choice-desc">響きや入れたい音から、読み候補を探します</span>
+                                </div>
+                                <div class="method-choice-footer" aria-hidden="true">
+                                    <span class="method-choice-next-copy">
+                                        <span class="method-choice-next-pill">次へ</span>
+                                        <span class="method-choice-next-label">読み候補を探します</span>
+                                    </span>
+                                    <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
+                                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
+                                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff5df;">みなと</div>
+                                    </div>
+                                    <span class="method-choice-arrow">›</span>
+                                </div>
+                            </button>
+                            <button onclick="selectWizReadingCandidate(true)" class="wiz-gender-btn wiz-reading-choice method-choice-card" data-reading-candidate="yes" aria-pressed="false">
+                                <div class="wiz-reading-choice-copy">
+                                    <div class="method-choice-header">
+                                        <div class="method-choice-radio" aria-hidden="true"></div>
+                                        <span class="method-choice-title">読みが決まっている</span>
+                                    </div>
+                                    <span class="method-choice-desc">「はると」「みなと」など、使いたい読みから漢字を探します</span>
+                                </div>
+                                <div class="method-choice-footer" aria-hidden="true">
+                                    <span class="method-choice-next-copy">
+                                        <span class="method-choice-next-pill">次へ</span>
+                                        <span class="method-choice-next-label">漢字を探します</span>
+                                    </span>
+                                    <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
+                                        <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">陽</div>
+                                        <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">暖</div>
+                                        <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">悠</div>
+                                    </div>
+                                    <span class="method-choice-arrow">›</span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
-                    <p class="mt-3 text-center text-[11px] leading-relaxed text-[#a6967a]">あとから自由に選択できます。</p>
+                    <p class="method-choice-note">あとから変更できます</p>
                 </div>
 
-                <button onclick="wizStartNaming()" class="btn-gold py-4 shadow-lg mb-3">TOPへ</button>
+                <div class="wizard-action-area">
+                    <button onclick="wizStartNaming()" class="btn-gold py-4 shadow-lg method-choice-submit wizard-primary-btn">名前探しへ進む <span aria-hidden="true">›</span></button>
+                    <button onclick="wizPrev(4)" class="wizard-secondary-btn">戻る</button>
+                </div>
             </div>
 
             <!-- Step 3: Birth order + Gender -->
             <div id="wiz-step-3" class="wizard-step w-full px-6">
-                <h1 class="text-2xl font-black text-[#8b7e66] text-center mb-2">生まれ順・性別</h1>
+                <div class="wizard-step-scroll">
+                    <h1 class="wizard-title">生まれ順・性別</h1>
+                    <p class="wizard-lead">候補の並び順やおすすめの絞り込みに使います</p>
 
-                <div class="mb-5 w-full">
-                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block">生まれ順</label>
-                    <select id="wiz-birth-order" onchange="selectWizBirthOrder(this.value)"
-                        class="wiz-birth-order-select w-full">
-                        <option value="1" selected>第一子</option>
-                        <option value="2">第二子</option>
-                        <option value="3">第三子</option>
-                        <option value="4">第四子</option>
-                        <option value="5">第五子</option>
-                        <option value="6">第六子</option>
-                        <option value="7">第七子</option>
-                        <option value="8">第八子</option>
-                        <option value="9">第九子</option>
-                        <option value="10">第十子</option>
-                    </select>
-                </div>
-
-                <div class="mb-5 w-full">
-                    <label class="text-xs font-bold text-[#8b7e66] mb-3 block">性別</label>
-                    <div class="wiz-baby-gender-grid">
-                        <button type="button" onclick="selectWizGender('male')" class="wiz-baby-gender-btn" data-gender="male" aria-pressed="false">
-                            <span class="wiz-baby-gender-emoji">👦</span>
-                            <span class="wiz-baby-gender-title">男の子</span>
-                        </button>
-                        <button type="button" onclick="selectWizGender('female')" class="wiz-baby-gender-btn" data-gender="female" aria-pressed="false">
-                            <span class="wiz-baby-gender-emoji">👧</span>
-                            <span class="wiz-baby-gender-title">女の子</span>
-                        </button>
-                        <button type="button" onclick="selectWizGender('neutral')" class="wiz-baby-gender-btn" data-gender="neutral" aria-pressed="false">
-                            <span class="wiz-baby-gender-emoji">👶</span>
-                            <span class="wiz-baby-gender-title">未定</span>
-                        </button>
+                    <div class="wizard-field-group mb-5">
+                        <label class="wizard-label">生まれ順</label>
+                        <select id="wiz-birth-order" onchange="selectWizBirthOrder(this.value)"
+                            class="wiz-birth-order-select w-full">
+                            <option value="1" selected>第一子</option>
+                            <option value="2">第二子</option>
+                            <option value="3">第三子</option>
+                            <option value="4">第四子</option>
+                            <option value="5">第五子</option>
+                            <option value="6">第六子</option>
+                            <option value="7">第七子</option>
+                            <option value="8">第八子</option>
+                            <option value="9">第九子</option>
+                            <option value="10">第十子</option>
+                        </select>
                     </div>
-                </div>
 
-                <div class="mb-7 w-full">
-                    <label class="text-xs font-bold text-[#8b7e66] mb-2 block" for="wiz-child-date">予定日・誕生日（任意）</label>
-                    <div class="wiz-date-picker">
-                        <div id="wiz-child-date-display" class="wiz-date-display" aria-hidden="true">未設定</div>
-                        <input id="wiz-child-date" type="date" aria-label="予定日・誕生日" onchange="syncWizChildDateLabel()" oninput="syncWizChildDateLabel()">
+                    <div class="wizard-field-group mb-5">
+                        <label class="wizard-label mb-3">性別</label>
+                        <div class="wiz-baby-gender-grid">
+                            <button type="button" onclick="selectWizGender('male')" class="wiz-baby-gender-btn" data-gender="male" aria-pressed="false">
+                                <span class="wiz-baby-gender-emoji">👦</span>
+                                <span class="wiz-baby-gender-title">男の子</span>
+                            </button>
+                            <button type="button" onclick="selectWizGender('female')" class="wiz-baby-gender-btn" data-gender="female" aria-pressed="false">
+                                <span class="wiz-baby-gender-emoji">👧</span>
+                                <span class="wiz-baby-gender-title">女の子</span>
+                            </button>
+                            <button type="button" onclick="selectWizGender('neutral')" class="wiz-baby-gender-btn" data-gender="neutral" aria-pressed="false">
+                                <span class="wiz-baby-gender-emoji">👶</span>
+                                <span class="wiz-baby-gender-title">未定</span>
+                            </button>
+                        </div>
                     </div>
-                    <p class="mt-2 text-xs font-bold text-[#b3a58c]">まだ決まっていなければ空欄でOKです</p>
+
+                    <div class="wizard-field-group">
+                        <label class="wizard-label" for="wiz-child-date">予定日・誕生日（任意）</label>
+                        <div class="wiz-date-picker">
+                            <div id="wiz-child-date-display" class="wiz-date-display" aria-hidden="true">未設定</div>
+                            <input id="wiz-child-date" type="date" aria-label="予定日・誕生日" onchange="syncWizChildDateLabel()" oninput="syncWizChildDateLabel()">
+                        </div>
+                    </div>
+                    <p class="wizard-optional-note">未定の項目はそのまま進めます</p>
                 </div>
 
-                <button onclick="wizNext(3)" class="btn-gold py-4 shadow-lg mb-3">次へ</button>
+                <div class="wizard-action-area">
+                    <button onclick="wizNext(3)" class="btn-gold py-4 shadow-lg wizard-primary-btn">次へ</button>
+                    <button onclick="wizPrev(3)" class="wizard-secondary-btn">戻る</button>
+                </div>
             </div>
         </div>
     </div>
@@ -360,10 +424,7 @@
 
     <div id="scr-input-reading" class="screen">
         <div class="w-full max-w-sm text-center mt-2 mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">漢字をさがす</h2>
-            <div id="reading-swipe-counter" class="mx-auto mb-3 text-[9px] font-bold text-[#a6967a] tracking-wide whitespace-nowrap">
-                本命0件・候補0件・残り100回
-            </div>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">漢字を探す</h2>
             <div class="reading-input-panel mb-4">
                 <p class="label-mini mb-2">名前の読み（ひらがな）</p>
                 <input type="text" id="in-name" placeholder="めい" class="premium-input mb-2" style="font-size:1.7rem; padding:10px 0;">
@@ -403,7 +464,7 @@
 
     <div id="scr-input-sound-entry" class="screen">
         <div class="w-full max-w-sm text-center mt-2 mx-auto">
-            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きをさがす</h2>
+            <h2 class="text-[1.35rem] font-bold text-[#8b7e66] mb-3">響きを探す</h2>
 
             <div class="space-y-2.5 text-left mb-4">
                 <button
@@ -697,7 +758,7 @@
             <h2 class="text-xl font-bold mb-8 text-[#8b7e66]">姓名判断・診断</h2>
 
             <p class="label-mini mb-2">名字（任意）</p>
-            <input type="text" id="diag-surname" placeholder="例：山田" class="premium-input mb-6 text-center">
+            <input type="text" id="diag-surname" placeholder="例：佐藤" class="premium-input mb-6 text-center">
 
             <p class="label-mini mb-2">名前（漢字）</p>
             <input type="text" id="diag-name" placeholder="例：太郎" class="premium-input mb-10 text-center">
@@ -717,7 +778,7 @@
     <div id="scr-surname-settings" class="screen">
         <div class="glass-card p-10 rounded-[60px] w-full max-w-sm text-center mt-10 shadow-2xl mx-auto">
             <p class="label-mini mb-4">名字を入力（任意）</p>
-            <input type="text" id="in-surname" placeholder="例：山田" class="premium-input mb-10"
+            <input type="text" id="in-surname" placeholder="例：佐藤" class="premium-input mb-10"
                 onchange="updateSurnameData()">
 
             <div class="mb-4"></div>
@@ -826,13 +887,13 @@
                 </div>
             </div>
 
-            <!-- 苗字 -->
+            <!-- 名字 -->
             <div id="pairing-surname-card" class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4 shadow-sm">
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
-                        <p class="text-xs font-black text-[#8b7e66] mb-1">参加確認に使う苗字</p>
+                        <p class="text-xs font-black text-[#8b7e66] mb-1">参加確認に使う名字</p>
                         <p id="pairing-surname-display" class="text-[15px] font-black text-[#5d5444] leading-snug">未設定</p>
-                        <p id="pairing-surname-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">同じ苗字の端末だけ参加できます</p>
+                        <p id="pairing-surname-subtext" class="mt-1 text-[10px] text-[#a6967a] leading-relaxed">同じ名字の端末だけ参加できます</p>
                     </div>
                     <button type="button" onclick="if(typeof openSurnameInput==='function'){openSurnameInput();} else if(typeof changeScreen==='function'){changeScreen('scr-surname-settings');}"
                         class="shrink-0 px-4 py-2 rounded-full border border-[#eadfce] bg-[#fdfaf5] text-[11px] font-bold text-[#5d5444] active:scale-95 transition-transform">
@@ -845,8 +906,8 @@
             <div id="pairing-not-linked">
                 <!-- ルームを作る -->
                 <div class="bg-white border border-[#eee5d8] rounded-2xl p-4 mb-4">
-                    <p class="text-xs font-black text-[#8b7e66] mb-2">1. コードを発行</p>
-                    <p id="pairing-create-role-label" class="text-[10px] text-[#a6967a] mb-3">あなたが先にコードを作り、パートナーへ送ります</p>
+                    <p class="text-xs font-black text-[#8b7e66] mb-2">1. パートナーと連携</p>
+                    <p id="pairing-create-role-label" class="text-[10px] text-[#a6967a] mb-3">連携コードを作って、パートナーへ送ります</p>
                     <p class="mb-3 rounded-xl border border-[#eadfce] bg-[#fffaf5] px-3 py-2 text-[10px] font-bold leading-relaxed text-[#8b7e66]">
                         連携後、子ども設定に違いがあればこの端末で確認できます。
                     </p>
@@ -862,7 +923,7 @@
                     </div>
                     <button id="btn-generate-code" onclick="handleGenerateCode()"
                         class="w-full py-3 bg-[#bca37f] text-white rounded-xl font-bold text-sm hover:bg-[#8b7e66] transition-all">
-                        コードを発行する
+                        パートナーと連携する
                     </button>
                 </div>
 
@@ -873,9 +934,9 @@
                     <div class="flex-1 h-px bg-[#eee5d8]"></div>
                 </div>
 
-                <!-- コードで参加 -->
+                <!-- 連携に参加 -->
                 <div class="bg-white border border-[#eee5d8] rounded-2xl p-4">
-                    <p class="text-xs font-black text-[#8b7e66] mb-2">2. コードで参加</p>
+                    <p class="text-xs font-black text-[#8b7e66] mb-2">2. 連携に参加</p>
                     <p id="pairing-join-role-label" class="text-[10px] text-[#a6967a] mb-3">パートナーから届いたコードを入力します</p>
                     <div class="hidden flex gap-3 mb-3">
                         <button id="join-role-mama" onclick="MeimayPairing.selectJoinRole('mama')"
@@ -912,7 +973,7 @@
                     </div>
                     <button id="pairing-share-code-btn" onclick="MeimayPairing.shareCode()"
                         class="w-full py-2.5 mb-4 bg-[#bca37f] text-white rounded-xl font-bold text-sm hover:bg-[#8b7e66] transition-all">
-                        コードを共有する
+                        パートナーに共有する
                     </button>
                     <div id="pairing-linked-next-actions" class="mb-4"></div>
                     <button onclick="confirmLeaveRoom()"
@@ -1034,7 +1095,7 @@
         </div>
     </div>
 
-    <!-- 統一フッター: ホーム / さがす / ストック / ビルド / 保存済み -->
+    <!-- 統一フッター: ホーム / 探す / ストック / ビルド / 保存済み -->
     <nav id="bottom-nav" class="hidden">
         <div class="flex justify-around items-center w-full max-w-[500px] mx-auto px-4">
             <button onclick="changeScreen('scr-mode')"
@@ -1045,7 +1106,7 @@
             <button onclick="navSearchAction()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-search">
                 <span class="text-xl transition-transform duration-200">🔍</span>
-                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">さがす</span>
+                <span class="text-[8px] font-black text-[#a6967a] uppercase tracking-tighter">探す</span>
             </button>
             <button onclick="openStock()" class="nav-item flex flex-col items-center gap-1 group outline-none"
                 id="nav-stock">
@@ -1354,8 +1415,8 @@
                     <div class="rounded-[24px] overflow-hidden border border-[#eadfce] bg-white px-4 py-4">
                         <div class="rounded-[22px] border border-[#eadfce] bg-[#fffaf4] px-4 py-4 text-center">
                             <div class="text-[10px] font-black tracking-[0.18em] text-[#b9965b]">保存済み</div>
-                            <div class="mt-2 text-[22px] font-black text-[#5d5444]">山田 陽斗</div>
-                            <div class="mt-1 text-[11px] font-bold text-[#a6967a]">やまだ はると</div>
+                            <div class="mt-2 text-[22px] font-black text-[#5d5444]">佐藤 陽斗</div>
+                            <div class="mt-1 text-[11px] font-bold text-[#a6967a]">さとう はると</div>
                             <div class="mt-4 rounded-[18px] bg-white px-4 py-3 text-left shadow-sm">
                                 <div class="text-[10px] font-black text-[#b9965b]">マイ本命</div>
                                 <div class="mt-1 text-[12px] leading-relaxed text-[#5d5444]">最後に残した候補を見比べて、本命を選べます。</div>
@@ -1520,27 +1581,27 @@
     <!-- Module 02.5: Generator -->
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=26.15"></script>
+    <script src="/js/01-core.js?v=26.17"></script>
 <script src="/js/02-engine.js?v=25.38"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-<script src="/js/04-ui-flow.js?v=26.70"></script>
-<script src="/js/05-ui-render.js?v=25.90"></script>
+<script src="/js/04-ui-flow.js?v=26.86"></script>
+<script src="/js/05-ui-render.js?v=25.94"></script>
     <script src="/js/06-ui-physics.js?v=25.19"></script>
-    <script src="/js/07-build.js?v=25.69"></script>
-<script src="/js/08-origin.js?v=25.65"></script>
+    <script src="/js/07-build.js?v=25.71"></script>
+<script src="/js/08-origin.js?v=25.68"></script>
     <script src="/js/09-storage.js?v=26.07"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.40"></script>
-    <script src="/js/12-history.js?v=25.61"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.30"></script>
-    <script src="/js/14-admob.js?v=25.79"></script>
-<script src="/js/15-firebase.js?v=26.42"></script>
-    <script src="/js/data/legal-docs.js?v=25.18"></script>
-    <script src="/js/16-legal.js?v=25.19"></script>
+    <script src="/js/11-settings.js?v=25.41"></script>
+    <script src="/js/12-history.js?v=25.62"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.39"></script>
+    <script src="/js/14-admob.js?v=25.80"></script>
+<script src="/js/15-firebase.js?v=26.44"></script>
+    <script src="/js/data/legal-docs.js?v=25.19"></script>
+    <script src="/js/16-legal.js?v=25.20"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
     <script src="/js/18-ranking.js?v=25.40"></script>
-    <script src="/js/21-child-workspaces.js?v=26.71"></script>
+    <script src="/js/21-child-workspaces.js?v=26.72"></script>
 
 
 </body>

@@ -19,7 +19,7 @@ let currentIdx = 0;
 let swipes = 0;
 let gender = 'neutral';
 let surnameStr = "";
-let surnameReading = ""; // 苗字のふりがな（任意）
+let surnameReading = ""; // 名字のふりがな（任意）
 let surnameData = [];
 let prioritizeFortune = false;
 let savedNames = [];
@@ -545,13 +545,38 @@ function toSeion(str) {
 /**
  * 名字データの更新
  */
+function normalizeFortuneStrokeNumber(value, fallback = 0) {
+    const fallbackValue = parseInt(fallback, 10) || 0;
+    const raw = value && typeof value === 'object'
+        ? (value.strokes ?? value['画数'] ?? value['\u753b\u6570'] ?? value.stroke ?? value.num)
+        : value;
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackValue;
+}
+
+function isFortuneKanaText(value) {
+    const chars = Array.from(String(value || ''));
+    return chars.length > 0 && chars.every(char => /^[\u3041-\u3096\u309d\u309e\u30a1-\u30fa\u30fc\u30fd\u30fe]$/.test(char));
+}
+
+function resolveFortuneKanaStrokeForChar(char) {
+    const key = String(char || '').trim();
+    if (!key || !isFortuneKanaText(key) || typeof getKanaStrokeCount !== 'function') return 0;
+    return normalizeFortuneStrokeNumber(getKanaStrokeCount(key), 0);
+}
+
 function resolveFortuneStrokeForChar(char, fallback = 0) {
     const key = String(char || '').trim();
     if (!key) return 0;
-    const fallbackValue = parseInt(fallback, 10) || 0;
-    if (strokeData && strokeData[key]) return parseInt(strokeData[key], 10) || fallbackValue;
+    const fallbackValue = normalizeFortuneStrokeNumber(fallback, 0);
+    if (key === '々') return 3;
+    if (strokeData && Object.prototype.hasOwnProperty.call(strokeData, key)) {
+        return normalizeFortuneStrokeNumber(strokeData[key], fallbackValue);
+    }
     const found = Array.isArray(master) ? master.find(k => k['漢字'] === key) : null;
-    if (found) return parseInt(found['画数'], 10) || fallbackValue;
+    if (found) return normalizeFortuneStrokeNumber(found['画数'], fallbackValue);
+    const kanaStroke = resolveFortuneKanaStrokeForChar(key);
+    if (kanaStroke > 0) return kanaStroke;
     return fallbackValue;
 }
 
@@ -568,10 +593,16 @@ function getFortuneSurnameData(source = surnameData, fallbackSurname = surnameSt
         .filter(item => item && String(item.kanji || '').trim())
         .map(item => {
             const kanji = String(item.kanji || '').trim();
+            const strokes = resolveFortuneStrokeForChar(
+                kanji,
+                item.strokes ?? item['画数'] ?? item['\u753b\u6570'] ?? item['逕ｻ謨ｰ']
+            );
             return {
                 ...item,
                 kanji,
-                strokes: resolveFortuneStrokeForChar(kanji, item.strokes)
+                '漢字': item['漢字'] || kanji,
+                '画数': strokes,
+                strokes
             };
         });
 }

@@ -1,0 +1,222 @@
+{
+  "old": "release\\app-store-screenshots\\2026-05-04-marketing-v5-stock",
+  "new": "release\\app-store-screenshots\\2026-05-10-linked-clean",
+  "devices": {
+    "iphone-6.9-1290x2796": [
+      {
+        "slot": "01",
+        "oldFile": "01-hero.png",
+        "newFile": "01-hero.png",
+        "rmsDiff": 8.64,
+        "changed": true
+      },
+      {
+        "slot": "02",
+        "oldFile": "02-reading-swipe.png",
+        "newFile": "02-reading-swipe.png",
+        "rmsDiff": 6.08,
+        "changed": true
+      },
+      {
+        "slot": "03",
+        "oldFile": "03-kanji-swipe.png",
+        "newFile": "03-kanji-swipe.png",
+        "rmsDiff": 5.31,
+        "changed": true
+      },
+      {
+        "slot": "04",
+        "oldFile": "04-kanji-stock.png",
+        "newFile": "04-kanji-stock.png",
+        "rmsDiff": 17.44,
+        "changed": true
+      },
+      {
+        "slot": "05",
+        "oldFile": "05-kanji-detail.png",
+        "newFile": "05-kanji-detail.png",
+        "rmsDiff": 26.16,
+        "changed": true
+      },
+      {
+        "slot": "06",
+        "oldFile": "06-build-reading.png",
+        "newFile": "06-build-reading.png",
+        "rmsDiff": 23.57,
+        "changed": true
+      },
+      {
+        "slot": "07",
+        "oldFile": "07-build-free.png",
+        "newFile": "07-build-free.png",
+        "rmsDiff": 25.19,
+        "changed": true
+      },
+      {
+        "slot": "08",
+        "oldFile": "08-fortune.png",
+        "newFile": "08-fortune.png",
+        "rmsDiff": 1.92,
+        "changed": true
+      },
+      {
+        "slot": "09",
+        "oldFile": "09-saved.png",
+        "newFile": "09-origin.png",
+        "rmsDiff": 68.32,
+        "changed": true
+      },
+      {
+        "slot": "10",
+        "oldFile": "10-home.png",
+        "newFile": "10-home.png",
+        "rmsDiff": 35.05,
+        "changed": true
+      }
+    ],
+    "iphone-6.5-1242x2688": [
+      {
+        "slot": "01",
+        "oldFile": "01-hero.png",
+        "newFile": "01-hero.png",
+        "rmsDiff": 10.5,
+        "changed": true
+      },
+      {
+        "slot": "02",
+        "oldFile": "02-reading-swipe.png",
+        "newFile": "02-reading-swipe.png",
+        "rmsDiff": 6.48,
+        "changed": true
+      },
+      {
+        "slot": "03",
+        "oldFile": "03-kanji-swipe.png",
+        "newFile": "03-kanji-swipe.png",
+        "rmsDiff": 5.52,
+        "changed": true
+      },
+      {
+        "slot": "04",
+        "oldFile": "04-kanji-stock.png",
+        "newFile": "04-kanji-stock.png",
+        "rmsDiff": 16.16,
+        "changed": true
+      },
+      {
+        "slot": "05",
+        "oldFile": "05-kanji-detail.png",
+        "newFile": "05-kanji-detail.png",
+        "rmsDiff": 25.81,
+        "changed": true
+      },
+      {
+        "slot": "06",
+        "oldFile": "06-build-reading.png",
+        "newFile": "06-build-reading.png",
+        "rmsDiff": 24.23,
+        "changed": true
+      },
+      {
+        "slot": "07",
+        "oldFile": "07-build-free.png",
+        "newFile": "07-build-free.png",
+        "rmsDiff": 25.88,
+        "changed": true
+      },
+      {
+        "slot": "08",
+        "oldFile": "08-fortune.png",
+        "newFile": "08-fortune.png",
+        "rmsDiff": 2.0,
+        "changed": true
+      },
+      {
+        "slot": "09",
+        "oldFile": "09-saved.png",
+        "newFile": "09-origin.png",
+        "rmsDiff": 69.9,
+        "changed": true
+      },
+      {
+        "slot": "10",
+        "oldFile": "10-home.png",
+        "newFile": "10-home.png",
+        "rmsDiff": 35.71,
+        "changed": true
+      }
+    ],
+    "ipad-13-2048x2732": [
+      {
+        "slot": "01",
+        "oldFile": "01-hero.png",
+        "newFile": "01-hero.png",
+        "rmsDiff": 5.11,
+        "changed": true
+      },
+      {
+        "slot": "02",
+        "oldFile": "02-reading-swipe.png",
+        "newFile": "02-reading-swipe.png",
+        "rmsDiff": 3.49,
+        "changed": true
+      },
+      {
+        "slot": "03",
+        "oldFile": "03-kanji-swipe.png",
+        "newFile": "03-kanji-swipe.png",
+        "rmsDiff": 4.33,
+        "changed": true
+      },
+      {
+        "slot": "04",
+        "oldFile": "04-kanji-stock.png",
+        "newFile": "04-kanji-stock.png",
+        "rmsDiff": 9.2,
+        "changed": true
+      },
+      {
+        "slot": "05",
+        "oldFile": "05-kanji-detail.png",
+        "newFile": "05-kanji-detail.png",
+        "rmsDiff": 18.62,
+        "changed": true
+      },
+      {
+        "slot": "06",
+        "oldFile": "06-build-reading.png",
+        "newFile": "06-build-reading.png",
+        "rmsDiff": 12.09,
+        "changed": true
+      },
+      {
+        "slot": "07",
+        "oldFile": "07-build-free.png",
+        "newFile": "07-build-free.png",
+        "rmsDiff": 13.25,
+        "changed": true
+      },
+      {
+        "slot": "08",
+        "oldFile": "08-fortune.png",
+        "newFile": "08-fortune.png",
+        "rmsDiff": 14.13,
+        "changed": true
+      },
+      {
+        "slot": "09",
+        "oldFile": "09-saved.png",
+        "newFile": "09-origin.png",
+        "rmsDiff": 112.56,
+        "changed": true
+      },
+      {
+        "slot": "10",
+        "oldFile": "10-home.png",
+        "newFile": "10-home.png",
+        "rmsDiff": 18.95,
+        "changed": true
+      }
+    ]
+  }
+}

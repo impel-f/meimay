@@ -3319,7 +3319,7 @@
 
         openPartnerAlignmentModal(partnerChildSlotKey = '', localChildId = '') {
             if (!this.isPartnerAlignmentOwner()) {
-                this.notify('名づけ帳の確認はコードを発行した側で行います。', 'i');
+                this.notify('名づけ帳の確認は連携を始めた側で行います。', 'i');
                 return;
             }
             const state = this.getPartnerAlignmentState(localChildId);
@@ -3623,7 +3623,7 @@
                 : '一緒に進める子を確認できます';
             const canManageAlignment = this.isPartnerAlignmentOwner();
             const desc = !canManageAlignment
-                ? 'コードを発行した側の名づけ帳設定を基準に進めます。'
+                ? '連携を始めた側の名づけ帳設定を基準に進めます。'
                 : (linked
                     ? '相手側の別の名づけ帳に変更できます。解除しても、自分の候補や保存名は残ります。'
                     : 'どの子の名づけを一緒に進めるかを選びます。性別や予定日は自動では上書きしません。');

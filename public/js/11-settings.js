@@ -415,7 +415,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('名づけ条件', `
-                ${renderItem({ title: '苗字', value: surnameStr || '未設定', onClick: 'openSurnameInput()' })}
+                ${renderItem({ title: '名字', value: surnameStr || '未設定', onClick: 'openSurnameInput()' })}
                 ${renderItem({ title: '子どもの設定', value: activeChildText, onClick: 'openActiveChildSettingsFromSettings()' })}
             `)}
 
@@ -691,7 +691,7 @@ function openRoleInput(options = {}) {
 
 
 /**
- * 苗字入力
+ * 名字入力
  */
 function syncSurnameInputsToState() {
     const surnameInput = document.getElementById('in-surname');
@@ -1051,7 +1051,7 @@ function openTransferModal() {
                     </section>
                     <section class="backup-restore-note">
                         <strong>復元ルール</strong>
-                        <span>IDや苗字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。</span>
+                        <span>IDや名字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。</span>
                     </section>
                     <div id="backup-restore-status" class="backup-restore-status" role="status" aria-live="polite" data-tone="neutral">復元キーは、家族以外に共有しないでください。</div>
                 </div>
@@ -1265,23 +1265,23 @@ function closeInputModal() {
 }
 
 /**
- * 苗字入力用モーダル（漢字＋ふりがな）
+ * 名字入力用モーダル（漢字＋ふりがな）
  */
 function showSurnameModal(currentKanji, currentReading, onSave) {
     const modal = `
         <div class="overlay active modal-overlay-dark" id="surname-modal" onclick="if(event.target.id==='surname-modal')closeSurnameModal()">
             <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSurnameModal()">✕</button>
-                <h3 class="modal-title">苗字を入力</h3>
+                <h3 class="modal-title">名字を入力</h3>
                 <div class="modal-body space-y-4">
                     <div>
                         <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">漢字</label>
-                        <input type="text" id="modal-surname-kanji" class="modal-input-large text-center w-full" value="${currentKanji || ''}" placeholder="例：山田">
+                        <input type="text" id="modal-surname-kanji" class="modal-input-large text-center w-full" value="${currentKanji || ''}" placeholder="例：佐藤">
                         <div class="modal-input-underline"></div>
                     </div>
                     <div class="mt-4">
                         <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">ふりがな（任意）</label>
-                        <input type="text" id="modal-surname-reading" class="modal-input-large text-center w-full" value="${currentReading || ''}" placeholder="例：やまだ">
+                        <input type="text" id="modal-surname-reading" class="modal-input-large text-center w-full" value="${currentReading || ''}" placeholder="例：さとう">
                         <div class="modal-input-underline"></div>
                     </div>
                 </div>

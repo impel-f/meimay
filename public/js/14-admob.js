@@ -5,7 +5,7 @@
 
 const AdMobConfig = {
     android: {
-        appId: 'ca-app-pub-9172754377890289~3397321817',
+        appId: 'ca-app-pub-3940256099942544~3347511713',
         bannerId: 'ca-app-pub-9172754377890289/2546450164'
     },
     ios: {
@@ -16,6 +16,9 @@ const AdMobConfig = {
 
 const AdMobTestAdConfig = {
     enabled: false,
+    // Closed-test automation can click ads; keep Android on Google's test ads by default.
+    androidEnabled: true,
+    iosEnabled: false,
     storageKey: 'meimay_admob_test_ads',
     androidBannerId: 'ca-app-pub-3940256099942544/6300978111',
     iosBannerId: 'ca-app-pub-3940256099942544/2934735716'
@@ -29,9 +32,12 @@ function getAdMobTestAdFlagFromRuntime() {
     } catch (e) { }
 
     try {
-        return localStorage.getItem(AdMobTestAdConfig.storageKey) === '1';
+        const storedFlag = localStorage.getItem(AdMobTestAdConfig.storageKey);
+        if (storedFlag === '1') return true;
+        if (storedFlag === '0') return false;
+        return null;
     } catch (e) {
-        return false;
+        return null;
     }
 }
 
@@ -46,12 +52,20 @@ function setAdMobTestAdMode(enabled) {
     }, 250);
 }
 
-function isAdMobTestAdMode() {
-    return AdMobTestAdConfig.enabled === true || getAdMobTestAdFlagFromRuntime();
+function isAdMobTestAdMode(platform) {
+    const runtimeFlag = getAdMobTestAdFlagFromRuntime();
+    if (runtimeFlag !== null) return runtimeFlag;
+
+    const normalizedPlatform = platform || (typeof detectCapacitorPlatform === 'function'
+        ? detectCapacitorPlatform()
+        : '');
+    if (normalizedPlatform === 'android' && AdMobTestAdConfig.androidEnabled === true) return true;
+    if (normalizedPlatform === 'ios' && AdMobTestAdConfig.iosEnabled === true) return true;
+    return AdMobTestAdConfig.enabled === true;
 }
 
 function getAdMobBannerId(platform, config) {
-    if (isAdMobTestAdMode()) {
+    if (isAdMobTestAdMode(platform)) {
         return platform === 'ios'
             ? AdMobTestAdConfig.iosBannerId
             : AdMobTestAdConfig.androidBannerId;
@@ -1219,7 +1233,7 @@ async function initNativeAdMob(platform) {
         if (!nativeAdMobInitializePromise) {
             nativeAdMobInitializePromise = AdMob.initialize({
                 testingDevices: [],
-                initializeForTesting: isAdMobTestAdMode()
+                initializeForTesting: isAdMobTestAdMode(platform)
             });
         }
         await nativeAdMobInitializePromise;
@@ -1232,7 +1246,7 @@ async function initNativeAdMob(platform) {
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: footerMargin,
-            isTesting: isAdMobTestAdMode()
+            isTesting: isAdMobTestAdMode(platform)
         });
 
         if (nativeAdMobBannerFailed) return;
@@ -2559,7 +2573,8 @@ function renderPremiumComparisonMatrix() {
         { item: '広告', free: '表示あり', premium: '非表示' },
         { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
         { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
-        { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' }
+        { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' },
+        { item: 'AI由来生成', free: '1日1回', premium: '無制限' }
     ];
 
     return ''

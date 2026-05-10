@@ -1209,7 +1209,7 @@ const MeimayPairing = {
             if (typeof openRoleInput === 'function') {
                 openRoleInput({
                     parentOnly: true,
-                    title: 'コードを発行する役割',
+                    title: '連携する役割',
                     description: 'パートナーに共有する前に、あなたの役割を選びます。',
                     onSave: () => this.createRoom()
                 });
@@ -1221,7 +1221,7 @@ const MeimayPairing = {
         if (this._selectedCreateRole !== role) this.selectCreateRole(role);
         const pairingSurname = getCurrentPairingSurnameState();
         if (!pairingSurname.surname) {
-            showToast('苗字を入力してください', '\u26a0');
+            showToast('名字を入力してください', '\u26a0');
             return null;
         }
 
@@ -1281,7 +1281,7 @@ const MeimayPairing = {
 
         const pairingSurname = getCurrentPairingSurnameState();
         if (!pairingSurname.surname) {
-            return { success: false, error: '苗字を入力してください' };
+            return { success: false, error: '名字を入力してください' };
         }
 
         const upperCode = code.trim().toUpperCase();
@@ -1296,7 +1296,7 @@ const MeimayPairing = {
             const existingMemberBUid = data.memberBUid || '';
             const isExistingMemberB = existingMemberBUid === user.uid;
             if (data.pairedOnce === true && !isExistingMemberB) {
-                return { success: false, error: 'このコードは使用済みです。新しいコードを発行してください' };
+                return { success: false, error: 'このコードは使用済みです。新しい連携コードを作成してください' };
             }
             const partnerSlot = 'memberA';
             const partnerUid = data[`${partnerSlot}Uid`] || '';
@@ -1331,7 +1331,7 @@ const MeimayPairing = {
 
             // memberB縺ｨ縺励※蜿ょ刈
             if (pairingSurname.surname !== partnerSurname) {
-                return { success: false, error: '苗字が一致しません' };
+                return { success: false, error: '名字が一致しません' };
             }
 
             if (!isExistingMemberB) {
@@ -1674,7 +1674,7 @@ const MeimayPairing = {
         this._retiringUsedRoom = true;
         try {
             if (typeof showToast === 'function') {
-                showToast('以前の連携コードは無効になりました。新しく連携する場合はコードを発行してください', '\u2139');
+                showToast('以前の連携コードは無効になりました。新しく連携する場合は連携コードを作成してください', '\u2139');
             }
             await this.leaveRoom();
             console.log(`PAIRING: Retired used room (${reason})`);
@@ -2467,8 +2467,8 @@ function syncPairingSurnameDisplay() {
     const subtextEl = document.getElementById('pairing-surname-subtext');
     if (subtextEl) {
         subtextEl.textContent = surname
-            ? (reading ? `ふりがな: ${reading}` : '同じ苗字の端末だけ参加できます')
-            : '連携前に苗字を入力してください';
+            ? (reading ? `ふりがな: ${reading}` : '同じ名字の端末だけ参加できます')
+            : '連携前に名字を入力してください';
     }
 
     const actionEl = document.getElementById('pairing-surname-action-label');
@@ -2526,8 +2526,8 @@ function syncPairingRoleSelectionFromProfile() {
     const createLabel = document.getElementById('pairing-create-role-label');
     if (createLabel) {
         createLabel.textContent = preferredRoleLabel
-            ? preferredRoleLabel + 'としてコードを発行します'
-            : '設定でママ / パパを選ぶとコードを発行できます';
+            ? preferredRoleLabel + 'として連携コードを作ります'
+            : '設定でママ / パパを選ぶと連携できます';
     }
 
     const joinLabel = document.getElementById('pairing-join-role-label');

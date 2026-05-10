@@ -224,6 +224,7 @@ function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-a
     button.className = aiAvailable ? availableClass : unavailableClass;
     button.disabled = !aiAvailable;
     button.setAttribute('aria-disabled', String(!aiAvailable));
+    button.removeAttribute('aria-busy');
     button.innerHTML = hasCachedDetail
         ? '<span>✓</span> AI深掘り済み'
         : `<span>🤖</span> ${aiAvailable ? 'AIで漢字の成り立ち・意味を深掘り' : '今日のAI深掘りは終了しました'}`;
@@ -244,6 +245,19 @@ function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-a
     return aiAvailable;
 }
 window.refreshKanjiDetailAiButtonState = refreshKanjiDetailAiButtonState;
+
+function setKanjiDetailAiButtonLoadingState(button = document.getElementById('btn-ai-kanji-detail-action')) {
+    if (!button) return;
+    button.className = 'w-full py-4 bg-[#efe9df] text-[#8b7e66] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-progress';
+    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
+    button.setAttribute('aria-busy', 'true');
+    button.innerHTML = `
+        <span class="w-4 h-4 rounded-full border-2 border-[#d4c5af] border-t-[#8b7e66] animate-spin" aria-hidden="true"></span>
+        <span>AI深掘りを取得中...</span>
+    `;
+}
+window.setKanjiDetailAiButtonLoadingState = setKanjiDetailAiButtonLoadingState;
 
 /**
  * scr-main の表示状態を3状態で制御する
@@ -1028,8 +1042,7 @@ async function showKanjiDetail(data) {
                     return;
                 }
 
-                aiActionButton.disabled = true;
-                aiActionButton.setAttribute('aria-disabled', 'true');
+                setKanjiDetailAiButtonLoadingState(aiActionButton);
                 await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
                 refreshKanjiDetailAiButtonState(aiActionButton);
             }, true);
@@ -1584,7 +1597,7 @@ function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairin
     if (readingStockCount === 0) {
         todos.push({
             label: 'まずは読み候補を探す',
-            detail: '読みがまだ決まっていないので、響きや呼びやすさから候補を集めましょう。',
+            detail: '読みがまだ決まっていないので、響きや入れたい音から候補を集めましょう。',
             action: 'sound'
         });
     } else {
@@ -1625,14 +1638,14 @@ function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairin
 
     if (!pairing?.inRoom) {
         todos.splice(1, 0, {
-            label: '連携コードを発行する',
-            detail: 'コードを発行すると、パートナーと一緒に候補を作れます。',
+            label: 'パートナーと連携する',
+            detail: '連携コードを作って共有すると、パートナーと一緒に候補を作れます。',
             action: 'pair'
         });
     } else if (pairing?.inRoom && !pairing?.hasPartner) {
         todos.push({
-            label: `${pairing.inviteTargetLabel}にコードを共有する`,
-            detail: 'パートナーが入ると、一致した漢字や名前が見えます。',
+            label: `${pairing.inviteTargetLabel}に連携を共有する`,
+            detail: '連携コードを送ると、一致した漢字や名前が見えます。',
             action: 'pair'
         });
     } else if (pairing?.hasPartner && ((pairing?.matchedKanjiCount || 0) + (pairing?.matchedNameCount || 0) === 0)) {
@@ -2466,9 +2479,9 @@ function getPairingHomeSummary() {
             ...summary,
             shortText: '未連携',
             title: 'パートナー連携はまだ未設定です',
-            subtitle: 'コードを発行すると、パートナーと一緒に名前候補を作れます。',
+            subtitle: '連携コードを作って共有すると、パートナーと一緒に名前候補を作れます。',
             footnote: '受け取る場合は相手のコードを入力できます。',
-            actionLabel: 'コードを発行',
+            actionLabel: 'パートナーと連携する',
             canOpenHub: false
         };
     }
@@ -2478,9 +2491,9 @@ function getPairingHomeSummary() {
             ...summary,
             shortText: '連携待ち',
             title: `${summary.myRoleLabel}としてルームを作成済みです`,
-            subtitle: `${summary.inviteTargetLabel}にコードを共有すると一致が見られます。`,
+            subtitle: `${summary.inviteTargetLabel}に連携コードを共有すると一致が見られます。`,
             footnote: 'コード入力でも参加できます。',
-            actionLabel: 'コードを共有',
+            actionLabel: 'パートナーに共有する',
             canOpenHub: false
         };
     }
@@ -2641,9 +2654,9 @@ function getHomeNextStep(likedCount, readingStockCount, savedCount, pairing, opt
     }
     if (readingStockCount === 0) {
         return {
-            title: 'まずは読みをさがしましょう',
-            detail: '好きな響きや呼びたい音から、名前の読み候補を集めます。',
-            actionLabel: '読みをさがす',
+            title: 'まずは読み候補を探しましょう',
+            detail: '響きを見ながら選ぶか、入れたい音から読み候補を集めます。',
+            actionLabel: '読み候補を探す',
             action: 'sound'
         };
     }
@@ -3141,7 +3154,9 @@ function runHomeAction(action) {
     }
 
     if (action === 'sound') {
-        if (typeof startMode === 'function') startMode('sound');
+        if (typeof startMode === 'function') {
+            startMode('sound');
+        }
         return;
     }
 
@@ -3866,7 +3881,7 @@ function getHomeOverviewModel(pairing, nextStep, aggregateCounts) {
         primaryAction: nextStep?.action || 'sound',
         primaryLabel: nextStep?.actionLabel || '次に進む',
         secondaryAction: pairing?.hasPartner ? 'openHomeInsightsModalFromEvent(event)' : 'handleHomePairAction()',
-        secondaryLabel: pairing?.hasPartner ? 'くわしく見る' : (isHomePairingWaiting(pairing) ? 'コードを共有' : 'コードを発行')
+        secondaryLabel: pairing?.hasPartner ? 'くわしく見る' : (isHomePairingWaiting(pairing) ? 'パートナーに共有' : 'パートナーと連携')
     };
 }
 
@@ -4132,8 +4147,8 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
 
     switch (action) {
     case 'sound':
-        config.title = '読みをさがす';
-        config.detailHtml = '好きな響きから<br>読み候補を探します';
+        config.title = '読み候補を探す';
+        config.detailHtml = '響きを見ながら、または<br>入れたい音から探します';
         config.alternateAction = 'reading';
         config.alternateLabel = '漢字をさがす';
         break;
@@ -4184,8 +4199,8 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
         config.detailHtml = '相手が保存した候補を<br>確認します';
         break;
     case 'pair':
-        config.title = 'コードを共有';
-        config.detailHtml = '連携コードを送る';
+        config.title = 'パートナーと連携する';
+        config.detailHtml = '連携コードを作って<br>共有します';
         config.variant = 'icon';
         config.icon = '🔗';
         break;
@@ -4194,7 +4209,7 @@ function getHomeNextStageCardConfig(nextStep, readingStockCount) {
     }
 
     if (action === 'sound') {
-        config.title = '読みをさがす';
+        config.title = '読み候補を探す';
     }
     if (action === 'reading') {
         config.title = '漢字をさがす';
@@ -4265,8 +4280,8 @@ function renderHomePairingWaitActionButton(pairing, primaryAction = '', secondar
     const waitingForPartner = isHomePairingWaiting(pairing);
     return renderHomeSecondaryActionButton({
         action: 'pair',
-        title: waitingForPartner ? 'コードを共有' : 'コードを発行'
-    }, waitingForPartner ? 'パートナーへコードを送ります' : 'パートナーと候補を作れます');
+        title: waitingForPartner ? 'パートナーに共有' : 'パートナーと連携'
+    }, waitingForPartner ? '連携コードをパートナーへ送ります' : '連携コードを作って一緒に候補を作れます');
 }
 
 function getHomeSecondaryActionDetailHtml(focusKey, secondaryAction = '') {
@@ -4614,7 +4629,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         statusLines: [],
         chips: [],
         primaryAction: 'sound',
-        primaryLabel: '響きを探す',
+        primaryLabel: '読み候補を探す',
         secondaryAction: '',
         secondaryLabel: ''
     };
@@ -4638,7 +4653,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         ]
         : [
             '名づけはまだ最初の段階です。',
-            'まずは気になる響きを残しましょう。'
+            '響きや入れたい音から読み候補を残しましょう。'
         ];
 
     if (stageKey === 'reading') {
@@ -4658,7 +4673,7 @@ function buildHomeStageStatusCopy(stageKey, likedCount, readingStockCount, saved
         return setCopy(
             '読み',
             'sound',
-            '読みをさがす',
+            '読み候補を探す',
             statusLines,
             [{ label: '読み', value: readingCount, unit: '件' }],
             readingCount > 0
