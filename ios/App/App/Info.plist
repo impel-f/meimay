@@ -30,8 +30,6 @@
 	<false/>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-9172754377890289~1972559504</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>広告の効果測定と、より関連性のある広告を表示するために使用します。</string>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>
