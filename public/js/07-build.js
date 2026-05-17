@@ -984,21 +984,6 @@ function getBuildReadingChoices(options = {}) {
     addFromLiked(sources.ownLikedItems, 'self');
     addFromLiked(sources.partnerLikedItems, 'partner');
 
-    const addFromReadingStock = (items, source) => {
-        (Array.isArray(items) ? items : []).forEach(item => {
-            const rawReading = typeof resolveReadingStockValue === 'function'
-                ? resolveReadingStockValue(item)
-                : (item?.reading || item?.sessionReading || '');
-            const sourceSegments = Array.isArray(item?.segments) && item.segments.length > 0
-                ? item.segments
-                : (Array.isArray(item?.sessionSegments) ? item.sessionSegments : []);
-            addChoice(rawReading, sourceSegments, source, item);
-        });
-    };
-
-    addFromReadingStock(sources.ownReadingStock, 'self');
-    addFromReadingStock(sources.partnerReadingStock, 'partner');
-
     const result = Array.from(choices.values())
         .map(choice => {
             const candidateKeys = choice._candidateKeys instanceof Set ? choice._candidateKeys : new Set();
@@ -3397,7 +3382,7 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
     if (!dropdown) return;
 
     if (buildReadingDropdownChoices.length === 0) {
-        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">ビルドできる読み候補がありません</div>';
+        dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">漢字を選んだ読みがありません</div>';
         return;
     }
 
@@ -3410,7 +3395,16 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
 
     dropdown.innerHTML = visibleChoices.map((choice, index) => {
         const displaySegments = Array.isArray(choice.segments) ? choice.segments : [];
-        const display = displaySegments.length > 0 ? displaySegments.join(' / ') : choice.reading;
+        const segmentDisplay = displaySegments.length > 0 ? displaySegments.join(' / ') : '';
+        const normalizedReading = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(choice.reading)
+            : String(choice.reading || '').trim();
+        const normalizedSegments = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(displaySegments.join(''))
+            : displaySegments.join('');
+        const showSegmentHint = !!segmentDisplay
+            && displaySegments.length > 1
+            && normalizedSegments === normalizedReading;
         const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
         const sourceClass = choice.hasSelf && choice.hasPartner
             ? 'bg-[#fff3d8] text-[#9a7841] border-[#ead7ac]'
@@ -3419,11 +3413,12 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
                 : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
         const isCurrent = choice.reading === currentReading
             && displaySegments.join('/') === currentSegments.join('/');
-        const countLabel = Number(choice.kanjiCount) > 0 ? `${choice.kanjiCount}個` : '読み';
+        const countLabel = `${Math.max(0, Number(choice.kanjiCount) || 0)}個`;
         return `<button onclick="selectReadingForBuildByIndex(${index})"
             class="w-full text-left px-4 py-3 flex items-center justify-between border-b border-[#f0ebe3] last:border-b-0 active:bg-[#faf8f5] ${isCurrent ? 'bg-[#fffbeb]' : ''}">
             <span class="min-w-0 flex-1 pr-3">
-                <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(display)}${isCurrent ? '（現在）' : ''}</span>
+                <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(choice.reading)}${isCurrent ? '（現在）' : ''}</span>
+                ${showSegmentHint ? `<span class="mt-0.5 block truncate text-[10px] font-bold text-[#a6967a]">分け方：${escapeBuildHtml(segmentDisplay)}</span>` : ''}
                 <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
             </span>
             <span class="shrink-0 text-[10px] text-[#a6967a]">${countLabel}</span>
@@ -3450,7 +3445,7 @@ window.showMoreBuildReadingDropdownChoices = showMoreBuildReadingDropdownChoices
 
 function renderBuildReadingDropdownLoading(dropdown) {
     if (!dropdown) return;
-    dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">読み候補を準備しています...</div>';
+    dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-[#a6967a]">漢字を選んだ読みを準備しています...</div>';
 }
 
 function computeBuildReadingDropdownChoicesAsync(dropdown, currentReading, currentSegments, renderToken) {

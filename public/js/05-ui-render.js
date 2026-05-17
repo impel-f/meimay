@@ -369,7 +369,7 @@ function render() {
             },
             {
                 show: inappropriateSwipeCount > 0,
-                label: premiumActive ? 'すべての漢字をカードで見る' : 'すべての常用漢字をカードで見る',
+                label: premiumActive ? 'すべての漢字を見る' : 'すべての常用漢字を見る',
                 detail: '注意が必要な漢字も含めてスワイプ',
                 count: inappropriateSwipeCount,
                 tone: 'gray',
@@ -439,8 +439,9 @@ function render() {
         }).join(' ') + `<span class="kanji-reading-more" hidden></span>` :
         '';
 
-    const flexibleMatchHTML = data._swipeMatchKind === 'partial' && data._swipeMatchDisplayLabel
-        ? `<div class="kanji-swipe-flex-reading"><span>柔軟読み</span><strong>${escapeKanjiDetailHtml(data._swipeMatchDisplayLabel)}</strong></div>`
+    const isFlexibleReadingCandidate = data._swipeMatchKind === 'partial' && data._swipeMatchDisplayLabel;
+    const flexibleMatchHTML = isFlexibleReadingCandidate
+        ? `<div class="kanji-swipe-flex-reading"><span>読みを広げた候補：${escapeKanjiDetailHtml(data._swipeMatchDisplayLabel)}</span></div>`
         : '';
 
     // 分類タグを取得 (raw dataからのタグを取得)
@@ -449,7 +450,12 @@ function render() {
     // タグの印象色は全面塗りではなく、カード枠のグラデーションに使う
     const bgGradient = getGradientFromTags(unifiedTags);
     card.style.background = bgGradient;
-    card.style.border = '1px solid rgba(139, 126, 102, 0.12)';
+    if (isFlexibleReadingCandidate) {
+        card.classList.add('card--flex-reading');
+        card.style.border = '1.5px solid rgba(185, 150, 91, 0.42)';
+    } else {
+        card.style.border = '1px solid rgba(139, 126, 102, 0.12)';
+    }
 
     // タグHTML: 背景色なし・#タグ名テキストのみ
     const tagsHTML = unifiedTags.filter(t => t !== '#その他').length > 0 ?

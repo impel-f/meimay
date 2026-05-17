@@ -638,8 +638,7 @@ function getSearchMethodDefaultChoice() {
 }
 
 function getSearchMethodSubmitLabel() {
-    if (searchMethodSelection === 'reading') return '漢字を探す';
-    return '読み候補を探す';
+    return 'この方法で進む';
 }
 
 function selectSearchMethodChoice(method) {
@@ -708,16 +707,13 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                             <span class="method-choice-desc">響きや入れたい音から、読み候補を探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
-                            <span class="method-choice-next-copy">
-                                <span class="method-choice-next-pill">次へ</span>
-                                <span class="method-choice-next-label">読み候補を探します</span>
-                            </span>
+                            <span class="method-choice-selected-pill">選択中</span>
+                            <span class="method-choice-footer-copy">読み候補を探します</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
                                 <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff5df;">みなと</div>
                             </div>
-                            <span class="method-choice-arrow">›</span>
                         </div>
                     </button>
 
@@ -730,16 +726,13 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                             <span class="method-choice-desc">「はると」「みなと」など、使いたい読みから漢字を探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
-                            <span class="method-choice-next-copy">
-                                <span class="method-choice-next-pill">次へ</span>
-                                <span class="method-choice-next-label">漢字を探します</span>
-                            </span>
+                            <span class="method-choice-selected-pill">選択中</span>
+                            <span class="method-choice-footer-copy">漢字を探します</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">陽</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">暖</div>
                                 <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">悠</div>
                             </div>
-                            <span class="method-choice-arrow">›</span>
                         </div>
                     </button>
                 </div>
@@ -776,16 +769,13 @@ function renderSoundEntryScreen() {
                             <span class="method-choice-desc">おすすめの響きから、好みに合う候補を探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
-                            <span class="method-choice-next-copy">
-                                <span class="method-choice-next-pill">次へ</span>
-                                <span class="method-choice-next-label">候補を見ます</span>
-                            </span>
+                            <span class="method-choice-selected-pill">選択中</span>
+                            <span class="method-choice-footer-copy">候補を見ます</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
                                 <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff5df;">みなと</div>
                             </div>
-                            <span class="method-choice-arrow">›</span>
                         </div>
                     </button>
 
@@ -802,16 +792,13 @@ function renderSoundEntryScreen() {
                             <span class="method-choice-desc">「はる」など、入れたい音を含む読みを探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
-                            <span class="method-choice-next-copy">
-                                <span class="method-choice-next-pill">次へ</span>
-                                <span class="method-choice-next-label">音を入力します</span>
-                            </span>
+                            <span class="method-choice-selected-pill">選択中</span>
+                            <span class="method-choice-footer-copy">音を入力します</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">はると</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">はるか</div>
                                 <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">はるみ</div>
                             </div>
-                            <span class="method-choice-arrow">›</span>
                         </div>
                     </button>
                 </div>
@@ -2307,6 +2294,43 @@ function returnToReadingStockFromCombinationModal() {
     if (target && typeof openReadingStockModal === 'function') {
         openReadingStockModal(target);
     }
+}
+
+function renderReadingCombinationActionButtonsHtml(isStocked, stockTarget) {
+    const encodedStockTarget = encodeURIComponent(String(stockTarget || ''));
+    if (isStocked) {
+        return `
+            <div class="grid grid-cols-1 gap-2 mb-4">
+                <button type="button" onclick="window.removeCompletedReadingFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                    <span>🗑️</span> ストックから外す
+                </button>
+            </div>
+        `;
+    }
+
+    return `
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(false); return false;" class="w-full py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
+                    <span>♥</span> 候補
+                </button>
+                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(true); return false;" class="w-full py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
+                    <span>★</span> 本命
+                </button>
+            </div>
+        `;
+}
+
+function refreshReadingCombinationActionButtons() {
+    const actionsEl = document.getElementById('reading-combination-actions');
+    if (!actionsEl || !readingCombinationModalState || readingCombinationModalState.forceSplit) return;
+
+    const item = readingCombinationModalState.item || {};
+    const reading = getReadingBaseReading(item.reading || item.sessionReading || '') || item.reading || item.sessionReading || '';
+    const stockItem = typeof findReadingStockItem === 'function'
+        ? findReadingStockItem(reading, { includeHidden: false })
+        : null;
+    const stockTarget = stockItem?.id || reading;
+    actionsEl.innerHTML = renderReadingCombinationActionButtonsHtml(!!stockItem, stockTarget);
 }
 
 
@@ -4098,8 +4122,8 @@ const CONTEXT_COACH_CONFIGS = {
             target: '#seg-choice-target',
             placement: 'bottom',
             kicker: '分け方のヒント',
-            title: '漢字の分け方を選びます',
-            body: '響きの意味や文字数を見ながら、しっくりくる分け方を選びます。迷ったら1文字ずつから始めると進めやすいです。'
+            title: '読みの分け方を選びます',
+            body: '読みをどのまとまりで漢字にするか選びます。意味や響きのまとまりに合わせて選んでください。'
         };
     },
     'scr-main': () => {
@@ -6845,8 +6869,8 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
     if (isReadingCandidateLockedForCurrentMembership(candidate)) {
-        if (typeof showPremiumModal === 'function') {
-            showPremiumModal();
+        if (typeof showReadingModalPremiumPrompt === 'function') {
+            showReadingModalPremiumPrompt();
         } else if (typeof showToast === 'function') {
             showToast('人名用漢字はプレミアムで使えます', '👑');
         }
@@ -6892,6 +6916,7 @@ function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = fa
     if (typeof refreshPartnerAwareUI === 'function') {
         refreshPartnerAwareUI();
     }
+    refreshReadingCombinationActionButtons();
 }
 
 function renderReadingSwipeCard(item) {
@@ -6983,7 +7008,6 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
         ? findReadingStockItem(modalReading || item.reading || item.sessionReading || '', { includeHidden: false })
         : null;
     const stockTarget = stockItem?.id || modalReading || item.reading || item.sessionReading || '';
-    const encodedStockTarget = encodeURIComponent(String(stockTarget || ''));
     const isStocked = !!stockItem;
     const optionConfig = {
         compoundLimit: 6,
@@ -6996,26 +7020,9 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const headerLabel = forceSplit ? '分け方の提案' : '';
     const headerTitle = forceSplit ? '漢字の分け方を選ぶ' : displayReading;
     const headerSubtitle = forceSplit ? `${preview.ruby}の分け方を選びます` : preview.ruby;
-    const readingOnlyActionButtonsHtml = !forceSplit ? `
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(false); return false;" class="w-full py-3 bg-gradient-to-r from-[#81c995] to-[#a3d9b5] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
-                    <span>♥</span> 候補
-                </button>
-                <button type="button" onclick="event.stopPropagation(); saveReadingOnlyFromModal(true); return false;" class="w-full py-3 bg-gradient-to-r from-[#8ab4f8] to-[#c5d9ff] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-1 active:scale-95">
-                    <span>★</span> 本命
-                </button>
-            </div>
-        ` : '';
-    const actionButtonsHtml = isStocked && !forceSplit ? `
-            <div class="grid grid-cols-1 gap-2 mb-4">
-                <button type="button" onclick="event.stopPropagation(); closeReadingCombinationModal(); startReadingSplitProposalFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-gradient-to-r from-[#c8ad7f] to-[#d8c3a3] rounded-2xl text-sm font-bold text-white hover:shadow-md transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
-                    漢字を選ぶ
-                </button>
-                <button type="button" onclick="window.removeCompletedReadingFromStock(decodeURIComponent('${encodedStockTarget}')); return false;" class="w-full py-3 bg-[#fef2f2] rounded-2xl text-sm font-bold text-[#f28b82] hover:bg-[#f28b82] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2 active:scale-95">
-                    <span>🗑️</span> ストックから外す
-                </button>
-            </div>
-        ` : readingOnlyActionButtonsHtml;
+    const actionButtonsHtml = !forceSplit
+        ? `<div id="reading-combination-actions">${renderReadingCombinationActionButtonsHtml(isStocked, stockTarget)}</div>`
+        : '';
     readingCombinationModalState = {
         item: { ...item, reading: modalReading || item.reading, baseNickname, basePosition: resolvedBasePosition },
         options,
@@ -7060,14 +7067,21 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                     const candidateHtml = option.candidates.length > 0
                         ? option.candidates.map((candidate, candidateIndex) => {
                             const locked = isReadingCandidateLockedForCurrentMembership(candidate);
+                            const saveAction = `saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)`;
+                            const rowAction = !forceSplit
+                                ? (locked
+                                    ? 'onclick="event.stopPropagation(); showReadingModalPremiumPrompt();" role="button" aria-label="プレミアムで人名用漢字を見る"'
+                                    : `onclick="event.stopPropagation(); ${saveAction};" role="button" aria-label="候補に入れる"`)
+                                : '';
+                            const rowInteractionClass = !forceSplit ? ' cursor-pointer active:scale-[0.99] transition-transform' : '';
                             return `
-                        <div class="reading-modal-candidate-row${locked ? ' reading-modal-candidate-row--locked' : ''}">
+                        <div class="reading-modal-candidate-row${locked ? ' reading-modal-candidate-row--locked' : ''}${rowInteractionClass}" ${rowAction}>
                             <div class="min-w-0 flex-1">
                                 ${renderReadingModalCandidateName(candidate)}
                             </div>
                             ${forceSplit
-                                ? `<button onclick="event.stopPropagation(); saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '保存'}</button>`
-                                : ''}
+                                ? `<button onclick="event.stopPropagation(); ${saveAction}" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '保存'}</button>`
+                                : `<button type="button" onclick="event.stopPropagation(); ${locked ? 'showReadingModalPremiumPrompt()' : saveAction}; return false;" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '候補'}</button>`}
                         </div>
                         `;
                         }).join('')
@@ -7243,7 +7257,9 @@ function selectBalancedReadingSampleExamples(examples, limit = 4) {
 function showReadingModalPremiumPrompt() {
     if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return;
     if (typeof showPremiumModal === 'function') {
-        showPremiumModal();
+        showPremiumModal({
+            subtitle: 'この名前例には人名用漢字が含まれています。プレミアムで候補に保存できます。'
+        });
         return;
     }
     if (typeof showToast === 'function') {
@@ -10309,6 +10325,7 @@ function saveReadingOnlyFromModal(asSuper = false) {
 
     if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
     if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    refreshReadingCombinationActionButtons();
 }
 
 function startReadingSplitProposalFromStock(reading) {

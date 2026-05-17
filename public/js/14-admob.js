@@ -2160,6 +2160,7 @@ const PremiumTrialNudge = {
     SUPPRESS_AFTER_PARTNER_MS: 5 * 60 * 1000,
     MIN_SWIPES: 12,
     MAX_SHOWS: 3,
+    AUTO_MODAL_ENABLED: false,
     _timer: null,
 
     loadState: function () {
@@ -2234,12 +2235,14 @@ const PremiumTrialNudge = {
             clearTimeout(this._timer);
             this._timer = null;
         }
+        if (!this.AUTO_MODAL_ENABLED) return false;
 
         const delay = Number.isFinite(Number(payload.delayMs)) ? Number(payload.delayMs) : 900;
         this._timer = setTimeout(() => {
             this._timer = null;
             this.maybeShow(trigger);
         }, Math.max(0, delay));
+        return true;
     },
 
     maybeShow: function (trigger) {
@@ -2249,6 +2252,7 @@ const PremiumTrialNudge = {
     },
 
     shouldShow: function (trigger, state) {
+        if (!this.AUTO_MODAL_ENABLED) return false;
         if (!this.isEligible()) return false;
         if (document.hidden) return false;
 
@@ -2568,8 +2572,10 @@ function renderPremiumComparisonMatrix() {
         + '</div></div>';
 }
 
-function getPremiumModalSubtitle(state) {
-    return '';
+function getPremiumModalSubtitle(state, options = {}) {
+    return options && typeof options === 'object'
+        ? String(options.subtitle || '').trim()
+        : '';
 }
 
 function renderPremiumStatusCard(state) {
@@ -2736,7 +2742,7 @@ function showPremiumModal(options = {}) {
     const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
         : { active: false, label: 'プレミアム未登録', detail: '' };
-    const subtitle = getPremiumModalSubtitle(state);
+    const subtitle = getPremiumModalSubtitle(state, options);
     const syncMessage = options && typeof options === 'object' ? String(options.syncMessage || '') : '';
 
     modal.style.setProperty('z-index', '10030', 'important');
@@ -2750,9 +2756,9 @@ function showPremiumModal(options = {}) {
         + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">👑プレミアム案内👑</h3>'
         + (subtitle ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>' : '')
         + '</div>'
+        + renderPremiumTrialCard(state)
         + renderPremiumStatusCard(state)
         + renderPremiumComparisonMatrix()
-        + renderPremiumTrialCard(state)
         + renderPremiumPlanCards(state)
         + renderPremiumPurchaseSyncNotice(state, syncMessage)
         + '<button onclick="closePremiumModal()" class="w-full py-2.5 ' + (state.active ? 'bg-gradient-to-r from-[#bca37f] to-[#8b7e66] text-white shadow-md' : 'border border-[#e6dccb] bg-white text-[#8b7e66]') + ' rounded-2xl font-bold text-sm">閉じる</button>'

@@ -1,5 +1,25 @@
 [
   {
+    "kanji": "息吹",
+    "priority": 94,
+    "gender": [
+      "male",
+      "female",
+      "neutral"
+    ],
+    "tags": [
+      "#自然",
+      "#希望"
+    ],
+    "variants": [
+      {
+        "reading": "いぶき",
+        "mode": "exact",
+        "score": 94
+      }
+    ]
+  },
+  {
     "kanji": "大和",
     "priority": 98,
     "gender": [

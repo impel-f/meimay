@@ -189,6 +189,11 @@ function isOneCharSegmentPath(path) {
         && path.every((segment) => Array.from(normalizeKanaCandidateSegment(segment)).length === 1);
 }
 
+function getSegmentPathBadgeLabel(path) {
+    if (!Array.isArray(path) || path.length === 0) return '分け方';
+    return `${path.length}文字名`;
+}
+
 function normalizeKanaCandidateScriptSettings(value) {
     if (value && typeof value === 'object') {
         return {
@@ -912,7 +917,7 @@ function calcSegments() {
 
     const normalSection = document.createElement('div');
     normalSection.className = 'mb-6';
-    normalSection.appendChild(createSectionTitle('1文字ずつ探す'));
+    normalSection.appendChild(createSectionTitle('読みの分け方を選ぶ', 'どのまとまりで漢字を探すか選びます'));
 
     const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
     const kanaSettings = getKanaCandidateScriptSettings();
@@ -942,7 +947,7 @@ function calcSegments() {
         uniquePaths.forEach((path, idx) => {
             const btn = document.createElement('button');
             btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
-            const countLabel = `${path.length}文字名`;
+            const countLabel = getSegmentPathBadgeLabel(path);
 
             const displayParts = path.map((p, index) => {
                 const piece = `<span data-segment-piece class="shrink-0 inline-flex items-center whitespace-nowrap px-2">${p}</span>`;
@@ -1155,17 +1160,18 @@ function getSwipeReadingEntryForms(entry) {
 function formatSwipeFlexibleReadingLabel(targetReading, rawReading, normalizedReading) {
     const raw = String(rawReading || '').trim();
     const hiraRaw = typeof toHira === 'function' ? toHira(raw) : raw;
+    const displayRaw = hiraRaw ? hiraRaw.replace(/\(/g, '（').replace(/\)/g, '）') : '';
     const normalizedRaw = normalizeReadingComparisonValue(hiraRaw);
     const normalizedTarget = normalizeReadingComparisonValue(targetReading);
     const normalizedMatch = normalizeReadingComparisonValue(normalizedReading || normalizedRaw);
 
-    if (hiraRaw && /[（(]/.test(hiraRaw)) {
-        return hiraRaw.replace(/\(/g, '（').replace(/\)/g, '）');
+    if (displayRaw && normalizedTarget && displayRaw.startsWith(normalizedTarget)) {
+        return `「${normalizedTarget}」${displayRaw.slice(normalizedTarget.length)}`;
     }
     if (normalizedTarget && normalizedMatch.startsWith(normalizedTarget) && normalizedMatch.length > normalizedTarget.length) {
-        return `${normalizedTarget}（${normalizedMatch.slice(normalizedTarget.length)}）`;
+        return `「${normalizedTarget}」${normalizedMatch.slice(normalizedTarget.length)}`;
     }
-    return hiraRaw || normalizedMatch;
+    return displayRaw || normalizedMatch;
 }
 
 function getSwipeFlexibleReadingMatch(k, normalizedTarget, targetSeion, allowVoicedFallback) {
