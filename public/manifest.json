@@ -2,7 +2,7 @@
   "name": "メイメー - 赤ちゃんの命名アプリ",
   "short_name": "メイメー",
   "description": "めぇ〜っと見つかる、運命の名前。姓名判断とAI由来生成で赤ちゃんの名前を楽しく選べるアプリ",
-  "start_url": "/",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#fdfaf5",
   "theme_color": "#bca37f",

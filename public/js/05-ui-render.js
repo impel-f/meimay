@@ -3725,6 +3725,10 @@ window.openHomePartnerHub = openHomePartnerHub;
 window.openHomePartnerHubFromEvent = openHomePartnerHubFromEvent;
 window.openHomePartnerHubAction = openHomePartnerHubAction;
 window.handleHomeInlinePartnerAction = handleHomeInlinePartnerAction;
+window.closeHomeReviewSupportModal = closeHomeReviewSupportModal;
+window.handleHomeReviewMatchAction = handleHomeReviewMatchAction;
+window.handleHomeReviewSupportAction = handleHomeReviewSupportAction;
+window.dismissHomeReviewSupportCard = dismissHomeReviewSupportCard;
 window.getMeimayPartnerViewState = getMeimayPartnerViewState;
 window.setMeimayPartnerViewFocus = setMeimayPartnerViewFocus;
 window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
@@ -4085,7 +4089,8 @@ function formatHomeStatusBodyText(text) {
     return String(text ?? '')
         .trim()
         .replace(/[ \t]+/g, ' ')
-        .replace(/。/g, '。\n')
+        .replace(/。(?=\S)/g, '。\n')
+        .replace(/\n{2,}/g, '\n')
         .trimEnd();
 }
 
@@ -4284,6 +4289,137 @@ function renderHomePairingWaitActionButton(pairing, primaryAction = '', secondar
     }, waitingForPartner ? '連携コードをパートナーへ送ります' : '連携コードを作って一緒に候補を作れます');
 }
 
+const HOME_REVIEW_SUPPORT_DONE_KEY = 'meimay_review_support_done_v1';
+const HOME_REVIEW_SUPPORT_PROMPTED_KEY = 'meimay_review_support_prompted_v1';
+let homeReviewSupportTimer = null;
+
+function hasHomeReviewSupportFlag(key) {
+    try {
+        return localStorage.getItem(key) === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function markHomeReviewSupportFlag(key) {
+    try {
+        localStorage.setItem(key, '1');
+    } catch (e) { }
+}
+
+function shouldShowHomeReviewSupportPopup(pairing) {
+    if ((pairing?.matchedNameCount || 0) < 1) return false;
+    if (hasHomeReviewSupportFlag(HOME_REVIEW_SUPPORT_DONE_KEY)) return false;
+    if (hasHomeReviewSupportFlag(HOME_REVIEW_SUPPORT_PROMPTED_KEY)) return false;
+    if (document.getElementById('home-review-support-modal')) return false;
+
+    const reviewLink = typeof getMeimayReviewLink === 'function'
+        ? getMeimayReviewLink()
+        : { available: false };
+    return reviewLink.available === true;
+}
+
+function scheduleHomeReviewSupportPopup(pairing) {
+    if (homeReviewSupportTimer) {
+        clearTimeout(homeReviewSupportTimer);
+        homeReviewSupportTimer = null;
+    }
+    if (!shouldShowHomeReviewSupportPopup(pairing)) return;
+
+    homeReviewSupportTimer = setTimeout(() => {
+        homeReviewSupportTimer = null;
+        const latestPairing = typeof getPairingHomeSummary === 'function'
+            ? getPairingHomeSummary()
+            : pairing;
+        if (shouldShowHomeReviewSupportPopup(latestPairing)) {
+            openHomeReviewSupportModal(latestPairing);
+        }
+    }, 900);
+}
+
+function openHomeReviewSupportModal(pairing) {
+    if (!shouldShowHomeReviewSupportPopup(pairing)) return;
+    closeHomeReviewSupportModal(false);
+    markHomeReviewSupportFlag(HOME_REVIEW_SUPPORT_PROMPTED_KEY);
+
+    const reviewLink = typeof getMeimayReviewLink === 'function'
+        ? getMeimayReviewLink()
+        : { label: 'レビューで応援' };
+    const buttonLabel = reviewLink.platform === 'android'
+        ? 'Google Playで応援'
+        : 'App Storeで応援';
+
+    const modal = document.createElement('div');
+    modal.id = 'home-review-support-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.innerHTML = `
+        <div class="modal-sheet w-11/12 max-w-md" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeHomeReviewSupportModal()">✕</button>
+            <div class="modal-body text-center">
+                <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#eadfce] bg-[#fff8ec] text-xl">♡</div>
+                <h3 class="mt-2 font-black leading-relaxed text-[#5d5444]" style="font-size:1.08rem;white-space:nowrap;">二人の本命が一致しました</h3>
+                <p class="mx-auto mt-2 max-w-[18rem] text-[12px] leading-[1.8] text-[#8b7e66]">
+                    メイメーが少しでもお役に立てていたら、ストアで応援していただけるとうれしいです。
+                </p>
+                <div class="mt-5 space-y-2">
+                    <button type="button" onclick="handleHomeReviewSupportAction(event)" class="w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-[0.98] transition-transform">${buttonLabel}</button>
+                    <button type="button" onclick="handleHomeReviewMatchAction(event)" class="w-full rounded-2xl border border-[#eadfce] bg-white px-4 py-3 text-sm font-black text-[#8b6f42] shadow-sm active:scale-[0.98] transition-transform">一致した名前を見る</button>
+                    <button type="button" onclick="dismissHomeReviewSupportCard(event)" class="w-full rounded-2xl px-4 py-2.5 text-xs font-bold text-[#a6967a] active:scale-[0.98] transition-transform">あとで</button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.addEventListener('click', () => closeHomeReviewSupportModal());
+    document.body.appendChild(modal);
+}
+
+function closeHomeReviewSupportModal(markPrompted = true) {
+    if (markPrompted) {
+        markHomeReviewSupportFlag(HOME_REVIEW_SUPPORT_PROMPTED_KEY);
+    }
+    const modal = document.getElementById('home-review-support-modal');
+    if (modal) modal.remove();
+}
+
+function dismissHomeReviewSupportCard(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    closeHomeReviewSupportModal();
+}
+
+function handleHomeReviewMatchAction(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    closeHomeReviewSupportModal();
+    runHomeAction('matched-saved');
+}
+
+function handleHomeReviewSupportAction(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const reviewLink = typeof getMeimayReviewLink === 'function'
+        ? getMeimayReviewLink()
+        : { url: '', available: false };
+    if (!reviewLink.available || !reviewLink.url) {
+        if (typeof showToast === 'function') showToast('レビューはストア公開後に利用できます', '\u2139');
+        return;
+    }
+
+    markHomeReviewSupportFlag(HOME_REVIEW_SUPPORT_DONE_KEY);
+    closeHomeReviewSupportModal(false);
+    if (typeof openMeimayExternalLink === 'function') {
+        openMeimayExternalLink(reviewLink.url);
+    } else {
+        window.open(reviewLink.url, '_blank', 'noopener');
+    }
+}
+
 function getHomeSecondaryActionDetailHtml(focusKey, secondaryAction = '') {
     if (secondaryAction === 'free-build') {
         return '集めた漢字から自由に候補を作ります';
@@ -4469,6 +4605,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
     if (window.MeimayHomeStageFocusSource !== 'manual' && typeof maybeShowHomeNextActionCoach === 'function') {
         maybeShowHomeNextActionCoach(homeNextHintStep);
     }
+    scheduleHomeReviewSupportPopup(pairing);
 }
 
 function renderHomeStageTrackLegacy(likedCount, readingStockCount, savedCount, options = {}) {

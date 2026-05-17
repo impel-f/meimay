@@ -1,0 +1,141 @@
+{
+  "account": "@meimay_app",
+  "timezone": "Asia/Tokyo",
+  "audience": "出産を控えたプレパパ・プレママ",
+  "voice": {
+    "tone": "丁寧、親しみやすい、押しつけない",
+    "avoid": [
+      "運営者個人の自我",
+      "強い煽り",
+      "過度な売り込み",
+      "同じ文面の繰り返し",
+      "過度なハッシュタグ"
+    ]
+  },
+  "posts": [
+    {
+      "id": "2026-05-10-naming-start-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-10T10:15:00+09:00",
+      "category": "naming_tip",
+      "text": "赤ちゃんの名前を考え始めたばかりの時期は、まず「好きな響き」を集めるだけでも十分です。\n\n意味や画数はあとから整えられます。最初からひとつに決めようとせず、気になる候補を少しずつ残していくと、ふたりの好みが見えやすくなります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-11-sort-candidates-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-11T21:15:00+09:00",
+      "category": "naming_tip",
+      "text": "名前候補が増えてきたら、「本命」「候補」「保留」に分けると整理しやすくなります。\n\n時間をおいて見返したときにも残っている名前は、ふたりにとって大切な候補かもしれません。",
+      "media": null
+    },
+    {
+      "id": "2026-05-12-reading-swipe-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-12T08:10:00+09:00",
+      "category": "app_soft_intro",
+      "text": "メイメーでは、気になる響きをスワイプで整理できます。\n\n名前を決める前の「なんとなく好き」を残しておくと、あとから漢字や意味を考えるときの手がかりになります。\nhttps://apps.apple.com/jp/app/id6760251452",
+      "media": {
+        "path": "release/app-store-screenshots/2026-05-04-marketing-v5-stock/iphone-6.9-1290x2796/02-reading-swipe.png",
+        "alt": "メイメーの読みスワイプ画面。気になる響きを整理できることを示すスクリーンショット。"
+      }
+    },
+    {
+      "id": "2026-05-13-meaning-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-13T21:10:00+09:00",
+      "category": "kanji_tip",
+      "text": "同じ漢字でも、組み合わせる文字や読み方によって、名前の印象は大きく変わります。\n\n響き、意味、書いたときの見た目。いくつかの角度から眺めてみると、納得できる候補に近づきやすくなります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-15-partner-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-15T08:20:00+09:00",
+      "category": "partner_naming",
+      "text": "名づけは、どちらかひとりで決めるよりも、ふたりの「好き」を見比べる時間が大切になることがあります。\n\nすぐに一致しなくても大丈夫です。候補を残しておくことで、あとから自然に近い感覚が見つかることもあります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-16-app-card-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-16T10:20:00+09:00",
+      "category": "app_intro",
+      "text": "赤ちゃんの名前を、ふたりで納得しながら考えるために。\n\nメイメーは、響き・漢字・画数・メモ・パートナー共有を使って、名前候補を少しずつ整理できる名づけアプリです。\nhttps://apps.apple.com/jp/app/id6760251452",
+      "media": {
+        "path": "release/social/meimay-x-card-1200x675.png",
+        "alt": "赤ちゃん名づけアプリ、メイメーの紹介カード。"
+      }
+    },
+    {
+      "id": "2026-05-18-too-many-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-18T21:20:00+09:00",
+      "category": "naming_tip",
+      "text": "名前候補が多くなって迷うときは、「今すぐ決める」よりも「残しておく」ことを意識すると、少し気持ちが軽くなります。\n\nあとから見返したとき、自然と残る名前が見えてくることがあります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-19-kanji-stock-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-19T08:15:00+09:00",
+      "category": "app_soft_intro",
+      "text": "気になる漢字は、すぐに名前にしなくても大丈夫です。\n\nまずは意味や雰囲気が好きな漢字を集めておくと、響きに合う組み合わせを考えるときの選択肢が広がります。",
+      "media": {
+        "path": "release/app-store-screenshots/2026-05-04-marketing-v5-stock/iphone-6.9-1290x2796/04-kanji-stock.png",
+        "alt": "メイメーで気になる漢字をストックしている画面。"
+      }
+    },
+    {
+      "id": "2026-05-20-family-name-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-20T21:05:00+09:00",
+      "category": "naming_tip",
+      "text": "名前だけで見ると好きでも、名字と続けて読んでみると印象が変わることがあります。\n\n声に出して呼んでみる、紙に書いてみる。小さな確認を重ねると、暮らしの中でなじむ名前を考えやすくなります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-22-fortune-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-22T08:25:00+09:00",
+      "category": "fortune_note",
+      "text": "画数や姓名判断は、名前を考えるときの参考のひとつです。\n\n結果だけで決めるのではなく、響き、意味、家族の思いとあわせて見ることで、納得しやすい候補を探しやすくなります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-23-weekend-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-23T10:30:00+09:00",
+      "category": "partner_naming",
+      "text": "休日に少し時間が取れるときは、ふたりで名前候補を見返すだけでも前に進みます。\n\n「これは好き」「これは少し迷う」と話してみると、名前そのものだけでなく、大切にしたい雰囲気も見えてきます。",
+      "media": null
+    },
+    {
+      "id": "2026-05-25-memo-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-25T21:15:00+09:00",
+      "category": "naming_tip",
+      "text": "名前候補には、思いついた理由をひとこと残しておくのがおすすめです。\n\n「響きがやさしい」「意味が好き」「家族で呼びやすい」など、あとから見返したときに、その名前を大切に感じた理由を思い出しやすくなります。",
+      "media": null
+    },
+    {
+      "id": "2026-05-26-build-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-26T08:10:00+09:00",
+      "category": "app_soft_intro",
+      "text": "集めた漢字から名前候補を組み立てると、響きだけでは気づかなかった印象が見えてくることがあります。\n\nメイメーでは、気になる漢字を残しながら、名前の候補づくりを進められます。",
+      "media": {
+        "path": "release/app-store-screenshots/2026-05-04-marketing-v5-stock/iphone-6.9-1290x2796/06-build-reading.png",
+        "alt": "メイメーで漢字を組み合わせ、名前候補を作っている画面。"
+      }
+    },
+    {
+      "id": "2026-05-27-slow-01",
+      "status": "approved",
+      "scheduledAt": "2026-05-27T21:10:00+09:00",
+      "category": "empathy",
+      "text": "赤ちゃんの名前をすぐに決められなくても、焦らなくて大丈夫です。\n\n迷う時間は、その子のことを大切に考えている時間でもあります。少しずつ候補を残しながら、納得できる名前を探していけます。",
+      "media": null
+    }
+  ]
+}

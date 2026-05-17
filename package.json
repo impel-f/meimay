@@ -17,7 +17,10 @@
     "build:caution-kanji-list": "node scripts/build_caution_kanji_list.js",
     "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js",
     "build:tailwind": "tailwindcss -c tailwind.config.js -i ./public/css/tailwind-source.css -o ./public/css/tailwind.generated.css --minify",
-    "postinstall": "node scripts/patch-admob-privacy.js"
+    "postinstall": "node scripts/patch-admob-privacy.js",
+    "social:x:validate": "node scripts/social/x-post-due.js --validate-only",
+    "social:x:dry-run": "node scripts/social/x-post-due.js --dry-run",
+    "social:x:post-due": "node scripts/social/x-post-due.js"
   },
   "dependencies": {
     "@capacitor-community/admob": "^8.0.0",

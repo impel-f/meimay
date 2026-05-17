@@ -2,6 +2,18 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/marketing.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/(.*)",
+      "destination": "/index.html"
+    },
+    {
       "source": "/api/gemini",
       "destination": "/api/gemini.js"
     },

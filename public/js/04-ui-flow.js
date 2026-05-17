@@ -2192,13 +2192,34 @@ function persistGeneratedSavedName(saveData) {
         recordSavedNameReadingForRanking(mergedSaveData, 1);
     }
 }
+const READING_DISPLAY_TAG_ALIASES = {
+    '#力強い': '#はっきり'
+};
 
+function normalizeReadingDisplayTag(tag) {
+    const normalized = String(tag || '').trim();
+    if (!normalized || normalized.startsWith('#止め字')) return '';
+    return READING_DISPLAY_TAG_ALIASES[normalized] || READING_SEARCH_TAG_ALIASES[normalized] || normalized;
+}
 
+function getReadingDisplayTags(tags, limit = 0) {
+    const visibleTags = [];
+    const sourceTags = Array.isArray(tags) ? tags : [];
+    const hasModernClassic = sourceTags.includes('#レトロモダン');
+    sourceTags.forEach((tag) => {
+        const normalized = normalizeReadingDisplayTag(tag);
+        if (hasModernClassic && normalized === '#クラシック') return;
+        if (!normalized || visibleTags.includes(normalized)) return;
+        visibleTags.push(normalized);
+    });
+    return limit > 0 ? visibleTags.slice(0, limit) : visibleTags;
+}
 
 function renderReadingTagBadges(tags) {
-    if (!tags || tags.length === 0) return '';
+    const visibleTags = getReadingDisplayTags(tags);
+    if (visibleTags.length === 0) return '';
 
-    return `<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">${tags.map(tag =>
+    return `<div class="flex flex-wrap justify-center gap-1.5 mb-2 px-2">${visibleTags.map(tag =>
         `<span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-full border shadow-sm text-[#4f4639]" style="background-color:rgba(255,255,255,0.34);border-color:rgba(255,255,255,0.58);backdrop-filter:blur(6px);">${tag}</span>`
     ).join('')}</div>`;
 }
@@ -2365,28 +2386,51 @@ function getReadingGenderBonus(entryGender, targetGender = gender || 'neutral') 
     return -9999;
 }
 
-// 明治安田「名前ランキング2025 読み方ベスト50」を序盤の定番名ヒントに使う。
-// Source: https://www.meijiyasuda.co.jp/enjoy/ranking/read_best50/
+// 2025年公開の読みランキングを序盤の定番名ヒントに使う。
+// 主軸は「たまひよ 赤ちゃんの名前ランキング2025」読みTOP50、
+// アカチャンホンポ2025の上位読みで最近の揺れも補う。
 // 候補の本文・件数・タグは引き続き readingsData のマスタを正にする。
 var SOUND_STARTER_SOURCE_READINGS = {
     neutral: [
-        'はると', 'みなと', 'あおと', 'えま', 'さな', 'すい',
-        'ひなた', 'つむぎ', 'いろは', 'みお', 'こはる', 'めい',
-        'そら', 'りく', 'あおい', 'ゆい', 'はる', 'なぎ',
-        'いおり', 'れん', 'あさひ', 'ひまり', 'あかり', 'さくら'
+        'はると', 'さな', 'みなと', 'えま', 'りく', 'みお',
+        'あおと', 'つむぎ', 'ゆいと', 'めい', 'はる', 'こはる',
+        'ひなた', 'すい', 'そら', 'ひまり', 'そうた', 'いろは',
+        'はるき', 'ゆい', 'せな', 'あおい', 'そうま', 'ゆあ',
+        'さく', 'りお', 'あさひ', 'えな', 'いつき', 'さら',
+        'りと', 'なぎさ', 'あお', 'ほのか', 'るい', 'さくら',
+        'なぎ', 'いと', 'かなた', 'りん', 'かいと', 'いちか',
+        'あやと', 'ふうか', 'りつき', 'あかり', 'ゆうと', 'はな',
+        'かなと', 'ことは', 'りつ', 'おと', 'そう', 'ゆの',
+        'れお', 'ゆな', 'いぶき', 'りこ', 'こうき', 'のあ',
+        'そうすけ', 'ひより', 'いおり', 'ゆづき', 'がく', 'いとは',
+        'れい', 'るか', 'とあ', 'こと', 'ゆうせい', 'みあ',
+        'かい', 'ひかり', 'れん', 'かのん', 'さくと', 'みこと',
+        'なつき', 'りあ', 'ちはや', 'ひなの', 'はやと', 'ももか',
+        'とうま', 'ゆずは', 'あおば', 'うみ', 'なぎと', 'りひと',
+        'ゆうま', 'けいと', 'りくと', 'ましろ', 'ゆいか', 'みゆ',
+        'ゆうき', 'あきと'
     ],
     male: [
-        'はると', 'みなと', 'あおと', 'せな', 'ひなた', 'ゆいと',
-        'りく', 'そら', 'りと', 'そうた', 'はるき', 'はる',
-        'さく', 'なぎ', 'るい', 'そうま', 'いおり', 'あおい',
-        'かいと', 'いつき', 'あさひ', 'ゆうせい', 'こうせい', 'れん'
+        'はると', 'みなと', 'りく', 'あおと', 'ゆいと', 'はる',
+        'ひなた', 'そら', 'そうた', 'はるき', 'せな', 'そうま',
+        'さく', 'あさひ', 'いつき', 'りと', 'あお', 'あおい',
+        'るい', 'なぎ', 'かなた', 'かいと', 'あやと', 'りつき',
+        'ゆうと', 'かなと', 'りつ', 'そう', 'れお', 'いぶき',
+        'こうき', 'そうすけ', 'いおり', 'がく', 'れい', 'とあ',
+        'ゆうせい', 'かい', 'れん', 'さくと', 'なつき', 'ちはや',
+        'はやと', 'とうま', 'あおば', 'なぎと', 'りひと', 'ゆうま',
+        'けいと', 'りくと', 'ゆうき', 'あきと'
     ],
     female: [
-        'えま', 'さな', 'すい', 'つむぎ', 'いろは', 'みお',
-        'こはる', 'めい', 'ひまり', 'はな', 'のあ', 'ゆい',
-        'あおい', 'えな', 'なぎさ', 'いと', 'おと', 'ほのか',
-        'せな', 'いちか', 'さら', 'りお', 'りん', 'さくら',
-        'ゆな', 'ふうか', 'ゆあ', 'ことは', 'ひな', 'あかり'
+        'さな', 'えま', 'みお', 'つむぎ', 'めい', 'こはる',
+        'すい', 'ひまり', 'いろは', 'ゆい', 'ひな', 'ゆあ',
+        'りお', 'えな', 'さら', 'あおい', 'なぎさ', 'ほのか',
+        'さくら', 'いと', 'せな', 'りん', 'いちか', 'ふうか',
+        'あかり', 'はな', 'ことは', 'おと', 'ゆの', 'ゆな',
+        'りこ', 'のあ', 'ひより', 'ゆづき', 'いとは', 'るか',
+        'こと', 'ひなた', 'みあ', 'ひかり', 'かのん', 'なぎ',
+        'みこと', 'はる', 'れい', 'りあ', 'ひなの', 'ももか',
+        'ゆずは', 'うみ', 'ましろ', 'ゆいか', 'みゆ'
     ]
 };
 
@@ -2471,12 +2515,14 @@ function generatePopularNames(gender) {
                 });
             }
 
-            let typeText = item.isPopular ? '人気' : (item.count > 10 ? '定番' : '候補');
+            const sourceRank = getSoundStarterSourceIndex(item, gender);
+            const sourcePopular = sourceRank >= 0;
+            let typeText = (sourcePopular || item.isPopular) ? '人気' : (item.count > 10 ? '定番' : '候補');
 
             // プレーンな例を配列化（"大翔, 悠翔" -> ["大翔", "悠翔"]）
             let exampleArr = [];
             if (item.examples) {
-                exampleArr = item.examples.split(/[,、]/).map(x => x.trim()).filter(x => x);
+                exampleArr = item.examples.split(/[\s\u3000,、/]+/).map(x => x.trim()).filter(x => x);
             }
 
             return {
@@ -2486,7 +2532,7 @@ function generatePopularNames(gender) {
                 examples: exampleArr,
                 desc: `${item.count}人が名付けに選びました`,
                 rawCount: item.count,
-                popular: item.isPopular,
+                popular: sourcePopular || item.isPopular,
                 tags: item.tags || [],
                 gender: item.gender || 'neutral',
                 score: score
@@ -6528,8 +6574,9 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
 
 
 function getReadingCardTagBadges(tags) {
-    if (!tags || tags.length === 0) return '';
-    return `<div class="flex flex-wrap justify-center gap-2 mb-4 px-2">${tags.map(tag => `
+    const visibleTags = getReadingDisplayTags(tags);
+    if (visibleTags.length === 0) return '';
+    return `<div class="flex flex-wrap justify-center gap-2 mb-4 px-2">${visibleTags.map(tag => `
         <span class="inline-flex items-center px-3 py-1 text-[11px] font-bold rounded-full border border-white/40 bg-white/35 text-[#4f4639] backdrop-blur-sm shadow-sm">${tag}</span>
     `).join('')}</div>`;
 }
@@ -6791,7 +6838,6 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
     return pickReadingDisplayCandidates(sorted, limit);
 }
 
-
 function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = false) {
     if (!readingCombinationModalState) return;
     if (Date.now() - readingCombinationModalOpenedAt < 420) return;
@@ -6986,23 +7032,26 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     };
 
     modal.innerHTML = `
-        <div class="detail-sheet max-w-[440px] border" onclick="event.stopPropagation()" style="background:${tone.surfaceStyle};border-color:${tone.borderColor};">
+        <div class="detail-sheet max-w-[440px] flex flex-col min-h-0 !p-0 overflow-hidden" onclick="event.stopPropagation()" style="background:#fff;max-height:min(88vh,760px);padding:0!important;border:0;overflow:hidden;">
             <button class="modal-close-x" onclick="closeReadingCombinationModal()">×</button>
-            ${returnTarget ? `
-            <div class="mb-4">
-                <button onclick="event.stopPropagation(); returnToReadingStockFromCombinationModal()" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
-                    戻る
-                </button>
+            <div class="w-full shrink-0 px-5 pb-3 border-b shadow-[0_4px_20px_-14px_rgba(0,0,0,0.18)]" style="padding-top:14px;background:${tone.surfaceStyle};border-color:${tone.borderColor};">
+                ${returnTarget ? `
+                <div class="mb-2">
+                    <button onclick="event.stopPropagation(); returnToReadingStockFromCombinationModal()" class="inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1.5 text-[11px] font-bold text-[#8b7e66] active:scale-95">
+                        戻る
+                    </button>
+                </div>
+                ` : ''}
+                <div class="text-center mb-3">
+                    <h3 class="text-3xl font-black text-[#5d5444] mb-1">${headerTitle}</h3>
+                    <div class="text-[12px] font-bold text-[#8b7e66]">${headerSubtitle}</div>
+                    ${forceSplit ? '<div class="mt-1.5 text-[11px] text-[#a6967a]">候補を選ぶと、その分け方でストックに入ります。</div>' : ''}
+                </div>
+                ${renderReadingTagBadges(item.tags || [])}
+                ${actionButtonsHtml}
             </div>
-            ` : ''}
-            <div class="text-center mb-5">
-                <h3 class="text-3xl font-black text-[#5d5444] mb-2">${headerTitle}</h3>
-                <div class="text-[12px] font-bold text-[#8b7e66]">${headerSubtitle}</div>
-                ${forceSplit ? '<div class="mt-2 text-[11px] text-[#a6967a]">候補を選ぶと、その分け方でストックに入ります。</div>' : ''}
-            </div>
-            ${renderReadingTagBadges(item.tags || [])}
-            ${actionButtonsHtml}
-            <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1">
+            <div class="space-y-3 flex-1 min-h-0 overflow-y-auto bg-white px-5 py-4">
+                ${!forceSplit && options.some((option) => option.candidates.length > 0) ? '<div class="px-1 pt-1 text-[15px] font-black text-[#8b7e66]">名前の例</div>' : ''}
                 ${options.length === 0 ? `
                     <div class="rounded-[28px] border border-[#ede5d8] bg-white p-5 text-center text-sm text-[#8b7e66]">
                         ${forceSplit ? 'この読みでは分け方の候補がまだ見つかりませんでした。' : 'この読みでは候補がまだ見つかりませんでした。'}
@@ -7029,7 +7078,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                                 <div class="text-xl font-black text-[#5d5444]">${option.label}</div>
                                 <span class="px-3 py-1 rounded-full bg-[#f7f1e7] text-[#b9965b] text-[10px] font-black">${option.badgeLabel || `${option.path.length}分割`}</span>
                             </div>
-                            ${option.candidates.length > 0 ? `<div class="text-[11px] font-bold text-[#8b7e66] mb-2">${forceSplit ? 'この分け方から出せる候補' : '名前の例'}</div>` : ''}
+                            ${option.candidates.length > 0 && forceSplit ? '<div class="text-[11px] font-bold text-[#8b7e66] mb-2">この分け方から出せる候補</div>' : ''}
                             <div class="grid grid-cols-1 gap-2">${candidateHtml}</div>
                         </div>
                     `;
@@ -7191,6 +7240,19 @@ function selectBalancedReadingSampleExamples(examples, limit = 4) {
         .sort(compareSelectedReadingSampleDisplay);
 }
 
+function showReadingModalPremiumPrompt() {
+    if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return;
+    if (typeof showPremiumModal === 'function') {
+        showPremiumModal();
+        return;
+    }
+    if (typeof showToast === 'function') {
+        showToast('人名用漢字はプレミアムで使えます', '👑');
+    }
+}
+
+window.showReadingModalPremiumPrompt = showReadingModalPremiumPrompt;
+
 function renderReadingModalCandidateName(candidate) {
     const fullName = String(candidate?.fullName || candidate?.givenName || '').trim();
     const givenName = String(candidate?.givenName || '').trim();
@@ -7218,7 +7280,7 @@ function renderReadingModalCandidateName(candidate) {
         + '<span class="reading-modal-candidate-text">'
         + nameHtml
         + '</span>'
-        + (locked ? '<span class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます"><span aria-hidden="true">👑</span><span>人名用</span></span>' : '')
+        + (locked ? '<button type="button" class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます" aria-label="プレミアムで人名用漢字を見る" onclick="event.stopPropagation(); showReadingModalPremiumPrompt();"><span aria-hidden="true">👑</span><span>人名用</span></button>' : '')
         + '</div>';
 }
 
@@ -7279,11 +7341,131 @@ window.getCompoundReadingOptions = getCompoundReadingOptions;
  * ============================================================
  */
 var searchClassFilter = '';  // '', '#自然', etc.
+var searchStrokeFilter = ''; // '', '1'...'30', '31plus'
+var searchContentType = 'kanji'; // 'kanji' or 'reading'
+var searchReadingGenderFilter = '';
+var searchReadingPopularFirst = true;
+var searchReadingMatchMode = 'starts'; // 'starts' or 'ends'
+var searchReadingTagPanelOpen = false;
+var searchReadingAtmosphereFilter = '';
+var searchReadingSoundFilter = '';
+var searchReadingLengthFilter = '';
 var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 var searchShowAllKanji = false;
+var kanjiSearchInputTimer = null;
+const KANJI_SEARCH_RENDER_LIMIT = 160;
+const READING_SEARCH_BATCH_SIZE = 120;
+const READING_SEARCH_COLUMNS = 3;
+const kanjiSearchItemCache = new WeakMap();
+var searchReadingVisibleLimit = READING_SEARCH_BATCH_SIZE;
+var searchReadingCurrentTotal = 0;
+var searchReadingIsAppending = false;
+var searchReadingScrollBound = false;
+var searchReadingLoadObserver = null;
+var readingSearchPopularityRankCacheKey = '';
+var readingSearchPopularityRankCache = null;
+var readingSearchPopularityScoreCacheKey = '';
+var readingSearchPopularityScoreCache = new Map();
+const readingSearchNameLengthProfileCache = new WeakMap();
 const KANJI_SEARCH_GLYPH_ALIASES = {
     '叱': '𠮟'
 };
+const READING_SEARCH_INVALID_FEMALE_ENDINGS = [
+    'じゅうろう', 'いちろう', 'ごろう', 'たろう', 'じろう', 'さぶろう',
+    'しろう', 'のすけ', 'ろう', 'すけ', 'ぞう', 'ひこ', 'きち', 'いち', 'へい'
+];
+const READING_SEARCH_LOW_PRIORITY_ENDINGS = [
+    'じゅうろう', 'いちろう', 'ごろう', 'さぶろう', 'しろう', 'じろう',
+    'たろう', 'のすけ', 'のしん', 'のじょう', 'えもん', 'べえ', 'ろう', 'すけ'
+];
+const READING_SEARCH_LOW_COUNT_BROWSE_LIMIT = 3;
+const READING_SEARCH_TAG_OPTION_MIN_COUNT = 4;
+const READING_SEARCH_UNBUILDABLE_KANA_PATTERN = /[ぁぃぅぇぉーゔ]/;
+const READING_SEARCH_KANJI_EXAMPLE_PATTERN = /[\u3400-\u9fff々〆ヵヶ]/;
+const READING_SEARCH_BROWSE_HIDDEN_READINGS = new Set([
+    'あこがれ', 'あじあ', 'あさがお', 'いちばん', 'いそい',
+    'うさぎ', 'おきな', 'きいろ', 'くもこ', 'ぐあま',
+    'えらいざ', 'おりびや'
+]);
+const READING_SEARCH_TAG_ALIASES = {
+    '#レトロ': '#クラシック',
+    '#レトロモダン': '#今風'
+};
+const READING_SEARCH_TAG_LABELS = {
+    '#力強い': 'はっきり'
+};
+const READING_SEARCH_TAG_ICONS = {
+    '#今風': '✨',
+    '#クラシック': '🕰️',
+    '#自然モチーフ': '🌿',
+    '#国際風': '🌍',
+    '#中性的': '⚪',
+    '#ふんわり': '☁️',
+    '#爽やか': '🍃',
+    '#あたたかい': '🧡',
+    '#なごやか': '🍵',
+    '#のびのび': '🌱',
+    '#華やか': '🌸',
+    '#クール': '❄️',
+    '#力強い': '🔷',
+    '#ひたむき': '🎯',
+    '#繊細': '🪶',
+    '#存在感': '⭐',
+    '#はつらつ': '⚡',
+    '#ショート': '🔹',
+    '#ロング': '〰️'
+};
+const READING_SEARCH_TAG_GROUPS = [
+    {
+        key: 'atmosphere',
+        label: '雰囲気',
+        helpBody: '名前全体がまとっている世界観や時代感です。今風、クラシック、自然モチーフなど、読みを見たときの第一印象で絞ります。',
+        helpDetails: [
+            ['今風', '短めの読みや、今の名前でよく見る止め字。古風な響きを今っぽく使える読みも含みます。'],
+            ['クラシック', '「たろう・じろう・のすけ・ろう・すけ」系、女の子の「こ・よ」止まりなど、古風で落ち着いた読み。'],
+            ['自然モチーフ', '「そら・はる・さくら・つき・なつ・みなと」など、自然語そのものや強い自然イメージ。'],
+            ['国際風', '「えま・さら・のあ・りお・るか」など、海外名にも近く聞こえる読み。'],
+            ['中性的', '男の子・女の子どちらにも寄せやすい読み。']
+        ],
+        tags: [
+            '#今風', '#クラシック',
+            '#自然モチーフ', '#国際風', '#中性的'
+        ]
+    },
+    {
+        key: 'sound',
+        label: '響き',
+        helpBody: '声に出したときの耳ざわりや音のキャラクターです。ふんわり、爽やか、はっきりなど、音としてどう聞こえるかで絞ります。',
+        helpDetails: [
+            ['ふんわり', 'は行・や行ではじまる読み。やわらかく、ゆったり聞こえやすい音です。'],
+            ['なごやか', 'な行ではじまる読み。親しみやすく、角が立ちにくい音です。'],
+            ['あたたかい', 'ま行ではじまる読み。包む感じ、やさしい安定感が出やすい音です。'],
+            ['クール', 'か行ではじまる読み。すっきり、シャープに聞こえやすい音です。'],
+            ['爽やか', 'さ行ではじまる読み。清潔感や軽やかさが出やすい音です。'],
+            ['はっきり', 'た行ではじまる読み。音の輪郭が立って、芯のある印象になりやすい音です。'],
+            ['華やか', 'ら行ではじまる読み。明るさ、ひらけた印象が出やすい音です。'],
+            ['のびのび', 'あ・おではじまる読み。開放感や大らかさが出やすい音です。'],
+            ['ひたむき', 'いではじまる読み。まっすぐで、引き締まった印象になりやすい音です。'],
+            ['繊細', 'う・えではじまる読み。静かで細やかな印象になりやすい音です。'],
+            ['存在感', 'が行・だ行ではじまる読み。重心があり、印象に残りやすい音です。'],
+            ['はつらつ', 'ざ行・ば行・ぱ行・わではじまる読み。弾む感じや元気さが出やすい音です。']
+        ],
+        tags: [
+            '#ふんわり', '#なごやか', '#あたたかい', '#クール', '#爽やか',
+            '#力強い', '#華やか', '#のびのび', '#ひたむき', '#繊細', '#存在感', '#はつらつ'
+        ]
+    },
+    {
+        key: 'length',
+        label: '長さ',
+        helpBody: '読みの長さです。短く呼びやすいショート、名前としてゆったりした印象のロングで絞ります。',
+        helpDetails: [
+            ['ショート', '2モーラ以下の読み。「あお」「りく」「ゆい」など、短く呼びやすい読み。'],
+            ['ロング', '5モーラ以上の読み。「けんたろう」「こうたろう」「そういちろう」など、余韻がある読み。']
+        ],
+        tags: ['#ショート', '#ロング']
+    }
+];
 
 function normalizeKanjiSearchGlyph(value) {
     const normalized = String(value || '').trim();
@@ -7291,6 +7473,9 @@ function normalizeKanjiSearchGlyph(value) {
 }
 
 function getKanjiSearchScreenTitleParts() {
+    if (searchContentType === 'reading') {
+        return { main: '読みを検索', sub: '' };
+    }
     const premiumActive = typeof PremiumManager !== 'undefined'
         && PremiumManager
         && typeof PremiumManager.isPremium === 'function'
@@ -7309,49 +7494,300 @@ function updateKanjiSearchTitle() {
         : title.main;
 }
 
+function updateSearchContentTypeUI() {
+    const isReading = searchContentType === 'reading';
+    const kanjiBtn = document.getElementById('search-kind-kanji');
+    const readingBtn = document.getElementById('search-kind-reading');
+    const activeClass = 'rounded-xl px-3 py-2 text-[12px] font-black transition-all bg-white text-[#5d5444] shadow-sm';
+    const inactiveClass = 'rounded-xl px-3 py-2 text-[12px] font-black transition-all text-[#9c8b72]';
+    if (kanjiBtn) kanjiBtn.className = isReading ? inactiveClass : activeClass;
+    if (readingBtn) readingBtn.className = isReading ? activeClass : inactiveClass;
+
+    const input = document.getElementById('kanji-search-input');
+    if (input) {
+        if (isReading) {
+            input.placeholder = searchReadingMatchMode === 'ends' ? '例：と' : '例：はる';
+        } else {
+            input.placeholder = '読みまたは漢字で検索';
+        }
+    }
+
+    updateReadingSearchMatchModeUI();
+
+    const primaryLabel = document.getElementById('search-primary-filter-label');
+    const secondaryLabel = document.getElementById('search-secondary-filter-label');
+    const tertiaryLabel = document.getElementById('search-tertiary-filter-label');
+    setSearchFilterLabel(primaryLabel, isReading ? '雰囲気' : '表示する漢字', isReading ? 'atmosphere' : '');
+    setSearchFilterLabel(secondaryLabel, isReading ? '響き' : 'イメージ', isReading ? 'sound' : '');
+    setSearchFilterLabel(tertiaryLabel, isReading ? '長さ' : '画数', isReading ? 'length' : '');
+
+    const topTitle = document.getElementById('top-bar-title');
+    const searchScreen = document.getElementById('scr-kanji-search');
+    if (topTitle && searchScreen && searchScreen.classList.contains('active')) {
+        topTitle.innerText = isReading ? '読み検索' : '漢字検索';
+    }
+}
+
+function updateReadingSearchMatchModeUI() {
+    const controls = document.getElementById('reading-search-match-controls');
+    const startsBtn = document.getElementById('reading-search-match-starts');
+    const endsBtn = document.getElementById('reading-search-match-ends');
+    const isReading = searchContentType === 'reading';
+    if (controls) controls.classList.toggle('hidden', !isReading);
+    const activeClass = 'rounded-xl border border-[#bca37f] bg-white px-2 py-2 text-[11px] font-black text-[#5d5444] shadow-sm transition-all';
+    const inactiveClass = 'rounded-xl border border-[#eadfce] px-2 py-2 text-[11px] font-black text-[#9c8b72] transition-all';
+    if (startsBtn) startsBtn.className = searchReadingMatchMode === 'starts' ? activeClass : inactiveClass;
+    if (endsBtn) endsBtn.className = searchReadingMatchMode === 'ends' ? activeClass : inactiveClass;
+}
+
+function getReadingGenderFilterOptions() {
+    return [
+        {
+            value: '',
+            label: 'すべて',
+            style: 'background:#fff;color:#7a6f5a;border:1px solid #d8c6aa;'
+        },
+        {
+            value: 'male',
+            label: '男の子',
+            style: 'background:#dceafe;color:#365481;border:1px solid #9fb9e8;'
+        },
+        {
+            value: 'female',
+            label: '女の子',
+            style: 'background:#ffe4ec;color:#8b4a63;border:1px solid #efb4c8;'
+        },
+        {
+            value: 'neutral',
+            label: '中性的',
+            style: 'background:#e6f4e8;color:#4f704e;border:1px solid #b8d7b8;'
+        }
+    ];
+}
+
+function getReadingGenderFilterOption(value) {
+    const normalizedValue = value || '';
+    return getReadingGenderFilterOptions().find((option) => option.value === normalizedValue)
+        || getReadingGenderFilterOptions()[0];
+}
+
+function updateReadingGenderToggle() {
+    const btn = document.getElementById('reading-gender-toggle');
+    if (!btn) return;
+    if (searchContentType !== 'reading') {
+        btn.classList.add('hidden');
+        btn.textContent = 'すべて';
+        btn.style.cssText = '';
+        return;
+    }
+    const option = getReadingGenderFilterOption(searchReadingGenderFilter);
+    btn.className = 'px-2.5 py-1.5 rounded-full text-[11px] font-black transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none';
+    btn.textContent = option.label;
+    btn.style.cssText = option.style;
+}
+
+function getReadingSearchFilterLabelHtml(groupKey) {
+    const group = getReadingSearchTagGroup(groupKey);
+    if (!group) return '';
+    const label = escapeHtmlText(group.label);
+    return `
+        <span>${label}</span>
+        <button type="button"
+            onclick="event.stopPropagation(); showReadingSearchTagHelp('${groupKey}')"
+            aria-label="${label}の説明"
+            title="${label}の説明"
+            class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c6aa] bg-white text-[10px] font-black leading-none text-[#8b7e66] shadow-sm active:scale-95">
+            ?
+        </button>
+    `;
+}
+
+function setSearchFilterLabel(labelEl, label, groupKey = '') {
+    if (!labelEl) return;
+    if (groupKey) {
+        labelEl.className = 'flex items-center gap-1 text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
+        labelEl.innerHTML = getReadingSearchFilterLabelHtml(groupKey);
+        return;
+    }
+    labelEl.className = 'text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
+    labelEl.textContent = label;
+}
+
+function closeReadingSearchTagHelp() {
+    document.getElementById('reading-search-tag-help-modal')?.remove();
+}
+
+function showReadingSearchTagHelp(groupKey) {
+    const group = getReadingSearchTagGroup(groupKey);
+    if (!group) return;
+    closeReadingSearchTagHelp();
+
+    const details = (group.helpDetails || [])
+        .map(([term, description]) => {
+            const tag = getReadingSearchTagForHelpTerm(group, term);
+            const label = getReadingSearchTagOptionLabel(tag) || term;
+            return `
+            <div class="rounded-2xl border border-[#eee5d8] bg-white/70 px-3 py-2">
+                <div class="text-[11px] font-black text-[#5d5444]">${escapeHtmlText(label)}</div>
+                <div class="mt-0.5 text-[11px] font-bold leading-relaxed text-[#8b7e66]">${escapeHtmlText(description)}</div>
+            </div>
+        `;
+        })
+        .join('');
+    const modal = document.createElement('div');
+    modal.id = 'reading-search-tag-help-modal';
+    modal.className = 'overlay active modal-overlay-dark';
+    modal.onclick = (event) => {
+        if (event.target === modal) closeReadingSearchTagHelp();
+    };
+    modal.innerHTML = `
+        <div class="detail-sheet relative max-w-[380px] text-left" onclick="event.stopPropagation()" style="padding:22px 20px;max-height:min(82vh,680px);overflow-y:auto;">
+            <button class="modal-close-btn absolute right-3 top-3" onclick="closeReadingSearchTagHelp()">✕</button>
+            <h3 class="pr-10 text-xl font-black text-[#5d5444]">${escapeHtmlText(group.label)}</h3>
+            <p class="mt-3 text-sm font-bold leading-relaxed text-[#7a6f5a]">${escapeHtmlText(group.helpBody || '')}</p>
+            ${details ? `<div class="mt-4 space-y-2">${details}</div>` : ''}
+            <button type="button" onclick="closeReadingSearchTagHelp()"
+                class="mt-6 w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white active:scale-95">
+                閉じる
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function executeActiveSearch() {
+    if (searchContentType === 'reading') {
+        executeReadingSearch();
+        return;
+    }
+    executeKanjiSearch();
+}
+
+function setSearchContentType(type) {
+    const nextType = type === 'reading' ? 'reading' : 'kanji';
+    if (searchContentType === nextType) return;
+    searchContentType = nextType;
+    searchClassFilter = '';
+    searchStrokeFilter = '';
+    searchReadingGenderFilter = '';
+    clearReadingTagFilters();
+    updateKanjiSearchTitle();
+    updateSearchContentTypeUI();
+    renderSearchFilters();
+    updateSearchModeToggle();
+    updateSearchAllKanjiToggle();
+    executeActiveSearch();
+}
+
+function setReadingSearchMatchMode(mode) {
+    const nextMode = mode === 'ends' ? 'ends' : 'starts';
+    if (searchReadingMatchMode === nextMode) return;
+    searchReadingMatchMode = nextMode;
+    resetReadingSearchPaging();
+    updateSearchContentTypeUI();
+    if (searchContentType === 'reading') executeReadingSearch();
+}
+
 function openKanjiSearch(options = {}) {
     const config = options && typeof options === 'object' ? options : {};
+    searchContentType = 'kanji';
     changeScreen('scr-kanji-search');
     searchClassFilter = config.classFilter || '';
+    searchStrokeFilter = config.strokeFilter || '';
     searchFlexibleMode = config.flexible === true;
     searchShowAllKanji = config.showAllKanji === true;
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = typeof config.query === 'string' ? config.query : '';
     updateKanjiSearchTitle();
+    updateSearchContentTypeUI();
     renderSearchFilters();
     updateSearchModeToggle();
     updateSearchAllKanjiToggle();
     const container = document.getElementById('kanji-search-results');
-    if (config.query || config.classFilter) {
+    if (config.query || config.classFilter || config.strokeFilter) {
         executeKanjiSearch();
     } else if (container) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>イメージや画数を選択してください</div>';
     }
 }
 
+function openReadingSearch(options = {}) {
+    const config = options && typeof options === 'object' ? options : {};
+    searchContentType = 'reading';
+    changeScreen('scr-kanji-search');
+    searchClassFilter = '';
+    clearReadingTagFilters();
+    if (config.tagFilter || config.classFilter) applyReadingSearchTagFilter(config.tagFilter || config.classFilter);
+    searchReadingGenderFilter = typeof config.genderFilter === 'string'
+        ? config.genderFilter
+        : getDefaultReadingSearchGenderFilter();
+    searchStrokeFilter = '';
+    searchReadingPopularFirst = config.popularFirst !== false;
+    searchReadingMatchMode = config.matchMode === 'ends' ? 'ends' : 'starts';
+    resetReadingSearchPaging();
+    const input = document.getElementById('kanji-search-input');
+    if (input) input.value = typeof config.query === 'string' ? config.query : '';
+    updateKanjiSearchTitle();
+    updateSearchContentTypeUI();
+    renderSearchFilters();
+    updateSearchModeToggle();
+    updateSearchAllKanjiToggle();
+    const container = document.getElementById('kanji-search-results');
+    if (container) executeReadingSearch();
+}
+
 function handleKanjiSearchInput() {
-    executeKanjiSearch();
+    if (kanjiSearchInputTimer) clearTimeout(kanjiSearchInputTimer);
+    if (searchContentType === 'reading') resetReadingSearchPaging();
+    kanjiSearchInputTimer = setTimeout(() => {
+        kanjiSearchInputTimer = null;
+        executeActiveSearch();
+    }, 80);
 }
 
 function toggleSearchFlexibleMode() {
+    if (searchContentType === 'reading') {
+        searchReadingPopularFirst = !searchReadingPopularFirst;
+        resetReadingSearchPaging();
+        updateSearchModeToggle();
+        executeReadingSearch();
+        return;
+    }
     searchFlexibleMode = !searchFlexibleMode;
     updateSearchModeToggle();
-    executeKanjiSearch();
+    executeActiveSearch();
 }
 
 function toggleSearchShowAllKanji() {
+    if (searchContentType === 'reading') {
+        searchReadingPopularFirst = !searchReadingPopularFirst;
+        resetReadingSearchPaging();
+        updateSearchAllKanjiToggle();
+        executeReadingSearch();
+        return;
+    }
     setSearchShowAllKanji(!searchShowAllKanji);
 }
 
 function setSearchShowAllKanji(showAll) {
     searchShowAllKanji = showAll === true;
     updateSearchAllKanjiToggle();
-    executeKanjiSearch();
+    executeActiveSearch();
 }
 
 function updateSearchModeToggle() {
     const btn = document.getElementById('search-mode-toggle');
     if (!btn) return;
+    if (searchContentType === 'reading') {
+        btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-black transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none';
+        btn.textContent = searchReadingPopularFirst ? 'おすすめ順' : '五十音';
+        btn.style.cssText = searchReadingPopularFirst
+            ? 'background:#bca37f;color:#fff;border:1px solid #bca37f;'
+            : 'background:#fff;color:#5d5444;border:1px solid #d8c6aa;';
+        updateReadingGenderToggle();
+        return;
+    }
+    updateReadingGenderToggle();
     btn.className = 'px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none';
     if (searchFlexibleMode) {
         btn.textContent = '読み柔軟';
@@ -7364,54 +7800,390 @@ function updateSearchModeToggle() {
 
 function updateSearchAllKanjiToggle() {
     const btn = document.getElementById('search-all-kanji-toggle');
-    const baseClass = 'shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 outline-none focus:outline-none';
+    const baseClass = 'w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 outline-none focus:outline-none';
     if (!btn) return;
+    if (searchContentType === 'reading') {
+        btn.className = searchReadingPopularFirst
+            ? `${baseClass} bg-[#bca37f] text-white`
+            : `${baseClass} bg-[#ece9e3] border border-[#d8d0c4] text-[#6f6a62]`;
+        btn.style.cssText = '';
+        btn.textContent = searchReadingPopularFirst ? 'おすすめ順' : '五十音';
+        return;
+    }
     btn.className = searchShowAllKanji
         ? `${baseClass} bg-[#ece9e3] border border-[#d8d0c4] text-[#6f6a62]`
         : `${baseClass} bg-[#bca37f] text-white`;
-    btn.style.cssText = 'width:72px;';
+    btn.style.cssText = '';
     btn.textContent = searchShowAllKanji ? 'すべて' : 'おすすめ';
 }
 
 function renderSearchFilters() {
+    updateSearchContentTypeUI();
+    if (searchContentType === 'reading') {
+        renderReadingSearchFilters();
+        return;
+    }
+
+    const filterGrid = document.getElementById('search-primary-filter-col')?.parentElement;
+    if (filterGrid) filterGrid.style.gridTemplateColumns = 'minmax(0,0.9fr) minmax(0,1.1fr) minmax(0,0.9fr)';
+    const secondaryCol = document.getElementById('search-secondary-filter-col');
+    if (secondaryCol) secondaryCol.style.display = '';
+    const readingTagPanel = document.getElementById('reading-tag-panel');
+    if (readingTagPanel) {
+        readingTagPanel.classList.add('hidden');
+        readingTagPanel.innerHTML = '';
+    }
+
+    const primaryControl = document.getElementById('search-primary-filter-control');
+    if (primaryControl && !document.getElementById('search-all-kanji-toggle')) {
+        primaryControl.innerHTML = `
+            <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
+                class="w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
+                おすすめ
+            </button>
+        `;
+    }
+
+    const tertiaryControl = document.getElementById('search-tertiary-filter-control');
+    if (tertiaryControl && !document.getElementById('search-stroke-filter')) {
+        tertiaryControl.innerHTML = `
+            <select id="search-stroke-filter" onchange="setStrokeFilter(this.value)"
+                class="w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                <option value="">すべて</option>
+            </select>
+        `;
+    }
+
     // Classification filters（実データの分類ハッシュタグと一致させる）
     const classContainer = document.getElementById('search-class-filters');
     if (classContainer) {
-        // 05-ui-render.js の KANJI_CATEGORIES と完全一致（15タグ）
-        const classes = [
-            { val: '', label: '全て', icon: '✨' },
-            { val: '#自然', label: '自然', icon: '🌿' },
-            { val: '#天空', label: '天空', icon: '☀️' },
-            { val: '#水景', label: '水景', icon: '🌊' },
-            { val: '#色彩', label: '色彩', icon: '🎨' },
-            { val: '#慈愛', label: '慈愛', icon: '💝' },
-            { val: '#勇壮', label: '勇壮', icon: '🦁' },
-            { val: '#知性', label: '知性', icon: '🎓' },
-            { val: '#飛躍', label: '飛躍', icon: '🦅' },
-            { val: '#幸福', label: '幸福', icon: '🍀' },
-            { val: '#品格', label: '品格', icon: '🕊️' },
-            { val: '#希望', label: '希望', icon: '🌟' },
-            { val: '#信念', label: '信念', icon: '⛰️' },
-            { val: '#調和', label: '調和', icon: '🤝' },
-            { val: '#伝統', label: '伝統', icon: '⛩️' },
-            { val: '#奏楽', label: '奏楽', icon: '🎵' },
-            { val: '#その他', label: 'その他', icon: '📝' },
-        ];
-        classContainer.innerHTML = classes.map(c => `
-            <button onclick="setClassFilter('${c.val}')"
-                    class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all
-                    ${searchClassFilter === c.val ? 'bg-[#bca37f] text-white' : 'bg-white border border-[#eee5d8] text-[#7a6f5a]'}">
-                ${c.icon} ${c.label}
-            </button>
+        const classes = getKanjiSearchCategoryOptions();
+        classContainer.innerHTML = `
+            <select id="search-class-filter-select"
+                    onchange="setClassFilter(this.value)"
+                    class="w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                ${classes.map(c => `
+                    <option value="${c.val}" ${searchClassFilter === c.val ? 'selected' : ''}>${c.icon ? `${c.icon} ` : ''}${c.label}</option>
+                `).join('')}
+            </select>
+        `;
+    }
+
+    const strokeSelect = document.getElementById('search-stroke-filter');
+    if (strokeSelect) {
+        const strokeOptions = getKanjiSearchStrokeOptions();
+        strokeSelect.innerHTML = strokeOptions.map(option => `
+            <option value="${option.val}" ${searchStrokeFilter === option.val ? 'selected' : ''}>${option.label}</option>
         `).join('');
     }
 }
 
-function getKanjiSearchClassTags(item) {
+function clearReadingTagFilters() {
+    searchReadingAtmosphereFilter = '';
+    searchReadingSoundFilter = '';
+    searchReadingLengthFilter = '';
+    searchClassFilter = '';
+}
+
+function getReadingSearchTagGroup(groupKey) {
+    return READING_SEARCH_TAG_GROUPS.find((group) => group.key === groupKey) || null;
+}
+
+function getReadingSearchTagGroupStateKey(groupKey) {
+    if (groupKey === 'atmosphere') return 'searchReadingAtmosphereFilter';
+    if (groupKey === 'sound') return 'searchReadingSoundFilter';
+    if (groupKey === 'length') return 'searchReadingLengthFilter';
+    return '';
+}
+
+function getReadingSearchTagGroupFilterValue(groupKey) {
+    if (groupKey === 'atmosphere') return searchReadingAtmosphereFilter;
+    if (groupKey === 'sound') return searchReadingSoundFilter;
+    if (groupKey === 'length') return searchReadingLengthFilter;
+    return '';
+}
+
+function getReadingSearchActiveTagFilters() {
+    return [searchReadingAtmosphereFilter, searchReadingSoundFilter, searchReadingLengthFilter].filter(Boolean);
+}
+
+function getReadingSearchTagCountScopeFilters(skipGroupKey = '') {
+    return READING_SEARCH_TAG_GROUPS
+        .filter((group) => group.key !== skipGroupKey)
+        .map((group) => getReadingSearchTagGroupFilterValue(group.key))
+        .filter(Boolean);
+}
+
+function normalizeReadingSearchFilterTag(tag) {
+    const normalized = String(tag || '').trim();
+    return READING_SEARCH_TAG_ALIASES[normalized] || normalized;
+}
+
+function getReadingSearchTagLabel(tag) {
+    const normalizedTag = normalizeReadingSearchFilterTag(tag);
+    if (!normalizedTag) return '';
+    return READING_SEARCH_TAG_LABELS[normalizedTag] || normalizedTag.replace('#', '');
+}
+
+function getReadingSearchTagOptionLabel(tag) {
+    const normalizedTag = normalizeReadingSearchFilterTag(tag);
+    const label = getReadingSearchTagLabel(tag);
+    if (!label) return '';
+    const icon = READING_SEARCH_TAG_ICONS[normalizedTag] || '';
+    return icon ? `${icon} ${label}` : label;
+}
+
+function getReadingSearchTagForHelpTerm(group, term) {
+    if (!group || !Array.isArray(group.tags)) return '';
+    const normalizedTerm = String(term || '').trim();
+    return group.tags.find((tag) => getReadingSearchTagLabel(tag) === normalizedTerm) || '';
+}
+
+function getReadingSearchFilterableTags(item) {
+    const tags = Array.isArray(item) ? item : (item?.tags || []);
+    const normalizedTags = tags
+        .map((tag) => normalizeReadingSearchFilterTag(tag))
+        .filter((tag) => tag && !tag.startsWith('#止め字'));
+    if (!Array.isArray(item) && isReadingSearchPopularItem(item)) {
+        normalizedTags.push('#今風');
+    }
+    return Array.from(new Set(normalizedTags));
+}
+
+function hasReadingSearchFilterTag(item, filterTag) {
+    const normalizedFilter = normalizeReadingSearchFilterTag(filterTag);
+    if (!normalizedFilter) return true;
+    return getReadingSearchFilterableTags(item).includes(normalizedFilter);
+}
+
+function applyReadingSearchTagFilter(tag) {
+    const normalizedTag = normalizeReadingSearchFilterTag(tag);
+    if (!normalizedTag || normalizedTag.startsWith('#止め字')) return;
+    const group = READING_SEARCH_TAG_GROUPS.find((candidate) => candidate.tags.includes(normalizedTag));
+    if (!group) return;
+    setReadingTagGroupFilter(group.key, normalizedTag, { skipRender: true });
+}
+
+function setReadingTagGroupFilter(groupKey, value, options = {}) {
+    const stateKey = getReadingSearchTagGroupStateKey(groupKey);
+    if (!stateKey) return;
+    const normalizedValue = normalizeReadingSearchFilterTag(value);
+    window[stateKey] = normalizedValue || '';
+    if (groupKey === 'atmosphere') searchReadingAtmosphereFilter = normalizedValue || '';
+    if (groupKey === 'sound') searchReadingSoundFilter = normalizedValue || '';
+    if (groupKey === 'length') searchReadingLengthFilter = normalizedValue || '';
+    resetReadingSearchPaging();
+    if (options.skipRender === true) return;
+    renderSearchFilters();
+    executeReadingSearch();
+}
+
+function getReadingTagGroupSelectHtml(groupKey, selectedTag) {
+    const group = getReadingSearchTagGroup(groupKey);
+    const tags = group ? group.tags : [];
+    const options = tags
+        .map((tag) => {
+            const label = getReadingSearchTagOptionLabel(tag);
+            return `<option value="${tag}" ${selectedTag === tag ? 'selected' : ''}>${escapeHtmlText(label)}</option>`;
+        })
+        .join('');
+    return `
+        <select onchange="setReadingTagGroupFilter('${groupKey}', this.value)"
+            class="w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-2 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+            <option value="">すべて</option>
+            ${options}
+        </select>
+    `;
+}
+
+function getDefaultReadingSearchGenderFilter() {
+    if (typeof gender !== 'undefined' && (gender === 'male' || gender === 'female')) return gender;
+    return '';
+}
+
+function setReadingGenderFilter(value) {
+    searchReadingGenderFilter = value || '';
+    resetReadingSearchPaging();
+    updateReadingGenderToggle();
+    executeReadingSearch();
+}
+
+function cycleReadingGenderFilter() {
+    const options = getReadingGenderFilterOptions();
+    const currentIndex = options.findIndex((option) => option.value === (searchReadingGenderFilter || ''));
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % options.length : 0;
+    setReadingGenderFilter(options[nextIndex].value);
+}
+
+function renderReadingSearchFilters() {
+    if (String(searchClassFilter || '').startsWith('#止め字')) {
+        searchClassFilter = '';
+    }
+    const filterGrid = document.getElementById('search-primary-filter-col')?.parentElement;
+    if (filterGrid) filterGrid.style.gridTemplateColumns = 'repeat(3, minmax(0, 1fr))';
+    const secondaryCol = document.getElementById('search-secondary-filter-col');
+    if (secondaryCol) secondaryCol.style.display = '';
+
+    const primaryControl = document.getElementById('search-primary-filter-control');
+    if (primaryControl) {
+        primaryControl.innerHTML = getReadingTagGroupSelectHtml('atmosphere', searchReadingAtmosphereFilter);
+    }
+
+    const classContainer = document.getElementById('search-class-filters');
+    if (classContainer) {
+        classContainer.innerHTML = getReadingTagGroupSelectHtml('sound', searchReadingSoundFilter);
+    }
+
+    const tertiaryControl = document.getElementById('search-tertiary-filter-control');
+    if (tertiaryControl) {
+        tertiaryControl.innerHTML = getReadingTagGroupSelectHtml('length', searchReadingLengthFilter);
+    }
+
+    const readingTagPanel = document.getElementById('reading-tag-panel');
+    if (readingTagPanel) {
+        readingTagPanel.classList.add('hidden');
+        readingTagPanel.innerHTML = '';
+    }
+    updateReadingGenderToggle();
+}
+
+function isReadingSearchItemInTagCountScope(entry, skipGroupKey = '') {
+    if (shouldHideReadingSearchItem(entry, '')) return false;
+    if (!matchesReadingSearchGender(entry)) return false;
+    return getReadingSearchTagCountScopeFilters(skipGroupKey)
+        .every((tag) => hasReadingSearchFilterTag(entry, tag));
+}
+
+function getReadingSearchTagCounts(skipGroupKey = '') {
+    const counts = {};
+    if (!Array.isArray(readingsData)) return counts;
+    readingsData.forEach((entry) => {
+        if (!isReadingSearchItemInTagCountScope(entry, skipGroupKey)) return;
+        getReadingSearchFilterableTags(entry).forEach((normalizedTag) => {
+            counts[normalizedTag] = (counts[normalizedTag] || 0) + 1;
+        });
+    });
+    return counts;
+}
+
+function getReadingSearchTagOptionsHtml(selectedTag) {
+    const counts = getReadingSearchTagCounts();
+    const hasTagCounts = Object.keys(counts).length > 0;
+    const seen = new Set();
+    const optionHtml = ['<option value="">すべて</option>'];
+
+    READING_SEARCH_TAG_GROUPS.forEach((group) => {
+        const groupOptions = group.tags
+        .map((tag) => {
+            seen.add(tag);
+            const label = getReadingSearchTagOptionLabel(tag);
+            return `<option value="${tag}" ${selectedTag === tag ? 'selected' : ''}>${escapeHtmlText(label)}</option>`;
+        });
+        if (groupOptions.length > 0) {
+            optionHtml.push(`<optgroup label="${escapeHtmlText(group.label)}">${groupOptions.join('')}</optgroup>`);
+        }
+    });
+
+    const otherTags = Object.keys(counts)
+        .filter((tag) =>
+            !seen.has(tag)
+            && !String(tag).startsWith('#止め字')
+            && (counts[tag] >= READING_SEARCH_TAG_OPTION_MIN_COUNT || selectedTag === tag)
+        )
+        .sort((a, b) => a.localeCompare(b, 'ja'))
+        .map((tag) => `<option value="${tag}" ${selectedTag === tag ? 'selected' : ''}>${escapeHtmlText(getReadingSearchTagOptionLabel(tag))}</option>`);
+    if (otherTags.length > 0) {
+        optionHtml.push(`<optgroup label="その他">${otherTags.join('')}</optgroup>`);
+    }
+
+    return optionHtml.join('');
+}
+
+function getKanjiSearchCategoryOptions() {
+    const fallback = [
+        { val: '#希望', label: '希望', icon: '🌟' },
+        { val: '#慈愛', label: '慈愛', icon: '💖' },
+        { val: '#調和', label: '調和', icon: '🤝' },
+        { val: '#勇壮', label: '勇壮', icon: '🦁' },
+        { val: '#知性', label: '知性', icon: '🎓' },
+        { val: '#飛躍', label: '飛躍', icon: '🦅' },
+        { val: '#信念', label: '信念', icon: '⛰️' },
+        { val: '#品格', label: '品格', icon: '🕊️' },
+        { val: '#伝統', label: '伝統', icon: '⛩️' },
+        { val: '#幸福', label: '幸福', icon: '🍀' },
+        { val: '#色彩', label: '色彩', icon: '🎨' },
+        { val: '#天空', label: '天空', icon: '🌌' },
+        { val: '#自然', label: '自然', icon: '🌿' },
+        { val: '#水景', label: '水景', icon: '🌊' },
+        { val: '#奏楽', label: '奏楽', icon: '🎵' },
+        { val: '#その他', label: 'その他', icon: '📝' }
+    ];
+    const categories = typeof KANJI_CATEGORIES !== 'undefined'
+        ? Object.entries(KANJI_CATEGORIES).map(([val, data]) => ({
+            val,
+            label: data?.label || val.replace('#', ''),
+            icon: data?.icon || ''
+        }))
+        : fallback;
+    return [{ val: '', label: 'すべて', icon: '✨' }, ...categories];
+}
+
+function getKanjiSearchStrokeOptions() {
+    const strokeValues = Array.isArray(master)
+        ? master
+            .map(item => parseInt(item?.['画数'], 10) || 0)
+            .filter(strokes => strokes > 0)
+        : [];
+    const maxStroke = Math.max(35, ...strokeValues);
+    const options = Array.from({ length: maxStroke }, (_, index) => {
+        const strokes = index + 1;
+        return { val: String(strokes), label: `${strokes}画` };
+    });
+    return [{ val: '', label: 'すべて' }, ...options];
+}
+
+function parseKanjiSearchClassTags(item) {
     return String(item?.['分類'] || '')
         .split(/[\s,，、]+/)
         .map(tag => tag.trim())
         .filter(tag => tag.startsWith('#'));
+}
+
+function getKanjiSearchItemCache(item) {
+    if (!item || typeof item !== 'object') {
+        return {
+            tags: [],
+            strictReadingEntries: [],
+            flexibleReadingEntries: [],
+            strokes: 0,
+            flagged: false
+        };
+    }
+    const cached = kanjiSearchItemCache.get(item);
+    if (cached) return cached;
+
+    const strictReadingEntries = [
+        ...getKanjiSearchReadingEntries(item['音'] || ''),
+        ...getKanjiSearchReadingEntries(item['訓'] || ''),
+        ...getKanjiSearchReadingEntries(item['伝統名のり'] || '')
+    ];
+    const flexibleReadingEntries = [
+        ...getKanjiSearchReadingEntries(item['音'] || '', { includeStem: true }),
+        ...getKanjiSearchReadingEntries(item['訓'] || '', { includeStem: true })
+    ];
+    const itemCache = {
+        tags: parseKanjiSearchClassTags(item),
+        strictReadingEntries,
+        flexibleReadingEntries,
+        strokes: parseInt(item['画数'], 10) || 0,
+        flagged: parseKanjiSearchFlag(item)
+    };
+    kanjiSearchItemCache.set(item, itemCache);
+    return itemCache;
+}
+
+function getKanjiSearchClassTags(item) {
+    return getKanjiSearchItemCache(item).tags;
 }
 
 function matchesKanjiSearchClassFilter(item, classFilter) {
@@ -7423,8 +8195,37 @@ function matchesKanjiSearchClassFilter(item, classFilter) {
     return tags.includes(classFilter);
 }
 
+function matchesKanjiSearchStrokeFilter(item, strokeFilter) {
+    if (!strokeFilter) return true;
+    const strokes = getKanjiSearchItemCache(item).strokes;
+    if (!strokes) return false;
+    if (strokeFilter === '31plus') return strokes >= 31;
+    return strokes === parseInt(strokeFilter, 10);
+}
+
 function setClassFilter(val) {
+    if (searchContentType === 'reading') {
+        applyReadingSearchTagFilter(val);
+        resetReadingSearchPaging();
+        renderSearchFilters();
+        executeReadingSearch();
+        return;
+    }
     searchClassFilter = val;
+    if (searchContentType === 'reading') resetReadingSearchPaging();
+    renderSearchFilters();
+    executeActiveSearch();
+}
+
+function setStrokeFilter(val) {
+    if (searchContentType === 'reading') {
+        searchReadingGenderFilter = val || '';
+        resetReadingSearchPaging();
+        renderSearchFilters();
+        executeReadingSearch();
+        return;
+    }
+    searchStrokeFilter = val || '';
     renderSearchFilters();
     executeKanjiSearch();
 }
@@ -7512,11 +8313,8 @@ function getKanjiSearchReadingEntries(rawStr, options = {}) {
 function findKanjiSearchReadingMatch(k, query) {
     if (!query) return null;
 
-    const onEntries = getKanjiSearchReadingEntries(k['音'] || '');
-    const kunEntries = getKanjiSearchReadingEntries(k['訓'] || '');
-    const noriEntries = getKanjiSearchReadingEntries(k['伝統名のり'] || '');
-    const exact = [...onEntries, ...kunEntries, ...noriEntries]
-        .find(entry => entry.value === query);
+    const cache = getKanjiSearchItemCache(k);
+    const exact = cache.strictReadingEntries.find(entry => entry.value === query);
 
     if (exact) {
         return { tier: 1, label: exact.label, value: exact.value };
@@ -7524,16 +8322,12 @@ function findKanjiSearchReadingMatch(k, query) {
 
     if (!searchFlexibleMode) return null;
 
-    const flexibleEntries = [
-        ...getKanjiSearchReadingEntries(k['音'] || '', { includeStem: true }),
-        ...getKanjiSearchReadingEntries(k['訓'] || '', { includeStem: true })
-    ];
-    const stem = flexibleEntries.find(entry => entry.kind === 'stem' && entry.value === query);
+    const stem = cache.flexibleReadingEntries.find(entry => entry.kind === 'stem' && entry.value === query);
     if (stem) {
         return { tier: 2, label: stem.label, value: stem.value };
     }
 
-    const prefix = flexibleEntries.find(entry => entry.value.startsWith(query));
+    const prefix = cache.flexibleReadingEntries.find(entry => entry.value.startsWith(query));
     if (prefix) {
         return { tier: 3, label: prefix.label, value: prefix.value };
     }
@@ -7547,7 +8341,8 @@ function buildKanjiSearchResultItem(k, rawQuery, query) {
     // 不適切フラグチェック
     const showFlaggedKanji = searchShowAllKanji
         || (typeof showInappropriateKanji !== 'undefined' && showInappropriateKanji === true);
-    if (isKanjiSearchFlagged(k) && !showFlaggedKanji) return null;
+    const cache = getKanjiSearchItemCache(k);
+    if (cache.flagged && !showFlaggedKanji) return null;
 
     // 直接検索のときは NOPE 済みでも候補を確認できるようにする
     if (!query && !rawQuery && typeof noped !== 'undefined' && noped.has(k['漢字'])) return null;
@@ -7574,14 +8369,19 @@ function buildKanjiSearchResultItem(k, rawQuery, query) {
 
     // 分類フィルター（テキスト検索がある場合はAND、ない場合は単独フィルター）
     if (searchClassFilter && !matchesKanjiSearchClassFilter(k, searchClassFilter)) return null;
+    if (searchStrokeFilter && !matchesKanjiSearchStrokeFilter(k, searchStrokeFilter)) return null;
 
     resultItem.tier = tier;
     return resultItem;
 }
 
-function isKanjiSearchFlagged(item) {
+function parseKanjiSearchFlag(item) {
     const flag = item?.['不適切フラグ'];
     return !!flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE';
+}
+
+function isKanjiSearchFlagged(item) {
+    return getKanjiSearchItemCache(item).flagged;
 }
 
 function isKanjiSearchRecommendedScopeItem(item) {
@@ -7608,10 +8408,522 @@ function appendKanjiSearchPremiumCta(container, lockedCount) {
     container.appendChild(cta);
 }
 
-function executeKanjiSearch() {
+function matchesReadingSearchGender(item) {
+    if (!searchReadingGenderFilter) return true;
+    const itemGender = item?.gender || 'neutral';
+    if (searchReadingGenderFilter === 'neutral') return itemGender === 'neutral';
+    return itemGender === searchReadingGenderFilter || itemGender === 'neutral';
+}
+
+function getReadingSearchMoraCount(reading) {
+    const combiningSmall = new Set(['ぁ', 'ぃ', 'ぅ', 'ぇ', 'ぉ', 'ゃ', 'ゅ', 'ょ', 'ゎ']);
+    return Array.from(String(reading || '')).filter(char => !combiningSmall.has(char)).length;
+}
+
+function getReadingSearchMatchedEnding(reading, endings) {
+    const normalized = String(reading || '');
+    return endings.find(ending => normalized.endsWith(ending)) || '';
+}
+
+function hasReadingSearchUnbuildableKanaShape(reading) {
+    return READING_SEARCH_UNBUILDABLE_KANA_PATTERN.test(String(reading || ''));
+}
+
+function hasReadingSearchKanjiExample(item) {
+    return READING_SEARCH_KANJI_EXAMPLE_PATTERN.test(String(item?.examples || ''));
+}
+
+function isReadingSearchExactQuery(item, query) {
+    if (!query) return false;
+    const reading = normalizeReadingComparisonValue(item?.reading || '');
+    const adana = normalizeReadingComparisonValue(item?.adana || '');
+    return reading === query || adana === query;
+}
+
+function shouldHideReadingSearchItem(item, query) {
+    const reading = normalizeReadingComparisonValue(item?.reading || '');
+    if (!reading) return true;
+
+    if (hasReadingSearchUnbuildableKanaShape(reading)) {
+        return true;
+    }
+
+    if (!hasReadingSearchKanjiExample(item)) {
+        return true;
+    }
+
+    if ((item?.gender || '') === 'female' && getReadingSearchMatchedEnding(reading, READING_SEARCH_INVALID_FEMALE_ENDINGS)) {
+        return true;
+    }
+
+    if (isReadingSearchExactQuery(item, query)) return false;
+
+    if (READING_SEARCH_BROWSE_HIDDEN_READINGS.has(reading)) {
+        return true;
+    }
+
+    const count = Number(item?.count || 0);
+    if (count <= 1 && !isReadingSearchPopularItem(item)) {
+        return true;
+    }
+
+    if (shouldHideLowCountReadingFromBrowse(item, reading)) {
+        return true;
+    }
+
+    if (count > 1) return false;
+
+    const mora = getReadingSearchMoraCount(reading);
+    if (mora >= 6) return true;
+
+    const lowPriorityEnding = getReadingSearchMatchedEnding(reading, READING_SEARCH_LOW_PRIORITY_ENDINGS);
+    return mora >= 5 && !!lowPriorityEnding;
+}
+
+function getReadingSearchEntry(reading) {
+    const normalized = normalizeReadingComparisonValue(reading);
+    if (!normalized || !Array.isArray(readingsData)) return null;
+    return readingsData.find((entry) =>
+        normalizeReadingComparisonValue(entry?.reading || '') === normalized
+    ) || null;
+}
+
+function buildReadingSearchResultItem(item, query) {
+    if (!item || !item.reading) return null;
+    const reading = normalizeReadingComparisonValue(item.reading);
+    if (!reading) return null;
+    if (shouldHideReadingSearchItem(item, query)) return null;
+    const activeTagFilters = getReadingSearchActiveTagFilters();
+    if (activeTagFilters.some((tag) => !hasReadingSearchFilterTag(item, tag))) return null;
+    if (!matchesReadingSearchGender(item)) return null;
+
+    let tier = 4;
+    if (query) {
+        const adana = normalizeReadingComparisonValue(item.adana || '');
+        if (reading === query || adana === query) tier = 1;
+        else if (searchReadingMatchMode === 'ends' && (reading.endsWith(query) || adana.endsWith(query))) tier = 2;
+        else if (searchReadingMatchMode !== 'ends' && (reading.startsWith(query) || adana.startsWith(query))) tier = 2;
+        else return null;
+    }
+
+    return {
+        ...item,
+        _searchTier: tier,
+        _readingPopularityScore: getReadingSearchPopularityScore(item),
+        _readingSortKey: String(item.reading || '')
+    };
+}
+
+function getReadingSearchPopularityListKeys() {
+    if (searchReadingGenderFilter === 'male') return ['male', 'neutral', 'female'];
+    if (searchReadingGenderFilter === 'female') return ['female', 'neutral', 'male'];
+    if (searchReadingGenderFilter === 'neutral') return ['neutral', 'male', 'female'];
+    return ['neutral', 'male', 'female'];
+}
+
+function normalizeReadingSearchPopularityKey(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return hira
+        .replace(/\s+/g, '')
+        .replace(/[^\u3041-\u3093\u30fc]/g, '');
+}
+
+function getReadingSearchPopularityCacheKey() {
+    return getReadingSearchPopularityListKeys().join('|');
+}
+
+function getReadingSearchPopularityRankMap() {
+    const cacheKey = getReadingSearchPopularityCacheKey();
+    if (readingSearchPopularityRankCache && readingSearchPopularityRankCacheKey === cacheKey) {
+        return readingSearchPopularityRankCache;
+    }
+
+    const rankMap = new Map();
+    if (typeof SOUND_STARTER_SOURCE_READINGS !== 'undefined') {
+        let offset = 0;
+        getReadingSearchPopularityListKeys().forEach((key) => {
+            const list = Array.isArray(SOUND_STARTER_SOURCE_READINGS[key])
+                ? SOUND_STARTER_SOURCE_READINGS[key]
+                : [];
+            list.forEach((reading, index) => {
+                const normalized = normalizeReadingSearchPopularityKey(reading);
+                if (!normalized) return;
+                const rank = offset + index;
+                const existing = rankMap.get(normalized);
+                if (existing === undefined || rank < existing) rankMap.set(normalized, rank);
+            });
+            offset += list.length + 100;
+        });
+    }
+
+    readingSearchPopularityRankCacheKey = cacheKey;
+    readingSearchPopularityRankCache = rankMap;
+    return rankMap;
+}
+
+function getReadingSearchPopularityRank(item) {
+    const reading = normalizeReadingSearchPopularityKey(item?.reading || '');
+    if (!reading || typeof SOUND_STARTER_SOURCE_READINGS === 'undefined') return Number.POSITIVE_INFINITY;
+    return getReadingSearchPopularityRankMap().get(reading) ?? Number.POSITIVE_INFINITY;
+}
+
+function isReadingSearchPopularItem(item) {
+    return !!item?.isPopular || Number.isFinite(getReadingSearchPopularityRank(item));
+}
+
+function hasReadingSearchTag(item, tag) {
+    return Array.isArray(item?.tags) && item.tags.includes(tag);
+}
+
+function shouldHideLowCountReadingFromBrowse(item, reading) {
+    const count = Number(item?.count || 0);
+    if (count > READING_SEARCH_LOW_COUNT_BROWSE_LIMIT) return false;
+    if (isReadingSearchPopularItem(item)) return false;
+
+    if (hasReadingSearchTag(item, '#クラシック') || hasReadingSearchTag(item, '#レトロ')) {
+        return true;
+    }
+
+    if (hasReadingSearchTag(item, '#ロング')) {
+        return true;
+    }
+
+    return !!getReadingSearchMatchedEnding(reading, READING_SEARCH_LOW_PRIORITY_ENDINGS);
+}
+
+function getReadingSearchExampleNameTokens(item) {
+    return String(item?.examples || '')
+        .split(/[\s\u3000,、/]+/)
+        .map((name) => name.trim())
+        .filter(Boolean);
+}
+
+function getReadingSearchExampleNameCharCount(name) {
+    const chars = String(name || '')
+        .replace(/[\s\u3000]/g, '')
+        .match(/[\u3400-\u9fff々〆ヵヶ\u3041-\u3093\u30a1-\u30ffー]/g);
+    return chars ? chars.length : 0;
+}
+
+function getReadingSearchNameLengthProfile(item) {
+    if (item && typeof item === 'object' && readingSearchNameLengthProfileCache.has(item)) {
+        return readingSearchNameLengthProfileCache.get(item);
+    }
+
+    const profile = getReadingSearchExampleNameTokens(item).reduce((acc, name) => {
+        const charCount = getReadingSearchExampleNameCharCount(name);
+        if (!charCount) return acc;
+        acc.total += 1;
+        if (charCount === 1) acc.one += 1;
+        else if (charCount === 2) acc.two += 1;
+        else acc.long += 1;
+        return acc;
+    }, { one: 0, two: 0, long: 0, total: 0 });
+
+    profile.key = `${profile.one}.${profile.two}.${profile.long}.${profile.total}`;
+    if (item && typeof item === 'object') {
+        readingSearchNameLengthProfileCache.set(item, profile);
+    }
+    return profile;
+}
+
+function getReadingSearchNameLengthWeight(item) {
+    const profile = getReadingSearchNameLengthProfile(item);
+    if (!profile.total) return 1;
+
+    const oneRatio = profile.one / profile.total;
+    const twoRatio = profile.two / profile.total;
+    const longRatio = profile.long / profile.total;
+    const weight = 1 + (oneRatio * 0.28) + (twoRatio * 0.04) - (longRatio * 0.22);
+    return Math.max(0.74, Math.min(1.28, weight));
+}
+
+function getReadingSearchCountSignal(item) {
+    const count = Math.max(0, Number(item?.count || 0));
+    if (count <= 1) return 0;
+    return Math.log2(count) * 120 * getReadingSearchNameLengthWeight(item);
+}
+
+function getReadingSearchPopularityScore(item) {
+    const cacheKey = getReadingSearchPopularityCacheKey();
+    if (readingSearchPopularityScoreCacheKey !== cacheKey) {
+        readingSearchPopularityScoreCacheKey = cacheKey;
+        readingSearchPopularityScoreCache = new Map();
+    }
+
+    const reading = normalizeReadingSearchPopularityKey(item?.reading || '');
+    const lengthProfileKey = getReadingSearchNameLengthProfile(item).key || '';
+    const itemCacheKey = `${reading}|${item?.count || 0}|${item?.isPopular ? 1 : 0}|${lengthProfileKey}`;
+    if (readingSearchPopularityScoreCache.has(itemCacheKey)) {
+        return readingSearchPopularityScoreCache.get(itemCacheKey);
+    }
+
+    const sourceRank = getReadingSearchPopularityRank(item);
+    if (Number.isFinite(sourceRank)) {
+        const score = 100000 - sourceRank;
+        readingSearchPopularityScoreCache.set(itemCacheKey, score);
+        return score;
+    }
+
+    let score = 0;
+    if (item?.isPopular) score += 70000;
+    score += getReadingSearchCountSignal(item);
+
+    const tags = getReadingDisplayTags(item?.tags || []);
+    if (tags.includes('#今風')) score += 180;
+    if (tags.includes('#自然モチーフ')) score += 90;
+    if (tags.includes('#国際風')) score += 60;
+    if (tags.includes('#クラシック')) score -= 120;
+
+    const mora = getReadingSearchMoraCount(item?.reading || '');
+    if (mora >= 5 && !tags.includes('#ロング')) score -= 80;
+    if (getReadingSearchMatchedEnding(item?.reading || '', READING_SEARCH_LOW_PRIORITY_ENDINGS)) score -= 140;
+
+    readingSearchPopularityScoreCache.set(itemCacheKey, score);
+    return score;
+}
+
+function compareReadingSearchResults(a, b) {
+    if (a._searchTier !== b._searchTier) return a._searchTier - b._searchTier;
+
+    if (searchReadingPopularFirst) {
+        const scoreDiff = (b._readingPopularityScore || 0) - (a._readingPopularityScore || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+    }
+
+    return String(a._readingSortKey || a.reading || '').localeCompare(String(b._readingSortKey || b.reading || ''), 'ja');
+}
+
+function getReadingSearchGenderLabel(value) {
+    if (value === 'male') return '男の子';
+    if (value === 'female') return '女の子';
+    if (value === 'neutral') return '中性的';
+    return '';
+}
+
+function resetReadingSearchPaging() {
+    searchReadingVisibleLimit = READING_SEARCH_BATCH_SIZE;
+    searchReadingCurrentTotal = 0;
+    searchReadingIsAppending = false;
+}
+
+function getReadingSearchVisualLength(reading) {
+    return Array.from(String(reading || '')).reduce((total, char) => {
+        if ('ゃゅょぁぃぅぇぉっゎー'.includes(char)) return total + 0.55;
+        return total + 1;
+    }, 0);
+}
+
+function getReadingSearchCardFontSize(reading, columnWidth) {
+    const visualLength = Math.max(1, getReadingSearchVisualLength(reading));
+    const safeColumnWidth = Number.isFinite(columnWidth) && columnWidth > 0 ? columnWidth : 108;
+    const available = Math.max(48, safeColumnWidth - 18);
+    const fitSize = Math.floor((available / visualLength) * 0.95);
+    return Math.max(12, Math.min(20, fitSize));
+}
+
+function fitReadingSearchCardText(container) {
+    if (!container) return;
+    container.querySelectorAll('.reading-search-open span').forEach((span) => {
+        const button = span.closest('.reading-search-open');
+        if (!button) return;
+        let fontSize = parseFloat(span.style.fontSize || window.getComputedStyle(span).fontSize) || 16;
+        for (let i = 0; i < 10; i++) {
+            const available = button.getBoundingClientRect().width - 10;
+            if (span.getBoundingClientRect().width <= available || fontSize <= 8) break;
+            fontSize -= 1;
+            span.style.fontSize = `${fontSize}px`;
+        }
+    });
+}
+
+function ensureReadingSearchScrollHandler(container) {
+    if (!container || searchReadingScrollBound) return;
+    searchReadingScrollBound = true;
+    container.addEventListener('scroll', () => {
+        if (searchContentType !== 'reading') return;
+        const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (remaining > 180) return;
+        loadMoreReadingSearchResults();
+    }, { passive: true });
+}
+
+function loadMoreReadingSearchResults() {
+    if (searchContentType !== 'reading') return;
+    if (searchReadingIsAppending) return;
+    if (searchReadingVisibleLimit >= searchReadingCurrentTotal) return;
+    searchReadingIsAppending = true;
+    executeReadingSearch();
+    setTimeout(() => {
+        searchReadingVisibleLimit += READING_SEARCH_BATCH_SIZE;
+        searchReadingIsAppending = false;
+        executeReadingSearch();
+    }, 180);
+}
+
+function observeReadingSearchLoader(loader, container) {
+    if (searchReadingLoadObserver) {
+        searchReadingLoadObserver.disconnect();
+        searchReadingLoadObserver = null;
+    }
+    if (!loader || !container || typeof IntersectionObserver === 'undefined') return;
+    searchReadingLoadObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+            loadMoreReadingSearchResults();
+        }
+    }, {
+        root: container,
+        rootMargin: '120px 0px 160px 0px',
+        threshold: 0.01
+    });
+    searchReadingLoadObserver.observe(loader);
+}
+
+function appendReadingSearchLoader(container) {
+    if (!container || searchReadingVisibleLimit >= searchReadingCurrentTotal) return;
+    const loader = document.createElement('button');
+    loader.type = 'button';
+    loader.style.gridColumn = `span ${READING_SEARCH_COLUMNS} / span ${READING_SEARCH_COLUMNS}`;
+    loader.className = 'reading-search-loader flex items-center justify-center py-5';
+    loader.innerHTML = searchReadingIsAppending
+        ? '<div class="h-6 w-6 rounded-full border-4 border-[#eee5d8] border-t-[#bca37f] animate-spin"></div>'
+        : '<div class="h-5 w-5 rounded-full border-4 border-[#eee5d8] border-t-[#d8c8ae] animate-spin"></div>';
+    loader.onclick = loadMoreReadingSearchResults;
+    container.appendChild(loader);
+    observeReadingSearchLoader(loader, container);
+}
+
+function isReadingSearchItemStocked(item) {
+    if (!item || !item.reading || typeof getReadingStock !== 'function' || typeof findReadingStockItemInStock !== 'function') {
+        return false;
+    }
+    return !!findReadingStockItemInStock(getReadingStock(), item.reading);
+}
+
+function renderReadingSearchTagChips(tags) {
+    const visibleTags = getReadingDisplayTags(tags, 5);
+    if (visibleTags.length === 0) return '';
+    return visibleTags.map((tag) => {
+        const style = typeof getTagStyle === 'function' ? getTagStyle(tag) : {};
+        const label = String(tag).replace('#', '');
+        return `<span class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-black"
+            style="background:${style.bgColor || '#f7f1e7'};color:${style.textColor || '#6f6250'};border-color:${style.borderColor || '#eadfce'};">${escapeHtmlText(label)}</span>`;
+    }).join('');
+}
+
+function addReadingSearchResultToStock(reading, asSuper = false) {
+    const item = getReadingSearchEntry(reading);
+    if (!item) return;
+    if (typeof addReadingToStock === 'function') {
+        addReadingToStock(item.reading, '', item.tags || [], {
+            gender: item.gender || gender || 'neutral',
+            isSuper: !!asSuper,
+            source: 'reading-search',
+            clearHidden: true
+        });
+    }
+    if (typeof showToast === 'function') {
+        showToast(`「${item.reading}」を${asSuper ? '本命として' : '候補として'}追加しました`, asSuper ? '★' : '✓');
+    }
+    if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+}
+
+function openReadingSearchResult(reading) {
+    const item = getReadingSearchEntry(reading);
+    if (!item) return;
+    const payload = {
+        ...item,
+        source: 'reading-search',
+        baseNickname: item.adana || ''
+    };
+    if (typeof openReadingCombinationDetailFromItem === 'function') {
+        openReadingCombinationDetailFromItem(payload);
+        return;
+    }
+    addReadingSearchResultToStock(item.reading);
+}
+
+function executeReadingSearch() {
+    if (kanjiSearchInputTimer) {
+        clearTimeout(kanjiSearchInputTimer);
+        kanjiSearchInputTimer = null;
+    }
     const input = document.getElementById('kanji-search-input');
     const container = document.getElementById('kanji-search-results');
     if (!container) return;
+    ensureReadingSearchScrollHandler(container);
+
+    if (!Array.isArray(readingsData) || readingsData.length === 0) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みデータを読み込み中です...</div>';
+        return;
+    }
+
+    const rawQuery = input ? input.value.trim() : '';
+    const query = normalizeReadingComparisonValue(rawQuery);
+
+    let results = readingsData
+        .map((item) => buildReadingSearchResultItem(item, query))
+        .filter(Boolean);
+
+    results.sort(compareReadingSearchResults);
+
+    if (results.length === 0) {
+        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">該当する読みがありません</div>';
+        return;
+    }
+
+    searchReadingCurrentTotal = results.length;
+    container.style.gridTemplateColumns = `repeat(${READING_SEARCH_COLUMNS}, minmax(0, 1fr))`;
+    container.innerHTML = '';
+    const visibleResults = results.slice(0, searchReadingVisibleLimit);
+    const columnGap = 8;
+    const columnWidth = (container.clientWidth - (READING_SEARCH_COLUMNS - 1) * columnGap) / READING_SEARCH_COLUMNS;
+    const fragment = document.createDocumentFragment();
+    visibleResults.forEach((item) => {
+        const cell = document.createElement('div');
+        cell.style.gridColumn = 'span 1 / span 1';
+        const isStocked = isReadingSearchItemStocked(item);
+        const cardStyle = isStocked
+            ? { bg: '#fffbeb', border: '#bca37f', text: '#5d5444' }
+            : { bg: '#ffffff', border: '#eee5d8', text: '#5d5444' };
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'reading-search-open relative w-full rounded-xl border shadow-sm flex items-center justify-center active:scale-95 transition-transform';
+        btn.style.minHeight = '60px';
+        btn.style.padding = '8px 8px';
+        btn.style.backgroundColor = cardStyle.bg;
+        btn.style.borderColor = cardStyle.border;
+        const fontSize = getReadingSearchCardFontSize(item.reading, columnWidth);
+        btn.innerHTML = `
+            <span class="block font-black leading-none"
+                  style="font-size:${fontSize}px;letter-spacing:0;white-space:nowrap;color:${cardStyle.text};">${escapeHtmlText(item.reading)}</span>
+            ${isStocked ? '<span class="absolute top-1 right-1 text-[11px] leading-none">❤️</span>' : ''}
+        `;
+        btn.onclick = () => openReadingSearchResult(item.reading);
+        cell.appendChild(btn);
+        fragment.appendChild(cell);
+    });
+    container.appendChild(fragment);
+    fitReadingSearchCardText(container);
+    appendReadingSearchLoader(container);
+}
+
+function executeKanjiSearch() {
+    if (searchContentType === 'reading') {
+        executeReadingSearch();
+        return;
+    }
+    if (kanjiSearchInputTimer) {
+        clearTimeout(kanjiSearchInputTimer);
+        kanjiSearchInputTimer = null;
+    }
+    const input = document.getElementById('kanji-search-input');
+    const container = document.getElementById('kanji-search-results');
+    if (!container) return;
+    container.style.gridTemplateColumns = '';
 
     // masterが未ロードの場合
     if (!master || master.length === 0) {
@@ -7623,7 +8935,7 @@ function executeKanjiSearch() {
     const query = normalizeReadingComparisonValue(rawQuery);
 
     // フィルターが何も設定されていない場合はメッセージ表示
-    if (!query && !rawQuery && !searchClassFilter) {
+    if (!query && !rawQuery && !searchClassFilter && !searchStrokeFilter) {
         if (searchShowAllKanji) {
             container.innerHTML = `
                 <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">
@@ -7632,28 +8944,29 @@ function executeKanjiSearch() {
                 </div>
             `;
         } else {
-            container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>';
+            container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>イメージや画数を選択してください</div>';
         }
         return;
     }
 
     const lockedPremiumKanji = new Set();
     const premiumActive = typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
-    let results = master.map(k => {
+    let results = [];
+    for (const k of master) {
         const resultItem = buildKanjiSearchResultItem(k, rawQuery, query);
-        if (!resultItem) return null;
+        if (!resultItem) continue;
 
         const accessible = typeof isKanjiAccessibleForCurrentMembership !== 'function'
             || isKanjiAccessibleForCurrentMembership(k);
         if (!accessible) {
             const lockedKanji = String(k['漢字'] || '').trim();
             if (lockedKanji && !premiumActive) lockedPremiumKanji.add(lockedKanji);
-            return null;
+            continue;
         }
 
-        if (!isKanjiSearchRecommendedScopeItem(k)) return null;
-        return resultItem;
-    }).filter(Boolean);
+        if (!isKanjiSearchRecommendedScopeItem(k)) continue;
+        results.push(resultItem);
+    }
 
     // 漢字の重複排除
     const seenKanji = new Set();
@@ -7687,11 +9000,14 @@ function executeKanjiSearch() {
     // 結果件数
     const countDiv = document.createElement('div');
     countDiv.className = 'col-span-4 text-center text-[10px] text-[#a6967a] py-2';
-    countDiv.innerText = `${results.length}件`;
+    const visibleResults = results.slice(0, KANJI_SEARCH_RENDER_LIMIT);
+    countDiv.innerText = results.length > visibleResults.length
+        ? `${results.length}件中 上位${visibleResults.length}件を表示`
+        : `${results.length}件`;
     container.appendChild(countDiv);
 
     const resultFragment = document.createDocumentFragment();
-    results.forEach(k => {
+    visibleResults.forEach(k => {
         const isStocked = liked.some(l => l['漢字'] === k['漢字']);
         const isFlagged = isKanjiSearchFlagged(k);
         const strokes = parseInt(k['画数']) || '?';
@@ -7826,7 +9142,7 @@ ${soundAnalysisLiked.join('、')}
 ${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisNoped.join('、')}` : ''}
 
 【回答形式（厳守）】
-まず【分析】タグで、好みの傾向を3行程度で分析してください（音の特徴、文字数の傾向、音の柔らかさ/力強さなど）。
+まず【分析】タグで、好みの傾向を3行程度で分析してください（音の特徴、文字数の傾向、音の柔らかさ/はっきり感など）。
 
 次に【候補】タグで、分析に基づいて${gender === 'male' ? '男の子' : gender === 'female' ? '女の子' : ''}の新しい名前の読みを10個、以下の形式で1行ずつ提案してください：
 読み|文字数|特徴の一言説明
@@ -8101,10 +9417,10 @@ let akinatorAnswers = [];
 let akinatorStep = 0;
 
 const akinatorQuestions = [
-    { q: 'どんな印象の名前がいいですか？', options: ['力強い', 'やさしい', '知的', '華やか'] },
+    { q: 'どんな印象の名前がいいですか？', options: ['はっきり', 'やさしい', '知的', '華やか'] },
     { q: '自然を連想するなら？', options: ['空・光', '水・海', '山・大地', '花・植物'] },
     { q: '名前に込めたい願いは？', options: ['健康・長寿', '成功・繁栄', '愛・絆', '自由・冒険'] },
-    { q: '音の響きは？', options: ['柔らかい音', '力強い音', '古風な響き', 'モダンな響き'] },
+    { q: '音の響きは？', options: ['柔らかい音', 'はっきりした音', '古風な響き', 'モダンな響き'] },
     { q: '画数の好みは？', options: ['少ない(1-8画)', '普通(9-14画)', '多い(15画以上)', 'こだわりなし'] }
 ];
 
@@ -8249,6 +9565,9 @@ ${answersText}
 }
 
 window.openKanjiSearch = openKanjiSearch;
+window.openReadingSearch = openReadingSearch;
+window.setSearchContentType = setSearchContentType;
+window.setReadingSearchMatchMode = setReadingSearchMatchMode;
 window.initSoundMode = initSoundMode;
 window.initAdanaMode = initAdanaMode;
 window.initSoundModeEntry = initSoundModeEntry;
@@ -8257,10 +9576,21 @@ window.updateSoundEntryModeUI = updateSoundEntryModeUI;
 window.submitSoundEntry = submitSoundEntry;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
+window.setStrokeFilter = setStrokeFilter;
+window.setReadingTagGroupFilter = setReadingTagGroupFilter;
+window.setReadingGenderFilter = setReadingGenderFilter;
+window.cycleReadingGenderFilter = cycleReadingGenderFilter;
+window.showReadingSearchTagHelp = showReadingSearchTagHelp;
+window.closeReadingSearchTagHelp = closeReadingSearchTagHelp;
 window.setSearchShowAllKanji = setSearchShowAllKanji;
 window.toggleSearchFlexibleMode = toggleSearchFlexibleMode;
 window.toggleSearchShowAllKanji = toggleSearchShowAllKanji;
+window.handleKanjiSearchInput = handleKanjiSearchInput;
 window.executeKanjiSearch = executeKanjiSearch;
+window.executeReadingSearch = executeReadingSearch;
+window.loadMoreReadingSearchResults = loadMoreReadingSearchResults;
+window.openReadingSearchResult = openReadingSearchResult;
+window.addReadingSearchResultToStock = addReadingSearchResultToStock;
 window.toggleSearchStock = toggleSearchStock;
 window.aiAnalyzeSoundPreferences = aiAnalyzeSoundPreferences;
 window.closeAISoundModal = closeAISoundModal;

@@ -1010,6 +1010,8 @@ const MeimayPairing = {
     _markPairingUsedInFlight: false,
     _syncInProgress: false,
     _syncPending: false,
+    _pendingShareText: '',
+    _pendingShareSubject: 'メイメー - ルームコードの共有',
 
     _readLocalRoomState: function () {
         try {
@@ -1499,23 +1501,133 @@ const MeimayPairing = {
         }
     },
 
+    _buildShareCodeText: function () {
+        const partnerRoleLabel = this.myRole === 'mama' ? 'パパ' : 'ママ';
+        const downloadLinks = typeof getMeimayDownloadLinksText === 'function'
+            ? getMeimayDownloadLinksText()
+            : '';
+        return [
+            'メイメーで一緒に赤ちゃんの名前を考えませんか？',
+            `${partnerRoleLabel}はこのコードをコピーして、アプリに入力してください。`,
+            '',
+            `ルームコード: ${this.roomCode}`,
+            downloadLinks ? `アプリのダウンロード\n${downloadLinks}` : ''
+        ].filter(line => line !== '').join('\n');
+    },
+
+    _escapeShareHtml: function (value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
+    _buildSharePreviewHtml: function (text) {
+        return String(text || '').split('\n').map(line => {
+            const safeLine = this._escapeShareHtml(line);
+            const isUrl = /^https?:\/\//i.test(line);
+            if (line === '') return '<div class="h-3"></div>';
+            if (isUrl) {
+                return `<div class="overflow-hidden text-ellipsis whitespace-nowrap">${safeLine}</div>`;
+            }
+            return `<div>${safeLine}</div>`;
+        }).join('');
+    },
+
+    openShareCodeFallback: function (text = '') {
+        const shareText = String(text || this._pendingShareText || this._buildShareCodeText() || '').trim();
+        if (!shareText) return;
+        this._pendingShareText = shareText;
+        document.getElementById('pairing-share-code-modal')?.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'pairing-share-code-modal';
+        modal.className = 'overlay active modal-overlay-dark';
+        modal.innerHTML = `
+            <div class="modal-sheet w-11/12 max-w-md" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="MeimayPairing.closeShareCodeFallback()">✕</button>
+                <div class="modal-body">
+                    <h3 class="modal-title text-left">連携コードを共有</h3>
+                    <p class="mb-3 text-[12px] leading-relaxed text-[#8b7e66]">メールやLINEに貼って送る文面です。</p>
+                    <div class="rounded-2xl border border-[#eadfce] bg-[#fff8ec] px-4 py-3 text-[12px] leading-[1.75] text-[#5d5444]">
+                        ${this._buildSharePreviewHtml(shareText)}
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <button type="button" onclick="MeimayPairing.copyShareCodeText(event)" class="w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-[0.98] transition-transform">文面をコピー</button>
+                        <button type="button" onclick="MeimayPairing.sendShareCodeEmail(event)" class="w-full rounded-2xl border border-[#eadfce] bg-white px-4 py-3 text-sm font-black text-[#8b6f42] shadow-sm active:scale-[0.98] transition-transform">メールで送る</button>
+                        <button type="button" onclick="MeimayPairing.closeShareCodeFallback()" class="w-full rounded-2xl px-4 py-2.5 text-xs font-bold text-[#a6967a] active:scale-[0.98] transition-transform">閉じる</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        modal.addEventListener('click', () => this.closeShareCodeFallback());
+        document.body.appendChild(modal);
+    },
+
+    closeShareCodeFallback: function () {
+        document.getElementById('pairing-share-code-modal')?.remove();
+    },
+
+    copyShareCodeText: function (event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const text = String(this._pendingShareText || this._buildShareCodeText() || '').trim();
+        const onCopied = () => {
+            this.closeShareCodeFallback();
+            if (typeof showToast === 'function') showToast('共有文をコピーしました。メールに貼れます', '\u2713');
+        };
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            navigator.clipboard.writeText(text).then(onCopied).catch(() => {
+                if (typeof showToast === 'function') showToast(`コード: ${this.roomCode}`, '\u2713');
+            });
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', 'readonly');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                onCopied();
+            } catch (e) {
+                if (typeof showToast === 'function') showToast(`コード: ${this.roomCode}`, '\u2713');
+            } finally {
+                textarea.remove();
+            }
+        }
+    },
+
+    sendShareCodeEmail: function (event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const text = String(this._pendingShareText || this._buildShareCodeText() || '').trim();
+        const href = `mailto:?subject=${encodeURIComponent(this._pendingShareSubject)}&body=${encodeURIComponent(text)}`;
+        this.closeShareCodeFallback();
+        window.location.href = href;
+    },
+
     // Web Share API 縺ｧ繝ｫ繝ｼ繝繧ｳ繝ｼ繝峨ｒ蜈ｱ譛・
     shareCode: function () {
         if (!this.roomCode) return;
-        const partnerRoleLabel = this.myRole === 'mama' ? 'パパ' : 'ママ';
-        const text = `メイメーで一緒に赤ちゃんの名前を考えませんか？\n${partnerRoleLabel}はこのコードをコピーして、アプリに入力してください。\n\nルームコード: ${this.roomCode}`;
+        const text = this._buildShareCodeText();
 
         if (navigator.share) {
             navigator.share({
-                title: 'メイメー - ルームコードの共有',
+                title: this._pendingShareSubject,
                 text: text
-            }).catch(() => {});
-        } else {
-            navigator.clipboard?.writeText(this.roomCode).then(() => {
-                showToast('コードをコピーしました', '\u2713');
             }).catch(() => {
-                showToast(`コード: ${this.roomCode}`, '\u2713');
+                this.openShareCodeFallback(text);
             });
+        } else {
+            this.openShareCodeFallback(text);
         }
     },
 

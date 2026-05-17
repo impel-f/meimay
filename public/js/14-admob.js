@@ -1388,6 +1388,7 @@ function closePremiumModal() {
     const modal = document.getElementById('modal-ai-sound');
     if (modal) {
         modal.classList.remove('active');
+        modal.style.removeProperty('z-index');
         delete modal.dataset.meimayModalKind;
     }
 }
@@ -2738,6 +2739,7 @@ function showPremiumModal(options = {}) {
     const subtitle = getPremiumModalSubtitle(state);
     const syncMessage = options && typeof options === 'object' ? String(options.syncMessage || '') : '';
 
+    modal.style.setProperty('z-index', '10030', 'important');
     modal.classList.add('active');
     modal.dataset.meimayModalKind = 'premium';
     modal.innerHTML = ''

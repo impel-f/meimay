@@ -678,6 +678,9 @@ function drawerNavigate(target) {
             case 'search':
                 if (typeof openKanjiSearch === 'function') openKanjiSearch();
                 break;
+            case 'reading-search':
+                if (typeof openReadingSearch === 'function') openReadingSearch();
+                break;
             case 'ranking':
                 if (typeof openRanking === 'function') openRanking();
                 break;
@@ -747,6 +750,7 @@ function renderDrawerMenu() {
             title: 'ツール',
             items: [
                 { id: 'drawer-search', target: 'search', icon: '📖', label: '漢字検索' },
+                { id: 'drawer-reading-search', target: 'reading-search', icon: '📚', label: '読み検索' },
                 { id: 'drawer-ranking', target: 'ranking', icon: '👑', label: 'ランキング' }
             ]
         },

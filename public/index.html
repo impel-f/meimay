@@ -20,7 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
-    <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.1">
+    <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.2.0">
     <link rel="stylesheet" href="/css/main.css?v=26.43">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.20">
 
@@ -86,6 +86,10 @@
                 <span class="drawer-icon">📖</span>
                 <span>漢字を検索</span>
             </button>
+            <button onclick="drawerNavigate('reading-search')" class="drawer-menu-item">
+                <span class="drawer-icon">📚</span>
+                <span>読み検索</span>
+            </button>
             <button onclick="openRanking()" class="drawer-menu-item">
                 <span class="drawer-icon">👑</span>
                 <span>漢字ランキング</span>
@@ -122,7 +126,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v1.1.1
+            メイメー v1.2.0
         </div>
     </aside>
 
@@ -393,8 +397,13 @@
                 <div id="home-next-action-anchor" class="mt-3"></div>
             </div>
 
-            <!-- ④ 3ツール（漢字検索 / ランキング / 出会った候補） -->
-            <div id="home-tool-grid" class="w-full max-w-sm grid grid-cols-3 gap-2 home-tool-grid">
+            <!-- ④ ツール（読み検索 / 漢字検索 / ランキング / 出会った候補） -->
+            <div id="home-tool-grid" class="w-full max-w-md grid grid-cols-4 gap-2 home-tool-grid">
+                <button onclick="openReadingSearch()"
+                    class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
+                    <span class="text-xl">📚</span>
+                    <span class="text-[10px] font-bold text-[#5d5444]">読み検索</span>
+                </button>
                 <button onclick="openKanjiSearch()"
                     class="home-tool-card bg-white/70 rounded-2xl py-2.5 border border-[#ede5d8] shadow-sm flex flex-col items-center gap-1 active:scale-[0.97] transition-transform">
                     <span class="text-xl">📖</span>
@@ -707,45 +716,64 @@
             <div class="flex items-center gap-2 mb-3">
                 <button onclick="changeScreen('scr-mode')" class="text-[#bca37f] text-2xl">←</button>
                 <h2 id="kanji-search-title" class="text-lg font-bold text-[#8b7e66] flex-1">漢字を検索</h2>
-                <div class="flex items-center flex-shrink-0">
+                <div class="flex items-center gap-1.5 flex-shrink-0">
                     <button id="search-mode-toggle" onclick="toggleSearchFlexibleMode()"
                         class="px-3 py-1.5 rounded-full text-[11px] font-bold transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none">
                         読み厳格
                     </button>
+                    <button id="reading-gender-toggle" onclick="cycleReadingGenderFilter()"
+                        class="hidden px-2.5 py-1.5 rounded-full text-[11px] font-black transition-all active:scale-95 flex items-center justify-center flex-shrink-0 outline-none focus:outline-none">
+                        すべて
+                    </button>
                 </div>
             </div>
-
             <!-- Search Input -->
-            <div class="mb-2">
+            <div class="mb-2 grid gap-2 items-stretch" style="grid-template-columns:minmax(0,1fr) auto;">
                 <input type="text" id="kanji-search-input" placeholder="読みまたは漢字で検索"
                     class="w-full px-4 py-3 bg-white border-2 border-[#eee5d8] rounded-2xl text-sm font-medium text-[#5d5444] focus:border-[#bca37f] outline-none transition-all"
                     oninput="handleKanjiSearchInput()">
+                <div id="reading-search-match-controls" class="hidden rounded-2xl border border-[#eadfce] bg-[#f5efe5] p-1 grid grid-cols-2 gap-1" style="width:128px;">
+                    <button id="reading-search-match-starts" type="button" onclick="setReadingSearchMatchMode('starts')"
+                        class="rounded-xl px-2 py-2 text-[11px] font-black transition-all">始まる</button>
+                    <button id="reading-search-match-ends" type="button" onclick="setReadingSearchMatchMode('ends')"
+                        class="rounded-xl px-2 py-2 text-[11px] font-black transition-all">終わる</button>
+                </div>
             </div>
 
-            <!-- Classification Filter -->
-            <div class="mb-2 flex items-start gap-3">
-                <div class="shrink-0">
-                    <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">表示する漢字</p>
-                    <div class="flex gap-1.5 pb-1">
-                        <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
-                            class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all outline-none focus:outline-none"
-                            style="width:72px">
-                            おすすめ
-                        </button>
+            <!-- Search Filters -->
+            <div class="mb-2">
+                <div class="grid gap-2" style="grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr) minmax(0,0.9fr);">
+                    <div id="search-primary-filter-col" class="min-w-0">
+                        <p id="search-primary-filter-label" class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">表示する漢字</p>
+                        <div id="search-primary-filter-control">
+                            <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
+                                class="w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
+                                おすすめ
+                            </button>
+                        </div>
+                    </div>
+                    <div id="search-secondary-filter-col" class="min-w-0">
+                        <p id="search-secondary-filter-label" class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">イメージ</p>
+                        <div id="search-class-filters">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+                    <div id="search-tertiary-filter-col" class="min-w-0">
+                        <p id="search-tertiary-filter-label" class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">画数</p>
+                        <div id="search-tertiary-filter-control">
+                            <select id="search-stroke-filter" onchange="setStrokeFilter(this.value)"
+                                class="w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                                <option value="">すべて</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div aria-hidden="true" class="shrink-0 rounded-full" style="width:2px;height:32px;margin-top:19px;background:#c7ad83;"></div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">分類</p>
-                    <div id="search-class-filters" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-                        <!-- JS populated -->
-                    </div>
-                </div>
+                <div id="reading-tag-panel" class="hidden mt-2"></div>
             </div>
 
             <!-- Results -->
             <div id="kanji-search-results" class="grid grid-cols-4 gap-2 pb-24 overflow-y-auto flex-1 content-start">
-                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>分類を選択してください</div>
+                <div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みまたは漢字で検索するか、<br>イメージや画数を選択してください</div>
             </div>
         </div>
     </div>
@@ -1336,7 +1364,7 @@
                         <div class="rounded-full border-2 border-[#b9965b] px-3 py-1.5 text-[12px] font-black text-[#b9965b]">完了</div>
                     </div>
                     <div id="tut-current-swipe-card" class="mt-4 rounded-[26px] border border-[#eadfce] bg-[#fffaf4] px-6 py-8 shadow-lg text-center">
-                        <div class="mx-auto inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#5d5444]">#力強い</div>
+                        <div class="mx-auto inline-flex rounded-full bg-white px-3 py-1 text-[10px] font-bold text-[#5d5444]">#はっきり</div>
                         <div class="mt-5 text-[44px] font-black leading-none text-[#5d5444]">たいせい</div>
                         <div class="mx-auto mt-5 rounded-[20px] bg-white px-5 py-4 shadow-sm">
                             <div class="text-[11px] font-black text-[#8b7e66]">漢字の例</div>
@@ -1578,11 +1606,11 @@
     <!-- Module 02.5: Generator -->
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=26.17"></script>
+    <script src="/js/01-core.js?v=26.21"></script>
 <script src="/js/02-engine.js?v=25.38"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-<script src="/js/04-ui-flow.js?v=26.86"></script>
-<script src="/js/05-ui-render.js?v=25.94"></script>
+    <script src="/js/04-ui-flow.js?v=27.39"></script>
+<script src="/js/05-ui-render.js?v=25.98"></script>
     <script src="/js/06-ui-physics.js?v=25.19"></script>
     <script src="/js/07-build.js?v=25.71"></script>
 <script src="/js/08-origin.js?v=25.68"></script>
@@ -1590,9 +1618,9 @@
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.41"></script>
     <script src="/js/12-history.js?v=25.62"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.39"></script>
-    <script src="/js/14-admob.js?v=25.81"></script>
-<script src="/js/15-firebase.js?v=26.44"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.43"></script>
+    <script src="/js/14-admob.js?v=25.83"></script>
+<script src="/js/15-firebase.js?v=26.47"></script>
     <script src="/js/data/legal-docs.js?v=25.20"></script>
     <script src="/js/16-legal.js?v=25.20"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>

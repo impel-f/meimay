@@ -25,9 +25,93 @@ let prioritizeFortune = false;
 let savedNames = [];
 
 const MEIMAY_PRODUCTION_API_ORIGIN = 'https://meimay.vercel.app';
+const MEIMAY_APP_STORE_URL = 'https://apps.apple.com/jp/app/id6760251452';
+const MEIMAY_APP_STORE_REVIEW_URL = 'https://apps.apple.com/app/id6760251452?action=write-review';
+const MEIMAY_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.impelf.meimay';
+const MEIMAY_GOOGLE_PLAY_PUBLIC = false;
 const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
 const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
 const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
+
+function getMeimayRuntimePlatform() {
+    try {
+        const capacitorPlatform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+            ? String(window.Capacitor.getPlatform() || '').toLowerCase()
+            : '';
+        if (capacitorPlatform === 'ios' || capacitorPlatform === 'android') return capacitorPlatform;
+    } catch (e) { }
+
+    const ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) return 'android';
+    if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+    if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+    return 'web';
+}
+window.getMeimayRuntimePlatform = getMeimayRuntimePlatform;
+
+function getMeimayStoreLinks() {
+    return {
+        appStoreUrl: MEIMAY_APP_STORE_URL,
+        appStoreReviewUrl: MEIMAY_APP_STORE_REVIEW_URL,
+        googlePlayUrl: MEIMAY_GOOGLE_PLAY_URL,
+        googlePlayPublic: MEIMAY_GOOGLE_PLAY_PUBLIC
+    };
+}
+window.getMeimayStoreLinks = getMeimayStoreLinks;
+
+function getMeimayReviewLink(platform = '') {
+    const runtimePlatform = String(platform || getMeimayRuntimePlatform()).toLowerCase();
+    const links = getMeimayStoreLinks();
+    if (runtimePlatform === 'android') {
+        return {
+            platform: 'android',
+            label: 'Google Playでレビュー',
+            url: links.googlePlayPublic ? links.googlePlayUrl : '',
+            available: links.googlePlayPublic
+        };
+    }
+    return {
+        platform: 'ios',
+        label: 'App Storeでレビュー',
+        url: links.appStoreReviewUrl,
+        available: true
+    };
+}
+window.getMeimayReviewLink = getMeimayReviewLink;
+
+function getMeimayDownloadLinksText(options = {}) {
+    const links = getMeimayStoreLinks();
+    const includeGooglePlaceholder = options.includeGooglePlaceholder !== false;
+    const lines = [
+        `iPhone: ${links.appStoreUrl}`
+    ];
+
+    if (links.googlePlayPublic || options.includeUnpublishedGooglePlayLink === true) {
+        lines.push(`Android: ${links.googlePlayUrl}`);
+    } else if (includeGooglePlaceholder) {
+        lines.push('Android: Google Play版は公開準備中です');
+    }
+
+    return lines.join('\n');
+}
+window.getMeimayDownloadLinksText = getMeimayDownloadLinksText;
+
+function openMeimayExternalLink(url) {
+    const safeUrl = String(url || '').trim();
+    if (!safeUrl) return false;
+    try {
+        const opened = window.open(safeUrl, '_blank', 'noopener');
+        if (opened) return true;
+    } catch (e) { }
+
+    try {
+        window.location.href = safeUrl;
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+window.openMeimayExternalLink = openMeimayExternalLink;
 
 function isNativeAppRuntime() {
     try {
@@ -941,6 +1025,7 @@ const KANJI_TAG_STYLES = {
     "#知性": { bgColor: "#E0E7FF", textColor: "#4338CA", borderColor: "#C7D2FE" },
     "#幸福": { bgColor: "#D1FAE5", textColor: "#047857", borderColor: "#A7F3D0" },
     "#力強い": { bgColor: "#DBEAFE", textColor: "#1D4ED8", borderColor: "#93C5FD" },
+    "#はっきり": { bgColor: "#DBEAFE", textColor: "#1D4ED8", borderColor: "#93C5FD" },
     "#ふんわり": { bgColor: "#FCE7F3", textColor: "#BE185D", borderColor: "#F9A8D4" },
     "#クール": { bgColor: "#E2E8F0", textColor: "#334155", borderColor: "#CBD5E1" },
     "#爽やか": { bgColor: "#DCFCE7", textColor: "#15803D", borderColor: "#86EFAC" },
@@ -958,6 +1043,11 @@ const KANJI_TAG_STYLES = {
     "#存在感": { bgColor: "#DDD6FE", textColor: "#5B21B6", borderColor: "#C4B5FD" },
     "#ひたむき": { bgColor: "#E9D5FF", textColor: "#7E22CE", borderColor: "#D8B4FE" },
     "#繊細": { bgColor: "#F5D0FE", textColor: "#A21CAF", borderColor: "#F0ABFC" },
+    "#止め字": { bgColor: "#F1F5F9", textColor: "#475569", borderColor: "#CBD5E1" },
+    "#クラシック": { bgColor: "#FEF3C7", textColor: "#92400E", borderColor: "#FCD34D" },
+    "#レトロモダン": { bgColor: "#FAE8FF", textColor: "#86198F", borderColor: "#F0ABFC" },
+    "#自然モチーフ": { bgColor: "#D1FAE5", textColor: "#166534", borderColor: "#86EFAC" },
+    "#国際風": { bgColor: "#CFFAFE", textColor: "#0F766E", borderColor: "#67E8F9" },
     "#海外風": { bgColor: "#CFFAFE", textColor: "#0F766E", borderColor: "#67E8F9" }
 };
 
