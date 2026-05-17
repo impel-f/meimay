@@ -117,11 +117,15 @@
         }
 
         .hero-copy-inner {
-            max-width: 720px;
+            max-width: 780px;
+            margin: 0 auto;
+            text-align: center;
         }
 
         .hero-intro {
             max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .kicker {
@@ -151,7 +155,7 @@
         }
 
         .hero-lead {
-            margin: 24px 0 0;
+            margin: 24px auto 0;
             max-width: 570px;
             color: var(--ink);
             font-size: 20px;
@@ -160,7 +164,7 @@
         }
 
         .hero-subcopy {
-            margin: 18px 0 0;
+            margin: 18px auto 0;
             max-width: 650px;
             color: var(--muted);
             font-size: 14px;
@@ -185,6 +189,7 @@
             margin-top: 28px;
             display: flex;
             flex-wrap: wrap;
+            justify-content: center;
             gap: 12px;
         }
 
@@ -222,7 +227,7 @@
         }
 
         .hero-stats {
-            margin-top: 28px;
+            margin: 28px auto 0;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
@@ -291,6 +296,12 @@
         .section-heading {
             max-width: 760px;
             margin-bottom: 28px;
+        }
+
+        .preview-section .section-heading {
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
         }
 
         .section-heading p {
@@ -638,27 +649,6 @@
             height: auto;
         }
 
-        .free-section {
-            padding-top: 48px;
-            padding-bottom: 8px;
-            text-align: center;
-        }
-
-        .free-section h2 {
-            max-width: 640px;
-            margin: 0 auto;
-            font-size: 32px;
-        }
-
-        .free-section > p {
-            max-width: 680px;
-            margin: 14px auto 0;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.8;
-            font-weight: 700;
-        }
-
         .premium-note {
             max-width: 680px;
             margin: 12px auto 0;
@@ -785,7 +775,7 @@
             margin: 0 auto;
         }
 
-        .final-cta p {
+        .final-copy {
             max-width: 650px;
             margin: 18px auto 0;
             color: var(--muted);
@@ -794,51 +784,122 @@
             font-weight: 700;
         }
 
-        .final-points {
-            max-width: 620px;
-            margin: 24px auto 0;
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            text-align: center;
-        }
-
-        .final-point {
-            min-height: 54px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        .final-saved-preview {
+            width: min(330px, 100%);
+            margin: 28px auto 0;
             border: 1px solid #eadfce;
             border-radius: 8px;
-            background: rgba(255, 254, 251, 0.78);
-            padding: 10px 8px;
-            color: var(--ink);
-            font-size: 13px;
+            background: rgba(255, 254, 251, 0.86);
+            padding: 12px;
+            text-align: left;
+            box-shadow: 0 18px 36px rgba(93, 84, 68, 0.08);
+        }
+
+        .saved-mini-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0 4px 8px;
+            color: #b49a73;
+            font-size: 11px;
             line-height: 1.35;
             font-weight: 900;
+        }
+
+        .saved-mini-head.partner {
+            margin-top: 10px;
+            color: #d16f68;
+        }
+
+        .saved-mini-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            min-height: 62px;
+            margin-top: 7px;
+            border: 1px solid #efd7df;
+            border-radius: 8px;
+            background: rgba(255, 249, 252, 0.9);
+            padding: 9px 10px;
+            box-shadow: 0 8px 18px rgba(93, 84, 68, 0.04);
+        }
+
+        .saved-mini-card.partner-card {
+            border-color: #cfe1f4;
+            background: rgba(248, 252, 255, 0.9);
+        }
+
+        .saved-mini-reading {
+            display: block;
+            color: #8d7181;
+            font-size: 10px;
+            line-height: 1.25;
+            font-weight: 900;
+        }
+
+        .partner-card .saved-mini-reading {
+            color: #6e87a3;
+        }
+
+        .saved-mini-name {
+            display: block;
+            margin-top: 2px;
+            color: var(--ink);
+            font-size: 21px;
+            line-height: 1.12;
+            font-weight: 900;
             white-space: nowrap;
-            box-shadow: 0 12px 24px rgba(93, 84, 68, 0.05);
         }
 
-        .final-point::before {
-            content: "";
-            width: 24px;
-            height: 3px;
-            margin-bottom: 8px;
+        .saved-mini-note {
+            display: block;
+            margin-top: 4px;
+            color: #b79a78;
+            font-size: 10px;
+            line-height: 1.35;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .saved-mini-pill {
+            min-width: 66px;
             border-radius: 999px;
-            background: var(--leaf);
+            background: #f4b462;
+            color: white;
+            padding: 9px 10px;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.1;
+            font-weight: 900;
+            white-space: nowrap;
         }
 
-        .final-point:nth-child(2)::before {
-            background: var(--rose);
+        .saved-mini-pill.current {
+            background: #625747;
         }
 
-        .final-point:nth-child(3)::before {
-            background: var(--sky);
+        .free-section {
+            text-align: center;
+            padding-top: 52px;
+            padding-bottom: 76px;
         }
 
-        .final-cta .hero-actions {
+        .free-section h2 {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .free-section > p {
+            max-width: 650px;
+            margin: 12px auto 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+            font-weight: 700;
+        }
+
+        .free-section .hero-actions {
             margin-top: 28px;
             justify-content: center;
         }
@@ -872,24 +933,6 @@
         }
 
         @media (min-width: 901px) {
-            .hero-copy-inner {
-                max-width: 780px;
-                margin: 0 auto;
-                text-align: center;
-            }
-
-            .hero-intro,
-            .hero-lead,
-            .hero-subcopy,
-            .hero-stats {
-                margin-left: auto;
-                margin-right: auto;
-            }
-
-            .hero-actions {
-                justify-content: center;
-            }
-
             .preview-section .section-heading {
                 margin-left: auto;
                 margin-right: auto;
@@ -1061,10 +1104,6 @@
                 grid-template-columns: 1fr;
             }
 
-            .free-section {
-                padding-top: 42px;
-            }
-
             .plan-compare summary {
                 text-align: left;
             }
@@ -1119,15 +1158,6 @@
                 line-height: 1.65;
             }
 
-            .final-points {
-                gap: 8px;
-            }
-
-            .final-point {
-                min-height: 50px;
-                padding: 9px 4px;
-                font-size: 12px;
-            }
         }
     </style>
 </head>
@@ -1152,10 +1182,10 @@
                     </p>
                     <p class="hero-subcopy">
                         <span class="subcopy-line">響き、漢字の意味、残した理由まで、</span>
-                        <span class="subcopy-line">あとから見返せる形で残せます。</span>
+                        <span class="subcopy-line">ふたりで見返せる形で残せます。</span>
                     </p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeではじめる</a>
+                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで無料ではじめる</a>
                     </div>
                     <p class="store-note">iPhone版を公開中。Android版はGoogle Play公開準備中です。</p>
                     <div class="hero-stats" aria-label="メイメーの特徴">
@@ -1224,13 +1254,63 @@
             </div>
         </section>
 
+        <section class="section final-cta">
+            <h2>
+                <span class="phrase">決める前に、</span>
+                <span class="phrase">ちゃんと見返せる。</span>
+            </h2>
+            <p class="final-copy">読み・漢字・意味・メモを保存して、候補が増えても見失わないように。家族と相談するときも、同じ内容を見ながら話せます。</p>
+            <div class="final-saved-preview" aria-label="保存済み候補の例">
+                <div class="saved-mini-head">
+                    <span>自分の候補</span>
+                    <span>3件</span>
+                </div>
+                <div class="saved-mini-card">
+                    <div>
+                        <span class="saved-mini-reading">さとう はると</span>
+                        <strong class="saved-mini-name">佐藤 陽翔</strong>
+                        <span class="saved-mini-note">明るい印象。呼びやすい。</span>
+                    </div>
+                    <span class="saved-mini-pill current">本命中</span>
+                </div>
+                <div class="saved-mini-card">
+                    <div>
+                        <span class="saved-mini-reading">さとう はるま</span>
+                        <strong class="saved-mini-name">佐藤 晴真</strong>
+                        <span class="saved-mini-note">まっすぐな響き。</span>
+                    </div>
+                    <span class="saved-mini-pill">本命にする</span>
+                </div>
+                <div class="saved-mini-card">
+                    <div>
+                        <span class="saved-mini-reading">さとう ゆいと</span>
+                        <strong class="saved-mini-name">佐藤 結翔</strong>
+                        <span class="saved-mini-note">未来へ広がる印象。</span>
+                    </div>
+                    <span class="saved-mini-pill">本命にする</span>
+                </div>
+                <div class="saved-mini-head partner">
+                    <span>パートナーの候補</span>
+                    <span>3件</span>
+                </div>
+                <div class="saved-mini-card partner-card">
+                    <div>
+                        <span class="saved-mini-reading">さとう みなと</span>
+                        <strong class="saved-mini-name">佐藤 湊</strong>
+                        <span class="saved-mini-note">落ち着いた響き。</span>
+                    </div>
+                    <span class="saved-mini-pill">本命にする</span>
+                </div>
+            </div>
+        </section>
+
         <section class="section free-section" aria-labelledby="free-title">
             <h2 id="free-title">
                 <span class="phrase">無料で始められます。</span>
             </h2>
             <p>読みや漢字を探し、候補を残し、本命を比べる。名づけに必要な基本機能は無料で使えます。</p>
             <p class="premium-note">
-                もっとたくさん試したいときは、<span class="keep-together">プレミアムなら</span><span class="keep-together">上限なしで使えます。</span>
+                もっとたくさん試したいときは、<span class="keep-together">プレミアムなら</span><span class="keep-together">上限なしで使えます。</span><span class="keep-together">はじめは3日間無料で試せます。</span>
             </p>
             <details class="plan-compare">
                 <summary>無料プランとプレミアムの違いを見る</summary>
@@ -1278,21 +1358,8 @@
                     </table>
                 </div>
             </details>
-        </section>
-
-        <section class="section final-cta">
-            <h2>
-                <span class="phrase">決める前に、</span>
-                <span class="phrase">ちゃんと見返せる。</span>
-            </h2>
-            <p>読み・漢字・意味・メモを残せます。候補が増えても見返せます。家族と相談するときも、同じ内容で話せます。</p>
-            <div class="final-points" aria-label="メイメーでできること">
-                <div class="final-point">候補を残す</div>
-                <div class="final-point">意味を見返す</div>
-                <div class="final-point">本命を比べる</div>
-            </div>
             <div class="hero-actions">
-                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeではじめる</a>
+                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで無料ではじめる</a>
             </div>
         </section>
     </main>
