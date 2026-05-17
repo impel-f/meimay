@@ -326,7 +326,7 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 18px;
-            max-width: 860px;
+            max-width: 720px;
             overflow-x: visible;
             overflow-y: visible;
             scroll-snap-type: none;
@@ -650,7 +650,7 @@
         }
 
         .pair-preview-real {
-            width: min(720px, 100%);
+            width: min(680px, 100%);
             padding: 0;
             overflow: hidden;
         }
@@ -796,7 +796,7 @@
         }
 
         .final-saved-preview {
-            width: min(330px, 100%);
+            width: min(480px, 100%);
             margin: 28px auto 0;
             border: 1px solid #eadfce;
             border-radius: 8px;
@@ -1119,6 +1119,10 @@
                 padding: 10px 7px;
             }
 
+            .final-saved-preview {
+                width: min(330px, 100%);
+            }
+
             .screen-scroll {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 10px;
@@ -1164,9 +1168,9 @@
 </head>
 
 <body>
-    <header class="hero">
+    <header class="hero" id="top">
         <nav class="nav" aria-label="主要リンク">
-            <a class="brand" href="/marketing">
+            <a class="brand" href="#top">
                 <img src="/icon-192.png" alt="">
                 <span>メイメー</span>
             </a>
