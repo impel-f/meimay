@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#fdfaf5">
-    <meta name="description" content="メイメーは、名前候補の読み・漢字・意味・理由を残し、本命を見比べられる名づけアプリです。">
+    <meta name="description" content="メイメーは、赤ちゃんの名前候補をふたりで整理し、読み・漢字・意味・理由から本命を見比べられる名づけアプリです。">
     <meta property="og:title" content="メイメー | 赤ちゃんの名づけアプリ">
-    <meta property="og:description" content="候補が増えても、読み・漢字・理由を残して本命を見比べられる名づけアプリ。">
+    <meta property="og:description" content="赤ちゃんの名前候補を、ふたりで焦らず整理。読み・漢字・理由を残して、本命を見比べられる名づけアプリ。">
     <meta property="og:image" content="/marketing-assets/home.png">
     <meta property="og:type" content="website">
     <title>メイメー | 赤ちゃんの名づけアプリ</title>
@@ -614,27 +614,6 @@
             line-height: 1.45;
         }
 
-        .pair-note-list {
-            margin-top: 26px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .pair-note-list span {
-            display: inline-flex;
-            align-items: center;
-            min-height: 42px;
-            border-radius: 999px;
-            padding: 9px 15px;
-            background: #fffdf8;
-            border: 1px solid #eadfce;
-            color: #625747;
-            font-size: 13px;
-            line-height: 1.45;
-            font-weight: 900;
-        }
-
         .mascot {
             justify-self: center;
             width: 230px;
@@ -659,6 +638,142 @@
             height: auto;
         }
 
+        .free-section {
+            padding-top: 48px;
+            padding-bottom: 8px;
+            text-align: center;
+        }
+
+        .free-section h2 {
+            max-width: 640px;
+            margin: 0 auto;
+            font-size: 32px;
+        }
+
+        .free-section > p {
+            max-width: 680px;
+            margin: 14px auto 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+            font-weight: 700;
+        }
+
+        .premium-note {
+            max-width: 680px;
+            margin: 12px auto 0;
+            color: #7a6f61;
+            font-size: 13px;
+            line-height: 1.75;
+            font-weight: 700;
+        }
+
+        .keep-together {
+            white-space: nowrap;
+        }
+
+        .plan-compare {
+            max-width: 780px;
+            margin: 18px auto 0;
+            border: 1px solid #eadfce;
+            border-radius: 8px;
+            background: rgba(255, 254, 251, 0.82);
+            overflow: hidden;
+            text-align: left;
+            box-shadow: 0 12px 24px rgba(93, 84, 68, 0.05);
+        }
+
+        .plan-compare summary {
+            min-height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 15px 18px;
+            color: var(--ink);
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 900;
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .plan-compare summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .plan-compare summary::after {
+            content: "+";
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            border: 1px solid #eadfce;
+            background: var(--paper);
+            color: #8e6c36;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .plan-compare[open] summary {
+            border-bottom: 1px solid #eadfce;
+        }
+
+        .plan-compare[open] summary::after {
+            content: "-";
+        }
+
+        .plan-table-wrap {
+            overflow-x: auto;
+        }
+
+        .plan-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+            color: #5d5444;
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .plan-table th,
+        .plan-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #efe5d3;
+            vertical-align: middle;
+        }
+
+        .plan-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .plan-table th {
+            background: #f4ead8;
+            color: #5b4f3f;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .plan-table th:first-child,
+        .plan-table td:first-child {
+            text-align: left;
+            font-weight: 900;
+        }
+
+        .plan-table td:nth-child(2),
+        .plan-table td:nth-child(3) {
+            text-align: center;
+            font-weight: 800;
+        }
+
+        .plan-table td:nth-child(3) {
+            color: #8e6c36;
+            background: rgba(255, 245, 223, 0.48);
+        }
+
         .final-cta {
             text-align: center;
             padding-top: 70px;
@@ -680,29 +795,47 @@
         }
 
         .final-points {
-            max-width: 780px;
-            margin: 26px auto 0;
+            max-width: 620px;
+            margin: 24px auto 0;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
-            text-align: left;
+            text-align: center;
         }
 
         .final-point {
-            border-top: 3px solid #d8e9dd;
-            padding-top: 12px;
-            color: #51624f;
+            min-height: 54px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eadfce;
+            border-radius: 8px;
+            background: rgba(255, 254, 251, 0.78);
+            padding: 10px 8px;
+            color: var(--ink);
             font-size: 13px;
-            line-height: 1.65;
+            line-height: 1.35;
             font-weight: 900;
+            white-space: nowrap;
+            box-shadow: 0 12px 24px rgba(93, 84, 68, 0.05);
         }
 
-        .final-point:nth-child(2) {
-            border-color: #efd0dc;
+        .final-point::before {
+            content: "";
+            width: 24px;
+            height: 3px;
+            margin-bottom: 8px;
+            border-radius: 999px;
+            background: var(--leaf);
         }
 
-        .final-point:nth-child(3) {
-            border-color: #cfe1f4;
+        .final-point:nth-child(2)::before {
+            background: var(--rose);
+        }
+
+        .final-point:nth-child(3)::before {
+            background: var(--sky);
         }
 
         .final-cta .hero-actions {
@@ -822,9 +955,6 @@
                 margin-right: auto;
             }
 
-            .pair-note-list {
-                justify-content: center;
-            }
         }
 
         @media (max-width: 560px) {
@@ -931,6 +1061,24 @@
                 grid-template-columns: 1fr;
             }
 
+            .free-section {
+                padding-top: 42px;
+            }
+
+            .plan-compare summary {
+                text-align: left;
+            }
+
+            .plan-table {
+                min-width: 0;
+                font-size: 11px;
+            }
+
+            .plan-table th,
+            .plan-table td {
+                padding: 10px 7px;
+            }
+
             .screen-scroll {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 10px;
@@ -972,9 +1120,13 @@
             }
 
             .final-points {
-                grid-template-columns: 1fr;
-                gap: 14px;
-                text-align: center;
+                gap: 8px;
+            }
+
+            .final-point {
+                min-height: 50px;
+                padding: 9px 4px;
+                font-size: 12px;
             }
         }
     </style>
@@ -983,7 +1135,7 @@
 <body>
     <header class="hero">
         <nav class="nav" aria-label="主要リンク">
-            <a class="brand" href="/">
+            <a class="brand" href="/marketing">
                 <img src="/icon-192.png" alt="">
                 <span>メイメー</span>
             </a>
@@ -992,24 +1144,24 @@
         <div class="hero-copy">
             <div class="hero-copy-inner">
                 <div class="hero-intro">
-                    <p class="kicker">はじめての名づけを、焦らず進める</p>
+                    <p class="kicker">はじめての名づけを、ふたりで焦らず進める</p>
                     <h1>メイメー</h1>
                     <p class="hero-lead">
-                        <span class="copy-line">候補が増えても、</span>
-                        <span class="copy-line">決め手まで残せる。</span>
+                        <span class="copy-line">赤ちゃんの名前候補を、</span>
+                        <span class="copy-line">ふたりで整理できる。</span>
                     </p>
                     <p class="hero-subcopy">
-                        <span class="subcopy-line">思いついた読み、使いたい漢字、残した理由を、</span>
-                        <span class="subcopy-line">あとから見返せる形でまとめられます。</span>
+                        <span class="subcopy-line">響き、漢字の意味、残した理由まで、</span>
+                        <span class="subcopy-line">あとから見返せる形で残せます。</span>
                     </p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで見る</a>
+                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeではじめる</a>
                     </div>
                     <p class="store-note">iPhone版を公開中。Android版はGoogle Play公開準備中です。</p>
                     <div class="hero-stats" aria-label="メイメーの特徴">
                         <div class="hero-stat">
                             <strong>響きから探す</strong>
-                            <span>呼びやすさで</span>
+                            <span>響き・雰囲気から</span>
                         </div>
                         <div class="hero-stat">
                             <strong>漢字から探す</strong>
@@ -1039,14 +1191,14 @@
                     <img src="/marketing-assets/real-reading-card.png" alt="響きのカードを直感的に残せる画面">
                     <figcaption data-step="響き">
                         <strong>好きな響きを残す</strong>
-                        <span>呼びやすさや雰囲気を見ながら、候補にしたい読みを残せます。</span>
+                        <span>呼びやすさから選べます。</span>
                     </figcaption>
                 </figure>
                 <figure class="screen-shot">
                     <img src="/marketing-assets/real-kanji-card.png" alt="使いたい漢字を見つける画面">
                     <figcaption data-step="漢字">
                         <strong>使いたい漢字を選ぶ</strong>
-                        <span>意味や画数を確認しながら、名前に入れたい字を選べます。</span>
+                        <span>意味や画数を見て選べます。</span>
                     </figcaption>
                 </figure>
             </div>
@@ -1063,13 +1215,8 @@
                         </h2>
                     </div>
                     <p>
-                        マイ本命とパートナー本命を並べて、最後に残す名前を見比べられます。理由やメモも一緒に確認できます。
+                        マイ本命とパートナー本命を並べて、候補を比較できます。理由やメモも一緒に確認できます。
                     </p>
-                    <div class="pair-note-list" aria-label="本命比較で確認できる要素">
-                        <span>マイ本命</span>
-                        <span>パートナー本命</span>
-                        <span>理由メモ</span>
-                    </div>
                 </div>
                 <div class="pair-preview pair-preview-real" aria-label="ふたりで候補を見比べる実画面">
                     <img src="/marketing-assets/real-pair-canvas.png" alt="マイ本命とパートナー本命を並べて確認する画面">
@@ -1077,19 +1224,75 @@
             </div>
         </section>
 
+        <section class="section free-section" aria-labelledby="free-title">
+            <h2 id="free-title">
+                <span class="phrase">無料で始められます。</span>
+            </h2>
+            <p>読みや漢字を探し、候補を残し、本命を比べる。名づけに必要な基本機能は無料で使えます。</p>
+            <p class="premium-note">
+                もっとたくさん試したいときは、<span class="keep-together">プレミアムなら</span><span class="keep-together">上限なしで使えます。</span>
+            </p>
+            <details class="plan-compare">
+                <summary>無料プランとプレミアムの違いを見る</summary>
+                <div class="plan-table-wrap">
+                    <table class="plan-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">できること</th>
+                                <th scope="col">無料</th>
+                                <th scope="col">プレミアム</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>使える漢字</td>
+                                <td>常用漢字</td>
+                                <td>常用漢字<br>＋人名用漢字</td>
+                            </tr>
+                            <tr>
+                                <td>広告</td>
+                                <td>表示あり</td>
+                                <td>非表示</td>
+                            </tr>
+                            <tr>
+                                <td>読みスワイプ</td>
+                                <td>1日100回</td>
+                                <td>無制限</td>
+                            </tr>
+                            <tr>
+                                <td>漢字スワイプ</td>
+                                <td>1日100回</td>
+                                <td>無制限</td>
+                            </tr>
+                            <tr>
+                                <td>AI漢字深掘り</td>
+                                <td>1日1回</td>
+                                <td>無制限</td>
+                            </tr>
+                            <tr>
+                                <td>AI由来生成</td>
+                                <td>1日1回</td>
+                                <td>無制限</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+
         <section class="section final-cta">
             <h2>
                 <span class="phrase">決める前に、</span>
                 <span class="phrase">ちゃんと見返せる。</span>
             </h2>
-            <p>読み・漢字・意味・メモを保存して、候補が増えても見失わないように。家族と相談するときも、同じ情報を見ながら確認できます。</p>
+            <p>読み・漢字・意味・メモを残せます。候補が増えても見返せます。家族と相談するときも、同じ内容で話せます。</p>
             <div class="final-points" aria-label="メイメーでできること">
                 <div class="final-point">候補を残す</div>
                 <div class="final-point">意味を見返す</div>
                 <div class="final-point">本命を比べる</div>
             </div>
             <div class="hero-actions">
-                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで見る</a>
+                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeではじめる</a>
             </div>
         </section>
     </main>
