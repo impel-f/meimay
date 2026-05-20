@@ -373,6 +373,22 @@
             -webkit-user-drag: none;
         }
 
+        .mobile-swipe-carousel {
+            display: none;
+            overflow: hidden;
+            background: var(--paper);
+        }
+
+        .mobile-swipe-track {
+            display: flex;
+            will-change: transform;
+        }
+
+        .mobile-swipe-track img {
+            flex: 0 0 100%;
+            width: 100%;
+        }
+
         .screen-shot figcaption {
             min-height: 158px;
             padding: 18px;
@@ -1154,6 +1170,22 @@
                 height: auto;
             }
 
+            .screen-shot > .desktop-static-shot {
+                display: none;
+            }
+
+            .mobile-swipe-carousel {
+                display: block;
+            }
+
+            .mobile-swipe-track {
+                animation: mobile-card-swipe 30s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+            }
+
+            .mobile-swipe-track.kanji-carousel {
+                animation-delay: -4s;
+            }
+
             .screen-shot figcaption {
                 min-height: 126px;
                 padding: 13px 14px 14px;
@@ -1187,6 +1219,49 @@
                 display: block;
             }
 
+        }
+
+        @keyframes mobile-card-swipe {
+            0%,
+            9% {
+                transform: translateX(0);
+            }
+
+            15%,
+            24% {
+                transform: translateX(-100%);
+            }
+
+            30%,
+            39% {
+                transform: translateX(-200%);
+            }
+
+            45%,
+            54% {
+                transform: translateX(-300%);
+            }
+
+            60%,
+            69% {
+                transform: translateX(-400%);
+            }
+
+            75%,
+            84% {
+                transform: translateX(-500%);
+            }
+
+            92%,
+            100% {
+                transform: translateX(-600%);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .mobile-swipe-track {
+                animation: none !important;
+            }
         }
     </style>
 </head>
@@ -1249,7 +1324,18 @@
             </div>
             <div class="screen-scroll" aria-label="メイメーの画面プレビュー">
                 <figure class="screen-shot">
-                    <img src="/marketing-assets/real-reading-card.png" alt="響きのカードを直感的に残せる画面">
+                    <div class="mobile-swipe-carousel" aria-hidden="true">
+                        <div class="mobile-swipe-track reading-carousel">
+                            <img src="/marketing-assets/real-reading-card.png" alt="">
+                            <img src="/marketing-assets/real-reading-card-minato.png" alt="">
+                            <img src="/marketing-assets/real-reading-card-hinata.png" alt="">
+                            <img src="/marketing-assets/real-reading-card-aoi.png" alt="">
+                            <img src="/marketing-assets/real-reading-card-yuito.png" alt="">
+                            <img src="/marketing-assets/real-reading-card-tsumugi.png" alt="">
+                            <img src="/marketing-assets/real-reading-card.png" alt="">
+                        </div>
+                    </div>
+                    <img class="desktop-static-shot" src="/marketing-assets/real-reading-card.png" alt="響きのカードを直感的に残せる画面">
                     <figcaption data-step="響き">
                         <strong>好きな響きを残す</strong>
                         <span class="desktop-caption">呼びやすさから選べます。</span>
@@ -1257,7 +1343,18 @@
                     </figcaption>
                 </figure>
                 <figure class="screen-shot">
-                    <img src="/marketing-assets/real-kanji-card.png" alt="使いたい漢字を見つける画面">
+                    <div class="mobile-swipe-carousel" aria-hidden="true">
+                        <div class="mobile-swipe-track kanji-carousel">
+                            <img src="/marketing-assets/real-kanji-card.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card-aoi.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card-haru.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card-rin.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card-tsumugi.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card-mio.png" alt="">
+                            <img src="/marketing-assets/real-kanji-card.png" alt="">
+                        </div>
+                    </div>
+                    <img class="desktop-static-shot" src="/marketing-assets/real-kanji-card.png" alt="使いたい漢字を見つける画面">
                     <figcaption data-step="漢字">
                         <strong>使いたい漢字を選ぶ</strong>
                         <span class="desktop-caption">意味や画数を見て選べます。</span>
