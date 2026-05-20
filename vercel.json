@@ -49,9 +49,7 @@
       "check": true
     },
     {
-      "src": "/(.*)",
-      "dest": "/public/$1",
-      "check": true
+      "handle": "filesystem"
     }
   ],
   "functions": {
