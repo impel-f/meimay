@@ -1196,6 +1196,54 @@ function scheduleEncounteredSwipeItem(item, action) {
     encounteredSwipeFlushTimer = setTimeout(flushEncounteredSwipeQueue, 650);
 }
 
+function getSwipeAnalyticsKind(item) {
+    if (SwipeState && ['sound', 'nickname', 'adana'].includes(SwipeState.mode)) return 'reading';
+    if (item && item.reading && !item['漢字']) return 'reading';
+    return 'kanji';
+}
+
+function trackSwipeAnalyticsEvent(item, action) {
+    if (typeof trackMeimayEvent !== 'function' || !item) return;
+    const kind = getSwipeAnalyticsKind(item);
+    const selectedCount = Array.isArray(SwipeState?.history)
+        ? SwipeState.history.filter(historyItem => historyItem.action === 'like' || historyItem.action === 'super').length
+        : 0;
+    const baseParams = {
+        action: action || '',
+        swipe_mode: SwipeState?.mode || appMode || '',
+        item_kind: kind,
+        is_super: action === 'super' ? 1 : 0,
+        swipe_count: Array.isArray(SwipeState?.history) ? SwipeState.history.length : 0,
+        selected_count: selectedCount,
+        candidate_index: Number(SwipeState?.currentIndex || 0) + 1,
+        candidate_count: Array.isArray(SwipeState?.candidates) ? SwipeState.candidates.length : 0,
+        daily_limit_mode: SwipeState?.dailyLimitMode || '',
+        slot_index: Number.isFinite(Number(item.slot))
+            ? Number(item.slot)
+            : (typeof currentPos !== 'undefined' && Number.isFinite(Number(currentPos)) ? Number(currentPos) : -1),
+        source: item.source || item.origin || '',
+        tag_count: Array.isArray(item.tags) ? item.tags.length : 0
+    };
+
+    if (kind === 'reading') {
+        trackMeimayEvent('reading_swipe', {
+            ...baseParams,
+            has_base_nickname: item.baseNickname ? 1 : 0,
+            reading_promoted: item.readingPromoted ? 1 : 0
+        });
+        return;
+    }
+
+    trackMeimayEvent('kanji_swipe', {
+        ...baseParams,
+        candidate_category: item['カテゴリ'] || item.category || '',
+        reading_tier: Number.isFinite(Number(item.readingTier)) ? Number(item.readingTier) : 0,
+        is_kana_candidate: item.isKanaCandidate ? 1 : 0,
+        has_session_reading: item.sessionReading ? 1 : 0,
+        premium_candidate: item.isPremiumOnly || item.premiumOnly ? 1 : 0
+    });
+}
+
 if (typeof window !== 'undefined') {
     window.scheduleEncounteredSwipeItem = scheduleEncounteredSwipeItem;
     window.flushEncounteredSwipeQueue = flushEncounteredSwipeQueue;
@@ -2178,6 +2226,17 @@ function persistGeneratedSavedName(saveData) {
     if (!preserved && typeof recordSavedNameReadingForRanking === 'function') {
         recordSavedNameReadingForRanking(mergedSaveData, 1);
     }
+    if (typeof trackMeimayEvent === 'function') {
+        const combination = Array.isArray(mergedSaveData.combination) ? mergedSaveData.combination : [];
+        trackMeimayEvent('name_saved', {
+            source: 'generated_result',
+            is_update: preserved ? 1 : 0,
+            saved_count: updated.length,
+            kanji_count: combination.length,
+            has_fortune: mergedSaveData.fortune ? 1 : 0,
+            build_mode: typeof buildMode !== 'undefined' ? buildMode : ''
+        });
+    }
 }
 const READING_DISPLAY_TAG_ALIASES = {
     '#力強い': '#はっきり'
@@ -2250,6 +2309,7 @@ function advanceReadingSwipeAfterDetailSelection(pending) {
     if (SwipeState.dailyLimitMode === 'reading' && typeof addDailyReadingSwipeCount === 'function') {
         addDailyReadingSwipeCount();
     }
+    trackSwipeAnalyticsEvent(currentItem, action);
     if (SwipeState.config.onSwipe) {
         SwipeState.config.onSwipe(currentItem, action);
     }
@@ -3191,6 +3251,7 @@ function universalSwipeAction(action) {
     if (SwipeState.dailyLimitMode === 'reading' && typeof addDailyReadingSwipeCount === 'function') {
         addDailyReadingSwipeCount();
     }
+    trackSwipeAnalyticsEvent(item, action);
 
     // onSwipeコールバック（直感スワイプ等で毎回呼ばれる）
     if (SwipeState.config.onSwipe) {
@@ -4963,6 +5024,16 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     }
     if (result.created) {
         console.log("STOCK: Added reading to stock:", result.entry);
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('reading_saved', {
+                source: options.source || (options.readingPromoted ? 'reading_combination' : (appMode || '')),
+                is_super: options.isSuper ? 1 : 0,
+                reading_promoted: options.readingPromoted ? 1 : 0,
+                has_base_nickname: baseNickname ? 1 : 0,
+                tag_count: Array.isArray(tags) ? tags.length : 0,
+                stock_count: Array.isArray(stock) ? stock.length : 0
+            });
+        }
     }
     return result.entry;
 }
@@ -7081,7 +7152,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                             </div>
                             ${forceSplit
                                 ? `<button onclick="event.stopPropagation(); ${saveAction}" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '保存'}</button>`
-                                : `<button type="button" onclick="event.stopPropagation(); ${locked ? 'showReadingModalPremiumPrompt()' : saveAction}; return false;" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '候補'}</button>`}
+                                : ''}
                         </div>
                         `;
                         }).join('')
@@ -7428,8 +7499,8 @@ const READING_SEARCH_TAG_ICONS = {
     '#繊細': '🪶',
     '#存在感': '⭐',
     '#はつらつ': '⚡',
-    '#ショート': '🔹',
-    '#ロング': '〰️'
+    '#ショート': '⏱️',
+    '#ロング': '📏'
 };
 const READING_SEARCH_TAG_GROUPS = [
     {
@@ -7550,8 +7621,8 @@ function updateReadingSearchMatchModeUI() {
     const endsBtn = document.getElementById('reading-search-match-ends');
     const isReading = searchContentType === 'reading';
     if (controls) controls.classList.toggle('hidden', !isReading);
-    const activeClass = 'rounded-xl border border-[#bca37f] bg-white px-2 py-2 text-[11px] font-black text-[#5d5444] shadow-sm transition-all';
-    const inactiveClass = 'rounded-xl border border-[#eadfce] px-2 py-2 text-[11px] font-black text-[#9c8b72] transition-all';
+    const activeClass = 'meimay-search-match-button rounded-xl border border-[#bca37f] bg-white px-2 py-2 text-[11px] font-black text-[#5d5444] shadow-sm transition-all';
+    const inactiveClass = 'meimay-search-match-button rounded-xl border border-[#eadfce] px-2 py-2 text-[11px] font-black text-[#9c8b72] transition-all';
     if (startsBtn) startsBtn.className = searchReadingMatchMode === 'starts' ? activeClass : inactiveClass;
     if (endsBtn) endsBtn.className = searchReadingMatchMode === 'ends' ? activeClass : inactiveClass;
 }
@@ -7612,8 +7683,8 @@ function getReadingSearchFilterLabelHtml(groupKey) {
             onclick="event.stopPropagation(); showReadingSearchTagHelp('${groupKey}')"
             aria-label="${label}の説明"
             title="${label}の説明"
-            class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c6aa] bg-white text-[10px] font-black leading-none text-[#8b7e66] shadow-sm active:scale-95">
-            ?
+            class="reading-search-help-button inline-flex items-center justify-center rounded-full border border-[#d8c6aa] bg-white text-[10px] font-black leading-none text-[#8b7e66] shadow-sm active:scale-95">
+            ？
         </button>
     `;
 }
@@ -7621,11 +7692,11 @@ function getReadingSearchFilterLabelHtml(groupKey) {
 function setSearchFilterLabel(labelEl, label, groupKey = '') {
     if (!labelEl) return;
     if (groupKey) {
-        labelEl.className = 'flex items-center gap-1 text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
+        labelEl.className = 'search-filter-label flex items-center gap-1 text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
         labelEl.innerHTML = getReadingSearchFilterLabelHtml(groupKey);
         return;
     }
-    labelEl.className = 'text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
+    labelEl.className = 'search-filter-label text-[10px] font-bold text-[#a6967a] mb-1 ml-1';
     labelEl.textContent = label;
 }
 
@@ -7816,7 +7887,7 @@ function updateSearchModeToggle() {
 
 function updateSearchAllKanjiToggle() {
     const btn = document.getElementById('search-all-kanji-toggle');
-    const baseClass = 'w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 outline-none focus:outline-none';
+    const baseClass = 'meimay-search-control w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all active:scale-95 outline-none focus:outline-none';
     if (!btn) return;
     if (searchContentType === 'reading') {
         btn.className = searchReadingPopularFirst
@@ -7854,7 +7925,7 @@ function renderSearchFilters() {
     if (primaryControl && !document.getElementById('search-all-kanji-toggle')) {
         primaryControl.innerHTML = `
             <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
-                class="w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
+                class="meimay-search-control w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
                 おすすめ
             </button>
         `;
@@ -7864,7 +7935,7 @@ function renderSearchFilters() {
     if (tertiaryControl && !document.getElementById('search-stroke-filter')) {
         tertiaryControl.innerHTML = `
             <select id="search-stroke-filter" onchange="setStrokeFilter(this.value)"
-                class="w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                class="meimay-search-select w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
                 <option value="">すべて</option>
             </select>
         `;
@@ -7877,7 +7948,7 @@ function renderSearchFilters() {
         classContainer.innerHTML = `
             <select id="search-class-filter-select"
                     onchange="setClassFilter(this.value)"
-                    class="w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                    class="meimay-search-select w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
                 ${classes.map(c => `
                     <option value="${c.val}" ${searchClassFilter === c.val ? 'selected' : ''}>${c.icon ? `${c.icon} ` : ''}${c.label}</option>
                 `).join('')}
@@ -7888,6 +7959,9 @@ function renderSearchFilters() {
     const strokeSelect = document.getElementById('search-stroke-filter');
     if (strokeSelect) {
         const strokeOptions = getKanjiSearchStrokeOptions();
+        if (searchStrokeFilter && !strokeOptions.some(option => option.val === searchStrokeFilter)) {
+            searchStrokeFilter = '';
+        }
         strokeSelect.innerHTML = strokeOptions.map(option => `
             <option value="${option.val}" ${searchStrokeFilter === option.val ? 'selected' : ''}>${option.label}</option>
         `).join('');
@@ -8005,7 +8079,7 @@ function getReadingTagGroupSelectHtml(groupKey, selectedTag) {
         .join('');
     return `
         <select onchange="setReadingTagGroupFilter('${groupKey}', this.value)"
-            class="w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-2 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+            class="meimay-search-select w-full min-w-0 rounded-xl border border-[#eee5d8] bg-white px-2 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
             <option value="">すべて</option>
             ${options}
         </select>
@@ -8141,20 +8215,24 @@ function getKanjiSearchCategoryOptions() {
             icon: data?.icon || ''
         }))
         : fallback;
-    return [{ val: '', label: 'すべて', icon: '✨' }, ...categories];
+    return [{ val: '', label: 'すべて', icon: '' }, ...categories];
 }
 
 function getKanjiSearchStrokeOptions() {
-    const strokeValues = Array.isArray(master)
-        ? master
-            .map(item => parseInt(item?.['画数'], 10) || 0)
-            .filter(strokes => strokes > 0)
-        : [];
-    const maxStroke = Math.max(35, ...strokeValues);
-    const options = Array.from({ length: maxStroke }, (_, index) => {
-        const strokes = index + 1;
-        return { val: String(strokes), label: `${strokes}画` };
-    });
+    const sourceItems = Array.isArray(master) ? master : [];
+    const strokeValues = sourceItems
+        .filter(item => {
+            if (!item || typeof item !== 'object') return false;
+            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
+            if (!isKanjiSearchRecommendedScopeItem(item)) return false;
+            if (searchClassFilter && !matchesKanjiSearchClassFilter(item, searchClassFilter)) return false;
+            return true;
+        })
+        .map(item => getKanjiSearchItemCache(item).strokes)
+        .filter(strokes => strokes > 0);
+    const options = Array.from(new Set(strokeValues))
+        .sort((a, b) => a - b)
+        .map(strokes => ({ val: String(strokes), label: `${strokes}画` }));
     return [{ val: '', label: 'すべて' }, ...options];
 }
 
@@ -9097,6 +9175,15 @@ function toggleSearchStock(k, btn) {
             btn.insertAdjacentHTML('beforeend', '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>');
         }
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(k['漢字'], k.gender || gender || 'neutral');
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('kanji_saved', {
+                source: 'search',
+                slot_index: -1,
+                stock_count: Array.isArray(liked) ? liked.length : 0,
+                candidate_category: k['カテゴリ'] || k.category || '',
+                reading_tier: Number.isFinite(Number(k.readingTier)) ? Number(k.readingTier) : 0
+            });
+        }
     }
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
 }

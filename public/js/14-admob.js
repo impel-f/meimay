@@ -846,6 +846,21 @@ let adOverlayObserverReady = false;
 let adOverlaySyncTimer = null;
 let adMobPremiumRetryTimer = null;
 let adSystemStartedAt = Date.now();
+let lastAdImpressionAnalytics = { key: '', at: 0 };
+
+function trackAdImpressionAnalytics(mode, params = {}) {
+    if (typeof trackMeimayEvent !== 'function') return;
+    const key = `${mode}:${params.ad_source || ''}:${params.is_test_ad || 0}`;
+    const now = Date.now();
+    if (lastAdImpressionAnalytics.key === key && now - lastAdImpressionAnalytics.at < 30000) return;
+    lastAdImpressionAnalytics = { key, at: now };
+    trackMeimayEvent('ad_impression', {
+        ad_platform: 'admob',
+        ad_format: 'banner',
+        ad_mode: mode || '',
+        ...params
+    });
+}
 
 function getPremiumAdSuppressionCache() {
     try {
@@ -1095,6 +1110,11 @@ function showNativeAdMobFallbackBanner(reason, error) {
 
     document.body.classList.add('has-ad-banner');
     updateAdLayoutSpacing(measureAdBannerHeight(container) || NATIVE_AD_BANNER_MIN_HEIGHT);
+    trackAdImpressionAnalytics('native_fallback', {
+        ad_source: 'fallback_banner',
+        os_platform: getPlatform(),
+        is_test_ad: isAdMobTestAdMode(getPlatform()) ? 1 : 0
+    });
 
     if (reason) {
         console.warn(`ADMOB: ${reason}`, error || '');
@@ -1125,6 +1145,11 @@ function setupNativeAdMobBannerListeners(AdMob) {
             adBannerVisible = true;
             adBannerMode = 'native';
             updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
+            trackAdImpressionAnalytics('native', {
+                ad_source: 'banner_loaded',
+                os_platform: getPlatform(),
+                is_test_ad: isAdMobTestAdMode(getPlatform()) ? 1 : 0
+            });
             console.log('ADMOB: Native banner loaded');
         });
 
@@ -1280,7 +1305,7 @@ function showWebAdBanner() {
                     <span class="block text-[10px] text-[#8b7e66] pr-3">繝｡繧､繝｡繝ｼ繧偵ｂ縺｣縺ｨ蠢ｫ驕ｩ縺ｫ</span>
                 </div>
             </div>
-            <button onclick="showPremiumModal()" class="shrink-0 px-3 py-1 bg-[#bca37f] text-white rounded-full text-[10px] font-bold hover:bg-[#8b7e66] transition-all">
+            <button onclick="showPremiumModal({source:'ad_banner'})" class="shrink-0 px-3 py-1 bg-[#bca37f] text-white rounded-full text-[10px] font-bold hover:bg-[#8b7e66] transition-all">
                 蠎・相繧帝撼陦ｨ遉ｺ
             </button>
         </div>
@@ -1305,6 +1330,11 @@ function showWebAdBanner() {
 
     document.body.classList.add('has-ad-banner');
     updateAdLayoutSpacing(measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT);
+    trackAdImpressionAnalytics('web_fallback', {
+        ad_source: 'html_banner',
+        os_platform: getPlatform(),
+        is_test_ad: 0
+    });
 }
 
 function hideAdBanner() {
@@ -1373,14 +1403,14 @@ function openPremiumModalFromDrawer() {
         closeDrawer();
         setTimeout(() => {
             if (typeof showPremiumModal === 'function') {
-                showPremiumModal();
+                showPremiumModal({ source: 'drawer' });
             }
         }, 320);
         return;
     }
 
     if (typeof showPremiumModal === 'function') {
-        showPremiumModal();
+        showPremiumModal({ source: 'drawer' });
     }
 }
 
@@ -1835,6 +1865,19 @@ function getPremiumProductPlan(productId) {
     return PREMIUM_PRODUCT_PLANS.find((plan) => plan.id === normalized) || null;
 }
 
+function getPremiumPlanAnalyticsParams(plan, extra = {}) {
+    const priceText = String(plan?.price || '');
+    const priceAmount = Number(priceText.replace(/[^\d.]/g, '')) || 0;
+    return {
+        product_id: plan?.id || '',
+        plan_duration_months: plan?.durationMonths || 0,
+        plan_type: plan?.lifetime ? 'lifetime' : 'pass',
+        value: priceAmount,
+        currency: 'JPY',
+        ...extra
+    };
+}
+
 function getFuturePremiumIsoDate(value) {
     const date = normalizePremiumDate(value);
     if (!date || date.getTime() <= Date.now()) return null;
@@ -2086,6 +2129,14 @@ PremiumManager.startPurchase = async function (productId) {
     }
 
     if (!RevenueCatBridge.isAvailable()) {
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_purchase_started', getPremiumPlanAnalyticsParams(plan, {
+                revenuecat_available: 0
+            }));
+            trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
+                reason: 'revenuecat_unavailable'
+            }));
+        }
         if (typeof showToast === 'function') {
             showToast('購入はアプリ版で有効になります', 'i');
         }
@@ -2101,19 +2152,39 @@ PremiumManager.startPurchase = async function (productId) {
 
     try {
         this._purchaseInProgress = true;
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_purchase_started', getPremiumPlanAnalyticsParams(plan, {
+                revenuecat_available: 1
+            }));
+        }
         const result = await RevenueCatBridge.purchaseProduct(plan.id, user);
         const active = await this._applyRevenueCatCustomerInfo(result, plan.id);
         await this.refreshPurchaseState(false);
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_purchase_completed', getPremiumPlanAnalyticsParams(plan, {
+                active: active ? 1 : 0
+            }));
+        }
         if (typeof showToast === 'function') {
             showToast(active ? 'プレミアムが有効になりました' : '購入情報を確認しました', active ? 'OK' : 'i');
         }
         return active;
     } catch (e) {
         if (getRevenueCatUserCancelled(e)) {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('premium_purchase_cancelled', getPremiumPlanAnalyticsParams(plan, {
+                    reason: 'user_cancelled'
+                }));
+            }
             if (typeof showToast === 'function') {
                 showToast('購入をキャンセルしました', 'i');
             }
         } else {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
+                    reason: 'exception'
+                }));
+            }
             console.warn('PREMIUM: RevenueCat purchase failed', e);
             if (typeof showToast === 'function') {
                 showToast('購入を完了できませんでした', '!');
@@ -2394,6 +2465,12 @@ PremiumManager.startTrial = async function () {
     }
 
     this._trialStartInProgress = true;
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('premium_trial_started', {
+            has_partner: (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.partnerUid) ? 1 : 0,
+            in_room: (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode) ? 1 : 0
+        });
+    }
     if (typeof showPremiumModal === 'function') showPremiumModal();
 
     try {
@@ -2429,9 +2506,20 @@ PremiumManager.startTrial = async function () {
             await this._applyImmediateTrialResult(result);
         }
         await this.refreshPurchaseState();
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_trial_completed', {
+                status: result.status || '',
+                active: (result.status === 'started' || result.status === 'trial_active' || result.status === 'paid_active') ? 1 : 0
+            });
+        }
         if (typeof showPremiumModal === 'function') showPremiumModal();
         return result.status === 'started' || result.status === 'trial_active' || result.status === 'paid_active';
     } catch (e) {
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_trial_failed', {
+                reason: 'exception'
+            });
+        }
         console.warn('PREMIUM: startTrial failed', e);
         if (typeof showToast === 'function') {
             showToast('無料体験を開始できませんでした。通信状態を確認してください', '!');
@@ -2744,6 +2832,15 @@ function showPremiumModal(options = {}) {
         : { active: false, label: 'プレミアム未登録', detail: '' };
     const subtitle = getPremiumModalSubtitle(state, options);
     const syncMessage = options && typeof options === 'object' ? String(options.syncMessage || '') : '';
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('paywall_view', {
+            source: options && typeof options === 'object' ? (options.source || '') : '',
+            premium_active: state && state.active ? 1 : 0,
+            premium_expired: state && state.expired ? 1 : 0,
+            has_trial_card: state && state.active ? 0 : 1,
+            has_partner: (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.partnerUid) ? 1 : 0
+        });
+    }
 
     modal.style.setProperty('z-index', '10030', 'important');
     modal.classList.add('active');

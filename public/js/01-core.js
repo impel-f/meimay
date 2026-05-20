@@ -887,6 +887,12 @@ function changeScreen(id) {
 
     // ナビゲーションハイライト更新（これは高速なので即時実行）
     updateNavHighlight(id);
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('screen_view', {
+            screen_id: id,
+            previous_screen_id: activeScreen ? activeScreen.id : ''
+        });
+    }
 
     // 2. [後回し] 重いレンダリングや集計処理を非同期で実行（画面遷移をブロックしない）
     setTimeout(() => {
@@ -917,6 +923,10 @@ function changeScreen(id) {
         }
         if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
             updateDailyRemainingDisplay();
+        }
+
+        if (id === 'scr-login' && typeof updatePairingUI === 'function') {
+            updatePairingUI();
         }
 
         // 歴史画面のスクロール位置復元など

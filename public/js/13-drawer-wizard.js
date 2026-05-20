@@ -324,6 +324,13 @@ function wizFinish(mode) {
     }
 
     WizardData.save(data);
+    try {
+        if (data.role === 'mama' || data.role === 'papa') {
+            localStorage.setItem('meimay_my_role', data.role);
+        } else if (!localStorage.getItem('meimay_room_code')) {
+            localStorage.removeItem('meimay_my_role');
+        }
+    } catch (e) { }
     // Apply to global state
     if (data.surname) {
         surnameStr = data.surname;

@@ -219,6 +219,29 @@ function isRankingCommonKanji(kanjiData) {
     return commonFlag === true || commonFlag === 'true' || commonFlag === 1 || commonFlag === '1';
 }
 
+function isRankingDisplayKanjiKey(value) {
+    const chars = Array.from(String(value || '').trim());
+    if (chars.length !== 1) return false;
+
+    const char = chars[0];
+    if (/^[\u3040-\u309f\u30a0-\u30ff\u31f0-\u31ff\uff66-\uff9f\u3005\u303b\u30fc]$/.test(char)) {
+        return false;
+    }
+
+    if (typeof master !== 'undefined' && Array.isArray(master) && master.some((entry) => entry && entry['漢字'] === char)) {
+        return true;
+    }
+
+    return /^[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]$/.test(char);
+}
+
+function filterRankingKanjiItems(items) {
+    return (Array.isArray(items) ? items : []).filter((item) => {
+        const key = String(item?.kanji || item?.key || '').trim();
+        return isRankingDisplayKanjiKey(key);
+    });
+}
+
 function isRankingKanjiPremiumLocked(kanjiData) {
     return isRankingJinmeiKanji(kanjiData) && !isRankingPremiumAccessActive();
 }
@@ -911,11 +934,12 @@ function writeRankingCacheEntry(cacheKey, items) {
 }
 
 function renderRankingResult(listContainer, items, type, period) {
-    if (!Array.isArray(items) || items.length === 0) {
+    const displayItems = type === 'kanji' ? filterRankingKanjiItems(items) : items;
+    if (!Array.isArray(displayItems) || displayItems.length === 0) {
         listContainer.innerHTML = renderRankingEmptyState(type, period);
         return;
     }
-    listContainer.innerHTML = buildRankingContent(items, type, period);
+    listContainer.innerHTML = buildRankingContent(displayItems, type, period);
 }
 
 function isRankingViewCurrent(type, period, genderFilter) {
@@ -1000,11 +1024,12 @@ async function loadRanking(options = {}) {
 
     try {
         const items = await fetchRankingItems(type, period, genderFilter);
-        writeRankingCacheEntry(cacheKey, Array.isArray(items) ? items : []);
+        const displayItems = type === 'kanji' ? filterRankingKanjiItems(items) : (Array.isArray(items) ? items : []);
+        writeRankingCacheEntry(cacheKey, displayItems);
         if (loadId !== rankingLoadSequence || !isRankingViewCurrent(type, period, genderFilter)) {
             return;
         }
-        renderRankingResult(listContainer, items, type, period);
+        renderRankingResult(listContainer, displayItems, type, period);
     } catch (error) {
         console.error('RANKING: loadRanking error', error);
         if (cachedEntry) return;

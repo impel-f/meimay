@@ -115,11 +115,11 @@
         <section class="doc" id="doc-content">読み込み中です。</section>
     </main>
 
-    <script src="/js/data/legal-docs.js?v=25.12"></script>
+    <script src="/js/data/legal-docs.js?v=25.21"></script>
     <script>
         const docs = window.MeimayLegalDocs || {};
         document.getElementById('doc-content').innerHTML = docs.termsOfService || '利用規約を読み込めませんでした。';
-        document.getElementById('updated').textContent = `最終更新日：${docs.lastUpdated || '2026年4月30日'}`;
+        document.getElementById('updated').textContent = `最終更新日：${docs.termsLastUpdated || docs.lastUpdated || '2026年4月30日'}`;
     </script>
 </body>
 

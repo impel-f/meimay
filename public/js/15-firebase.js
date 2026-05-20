@@ -14,14 +14,214 @@ const firebaseConfig = {
     measurementId: "G-RDT1HTGLF1"
 };
 
-let firebaseApp, firebaseAuth, firebaseDb;
+let firebaseApp, firebaseAuth, firebaseDb, firebaseAnalytics;
 const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 1200;
 const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
+
+const MEIMAY_ANALYTICS_QUEUE_LIMIT = 60;
+
+function getMeimayAnalyticsRuntimeContext() {
+    const capacitorPlatform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
+        ? String(window.Capacitor.getPlatform() || '').toLowerCase()
+        : '';
+    const nativePlatform = (capacitorPlatform === 'ios' || capacitorPlatform === 'android')
+        ? capacitorPlatform
+        : '';
+    const detectedPlatform = typeof getPlatform === 'function'
+        ? getPlatform()
+        : (() => {
+            const ua = navigator.userAgent || '';
+            if (/android/i.test(ua)) return 'android';
+            if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+            if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
+            return 'web';
+        })();
+    const osPlatform = nativePlatform || detectedPlatform || 'web';
+    const distribution = nativePlatform === 'ios'
+        ? 'app_store'
+        : (nativePlatform === 'android' ? 'google_play' : 'web');
+    const activeScreen = document.querySelector('.screen.active')?.id
+        || document.querySelector('[id^="scr-"].active')?.id
+        || '';
+    let premiumState = 'unknown';
+    try {
+        if (typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.getMembershipState === 'function') {
+            const state = PremiumManager.getMembershipState();
+            premiumState = state?.active ? (state.trialActive ? 'trial' : 'premium') : (state?.expired ? 'expired' : 'free');
+        } else if (typeof PremiumManager !== 'undefined' && PremiumManager && typeof PremiumManager.isPremium === 'function') {
+            premiumState = PremiumManager.isPremium() ? 'premium' : 'free';
+        }
+    } catch (e) {
+        premiumState = 'unknown';
+    }
+
+    const hasRoom = typeof MeimayPairing !== 'undefined' && MeimayPairing && !!MeimayPairing.roomCode;
+    const hasPartner = hasRoom && !!MeimayPairing.partnerUid;
+
+    return {
+        os_platform: osPlatform,
+        distribution,
+        is_native: nativePlatform ? 1 : 0,
+        premium_state: premiumState,
+        pairing_state: hasPartner ? 'linked' : (hasRoom ? 'waiting' : 'unlinked'),
+        screen_id: activeScreen
+    };
+}
+
+function normalizeMeimayAnalyticsParams(params = {}) {
+    const normalized = {};
+    Object.keys(params || {}).forEach((key) => {
+        const safeKey = String(key || '').trim().replace(/[^A-Za-z0-9_]/g, '_').slice(0, 40);
+        if (!safeKey) return;
+        const value = params[key];
+        if (value === undefined || value === null) return;
+        if (typeof value === 'boolean') {
+            normalized[safeKey] = value ? 1 : 0;
+        } else if (typeof value === 'number') {
+            if (Number.isFinite(value)) normalized[safeKey] = value;
+        } else if (value instanceof Date) {
+            normalized[safeKey] = value.toISOString().slice(0, 100);
+        } else {
+            const safeValue = String(value).trim();
+            if (safeValue) normalized[safeKey] = safeValue.slice(0, 100);
+        }
+    });
+    return normalized;
+}
+
+const MeimayAnalytics = {
+    _ready: false,
+    _disabled: false,
+    _queue: [],
+    _appOpenTracked: false,
+
+    init: function () {
+        if (this._ready || this._disabled) return;
+        if (typeof firebase === 'undefined' || typeof firebase.analytics !== 'function') {
+            this._disabled = true;
+            return;
+        }
+
+        const startAnalytics = () => {
+            try {
+                firebaseAnalytics = firebase.analytics();
+                this._ready = true;
+                this.setRuntimeUserProperties();
+                if (firebaseAuth && firebaseAuth.currentUser) {
+                    this.setUserId(firebaseAuth.currentUser.uid);
+                }
+                this.flush();
+                this.trackAppOpen();
+                console.log('ANALYTICS: Initialized successfully');
+            } catch (error) {
+                this._disabled = true;
+                console.warn('ANALYTICS: Init failed', error);
+            }
+        };
+
+        try {
+            if (firebase.analytics.isSupported && typeof firebase.analytics.isSupported === 'function') {
+                firebase.analytics.isSupported()
+                    .then((supported) => {
+                        if (supported) {
+                            startAnalytics();
+                        } else {
+                            this._disabled = true;
+                            console.warn('ANALYTICS: Not supported in this runtime');
+                        }
+                    })
+                    .catch((error) => {
+                        this._disabled = true;
+                        console.warn('ANALYTICS: Support check failed', error);
+                    });
+            } else {
+                startAnalytics();
+            }
+        } catch (error) {
+            this._disabled = true;
+            console.warn('ANALYTICS: Init failed', error);
+        }
+    },
+
+    setRuntimeUserProperties: function () {
+        if (!firebaseAnalytics) return;
+        const context = getMeimayAnalyticsRuntimeContext();
+        try {
+            if (typeof firebaseAnalytics.setUserProperties === 'function') {
+                firebaseAnalytics.setUserProperties({
+                    distribution: context.distribution,
+                    os_platform: context.os_platform,
+                    premium_state: context.premium_state,
+                    pairing_state: context.pairing_state
+                });
+            }
+        } catch (error) {
+            console.warn('ANALYTICS: User properties failed', error);
+        }
+    },
+
+    setUserId: function (uid) {
+        if (!firebaseAnalytics || typeof firebaseAnalytics.setUserId !== 'function') return;
+        try {
+            firebaseAnalytics.setUserId(uid ? String(uid) : null);
+        } catch (error) {
+            console.warn('ANALYTICS: Set user id failed', error);
+        }
+    },
+
+    track: function (eventName, params = {}) {
+        const safeEventName = String(eventName || '').trim().replace(/[^A-Za-z0-9_]/g, '_').slice(0, 40);
+        if (!safeEventName || this._disabled) return false;
+        const payload = normalizeMeimayAnalyticsParams({
+            ...getMeimayAnalyticsRuntimeContext(),
+            ...params
+        });
+
+        if (!this._ready || !firebaseAnalytics || typeof firebaseAnalytics.logEvent !== 'function') {
+            this._queue.push({ eventName: safeEventName, params: payload });
+            if (this._queue.length > MEIMAY_ANALYTICS_QUEUE_LIMIT) {
+                this._queue.splice(0, this._queue.length - MEIMAY_ANALYTICS_QUEUE_LIMIT);
+            }
+            return true;
+        }
+
+        try {
+            firebaseAnalytics.logEvent(safeEventName, payload);
+            return true;
+        } catch (error) {
+            console.warn(`ANALYTICS: Event failed (${safeEventName})`, error);
+            return false;
+        }
+    },
+
+    flush: function () {
+        if (!this._ready || !firebaseAnalytics) return;
+        const queued = this._queue.splice(0);
+        queued.forEach((event) => this.track(event.eventName, event.params));
+    },
+
+    trackAppOpen: function () {
+        if (this._appOpenTracked) return;
+        this._appOpenTracked = true;
+        const params = new URLSearchParams(window.location.search || '');
+        this.track('app_open', {
+            entry_path: window.location.pathname || '/',
+            has_utm_source: params.has('utm_source') ? 1 : 0,
+            has_referrer: document.referrer ? 1 : 0
+        });
+    }
+};
+
+window.MeimayAnalytics = MeimayAnalytics;
+window.trackMeimayEvent = function (eventName, params = {}) {
+    return MeimayAnalytics.track(eventName, params);
+};
 
 try {
     firebaseApp = firebase.initializeApp(firebaseConfig);
     firebaseAuth = firebase.auth();
     firebaseDb = firebase.firestore();
+    MeimayAnalytics.init();
     console.log("FIREBASE: Initialized successfully");
 } catch (e) {
     console.error("FIREBASE: Init failed", e);
@@ -123,6 +323,10 @@ if (firebaseAuth) {
         MeimayAuth.currentUser = user;
         if (user) {
             console.log(`FIREBASE: Anonymous user ready (${user.uid})`);
+            if (window.MeimayAnalytics && typeof window.MeimayAnalytics.setUserId === 'function') {
+                window.MeimayAnalytics.setUserId(user.uid);
+                window.MeimayAnalytics.setRuntimeUserProperties();
+            }
             if (window.PremiumManager && typeof window.PremiumManager.bindToUserDoc === 'function') {
                 await window.PremiumManager.bindToUserDoc(user);
             }
@@ -150,6 +354,9 @@ if (firebaseAuth) {
             await MeimayPairing.resumeRoom();
             seedReadingStatsFromLocalHistory();
         } else {
+            if (window.MeimayAnalytics && typeof window.MeimayAnalytics.setUserId === 'function') {
+                window.MeimayAnalytics.setUserId(null);
+            }
             console.log("FIREBASE: No user");
         }
     });
@@ -1250,10 +1457,23 @@ const MeimayPairing = {
                     : null;
                 await MeimayShare.syncPremiumState(publicPremiumState);
             }
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_started', {
+                    method: 'create_code',
+                    role,
+                    has_surname: pairingSurname.surname ? 1 : 0
+                });
+            }
 
             console.log(`PAIRING: Room created: ${code}`);
             return code;
         } catch (e) {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_failed', {
+                    method: 'create_code',
+                    reason: 'exception'
+                });
+            }
             console.error('PAIRING: Create room failed', e);
             showToast('ルームの作成に失敗しました', '\u26a0');
             return null;
@@ -1287,10 +1507,20 @@ const MeimayPairing = {
         }
 
         const upperCode = code.trim().toUpperCase();
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('partner_link_started', {
+                method: 'join_code',
+                role,
+                has_surname: pairingSurname.surname ? 1 : 0
+            });
+        }
 
         try {
             const roomDoc = await firebaseDb.collection('rooms').doc(upperCode).get();
             if (!roomDoc.exists) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'code_not_found' });
+                }
                 return { success: false, error: 'コードが見つかりません' };
             }
 
@@ -1298,6 +1528,9 @@ const MeimayPairing = {
             const existingMemberBUid = data.memberBUid || '';
             const isExistingMemberB = existingMemberBUid === user.uid;
             if (data.pairedOnce === true && !isExistingMemberB) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'code_used' });
+                }
                 return { success: false, error: 'このコードは使用済みです。新しい連携コードを作成してください' };
             }
             const partnerSlot = 'memberA';
@@ -1325,14 +1558,23 @@ const MeimayPairing = {
             }
 
             if (data.memberAUid === user.uid) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'own_room' });
+                }
                 return { success: false, error: '自分のルームです' };
             }
             if (existingMemberBUid && !isExistingMemberB) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'room_full' });
+                }
                 return { success: false, error: 'このルームは満員です' };
             }
 
             // memberB縺ｨ縺励※蜿ょ刈
             if (pairingSurname.surname !== partnerSurname) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'surname_mismatch' });
+                }
                 return { success: false, error: '名字が一致しません' };
             }
 
@@ -1375,10 +1617,24 @@ const MeimayPairing = {
                     : null;
                 await MeimayShare.syncPremiumState(publicPremiumState);
             }
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_completed', {
+                    method: 'join_code',
+                    role,
+                    partner_role: data.memberARole || '',
+                    is_joiner: 1
+                });
+            }
 
             console.log(`PAIRING: Joined room ${upperCode}`);
             return { success: true };
         } catch (e) {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_failed', {
+                    method: 'join_code',
+                    reason: 'exception'
+                });
+            }
             console.error('PAIRING: Join room failed', e);
             return { success: false, error: '参加に失敗しました' };
         }
@@ -1618,6 +1874,13 @@ const MeimayPairing = {
     shareCode: function () {
         if (!this.roomCode) return;
         const text = this._buildShareCodeText();
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('partner_link_shared', {
+                method: navigator.share ? 'web_share' : 'fallback',
+                role: this.myRole || '',
+                has_partner: this.partnerUid ? 1 : 0
+            });
+        }
 
         if (navigator.share) {
             navigator.share({
@@ -1648,16 +1911,19 @@ const MeimayPairing = {
                 const partnerUid = data[`${nextPartnerSlot}Uid`];
                 const partnerRole = data[`${nextPartnerSlot}Role`];
                 const isUsedRoomWaiting = data.pairedOnce === true && !partnerUid;
+                let shouldRefreshPairingUi = false;
 
                 if (nextMySlot !== this.mySlot) {
                     this.mySlot = nextMySlot;
                     this.partnerSlot = nextPartnerSlot;
                     localStorage.setItem('meimay_room_slot', nextMySlot);
+                    shouldRefreshPairingUi = true;
                 }
                 this.partnerSlot = nextPartnerSlot;
                 if (nextMyRole && nextMyRole !== this.myRole) {
                     this.myRole = nextMyRole;
                     localStorage.setItem('meimay_my_role', nextMyRole);
+                    shouldRefreshPairingUi = true;
                 }
 
                 if (isUsedRoomWaiting) {
@@ -1675,8 +1941,19 @@ const MeimayPairing = {
                     if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
                         window.PremiumTrialNudge.record('partner', { delayMs: 1500 });
                     }
+                    if (typeof trackMeimayEvent === 'function') {
+                        trackMeimayEvent('partner_link_completed', {
+                            method: 'invite_accepted',
+                            role: this.myRole || '',
+                            partner_role: partnerRole || '',
+                            is_joiner: 0
+                        });
+                    }
                      showToast('パートナーが連携しました', '\u2713');
                     console.log(`PAIRING: Partner joined (${partnerRole})`);
+                } else if (partnerUid && partnerRole !== this.partnerRole) {
+                    this.partnerRole = partnerRole || null;
+                    updatePairingUI();
                 } else if (!partnerUid && this.partnerUid) {
                     // 繝代・繝医リ繝ｼ縺碁螳､縺励◆
                     this.partnerUid = null;
@@ -1685,6 +1962,8 @@ const MeimayPairing = {
                     updatePairingUI();
                     showToast('パートナーとの連携が解除されました', '\u2713');
                     console.log('PAIRING: Partner left');
+                } else if (shouldRefreshPairingUi) {
+                    updatePairingUI();
                 }
             }, (e) => {
                 console.warn('PAIRING: Room listen error', e);
@@ -1759,6 +2038,62 @@ const MeimayPairing = {
         const error = new Error('room_code_generation_failed');
         error.cause = lastError;
         throw error;
+    },
+
+    updateMyRole: async function (role) {
+        const nextRole = role === 'mama' || role === 'papa' ? role : '';
+        if (!nextRole) return false;
+
+        const inRoom = !!(this.roomCode && this.mySlot);
+        const previousRole = this.myRole;
+
+        if (inRoom) {
+            this.myRole = nextRole;
+        }
+
+        try {
+            localStorage.setItem('meimay_my_role', nextRole);
+        } catch (error) { }
+
+        if (typeof updatePairingUI === 'function') {
+            updatePairingUI();
+        }
+
+        if (!inRoom) return true;
+
+        const roleField = this.mySlot === 'memberA'
+            ? 'memberARole'
+            : this.mySlot === 'memberB'
+                ? 'memberBRole'
+                : '';
+        if (!roleField || !firebaseDb) return true;
+
+        try {
+            await firebaseDb.collection('rooms').doc(this.roomCode).update({
+                [roleField]: nextRole,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            await this._persistUserRoomLink('role-update');
+            if (typeof this.syncMyData === 'function') {
+                await this.syncMyData();
+            }
+            return true;
+        } catch (error) {
+            console.warn('PAIRING: Failed to update role', error);
+            if (previousRole === 'mama' || previousRole === 'papa') {
+                this.myRole = previousRole;
+                try {
+                    localStorage.setItem('meimay_my_role', previousRole);
+                } catch (e) { }
+            }
+            if (typeof updatePairingUI === 'function') {
+                updatePairingUI();
+            }
+            if (typeof showToast === 'function') {
+                showToast('役割の更新に失敗しました', '⚠️');
+            }
+            return false;
+        }
     },
 
     _markRoomPairedOnceIfNeeded: async function (data = {}) {

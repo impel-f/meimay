@@ -1676,6 +1676,13 @@ function getHomeTodoRecommendations(likedCount, readingStock, savedCount, pairin
 window.updateSwipeMainState = updateSwipeMainState;
 
 function getDefaultHomePairJoinRole() {
+    if (typeof getPreferredPairingRole === 'function') {
+        const preferredRole = getPreferredPairingRole();
+        if (preferredRole === 'mama' || preferredRole === 'papa') {
+            return preferredRole;
+        }
+    }
+
     if (typeof MeimayPairing !== 'undefined' && (MeimayPairing.myRole === 'mama' || MeimayPairing.myRole === 'papa')) {
         return MeimayPairing.myRole;
     }
@@ -1981,6 +1988,57 @@ function renderHomeMembershipStatus() {
     statusEl.setAttribute('aria-label', status.title);
     statusEl.dataset.planState = status.state;
     statusEl.classList.toggle('hidden', !status.text);
+}
+
+function shouldShowHomePremiumTrialCard() {
+    if (typeof PremiumManager === 'undefined' || !PremiumManager) return false;
+
+    try {
+        const membership = typeof PremiumManager.getMembershipState === 'function'
+            ? PremiumManager.getMembershipState()
+            : null;
+        if (membership?.active || membership?.expired) return false;
+
+        const display = typeof PremiumManager.getDisplayStatus === 'function'
+            ? PremiumManager.getDisplayStatus()
+            : null;
+        return display?.kind === 'free';
+    } catch (e) {
+        return false;
+    }
+}
+
+function renderHomePremiumTrialCard() {
+    const card = document.getElementById('home-premium-trial-card');
+    if (!card) return;
+
+    if (!shouldShowHomePremiumTrialCard()) {
+        card.innerHTML = '';
+        card.classList.add('hidden');
+        return;
+    }
+
+    card.classList.remove('hidden');
+    card.innerHTML = `
+        <div class="home-premium-trial-card-copy">
+            <div class="home-premium-trial-card-title">3日間無料でプレミアム体験</div>
+            <div class="home-premium-trial-card-body">人名用漢字やAI深掘りも使えます</div>
+        </div>
+        <button type="button" class="home-premium-trial-card-button">無料で試す</button>
+    `;
+
+    const button = card.querySelector('.home-premium-trial-card-button');
+    if (button) {
+        button.onclick = (event) => {
+            event.stopPropagation();
+            if (typeof showPremiumModal === 'function') {
+                showPremiumModal({
+                    source: 'home_trial_card',
+                    subtitle: '無料体験は好きなタイミングで開始できます。'
+                });
+            }
+        };
+    }
 }
 
 function getMeimayPartnerViewState() {
@@ -3701,6 +3759,7 @@ function renderHomeProfile() {
 
     renderHomeOverviewSwitch(pairing);
     renderHomeMembershipStatus();
+    renderHomePremiumTrialCard();
     renderHomeChildDateLabel();
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
@@ -3741,6 +3800,7 @@ window.resetMeimayPartnerViewFocus = resetMeimayPartnerViewFocus;
 window.openHomeInsightsModal = openHomeInsightsModal;
 window.openHomeInsightsModalFromEvent = openHomeInsightsModalFromEvent;
 window.renderHomeMembershipStatus = renderHomeMembershipStatus;
+window.renderHomePremiumTrialCard = renderHomePremiumTrialCard;
 
 function getHomeOverviewMode(pairing) {
     const hasPartner = !!pairing?.hasPartner;
@@ -3952,6 +4012,7 @@ function renderHomeProfileV2() {
     if (dismissBtn) dismissBtn.classList.add('hidden');
     if (stageAnchor) stageAnchor.classList.remove('hidden');
     renderHomeMembershipStatus();
+    renderHomePremiumTrialCard();
     renderHomeChildDateLabel();
 
     const overview = getHomeOverviewModel(pairing, nextStep, stageSnapshot.aggregateCounts);

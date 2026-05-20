@@ -262,6 +262,19 @@ function executeSaveWithMessage() {
     if (!isDuplicate && typeof recordSavedNameReadingForRanking === 'function') {
         recordSavedNameReadingForRanking(saveData, 1);
     }
+    if (typeof trackMeimayEvent === 'function') {
+        const combination = Array.isArray(saveData.combination) ? saveData.combination : [];
+        trackMeimayEvent('name_saved', {
+            source: 'save_message',
+            is_update: isDuplicate ? 1 : 0,
+            first_saved_name: wasFirstSavedName ? 1 : 0,
+            saved_count: updated.length,
+            kanji_count: combination.length,
+            has_message: message ? 1 : 0,
+            has_fortune: saveData.fortune ? 1 : 0,
+            build_mode: typeof buildMode !== 'undefined' ? buildMode : ''
+        });
+    }
 
     closeSaveMessageModal();
     if (wasFirstSavedName && typeof openSavedNames === 'function') {

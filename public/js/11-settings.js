@@ -650,9 +650,15 @@ function openNicknameInput() {
 function openRoleInput(options = {}) {
     const config = typeof options === 'function' ? { onSave: options } : (options || {});
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
-    const current = (wizData?.role === 'mama' || wizData?.role === 'papa' || (!config.parentOnly && wizData?.role === 'other'))
+    let current = (wizData?.role === 'mama' || wizData?.role === 'papa' || (!config.parentOnly && wizData?.role === 'other'))
         ? wizData.role
         : (config.parentOnly ? '' : 'other');
+    if (config.parentOnly && typeof getPreferredPairingRole === 'function') {
+        const pairingRole = getPreferredPairingRole();
+        if (pairingRole === 'mama' || pairingRole === 'papa') {
+            current = pairingRole;
+        }
+    }
     const optionsList = [
         { label: 'ママ', value: 'mama' },
         { label: 'パパ', value: 'papa' }
@@ -679,7 +685,9 @@ function openRoleInput(options = {}) {
                 localStorage.removeItem('meimay_my_role');
             }
         } catch (error) { }
-        if (typeof syncPairingRoleSelectionFromProfile === 'function') {
+        if ((value === 'mama' || value === 'papa') && typeof MeimayPairing !== 'undefined' && MeimayPairing && typeof MeimayPairing.updateMyRole === 'function') {
+            MeimayPairing.updateMyRole(value);
+        } else if (typeof syncPairingRoleSelectionFromProfile === 'function') {
             syncPairingRoleSelectionFromProfile();
         }
         if (typeof config.onSave === 'function') {

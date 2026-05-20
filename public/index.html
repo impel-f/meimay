@@ -19,9 +19,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 
     <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.2.0">
-    <link rel="stylesheet" href="/css/main.css?v=26.47">
+    <link rel="stylesheet" href="/css/main.css?v=26.55">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.20">
 
 </head>
@@ -381,6 +382,7 @@
                                 <div id="home-overview-switch" class="shrink-0 w-[112px] md:w-[124px]"></div>
                             </div>
                         </div>
+                        <div id="home-premium-trial-card" class="home-premium-trial-card hidden" aria-live="polite"></div>
 
                         <div id="home-summary-panel" class="rounded-[24px]">
                             <div class="home-stage-divider" aria-hidden="true"></div>
@@ -729,20 +731,20 @@
                     oninput="handleKanjiSearchInput()">
                 <div id="reading-search-match-controls" class="hidden rounded-2xl border border-[#eadfce] bg-[#f5efe5] p-1 grid grid-cols-2 gap-1" style="width:128px;">
                     <button id="reading-search-match-starts" type="button" onclick="setReadingSearchMatchMode('starts')"
-                        class="rounded-xl px-2 py-2 text-[11px] font-black transition-all">始まる</button>
+                        class="meimay-search-match-button rounded-xl px-2 py-2 text-[11px] font-black transition-all">始まる</button>
                     <button id="reading-search-match-ends" type="button" onclick="setReadingSearchMatchMode('ends')"
-                        class="rounded-xl px-2 py-2 text-[11px] font-black transition-all">終わる</button>
+                        class="meimay-search-match-button rounded-xl px-2 py-2 text-[11px] font-black transition-all">終わる</button>
                 </div>
             </div>
 
             <!-- Search Filters -->
-            <div class="mb-2">
-                <div class="grid gap-2" style="grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr) minmax(0,0.9fr);">
+            <div class="search-filter-panel mb-2">
+                <div class="search-filter-grid grid gap-2" style="grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr) minmax(0,0.9fr);">
                     <div id="search-primary-filter-col" class="min-w-0">
                         <p id="search-primary-filter-label" class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">表示する漢字</p>
                         <div id="search-primary-filter-control">
                             <button id="search-all-kanji-toggle" onclick="toggleSearchShowAllKanji()"
-                                class="w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
+                                class="meimay-search-control w-full px-3 py-2 rounded-xl text-[12px] font-bold transition-all outline-none focus:outline-none">
                                 おすすめ
                             </button>
                         </div>
@@ -757,7 +759,7 @@
                         <p id="search-tertiary-filter-label" class="text-[10px] font-bold text-[#a6967a] mb-1 ml-1">画数</p>
                         <div id="search-tertiary-filter-control">
                             <select id="search-stroke-filter" onchange="setStrokeFilter(this.value)"
-                                class="w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
+                                class="meimay-search-select w-full rounded-xl border border-[#eee5d8] bg-white px-3 py-2 text-[12px] font-bold text-[#5d5444] outline-none focus:border-[#bca37f]">
                                 <option value="">すべて</option>
                             </select>
                         </div>
@@ -1602,26 +1604,26 @@
     <!-- Module 02.5: Generator -->
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=26.21"></script>
+    <script src="/js/01-core.js?v=26.23"></script>
 <script src="/js/02-engine.js?v=25.41"></script>
     <script src="/js/03-fortune.js?v=25.13"></script>
-    <script src="/js/04-ui-flow.js?v=27.45"></script>
-<script src="/js/05-ui-render.js?v=25.102"></script>
+    <script src="/js/04-ui-flow.js?v=27.50"></script>
+<script src="/js/05-ui-render.js?v=25.105"></script>
     <script src="/js/06-ui-physics.js?v=25.19"></script>
     <script src="/js/07-build.js?v=25.73"></script>
 <script src="/js/08-origin.js?v=25.68"></script>
     <script src="/js/09-storage.js?v=26.07"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
-    <script src="/js/11-settings.js?v=25.41"></script>
-    <script src="/js/12-history.js?v=25.62"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.43"></script>
-    <script src="/js/14-admob.js?v=25.85"></script>
-<script src="/js/15-firebase.js?v=26.47"></script>
-    <script src="/js/data/legal-docs.js?v=25.20"></script>
+    <script src="/js/11-settings.js?v=25.42"></script>
+    <script src="/js/12-history.js?v=25.63"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.44"></script>
+    <script src="/js/14-admob.js?v=25.87"></script>
+<script src="/js/15-firebase.js?v=26.49"></script>
+    <script src="/js/data/legal-docs.js?v=25.21"></script>
     <script src="/js/16-legal.js?v=25.20"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
-    <script src="/js/18-ranking.js?v=25.40"></script>
+    <script src="/js/18-ranking.js?v=25.41"></script>
     <script src="/js/21-child-workspaces.js?v=26.72"></script>
 
 

@@ -2705,6 +2705,80 @@ body.has-ad-banner #universal-footer {
     overflow: hidden;
 }
 
+.search-filter-grid {
+    align-items: end;
+}
+
+.search-filter-panel {
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(188, 163, 127, 0.22);
+}
+
+.search-filter-label {
+    min-height: 16px;
+    line-height: 1.15;
+}
+
+.reading-search-help-button {
+    width: 16px;
+    min-width: 16px;
+    max-width: 16px;
+    height: 16px;
+    min-height: 16px;
+    max-height: 16px;
+    padding: 0 !important;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    line-height: 1;
+    flex: 0 0 16px;
+}
+
+.meimay-search-control,
+.meimay-search-match-button,
+.meimay-search-select,
+#support-category-select {
+    box-sizing: border-box;
+    min-height: 42px;
+    height: 42px;
+    line-height: 1.2;
+}
+
+.meimay-search-select,
+#support-category-select {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    vertical-align: middle;
+    text-overflow: ellipsis;
+}
+
+.meimay-search-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 28px !important;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #b08a54 50%),
+        linear-gradient(135deg, #b08a54 50%, transparent 50%);
+    background-position:
+        calc(100% - 15px) 50%,
+        calc(100% - 10px) 50%;
+    background-repeat: no-repeat;
+    background-size: 5px 5px, 5px 5px;
+}
+
+.meimay-search-match-button {
+    min-height: 34px;
+    height: 34px;
+    line-height: 1;
+}
+
+.meimay-child-select:not(.wiz-birth-order-select) {
+    min-height: 44px;
+    height: 44px;
+    line-height: 1.2;
+    box-sizing: border-box;
+}
+
 /* scr-swipe-universal ガラスカードが画面内に収まるよう max-height を保証 */
 #scr-swipe-universal>div {
     max-height: 100%;
@@ -3041,6 +3115,11 @@ body.has-ad-banner #universal-footer {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 14px;
+}
+
+.choice-flow-scroll:has(.context-coach-target) {
+    margin: -14px -14px 0;
+    padding: 14px 14px 18px;
 }
 
 .choice-flow-scroll::-webkit-scrollbar {
@@ -4045,6 +4124,73 @@ body.has-ad-banner #universal-footer {
     color: #9b574d;
 }
 
+#scr-mode .home-premium-trial-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    margin-top: 0.45rem;
+    margin-bottom: 0;
+    padding: 7px 8px 7px 10px;
+    border: 1px solid rgba(222, 194, 143, 0.86);
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 250, 232, 0.86) 0%, rgba(255, 242, 206, 0.8) 100%);
+    box-shadow: none;
+}
+
+#scr-mode .home-premium-trial-card.hidden {
+    display: none !important;
+}
+
+#scr-mode .home-premium-trial-card-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+#scr-mode .home-premium-trial-card-title {
+    color: #806945;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#scr-mode .home-premium-trial-card-body {
+    margin-top: 2px;
+    color: #9a8b72;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#scr-mode .home-premium-trial-card-button {
+    flex: 0 0 auto;
+    min-height: 27px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: #bd8840;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(150, 102, 32, 0.14);
+    transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+#scr-mode .home-premium-trial-card-button:active {
+    transform: scale(0.97);
+}
+
 #scr-mode .home-stage-grid {
     align-items: center;
 }
@@ -4191,11 +4337,36 @@ body.has-ad-banner #universal-footer {
 }
 
 #scr-mode .home-next-action-section #home-next-action-card {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 132px;
+    padding: 1.15rem 1.35rem !important;
     border-color: #d9b56f !important;
     border-width: 2px !important;
     border-radius: 22px !important;
     background: linear-gradient(135deg, #fffaf0 0%, #fffdf8 100%) !important;
     box-shadow: none !important;
+}
+
+#scr-mode .home-next-action-section #home-next-action-card .wiz-reading-choice-copy,
+#scr-mode .home-next-action-section #home-next-action-card > .min-w-0.flex-1 {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#scr-mode .home-next-action-section #home-next-action-card .wiz-mini-preview,
+#scr-mode .home-next-action-section #home-next-action-card > span[aria-hidden="true"] {
+    width: 92px;
+    min-width: 92px;
+    text-align: center;
+}
+
+#scr-mode .home-next-action-section #home-next-action-card > span[aria-hidden="true"] {
+    font-size: 32px !important;
 }
 
 #scr-mode #home-overview-switch button > div > div:first-child {
@@ -4374,6 +4545,11 @@ body.has-ad-banner #universal-footer {
     box-shadow: 0 0 0 8px rgba(255, 248, 232, 0.74), 0 16px 34px rgba(96, 75, 45, 0.16);
     border-radius: 22px;
     transition: outline-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.method-choice-card.context-coach-target {
+    outline-offset: -5px;
+    box-shadow: inset 0 0 0 3px rgba(185, 150, 91, 0.32), 0 16px 34px rgba(96, 75, 45, 0.12) !important;
 }
 
 #swipe-action-btns.context-coach-target,

@@ -1,0 +1,475 @@
+{
+  "createdAt": "2026-05-03T14:24:55.086Z",
+  "source": "http://127.0.0.1:3000/?appstore_screenshots=1&localPremium=premium",
+  "outputDir": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03",
+  "devices": [
+    {
+      "device": "iphone-6.9-1290x2796",
+      "expected": [
+        1290,
+        2796
+      ],
+      "results": [
+        {
+          "fileName": "01-home.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\01-home.png",
+          "scene": "home",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-mode",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "02-reading-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\02-reading-swipe.png",
+          "scene": "reading-swipe",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-swipe-universal",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "03-kanji-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\03-kanji-swipe.png",
+          "scene": "kanji-swipe",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-main",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "04-stock.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\04-stock.png",
+          "scene": "stock",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-stock",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "05-build.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\05-build.png",
+          "scene": "build",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "06-fortune.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\06-fortune.png",
+          "scene": "fortune",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": [
+              "modal-fortune-detail"
+            ]
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "07-saved.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\07-saved.png",
+          "scene": "saved",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-saved",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "08-partner.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.9-1290x2796\\08-partner.png",
+          "scene": "partner",
+          "metrics": {
+            "width": 430,
+            "height": 932,
+            "docWidth": 430,
+            "activeScreen": "scr-login",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1290,
+            "height": 2796
+          },
+          "sizeOk": true
+        }
+      ],
+      "logs": []
+    },
+    {
+      "device": "iphone-6.5-1242x2688",
+      "expected": [
+        1242,
+        2688
+      ],
+      "results": [
+        {
+          "fileName": "01-home.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\01-home.png",
+          "scene": "home",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-mode",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "02-reading-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\02-reading-swipe.png",
+          "scene": "reading-swipe",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-swipe-universal",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "03-kanji-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\03-kanji-swipe.png",
+          "scene": "kanji-swipe",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-main",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "04-stock.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\04-stock.png",
+          "scene": "stock",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-stock",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "05-build.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\05-build.png",
+          "scene": "build",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "06-fortune.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\06-fortune.png",
+          "scene": "fortune",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": [
+              "modal-fortune-detail"
+            ]
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "07-saved.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\07-saved.png",
+          "scene": "saved",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-saved",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "08-partner.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\iphone-6.5-1242x2688\\08-partner.png",
+          "scene": "partner",
+          "metrics": {
+            "width": 414,
+            "height": 896,
+            "docWidth": 414,
+            "activeScreen": "scr-login",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 1242,
+            "height": 2688
+          },
+          "sizeOk": true
+        }
+      ],
+      "logs": []
+    },
+    {
+      "device": "ipad-13-2048x2732",
+      "expected": [
+        2048,
+        2732
+      ],
+      "results": [
+        {
+          "fileName": "01-home.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\01-home.png",
+          "scene": "home",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-mode",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "02-reading-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\02-reading-swipe.png",
+          "scene": "reading-swipe",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-swipe-universal",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "03-kanji-swipe.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\03-kanji-swipe.png",
+          "scene": "kanji-swipe",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-main",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "04-stock.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\04-stock.png",
+          "scene": "stock",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-stock",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "05-build.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\05-build.png",
+          "scene": "build",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "06-fortune.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\06-fortune.png",
+          "scene": "fortune",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-build",
+            "horizontalOverflow": false,
+            "visibleOverlay": [
+              "modal-fortune-detail"
+            ]
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "07-saved.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\07-saved.png",
+          "scene": "saved",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-saved",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        },
+        {
+          "fileName": "08-partner.png",
+          "filePath": "C:\\Users\\8mits\\Documents\\meimay-C\\release\\app-store-screenshots\\2026-05-03\\ipad-13-2048x2732\\08-partner.png",
+          "scene": "partner",
+          "metrics": {
+            "width": 1024,
+            "height": 1366,
+            "docWidth": 1024,
+            "activeScreen": "scr-login",
+            "horizontalOverflow": false,
+            "visibleOverlay": []
+          },
+          "pngSize": {
+            "width": 2048,
+            "height": 2732
+          },
+          "sizeOk": true
+        }
+      ],
+      "logs": []
+    }
+  ]
+}

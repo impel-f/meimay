@@ -1,0 +1,272 @@
+[
+  {
+    "File": "iphone-6.9-1290x2796\\10-home.png",
+    "Status": "changed",
+    "AvgDiff": 11.768,
+    "ChangedPct": 19.57,
+    "MaxDiff": 186.0,
+    "OldSize": 702794,
+    "NewSize": 866498
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\09-saved.png",
+    "Status": "identical",
+    "AvgDiff": 0,
+    "ChangedPct": 0,
+    "MaxDiff": 0,
+    "OldSize": 785286,
+    "NewSize": 785286
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\08-fortune.png",
+    "Status": "changed",
+    "AvgDiff": 0.113,
+    "ChangedPct": 0.63,
+    "MaxDiff": 110.3,
+    "OldSize": 546735,
+    "NewSize": 546494
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\07-build-free.png",
+    "Status": "changed",
+    "AvgDiff": 6.025,
+    "ChangedPct": 7.97,
+    "MaxDiff": 198.0,
+    "OldSize": 450484,
+    "NewSize": 499707
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\06-build-reading.png",
+    "Status": "changed",
+    "AvgDiff": 4.938,
+    "ChangedPct": 6.32,
+    "MaxDiff": 198.0,
+    "OldSize": 453035,
+    "NewSize": 509525
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\05-kanji-detail.png",
+    "Status": "changed",
+    "AvgDiff": 8.445,
+    "ChangedPct": 21.55,
+    "MaxDiff": 173.3,
+    "OldSize": 853777,
+    "NewSize": 804567
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\04-kanji-stock.png",
+    "Status": "changed",
+    "AvgDiff": 2.029,
+    "ChangedPct": 2.88,
+    "MaxDiff": 182.7,
+    "OldSize": 521215,
+    "NewSize": 494406
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\03-kanji-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.356,
+    "ChangedPct": 1.65,
+    "MaxDiff": 142.7,
+    "OldSize": 1039319,
+    "NewSize": 1073636
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\02-reading-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.439,
+    "ChangedPct": 1.13,
+    "MaxDiff": 199.7,
+    "OldSize": 900357,
+    "NewSize": 921776
+  },
+  {
+    "File": "iphone-6.9-1290x2796\\01-hero.png",
+    "Status": "changed",
+    "AvgDiff": 0.043,
+    "ChangedPct": 0.11,
+    "MaxDiff": 171.3,
+    "OldSize": 976941,
+    "NewSize": 978167
+  },
+  {
+    "File": "ipad-13-2048x2732\\10-home.png",
+    "Status": "changed",
+    "AvgDiff": 3.608,
+    "ChangedPct": 6.18,
+    "MaxDiff": 202.0,
+    "OldSize": 531541,
+    "NewSize": 624234
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\10-home.png",
+    "Status": "changed",
+    "AvgDiff": 12.265,
+    "ChangedPct": 20.01,
+    "MaxDiff": 186.0,
+    "OldSize": 689750,
+    "NewSize": 853660
+  },
+  {
+    "File": "ipad-13-2048x2732\\09-saved.png",
+    "Status": "identical",
+    "AvgDiff": 0,
+    "ChangedPct": 0,
+    "MaxDiff": 0,
+    "OldSize": 621638,
+    "NewSize": 621638
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\09-saved.png",
+    "Status": "changed",
+    "AvgDiff": 0.002,
+    "ChangedPct": 0.0,
+    "MaxDiff": 17.3,
+    "OldSize": 784045,
+    "NewSize": 783599
+  },
+  {
+    "File": "ipad-13-2048x2732\\08-fortune.png",
+    "Status": "changed",
+    "AvgDiff": 2.621,
+    "ChangedPct": 4.38,
+    "MaxDiff": 173.3,
+    "OldSize": 569583,
+    "NewSize": 621966
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\08-fortune.png",
+    "Status": "changed",
+    "AvgDiff": 0.154,
+    "ChangedPct": 0.77,
+    "MaxDiff": 107.3,
+    "OldSize": 535222,
+    "NewSize": 533648
+  },
+  {
+    "File": "ipad-13-2048x2732\\07-build-free.png",
+    "Status": "changed",
+    "AvgDiff": 1.825,
+    "ChangedPct": 2.95,
+    "MaxDiff": 176.7,
+    "OldSize": 397166,
+    "NewSize": 417450
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\07-build-free.png",
+    "Status": "changed",
+    "AvgDiff": 6.338,
+    "ChangedPct": 8.42,
+    "MaxDiff": 194.3,
+    "OldSize": 452058,
+    "NewSize": 494952
+  },
+  {
+    "File": "ipad-13-2048x2732\\06-build-reading.png",
+    "Status": "changed",
+    "AvgDiff": 1.467,
+    "ChangedPct": 2.26,
+    "MaxDiff": 176.7,
+    "OldSize": 392215,
+    "NewSize": 412500
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\06-build-reading.png",
+    "Status": "changed",
+    "AvgDiff": 5.244,
+    "ChangedPct": 6.77,
+    "MaxDiff": 194.3,
+    "OldSize": 444482,
+    "NewSize": 493118
+  },
+  {
+    "File": "ipad-13-2048x2732\\05-kanji-detail.png",
+    "Status": "changed",
+    "AvgDiff": 3.809,
+    "ChangedPct": 8.25,
+    "MaxDiff": 173.3,
+    "OldSize": 767847,
+    "NewSize": 735808
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\05-kanji-detail.png",
+    "Status": "changed",
+    "AvgDiff": 8.305,
+    "ChangedPct": 21.76,
+    "MaxDiff": 173.3,
+    "OldSize": 832242,
+    "NewSize": 764128
+  },
+  {
+    "File": "ipad-13-2048x2732\\04-kanji-stock.png",
+    "Status": "changed",
+    "AvgDiff": 0.751,
+    "ChangedPct": 1.12,
+    "MaxDiff": 183.0,
+    "OldSize": 531586,
+    "NewSize": 502453
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\04-kanji-stock.png",
+    "Status": "changed",
+    "AvgDiff": 1.891,
+    "ChangedPct": 3.04,
+    "MaxDiff": 183.0,
+    "OldSize": 523542,
+    "NewSize": 496471
+  },
+  {
+    "File": "ipad-13-2048x2732\\03-kanji-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.089,
+    "ChangedPct": 0.37,
+    "MaxDiff": 135.3,
+    "OldSize": 957869,
+    "NewSize": 961014
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\03-kanji-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.476,
+    "ChangedPct": 2.51,
+    "MaxDiff": 143.7,
+    "OldSize": 979644,
+    "NewSize": 1031127
+  },
+  {
+    "File": "ipad-13-2048x2732\\02-reading-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.054,
+    "ChangedPct": 0.07,
+    "MaxDiff": 199.7,
+    "OldSize": 849139,
+    "NewSize": 850063
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\02-reading-swipe.png",
+    "Status": "changed",
+    "AvgDiff": 0.527,
+    "ChangedPct": 1.95,
+    "MaxDiff": 199.7,
+    "OldSize": 877195,
+    "NewSize": 915953
+  },
+  {
+    "File": "ipad-13-2048x2732\\01-hero.png",
+    "Status": "identical",
+    "AvgDiff": 0,
+    "ChangedPct": 0,
+    "MaxDiff": 0,
+    "OldSize": 738544,
+    "NewSize": 738544
+  },
+  {
+    "File": "iphone-6.5-1242x2688\\01-hero.png",
+    "Status": "changed",
+    "AvgDiff": 0.819,
+    "ChangedPct": 0.88,
+    "MaxDiff": 171.3,
+    "OldSize": 931947,
+    "NewSize": 932605
+  }
+]
