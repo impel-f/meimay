@@ -1,53 +1,57 @@
 {
   "version": 2,
-  "redirects": [
+  "routes": [
     {
-      "source": "/app",
-      "destination": "/",
-      "permanent": false
+      "src": "/",
+      "dest": "/marketing.html",
+      "check": true
     },
     {
-      "source": "/app/(.*)",
-      "destination": "/",
-      "permanent": false
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/marketing.html"
+      "src": "/app(?:/.*)?",
+      "headers": {
+        "Location": "/"
+      },
+      "status": 307
     },
     {
-      "source": "/api/gemini",
-      "destination": "/api/gemini.js"
+      "src": "/api/gemini",
+      "dest": "/api/gemini.js",
+      "check": true
     },
     {
-      "source": "/api/kanji-cache",
-      "destination": "/api/kanji-cache.js"
+      "src": "/api/kanji-cache",
+      "dest": "/api/kanji-cache.js",
+      "check": true
     },
     {
-      "source": "/api/name-origin-cache",
-      "destination": "/api/name-origin-cache.js"
+      "src": "/api/name-origin-cache",
+      "dest": "/api/name-origin-cache.js",
+      "check": true
     },
     {
-      "source": "/api/stats",
-      "destination": "/api/stats.js"
+      "src": "/api/stats",
+      "dest": "/api/stats.js",
+      "check": true
     },
     {
-      "source": "/api/premium-trial",
-      "destination": "/api/premium-trial.js"
+      "src": "/api/premium-trial",
+      "dest": "/api/premium-trial.js",
+      "check": true
     },
     {
-      "source": "/api/revenuecat-webhook",
-      "destination": "/api/revenuecat-webhook.js"
+      "src": "/api/revenuecat-webhook",
+      "dest": "/api/revenuecat-webhook.js",
+      "check": true
     },
     {
-      "source": "/api/backup-restore",
-      "destination": "/api/backup-restore.js"
+      "src": "/api/backup-restore",
+      "dest": "/api/backup-restore.js",
+      "check": true
     },
     {
-      "source": "/(.*)",
-      "destination": "/public/$1"
+      "src": "/(.*)",
+      "dest": "/public/$1",
+      "check": true
     }
   ],
   "functions": {
