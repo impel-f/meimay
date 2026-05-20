@@ -13,6 +13,8 @@ workflows:
         script: npm run build
       - name: Sync Capacitor Android project
         script: npx cap sync android
+      - name: Remove marketing-only native assets
+        script: npm run prune:native-marketing-assets -- android
       - name: Build Android debug APK
         script: |
           cd android
@@ -28,8 +30,8 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "16"
-        ANDROID_VERSION_NAME: "1.0.16"
+        ANDROID_VERSION_CODE: "17"
+        ANDROID_VERSION_NAME: "1.0.17"
       node: v22.11.0
       java: 21
     scripts:
@@ -39,6 +41,8 @@ workflows:
         script: npm run build
       - name: Sync Capacitor Android project
         script: npx cap sync android
+      - name: Remove marketing-only native assets
+        script: npm run prune:native-marketing-assets -- android
       - name: Prepare Android keystore
         script: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
@@ -68,6 +72,8 @@ workflows:
         script: npm ci
       - name: Sync Capacitor iOS project
         script: npx cap sync ios
+      - name: Remove marketing-only native assets
+        script: npm run prune:native-marketing-assets -- ios
       - name: Build iOS app without signing
         script: |
           xcodebuild \
@@ -102,6 +108,8 @@ workflows:
         script: npm ci
       - name: Sync Capacitor iOS project
         script: npx cap sync ios
+      - name: Remove marketing-only native assets
+        script: npm run prune:native-marketing-assets -- ios
       - name: Set iOS build number
         script: |
           BUILD_VERSION="${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}"
