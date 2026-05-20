@@ -410,6 +410,10 @@
             font-weight: 700;
         }
 
+        .screen-shot .mobile-caption {
+            display: none;
+        }
+
         .caption-row {
             margin-top: 18px;
             display: grid;
@@ -533,6 +537,7 @@
         }
 
         .flow-copy {
+            width: 100%;
             max-width: 860px;
         }
 
@@ -1133,8 +1138,8 @@
             }
 
             .screen-scroll {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 10px;
+                grid-template-columns: 1fr;
+                gap: 14px;
             }
 
             .screen-shot {
@@ -1150,8 +1155,8 @@
             }
 
             .screen-shot figcaption {
-                min-height: 156px;
-                padding: 12px;
+                min-height: 126px;
+                padding: 13px 14px 14px;
             }
 
             .screen-shot figcaption::before {
@@ -1168,8 +1173,18 @@
 
             .screen-shot span {
                 margin-top: 7px;
-                font-size: 11.5px;
-                line-height: 1.65;
+                font-size: 12px;
+                line-height: 1.6;
+                word-break: keep-all;
+                overflow-wrap: normal;
+            }
+
+            .screen-shot .desktop-caption {
+                display: none;
+            }
+
+            .screen-shot .mobile-caption {
+                display: block;
             }
 
         }
@@ -1237,14 +1252,16 @@
                     <img src="/marketing-assets/real-reading-card.png" alt="響きのカードを直感的に残せる画面">
                     <figcaption data-step="響き">
                         <strong>好きな響きを残す</strong>
-                        <span>呼びやすさから選べます。</span>
+                        <span class="desktop-caption">呼びやすさから選べます。</span>
+                        <span class="mobile-caption">呼びやすさや雰囲気から選べます。</span>
                     </figcaption>
                 </figure>
                 <figure class="screen-shot">
                     <img src="/marketing-assets/real-kanji-card.png" alt="使いたい漢字を見つける画面">
                     <figcaption data-step="漢字">
                         <strong>使いたい漢字を選ぶ</strong>
-                        <span>意味や画数を見て選べます。</span>
+                        <span class="desktop-caption">意味や画数を見て選べます。</span>
+                        <span class="mobile-caption">意味や画数を確認して選べます。</span>
                     </figcaption>
                 </figure>
             </div>
@@ -1260,7 +1277,8 @@
                         </h2>
                     </div>
                     <p>
-                        <span class="sentence-line">マイ本命とパートナー本命を並べて、候補を比較できます。</span>
+                        <span class="sentence-line">マイ本命とパートナー本命を並べて、</span>
+                        <span class="sentence-line">候補を比較できます。</span>
                         <span class="sentence-line">理由やメモも一緒に確認できます。</span>
                     </p>
                 </div>
@@ -1276,8 +1294,10 @@
                 <span class="phrase">ちゃんと見返せる。</span>
             </h2>
             <p class="final-copy">
-                <span class="sentence-line">読み・漢字・意味・メモを保存して、候補が増えても見失わないように。</span>
-                <span class="sentence-line">家族と相談するときも、同じ内容を見ながら話せます。</span>
+                <span class="sentence-line">読み・漢字・意味・メモを保存して、</span>
+                <span class="sentence-line">候補が増えても見失わないように。</span>
+                <span class="sentence-line">家族と相談するときも、</span>
+                <span class="sentence-line">同じ内容を見ながら話せます。</span>
             </p>
             <div class="final-saved-preview" aria-label="保存済み候補の例">
                 <div class="saved-mini-head">
@@ -1332,7 +1352,8 @@
                 <span class="sentence-line">名づけに必要な基本機能は無料で使えます。</span>
             </p>
             <p class="premium-note">
-                <span class="sentence-line">もっとたくさん試したいときは、プレミアムなら上限なしで使えます。</span>
+                <span class="sentence-line">もっとたくさん試したいときは、</span>
+                <span class="sentence-line">プレミアムなら上限なしで使えます。</span>
                 <span class="sentence-line">はじめは3日間無料で試せます。</span>
             </p>
             <details class="plan-compare">
