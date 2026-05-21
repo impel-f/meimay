@@ -16,5 +16,6 @@ echo "npm $(npm -v)"
 
 npm ci
 npx cap sync ios
+npm run prune:native-marketing-assets -- ios
 
 echo "Capacitor iOS project is ready"
