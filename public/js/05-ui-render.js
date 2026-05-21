@@ -1956,6 +1956,22 @@ function getHomeMembershipStatusModel() {
             };
         }
 
+        if (display?.kind === 'premium-cache') {
+            return {
+                text: 'プレミアム確認中👑',
+                state: 'premium',
+                title: display.homeDetail || '前回の購入状態をもとに、プレミアム状態を確認しています。'
+            };
+        }
+
+        if (display?.kind === 'checking') {
+            return {
+                text: '購入状態を確認中',
+                state: 'checking',
+                title: display.homeDetail || '購入状態を確認しています。確認後に最新の状態へ更新します。'
+            };
+        }
+
         if (membership?.expired || display?.kind === 'expired') {
             return {
                 text: fallback.text,

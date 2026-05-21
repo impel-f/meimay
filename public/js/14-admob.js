@@ -1678,6 +1678,38 @@ function buildPremiumMembershipState(record, source, options = {}) {
     };
 }
 
+function getFreshPremiumDisplayCacheState() {
+    const adCache = hasFreshPremiumAdSuppressionCache()
+        ? getPremiumAdSuppressionCache()
+        : null;
+    if (adCache) {
+        const cachedSelfState = buildPremiumMembershipState({
+            isPremium: true,
+            premiumSource: adCache.premiumSource || 'revenuecat',
+            subscriptionStatus: 'active',
+            appStoreExpiresAt: adCache.expiresAt || null,
+            premiumExpiresAt: adCache.expiresAt || null,
+            appStoreProductId: adCache.productId || null,
+            premiumProductId: adCache.productId || null
+        }, 'self', { allowLocalFallback: false });
+        if (cachedSelfState && cachedSelfState.active) return cachedSelfState;
+    }
+
+    const partnerSnapshot = getCachedConnectedPartnerPremiumSnapshot();
+    const partnerState = partnerSnapshot
+        ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
+        : null;
+    if (partnerState && partnerState.active && !partnerState.isTrial) return partnerState;
+
+    return null;
+}
+
+function isPremiumStatusResolvingForDisplay() {
+    if (PremiumManager.isPurchaseStateCheckPending && PremiumManager.isPurchaseStateCheckPending()) return true;
+    const completed = PremiumManager.hasCompletedPurchaseStateCheck && PremiumManager.hasCompletedPurchaseStateCheck();
+    return !completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS;
+}
+
 function getRevenueCatPremiumRecordFromManager() {
     if (typeof PremiumManager === 'undefined' || !PremiumManager) return null;
     const hasStoreData = typeof PremiumManager._storePremium === 'boolean'
@@ -1847,6 +1879,8 @@ PremiumManager.getDisplayStatus = function () {
     const trialUnavailable = !!(selfState && selfState.trialConsumed);
     const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
     const dateLabel = state.expiresAt ? formatPremiumMembershipDate(state.expiresAt) : '';
+    const cachedPremiumState = !state.active ? getFreshPremiumDisplayCacheState() : null;
+    const resolving = !state.active && isPremiumStatusResolvingForDisplay();
 
     if (state.active && state.isTrial) {
         const ownerText = state.source === 'partner' ? 'パートナー特典' : '無料体験';
@@ -1874,6 +1908,33 @@ PremiumManager.getDisplayStatus = function () {
             homeTitle: 'ステータス：プレミアム利用中',
             homeDetail: getPremiumActiveDetailSentence(state, dateLabel),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
+        };
+    }
+
+    if (cachedPremiumState && cachedPremiumState.active) {
+        const cachedDateLabel = cachedPremiumState.expiresAt ? formatPremiumMembershipDate(cachedPremiumState.expiresAt) : '';
+        const ownerText = cachedPremiumState.source === 'partner' ? 'パートナー特典' : 'プレミアム';
+        const periodText = cachedDateLabel ? `${cachedDateLabel}まで` : '有効';
+        return {
+            active: true,
+            expired: false,
+            kind: 'premium-cache',
+            drawerLines: ['👑 プレミアム', `${ownerText}・確認中`],
+            homeTitle: 'ステータス：プレミアム確認中',
+            homeDetail: `前回の確認では${ownerText}が${periodText}でした。購入状態を確認中です。`,
+            shortLabel: 'プレミアム確認中'
+        };
+    }
+
+    if (resolving) {
+        return {
+            active: false,
+            expired: false,
+            kind: 'checking',
+            drawerLines: ['購入状態を確認中', '同期後に反映します'],
+            homeTitle: 'ステータス：購入状態を確認中',
+            homeDetail: '購入状態を確認しています。確認後に最新の状態へ更新します。',
+            shortLabel: '購入状態を確認中'
         };
     }
 
@@ -1918,11 +1979,13 @@ PremiumManager.beginPurchaseStateCheck = function () {
     try {
         hideAdBanner();
     } catch (e) { }
+    if (typeof updatePremiumUI === 'function') updatePremiumUI();
 };
 
 PremiumManager.endPurchaseStateCheck = function () {
     this._purchaseStateCheckInFlight = false;
     this._purchaseStateCheckCompletedAt = Date.now();
+    if (typeof updatePremiumUI === 'function') updatePremiumUI();
 };
 
 PremiumManager.isPurchaseStateCheckPending = function () {
@@ -1931,6 +1994,14 @@ PremiumManager.isPurchaseStateCheckPending = function () {
 
 PremiumManager.hasCompletedPurchaseStateCheck = function () {
     return Number(this._purchaseStateCheckCompletedAt || 0) > 0;
+};
+
+PremiumManager.hasFreshPremiumDisplayCache = function () {
+    return !!getFreshPremiumDisplayCacheState();
+};
+
+PremiumManager.isPremiumStatusResolving = function () {
+    return isPremiumStatusResolvingForDisplay();
 };
 
 PremiumManager.refreshPurchaseState = async function (restore = true, options = {}) {
@@ -2796,19 +2867,22 @@ function renderPremiumStatusCard(state) {
 
     const title = display.homeTitle || (state && state.label) || '無料プラン';
     const active = !!display.active;
+    const checking = display.kind === 'checking';
     const detail = display.homeDetail || (!active && state && state.detail) || '';
     const body = active
         ? ''
-        : (display.kind === 'expired'
+        : (checking
+            ? '確認後に最新の状態へ更新します。'
+            : (display.kind === 'expired'
             ? '現在は無料プランです。'
-            : '現在は無料プランです。必要になったらプレミアムへ進めます。');
+            : '現在は無料プランです。必要になったらプレミアムへ進めます。'));
     const toneClass = active
         ? 'border-[#d5b677] bg-[#fff7e4] text-[#4b3a24]'
         : 'border-[#e4d9c6] bg-[#fffaf1] text-[#4b3a24]';
     const pillClass = active
         ? 'bg-[#b98942] text-white'
         : 'bg-white text-[#8b7e66] border border-[#e6dccb]';
-    const pill = active ? '有効' : (display.kind === 'expired' ? '期限切れ' : '無料');
+    const pill = active ? '有効' : (checking ? '確認中' : (display.kind === 'expired' ? '期限切れ' : '無料'));
 
     return ''
         + '<div class="rounded-[18px] px-3 py-3 shadow-[0_10px_22px_rgba(123,95,52,0.08)] ' + toneClass + '">'
@@ -2825,6 +2899,10 @@ function renderPremiumStatusCard(state) {
 
 function renderPremiumTrialCard(state) {
     if (!state || state.active) return '';
+    const display = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
+        ? PremiumManager.getDisplayStatus()
+        : null;
+    if (display && (display.kind === 'premium-cache' || display.kind === 'checking')) return '';
     const selfState = getSelfPremiumMembershipState();
     const unavailable = selfState.trialConsumed;
     const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
@@ -2850,6 +2928,10 @@ function renderPremiumTrialCard(state) {
 
 function renderPremiumPlanCards(state) {
     if (!state || state.active) return '';
+    const display = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
+        ? PremiumManager.getDisplayStatus()
+        : null;
+    if (display && (display.kind === 'premium-cache' || display.kind === 'checking')) return '';
 
     return ''
         + '<div class="overflow-hidden rounded-[20px] border border-[#e3d6c2] bg-white shadow-[0_12px_28px_rgba(123,95,52,0.08)]">'
