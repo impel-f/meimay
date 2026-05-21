@@ -2136,7 +2136,9 @@ function getHomeCollectionSummaryText(readingStock) {
     const tagCounts = {};
 
     safeStock.forEach((item) => {
-        const tags = Array.isArray(item?.tags) ? item.tags : [];
+        const tags = typeof getReadingDisplayTags === 'function'
+            ? getReadingDisplayTags(item?.tags || [])
+            : (Array.isArray(item?.tags) ? item.tags : []).filter((tag) => !String(tag || '').trim().startsWith('#止め字'));
         tags.forEach((tag) => {
             if (!tag) return;
             const normalized = tag.startsWith('#') ? tag : `#${tag}`;
@@ -2169,7 +2171,8 @@ function formatHashTagSummary(values = [], fallbackText = 'まだ傾向なし') 
     const tags = (Array.isArray(values) ? values : [])
         .map((value) => String(value || '').trim())
         .filter(Boolean)
-        .map((value) => value.startsWith('#') ? value : `#${value}`);
+        .map((value) => value.startsWith('#') ? value : `#${value}`)
+        .filter((value) => !value.startsWith('#止め字'));
 
     if (tags.length === 0) return fallbackText;
     return tags.slice(0, 2).join(' ');

@@ -25,6 +25,11 @@ if (!chromePath) {
 
 const readings = [
   {
+    file: 'real-reading-card.png',
+    reading: 'はると',
+    palette: 'cream',
+  },
+  {
     file: 'real-reading-card-minato.png',
     reading: 'みなと',
     palette: 'peach',
@@ -161,11 +166,18 @@ function unique(values) {
   return result;
 }
 
+function isHiddenReadingTag(tag) {
+  return String(tag || '').trim().startsWith('#止め字');
+}
+
 function getReadingSource(reading) {
   const record = readingsData.find((item) => item.reading === reading);
   if (!record) throw new Error(`Reading data not found: ${reading}`);
+  const displayTags = Array.isArray(record.tags)
+    ? record.tags.filter((tag) => tag && !isHiddenReadingTag(tag))
+    : [];
   return {
-    tags: Array.isArray(record.tags) ? record.tags.slice(0, 4) : [],
+    tags: displayTags.slice(0, 4),
     examples: splitWords(record.examples).slice(0, 4),
   };
 }
