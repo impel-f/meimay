@@ -15,6 +15,7 @@ const firebaseConfig = {
 };
 
 let firebaseApp, firebaseAuth, firebaseDb, firebaseAnalytics;
+let firebaseAuthPersistenceReady = Promise.resolve();
 const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 1200;
 const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
 
@@ -220,6 +221,13 @@ window.trackMeimayEvent = function (eventName, params = {}) {
 try {
     firebaseApp = firebase.initializeApp(firebaseConfig);
     firebaseAuth = firebase.auth();
+    if (firebase.auth?.Auth?.Persistence?.LOCAL && typeof firebaseAuth.setPersistence === 'function') {
+        firebaseAuthPersistenceReady = firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+            .catch((error) => {
+                console.warn('FIREBASE: Failed to force local auth persistence', error);
+                return null;
+            });
+    }
     firebaseDb = firebase.firestore();
     MeimayAnalytics.init();
     console.log("FIREBASE: Initialized successfully");
@@ -229,6 +237,9 @@ try {
 
 async function waitForFirebaseAuthReady(timeoutMs = 8000) {
     if (!firebaseAuth) return null;
+    try {
+        await firebaseAuthPersistenceReady;
+    } catch (e) { }
     if (firebaseAuth.currentUser) return firebaseAuth.currentUser;
 
     try {
@@ -265,6 +276,9 @@ const MeimayAuth = {
     // 襍ｷ蜍墓凾縺ｫ閾ｪ蜍募他縺ｳ蜃ｺ縺暦ｼ医Θ繝ｼ繧ｶ繝ｼ謫堺ｽ應ｸ崎ｦ・ｼ・
     init: async function () {
         if (!firebaseAuth) return null;
+        try {
+            await firebaseAuthPersistenceReady;
+        } catch (e) { }
 
         const readyUser = await waitForFirebaseAuthReady();
         if (readyUser) {
@@ -1219,16 +1233,73 @@ const MeimayPairing = {
     _syncPending: false,
     _pendingShareText: '',
     _pendingShareSubject: 'メイメー - ルームコードの共有',
+    PAIRING_CACHE_KEY: 'meimay_pairing_history_v1',
 
     _readLocalRoomState: function () {
         try {
+            const storedCode = String(localStorage.getItem('meimay_room_code') || '').trim().toUpperCase();
+            const cached = this._readPairingCache(storedCode);
             return {
-                code: String(localStorage.getItem('meimay_room_code') || '').trim().toUpperCase(),
-                slot: String(localStorage.getItem('meimay_room_slot') || '').trim(),
-                role: String(localStorage.getItem('meimay_my_role') || '').trim()
+                code: String(storedCode || cached?.roomCode || '').trim().toUpperCase(),
+                slot: String(localStorage.getItem('meimay_room_slot') || cached?.mySlot || '').trim(),
+                role: String(localStorage.getItem('meimay_my_role') || cached?.myRole || '').trim(),
+                partnerUid: String(cached?.partnerUid || '').trim(),
+                partnerRole: String(cached?.partnerRole || '').trim()
             };
         } catch (e) {
-            return { code: '', slot: '', role: '' };
+            return { code: '', slot: '', role: '', partnerUid: '', partnerRole: '' };
+        }
+    },
+
+    _readPairingCache: function (expectedRoomCode = '') {
+        try {
+            const raw = localStorage.getItem(this.PAIRING_CACHE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (!parsed || typeof parsed !== 'object') return null;
+            const roomCode = String(parsed.roomCode || '').trim().toUpperCase();
+            if (!roomCode) return null;
+            const expected = String(expectedRoomCode || '').trim().toUpperCase();
+            if (expected && roomCode !== expected) return null;
+            return {
+                roomCode,
+                mySlot: String(parsed.mySlot || '').trim(),
+                myRole: String(parsed.myRole || '').trim(),
+                partnerSlot: String(parsed.partnerSlot || '').trim(),
+                partnerUid: String(parsed.partnerUid || '').trim(),
+                partnerRole: String(parsed.partnerRole || '').trim(),
+                savedAt: parsed.savedAt || null
+            };
+        } catch (e) {
+            return null;
+        }
+    },
+
+    _writePairingCache: function (reason = '') {
+        try {
+            if (!this.roomCode || !this.mySlot || !this.myRole) return false;
+            const cache = {
+                roomCode: String(this.roomCode || '').trim().toUpperCase(),
+                mySlot: this.mySlot || null,
+                myRole: this.myRole || null,
+                partnerSlot: this.partnerSlot || null,
+                partnerUid: this.partnerUid || null,
+                partnerRole: this.partnerRole || null,
+                reason: reason || null,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(this.PAIRING_CACHE_KEY, JSON.stringify(cache));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    _clearPairingCache: function () {
+        try {
+            localStorage.removeItem(this.PAIRING_CACHE_KEY);
+        } catch (e) { }
+        if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
+            window.clearCachedConnectedPartnerPremiumSnapshot();
         }
     },
 
@@ -1322,11 +1393,11 @@ const MeimayPairing = {
     // localStorage縺九ｉ繝ｫ繝ｼ繝諠・ｱ繧貞ｾｩ蜈・
     resumeRoom: async function () {
         if (typeof wasMeimayAppDataRecentlyDeleted === 'function' && wasMeimayAppDataRecentlyDeleted()) return;
-        let { code, slot, role } = this._readLocalRoomState();
+        let { code, slot, role, partnerUid: cachedPartnerUid, partnerRole: cachedPartnerRole } = this._readLocalRoomState();
         if (!code || !slot || !role) {
             const restored = await this._restoreLocalRoomFromUserDoc();
             if (!restored) return;
-            ({ code, slot, role } = this._readLocalRoomState());
+            ({ code, slot, role, partnerUid: cachedPartnerUid, partnerRole: cachedPartnerRole } = this._readLocalRoomState());
         }
         if (!code || !slot || !role) return;
 
@@ -1334,6 +1405,11 @@ const MeimayPairing = {
         this.mySlot = slot;
         this.myRole = role;
         this.partnerSlot = slot === 'memberA' ? 'memberB' : 'memberA';
+        if (cachedPartnerUid) {
+            this.partnerUid = cachedPartnerUid;
+            this.partnerRole = cachedPartnerRole || null;
+            updatePairingUI();
+        }
 
         // Firestore縺ｧ繝ｫ繝ｼ繝縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱・
         try {
@@ -1364,7 +1440,12 @@ const MeimayPairing = {
                 this.partnerUid = partnerUid;
                 this.partnerRole = partnerRole;
                 this._markRoomPairedOnceIfNeeded(data);
+                this._writePairingCache('resume-partner');
                 MeimayShare.listenPartnerData(partnerUid);
+            } else {
+                this.partnerUid = null;
+                this.partnerRole = null;
+                this._writePairingCache('resume-waiting');
             }
             this._listenRoom();
             updatePairingUI();
@@ -1446,6 +1527,7 @@ const MeimayPairing = {
             localStorage.setItem('meimay_room_code', code);
             localStorage.setItem('meimay_room_slot', 'memberA');
             localStorage.setItem('meimay_my_role', role);
+            this._writePairingCache('create');
             await this._persistUserRoomLink('create');
 
             this._listenRoom();
@@ -1602,6 +1684,7 @@ const MeimayPairing = {
             localStorage.setItem('meimay_room_code', upperCode);
             localStorage.setItem('meimay_room_slot', 'memberB');
             localStorage.setItem('meimay_my_role', role);
+            this._writePairingCache('join');
             await this._persistUserRoomLink('join');
 
             this._listenRoom();
@@ -1665,6 +1748,7 @@ const MeimayPairing = {
         localStorage.removeItem('meimay_room_code');
         localStorage.removeItem('meimay_room_slot');
         localStorage.removeItem('meimay_my_role');
+        this._clearPairingCache();
 
         if (typeof MeimayShare !== 'undefined') {
             MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
@@ -1936,6 +2020,7 @@ const MeimayPairing = {
                     this.partnerUid = partnerUid;
                     this.partnerRole = partnerRole;
                     this._markRoomPairedOnceIfNeeded(data);
+                    this._writePairingCache('partner-joined');
                     MeimayShare.listenPartnerData(partnerUid);
                     updatePairingUI();
                     if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
@@ -1953,16 +2038,22 @@ const MeimayPairing = {
                     console.log(`PAIRING: Partner joined (${partnerRole})`);
                 } else if (partnerUid && partnerRole !== this.partnerRole) {
                     this.partnerRole = partnerRole || null;
+                    this._writePairingCache('partner-role');
                     updatePairingUI();
                 } else if (!partnerUid && this.partnerUid) {
                     // 繝代・繝医リ繝ｼ縺碁螳､縺励◆
                     this.partnerUid = null;
                     this.partnerRole = null;
+                    this._writePairingCache('partner-left');
+                    if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
+                        window.clearCachedConnectedPartnerPremiumSnapshot();
+                    }
                     MeimayShare.stopListening();
                     updatePairingUI();
                     showToast('パートナーとの連携が解除されました', '\u2713');
                     console.log('PAIRING: Partner left');
                 } else if (shouldRefreshPairingUi) {
+                    this._writePairingCache('room-refresh');
                     updatePairingUI();
                 }
             }, (e) => {
@@ -1989,9 +2080,12 @@ const MeimayPairing = {
         this.mySlot = null;
         this.myRole = null;
         this.partnerSlot = null;
+        this.partnerUid = null;
+        this.partnerRole = null;
         localStorage.removeItem('meimay_room_code');
         localStorage.removeItem('meimay_room_slot');
         localStorage.removeItem('meimay_my_role');
+        this._clearPairingCache();
     },
 
     _generateRoomCode: function () {
@@ -7028,7 +7122,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             let partnerPremiumSnapshot = roomPremiumSnapshot;
             let partnerUserBackup = null;
             const shouldFetchPartnerUserBackup = partnerUid && (
-                !hasRoomSyncArrayField(data, roomBackup, 'liked')
+                !partnerPremiumSnapshot
+                || !hasRoomSyncArrayField(data, roomBackup, 'liked')
                 || !hasRoomSyncArrayField(data, roomBackup, 'savedNames')
                 || !hasRoomSyncArrayField(data, roomBackup, 'readingStock')
                 || !partnerChildWorkspaceStateV2
@@ -7039,6 +7134,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
+                        const partnerUserPremiumSnapshot = this.buildPublicPremiumSnapshot(partnerUserData);
+                        if (!partnerPremiumSnapshot && partnerUserPremiumSnapshot) {
+                            partnerPremiumSnapshot = partnerUserPremiumSnapshot;
+                        }
                         const remoteLikedRemovalSource = Array.isArray(partnerBackup?.likedRemoved) && partnerBackup.likedRemoved.length > 0
                             ? partnerBackup.likedRemoved
                             : (Array.isArray(partnerUserData.likedRemoved) ? partnerUserData.likedRemoved : []);
@@ -7138,8 +7237,19 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 window.invalidateBuildDataCaches('partner-snapshot');
             }
             this.partnerUserSnapshot = partnerPremiumSnapshot;
+            if (partnerPremiumSnapshot && typeof window !== 'undefined' && typeof window.setCachedConnectedPartnerPremiumSnapshot === 'function') {
+                window.setCachedConnectedPartnerPremiumSnapshot(partnerPremiumSnapshot, {
+                    roomCode: MeimayPairing.roomCode,
+                    partnerUid
+                });
+            }
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();
+            }
+            if (partnerPremiumSnapshot && typeof PremiumManager !== 'undefined' && PremiumManager
+                && typeof PremiumManager.isPremium === 'function' && PremiumManager.isPremium()
+                && typeof hideAdBanner === 'function') {
+                hideAdBanner();
             }
 
             if (typeof updatePairingUI === 'function') {
@@ -7195,7 +7305,9 @@ MeimayShare.stopListening = function () {
 
 window.getConnectedPartnerPremiumSnapshot = function () {
     if (typeof MeimayShare === 'undefined' || !MeimayShare) {
-        return null;
+        return typeof window.getCachedConnectedPartnerPremiumSnapshot === 'function'
+            ? window.getCachedConnectedPartnerPremiumSnapshot()
+            : null;
     }
     if (typeof MeimayShare.getConnectedPremiumSnapshot === 'function') {
         const premiumSnapshot = MeimayShare.getConnectedPremiumSnapshot();
@@ -7206,6 +7318,9 @@ window.getConnectedPartnerPremiumSnapshot = function () {
     }
     if (MeimayShare.partnerSnapshot && MeimayShare.partnerSnapshot.premiumState) {
         return MeimayShare.partnerSnapshot.premiumState;
+    }
+    if (typeof window.getCachedConnectedPartnerPremiumSnapshot === 'function') {
+        return window.getCachedConnectedPartnerPremiumSnapshot();
     }
     return null;
 };

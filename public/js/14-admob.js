@@ -828,13 +828,15 @@ function getBottomFooterHeight() {
 }
 
 const AD_BANNER_GAP = 8;
-const AD_BANNER_DOCK_TUCK = 12;
+const AD_BANNER_DOCK_TUCK = 0;
 const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
 const AD_PREMIUM_STATE_GRACE_MS = 12000;
 const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
 const PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const PARTNER_PREMIUM_CACHE_KEY = 'meimay_partner_premium_cache_v1';
+const PARTNER_PREMIUM_CACHE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 let adBannerVisible = false;
 let adBannerMode = null;
 let nativeAdMobInitializePromise = null;
@@ -896,6 +898,125 @@ function hasFreshPremiumAdSuppressionCache() {
     if (updatedAtMs > 0 && Date.now() - updatedAtMs > PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS) return false;
     const expiresAt = normalizePremiumDate(cache.expiresAt);
     return !expiresAt || expiresAt.getTime() > Date.now();
+}
+
+function getCurrentPairingRoomCodeForPremiumCache() {
+    try {
+        const liveCode = typeof MeimayPairing !== 'undefined' && MeimayPairing
+            ? String(MeimayPairing.roomCode || '').trim().toUpperCase()
+            : '';
+        if (liveCode) return liveCode;
+        return String(localStorage.getItem('meimay_room_code') || '').trim().toUpperCase();
+    } catch (e) {
+        return '';
+    }
+}
+
+function getCurrentPartnerUidForPremiumCache() {
+    try {
+        return typeof MeimayPairing !== 'undefined' && MeimayPairing
+            ? String(MeimayPairing.partnerUid || '').trim()
+            : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function normalizePartnerPremiumCacheSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    const state = {
+        isPremium: typeof snapshot.isPremium === 'boolean' ? snapshot.isPremium : null,
+        premiumSource: typeof snapshot.premiumSource === 'string' ? snapshot.premiumSource.trim().toLowerCase() || null : null,
+        subscriptionStatus: typeof snapshot.subscriptionStatus === 'string'
+            ? snapshot.subscriptionStatus.trim().toLowerCase() || null
+            : (typeof snapshot.premiumStatus === 'string' ? snapshot.premiumStatus.trim().toLowerCase() || null : null),
+        premiumStatus: typeof snapshot.premiumStatus === 'string'
+            ? snapshot.premiumStatus.trim().toLowerCase() || null
+            : (typeof snapshot.subscriptionStatus === 'string' ? snapshot.subscriptionStatus.trim().toLowerCase() || null : null),
+        appStoreExpiresAt: snapshot.appStoreExpiresAt || null,
+        premiumExpiresAt: snapshot.premiumExpiresAt || snapshot.appStoreExpiresAt || snapshot.trialEndsAt || null,
+        appStoreProductId: typeof snapshot.appStoreProductId === 'string'
+            ? snapshot.appStoreProductId.trim() || null
+            : (typeof snapshot.premiumProductId === 'string' ? snapshot.premiumProductId.trim() || null : null),
+        premiumProductId: typeof snapshot.premiumProductId === 'string'
+            ? snapshot.premiumProductId.trim() || null
+            : (typeof snapshot.appStoreProductId === 'string' ? snapshot.appStoreProductId.trim() || null : null),
+        appStoreLastNotificationType: typeof snapshot.appStoreLastNotificationType === 'string'
+            ? snapshot.appStoreLastNotificationType.trim() || null
+            : (typeof snapshot.latestNotificationType === 'string' ? snapshot.latestNotificationType.trim() || null : null),
+        latestNotificationType: typeof snapshot.latestNotificationType === 'string'
+            ? snapshot.latestNotificationType.trim() || null
+            : (typeof snapshot.appStoreLastNotificationType === 'string' ? snapshot.appStoreLastNotificationType.trim() || null : null),
+        trialStatus: typeof snapshot.trialStatus === 'string' ? snapshot.trialStatus.trim().toLowerCase() || null : null,
+        trialStartedAt: snapshot.trialStartedAt || null,
+        trialEndsAt: snapshot.trialEndsAt || null,
+        trialConsumedByRoom: snapshot.trialConsumedByRoom === true,
+        updatedAt: snapshot.updatedAt || null
+    };
+    const hasIndicators = state.isPremium !== null
+        || !!state.subscriptionStatus
+        || !!state.premiumSource
+        || !!state.trialStatus
+        || !!state.appStoreExpiresAt
+        || !!state.premiumExpiresAt
+        || !!state.appStoreProductId
+        || !!state.premiumProductId;
+    return hasIndicators ? state : null;
+}
+
+function getCachedConnectedPartnerPremiumSnapshot() {
+    try {
+        const raw = localStorage.getItem(PARTNER_PREMIUM_CACHE_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (!parsed || typeof parsed !== 'object') return null;
+
+        const updatedAtMs = Number(parsed.updatedAtMs) || 0;
+        if (updatedAtMs > 0 && Date.now() - updatedAtMs > PARTNER_PREMIUM_CACHE_MAX_AGE_MS) return null;
+
+        const currentRoomCode = getCurrentPairingRoomCodeForPremiumCache();
+        const cachedRoomCode = String(parsed.roomCode || '').trim().toUpperCase();
+        if (currentRoomCode && cachedRoomCode && currentRoomCode !== cachedRoomCode) return null;
+
+        const currentPartnerUid = getCurrentPartnerUidForPremiumCache();
+        const cachedPartnerUid = String(parsed.partnerUid || '').trim();
+        if (currentPartnerUid && cachedPartnerUid && currentPartnerUid !== cachedPartnerUid) return null;
+
+        return normalizePartnerPremiumCacheSnapshot(parsed.state || parsed);
+    } catch (e) {
+        return null;
+    }
+}
+
+function setCachedConnectedPartnerPremiumSnapshot(snapshot, context = {}) {
+    const state = normalizePartnerPremiumCacheSnapshot(snapshot);
+    if (!state) return false;
+    try {
+        const roomCode = String(
+            context.roomCode
+            || getCurrentPairingRoomCodeForPremiumCache()
+            || ''
+        ).trim().toUpperCase();
+        const partnerUid = String(
+            context.partnerUid
+            || getCurrentPartnerUidForPremiumCache()
+            || ''
+        ).trim();
+        localStorage.setItem(PARTNER_PREMIUM_CACHE_KEY, JSON.stringify({
+            roomCode,
+            partnerUid,
+            state,
+            updatedAtMs: Date.now()
+        }));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function clearCachedConnectedPartnerPremiumSnapshot() {
+    try {
+        localStorage.removeItem(PARTNER_PREMIUM_CACHE_KEY);
+    } catch (e) { }
 }
 
 function getAdMobPremiumHoldReason() {
@@ -1454,13 +1575,14 @@ function isLifetimePremiumProduct(productId) {
 }
 
 function getConnectedPartnerPremiumSnapshot() {
-    if (typeof MeimayPairing === 'undefined' || !MeimayPairing || !MeimayPairing.roomCode || !MeimayPairing.partnerUid) {
-        return null;
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && MeimayPairing.partnerUid
+        && typeof MeimayShare !== 'undefined' && MeimayShare) {
+        const liveSnapshot = typeof MeimayShare.getConnectedPremiumSnapshot === 'function'
+            ? MeimayShare.getConnectedPremiumSnapshot()
+            : (MeimayShare.partnerUserSnapshot || null);
+        if (liveSnapshot) return liveSnapshot;
     }
-    if (typeof MeimayShare === 'undefined' || !MeimayShare) {
-        return null;
-    }
-    return MeimayShare.partnerUserSnapshot || null;
+    return getCachedConnectedPartnerPremiumSnapshot();
 }
 
 function getConnectedPremiumPartnerSnapshot() {
@@ -2881,6 +3003,9 @@ window.renderPremiumComparisonMatrix = renderPremiumComparisonMatrix;
 window.formatPremiumMembershipDate = formatPremiumMembershipDate;
 window.getConnectedPartnerPremiumSnapshot = getConnectedPartnerPremiumSnapshot;
 window.getConnectedPremiumPartnerSnapshot = getConnectedPremiumPartnerSnapshot;
+window.getCachedConnectedPartnerPremiumSnapshot = getCachedConnectedPartnerPremiumSnapshot;
+window.setCachedConnectedPartnerPremiumSnapshot = setCachedConnectedPartnerPremiumSnapshot;
+window.clearCachedConnectedPartnerPremiumSnapshot = clearCachedConnectedPartnerPremiumSnapshot;
 window.buildPremiumMembershipState = buildPremiumMembershipState;
 window.isLocalPremiumFallbackAllowed = isLocalPremiumFallbackAllowed;
 window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;

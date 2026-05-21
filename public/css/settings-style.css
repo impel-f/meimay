@@ -207,9 +207,10 @@
     font-size: clamp(14px, 4.7vw, 18px);
     font-weight: 800;
     line-height: 1.35;
-    overflow: hidden;
+    overflow: visible;
+    overflow-wrap: anywhere;
     text-overflow: clip;
-    white-space: nowrap;
+    white-space: normal;
 }
 
 .settings-sheet .modal-desc {
@@ -229,6 +230,7 @@
 .settings-sheet-row {
     position: relative;
     width: 100%;
+    min-width: 0;
     min-height: 52px;
     border: 0;
     background: transparent;
@@ -253,6 +255,8 @@
 }
 
 .settings-sheet-row span {
+    flex: 0 0 auto;
+    min-width: 0;
     font-size: 14px;
     font-weight: 700;
     overflow: hidden;
@@ -261,10 +265,14 @@
 }
 
 .settings-sheet-row strong {
+    min-width: 0;
     color: #9b907f;
     font-size: 12px;
     font-weight: 600;
-    white-space: nowrap;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    text-align: right;
+    white-space: normal;
 }
 
 .settings-sheet-link {
