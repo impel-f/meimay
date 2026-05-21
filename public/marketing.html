@@ -14,6 +14,8 @@
     <link rel="icon" href="/favicon.ico?v=1.2.2" sizes="any">
     <link rel="apple-touch-icon" href="/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
     <style>
         :root {
             color: #5d5444;
@@ -1287,7 +1289,7 @@
                         <span class="subcopy-line">ふたりで見返せる形で残せます。</span>
                     </p>
                     <div class="hero-actions">
-                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで無料ではじめる</a>
+                        <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452" data-marketing-event="app_store_cta_click" data-marketing-location="hero">App Storeで無料ではじめる</a>
                     </div>
                     <p class="store-note">
                         <span class="sentence-line">iPhone版を公開中。</span>
@@ -1498,7 +1500,7 @@
                 </div>
             </details>
             <div class="hero-actions">
-                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452">App Storeで無料ではじめる</a>
+                <a class="button button-primary" href="https://apps.apple.com/jp/app/id6760251452" data-marketing-event="app_store_cta_click" data-marketing-location="final">App Storeで無料ではじめる</a>
             </div>
         </section>
     </main>
@@ -1507,12 +1509,85 @@
         <div class="footer-inner">
             <span>&copy; 2026 メイメー</span>
             <div class="footer-links">
-                <a href="/privacy.html">プライバシーポリシー</a>
-                <a href="/terms.html">利用規約</a>
-                <a href="/support.html">お問い合わせ</a>
+                <a href="/privacy.html" data-marketing-event="footer_link_click" data-marketing-location="privacy">プライバシーポリシー</a>
+                <a href="/terms.html" data-marketing-event="footer_link_click" data-marketing-location="terms">利用規約</a>
+                <a href="/support.html" data-marketing-event="footer_link_click" data-marketing-location="support">お問い合わせ</a>
             </div>
         </div>
     </footer>
+    <script>
+        (function () {
+            const firebaseConfig = {
+                apiKey: "AIzaSyCeteJiyV2Qsv0pdOp6Y0LsG2ov7kJd4I8",
+                authDomain: "meimay-9a28f.firebaseapp.com",
+                projectId: "meimay-9a28f",
+                storageBucket: "meimay-9a28f.firebasestorage.app",
+                messagingSenderId: "1091140035256",
+                appId: "1:1091140035256:web:cd452523d8eb87f34b8a4d",
+                measurementId: "G-RDT1HTGLF1"
+            };
+            let marketingAnalytics = null;
+
+            function trackMarketingEvent(eventName, params) {
+                const safeName = String(eventName || '').trim().replace(/[^A-Za-z0-9_]/g, '_').slice(0, 40);
+                if (!safeName || !marketingAnalytics || typeof marketingAnalytics.logEvent !== 'function') return false;
+                try {
+                    marketingAnalytics.logEvent(safeName, {
+                        page_path: window.location.pathname || '/',
+                        page_title: document.title || 'marketing',
+                        ...params
+                    });
+                    return true;
+                } catch (error) {
+                    console.warn('MARKETING_ANALYTICS: Event failed', error);
+                    return false;
+                }
+            }
+
+            function startMarketingAnalytics() {
+                try {
+                    if (typeof firebase === 'undefined' || typeof firebase.analytics !== 'function') return;
+                    if (!firebase.apps || firebase.apps.length === 0) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    marketingAnalytics = firebase.analytics();
+                    window.trackMarketingEvent = trackMarketingEvent;
+                    trackMarketingEvent('marketing_page_view', {
+                        entry_path: window.location.pathname || '/',
+                        has_referrer: document.referrer ? 1 : 0
+                    });
+                    console.log('MARKETING_ANALYTICS: Initialized successfully');
+                } catch (error) {
+                    console.warn('MARKETING_ANALYTICS: Init failed', error);
+                }
+            }
+
+            document.addEventListener('click', function (event) {
+                const target = event.target && event.target.closest
+                    ? event.target.closest('[data-marketing-event]')
+                    : null;
+                if (!target) return;
+                trackMarketingEvent(target.dataset.marketingEvent, {
+                    link_location: target.dataset.marketingLocation || '',
+                    link_url: target.getAttribute('href') || ''
+                });
+            });
+
+            if (typeof firebase !== 'undefined'
+                && firebase.analytics
+                && typeof firebase.analytics.isSupported === 'function') {
+                firebase.analytics.isSupported()
+                    .then(function (supported) {
+                        if (supported) startMarketingAnalytics();
+                    })
+                    .catch(function (error) {
+                        console.warn('MARKETING_ANALYTICS: Support check failed', error);
+                    });
+            } else {
+                startMarketingAnalytics();
+            }
+        })();
+    </script>
 </body>
 
 </html>
