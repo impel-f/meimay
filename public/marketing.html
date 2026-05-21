@@ -375,18 +375,31 @@
 
         .mobile-swipe-carousel {
             display: none;
+            position: relative;
             overflow: hidden;
             background: var(--paper);
         }
 
         .mobile-swipe-track {
             display: flex;
-            will-change: transform;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .mobile-swipe-track::-webkit-scrollbar {
+            display: none;
         }
 
         .mobile-swipe-track img {
             flex: 0 0 100%;
             width: 100%;
+            scroll-snap-align: center;
+        }
+
+        .swipe-guide {
+            display: none;
         }
 
         .screen-shot figcaption {
@@ -1178,12 +1191,40 @@
                 display: block;
             }
 
-            .mobile-swipe-track {
-                animation: mobile-card-swipe 30s cubic-bezier(0.76, 0, 0.24, 1) infinite;
+            .swipe-guide {
+                position: absolute;
+                left: 50%;
+                bottom: 10px;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                transform: translateX(-50%);
+                padding: 6px 10px;
+                border-radius: 999px;
+                background: rgba(255, 253, 248, 0.88);
+                border: 1px solid rgba(234, 223, 206, 0.9);
+                color: #8b7e66;
+                font-size: 10.5px;
+                line-height: 1;
+                font-weight: 900;
+                box-shadow: 0 8px 18px rgba(93, 84, 68, 0.09);
+                pointer-events: none;
+                white-space: nowrap;
             }
 
-            .mobile-swipe-track.kanji-carousel {
-                animation-delay: -4s;
+            .swipe-guide::before,
+            .swipe-guide::after {
+                font-size: 13px;
+                line-height: 1;
+                opacity: 0.85;
+            }
+
+            .swipe-guide::before {
+                content: "←";
+            }
+
+            .swipe-guide::after {
+                content: "→";
             }
 
             .screen-shot figcaption {
@@ -1219,49 +1260,6 @@
                 display: block;
             }
 
-        }
-
-        @keyframes mobile-card-swipe {
-            0%,
-            9% {
-                transform: translateX(0);
-            }
-
-            15%,
-            24% {
-                transform: translateX(-100%);
-            }
-
-            30%,
-            39% {
-                transform: translateX(-200%);
-            }
-
-            45%,
-            54% {
-                transform: translateX(-300%);
-            }
-
-            60%,
-            69% {
-                transform: translateX(-400%);
-            }
-
-            75%,
-            84% {
-                transform: translateX(-500%);
-            }
-
-            92%,
-            100% {
-                transform: translateX(-600%);
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .mobile-swipe-track {
-                animation: none !important;
-            }
         }
     </style>
 </head>
@@ -1332,8 +1330,8 @@
                             <img src="/marketing-assets/real-reading-card-aoi.png" alt="">
                             <img src="/marketing-assets/real-reading-card-yuito.png" alt="">
                             <img src="/marketing-assets/real-reading-card-tsumugi.png" alt="">
-                            <img src="/marketing-assets/real-reading-card.png" alt="">
                         </div>
+                        <div class="swipe-guide">左右にスワイプ</div>
                     </div>
                     <img class="desktop-static-shot" src="/marketing-assets/real-reading-card.png" alt="響きのカードを直感的に残せる画面">
                     <figcaption data-step="響き">
@@ -1351,8 +1349,8 @@
                             <img src="/marketing-assets/real-kanji-card-rin.png" alt="">
                             <img src="/marketing-assets/real-kanji-card-tsumugi.png" alt="">
                             <img src="/marketing-assets/real-kanji-card-mio.png" alt="">
-                            <img src="/marketing-assets/real-kanji-card.png" alt="">
                         </div>
+                        <div class="swipe-guide">左右にスワイプ</div>
                     </div>
                     <img class="desktop-static-shot" src="/marketing-assets/real-kanji-card.png" alt="使いたい漢字を見つける画面">
                     <figcaption data-step="漢字">

@@ -5,6 +5,8 @@ const { execFileSync } = require('child_process');
 const projectRoot = path.resolve(__dirname, '..');
 const outputDir = path.join(projectRoot, 'public', 'marketing-assets');
 const tempDir = path.join(projectRoot, 'tmp', 'marketing-card-render');
+const readingsData = JSON.parse(fs.readFileSync(path.join(projectRoot, 'public', 'data', 'readings_data.json'), 'utf8'));
+const kanjiData = JSON.parse(fs.readFileSync(path.join(projectRoot, 'public', 'data', 'kanji_data.json'), 'utf8'));
 
 const chromeCandidates = [
   process.env.CHROME_PATH,
@@ -24,42 +26,27 @@ if (!chromePath) {
 const readings = [
   {
     file: 'real-reading-card-minato.png',
-    family: 'さとう みなと',
     reading: 'みなと',
-    tags: ['#爽やか', '#海風', '#今風'],
-    examples: ['湊', '湊斗', '美波斗', '港'],
     palette: 'peach',
   },
   {
     file: 'real-reading-card-hinata.png',
-    family: 'さとう ひなた',
     reading: 'ひなた',
-    tags: ['#あたたかい', '#自然語', '#やさしい'],
-    examples: ['陽向', '日向', '陽大', '暖'],
     palette: 'sun',
   },
   {
     file: 'real-reading-card-aoi.png',
-    family: 'さとう あおい',
     reading: 'あおい',
-    tags: ['#中性的', '#澄んだ', '#自然'],
-    examples: ['葵', '碧', '蒼生', '青依'],
     palette: 'mint',
   },
   {
     file: 'real-reading-card-yuito.png',
-    family: 'さとう ゆいと',
     reading: 'ゆいと',
-    tags: ['#結び', '#今風', '#やさしい'],
-    examples: ['結翔', '唯斗', '悠糸', '祐人'],
     palette: 'blue',
   },
   {
     file: 'real-reading-card-tsumugi.png',
-    family: 'さとう つむぎ',
     reading: 'つむぎ',
-    tags: ['#やわらかい', '#古風', '#あたたかい'],
-    examples: ['紬', '紬希', '紡葵', '都麦'],
     palette: 'cream',
   },
 ];
@@ -68,46 +55,26 @@ const kanji = [
   {
     file: 'real-kanji-card-aoi.png',
     char: '碧',
-    strokes: '14画',
-    tags: ['#澄んだ', '#自然'],
-    readings: ['あお', 'あおい', 'たま', 'みどり'],
-    meaning: '青緑。澄んだ玉の色。',
     palette: 'aqua',
   },
   {
     file: 'real-kanji-card-haru.png',
     char: '陽',
-    strokes: '12画',
-    tags: ['#太陽', '#明るい'],
-    readings: ['はる', 'ひ', 'あき', 'よう'],
-    meaning: '太陽。明るくあたたかい。',
     palette: 'sun',
   },
   {
     file: 'real-kanji-card-rin.png',
     char: '凛',
-    strokes: '15画',
-    tags: ['#上品', '#清らか'],
-    readings: ['りん'],
-    meaning: '引き締まった美しさ。',
     palette: 'lavender',
   },
   {
     file: 'real-kanji-card-tsumugi.png',
     char: '紬',
-    strokes: '11画',
-    tags: ['#糸', '#あたたかい'],
-    readings: ['つむぎ', 'つむ', 'ゆう'],
-    meaning: '糸をつむぐ。丁寧につなぐ。',
     palette: 'cream',
   },
   {
     file: 'real-kanji-card-mio.png',
     char: '澪',
-    strokes: '16画',
-    tags: ['#水', '#澄んだ'],
-    readings: ['みお', 'れい'],
-    meaning: '水の通り道。澄んだ流れ。',
     palette: 'blue',
   },
 ];
@@ -135,16 +102,17 @@ function pill(text) {
 }
 
 function readingCard(data) {
+  const source = getReadingSource(data.reading);
   const [from, via, border] = palettes[data.palette];
   return renderPage(`
     <article class="card reading-card" style="--from:${from};--via:${via};--border:${border};">
       <div class="soft-ring"></div>
-      <p class="family">${escapeHtml(data.family)}</p>
-      <div class="tags">${data.tags.map(pill).join('')}</div>
+      <p class="family">${escapeHtml(`さとう ${data.reading}`)}</p>
+      <div class="tags">${source.tags.map(pill).join('')}</div>
       <h1 class="reading">${escapeHtml(data.reading)}</h1>
       <div class="example">
         <b>名前の例</b>
-        <strong>${data.examples.map(escapeHtml).join('　')}</strong>
+        <strong>${source.examples.map(escapeHtml).join('　')}</strong>
       </div>
       <p class="hint">タップで詳細 ／ スワイプで選択</p>
     </article>
@@ -152,18 +120,70 @@ function readingCard(data) {
 }
 
 function kanjiCard(data) {
+  const source = getKanjiSource(data.char);
   const [from, via, border] = palettes[data.palette];
   return renderPage(`
     <article class="card kanji-card" style="--from:${from};--via:${via};--border:${border};">
       <div class="soft-ring"></div>
-      <div class="tags kanji-tags">${data.tags.map(pill).join('')}</div>
+      <div class="tags kanji-tags">${source.tags.map(pill).join('')}</div>
       <h1 class="kanji">${escapeHtml(data.char)}</h1>
-      <p class="strokes">${escapeHtml(data.strokes)}</p>
-      <div class="readings">${data.readings.map(pill).join('')}</div>
-      <p class="meaning">${escapeHtml(data.meaning)}</p>
+      <p class="strokes">${escapeHtml(source.strokes)}</p>
+      <div class="readings">${source.readings.map(pill).join('')}</div>
+      <p class="meaning">${escapeHtml(source.meaning)}</p>
       <p class="hint">タップで詳細 ／ スワイプで選択</p>
     </article>
   `);
+}
+
+function splitWords(value) {
+  return String(value || '')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeReadingPill(value) {
+  return String(value || '')
+    .replace(/[（）]/g, '')
+    .replace(/[()]/g, '')
+    .trim();
+}
+
+function unique(values) {
+  const seen = new Set();
+  const result = [];
+  values.forEach((value) => {
+    const normalized = String(value || '').trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    result.push(normalized);
+  });
+  return result;
+}
+
+function getReadingSource(reading) {
+  const record = readingsData.find((item) => item.reading === reading);
+  if (!record) throw new Error(`Reading data not found: ${reading}`);
+  return {
+    tags: Array.isArray(record.tags) ? record.tags.slice(0, 4) : [],
+    examples: splitWords(record.examples).slice(0, 4),
+  };
+}
+
+function getKanjiSource(char) {
+  const record = kanjiData.find((item) => item['漢字'] === char);
+  if (!record) throw new Error(`Kanji data not found: ${char}`);
+  const readings = unique([
+    ...splitWords(record['音']),
+    ...splitWords(record['訓']).map(normalizeReadingPill),
+    ...splitWords(record['伝統名のり']).map(normalizeReadingPill),
+  ]).slice(0, 6);
+  return {
+    tags: splitWords(record['分類']).slice(0, 4),
+    strokes: `${record['画数']}画`,
+    readings,
+    meaning: String(record['意味'] || '').trim(),
+  };
 }
 
 function renderPage(body) {
@@ -272,12 +292,12 @@ function renderPage(body) {
     font-weight: 900;
   }
   .kanji-tags {
-    margin-top: 46px;
-    justify-content: flex-end;
-    padding-right: 48px;
+    margin-top: 50px;
+    justify-content: center;
+    padding: 0 48px;
   }
   .kanji {
-    margin: 72px auto 0;
+    margin: 68px auto 0;
     text-align: center;
     font-size: 162px;
     line-height: .92;
@@ -325,8 +345,12 @@ function renderPng(fileName, html) {
   fs.mkdirSync(outputDir, { recursive: true });
 
   const htmlPath = path.join(tempDir, `${path.basename(fileName, '.png')}.html`);
+  const screenshotPath = path.join(tempDir, `${path.basename(fileName, '.png')}.png`);
+  const userDataDir = path.join(tempDir, `chrome-${path.basename(fileName, '.png')}`);
   const outputPath = path.join(outputDir, fileName);
   fs.writeFileSync(htmlPath, html, 'utf8');
+  fs.rmSync(userDataDir, { recursive: true, force: true });
+  fs.rmSync(screenshotPath, { force: true });
 
   execFileSync(chromePath, [
     '--headless=new',
@@ -335,10 +359,12 @@ function renderPng(fileName, html) {
     '--run-all-compositor-stages-before-draw',
     '--virtual-time-budget=1400',
     '--window-size=658,610',
-    `--screenshot=${outputPath}`,
+    `--user-data-dir=${userDataDir}`,
+    `--screenshot=${screenshotPath}`,
     `file:///${htmlPath.replace(/\\/g, '/')}`,
   ], { stdio: 'inherit' });
 
+  fs.copyFileSync(screenshotPath, outputPath);
   const bytes = fs.statSync(outputPath).size;
   console.log(`Rendered ${path.relative(projectRoot, outputPath)} (${bytes} bytes)`);
 }
