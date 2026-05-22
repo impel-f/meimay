@@ -2254,6 +2254,8 @@ const MeimayPairing = {
 // SHARE - 繝ｫ繝ｼ繝邨檎罰縺ｮ繝・・繧ｿ蜈ｱ譛・// ============================================================
 const MeimayShare = {
     _partnerUnsub: null,
+    _listeningPartnerUid: '',
+    _partnerSnapshotPartnerUid: '',
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
     _lastPremiumStateSyncFingerprint: '',
     PARTNER_SNAPSHOT_CACHE_KEY: 'meimay_partner_snapshot_cache_v1',
@@ -2292,6 +2294,7 @@ const MeimayShare = {
                 snapshot,
                 updatedAtMs: Date.now()
             }));
+            this._partnerSnapshotPartnerUid = partnerUid;
             return true;
         } catch (e) {
             console.warn('SHARE: Failed to cache partner snapshot', e);
@@ -2327,6 +2330,7 @@ const MeimayShare = {
         const snapshot = this.readCachedPartnerSnapshot();
         if (!snapshot) return false;
         this.partnerSnapshot = snapshot;
+        this._partnerSnapshotPartnerUid = String(MeimayPairing?.partnerUid || '').trim();
         if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
             MeimayPartnerInsights.clearCache(`partner-cache-${reason}`);
         }
@@ -2384,6 +2388,8 @@ const MeimayShare = {
             this._partnerUnsub();
             this._partnerUnsub = null;
         }
+        this._listeningPartnerUid = '';
+        this._partnerSnapshotPartnerUid = '';
         this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
@@ -7215,7 +7221,22 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
 
 MeimayShare.listenPartnerData = function (partnerUid) {
     if (!partnerUid || !MeimayPairing.roomCode) return;
-    this.stopListening();
+    const nextPartnerUid = String(partnerUid || '').trim();
+    const snapshotPartnerUid = String(this._partnerSnapshotPartnerUid || '').trim();
+    const isSwitchingPartner = !!snapshotPartnerUid && snapshotPartnerUid !== nextPartnerUid;
+    if (isSwitchingPartner) {
+        this.stopListening();
+    } else {
+        if (this._partnerUnsub) {
+            this._partnerUnsub();
+            this._partnerUnsub = null;
+        }
+        if (this._partnerUserUnsub) {
+            this._partnerUserUnsub();
+            this._partnerUserUnsub = null;
+        }
+    }
+    this._listeningPartnerUid = nextPartnerUid;
 
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
@@ -7371,6 +7392,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 backup: roomBackup,
                 partnerUserBackup
             };
+            this._partnerSnapshotPartnerUid = partnerUid;
             if (typeof this.cachePartnerSnapshot === 'function') {
                 this.cachePartnerSnapshot(this.partnerSnapshot, {
                     roomCode: MeimayPairing.roomCode,
@@ -7433,6 +7455,8 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub();
         this._partnerUserUnsub = null;
     }
+    this._listeningPartnerUid = '';
+    this._partnerSnapshotPartnerUid = '';
     this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
         MeimayPartnerInsights.clearCache('partner-stop');
