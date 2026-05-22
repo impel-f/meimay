@@ -1774,6 +1774,9 @@ const MeimayPairing = {
 
         if (typeof MeimayShare !== 'undefined') {
             MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+            if (typeof MeimayShare.clearCachedPartnerSnapshot === 'function') {
+                MeimayShare.clearCachedPartnerSnapshot();
+            }
         }
 
         if (typeof changeScreen === 'function') {
@@ -2253,6 +2256,92 @@ const MeimayShare = {
     _partnerUnsub: null,
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
     _lastPremiumStateSyncFingerprint: '',
+    PARTNER_SNAPSHOT_CACHE_KEY: 'meimay_partner_snapshot_cache_v1',
+    PARTNER_SNAPSHOT_CACHE_MAX_AGE_MS: 14 * 24 * 60 * 60 * 1000,
+
+    _emptyPartnerSnapshot: function () {
+        return {
+            liked: [],
+            savedNames: [],
+            readingStock: [],
+            encounteredReadings: [],
+            hiddenReadings: [],
+            likedRemoved: [],
+            meimayBackup: null,
+            backup: null,
+            partnerUserBackup: null,
+            premiumState: null,
+            role: null,
+            displayName: '',
+            username: '',
+            nickname: '',
+            themeId: ''
+        };
+    },
+
+    cachePartnerSnapshot: function (snapshot, context = {}) {
+        if (!snapshot || typeof snapshot !== 'object') return false;
+        const roomCode = String(context.roomCode || MeimayPairing?.roomCode || '').trim().toUpperCase();
+        const partnerUid = String(context.partnerUid || MeimayPairing?.partnerUid || '').trim();
+        if (!roomCode || !partnerUid) return false;
+
+        try {
+            localStorage.setItem(this.PARTNER_SNAPSHOT_CACHE_KEY, JSON.stringify({
+                roomCode,
+                partnerUid,
+                snapshot,
+                updatedAtMs: Date.now()
+            }));
+            return true;
+        } catch (e) {
+            console.warn('SHARE: Failed to cache partner snapshot', e);
+            return false;
+        }
+    },
+
+    readCachedPartnerSnapshot: function (context = {}) {
+        try {
+            const raw = localStorage.getItem(this.PARTNER_SNAPSHOT_CACHE_KEY);
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (!parsed || typeof parsed !== 'object') return null;
+
+            const updatedAtMs = Number(parsed.updatedAtMs) || 0;
+            if (updatedAtMs > 0 && Date.now() - updatedAtMs > this.PARTNER_SNAPSHOT_CACHE_MAX_AGE_MS) return null;
+
+            const expectedRoomCode = String(context.roomCode || MeimayPairing?.roomCode || '').trim().toUpperCase();
+            const cachedRoomCode = String(parsed.roomCode || '').trim().toUpperCase();
+            if (expectedRoomCode && cachedRoomCode && expectedRoomCode !== cachedRoomCode) return null;
+
+            const expectedPartnerUid = String(context.partnerUid || MeimayPairing?.partnerUid || '').trim();
+            const cachedPartnerUid = String(parsed.partnerUid || '').trim();
+            if (expectedPartnerUid && cachedPartnerUid && expectedPartnerUid !== cachedPartnerUid) return null;
+
+            const snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
+            return snapshot ? { ...this._emptyPartnerSnapshot(), ...snapshot } : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    hydrateCachedPartnerSnapshot: function (reason = 'startup') {
+        const snapshot = this.readCachedPartnerSnapshot();
+        if (!snapshot) return false;
+        this.partnerSnapshot = snapshot;
+        if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
+            MeimayPartnerInsights.clearCache(`partner-cache-${reason}`);
+        }
+        if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+            window.invalidateBuildDataCaches(`partner-cache-${reason}`);
+        }
+        console.log(`SHARE: Hydrated partner snapshot cache (${reason})`);
+        return true;
+    },
+
+    clearCachedPartnerSnapshot: function () {
+        try {
+            localStorage.removeItem(this.PARTNER_SNAPSHOT_CACHE_KEY);
+        } catch (e) { }
+    },
 
     _buildPremiumStateSyncFingerprint: function (roomCode, uid, state = {}) {
         return JSON.stringify({
@@ -3461,10 +3550,28 @@ function flushRoomSyncOnSuspend() {
         });
 }
 
+function flushRoomSyncOnReconnect() {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
+    if (!MeimayPairing || !MeimayPairing.roomCode || typeof MeimayPairing.syncMyData !== 'function') return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
+    if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.hydrateCachedPartnerSnapshot === 'function') {
+        MeimayShare.hydrateCachedPartnerSnapshot('reconnect');
+    }
+    Promise.resolve(MeimayPairing.syncMyData())
+        .catch((error) => {
+            console.warn('PAIRING: Reconnect sync failed', error);
+        });
+}
+
 if (typeof window !== 'undefined') {
+    window.addEventListener('online', flushRoomSyncOnReconnect);
     window.addEventListener('pagehide', flushRoomSyncOnSuspend);
     window.addEventListener('beforeunload', flushRoomSyncOnSuspend);
     document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            flushRoomSyncOnReconnect();
+        }
         if (document.visibilityState === 'hidden') {
             flushRoomSyncOnSuspend();
         }
@@ -3476,6 +3583,7 @@ window.MeimayAuth = MeimayAuth;
 window.MeimayPairing = MeimayPairing;
 window.MeimayShare = MeimayShare;
 MeimayPairing.hydrateLocalPairingCache('script-load');
+MeimayShare.hydrateCachedPartnerSnapshot('script-load');
 window.handleGenerateCode = handleGenerateCode;
 window.handleEnterCode = handleEnterCode;
 window.handlePairingLinkedNextAction = handlePairingLinkedNextAction;
@@ -5058,6 +5166,7 @@ MeimayPairing.syncMyData = async function () {
     }
 
     this._syncInProgress = true;
+    let syncFailed = false;
     try {
         // 送信前にアクティブ子の現在状態を meimayStateV2 へ書き込む
         if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && MeimayChildWorkspaces.initialized) {
@@ -5271,10 +5380,12 @@ MeimayPairing.syncMyData = async function () {
             // console.log('PAIRING: Sync skipped (no content change)');
         }
     } catch (e) {
+        syncFailed = true;
+        this._syncPending = true;
         console.error('PAIRING: Sync data failed', e);
     } finally {
         this._syncInProgress = false;
-        if (this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
+        if (!syncFailed && this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
             this._syncPending = false;
             setTimeout(() => {
                 if (this.roomCode && typeof this.syncMyData === 'function') {
@@ -7253,6 +7364,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 backup: roomBackup,
                 partnerUserBackup
             };
+            if (typeof this.cachePartnerSnapshot === 'function') {
+                this.cachePartnerSnapshot(this.partnerSnapshot, {
+                    roomCode: MeimayPairing.roomCode,
+                    partnerUid
+                });
+            }
             if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
                 MeimayPartnerInsights.clearCache('partner-snapshot');
             }
