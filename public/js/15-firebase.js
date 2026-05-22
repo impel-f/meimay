@@ -2333,6 +2333,13 @@ const MeimayShare = {
         if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
             window.invalidateBuildDataCaches(`partner-cache-${reason}`);
         }
+        if (typeof refreshPartnerAwareUI === 'function') {
+            refreshPartnerAwareUI({ afterPaint: false });
+        } else if (typeof requestRenderHomeProfile === 'function') {
+            requestRenderHomeProfile({ afterPaint: false });
+        } else if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+            renderHomeProfile();
+        }
         console.log(`SHARE: Hydrated partner snapshot cache (${reason})`);
         return true;
     },
@@ -2657,7 +2664,7 @@ const MeimayPartnerInsights = {
 
     _shouldSuppressUnscopedPartnerFallback: function () {
         const context = this._getPartnerChildContext();
-        return !!(context.requiresScopedChild && !context.partnerChild);
+        return !!(context.requiresScopedChild && context.partnerRoot && !context.partnerChild);
     },
 
     _shouldUseScopedPartnerChildOnly: function () {
@@ -5969,10 +5976,10 @@ window.getMeimayRelationshipPalettes = getMeimayRelationshipPalettes;
 window.getMeimayOwnershipPalette = getMeimayOwnershipPalette;
 window.renderMeimaySuperStars = renderMeimaySuperStars;
 
-function refreshPartnerAwareUI() {
+function refreshPartnerAwareUI(options = {}) {
     if (typeof applyProfileTheme === 'function') applyProfileTheme();
     if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile();
+        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile(options);
     }
     if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
         renderSavedScreen();
@@ -7376,6 +7383,15 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
                 window.invalidateBuildDataCaches('partner-snapshot');
             }
+            if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
+                MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
+                if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
+                    MeimayPartnerInsights.clearCache('partner-child-workspace');
+                }
+                if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+                    window.invalidateBuildDataCaches('partner-child-workspace');
+                }
+            }
             this.partnerUserSnapshot = partnerPremiumSnapshot;
             if (partnerPremiumSnapshot && typeof window !== 'undefined' && typeof window.setCachedConnectedPartnerPremiumSnapshot === 'function') {
                 window.setCachedConnectedPartnerPremiumSnapshot(partnerPremiumSnapshot, {
@@ -7396,20 +7412,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 updatePairingUI();
             } else if (typeof refreshPartnerAwareUI === 'function') {
                 refreshPartnerAwareUI();
-            }
-
-            // 子ワークスペース状態（本命選択など）をリアルタイムに反映
-            if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
-                MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
-                if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
-                    MeimayPartnerInsights.clearCache('partner-child-workspace');
-                }
-                if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
-                    window.invalidateBuildDataCaches('partner-child-workspace');
-                }
-                if (typeof updatePairingUI === 'function') {
-                    updatePairingUI();
-                }
             }
                 } catch (error) {
                     console.warn('SHARE: Listen partner data error', error);

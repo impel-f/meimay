@@ -445,6 +445,13 @@ window.onload = () => {
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.loadAll === 'function') {
         StorageBox.loadAll();
     }
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        if (typeof requestRenderHomeProfile === 'function') {
+            requestRenderHomeProfile({ afterPaint: false });
+        } else {
+            renderHomeProfile();
+        }
+    }
 
     // 漢字データの読み込み
     fetch('/data/kanji_data.json')
