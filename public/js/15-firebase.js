@@ -2320,7 +2320,15 @@ const MeimayShare = {
             if (expectedPartnerUid && cachedPartnerUid && expectedPartnerUid !== cachedPartnerUid) return null;
 
             const snapshot = parsed.snapshot && typeof parsed.snapshot === 'object' ? parsed.snapshot : null;
-            return snapshot ? { ...this._emptyPartnerSnapshot(), ...snapshot } : null;
+            if (!snapshot) return null;
+            const hydratedSnapshot = { ...this._emptyPartnerSnapshot(), ...snapshot };
+            try {
+                Object.defineProperty(hydratedSnapshot, '__meimayPartnerUid', {
+                    value: cachedPartnerUid,
+                    enumerable: false
+                });
+            } catch (e) { }
+            return hydratedSnapshot;
         } catch (e) {
             return null;
         }
@@ -2330,7 +2338,7 @@ const MeimayShare = {
         const snapshot = this.readCachedPartnerSnapshot();
         if (!snapshot) return false;
         this.partnerSnapshot = snapshot;
-        this._partnerSnapshotPartnerUid = String(MeimayPairing?.partnerUid || '').trim();
+        this._partnerSnapshotPartnerUid = String(snapshot.__meimayPartnerUid || MeimayPairing?.partnerUid || '').trim();
         if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
             MeimayPartnerInsights.clearCache(`partner-cache-${reason}`);
         }
@@ -2352,6 +2360,7 @@ const MeimayShare = {
         try {
             localStorage.removeItem(this.PARTNER_SNAPSHOT_CACHE_KEY);
         } catch (e) { }
+        this._partnerSnapshotPartnerUid = '';
     },
 
     _buildPremiumStateSyncFingerprint: function (roomCode, uid, state = {}) {
@@ -2389,7 +2398,11 @@ const MeimayShare = {
             this._partnerUnsub = null;
         }
         this._listeningPartnerUid = '';
-        this._partnerSnapshotPartnerUid = '';
+        if (typeof this.clearCachedPartnerSnapshot === 'function') {
+            this.clearCachedPartnerSnapshot();
+        } else {
+            this._partnerSnapshotPartnerUid = '';
+        }
         this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
@@ -7456,7 +7469,11 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub = null;
     }
     this._listeningPartnerUid = '';
-    this._partnerSnapshotPartnerUid = '';
+    if (typeof this.clearCachedPartnerSnapshot === 'function') {
+        this.clearCachedPartnerSnapshot();
+    } else {
+        this._partnerSnapshotPartnerUid = '';
+    }
     this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
         MeimayPartnerInsights.clearCache('partner-stop');
