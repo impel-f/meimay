@@ -894,10 +894,10 @@ function clearPremiumAdSuppressionCache() {
 function hasFreshPremiumAdSuppressionCache() {
     const cache = getPremiumAdSuppressionCache();
     if (!cache || cache.active !== true) return false;
-    const updatedAtMs = Number(cache.updatedAtMs) || 0;
-    if (updatedAtMs > 0 && Date.now() - updatedAtMs > PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS) return false;
     const expiresAt = normalizePremiumDate(cache.expiresAt);
-    return !expiresAt || expiresAt.getTime() > Date.now();
+    if (expiresAt) return expiresAt.getTime() > Date.now();
+    const updatedAtMs = Number(cache.updatedAtMs) || 0;
+    return !(updatedAtMs > 0 && Date.now() - updatedAtMs > PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS);
 }
 
 function getCurrentPairingRoomCodeForPremiumCache() {
@@ -970,8 +970,12 @@ function getCachedConnectedPartnerPremiumSnapshot() {
         const parsed = raw ? JSON.parse(raw) : null;
         if (!parsed || typeof parsed !== 'object') return null;
 
+        const state = normalizePartnerPremiumCacheSnapshot(parsed.state || parsed);
+        if (!state) return null;
+        const expiresAt = normalizePremiumDate(state.premiumExpiresAt || state.appStoreExpiresAt || state.trialEndsAt || null);
+
         const updatedAtMs = Number(parsed.updatedAtMs) || 0;
-        if (updatedAtMs > 0 && Date.now() - updatedAtMs > PARTNER_PREMIUM_CACHE_MAX_AGE_MS) return null;
+        if (!expiresAt && updatedAtMs > 0 && Date.now() - updatedAtMs > PARTNER_PREMIUM_CACHE_MAX_AGE_MS) return null;
 
         const currentRoomCode = getCurrentPairingRoomCodeForPremiumCache();
         const cachedRoomCode = String(parsed.roomCode || '').trim().toUpperCase();
@@ -981,7 +985,7 @@ function getCachedConnectedPartnerPremiumSnapshot() {
         const cachedPartnerUid = String(parsed.partnerUid || '').trim();
         if (currentPartnerUid && cachedPartnerUid && currentPartnerUid !== cachedPartnerUid) return null;
 
-        return normalizePartnerPremiumCacheSnapshot(parsed.state || parsed);
+        return state;
     } catch (e) {
         return null;
     }
@@ -1777,7 +1781,7 @@ function getSelfPremiumMembershipState() {
         return storeState;
     }
 
-    return buildPremiumMembershipState({
+    const remoteState = buildPremiumMembershipState({
         isPremium: localPreviewMode ? true : PremiumManager._remotePremium,
         premiumSource: localPreviewMode === 'trial' ? 'trial' : PremiumManager._remotePremiumSource,
         subscriptionStatus: localPreviewMode === 'trial' ? 'trialing' : PremiumManager._remoteStatus,
@@ -1798,6 +1802,14 @@ function getSelfPremiumMembershipState() {
                 : false),
         allowLocalFallback: isLocalPremiumFallbackAllowed()
     });
+
+    if (remoteState && (remoteState.active || remoteState.expired || remoteState.hasPremiumIndicators)) {
+        return remoteState;
+    }
+    if (storeState && storeState.hasPremiumIndicators) {
+        return storeState;
+    }
+    return remoteState;
 }
 
 function getDefaultPremiumMembershipState() {
@@ -1821,10 +1833,10 @@ PremiumManager.getMembershipState = function () {
     if (selfState.active) return selfState;
     if (shareablePartnerState && shareablePartnerState.active) return shareablePartnerState;
     if (selfState.expired) return selfState;
-    if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     if (selfState.hasPremiumIndicators) return selfState;
-    if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
     if (cachedPremiumState && cachedPremiumState.active) return cachedPremiumState;
+    if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
+    if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
 
     return getDefaultPremiumMembershipState();
 };
@@ -1881,7 +1893,9 @@ PremiumManager.getDisplayStatus = function () {
     const trialUnavailable = !!(selfState && selfState.trialConsumed);
     const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
     const dateLabel = state.expiresAt ? formatPremiumMembershipDate(state.expiresAt) : '';
-    const cachedPremiumState = !state.active ? getFreshPremiumDisplayCacheState() : null;
+    const cachedPremiumState = !state.active && !state.expired && !state.hasPremiumIndicators
+        ? getFreshPremiumDisplayCacheState()
+        : null;
     const resolving = !state.active && isPremiumStatusResolvingForDisplay();
 
     if (state.active && state.isTrial) {
