@@ -1816,6 +1816,7 @@ PremiumManager.getMembershipState = function () {
         ? buildPremiumMembershipState(partnerSnapshot, 'partner', { allowLocalFallback: false })
         : null;
     const shareablePartnerState = partnerState && !partnerState.isTrial ? partnerState : null;
+    const cachedPremiumState = getFreshPremiumDisplayCacheState();
 
     if (selfState.active) return selfState;
     if (shareablePartnerState && shareablePartnerState.active) return shareablePartnerState;
@@ -1823,6 +1824,7 @@ PremiumManager.getMembershipState = function () {
     if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     if (selfState.hasPremiumIndicators) return selfState;
     if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
+    if (cachedPremiumState && cachedPremiumState.active) return cachedPremiumState;
 
     return getDefaultPremiumMembershipState();
 };
@@ -1919,10 +1921,13 @@ PremiumManager.getDisplayStatus = function () {
             active: true,
             expired: false,
             kind: 'premium-cache',
-            drawerLines: ['👑 プレミアム', `${ownerText}・確認中`],
-            homeTitle: 'ステータス：プレミアム確認中',
-            homeDetail: `前回の確認では${ownerText}が${periodText}でした。購入状態を確認中です。`,
-            shortLabel: 'プレミアム確認中'
+            source: cachedPremiumState.source,
+            drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
+            homeTitle: 'ステータス：プレミアム利用中',
+            homeDetail: cachedPremiumState.source === 'partner'
+                ? `パートナー特典で、${periodText === '有効' ? 'プレミアムが有効です。' : `${periodText}プレミアムが有効です。`}`
+                : (cachedDateLabel ? `${cachedDateLabel}までプレミアムが有効です。` : 'プレミアムが有効です。'),
+            shortLabel: `プレミアム${cachedDateLabel ? `・${cachedDateLabel}まで` : ''}`
         };
     }
 

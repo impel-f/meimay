@@ -1957,10 +1957,12 @@ function getHomeMembershipStatusModel() {
         }
 
         if (display?.kind === 'premium-cache') {
+            const cachedPartnerActive = display.source === 'partner';
+            const displayLabel = String(display.shortLabel || 'プレミアム').replace(/^プレミアム/, 'プレミアム👑');
             return {
-                text: 'プレミアム確認中👑',
-                state: 'premium',
-                title: display.homeDetail || '前回の購入状態をもとに、プレミアム状態を確認しています。'
+                text: displayLabel,
+                state: cachedPartnerActive ? 'partner' : 'premium',
+                title: display.homeDetail || 'プレミアムが有効です。'
             };
         }
 

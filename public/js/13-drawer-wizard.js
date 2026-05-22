@@ -983,11 +983,12 @@ function updateDrawerProfile() {
     const premiumState = premiumManager && typeof premiumManager.getMembershipState === 'function'
         ? premiumManager.getMembershipState()
         : null;
-    const premiumActive = !!(premiumState && premiumState.active)
-        || !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
     const premiumDisplay = premiumManager && typeof premiumManager.getDisplayStatus === 'function'
         ? premiumManager.getDisplayStatus()
         : null;
+    const premiumActive = !!(premiumState && premiumState.active)
+        || !!(premiumDisplay && premiumDisplay.active)
+        || !!(premiumManager && typeof premiumManager.isPremium === 'function' && premiumManager.isPremium());
     const premiumLines = premiumDisplay && Array.isArray(premiumDisplay.drawerLines)
         ? premiumDisplay.drawerLines
         : buildDrawerPremiumLabelLines(premiumState);
