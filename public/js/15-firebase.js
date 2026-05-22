@@ -1251,6 +1251,28 @@ const MeimayPairing = {
         }
     },
 
+    hydrateLocalPairingCache: function (reason = 'startup') {
+        if (typeof wasMeimayAppDataRecentlyDeleted === 'function' && wasMeimayAppDataRecentlyDeleted()) return false;
+        const { code, slot, role, partnerUid, partnerRole } = this._readLocalRoomState();
+        if (!code || !slot || !role) return false;
+
+        this.roomCode = code;
+        this.mySlot = slot;
+        this.myRole = role;
+        this.partnerSlot = slot === 'memberA' ? 'memberB' : 'memberA';
+        this.partnerUid = partnerUid || null;
+        this.partnerRole = partnerRole || null;
+
+        try {
+            localStorage.setItem('meimay_room_code', code);
+            localStorage.setItem('meimay_room_slot', slot);
+            localStorage.setItem('meimay_my_role', role);
+        } catch (e) { }
+
+        console.log(`PAIRING: Hydrated local room cache (${reason})`);
+        return true;
+    },
+
     _readPairingCache: function (expectedRoomCode = '') {
         try {
             const raw = localStorage.getItem(this.PAIRING_CACHE_KEY);
@@ -3453,6 +3475,7 @@ if (typeof window !== 'undefined') {
 window.MeimayAuth = MeimayAuth;
 window.MeimayPairing = MeimayPairing;
 window.MeimayShare = MeimayShare;
+MeimayPairing.hydrateLocalPairingCache('script-load');
 window.handleGenerateCode = handleGenerateCode;
 window.handleEnterCode = handleEnterCode;
 window.handlePairingLinkedNextAction = handlePairingLinkedNextAction;
