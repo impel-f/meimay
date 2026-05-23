@@ -7159,20 +7159,17 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                         ? option.candidates.map((candidate, candidateIndex) => {
                             const locked = isReadingCandidateLockedForCurrentMembership(candidate);
                             const saveAction = `saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)`;
-                            const rowAction = !forceSplit
+                            const saveButtonHtml = forceSplit
                                 ? (locked
-                                    ? 'onclick="showReadingModalPremiumPrompt(event);" role="button" aria-label="プレミアムで人名用漢字を見る"'
-                                    : `onclick="event.stopPropagation(); ${saveAction};" role="button" aria-label="候補に入れる"`)
+                                    ? '<button type="button" onclick="showReadingModalPremiumPrompt(event); return false;" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b] font-black text-sm active:scale-95 transition-all whitespace-nowrap" aria-label="プレミアムで人名用漢字を見る">👑</button>'
+                                    : `<button type="button" onclick="event.stopPropagation(); ${saveAction}; return false;" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 border-[#d9c7ab] text-[#8b7e66] font-black text-sm active:scale-95 transition-all whitespace-nowrap" aria-label="保存する">保存</button>`)
                                 : '';
-                            const rowInteractionClass = !forceSplit ? ' cursor-pointer active:scale-[0.99] transition-transform' : '';
                             return `
-                        <div class="reading-modal-candidate-row${locked ? ' reading-modal-candidate-row--locked' : ''}${rowInteractionClass}" ${rowAction}>
+                        <div class="reading-modal-candidate-row${locked ? ' reading-modal-candidate-row--locked' : ''}">
                             <div class="min-w-0 flex-1">
                                 ${renderReadingModalCandidateName(candidate)}
                             </div>
-                            ${forceSplit
-                                ? `<button onclick="event.stopPropagation(); ${saveAction}" class="shrink-0 px-4 py-2.5 rounded-2xl border-2 ${locked ? 'border-[#d9d4ca] bg-[#f1f1ee] text-[#8b8b8b]' : 'border-[#d9c7ab] text-[#8b7e66]'} font-black text-sm active:scale-95 transition-all whitespace-nowrap">${locked ? '👑' : '保存'}</button>`
-                                : ''}
+                            ${saveButtonHtml}
                         </div>
                         `;
                         }).join('')
