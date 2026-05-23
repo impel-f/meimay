@@ -5,7 +5,7 @@
 
 const AdMobConfig = {
     android: {
-        appId: 'ca-app-pub-3940256099942544~3347511713',
+        appId: 'ca-app-pub-9172754377890289~3397321817',
         bannerId: 'ca-app-pub-9172754377890289/2546450164'
     },
     ios: {
@@ -16,7 +16,7 @@ const AdMobConfig = {
 
 const AdMobTestAdConfig = {
     enabled: false,
-    // Closed-test automation can click ads; keep Android on Google's test ads by default.
+    // Closed/internal Android testing uses Google's test banner unit to avoid invalid traffic.
     androidEnabled: true,
     iosEnabled: false,
     storageKey: 'meimay_admob_test_ads',
@@ -28,6 +28,15 @@ const AdMobPrivacyConfig = {
     nonPersonalizedAds: true,
     publisherFirstPartyIdEnabled: false,
     maxAdContentRating: 'General'
+};
+
+const NativeAdMobAutoStartConfig = {
+    androidEnabled: true,
+    iosEnabled: true,
+    androidShowBannerEnabled: true,
+    storageKey: 'meimay_native_admob_autostart',
+    firstRunHomeDelayMs: 0,
+    wizardRetryMs: 2500
 };
 
 function getAdMobTestAdFlagFromRuntime() {
@@ -59,14 +68,15 @@ function setAdMobTestAdMode(enabled) {
 }
 
 function isAdMobTestAdMode(platform) {
-    const runtimeFlag = getAdMobTestAdFlagFromRuntime();
-    if (runtimeFlag !== null) return runtimeFlag;
-
     const normalizedPlatform = platform || (typeof detectCapacitorPlatform === 'function'
         ? detectCapacitorPlatform()
         : '');
     if (normalizedPlatform === 'android' && AdMobTestAdConfig.androidEnabled === true) return true;
     if (normalizedPlatform === 'ios' && AdMobTestAdConfig.iosEnabled === true) return true;
+
+    const runtimeFlag = getAdMobTestAdFlagFromRuntime();
+    if (runtimeFlag !== null) return runtimeFlag;
+
     return AdMobTestAdConfig.enabled === true;
 }
 
@@ -77,6 +87,35 @@ function getAdMobBannerId(platform, config) {
             : AdMobTestAdConfig.androidBannerId;
     }
     return config.bannerId;
+}
+
+function getNativeAdMobAutoStartFlagFromRuntime() {
+    try {
+        const params = new URLSearchParams(window.location.search || '');
+        const value = String(params.get('nativeAdMob') || params.get('admobNative') || '').trim();
+        if (value === '1' || value === 'true') return true;
+        if (value === '0' || value === 'false') return false;
+    } catch (e) { }
+
+    try {
+        const storedFlag = localStorage.getItem(NativeAdMobAutoStartConfig.storageKey);
+        if (storedFlag === '1') return true;
+        if (storedFlag === '0') return false;
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function isNativeAdMobAutoStartDisabled(platform) {
+    if (!isCapacitorNativeAdRuntime()) return false;
+    const runtimeFlag = getNativeAdMobAutoStartFlagFromRuntime();
+    if (runtimeFlag !== null) return runtimeFlag !== true;
+
+    const normalizedPlatform = String(platform || getPlatform() || '').toLowerCase();
+    if (normalizedPlatform === 'android') return NativeAdMobAutoStartConfig.androidEnabled !== true;
+    if (normalizedPlatform === 'ios') return NativeAdMobAutoStartConfig.iosEnabled !== true;
+    return false;
 }
 
 const PremiumManager = {
@@ -832,7 +871,7 @@ const AD_BANNER_DOCK_TUCK = 0;
 const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
-const AD_PREMIUM_STATE_GRACE_MS = 12000;
+const AD_PREMIUM_STATE_GRACE_MS = 2500;
 const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
 const PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const PARTNER_PREMIUM_CACHE_KEY = 'meimay_partner_premium_cache_v1';
@@ -849,6 +888,26 @@ let adOverlaySyncTimer = null;
 let adMobPremiumRetryTimer = null;
 let adSystemStartedAt = Date.now();
 let lastAdImpressionAnalytics = { key: '', at: 0 };
+let firstRunHomeAdReadyAtMs = 0;
+const deferNativeMonetizationForFirstRunSession = (() => {
+    try {
+        return typeof WizardData !== 'undefined'
+            && WizardData
+            && typeof WizardData.isCompleted === 'function'
+            && !WizardData.isCompleted();
+    } catch (e) {
+        return false;
+    }
+})();
+
+function getActiveScreenIdForNativeAds() {
+    try {
+        const active = document.querySelector('.screen.active');
+        return active ? String(active.id || '').trim() : '';
+    } catch (e) {
+        return '';
+    }
+}
 
 function trackAdImpressionAnalytics(mode, params = {}) {
     if (typeof trackMeimayEvent !== 'function') return;
@@ -1023,6 +1082,59 @@ function clearCachedConnectedPartnerPremiumSnapshot() {
     } catch (e) { }
 }
 
+function shouldDeferNativeMonetizationDuringWizard() {
+    if (!isCapacitorNativeAdRuntime()) return false;
+    try {
+        const wizardScreen = document.getElementById('scr-wizard');
+        const wizardVisible = !!(wizardScreen && wizardScreen.classList.contains('active'));
+        const wizardCompleted = typeof WizardData !== 'undefined'
+            && WizardData
+            && typeof WizardData.isCompleted === 'function'
+            && WizardData.isCompleted();
+        return wizardVisible || wizardCompleted !== true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function getFirstRunNativeAdHoldReason() {
+    if (!isCapacitorNativeAdRuntime() || !deferNativeMonetizationForFirstRunSession) return '';
+
+    let wizardCompleted = false;
+    try {
+        wizardCompleted = typeof WizardData !== 'undefined'
+            && WizardData
+            && typeof WizardData.isCompleted === 'function'
+            && WizardData.isCompleted();
+    } catch (e) {
+        wizardCompleted = false;
+    }
+
+    const activeScreenId = getActiveScreenIdForNativeAds();
+    if (!wizardCompleted || activeScreenId === 'scr-wizard') {
+        firstRunHomeAdReadyAtMs = 0;
+        return 'first-run-wizard';
+    }
+
+    if (activeScreenId !== 'scr-mode') {
+        firstRunHomeAdReadyAtMs = 0;
+        return 'first-run-post-wizard';
+    }
+
+    if (!firstRunHomeAdReadyAtMs) {
+        firstRunHomeAdReadyAtMs = Date.now() + NativeAdMobAutoStartConfig.firstRunHomeDelayMs;
+    }
+    if (Date.now() < firstRunHomeAdReadyAtMs) return 'first-run-home-delay';
+    return '';
+}
+
+function shouldSkipNativeStoreCheck(options = {}) {
+    if (!isCapacitorNativeAdRuntime()) return false;
+    if (options && options.force === true) return false;
+    const reason = String(options?.reason || '').trim();
+    return reason === 'auth-ready' || shouldDeferNativeMonetizationDuringWizard();
+}
+
 function getAdMobPremiumHoldReason() {
     if (PremiumManager.isPremium()) return 'premium-active';
     if (hasFreshPremiumAdSuppressionCache()) return 'premium-cache';
@@ -1033,16 +1145,33 @@ function getAdMobPremiumHoldReason() {
     if (!completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS) {
         return 'startup-premium-grace';
     }
+    const firstRunHoldReason = getFirstRunNativeAdHoldReason();
+    if (firstRunHoldReason) return firstRunHoldReason;
+    if (shouldDeferNativeMonetizationDuringWizard()) {
+        return 'first-run-wizard';
+    }
+    if (isNativeAdMobAutoStartDisabled()) return 'native-admob-autostart-disabled';
     return '';
+}
+
+function showHtmlAdBannerForHoldReason(reason) {
+    return false;
 }
 
 function scheduleDeferredAdMobInit(reason = '') {
     if (reason === 'premium-active' || reason === 'premium-cache') return;
+    if (reason === 'native-admob-autostart-disabled') return;
     if (adMobPremiumRetryTimer) return;
+    let delayMs = 1200;
+    if (reason === 'first-run-wizard' || reason === 'first-run-post-wizard') {
+        delayMs = NativeAdMobAutoStartConfig.wizardRetryMs;
+    } else if (reason === 'first-run-home-delay') {
+        delayMs = Math.max(1000, firstRunHomeAdReadyAtMs - Date.now() + 250);
+    }
     adMobPremiumRetryTimer = setTimeout(() => {
         adMobPremiumRetryTimer = null;
         initAdMob();
-    }, 1200);
+    }, delayMs);
 }
 
 function getAdBannerFooterMargin() {
@@ -1071,6 +1200,23 @@ function setHtmlAdBannerSuppressed(suppressed) {
     container.style.pointerEvents = suppressed ? 'none' : '';
 }
 
+function setNativeAdMobBannerSuppressed(suppressed, reason = '') {
+    const AdMob = getAdMobPlugin();
+    if (!AdMob) return;
+
+    try {
+        const methodName = suppressed ? 'hideBanner' : 'resumeBanner';
+        const method = AdMob[methodName];
+        if (typeof method !== 'function') return;
+        const result = method.call(AdMob);
+        if (result && typeof result.catch === 'function') {
+            result.catch((e) => console.warn('ADMOB: temporary banner visibility change failed', reason, e));
+        }
+    } catch (e) {
+        console.warn('ADMOB: temporary banner visibility change failed', reason, e);
+    }
+}
+
 function syncAdBannerOverlaySuppression() {
     const shouldSuppress = !PremiumManager.isPremium() && hasActiveAdBlockingOverlay();
     if (shouldSuppress === adBannerSuppressedByOverlay) {
@@ -1080,20 +1226,7 @@ function syncAdBannerOverlaySuppression() {
 
     adBannerSuppressedByOverlay = shouldSuppress;
     setHtmlAdBannerSuppressed(shouldSuppress);
-
-    const AdMob = getAdMobPlugin();
-    if (AdMob) {
-        try {
-            const result = shouldSuppress
-                ? AdMob.hideBanner()
-                : null;
-            if (result && typeof result.catch === 'function') {
-                result.catch((e) => console.warn('ADMOB: temporary banner visibility change failed', e));
-            }
-        } catch (e) {
-            console.warn('ADMOB: temporary banner visibility change failed', e);
-        }
-    }
+    setNativeAdMobBannerSuppressed(shouldSuppress, 'overlay-sync');
 
     if (!shouldSuppress && !PremiumManager.isPremium()) {
         showAdBanner();
@@ -1104,18 +1237,7 @@ function setAdBannerOverlaySuppressed(suppressed, reason = '') {
     const shouldSuppress = suppressed === true && !PremiumManager.isPremium();
     adBannerSuppressedByOverlay = shouldSuppress;
     setHtmlAdBannerSuppressed(shouldSuppress);
-
-    const AdMob = getAdMobPlugin();
-    if (AdMob) {
-        try {
-            const result = shouldSuppress ? AdMob.hideBanner() : null;
-            if (result && typeof result.catch === 'function') {
-                result.catch((e) => console.warn('ADMOB: forced banner visibility change failed', reason, e));
-            }
-        } catch (e) {
-            console.warn('ADMOB: forced banner visibility change failed', reason, e);
-        }
-    }
+    setNativeAdMobBannerSuppressed(shouldSuppress, reason);
 
     if (!shouldSuppress && !hasActiveAdBlockingOverlay()) {
         showAdBanner();
@@ -1304,6 +1426,7 @@ function initAdMob() {
     const holdReason = getAdMobPremiumHoldReason();
     if (holdReason) {
         console.log('ADMOB: Hidden while premium state is protected:', holdReason);
+        if (showHtmlAdBannerForHoldReason(holdReason)) return;
         hideAdBanner();
         scheduleDeferredAdMobInit(holdReason);
         return;
@@ -1349,14 +1472,23 @@ async function initNativeAdMob(platform) {
         }
 
         if (!nativeAdMobInitializePromise) {
-            nativeAdMobInitializePromise = AdMob.initialize({
-                testingDevices: [],
-                initializeForTesting: isAdMobTestAdMode(platform),
-                publisherFirstPartyIdEnabled: AdMobPrivacyConfig.publisherFirstPartyIdEnabled,
-                maxAdContentRating: AdMobPrivacyConfig.maxAdContentRating
-            });
+            const initializeOptions = platform === 'android'
+                ? {}
+                : {
+                    testingDevices: [],
+                    initializeForTesting: isAdMobTestAdMode(platform),
+                    publisherFirstPartyIdEnabled: AdMobPrivacyConfig.publisherFirstPartyIdEnabled,
+                    maxAdContentRating: AdMobPrivacyConfig.maxAdContentRating
+                };
+            nativeAdMobInitializePromise = AdMob.initialize(initializeOptions);
         }
         await nativeAdMobInitializePromise;
+
+        if (platform === 'android' && NativeAdMobAutoStartConfig.androidShowBannerEnabled !== true) {
+            clearHtmlAdBanner('Native AdMob initialized without banner for Android crash isolation');
+            console.log('ADMOB: Native initialized; Android banner display skipped for crash isolation');
+            return;
+        }
 
         nativeAdMobBannerLoaded = false;
         nativeAdMobBannerFailed = false;
@@ -1395,6 +1527,7 @@ function showAdBanner() {
     ensureAdOverlayObserver();
     const holdReason = getAdMobPremiumHoldReason();
     if (holdReason) {
+        if (showHtmlAdBannerForHoldReason(holdReason)) return;
         hideAdBanner();
         scheduleDeferredAdMobInit(holdReason);
         return;
@@ -2025,6 +2158,7 @@ PremiumManager.isPremiumStatusResolving = function () {
 
 PremiumManager.refreshPurchaseState = async function (restore = true, options = {}) {
     const silent = options && typeof options === 'object' && options.silent === true;
+    const skipNativeStoreCheck = shouldSkipNativeStoreCheck(options);
     const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
         ? MeimayAuth.getCurrentUser()
         : null;
@@ -2041,7 +2175,7 @@ PremiumManager.refreshPurchaseState = async function (restore = true, options = 
     try {
         await this.bindToUserDoc(user);
         let revenueCatChecked = false;
-        if (RevenueCatBridge.isAvailable()) {
+        if (!skipNativeStoreCheck && RevenueCatBridge.isAvailable()) {
             revenueCatChecked = await this.refreshRevenueCatCustomerInfo(user, restore);
         }
         if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
@@ -2291,6 +2425,7 @@ PremiumManager.markSilentStoreSyncAttempt = function (user) {
 
 PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
     if (!user || !user.uid) return false;
+    if (shouldSkipNativeStoreCheck(options)) return false;
     if (this._silentStoreSyncInFlight) return false;
     if (!this.shouldRunSilentStoreSync(user, options)) return false;
 
@@ -3115,3 +3250,4 @@ window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
 window.setAdBannerOverlaySuppressed = setAdBannerOverlaySuppressed;
 window.syncAdBannerOverlaySuppression = syncAdBannerOverlaySuppression;
+window.shouldDeferNativeMonetizationDuringWizard = shouldDeferNativeMonetizationDuringWizard;

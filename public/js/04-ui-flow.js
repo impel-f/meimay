@@ -1395,9 +1395,24 @@ const SWIPE_STOCK_TOAST_LIMITS = {
     reading: { count: 0 },
     kanji: { count: 0 }
 };
+const READING_COMBINATION_MODAL_TAP_GUARD_MS = 420;
 let readingCombinationModalState = null;
 let readingCombinationModalOpenedAt = 0;
 let readingDetailAdvanceOnClose = null;
+
+function stopReadingCombinationTapEvent(event) {
+    if (!event) return;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+    }
+}
+
+function isReadingCombinationTapGuardActive() {
+    return readingCombinationModalOpenedAt > 0
+        && Date.now() - readingCombinationModalOpenedAt < READING_COMBINATION_MODAL_TAP_GUARD_MS;
+}
 
 function getReadingTonePalette(reading) {
     const firstMora = splitReadingIntoMoraUnits(reading || '')[0] || '';
@@ -6935,7 +6950,7 @@ function buildReadingCombinationCandidates(path, limit = 4, targetGender = gende
 
 function saveReadingCandidateFromModal(optionIndex, candidateIndex, asSuper = false) {
     if (!readingCombinationModalState) return;
-    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
+    if (isReadingCombinationTapGuardActive()) return;
     const option = readingCombinationModalState.options[optionIndex];
     const candidate = option && option.candidates ? option.candidates[candidateIndex] : null;
     if (!option || !candidate) return;
@@ -7105,7 +7120,12 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
     const modal = document.createElement('div');
     modal.id = 'reading-combination-modal';
     modal.className = 'overlay active modal-overlay-dark';
+    modal.addEventListener('pointerdown', (event) => event.stopPropagation());
+    modal.addEventListener('pointerup', (event) => event.stopPropagation());
+    modal.addEventListener('touchstart', (event) => event.stopPropagation(), { passive: true });
+    modal.addEventListener('touchend', (event) => event.stopPropagation(), { passive: true });
     modal.onclick = (event) => {
+        event.stopPropagation();
         if (event.target === modal) closeReadingCombinationModal();
     };
 
@@ -7141,7 +7161,7 @@ async function openReadingCombinationModal(item, baseNickname = '', preferredLab
                             const saveAction = `saveReadingCandidateFromModal(${index}, ${candidateIndex}, false)`;
                             const rowAction = !forceSplit
                                 ? (locked
-                                    ? 'onclick="event.stopPropagation(); showReadingModalPremiumPrompt();" role="button" aria-label="プレミアムで人名用漢字を見る"'
+                                    ? 'onclick="showReadingModalPremiumPrompt(event);" role="button" aria-label="プレミアムで人名用漢字を見る"'
                                     : `onclick="event.stopPropagation(); ${saveAction};" role="button" aria-label="候補に入れる"`)
                                 : '';
                             const rowInteractionClass = !forceSplit ? ' cursor-pointer active:scale-[0.99] transition-transform' : '';
@@ -7325,7 +7345,9 @@ function selectBalancedReadingSampleExamples(examples, limit = 4) {
         .sort(compareSelectedReadingSampleDisplay);
 }
 
-function showReadingModalPremiumPrompt() {
+function showReadingModalPremiumPrompt(event) {
+    stopReadingCombinationTapEvent(event);
+    if (isReadingCombinationTapGuardActive()) return;
     if (typeof isPremiumAccessActive === 'function' && isPremiumAccessActive()) return;
     if (typeof showPremiumModal === 'function') {
         showPremiumModal({
@@ -7367,7 +7389,7 @@ function renderReadingModalCandidateName(candidate) {
         + '<span class="reading-modal-candidate-text">'
         + nameHtml
         + '</span>'
-        + (locked ? '<button type="button" class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます" aria-label="プレミアムで人名用漢字を見る" onclick="event.stopPropagation(); showReadingModalPremiumPrompt();"><span aria-hidden="true">👑</span><span>人名用</span></button>' : '')
+        + (locked ? '<button type="button" class="reading-modal-jinmei-badge" title="プレミアムで人名用漢字も見られます" aria-label="プレミアムで人名用漢字を見る" onclick="showReadingModalPremiumPrompt(event);"><span aria-hidden="true">👑</span><span>人名用</span></button>' : '')
         + '</div>';
 }
 
@@ -10391,7 +10413,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
 
 function saveReadingOnlyFromModal(asSuper = false) {
     if (!readingCombinationModalState) return;
-    if (Date.now() - readingCombinationModalOpenedAt < 420) return;
+    if (isReadingCombinationTapGuardActive()) return;
     const item = readingCombinationModalState.item || {};
     addReadingToStock(item.reading, item.baseNickname || '', item.tags || [], {
         segments: [],
@@ -10461,7 +10483,8 @@ function startReadingFromStock(target) {
     openBuildFromReading(stockItem.id || stockItem.reading || target, Array.isArray(stockItem.segments) ? stockItem.segments.filter(Boolean) : []);
 }
 
-function openReadingCombinationDetailFromItem(item) {
+function openReadingCombinationDetailFromItem(item, event = null) {
+    stopReadingCombinationTapEvent(event);
     if (typeof openReadingCombinationModal !== 'function') return;
     if (!item) return;
 
@@ -10698,7 +10721,7 @@ function renderReadingStockSectionV2() {
             html += `
                 <div class="rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]"
                      style="${tone.card}"
-                     onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${detailPayload})">
+                     onclick="openReadingCombinationDetailFromItem(${detailPayload}, event)">
                     <div class="flex-1 min-w-0">
                         <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                             ${renderReadingTitleWithStarsV2(
@@ -10757,9 +10780,9 @@ function renderReadingStockSectionV2() {
                         const actionClass = isPromoted ? 'reading-stock-primary-action--build' : 'reading-stock-primary-action--kanji';
                         const kanjiCountLabel = kanjiCount > 0 ? `${kanjiCount}件の漢字候補` : '漢字はこれから';
                         return `
-                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})">
+                        <div class="rounded-2xl p-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" data-reading="${JSON.stringify(String(item.reading || ''))}" data-stock-id="${JSON.stringify(String(item.id || ''))}" onclick="openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}, event)">
                             <div class="flex items-center justify-between gap-2">
-                                <button onclick="event.stopPropagation(); openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')})" class="flex-1 text-left active:scale-95 transition-transform">
+                                <button onclick="openReadingCombinationDetailFromItem(${JSON.stringify(item).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}, event)" class="flex-1 text-left active:scale-95 transition-transform">
                                     <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                                         ${renderReadingTitleWithStarsV2(
                                             display,
@@ -10794,7 +10817,7 @@ function renderReadingStockSectionV2() {
                         .replace(/&/g, '&amp;')
                         .replace(/"/g, '&quot;');
                     return `
-                        <div class="w-full rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" onclick="openReadingCombinationDetailFromItem(${detailPayload})">
+                        <div class="w-full rounded-2xl p-3 flex items-center gap-3 hover:-translate-y-[1px] transition-all cursor-pointer active:scale-[0.98]" style="${tone.card}" onclick="openReadingCombinationDetailFromItem(${detailPayload}, event)">
                             <div class="flex-1 min-w-0">
                                 <div class="text-lg font-black leading-tight" style="color:${tone.title}">
                                     ${renderReadingTitleWithStarsV2(display, false, item.isSuper)}

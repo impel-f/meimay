@@ -715,7 +715,7 @@ function renderRankingReadingCard(item, index) {
             data-ranking-kind="reading"
             data-ranking-key="${escapeRankingHtml(item?.sourceKey || reading)}"
             data-ranking-count="${item.count}"
-            onclick="openRankingReadingAction(this.dataset.reading)"
+            onclick="openRankingReadingAction(this.dataset.reading, event)"
             class="w-full flex items-center gap-3 bg-white rounded-2xl px-3 py-2.5 min-h-[5.75rem] md:min-h-[6.25rem] shadow-sm border ${isStocked ? 'border-[#bca37f] ring-1 ring-[#bca37f]/20' : 'border-[#ede5d8]'} transition-all active:scale-[0.98] cursor-pointer text-left">
             <div class="flex flex-col items-center justify-center shrink-0 w-14 gap-1.5">
                 ${rankHtml}
@@ -831,7 +831,17 @@ function openRankingKanjiDetail(kanjiStr) {
     }
 }
 
-function openRankingReadingAction(key) {
+function stopRankingCardTapEvent(event) {
+    if (!event) return;
+    if (event.cancelable) event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+        event.stopImmediatePropagation();
+    }
+}
+
+function openRankingReadingAction(key, event = null) {
+    stopRankingCardTapEvent(event);
     const item = resolveRankingReadingItem(key);
     if (!item || !item.reading) {
         if (typeof showToast === 'function') {

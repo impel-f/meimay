@@ -42,6 +42,24 @@ patchFile('node_modules/@capacitor-community/admob/android/src/main/java/com/get
     }
 ]);
 
+patchFile('node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.java', [
+    {
+        label: 'Android banner root container',
+        before: `import android.widget.RelativeLayout;\nimport androidx.annotation.NonNull;`,
+        after: `import android.widget.FrameLayout;\nimport android.widget.RelativeLayout;\nimport androidx.annotation.NonNull;`
+    },
+    {
+        label: 'Android banner content parent',
+        before: `    public void initialize() {\n        mViewGroup = (ViewGroup) ((ViewGroup) activitySupplier.get().findViewById(android.R.id.content)).getChildAt(0);\n    }`,
+        after: `    public void initialize() {\n        mViewGroup = activitySupplier.get().findViewById(android.R.id.content);\n    }`
+    },
+    {
+        label: 'Android banner frame layout params',
+        before: `            final CoordinatorLayout.LayoutParams mAdViewLayoutParams = new CoordinatorLayout.LayoutParams(\n                CoordinatorLayout.LayoutParams.WRAP_CONTENT,\n                CoordinatorLayout.LayoutParams.WRAP_CONTENT\n            );`,
+        after: `            final FrameLayout.LayoutParams mAdViewLayoutParams = new FrameLayout.LayoutParams(\n                FrameLayout.LayoutParams.WRAP_CONTENT,\n                FrameLayout.LayoutParams.WRAP_CONTENT\n            );`
+    }
+]);
+
 patchFile('node_modules/@capacitor-community/admob/dist/esm/definitions.d.ts', [
     {
         label: 'TypeScript publisher first-party ID option',

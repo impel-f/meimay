@@ -66,6 +66,18 @@ function syncWizChildDateLabel() {
     }
 }
 
+function runWizardSideEffect(label, effect) {
+    if (typeof effect !== 'function') return;
+    try {
+        const result = effect();
+        if (result && typeof result.catch === 'function') {
+            result.catch((error) => console.warn(`WIZARD: ${label} failed`, error));
+        }
+    } catch (error) {
+        console.warn(`WIZARD: ${label} failed`, error);
+    }
+}
+
 function openWizChildDatePicker() {
     const input = document.getElementById('wiz-child-date');
     if (!input) return;
@@ -338,27 +350,43 @@ function wizFinish(mode) {
         if (surnameInput) surnameInput.value = surnameStr;
     }
     surnameReading = data.surnameReading || '';
-    if (typeof updateSurnameData === 'function') updateSurnameData();
+    runWizardSideEffect('surname update', () => {
+        if (typeof updateSurnameData === 'function') updateSurnameData();
+    });
     gender = data.gender;
 
-    if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
-        MeimayShare.syncProfileAppearance();
-    }
-    if (typeof MeimayChildWorkspaces !== 'undefined'
-        && MeimayChildWorkspaces
-        && typeof MeimayChildWorkspaces.applyWizardSelection === 'function') {
-        MeimayChildWorkspaces.applyWizardSelection({
-            birthOrder: data.birthOrder,
-            gender: data.gender,
-            dueDate: data.dueDate
-        });
-    }
+    runWizardSideEffect('profile appearance sync', () => {
+        if (typeof MeimayShare !== 'undefined' && typeof MeimayShare.syncProfileAppearance === 'function') {
+            return MeimayShare.syncProfileAppearance();
+        }
+        return null;
+    });
+    runWizardSideEffect('child workspace selection', () => {
+        if (typeof MeimayChildWorkspaces !== 'undefined'
+            && MeimayChildWorkspaces
+            && typeof MeimayChildWorkspaces.applyWizardSelection === 'function') {
+            return MeimayChildWorkspaces.applyWizardSelection({
+                birthOrder: data.birthOrder,
+                gender: data.gender,
+                dueDate: data.dueDate
+            });
+        }
+        return null;
+    });
 
     // Update drawer profile
-    updateDrawerProfile();
-    if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
-    if (typeof renderHomeProfile === 'function') renderHomeProfile();
-    if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    runWizardSideEffect('drawer profile update', () => {
+        if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+    });
+    runWizardSideEffect('home greeting update', () => {
+        if (typeof updateHomeGreeting === 'function') updateHomeGreeting();
+    });
+    runWizardSideEffect('home profile render', () => {
+        if (typeof renderHomeProfile === 'function') renderHomeProfile();
+    });
+    runWizardSideEffect('partner-aware UI refresh', () => {
+        if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
+    });
     if (typeof window !== 'undefined') {
         window.MeimayHomeStageFocusSource = 'auto';
     }
@@ -370,9 +398,9 @@ function wizFinish(mode) {
     }
 
     changeScreen('scr-mode');
-    if (typeof maybeShowFirstRunTutorial === 'function') {
-        maybeShowFirstRunTutorial();
-    }
+    runWizardSideEffect('first-run tutorial', () => {
+        if (typeof maybeShowFirstRunTutorial === 'function') maybeShowFirstRunTutorial();
+    });
 }
 
 function wizStartNaming() {
