@@ -1965,9 +1965,10 @@ PremiumManager.getMembershipState = function () {
 
     if (selfState.active) return selfState;
     if (shareablePartnerState && shareablePartnerState.active) return shareablePartnerState;
+    // Keep the last confirmed premium state while the native store check catches up.
+    if (cachedPremiumState && cachedPremiumState.active) return cachedPremiumState;
     if (selfState.expired) return selfState;
     if (selfState.hasPremiumIndicators) return selfState;
-    if (cachedPremiumState && cachedPremiumState.active) return cachedPremiumState;
     if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
 
