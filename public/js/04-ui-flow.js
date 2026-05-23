@@ -6614,7 +6614,10 @@ const READING_SEGMENT_KANJI_EXCLUSIONS = {
     'け': new Set(['華']),
     'しろ': new Set(['代']),
     'いこう': new Set(['憩', '息']),
-    'ろ': new Set(['呂'])
+    'ろ': new Set(['呂']),
+    'はるき': new Set(['開']),
+    'そ': new Set(['素']),
+    'ぐ': new Set(['紅', '弘'])
 };
 
 function shouldExcludeReadingSegmentKanji(segment, kanji, targetGender = gender || 'neutral') {
