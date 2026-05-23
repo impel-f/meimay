@@ -114,12 +114,15 @@ function filterNopedReadingCandidates(candidates) {
     if (list.length === 0) return [];
 
     const nopedReadings = getNopedReadingCandidateSet();
-    if (nopedReadings.size === 0) return list;
+    const seenReadings = new Set();
 
     return list.filter((item) => {
         const reading = String(item?.reading || item?.sessionReading || item?.yomi || '').trim();
         if (!reading) return true;
         const normalized = normalizeReadingStockSoundValue(reading);
+        const key = normalized || reading;
+        if (key && seenReadings.has(key)) return false;
+        if (key) seenReadings.add(key);
         return !nopedReadings.has(reading) && (!normalized || !nopedReadings.has(normalized));
     });
 }
@@ -3240,6 +3243,17 @@ function universalSwipeAction(action) {
             noped.add(item['漢字']);
         } else if (item.reading) {
             noped.add(item.reading);
+        }
+        if (['sound', 'nickname', 'adana'].includes(SwipeState.mode) && item.reading) {
+            const skippedKey = normalizeReadingStockSoundValue(item.reading);
+            if (skippedKey) {
+                const head = SwipeState.candidates.slice(0, SwipeState.currentIndex + 1);
+                const tail = SwipeState.candidates.slice(SwipeState.currentIndex + 1).filter(candidate => {
+                    const candidateKey = normalizeReadingStockSoundValue(candidate?.reading || candidate?.sessionReading || candidate?.yomi || '');
+                    return candidateKey !== skippedKey;
+                });
+                SwipeState.candidates = [...head, ...tail];
+            }
         }
         if (typeof StorageBox !== 'undefined') {
             if (typeof StorageBox.saveNopedDeferred === 'function') {
@@ -6595,12 +6609,23 @@ function getCuratedSegmentCandidateItems(segment, targetGender = gender || 'neut
     return items;
 }
 
+const READING_SEGMENT_KANJI_EXCLUSIONS = {
+    'こうじ': new Set(['柑']),
+    'け': new Set(['華']),
+    'しろ': new Set(['代']),
+    'いこう': new Set(['憩', '息']),
+    'ろ': new Set(['呂'])
+};
+
 function shouldExcludeReadingSegmentKanji(segment, kanji, targetGender = gender || 'neutral') {
     const normalizedSegment = typeof normalizeReadingComparisonValue === 'function'
         ? normalizeReadingComparisonValue(segment)
         : String(segment || '').trim();
     const normalizedKanji = String(kanji || '').trim();
     if (!normalizedSegment || !normalizedKanji) return false;
+
+    const excludedKanji = READING_SEGMENT_KANJI_EXCLUSIONS[normalizedSegment];
+    if (excludedKanji && Array.from(normalizedKanji).some(char => excludedKanji.has(char))) return true;
 
     return targetGender === 'male' && normalizedSegment === 'こ' && normalizedKanji === '子';
 }
@@ -6645,6 +6670,8 @@ function findStrictKanjiCandidatesForSegment(segment, limit = 4, targetGender = 
             const flag = item['\u4E0D\u9069\u5207\u30D5\u30E9\u30B0'];
             if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') return false;
             if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(item, targetGender)) return false;
+            const kanji = String(item['\u6F22\u5B57'] || '').trim();
+            if (shouldExcludeReadingSegmentKanji(target, kanji, targetGender)) return false;
             return !!getStrictReadingMatch(item, target, { segmentIndex });
         })
         .map(item => {
