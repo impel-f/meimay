@@ -102,7 +102,7 @@ workflows:
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
         IOS_MARKETING_VERSION: "1.2.3"
-        IOS_BUILD_NUMBER: "16"
+        IOS_BUILD_NUMBER: "17"
       node: v22.11.0
       xcode: latest
     scripts:
@@ -116,7 +116,7 @@ workflows:
         script: |
           MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.2.3}"
           BUILD_VERSION="${IOS_BUILD_NUMBER:-${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}}"
-          BUILD_VERSION="${BUILD_VERSION:-16}"
+          BUILD_VERSION="${BUILD_VERSION:-17}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
       - name: Initialize code signing keychain
