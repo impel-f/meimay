@@ -1585,7 +1585,7 @@ function updateSwipeMainState() {
         if (btnPrev) btnPrev.classList.add('opacity-0', 'pointer-events-none');
         if (btnNext) {
             btnNext.classList.remove('opacity-0', 'pointer-events-none');
-            btnNext.innerHTML = 'ビルドへ &gt;';
+            btnNext.innerHTML = 'ビルドへ&gt;';
             btnNext.onclick = () => {
                 window._addMoreFromBuild = false;
                 openBuild();
