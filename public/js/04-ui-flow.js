@@ -3240,7 +3240,13 @@ function universalSwipeAction(action) {
 
     if (action === 'nope') {
         if (item['漢字']) {
-            noped.add(item['漢字']);
+            const nopedContext = typeof getKanjiNopedContextFromItem === 'function'
+                ? getKanjiNopedContextFromItem(item)
+                : '';
+            const nopedKey = typeof getKanjiNopedContextKey === 'function'
+                ? getKanjiNopedContextKey(item['漢字'], nopedContext)
+                : '';
+            noped.add(nopedKey || item['漢字']);
         } else if (item.reading) {
             noped.add(item.reading);
         }
@@ -3952,6 +3958,83 @@ function setRule(r) {
 // 読み方引き継ぎフロー
 // ==========================================
 
+function normalizeInheritReadingValue(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(hira)
+        : hira;
+}
+
+function buildReadingSegmentsLookup() {
+    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
+    const readingToSegments = {};
+    history.forEach((entry) => {
+        if (!entry || !Array.isArray(entry.segments)) return;
+        const rawReading = String(entry.reading || '').trim();
+        const normalizedReading = normalizeInheritReadingValue(rawReading);
+        if (rawReading) readingToSegments[rawReading] = entry.segments;
+        if (normalizedReading) readingToSegments[normalizedReading] = entry.segments;
+    });
+    return readingToSegments;
+}
+
+function getInheritSourceSegments(item, readingToSegments) {
+    if (Array.isArray(item?.sessionSegments)) return item.sessionSegments;
+    const rawReading = String(item?.sessionReading || '').trim();
+    return readingToSegments[rawReading] || readingToSegments[normalizeInheritReadingValue(rawReading)] || null;
+}
+
+function getInheritSourceSegment(item, readingToSegments) {
+    const itemSlot = Number(item?.slot);
+    const itemSegments = getInheritSourceSegments(item, readingToSegments);
+    if (itemSegments && Number.isInteger(itemSlot) && itemSlot >= 0) {
+        return itemSegments[itemSlot] || '';
+    }
+    return item?.segmentReading || item?.targetReading || '';
+}
+
+function hasCurrentReadingKanji(kanji, slotIdx, currentReading) {
+    if (typeof isKanjiSelectedForReadingSlot === 'function') {
+        return isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading);
+    }
+    return Array.isArray(liked) && liked.some((item) =>
+        item &&
+        item['漢字'] === kanji &&
+        item.slot === slotIdx &&
+        item.sessionReading === currentReading
+    );
+}
+
+function isInheritItemForCurrentSlot(item, seg, slotIdx, currentReading, readingToSegments) {
+    if (!item || !item['漢字']) return false;
+    if (!item.sessionReading || item.sessionReading === currentReading) return false;
+    if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
+    if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
+    if (typeof isKanjiNopedForReading === 'function' && isKanjiNopedForReading(item['漢字'], seg, { includeBare: false })) return false;
+
+    const sourceSegment = normalizeInheritReadingValue(getInheritSourceSegment(item, readingToSegments));
+    const targetSegment = normalizeInheritReadingValue(seg);
+    if (sourceSegment && sourceSegment === targetSegment) return true;
+
+    const strictMatch = typeof getStrictReadingMatch === 'function'
+        ? getStrictReadingMatch(item, seg, { segmentIndex: slotIdx })
+        : null;
+    return !!strictMatch;
+}
+
+function getNewInheritItems(inheritItems, slotIdx, currentReading) {
+    const seenKanji = new Set();
+    return inheritItems.filter((item) => {
+        const kanji = String(item?.['漢字'] || '').trim();
+        if (!kanji || seenKanji.has(kanji)) return false;
+        if (hasCurrentReadingKanji(kanji, slotIdx, currentReading)) return false;
+        seenKanji.add(kanji);
+        return true;
+    });
+}
+
 /**
  * 同じ読み方スロットにストック済み漢字がある候補を探す
  */
@@ -3959,31 +4042,17 @@ function findInheritCandidates() {
     if (!segments || segments.length === 0) return [];
 
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
-    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const readingToSegments = {};
-    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    const readingToSegments = buildReadingSegmentsLookup();
 
     const candidates = [];
 
     segments.forEach((seg, slotIdx) => {
-        const inheritItems = liked.filter(item => {
-            if (!item.sessionReading || item.sessionReading === currentReading) return false;
-            if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
-            if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
-            if (item.slot !== slotIdx) return false;
-            const itemSegs = readingToSegments[item.sessionReading];
-            if (!itemSegs) return false;
-            return itemSegs[slotIdx] === seg;
-        });
+        const inheritItems = liked.filter(item =>
+            isInheritItemForCurrentSlot(item, seg, slotIdx, currentReading, readingToSegments)
+        );
 
         // 現セッションにまだない漢字のみ
-        const newItems = inheritItems.filter(item =>
-            !liked.some(l =>
-                l['漢字'] === item['漢字'] &&
-                l.slot === slotIdx &&
-                l.sessionReading === currentReading
-            )
-        );
+        const newItems = getNewInheritItems(inheritItems, slotIdx, currentReading);
 
         if (newItems.length > 0) {
             candidates.push({ slot: slotIdx, segReading: seg, items: newItems });
@@ -3998,6 +4067,7 @@ function findInheritCandidates() {
  */
 function doInheritKanji(candidates) {
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
+    const currentSegments = Array.isArray(segments) ? [...segments] : [];
     candidates.forEach(c => {
         c.items.forEach(item => {
             if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) {
@@ -4009,7 +4079,7 @@ function doInheritKanji(candidates) {
                 l.sessionReading === currentReading
             );
             if (!exists) {
-                liked.push({ ...item, slot: c.slot, sessionReading: currentReading });
+                liked.push({ ...item, slot: c.slot, sessionReading: currentReading, sessionSegments: currentSegments });
             }
         });
     });
@@ -4070,32 +4140,16 @@ function checkInheritForSlot(slotIdx, onDone) {
     }
 
     const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join('');
-    const history = typeof getReadingHistory === 'function' ? getReadingHistory() : [];
-    const readingToSegments = {};
-    history.forEach(h => { readingToSegments[h.reading] = h.segments; });
+    const readingToSegments = buildReadingSegmentsLookup();
 
     // 指定スロットの引き継ぎアイテムを探す
     const seg = segments[slotIdx];
-    const inheritItems = liked.filter(item => {
-        if (!item.sessionReading || item.sessionReading === currentReading) return false;
-        if (item.sessionReading === 'FREE' || item.sessionReading === 'SEARCH') return false;
-        if (typeof isKanjiAccessibleForCurrentMembership === 'function' && !isKanjiAccessibleForCurrentMembership(item)) return false;
-        
-        const itemSegs = readingToSegments[item.sessionReading];
-        if (!itemSegs || !Array.isArray(itemSegs)) return false;
-        // スロット番号（何番目の文字か）が違っても、選ばれた際の読み（セグメント）が
-        // 現在のスロットの読みと一致していれば引き継ぎ対象とする
-        return itemSegs[item.slot] === seg;
-    });
+    const inheritItems = liked.filter(item =>
+        isInheritItemForCurrentSlot(item, seg, slotIdx, currentReading, readingToSegments)
+    );
 
     // 既に現在セッションで選ばれているか除外
-    const newItems = inheritItems.filter(item =>
-        !liked.some(l =>
-            l['漢字'] === item['漢字'] &&
-            l.slot === slotIdx &&
-            l.sessionReading === currentReading
-        )
-    );
+    const newItems = getNewInheritItems(inheritItems, slotIdx, currentReading);
 
     if (newItems.length === 0) {
         onDone(); // 候補がなければそのまま次へ

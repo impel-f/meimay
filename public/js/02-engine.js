@@ -32,6 +32,59 @@ function splitReadingIntoMoraUnits(rawReading) {
     return units;
 }
 
+const KANJI_NOPED_CONTEXT_PREFIX = 'kanji-context::';
+
+function normalizeKanjiNopedReading(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(hira)
+        : hira;
+}
+
+function getKanjiNopedContextKey(kanji, reading) {
+    const display = String(kanji || '').trim();
+    const normalizedReading = normalizeKanjiNopedReading(reading);
+    return display && normalizedReading
+        ? `${KANJI_NOPED_CONTEXT_PREFIX}${display}::${normalizedReading}`
+        : '';
+}
+
+function getKanjiNopedContextFromItem(item) {
+    if (!item || typeof item !== 'object') return '';
+    if (item._swipeTargetReading) return item._swipeTargetReading;
+    if (Array.isArray(item.sessionSegments) && Number.isInteger(item.slot) && item.slot >= 0) {
+        return item.sessionSegments[item.slot] || '';
+    }
+    return item.segmentReading || item.targetReading || '';
+}
+
+function isKanjiNopedForReading(kanji, reading, options = {}) {
+    if (typeof noped === 'undefined' || !noped || typeof noped.has !== 'function') return false;
+    const contextKey = getKanjiNopedContextKey(kanji, reading);
+    if (contextKey && noped.has(contextKey)) return true;
+    if (options.includeBare === true || !normalizeKanjiNopedReading(reading)) {
+        return noped.has(String(kanji || '').trim());
+    }
+    return false;
+}
+
+function isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading) {
+    if (!Array.isArray(liked)) return false;
+    const display = String(kanji || '').trim();
+    const normalizedCurrentReading = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(currentReading || '')
+        : String(currentReading || '').trim();
+    return liked.some((item) => {
+        if (!item || item.slot != slotIdx || item['漢字'] !== display) return false;
+        const itemReading = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(item.sessionReading || '')
+            : String(item.sessionReading || '').trim();
+        return !normalizedCurrentReading || itemReading === normalizedCurrentReading;
+    });
+}
+
 function isPremiumAccessActive() {
     return typeof PremiumManager !== 'undefined'
         && PremiumManager
@@ -355,7 +408,8 @@ function getSwipeKanaCandidatesForCurrentSlot(target, slotIdx = currentPos) {
             && (!item.sessionReading || item.sessionReading === currentReading)
         );
         if (alreadyLiked) return false;
-        if (typeof noped !== 'undefined' && noped && noped.has && noped.has(display)) return false;
+        const contextReading = getKanjiNopedContextFromItem(candidate) || currentReading;
+        if (typeof isKanjiNopedForReading === 'function' && isKanjiNopedForReading(display, contextReading, { includeBare: false })) return false;
         return true;
     });
 }
@@ -1254,14 +1308,17 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
         }
         if (typeof isKanjiGenderMismatch === 'function' && isKanjiGenderMismatch(masterItem)) return;
 
-        const alreadyLiked = Array.isArray(liked)
-            ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji)
-            : false;
+        const currentReading = typeof getCurrentSessionReading === 'function'
+            ? getCurrentSessionReading()
+            : (Array.isArray(context?.segmentList) ? context.segmentList.join('') : '');
+        const alreadyLiked = typeof isKanjiSelectedForReadingSlot === 'function'
+            ? isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading)
+            : (Array.isArray(liked) ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji && item.sessionReading === currentReading) : false);
         if (alreadyLiked) {
             if (!suppressLogs) console.log(`ENGINE: Skipping approved ${kanji} because it is already liked at slot ${slotIdx}`);
             return;
         }
-        if (!includeNoped && typeof noped !== 'undefined' && noped && noped.has(kanji)) return;
+        if (!includeNoped && typeof isKanjiNopedForReading === 'function' && isKanjiNopedForReading(kanji, context?.normalizedTarget || '', { includeBare: false })) return;
 
         let item = byKanji.get(kanji);
         if (!item) {
@@ -1275,6 +1332,8 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
         item._approvedSwipeCandidate = true;
         item._approvedSwipeOrder = index;
         item._approvedSwipeNoise = Math.random();
+        item._swipeTargetReading = context?.normalizedTarget || '';
+        item._swipeTargetSlot = slotIdx;
     });
 
     return list;
@@ -1304,6 +1363,8 @@ function buildSwipeStackCandidates(options = {}) {
         delete k._swipeMatchedReading;
         delete k._swipeMatchedReadingRaw;
         delete k._swipeMatchDisplayLabel;
+        delete k._swipeTargetReading;
+        delete k._swipeTargetSlot;
 
         if (!premiumOverride && !isKanjiAccessibleForCurrentMembership(k)) {
             return false;
@@ -1326,7 +1387,10 @@ function buildSwipeStackCandidates(options = {}) {
         }
 
         // ユーザー要望：戻った時に、そのターンで選んだ（ストック済み）漢字は候補に出さない
-        const alreadyLiked = liked.some(l => l.slot == slotIdx && l['漢字'] === k['漢字']);
+        const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segmentList.join('');
+        const alreadyLiked = typeof isKanjiSelectedForReadingSlot === 'function'
+            ? isKanjiSelectedForReadingSlot(k['漢字'], slotIdx, currentReading)
+            : liked.some(l => l.slot == slotIdx && l['漢字'] === k['漢字'] && l.sessionReading === currentReading);
         if (alreadyLiked) {
             if (!suppressLogs) {
                 console.log(`ENGINE: Skipping ${k['漢字']} because it is already liked at slot ${slotIdx}`);
@@ -1335,7 +1399,7 @@ function buildSwipeStackCandidates(options = {}) {
         }
 
         // NOPEした漢字は出さない（最初から選び直し時にリセット）
-        if (!includeNoped && typeof noped !== 'undefined' && noped.has(k['漢字'])) {
+        if (!includeNoped && typeof isKanjiNopedForReading === 'function' && isKanjiNopedForReading(k['漢字'], normalizedTarget, { includeBare: false })) {
             return false;
         }
 
@@ -1398,6 +1462,10 @@ function buildSwipeStackCandidates(options = {}) {
         } else {
             k.priority = 0;
             k.readingTier = 99;
+        }
+        if (k.priority > 0) {
+            k._swipeTargetReading = normalizedTarget;
+            k._swipeTargetSlot = slotIdx;
         }
 
         // ルールに応じてフィルタ (priority=1:完全一致, priority=2:連濁一致)
@@ -1470,6 +1538,7 @@ function buildSwipeStackCandidates(options = {}) {
     });
     candidates = markApprovedSwipeCandidates(candidates, approvedKanjiList, {
         slotIdx,
+        normalizedTarget,
         includeNoped,
         includeInappropriate,
         premiumOverride,

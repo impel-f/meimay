@@ -243,7 +243,13 @@ function executeSwipe(dir, data) {
 
     // NOPEの場合はnopedセットに追加
     if (data && dir === 'left') {
-        noped.add(data['漢字']);
+        const nopedContext = typeof getKanjiNopedContextFromItem === 'function'
+            ? getKanjiNopedContextFromItem(data)
+            : '';
+        const nopedKey = typeof getKanjiNopedContextKey === 'function'
+            ? getKanjiNopedContextKey(data['漢字'], nopedContext)
+            : '';
+        noped.add(nopedKey || data['漢字']);
         if (typeof StorageBox !== 'undefined') {
             if (typeof StorageBox.saveNopedDeferred === 'function') {
                 StorageBox.saveNopedDeferred();
