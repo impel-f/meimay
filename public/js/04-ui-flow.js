@@ -707,11 +707,11 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                                 <div class="method-choice-radio" aria-hidden="true"></div>
                                 <span class="method-choice-title">読みはまだ決まっていない</span>
                             </div>
-                            <span class="method-choice-desc">響きや入れたい音から、読み候補を探します</span>
+                            <span class="method-choice-desc">響きや入れたい音から、読みを探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
                             <span class="method-choice-selected-pill">選択中</span>
-                            <span class="method-choice-footer-copy">読み候補を探します</span>
+                            <span class="method-choice-footer-copy">読みを探します</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
@@ -5051,6 +5051,16 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     if (options.clearHidden) {
         forgetHiddenReading(reading);
     }
+    if (options.trackSoundPreference !== false && options.trackStats !== false) {
+        const preferenceEventType = options.preferenceEventType || (options.readingPromoted ? 'builtFromReading' : 'saved');
+        recordSoundPreferenceFromReadingAction(result.entry.reading || reading, preferenceEventType, {
+            tags: Array.isArray(result.entry.tags) ? result.entry.tags : tags,
+            gender: result.entry.gender || options.gender,
+            source: options.source || (options.readingPromoted ? 'reading-combination' : (appMode || 'reading-stock')),
+            action: options.isSuper ? 'super' : preferenceEventType,
+            weightMultiplier: options.isSuper ? 1.12 : 1
+        });
+    }
     if (result.created) {
         console.log("STOCK: Added reading to stock:", result.entry);
         if (typeof trackMeimayEvent === 'function') {
@@ -5359,6 +5369,10 @@ function hideReadingFromStock(target) {
 function openBuildFromReading(reading, preferredSegments = []) {
     const normalizedReading = getReadingBaseReading(reading);
     const normalizedSegments = Array.isArray(preferredSegments) ? preferredSegments.filter(Boolean) : [];
+    recordSoundPreferenceFromReadingAction(normalizedReading || reading, 'builtFromReading', {
+        source: 'open-build-from-reading',
+        weightMultiplier: normalizedSegments.length > 0 ? 1.05 : 1
+    });
     const oldSelected = (Array.isArray(selectedPieces) ? [...selectedPieces] : []).filter(Boolean);
     const oldSegments = (Array.isArray(segments) ? [...segments] : []).filter(Boolean);
 
@@ -5618,6 +5632,28 @@ function persistSoundPreferenceData() {
     }
 }
 
+function recordSoundPreferenceFromReadingAction(reading, eventType, options = {}) {
+    const normalizedReading = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(reading)
+        : String(reading || '').trim();
+    if (!normalizedReading || typeof recordSoundPreferenceEvent !== 'function') return null;
+
+    const candidate = {
+        reading: normalizedReading,
+        tags: Array.isArray(options.tags) ? options.tags : [],
+        gender: options.gender || (typeof gender !== 'undefined' ? gender : 'neutral'),
+        rawCount: options.rawCount,
+        popularityBand: options.popularityBand
+    };
+
+    return recordSoundPreferenceEvent(candidate, eventType, {
+        action: options.action || eventType,
+        source: options.source || `reading-${eventType}`,
+        persist: options.persist !== false,
+        weightMultiplier: options.weightMultiplier
+    });
+}
+
 /**
  * スワイプ結果から好みの音パターンを学習
  */
@@ -5629,7 +5665,7 @@ function learnSoundPreference(item, action) {
         recordSoundPreferenceEvent(item, 'liked', {
             action,
             weightMultiplier: action === 'super' ? 1.25 : 1,
-            persist: typeof SwipeState !== 'undefined' && SwipeState.mode === 'sound' ? false : true
+            persist: true
         });
         return;
     }
@@ -5649,24 +5685,34 @@ function learnSoundPreference(item, action) {
 
 function getVowelPattern(reading) {
     if (!reading) return '';
+    const source = typeof toHira === 'function' ? toHira(reading) : reading;
+    const units = typeof splitReadingIntoMoraUnits === 'function' ? splitReadingIntoMoraUnits(source) : Array.from(source);
     const vowelMap = {
         'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o',
+        'ぁ': 'a', 'ぃ': 'i', 'ぅ': 'u', 'ぇ': 'e', 'ぉ': 'o',
         'か': 'a', 'き': 'i', 'く': 'u', 'け': 'e', 'こ': 'o',
         'さ': 'a', 'し': 'i', 'す': 'u', 'せ': 'e', 'そ': 'o',
         'た': 'a', 'ち': 'i', 'つ': 'u', 'て': 'e', 'と': 'o',
         'な': 'a', 'に': 'i', 'ぬ': 'u', 'ね': 'e', 'の': 'o',
         'は': 'a', 'ひ': 'i', 'ふ': 'u', 'へ': 'e', 'ほ': 'o',
         'ま': 'a', 'み': 'i', 'む': 'u', 'め': 'e', 'も': 'o',
-        'や': 'a', 'ゆ': 'u', 'よ': 'o',
+        'や': 'a', 'ゆ': 'u', 'よ': 'o', 'ゃ': 'a', 'ゅ': 'u', 'ょ': 'o',
         'ら': 'a', 'り': 'i', 'る': 'u', 'れ': 'e', 'ろ': 'o',
-        'わ': 'a', 'ん': 'n',
+        'わ': 'a', 'ゎ': 'a', 'ん': 'n',
         'が': 'a', 'ぎ': 'i', 'ぐ': 'u', 'げ': 'e', 'ご': 'o',
         'ざ': 'a', 'じ': 'i', 'ず': 'u', 'ぜ': 'e', 'ぞ': 'o',
         'だ': 'a', 'ぢ': 'i', 'づ': 'u', 'で': 'e', 'ど': 'o',
         'ば': 'a', 'び': 'i', 'ぶ': 'u', 'べ': 'e', 'ぼ': 'o',
-        'ぱ': 'a', 'ぴ': 'i', 'ぷ': 'u', 'ぺ': 'e', 'ぽ': 'o'
+        'ぱ': 'a', 'ぴ': 'i', 'ぷ': 'u', 'ぺ': 'e', 'ぽ': 'o',
+        'っ': 'q'
     };
-    return reading.split('').map(c => vowelMap[c] || '').join('');
+    return units.map((unit) => {
+        const chars = Array.from(unit || '');
+        const small = chars.find(char => vowelMap[char] && /^[ぁぃぅぇぉゃゅょゎ]$/.test(char));
+        if (small) return vowelMap[small];
+        const last = chars[chars.length - 1] || '';
+        return vowelMap[last] || vowelMap[chars[0]] || '';
+    }).join('');
 }
 
 function createSoundStatBucket() {
@@ -5754,13 +5800,18 @@ function getSoundCandidateProfile(candidate) {
     return { reading: String(candidate?.reading || '').trim(), normalizedReading, moraUnits, moraCount: moraUnits.length || (normalizedReading ? normalizedReading.length : 0), headGroup: firstMora || '#other', tailType: lastMora || '#other', vowelPattern: typeof getVowelPattern === 'function' ? getVowelPattern(normalizedReading) : '', styleTags, primaryStyleTag: styleTags[0] || '#other', popularityBand: String(candidate?.popularityBand || (popular || rawCount >= 35 ? '定番' : rawCount >= 12 ? '準定番' : 'やや珍しい')), genderTilt: normalizeSoundGenderTilt(candidate?.gender), rawCount, popular, baseScore: Number(candidate?.score || 0) || 0, bucketKey: [moraUnits.length || 0, firstMora || '#other', lastMora || '#other', styleTags[0] || '#other', popular ? 'popular' : 'normal'].join('::') };
 }
 function getSoundEventWeight(eventType, meta = {}) {
-    let weight = { shown: 0, opened: 0.45, liked: 1.8, skipped: -1, saved: 4, builtFromReading: 5 }[eventType] ?? 0;
+    let weight = { shown: 0, opened: 0.45, liked: 1.8, skipped: -0.65, saved: 4, builtFromReading: 5 }[eventType] ?? 0;
     if (eventType === 'opened') {
         const dwellMs = Number(meta.dwellMs || 0) || 0;
         if (dwellMs < 250) weight -= 0.5; else if (dwellMs < 800) weight += 0; else if (dwellMs < 1800) weight += 0.5; else weight += 1;
+        weight = Math.max(0, weight);
     }
     if (eventType === 'liked' && meta.action === 'super') weight *= 1.25;
     if (typeof meta.weightMultiplier === 'number' && Number.isFinite(meta.weightMultiplier)) weight *= meta.weightMultiplier;
+    return weight;
+}
+function getSoundAttributeEventWeight(eventType, weight) {
+    if (eventType === 'skipped') return weight * 0.35;
     return weight;
 }
 function incrementSoundBucket(store, key, eventType, delta, timestamp, meta = {}) {
@@ -5795,10 +5846,11 @@ function applySoundEventToProfile(profile, itemOrProfile, eventType, meta = {}, 
     if (!reading) return null;
     const timestamp = Number(meta.timestamp || Date.now()) || Date.now();
     const weight = getSoundEventWeight(eventType, meta);
+    const attributeWeight = getSoundAttributeEventWeight(eventType, weight);
     if (!profile.readingStats[reading]) profile.readingStats[reading] = createSoundStatBucket();
     incrementSoundBucket(profile.readingStats, reading, eventType, weight, timestamp, meta);
-    ['moraCount', 'headGroup', 'tailType', 'vowelPattern', 'popularityBand', 'genderTilt'].forEach(dim => incrementSoundBucket(profile.attributeStats[dim], candidateProfile[dim], eventType, weight, timestamp, meta));
-    candidateProfile.styleTags.forEach(tag => incrementSoundBucket(profile.attributeStats.styleTags, tag, eventType, weight, timestamp, meta));
+    ['moraCount', 'headGroup', 'tailType', 'vowelPattern', 'popularityBand', 'genderTilt'].forEach(dim => incrementSoundBucket(profile.attributeStats[dim], candidateProfile[dim], eventType, attributeWeight, timestamp, meta));
+    candidateProfile.styleTags.forEach(tag => incrementSoundBucket(profile.attributeStats.styleTags, tag, eventType, attributeWeight, timestamp, meta));
     if (!options.skipListSync) {
         if (eventType === 'liked' || eventType === 'saved' || eventType === 'builtFromReading') profile.liked = normalizeSoundStringList([...(profile.liked || []), reading]);
         if (eventType === 'skipped') profile.noped = normalizeSoundStringList([...(profile.noped || []), reading]);

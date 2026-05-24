@@ -313,6 +313,24 @@ function getSettingsGenderLabel(value) {
     return value === 'male' ? '男の子' : value === 'female' ? '女の子' : '指定なし';
 }
 
+function formatSettingsChildDateText(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '未設定';
+    const match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!match) return raw;
+    return `${match[1]}年${Number(match[2])}月${Number(match[3])}日`;
+}
+
+function getSettingsWizardChildDateValue() {
+    try {
+        if (typeof WizardData === 'undefined' || !WizardData || typeof WizardData.get !== 'function') return '';
+        const wizard = WizardData.get() || {};
+        return String(wizard.dueDate || wizard.birthDate || '').trim();
+    } catch (_) {
+        return '';
+    }
+}
+
 function getSettingsActiveChildSummary() {
     if (typeof MeimayChildWorkspaces === 'undefined'
         || !MeimayChildWorkspaces
@@ -325,7 +343,8 @@ function getSettingsActiveChildSummary() {
     const label = typeof MeimayChildWorkspaces.getChildLabel === 'function'
         ? MeimayChildWorkspaces.getChildLabel(activeChild.meta?.id)
         : (activeChild.meta?.displayLabel || '第一子');
-    return `${label}・${getSettingsGenderLabel(activeChild.meta?.gender)}`;
+    const dateValue = String(activeChild.meta?.dueDate || activeChild.meta?.birthDate || getSettingsWizardChildDateValue()).trim();
+    return `${label}・${getSettingsGenderLabel(activeChild.meta?.gender)}・予定日 ${formatSettingsChildDateText(dateValue)}`;
 }
 
 function openActiveChildSettingsFromSettings() {
@@ -350,9 +369,6 @@ function renderSettingsScreen() {
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ' : wizData?.role === 'mama' ? 'ママ' : '未設定';
     const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
-    const activeChildText = getSettingsActiveChildSummary();
-
-
     // Partner linking status
     let pairingStatusText = '未連携';
     let pairingStatusColor = '#a6967a';
@@ -372,10 +388,9 @@ function renderSettingsScreen() {
     const premiumDisplay = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
         ? PremiumManager.getDisplayStatus()
         : null;
-    const dailyRemainingText = typeof getDailyRemainingCount === 'function' ? getDailyRemainingCount() : '-';
     const premiumText = premiumDisplay?.active
         ? (premiumDisplay.kind === 'trial' ? '無料体験中' : '有効')
-        : (premiumState?.expired ? '期限切れ' : `無料プラン・残り ${dailyRemainingText} 回`);
+        : (premiumState?.expired ? '期限切れ' : '無料プラン');
 
     const escapeSettingsHtml = (value) => String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -416,7 +431,7 @@ function renderSettingsScreen() {
 
             ${renderSection('名づけ条件', `
                 ${renderItem({ title: '名字', value: surnameStr || '未設定', onClick: 'openSurnameInput()' })}
-                ${renderItem({ title: '子どもの設定', value: activeChildText, onClick: 'openActiveChildSettingsFromSettings()' })}
+                ${renderItem({ title: '子どもの設定', onClick: 'openActiveChildSettingsFromSettings()' })}
             `)}
 
             ${renderSection('共有とプレミアム', `
@@ -430,7 +445,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('データと表示', `
-                ${renderItem({ title: 'バックアップと復元', value: '復元キー', onClick: 'openTransferModal()' })}
+                ${renderItem({ title: 'バックアップと復元', onClick: 'openTransferModal()' })}
                 ${renderItem({ title: 'アプリデータを削除', value: '初期化', valueStyle: 'color:#c56555;font-weight:800;', onClick: 'openDeleteAppDataSheet()' })}
             `)}
 
@@ -1024,7 +1039,7 @@ function openTransferModal() {
             <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
-                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。パートナー連携は復元後に再設定してください。</p>
+                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。無料体験の利用済み状態も引き継ぎます。パートナー連携は復元後に再設定してください。</p>
                 <div class="modal-body backup-restore-body">
                     <section class="backup-restore-card">
                         <div class="backup-restore-card-head">
@@ -1059,7 +1074,7 @@ function openTransferModal() {
                     </section>
                     <section class="backup-restore-note">
                         <strong>復元ルール</strong>
-                        <span>IDや名字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。</span>
+                        <span>IDや名字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。無料体験は重複して開始できません。</span>
                     </section>
                     <div id="backup-restore-status" class="backup-restore-status" role="status" aria-live="polite" data-tone="neutral">復元キーは、家族以外に共有しないでください。</div>
                 </div>

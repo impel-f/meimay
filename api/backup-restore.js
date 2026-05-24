@@ -70,6 +70,111 @@ function sanitizeJsonValue(value) {
   }
 }
 
+function readDateMs(value) {
+  if (!value) return 0;
+  if (typeof value.toDate === 'function') {
+    const date = value.toDate();
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? 0 : value.getTime();
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const time = new Date(value).getTime();
+    return Number.isFinite(time) ? time : 0;
+  }
+  return 0;
+}
+
+function normalizeDateValue(value) {
+  const ms = readDateMs(value);
+  return ms ? new Date(ms) : null;
+}
+
+function isPaidPremiumActive(data, nowMs) {
+  if (!data || typeof data !== 'object') return false;
+  const premiumSource = String(data.premiumSource || '').trim().toLowerCase();
+  const status = String(data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+  const productId = String(data.appStoreProductId || data.premiumProductId || '').trim();
+  if (premiumSource === 'trial') return false;
+  if (!premiumSource && !productId && status !== 'active') return false;
+  if (status && status !== 'active') return false;
+  const expiresAtMs = readDateMs(data.appStoreExpiresAt || data.premiumExpiresAt);
+  return data.isPremium === true && (!expiresAtMs || expiresAtMs > nowMs);
+}
+
+function isTrialActive(data, nowMs) {
+  if (!data || typeof data !== 'object') return false;
+  const premiumSource = String(data.premiumSource || '').trim().toLowerCase();
+  const status = String(data.trialStatus || data.subscriptionStatus || data.premiumStatus || '').trim().toLowerCase();
+  const endsAtMs = readDateMs(data.trialEndsAt || data.premiumExpiresAt);
+  return data.isPremium === true
+    && (premiumSource === 'trial' || status === 'trialing' || status === 'active')
+    && endsAtMs > nowMs;
+}
+
+function hasConsumedTrial(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (data.trialConsumedAt || data.trialStartedAt) return true;
+  const premiumSource = String(data.premiumSource || '').trim().toLowerCase();
+  const status = String(data.trialStatus || '').trim().toLowerCase();
+  return premiumSource === 'trial'
+    || status === 'active'
+    || status === 'trialing'
+    || status === 'expired'
+    || status === 'consumed';
+}
+
+function buildTrialUsageRestore(uid, ownerUid, ownerData, targetData, now) {
+  if (!hasConsumedTrial(ownerData)) return null;
+
+  const nowMs = now.getTime();
+  const ownerTrialActive = isTrialActive(ownerData, nowMs);
+  const targetPaidActive = isPaidPremiumActive(targetData, nowMs);
+  const targetTrialActive = isTrialActive(targetData, nowMs);
+  const restoredStartedAt = normalizeDateValue(ownerData.trialStartedAt || ownerData.trialConsumedAt) || now;
+  const restoredConsumedAt = normalizeDateValue(ownerData.trialConsumedAt || ownerData.trialStartedAt) || now;
+  const patch = {
+    trialStartedAt: targetData.trialStartedAt || restoredStartedAt,
+    trialConsumedAt: targetData.trialConsumedAt || restoredConsumedAt,
+    trialSource: targetData.trialSource || 'restore_key',
+    trialRestoredAt: FieldValue.serverTimestamp(),
+    trialRestoredFromUid: ownerUid || null,
+    updatedAt: FieldValue.serverTimestamp()
+  };
+
+  if (ownerTrialActive && !targetPaidActive && !targetTrialActive) {
+    const restoredEndsAt = normalizeDateValue(ownerData.trialEndsAt || ownerData.premiumExpiresAt);
+    if (restoredEndsAt && restoredEndsAt.getTime() > nowMs) {
+      patch.isPremium = true;
+      patch.premiumSource = 'trial';
+      patch.subscriptionStatus = 'trialing';
+      patch.premiumStatus = 'trialing';
+      patch.premiumExpiresAt = restoredEndsAt;
+      patch.trialStatus = 'active';
+      patch.trialEndsAt = restoredEndsAt;
+      return {
+        patch,
+        mode: uid === ownerUid ? 'self_active_trial_kept' : 'active_trial_restored'
+      };
+    }
+  }
+
+  if (targetTrialActive) {
+    patch.trialStatus = targetData.trialStatus || 'active';
+    return { patch, mode: 'target_active_trial_kept' };
+  }
+
+  patch.trialStatus = targetPaidActive ? (targetData.trialStatus || 'consumed') : 'consumed';
+  return {
+    patch,
+    mode: uid === ownerUid ? 'self_trial_consumed_kept' : 'trial_consumed_restored'
+  };
+}
+
 function normalizeRoomCode(value) {
   const roomCode = String(value || '').trim().toUpperCase();
   return roomCode || null;
@@ -196,15 +301,28 @@ async function restoreBackupByKey(db, uid, body) {
     });
   }
 
-  await keyRef.set({
-    lastUsedAt: FieldValue.serverTimestamp(),
-    lastUsedByUid: uid
-  }, { merge: true });
+  const targetRef = db.collection('users').doc(uid);
+  const targetSnap = ownerUid === uid ? ownerSnap : await targetRef.get();
+  const targetData = targetSnap.exists ? targetSnap.data() || {} : {};
+  const trialUsageRestore = buildTrialUsageRestore(uid, ownerUid, ownerData, targetData, new Date());
+
+  const writes = [
+    keyRef.set({
+      lastUsedAt: FieldValue.serverTimestamp(),
+      lastUsedByUid: uid
+    }, { merge: true })
+  ];
+  if (trialUsageRestore?.patch) {
+    writes.push(targetRef.set(trialUsageRestore.patch, { merge: true }));
+  }
+  await Promise.all(writes);
 
   return {
     ok: true,
     backup,
-    summary: summarizeBackup(backup)
+    summary: summarizeBackup(backup),
+    trialUsageRestored: !!trialUsageRestore,
+    trialRestoreMode: trialUsageRestore?.mode || null
   };
 }
 

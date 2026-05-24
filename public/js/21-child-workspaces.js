@@ -412,9 +412,39 @@
         return `${safeBirthOrder}:${normalizedTwinIndex === null ? 'n' : normalizedTwinIndex}`;
     }
 
-    function getChildWorkspaceDateText(child) {
+    function getLegacyWizardChildDateValue() {
+        try {
+            if (typeof WizardData === 'undefined' || !WizardData || typeof WizardData.get !== 'function') return '';
+            const wizard = WizardData.get() || {};
+            return String(wizard.dueDate || wizard.birthDate || '').trim();
+        } catch (_) {
+            return '';
+        }
+    }
+
+    function getChildWorkspaceDateValue(child, options = {}) {
         const value = String(child?.meta?.dueDate || child?.meta?.birthDate || '').trim();
+        if (value) return value;
+        return options.allowWizardFallback === true ? getLegacyWizardChildDateValue() : '';
+    }
+
+    function getChildWorkspaceDateText(child, options = {}) {
+        const value = getChildWorkspaceDateValue(child, options);
         return formatChildWorkspaceDateText(value);
+    }
+
+    function syncLegacyWizardChildMeta(meta = {}) {
+        try {
+            if (typeof WizardData === 'undefined' || !WizardData || typeof WizardData.get !== 'function' || typeof WizardData.save !== 'function') return;
+            const current = WizardData.get() || {};
+            if (current.completed !== true) return;
+            WizardData.save({
+                ...current,
+                birthOrder: normalizePositiveInteger(meta.birthOrder, current.birthOrder || 1),
+                gender: normalizeGenderValue(meta.gender || current.gender || 'neutral'),
+                dueDate: String(meta.dueDate || meta.birthDate || '').trim()
+            });
+        } catch (_) {}
     }
 
     function formatChildWorkspaceDateText(value) {
@@ -923,6 +953,20 @@
             };
         },
 
+        repairActiveChildDateFromLegacyWizard(root) {
+            const activeChildId = String(root?.activeChildId || '').trim();
+            const activeChild = activeChildId ? root?.children?.[activeChildId] : null;
+            if (!activeChild?.meta) return false;
+            const existingDate = getChildWorkspaceDateValue(activeChild);
+            const fallbackDate = getLegacyWizardChildDateValue();
+            if (existingDate || !fallbackDate) return false;
+            activeChild.meta.dueDate = fallbackDate;
+            activeChild.meta.birthDate = '';
+            activeChild.meta.updatedAt = getNowIso();
+            root.updatedAt = getNowIso();
+            return true;
+        },
+
         normalizeRoot(root, options = {}) {
             const deletedChildren = normalizeDeletedChildrenMap(root?.deletedChildren || root?.deletedChildIds || {});
             const next = {
@@ -971,6 +1015,8 @@
             const activeChildId = String(normalized?.activeChildId || '').trim();
             const activeChild = activeChildId ? normalized.children?.[activeChildId] : null;
             if (!activeChild) return normalized;
+
+            this.repairActiveChildDateFromLegacyWizard(normalized);
 
             const localSnapshot = this.captureCurrentChildRecord(activeChild.meta || {});
             const hasRootData = (
@@ -1225,7 +1271,7 @@
                     twinCount: birthGroupSize,
                     createdAt: existingMeta.createdAt || getNowIso(),
                     updatedAt: getNowIso(),
-                    dueDate: String(existingMeta.dueDate || existingMeta.birthDate || '').trim(),
+                    dueDate: String(existingMeta.dueDate || existingMeta.birthDate || getLegacyWizardChildDateValue()).trim(),
                     birthDate: ''
                 },
                 prefs: {
@@ -1571,6 +1617,7 @@
                 } else {
                     setSavedCanvasStateSnapshot(nextSavedCanvas);
                 }
+                syncLegacyWizardChildMeta(child.meta);
                 this.syncVisibleInputs(draft, family);
                 this.syncVisibleControls(child);
                 this.syncLegacyLocalStorage(child, family);
@@ -4097,7 +4144,9 @@
             modal.onclick = (event) => {
                 if (event.target === modal) this.closeChildModal();
             };
-            const savedDueDate = isEdit ? (child?.meta?.dueDate || child?.meta?.birthDate || '') : '';
+            const savedDueDate = isEdit
+                ? getChildWorkspaceDateValue(child, { allowWizardFallback: childId === this.root?.activeChildId })
+                : '';
             const editSummary = isEdit ? this.getDisplayChildSummary(childId) : null;
             const editSummaryLabel = editSummary
                 ? `読み ${editSummary.readingCount} / 漢字 ${editSummary.kanjiCount} / 保存 ${editSummary.savedCount}`
@@ -4368,7 +4417,9 @@
             
             target.textContent = '子ども管理';
             if (valueNode) {
-                valueNode.textContent = label + (label.includes('：') ? '' : ` ・ ${getGenderLabel(activeChild.meta.gender)}`);
+                const dateText = getChildWorkspaceDateText(activeChild, { allowWizardFallback: true });
+                const genderText = getGenderLabel(activeChild.meta.gender);
+                valueNode.textContent = label + (label.includes('：') ? '' : ` ・ ${genderText}`) + ` ・ 予定日 ${dateText}`;
             }
             if (iconNode) iconNode.textContent = '子';
             item.onclick = () => this.openManagerModal();

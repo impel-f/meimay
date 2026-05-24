@@ -4067,17 +4067,19 @@ body.has-ad-banner #universal-footer {
 #scr-mode .home-membership-status {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-height: 19px;
     max-width: 100%;
+    min-width: 0;
     overflow: hidden;
     text-overflow: clip;
     white-space: nowrap;
     border: 1px solid rgba(218, 199, 165, 0.9);
     border-radius: 999px;
     background: rgba(255, 253, 247, 0.78);
-    padding: 3px 7px;
+    padding: 3px 6px;
     color: #7c6541;
-    font-size: 10px !important;
+    font-size: 9px !important;
     font-weight: 900;
     line-height: 1;
     letter-spacing: 0;

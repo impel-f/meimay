@@ -202,7 +202,7 @@ function syncWizardReadingChoiceCopy() {
     if (noCopy) {
         const spans = noCopy.querySelectorAll('span');
         if (spans[0]) spans[0].textContent = '読みはまだ決まっていない';
-        if (spans[1]) spans[1].textContent = '響きや入れたい音から、読み候補を探します';
+        if (spans[1]) spans[1].textContent = '響きや入れたい音から、読みを探します';
     }
 }
 
