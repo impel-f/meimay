@@ -521,17 +521,18 @@ function getMasterKanjiReadings(item) {
     return [...majorReadings, ...minorReadings];
 }
 
-function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neutral') {
+function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neutral', options = {}) {
     if (!part || !Array.isArray(master) || master.length === 0) return false;
 
     const target = normalizeReadingComparisonValue(part);
     if (!target) return false;
 
+    const includeLockedExamples = !!options.includeLockedExamples;
     const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
     const canUseSeionFallback = isLeadingDakutenVariant(target, targetSeion);
 
     return master.some((k) => {
-        if (!isKanjiAccessibleForCurrentMembership(k)) return false;
+        if (!includeLockedExamples && !isKanjiAccessibleForCurrentMembership(k)) return false;
         const flag = k['不適切フラグ'];
         if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
             if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
@@ -544,7 +545,62 @@ function hasMasterKanjiCandidatesForReading(part, targetGender = gender || 'neut
     });
 }
 
-function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
+function getMasterKanjiCandidatesForReadingPrefix(part, targetGender = gender || 'neutral', options = {}) {
+    if (!part || !Array.isArray(master) || master.length === 0) return [];
+
+    const target = normalizeReadingComparisonValue(part);
+    if (!target || splitReadingIntoMoraUnits(target).length < 2) return [];
+
+    const includeLockedExamples = !!options.includeLockedExamples;
+    const limit = Number(options.limit || 6);
+    const targetSeion = typeof toSeion === 'function' ? normalizeReadingComparisonValue(toSeion(target)) : target;
+    const canUseSeionFallback = isLeadingDakutenVariant(target, targetSeion);
+    const results = [];
+    const seen = new Set();
+
+    master.some((k) => {
+        const accessible = typeof isKanjiAccessibleForCurrentMembership === 'function'
+            ? isKanjiAccessibleForCurrentMembership(k)
+            : true;
+        if (!includeLockedExamples && !accessible) return false;
+        const flag = k['不適切フラグ'];
+        if (flag && flag !== '0' && flag !== 'false' && flag !== 'FALSE') {
+            if (typeof showInappropriateKanji === 'undefined' || !showInappropriateKanji) return false;
+        }
+        if (isKanjiGenderMismatch(k, targetGender)) return false;
+
+        const kanji = String(k['漢字'] || '').trim();
+        if (!kanji || seen.has(kanji)) return false;
+
+        const buckets = typeof getKanjiReadingBuckets === 'function' ? getKanjiReadingBuckets(k) : null;
+        const majorReadings = Array.isArray(buckets?.majorReadings) && buckets.majorReadings.length > 0
+            ? buckets.majorReadings
+            : ((k['音'] || '') + ',' + (k['訓'] || ''))
+                .split(/[、,，\s/]+/)
+                .map(x => normalizeReadingComparisonValue(x))
+                .filter(Boolean);
+        const matchesPrefix = majorReadings.some(reading => reading.length > target.length && reading.startsWith(target)) ||
+            (canUseSeionFallback && majorReadings.some(reading => reading.length > targetSeion.length && reading.startsWith(targetSeion)));
+        if (!matchesPrefix) return false;
+
+        seen.add(kanji);
+        results.push({
+            ...k,
+            _premiumLocked: !accessible,
+            _readingMatchTier: 4
+        });
+
+        return results.length >= limit;
+    });
+
+    return results;
+}
+
+function hasMasterKanjiCandidatesForReadingPrefix(part, targetGender = gender || 'neutral', options = {}) {
+    return getMasterKanjiCandidatesForReadingPrefix(part, targetGender, { ...options, limit: 1 }).length > 0;
+}
+
+function hasViableKanjiForReading(part, targetGender = gender || 'neutral', options = {}) {
     const target = normalizeReadingComparisonValue(part);
     if (!target || !Array.isArray(master) || master.length === 0) return false;
 
@@ -557,9 +613,16 @@ function hasViableKanjiForReading(part, targetGender = gender || 'neutral') {
     }
 
     const moraLength = splitReadingIntoMoraUnits(target).length;
-    if (moraLength < 3) return false;
+    const includeLockedExamples = !!options.includeLockedExamples;
+    const allowPartial = !!options.allowPartial;
+    if (moraLength >= 3 && hasMasterKanjiCandidatesForReading(target, targetGender, { includeLockedExamples })) {
+        return true;
+    }
+    if (allowPartial && hasMasterKanjiCandidatesForReadingPrefix(target, targetGender, { includeLockedExamples })) {
+        return true;
+    }
 
-    return hasMasterKanjiCandidatesForReading(target, targetGender);
+    return false;
 
     if (false) {
     if (!part || !Array.isArray(master) || master.length === 0) return false;
@@ -620,6 +683,8 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
     const allowFallback = !options || options.allowFallback !== false;
     const useStrictMatching = strictOnly || rule === 'strict';
     const targetGender = options?.gender || gender || 'neutral';
+    const includeLockedExamples = !!options?.includeLockedExamples;
+    const allowPartialSegments = !useStrictMatching && options?.allowPartialSegments !== false;
     const canUseReadingSegment = (part) => {
         const normalizedPart = normalizeReadingComparisonValue(part);
         if (isInvalidReadingSegment(normalizedPart)) return false;
@@ -628,12 +693,15 @@ function getReadingSegmentPaths(rawReading, limit = 5, options = {}) {
         const segmentState = getReadingSegmentRuleState(normalizedPart);
         const masterFallback = segmentState.state === 'missing'
             && splitReadingIntoMoraUnits(normalizedPart).length >= 3
-            && hasMasterKanjiCandidatesForReading(normalizedPart, targetGender);
+            && hasMasterKanjiCandidatesForReading(normalizedPart, targetGender, { includeLockedExamples });
         const hasStrictReading = !useStrictMatching || (validReadingsSet && (
             validReadingsSet.has(normalizedPart) ||
             (canUseSeionFallback && validReadingsSet.has(partSeion))
         )) || segmentState.state === 'approved' || masterFallback;
-        return hasStrictReading && hasViableKanjiForReading(normalizedPart, targetGender);
+        return hasStrictReading && hasViableKanjiForReading(normalizedPart, targetGender, {
+            includeLockedExamples,
+            allowPartial: allowPartialSegments
+        });
     };
     let allPaths = [];
 
@@ -833,7 +901,16 @@ function fitSegmentOptionButton(button) {
         if (fits()) return;
     }
 
-    labelEl.style.letterSpacing = '-0.04em';
+    labelEl.style.letterSpacing = pieceEls.length === 1 ? '0' : '-0.04em';
+    if (pieceEls.length === 1) {
+        const piece = pieceEls[0];
+        piece.style.minWidth = '0';
+        piece.style.flex = '1 1 auto';
+        piece.style.display = 'block';
+        piece.style.overflow = 'hidden';
+        piece.style.textOverflow = 'ellipsis';
+        piece.style.whiteSpace = 'nowrap';
+    }
     if (countEl) {
         countEl.style.paddingLeft = '5px';
         countEl.style.paddingRight = '5px';
@@ -895,10 +972,12 @@ function calcSegments() {
     let uniquePaths = [];
     try {
         uniquePaths = getReadingSegmentPaths(nameReading, 8, {
-            strictOnly: true,
-            allowFallback: false
+            strictOnly: rule === 'strict',
+            allowFallback: rule !== 'strict',
+            includeLockedExamples: true,
+            allowPartialSegments: rule !== 'strict'
         });
-        console.log(`ENGINE: ${uniquePaths.length} strict segment patterns ready`);
+        console.log(`ENGINE: ${uniquePaths.length} segment patterns ready`);
     } catch (e) {
         console.error("ENGINE: Search failed", e);
         alert("分割計算中にエラーが発生しました。");
@@ -910,17 +989,42 @@ function calcSegments() {
         : [];
 
     const getPathCandidateAvailability = (path) => {
-        if (!Array.isArray(path) || path.length === 0) return { viable: false, total: 0, exactWhole: false };
-        if (typeof findStrictKanjiCandidatesForSegment !== 'function') {
-            return { viable: true, total: path.length, exactWhole: path.length === 1 };
+        if (!Array.isArray(path) || path.length === 0) {
+            return { viable: false, premiumViable: false, premiumOnly: false, total: 0, exactWhole: false, lockedPreviewLabel: '' };
         }
-        const counts = path.map((segment, segmentIndex) => {
+        if (typeof findStrictKanjiCandidatesForSegment !== 'function') {
+            return { viable: true, premiumViable: true, premiumOnly: false, total: path.length, exactWhole: path.length === 1, lockedPreviewLabel: '' };
+        }
+        const getCandidates = (segment, segmentIndex, includeLockedExamples = false) => {
             try {
-                return findStrictKanjiCandidatesForSegment(segment, 1, gender || 'neutral', { segmentIndex }).length;
+                const strictCandidates = findStrictKanjiCandidatesForSegment(segment, 3, gender || 'neutral', {
+                    segmentIndex,
+                    includeLockedExamples
+                });
+                if (strictCandidates.length > 0 || rule === 'strict') return strictCandidates;
+                if (typeof getMasterKanjiCandidatesForReadingPrefix === 'function') {
+                    return getMasterKanjiCandidatesForReadingPrefix(segment, gender || 'neutral', {
+                        includeLockedExamples,
+                        limit: 3
+                    });
+                }
+                return strictCandidates;
             } catch (error) {
-                return 1;
+                return [];
             }
+        };
+        const candidateGroups = path.map((segment, segmentIndex) => {
+            return getCandidates(segment, segmentIndex, false);
         });
+        const previewGroups = path.map((segment, segmentIndex) => {
+            return getCandidates(segment, segmentIndex, true);
+        });
+        const counts = candidateGroups.map(group => group.length);
+        const previewCounts = previewGroups.map(group => group.length);
+        const freeViable = counts.every(count => count > 0);
+        const premiumViable = previewCounts.every(count => count > 0);
+        const lockedCandidates = previewGroups.flat().filter(candidate => candidate && candidate._premiumLocked === true);
+        const firstLocked = lockedCandidates[0];
         const normalizedWhole = typeof normalizeReadingComparisonValue === 'function'
             ? normalizeReadingComparisonValue(nameReading)
             : nameReading;
@@ -928,13 +1032,26 @@ function calcSegments() {
             ? normalizeReadingComparisonValue(path.join(''))
             : path.join('');
         return {
-            viable: counts.every(count => count > 0),
+            viable: freeViable,
+            premiumViable,
+            premiumOnly: !freeViable && premiumViable && lockedCandidates.length > 0,
             total: counts.reduce((sum, count) => sum + count, 0),
-            exactWhole: path.length === 1 && counts[0] > 0 && normalizedPathReading === normalizedWhole
+            previewTotal: previewCounts.reduce((sum, count) => sum + count, 0),
+            exactWhole: path.length === 1 && previewCounts[0] > 0 && normalizedPathReading === normalizedWhole,
+            lockedPreviewLabel: firstLocked ? String(firstLocked['漢字'] || firstLocked.kanji || '').trim() : ''
         };
     };
 
-    uniquePaths = uniquePaths
+    const wholeReadingPath = [nameReading];
+    const wholeReadingKey = JSON.stringify(wholeReadingPath);
+    if (!uniquePaths.some(path => JSON.stringify(path) === wholeReadingKey)) {
+        const wholeAvailability = getPathCandidateAvailability(wholeReadingPath);
+        if (wholeAvailability.exactWhole && wholeAvailability.premiumOnly) {
+            uniquePaths.unshift(wholeReadingPath);
+        }
+    }
+
+    const pathEntries = uniquePaths
         .map((path, index) => ({
             path,
             index,
@@ -947,12 +1064,16 @@ function calcSegments() {
             if (a.availability.exactWhole !== b.availability.exactWhole) {
                 return a.availability.exactWhole ? -1 : 1;
             }
+            if (a.availability.premiumOnly !== b.availability.premiumOnly) {
+                return a.availability.premiumOnly ? -1 : 1;
+            }
             if (b.availability.total !== a.availability.total) {
                 return b.availability.total - a.availability.total;
             }
             return a.index - b.index;
-        })
-        .map(item => item.path);
+        });
+    const pathAvailabilityByKey = new Map(pathEntries.map(item => [JSON.stringify(item.path), item.availability]));
+    uniquePaths = pathEntries.map(item => item.path);
 
     function createSectionTitle(title, subtitle = '') {
         const wrapper = document.createElement('div');
@@ -972,6 +1093,15 @@ function calcSegments() {
     const normalSection = document.createElement('div');
     normalSection.className = 'mb-6';
     normalSection.appendChild(createSectionTitle('読みの分け方を選ぶ', 'どのまとまりで漢字を探すか選びます'));
+    const escapeSegmentOptionText = (value) => {
+        if (typeof escapeHtmlText === 'function') return escapeHtmlText(value);
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    };
 
     const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
     const kanaSettings = getKanaCandidateScriptSettings();
@@ -999,9 +1129,22 @@ function calcSegments() {
 
     if (uniquePaths.length > 0) {
         uniquePaths.forEach((path, idx) => {
+            const availability = pathAvailabilityByKey.get(JSON.stringify(path)) || getPathCandidateAvailability(path);
+            const premiumOnlyPath = !!(availability && availability.premiumOnly);
             const btn = document.createElement('button');
-            btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
+            btn.className = `w-[92%] mx-auto py-4 px-4 ${premiumOnlyPath ? 'bg-[#f3f2ef] border-[#d6d2ca] text-[#7b756c] hover:border-[#beb8ad]' : 'bg-[#fffaf4] border-[#eadfce] text-[#5d5444] hover:border-[#bca37f]'} font-black rounded-[34px] border shadow-sm transition-all mb-3 hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden`;
+            if (premiumOnlyPath) {
+                btn.style.backgroundColor = '#f3f2ef';
+                btn.style.borderColor = '#d6d2ca';
+                btn.style.color = '#7b756c';
+            }
             const countLabel = getSegmentPathBadgeLabel(path);
+            const premiumBadge = premiumOnlyPath
+                ? `<span class="shrink-0 inline-flex h-[24px] min-w-[54px] flex-col items-center justify-center rounded-full border px-2 leading-none shadow-sm" style="background:#e7e4df;border-color:#cfc9bf;color:#7b756c;">
+                    <span class="text-[10px] leading-none">👑</span>
+                    <span class="whitespace-nowrap text-[7px] font-black leading-none">人名用のみ</span>
+                </span>`
+                : '';
 
             const displayParts = path.map((p, index) => {
                 const piece = `<span data-segment-piece class="shrink-0 inline-flex items-center whitespace-nowrap px-2">${p}</span>`;
@@ -1010,12 +1153,24 @@ function calcSegments() {
             }).join('');
 
             btn.innerHTML = `
-                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${countLabel}</span>
+                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border ${premiumOnlyPath ? 'border-[#d8d3ca] bg-white/80 text-[#8d8579]' : 'border-[#eadfce] bg-white text-[#b9965b]'} px-3 py-1 text-[10px] font-black shadow-sm">${escapeSegmentOptionText(countLabel)}</span>
                 <div data-segment-label class="min-w-0 flex-1 flex items-center flex-nowrap whitespace-nowrap overflow-hidden text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight">
                     ${displayParts}
                 </div>
+                ${premiumBadge}
             `;
             btn.onclick = () => {
+                if (premiumOnlyPath) {
+                    setKanaCandidatesEnabledForSegments(false, []);
+                    if (typeof showPremiumModal === 'function') {
+                        showPremiumModal({ source: 'reading_segment_premium_only' });
+                    } else if (typeof showToast === 'function') {
+                        showToast('人名用漢字はプレミアムで使えます');
+                    } else {
+                        alert('人名用漢字はプレミアムで使えます');
+                    }
+                    return;
+                }
                 const includeHiraganaInput = document.getElementById('seg-include-hiragana');
                 const includeKatakanaInput = document.getElementById('seg-include-katakana');
                 selectSegment(path, {
@@ -1026,7 +1181,7 @@ function calcSegments() {
                 });
             };
 
-            if (idx === 0) {
+            if (idx === 0 && !premiumOnlyPath) {
                 btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
             }
 
