@@ -7392,6 +7392,21 @@ function renderReadingSampleExample(example) {
         + '</span>';
 }
 
+function getReadingItemExampleLabels(item) {
+    const rawExamples = String(item?.examples || '').trim();
+    if (!rawExamples) return [];
+    const seenLabels = new Set();
+    return rawExamples
+        .split(/[、,，\s]+/)
+        .map((label) => String(label || '').trim())
+        .filter(Boolean)
+        .filter((label) => {
+            if (seenLabels.has(label)) return false;
+            seenLabels.add(label);
+            return true;
+        });
+}
+
 function getReadingSampleLabelLength(label) {
     return Array.from(String(label || '').replace(/\s+/g, '')).length;
 }
@@ -7549,6 +7564,12 @@ function getSampleKanjiHtml(item) {
     getDirectCuratedReadingExamples(item.reading).forEach((example, index) => {
         addExample(example.label, example.locked, index, {
             labelLength: getReadingSampleLabelLength(example.label)
+        });
+    });
+
+    getReadingItemExampleLabels(item).forEach((label, index) => {
+        addExample(label, !isSampleKanjiAccessibleForCurrentMembership(label), 100 + index, {
+            labelLength: getReadingSampleLabelLength(label)
         });
     });
 
