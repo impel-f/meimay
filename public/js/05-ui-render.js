@@ -384,8 +384,8 @@ function render() {
             ? `${nextStepCopy}。必要なら下の選択肢で候補を広げられます。`
             : '今の条件で追加できる候補はありません。';
         container.innerHTML = `
-            <div class="flex items-center justify-center h-full text-center px-6">
-                <div class="w-full max-w-[340px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-5 shadow-[0_18px_45px_rgba(93,84,68,0.12)] flex flex-col" style="max-height:calc(100% - 24px);">
+            <div class="flex items-center justify-center h-full text-center px-4">
+                <div class="w-full max-w-[372px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-5 shadow-[0_18px_45px_rgba(93,84,68,0.12)] flex flex-col" style="max-height:calc(100% - 24px);">
                     <p class="text-[#5d5444] font-black text-lg">☑候補をすべてみました</p>
                     <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
                     ${expansionHtml ? `<div class="my-4 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1" style="max-height:min(46vh, 340px); overscroll-behavior:contain;">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
