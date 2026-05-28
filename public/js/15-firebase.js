@@ -1920,8 +1920,9 @@ const MeimayPairing = {
                         ${this._buildSharePreviewHtml(shareText)}
                     </div>
                     <div class="mt-4 space-y-2">
-                        <button type="button" onclick="MeimayPairing.copyShareCodeText(event)" class="w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-[0.98] transition-transform">文面をコピー</button>
-                        <button type="button" onclick="MeimayPairing.sendShareCodeEmail(event)" class="w-full rounded-2xl border border-[#eadfce] bg-white px-4 py-3 text-sm font-black text-[#8b6f42] shadow-sm active:scale-[0.98] transition-transform">メールで送る</button>
+                        <button type="button" onclick="MeimayPairing.shareCodeTextFromModal(event)" class="w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-[0.98] transition-transform">LINEなどで共有する</button>
+                        <button type="button" onclick="MeimayPairing.copyShareCodeText(event)" class="w-full rounded-2xl border border-[#eadfce] bg-white px-4 py-3 text-sm font-black text-[#8b6f42] shadow-sm active:scale-[0.98] transition-transform">文面をコピー</button>
+                        <button type="button" onclick="MeimayPairing.sendShareCodeEmail(event)" class="w-full rounded-2xl px-4 py-2.5 text-xs font-bold text-[#8b6f42] active:scale-[0.98] transition-transform">メールで送る</button>
                         <button type="button" onclick="MeimayPairing.closeShareCodeFallback()" class="w-full rounded-2xl px-4 py-2.5 text-xs font-bold text-[#a6967a] active:scale-[0.98] transition-transform">閉じる</button>
                     </div>
                 </div>
@@ -1933,6 +1934,36 @@ const MeimayPairing = {
 
     closeShareCodeFallback: function () {
         document.getElementById('pairing-share-code-modal')?.remove();
+    },
+
+    shareCodeTextFromModal: function (event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        const text = String(this._pendingShareText || this._buildShareCodeText() || '').trim();
+        if (!text) return;
+        if (navigator.share && typeof navigator.share === 'function') {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_shared', {
+                    method: 'modal_web_share',
+                    role: this.myRole || '',
+                    has_partner: this.partnerUid ? 1 : 0
+                });
+            }
+            navigator.share({
+                title: this._pendingShareSubject,
+                text: text
+            }).then(() => {
+                this.closeShareCodeFallback();
+            }).catch(() => {
+                // キャンセル時はモーダルを残して、コピーやメールを選べるようにする
+            });
+            return;
+        }
+        if (typeof showToast === 'function') {
+            showToast('この端末では共有シートを開けません。文面をコピーしてLINEなどに貼り付けてください', 'ℹ');
+        }
     },
 
     copyShareCodeText: function (event) {
@@ -1985,22 +2016,13 @@ const MeimayPairing = {
         const text = this._buildShareCodeText();
         if (typeof trackMeimayEvent === 'function') {
             trackMeimayEvent('partner_link_shared', {
-                method: navigator.share ? 'web_share' : 'fallback',
+                method: 'choice_modal',
                 role: this.myRole || '',
                 has_partner: this.partnerUid ? 1 : 0
             });
         }
 
-        if (navigator.share) {
-            navigator.share({
-                title: this._pendingShareSubject,
-                text: text
-            }).catch(() => {
-                this.openShareCodeFallback(text);
-            });
-        } else {
-            this.openShareCodeFallback(text);
-        }
+        this.openShareCodeFallback(text);
     },
 
     // 繝ｫ繝ｼ繝繝峨く繝･繝｡繝ｳ繝医ｒ繝ｪ繧｢繝ｫ繧ｿ繧､繝逶｣隕・
@@ -3145,7 +3167,7 @@ function syncPairingSurnameDisplay() {
     const subtextEl = document.getElementById('pairing-surname-subtext');
     if (subtextEl) {
         subtextEl.textContent = surname
-            ? (reading ? `ふりがな: ${reading}` : '同じ名字の端末だけ参加できます')
+            ? (reading ? `ふりがな: ${reading}` : '同じ名字の端末が参加できます')
             : '連携前に名字を入力してください';
     }
 

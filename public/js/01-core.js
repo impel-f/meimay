@@ -25,6 +25,7 @@ let prioritizeFortune = false;
 let savedNames = [];
 
 const MEIMAY_PRODUCTION_API_ORIGIN = 'https://meimay.vercel.app';
+const MEIMAY_PUBLIC_DOWNLOAD_URL = 'https://meimay.vercel.app/';
 const MEIMAY_APP_STORE_URL = 'https://apps.apple.com/jp/app/id6760251452';
 const MEIMAY_APP_STORE_REVIEW_URL = 'https://apps.apple.com/app/id6760251452?action=write-review';
 const MEIMAY_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.impelf.meimay';
@@ -80,19 +81,7 @@ function getMeimayReviewLink(platform = '') {
 window.getMeimayReviewLink = getMeimayReviewLink;
 
 function getMeimayDownloadLinksText(options = {}) {
-    const links = getMeimayStoreLinks();
-    const includeGooglePlaceholder = options.includeGooglePlaceholder !== false;
-    const lines = [
-        `iPhone: ${links.appStoreUrl}`
-    ];
-
-    if (links.googlePlayPublic || options.includeUnpublishedGooglePlayLink === true) {
-        lines.push(`Android: ${links.googlePlayUrl}`);
-    } else if (includeGooglePlaceholder) {
-        lines.push('Android: Google Play版は公開準備中です');
-    }
-
-    return lines.join('\n');
+    return MEIMAY_PUBLIC_DOWNLOAD_URL;
 }
 window.getMeimayDownloadLinksText = getMeimayDownloadLinksText;
 

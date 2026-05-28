@@ -17,7 +17,7 @@ const AdMobConfig = {
 const AdMobTestAdConfig = {
     enabled: false,
     // Closed/internal Android testing uses Google's test banner unit to avoid invalid traffic.
-    androidEnabled: true,
+    androidEnabled: false,
     iosEnabled: false,
     storageKey: 'meimay_admob_test_ads',
     androidBannerId: 'ca-app-pub-3940256099942544/6300978111',
