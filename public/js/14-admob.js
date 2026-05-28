@@ -461,6 +461,28 @@ const RevenueCatConfig = {
     }
 };
 
+const REVENUECAT_REQUEST_TIMEOUT_MS = 10000;
+const REVENUECAT_PURCHASE_TIMEOUT_MS = 90000;
+const PREMIUM_PURCHASE_STATE_CHECK_TIMEOUT_MS = 12000;
+
+function withRevenueCatTimeout(operation, label, timeoutMs = REVENUECAT_REQUEST_TIMEOUT_MS) {
+    let timerId = null;
+    const timeout = new Promise((_, reject) => {
+        timerId = setTimeout(() => {
+            reject(new Error(`${label || 'RevenueCat request'} timed out`));
+        }, timeoutMs);
+    });
+    return Promise.race([
+        Promise.resolve(operation).finally(() => {
+            if (timerId) {
+                clearTimeout(timerId);
+                timerId = null;
+            }
+        }),
+        timeout
+    ]);
+}
+
 function normalizePremiumDate(value) {
     if (!value) return null;
 
@@ -712,13 +734,13 @@ const RevenueCatBridge = {
         }
 
         if (this._configuredAppUserId && typeof plugin.logIn === 'function') {
-            await plugin.logIn({ appUserID });
+            await withRevenueCatTimeout(plugin.logIn({ appUserID }), 'RevenueCat logIn');
             this._configuredAppUserId = appUserID;
             this._configuredPlatform = platform;
             return plugin;
         }
 
-        await plugin.configure({ apiKey, appUserID });
+        await withRevenueCatTimeout(plugin.configure({ apiKey, appUserID }), 'RevenueCat configure');
         this._configuredAppUserId = appUserID;
         this._configuredPlatform = platform;
         return plugin;
@@ -730,7 +752,7 @@ const RevenueCatBridge = {
             throw new Error('RevenueCat getOfferings is not available.');
         }
         if (!this._offerings) {
-            this._offerings = await plugin.getOfferings();
+            this._offerings = await withRevenueCatTimeout(plugin.getOfferings(), 'RevenueCat getOfferings');
         }
         return this._offerings;
     },
@@ -738,16 +760,16 @@ const RevenueCatBridge = {
     getCustomerInfo: async function (user) {
         const plugin = await this.configure(user);
         if (typeof plugin.getCustomerInfo !== 'function') return null;
-        return plugin.getCustomerInfo();
+        return withRevenueCatTimeout(plugin.getCustomerInfo(), 'RevenueCat getCustomerInfo');
     },
 
     restorePurchases: async function (user) {
         const plugin = await this.configure(user);
         if (typeof plugin.restorePurchases === 'function') {
-            return plugin.restorePurchases();
+            return withRevenueCatTimeout(plugin.restorePurchases(), 'RevenueCat restorePurchases');
         }
         if (typeof plugin.getCustomerInfo === 'function') {
-            return plugin.getCustomerInfo();
+            return withRevenueCatTimeout(plugin.getCustomerInfo(), 'RevenueCat getCustomerInfo');
         }
         return null;
     },
@@ -755,15 +777,15 @@ const RevenueCatBridge = {
     syncPurchases: async function (user) {
         const plugin = await this.configure(user);
         if (typeof plugin.syncPurchases === 'function') {
-            const result = await plugin.syncPurchases();
+            const result = await withRevenueCatTimeout(plugin.syncPurchases(), 'RevenueCat syncPurchases');
             if (result) return result;
             if (typeof plugin.getCustomerInfo === 'function') {
-                return plugin.getCustomerInfo();
+                return withRevenueCatTimeout(plugin.getCustomerInfo(), 'RevenueCat getCustomerInfo');
             }
             return null;
         }
         if (typeof plugin.getCustomerInfo === 'function') {
-            return plugin.getCustomerInfo();
+            return withRevenueCatTimeout(plugin.getCustomerInfo(), 'RevenueCat getCustomerInfo');
         }
         return null;
     },
@@ -778,7 +800,11 @@ const RevenueCatBridge = {
         if (typeof plugin.purchasePackage !== 'function') {
             throw new Error('RevenueCat purchasePackage is not available.');
         }
-        return plugin.purchasePackage({ aPackage: rcPackage });
+        return withRevenueCatTimeout(
+            plugin.purchasePackage({ aPackage: rcPackage }),
+            'RevenueCat purchasePackage',
+            REVENUECAT_PURCHASE_TIMEOUT_MS
+        );
     }
 };
 
@@ -886,6 +912,8 @@ let adBannerSuppressedByOverlay = false;
 let adOverlayObserverReady = false;
 let adOverlaySyncTimer = null;
 let adMobPremiumRetryTimer = null;
+let adBannerSurfaceRefreshTimer = null;
+let adBannerSurfaceRefreshListenersReady = false;
 let adSystemStartedAt = Date.now();
 let lastAdImpressionAnalytics = { key: '', at: 0 };
 let firstRunHomeAdReadyAtMs = 0;
@@ -1263,6 +1291,45 @@ function ensureAdOverlayObserver() {
         attributeFilter: ['class', 'style']
     });
     document.addEventListener('visibilitychange', scheduleAdBannerOverlaySync);
+}
+
+function shouldRefreshAdBannerForScreen(screenId) {
+    const blockedScreens = new Set([
+        'scr-wizard',
+        'scr-gender',
+        'scr-vibe',
+        'scr-akinator'
+    ]);
+    return !blockedScreens.has(String(screenId || ''));
+}
+
+function requestAdBannerSurfaceRefresh(reason = '', options = {}) {
+    if (adBannerSurfaceRefreshTimer) clearTimeout(adBannerSurfaceRefreshTimer);
+    const delayMs = Number.isFinite(Number(options.delayMs)) ? Number(options.delayMs) : 350;
+    adBannerSurfaceRefreshTimer = setTimeout(() => {
+        adBannerSurfaceRefreshTimer = null;
+        if (PremiumManager.isPremium() || hasActiveAdBlockingOverlay()) return;
+        console.log('ADMOB: Refreshing banner surface', reason);
+        showAdBanner();
+    }, Math.max(0, delayMs));
+}
+
+function refreshAdBannerAfterScreenChange(screenId) {
+    if (!shouldRefreshAdBannerForScreen(screenId)) return;
+    requestAdBannerSurfaceRefresh(`screen:${screenId}`, { delayMs: 500 });
+}
+
+function installAdBannerSurfaceRefreshListeners() {
+    if (adBannerSurfaceRefreshListenersReady) return;
+    adBannerSurfaceRefreshListenersReady = true;
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            requestAdBannerSurfaceRefresh('visibilitychange', { delayMs: 650 });
+        }
+    });
+    window.addEventListener('focus', () => {
+        requestAdBannerSurfaceRefresh('window-focus', { delayMs: 650 });
+    });
 }
 
 function updateAdLayoutSpacing(bannerHeight) {
@@ -1683,6 +1750,7 @@ function closePremiumModal() {
 
 // 初期化
 function initAdSystem() {
+    installAdBannerSurfaceRefreshListeners();
     setTimeout(() => {
         initAdMob();
         updatePremiumUI();
@@ -2004,14 +2072,16 @@ function getPremiumRemainingLabel(expiresAt) {
     return `あと${Math.max(1, Math.ceil(diffMs / dayMs))}日`;
 }
 
-function formatPremiumStatusRemainingLabel(label) {
-    return String(label || '').replace(/[0-9]/g, (digit) => '０１２３４５６７８９'[Number(digit)] || digit);
-}
-
 function getPremiumActiveDetailSentence(state, dateLabel) {
     if (!state || !state.active) return '';
+    const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
     let sentence = '';
-    if (dateLabel) {
+    if (state.isTrial) {
+        const period = remainingLabel || (dateLabel ? `${dateLabel}まで` : '');
+        sentence = period
+            ? `${period}、プレミアム機能を使えます。`
+            : 'プレミアム機能を使えます。';
+    } else if (dateLabel) {
         sentence = `${dateLabel}までプレミアムが有効です。`;
     } else if (isLifetimePremiumProduct(state.productId)) {
         sentence = '期限なしでプレミアムが有効です。';
@@ -2035,13 +2105,12 @@ PremiumManager.getDisplayStatus = function () {
     if (state.active && state.isTrial) {
         const ownerText = state.source === 'partner' ? 'パートナー特典' : '無料体験';
         const periodText = remainingLabel || (dateLabel ? `${dateLabel}まで` : '利用中');
-        const remainingText = remainingLabel ? `（${formatPremiumStatusRemainingLabel(remainingLabel)}）` : '';
         return {
             active: true,
             expired: false,
             kind: 'trial',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: `ステータス：無料体験中${remainingText}`,
+            homeTitle: state.source === 'partner' ? 'パートナー特典' : '無料体験中',
             homeDetail: getPremiumActiveDetailSentence(state, dateLabel),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
@@ -2055,7 +2124,7 @@ PremiumManager.getDisplayStatus = function () {
             expired: false,
             kind: 'premium',
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: 'ステータス：プレミアム利用中',
+            homeTitle: state.source === 'partner' ? 'パートナー特典' : 'プレミアム利用中',
             homeDetail: getPremiumActiveDetailSentence(state, dateLabel),
             shortLabel: `プレミアム${remainingLabel ? `・${remainingLabel}` : ''}`
         };
@@ -2071,7 +2140,7 @@ PremiumManager.getDisplayStatus = function () {
             kind: 'premium-cache',
             source: cachedPremiumState.source,
             drawerLines: ['👑 プレミアム', `${ownerText}・${periodText}`],
-            homeTitle: 'ステータス：プレミアム利用中',
+            homeTitle: cachedPremiumState.source === 'partner' ? 'パートナー特典' : 'プレミアム利用中',
             homeDetail: cachedPremiumState.source === 'partner'
                 ? `パートナー特典で、${periodText === '有効' ? 'プレミアムが有効です。' : `${periodText}プレミアムが有効です。`}`
                 : (cachedDateLabel ? `${cachedDateLabel}までプレミアムが有効です。` : 'プレミアムが有効です。'),
@@ -2084,9 +2153,9 @@ PremiumManager.getDisplayStatus = function () {
             active: false,
             expired: false,
             kind: 'checking',
-            drawerLines: ['購入状態を確認中', '同期後に反映します'],
-            homeTitle: 'ステータス：購入状態を確認中',
-            homeDetail: '購入状態を確認しています。確認後に最新の状態へ更新します。',
+            drawerLines: ['購入状態を確認中', '完了後に反映します'],
+            homeTitle: '購入状態を確認中',
+            homeDetail: 'ストアの購入情報を確認しています。完了すると自動で反映されます。',
             shortLabel: '購入状態を確認中'
         };
     }
@@ -2142,6 +2211,16 @@ PremiumManager.endPurchaseStateCheck = function () {
 };
 
 PremiumManager.isPurchaseStateCheckPending = function () {
+    const startedAt = Number(this._purchaseStateCheckStartedAt || 0);
+    const stale = startedAt > 0
+        && (this._purchaseStateCheckInFlight === true || this._silentStoreSyncInFlight === true)
+        && Date.now() - startedAt > PREMIUM_PURCHASE_STATE_CHECK_TIMEOUT_MS;
+    if (stale) {
+        console.warn('PREMIUM: purchase state check timed out locally');
+        this._purchaseStateCheckInFlight = false;
+        this._silentStoreSyncInFlight = false;
+        this._purchaseStateCheckCompletedAt = Date.now();
+    }
     return this._purchaseStateCheckInFlight === true || this._silentStoreSyncInFlight === true;
 };
 
@@ -3027,7 +3106,7 @@ function renderPremiumStatusCard(state) {
     const body = active
         ? ''
         : (checking
-            ? '確認後に最新の状態へ更新します。'
+            ? ''
             : (display.kind === 'expired'
             ? '現在は無料プランです。'
             : '現在は無料プランです。必要になったらプレミアムへ進めます。'));
@@ -3043,7 +3122,7 @@ function renderPremiumStatusCard(state) {
         + '<div class="rounded-[18px] px-3 py-3 shadow-[0_10px_22px_rgba(123,95,52,0.08)] ' + toneClass + '">'
         + '<div class="flex items-start justify-between gap-3">'
         + '<div class="min-w-0">'
-        + '<div class="text-[13px] sm:text-[15px] font-black">' + escapePremiumHtml(title) + '</div>'
+        + '<div class="text-[13px] sm:text-[15px] font-black leading-tight" style="word-break:keep-all;overflow-wrap:normal;">' + escapePremiumHtml(title) + '</div>'
         + (detail ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(detail) + '</p>' : '')
         + '</div>'
         + '<span class="shrink-0 rounded-full px-3 py-1 text-[10px] font-black ' + pillClass + '">' + escapePremiumHtml(pill) + '</span>'
@@ -3065,7 +3144,7 @@ function renderPremiumTrialCard(state) {
     const notice = unavailable ? '' : getPremiumTrialRoomNotice();
     const body = unavailable
         ? 'このアカウントでは無料体験を利用済みです。'
-        : `好きなタイミングでプレミアムを3日間体験できます。${notice ? ' ' + notice : ''}`;
+        : `3日間、プレミアム機能を無料で試せます。${notice ? ' ' + notice : ''}`;
 
     return ''
         + '<div class="rounded-[20px] border border-[#d7b57c] bg-[#fff7e8] px-3 py-3 shadow-[0_10px_24px_rgba(183,145,85,0.10)]">'
@@ -3126,7 +3205,7 @@ let premiumModalPurchaseSyncInFlight = false;
 
 function renderPremiumPurchaseSyncNotice(state, message = '') {
     if (state && state.active) return '';
-    const body = message || '購入状態は起動時とこの画面を開いたときに自動で確認します。';
+    const body = message || '購入済みの場合は自動で反映されます。反映されない場合は時間をおいて開き直してください。';
     return ''
         + '<div class="rounded-[16px] border border-[#eadfcd] bg-white/78 px-3 py-2.5 text-center">'
         + '<p id="premium-purchase-sync-note" class="text-[10px] sm:text-[11px] leading-[1.6] font-bold text-[#9a8a70]">' + escapePremiumHtml(body) + '</p>'
@@ -3138,6 +3217,22 @@ function updatePremiumPurchaseSyncNotice(message) {
     if (note) note.textContent = message;
 }
 
+function isPremiumModalActive() {
+    const modal = document.getElementById('modal-ai-sound');
+    return !!(modal && modal.classList.contains('active') && modal.dataset.meimayModalKind === 'premium');
+}
+
+function rerenderPremiumModalAfterSync(message) {
+    if (isPremiumModalActive()) {
+        showPremiumModal({
+            skipAutoSync: true,
+            syncMessage: message || ''
+        });
+    } else if (message) {
+        updatePremiumPurchaseSyncNotice(message);
+    }
+}
+
 async function syncPurchaseStateFromPremiumModal() {
     if (premiumModalPurchaseSyncInFlight) return;
     if (!PremiumManager || typeof PremiumManager.refreshPurchaseState !== 'function') return;
@@ -3147,11 +3242,15 @@ async function syncPurchaseStateFromPremiumModal() {
     }
 
     premiumModalPurchaseSyncInFlight = true;
-    updatePremiumPurchaseSyncNotice('購入状態を確認しています...');
+    updatePremiumPurchaseSyncNotice('購入状態を確認しています。');
     const wasActive = PremiumManager.isPremium();
 
     try {
-        await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
+        const refreshed = await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
+        if (!refreshed) {
+            rerenderPremiumModalAfterSync('購入状態を確認できませんでした。時間をおいてもう一度お試しください。');
+            return;
+        }
         let isActive = PremiumManager.isPremium();
         const user = typeof MeimayAuth !== 'undefined' && MeimayAuth.getCurrentUser
             ? MeimayAuth.getCurrentUser()
@@ -3167,16 +3266,12 @@ async function syncPurchaseStateFromPremiumModal() {
         if (typeof updatePremiumUI === 'function') {
             updatePremiumUI();
         }
-        if (isActive && !wasActive) {
-            showPremiumModal({ skipAutoSync: true, syncMessage: '購入状態を同期しました。' });
-        } else {
-            updatePremiumPurchaseSyncNotice(isActive
-                ? '購入状態を同期しました。'
-                : '購入状態を確認しました。');
-        }
+        rerenderPremiumModalAfterSync(isActive || wasActive
+            ? '購入状態を同期しました。'
+            : '購入状態を確認しました。');
     } catch (error) {
         console.warn('PREMIUM: premium modal sync failed', error);
-        updatePremiumPurchaseSyncNotice('購入状態を確認できませんでした。通信状態を確認してください。');
+        rerenderPremiumModalAfterSync('購入状態を確認できませんでした。時間をおいてもう一度お試しください。');
     } finally {
         premiumModalPurchaseSyncInFlight = false;
     }
@@ -3249,6 +3344,7 @@ window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
+window.refreshAdBannerAfterScreenChange = refreshAdBannerAfterScreenChange;
 window.setAdBannerOverlaySuppressed = setAdBannerOverlaySuppressed;
 window.syncAdBannerOverlaySuppression = syncAdBannerOverlaySuppression;
 window.shouldDeferNativeMonetizationDuringWizard = shouldDeferNativeMonetizationDuringWizard;

@@ -912,6 +912,9 @@ function changeScreen(id) {
         if (typeof updateAdLayoutSpacing === 'function') {
             updateAdLayoutSpacing();
         }
+        if (typeof refreshAdBannerAfterScreenChange === 'function') {
+            refreshAdBannerAfterScreenChange(id);
+        }
 
         // ホーム画面の場合、実績・プロファイルを更新
         if (id === 'scr-mode') {

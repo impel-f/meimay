@@ -30,8 +30,8 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "39"
-        ANDROID_VERSION_NAME: "1.2.3"
+        ANDROID_VERSION_CODE: "40"
+        ANDROID_VERSION_NAME: "1.2.4"
       node: v22.11.0
       java: 21
     scripts:
@@ -101,8 +101,8 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
-        IOS_MARKETING_VERSION: "1.2.3"
-        IOS_BUILD_NUMBER: "18"
+        IOS_MARKETING_VERSION: "1.2.4"
+        IOS_BUILD_NUMBER: "19"
       node: v22.11.0
       xcode: latest
     scripts:
@@ -114,9 +114,9 @@ workflows:
         script: npm run prune:native-marketing-assets -- ios
       - name: Set iOS version and build number
         script: |
-          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.2.3}"
+          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.2.4}"
           BUILD_VERSION="${IOS_BUILD_NUMBER:-${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}}"
-          BUILD_VERSION="${BUILD_VERSION:-18}"
+          BUILD_VERSION="${BUILD_VERSION:-19}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
       - name: Initialize code signing keychain

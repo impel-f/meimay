@@ -3168,7 +3168,7 @@ function syncPairingSurnameDisplay() {
     if (subtextEl) {
         subtextEl.textContent = surname
             ? (reading ? `ふりがな: ${reading}` : '同じ名字の端末が参加できます')
-            : '連携前に名字を入力してください';
+            : '名字を入力してください';
     }
 
     const actionEl = document.getElementById('pairing-surname-action-label');
@@ -3215,7 +3215,7 @@ function syncPairingRoleSelectionFromProfile() {
     const subtextEl = document.getElementById('pairing-role-subtext');
     if (subtextEl) {
         subtextEl.hidden = !!preferredRoleLabel;
-        subtextEl.textContent = preferredRoleLabel ? '' : '連携前にママ / パパを選んでください';
+        subtextEl.textContent = preferredRoleLabel ? '' : 'ママ / パパを選んでください';
     }
 
     const actionEl = document.getElementById('pairing-role-action-label');

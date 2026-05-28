@@ -1934,11 +1934,10 @@ function getHomeMembershipStatusModel() {
             ? PremiumManager.getDisplayStatus()
             : null;
         const dateLabel = formatHomeMembershipDate(membership?.expiresAt);
-        const periodLabel = dateLabel ? `${dateLabel}まで` : '期限なし';
 
         if (membership?.active && membership.isTrial) {
             return {
-                text: `プレミアム体験中👑${dateLabel ? `｜${dateLabel}まで` : ''}`,
+                text: '無料体験中👑',
                 state: 'trial',
                 title: display?.homeDetail || '無料体験中はプレミアム機能を使えます。'
             };
@@ -1946,9 +1945,9 @@ function getHomeMembershipStatusModel() {
 
         if (membership?.active) {
             const partnerActive = membership.source === 'partner';
-            const ownerLabel = partnerActive ? 'プレミアム👑（パートナー特典）' : 'プレミアム👑';
+            const ownerLabel = partnerActive ? 'パートナー特典👑' : 'プレミアム👑';
             return {
-                text: dateLabel ? `${ownerLabel}｜${periodLabel}` : ownerLabel,
+                text: ownerLabel,
                 state: partnerActive ? 'partner' : 'premium',
                 title: display?.homeDetail || (dateLabel
                     ? `${dateLabel}までプレミアムが有効です。`
@@ -1958,9 +1957,8 @@ function getHomeMembershipStatusModel() {
 
         if (display?.kind === 'premium-cache') {
             const cachedPartnerActive = display.source === 'partner';
-            const displayLabel = String(display.shortLabel || 'プレミアム').replace(/^プレミアム/, 'プレミアム👑');
             return {
-                text: displayLabel,
+                text: cachedPartnerActive ? 'パートナー特典👑' : 'プレミアム👑',
                 state: cachedPartnerActive ? 'partner' : 'premium',
                 title: display.homeDetail || 'プレミアムが有効です。'
             };
@@ -1970,7 +1968,7 @@ function getHomeMembershipStatusModel() {
             return {
                 text: '購入状態を確認中',
                 state: 'checking',
-                title: display.homeDetail || '購入状態を確認しています。確認後に最新の状態へ更新します。'
+                title: display.homeDetail || 'ストアの購入情報を確認しています。完了すると自動で反映されます。'
             };
         }
 
@@ -2051,8 +2049,7 @@ function renderHomePremiumTrialCard() {
             event.stopPropagation();
             if (typeof showPremiumModal === 'function') {
                 showPremiumModal({
-                    source: 'home_trial_card',
-                    subtitle: '無料体験は好きなタイミングで開始できます。'
+                    source: 'home_trial_card'
                 });
             }
         };
