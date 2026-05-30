@@ -368,7 +368,6 @@ function renderSettingsScreen() {
     const wizData = (typeof WizardData !== 'undefined') ? WizardData.get() : null;
     const nicknameText = wizData?.username || '未設定';
     const roleText = wizData?.role === 'papa' ? 'パパ' : wizData?.role === 'mama' ? 'ママ' : '未設定';
-    const profileThemeText = getProfileThemeOption(getProfileThemeId(wizData?.role), wizData?.role).label;
     // Partner linking status
     let pairingStatusText = '未連携';
     let pairingStatusColor = '#a6967a';
@@ -425,7 +424,6 @@ function renderSettingsScreen() {
         <div class="settings-screen-content">
             ${renderSection('プロフィール', `
                 ${renderItem({ title: 'ニックネーム', value: nicknameText, onClick: 'openProfileAppearanceModal()' })}
-                ${renderItem({ title: 'テーマカラー', value: profileThemeText, onClick: 'openProfileAppearanceModal()' })}
                 ${renderItem({ title: 'あなたの役割', value: roleText, onClick: 'openRoleInput()' })}
             `)}
 
@@ -435,7 +433,7 @@ function renderSettingsScreen() {
             `)}
 
             ${renderSection('共有とプレミアム', `
-                ${renderItem({ title: 'パートナー連携', value: pairingStatusText, valueStyle: `color: ${pairingStatusColor};`, onClick: 'openPartnerSettingsSheet()' })}
+                ${renderItem({ title: 'パートナー連携', value: pairingStatusText, valueStyle: `color: ${pairingStatusColor};`, onClick: "changeScreen('scr-login')" })}
                 ${renderItem({
                     title: 'プレミアム',
                     value: premiumText,
@@ -1291,21 +1289,39 @@ function closeInputModal() {
  * 名字入力用モーダル（漢字＋ふりがな）
  */
 function showSurnameModal(currentKanji, currentReading, onSave) {
+    const safeKanji = escapeProfileHtml(currentKanji || '');
+    const safeReading = escapeProfileHtml(currentReading || '');
     const modal = `
         <div class="overlay active modal-overlay-dark" id="surname-modal" onclick="if(event.target.id==='surname-modal')closeSurnameModal()">
-            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet settings-surname-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSurnameModal()">✕</button>
                 <h3 class="modal-title">名字を入力</h3>
-                <div class="modal-body space-y-4">
-                    <div>
-                        <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">漢字</label>
-                        <input type="text" id="modal-surname-kanji" class="modal-input-large text-center w-full" value="${currentKanji || ''}" placeholder="例：佐藤">
-                        <div class="modal-input-underline"></div>
+                <p class="modal-desc">名字と合わせた名前の見え方を確認できます</p>
+                <div class="modal-body">
+                    <div class="wizard-field-group mb-5">
+                        <label class="wizard-label" for="modal-surname-kanji">名字（任意）</label>
+                        <input type="text" id="modal-surname-kanji" class="wizard-input" value="${safeKanji}" placeholder="例：佐藤" maxlength="12">
                     </div>
-                    <div class="mt-4">
-                        <label class="text-xs text-[#a6967a] font-bold block text-center mb-1">ふりがな（任意）</label>
-                        <input type="text" id="modal-surname-reading" class="modal-input-large text-center w-full" value="${currentReading || ''}" placeholder="例：さとう">
-                        <div class="modal-input-underline"></div>
+                    <div class="wizard-field-group">
+                        <label class="wizard-label" for="modal-surname-reading">ふりがな（任意）</label>
+                        <input type="text" id="modal-surname-reading" class="wizard-input" value="${safeReading}" placeholder="例：さとう" maxlength="24">
+                    </div>
+
+                    <div class="wizard-name-canvas-sample settings-surname-preview" aria-label="名前の見え方プレビュー">
+                        <div class="wizard-name-canvas-label">名前の見え方</div>
+                        <p class="wizard-name-canvas-help">名字と合わせた字面を確認できます</p>
+                        <div class="wizard-name-canvas-card">
+                            <div class="wizard-name-canvas-inner">
+                                <div id="modal-surname-preview-group" class="wizard-name-canvas-part is-empty">
+                                    <p id="modal-surname-reading-preview" class="wizard-name-canvas-reading"></p>
+                                    <p id="modal-surname-preview" class="wizard-name-canvas-name"></p>
+                                </div>
+                                <div class="wizard-name-canvas-part">
+                                    <p class="wizard-name-canvas-reading">○○○</p>
+                                    <p class="wizard-name-canvas-name wizard-name-canvas-placeholder">○○</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer mt-6">
@@ -1316,9 +1332,39 @@ function showSurnameModal(currentKanji, currentReading, onSave) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modal);
+    setupSurnameModalPreview();
     setTimeout(() => document.getElementById('modal-surname-kanji')?.focus(), 100);
 
     window.surnameModalCallback = onSave;
+}
+
+function syncSurnameModalPreview() {
+    const surnameInput = document.getElementById('modal-surname-kanji');
+    const readingInput = document.getElementById('modal-surname-reading');
+    const surnameGroup = document.getElementById('modal-surname-preview-group');
+    const surnamePreview = document.getElementById('modal-surname-preview');
+    const readingPreview = document.getElementById('modal-surname-reading-preview');
+    const surnameText = surnameInput && surnameInput.value.trim() ? surnameInput.value.trim().slice(0, 12) : '';
+    const readingText = readingInput && readingInput.value.trim() ? readingInput.value.trim().slice(0, 24) : '';
+
+    if (surnamePreview) surnamePreview.textContent = surnameText;
+    if (readingPreview) readingPreview.textContent = readingText;
+    if (surnameGroup) surnameGroup.classList.toggle('is-empty', !surnameText && !readingText);
+}
+
+function setupSurnameModalPreview() {
+    const inputs = [
+        document.getElementById('modal-surname-kanji'),
+        document.getElementById('modal-surname-reading')
+    ];
+
+    inputs.forEach(input => {
+        if (!input || input.dataset.surnamePreviewReady === 'true') return;
+        input.dataset.surnamePreviewReady = 'true';
+        input.addEventListener('input', syncSurnameModalPreview);
+    });
+
+    syncSurnameModalPreview();
 }
 
 function saveSurnameModal() {

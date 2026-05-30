@@ -11,8 +11,8 @@ def parseEnvInt = { String name, int fallback ->
 }
 
 def androidVersionCode = parseEnvInt('ANDROID_VERSION_CODE',
-        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 40)))
-def androidVersionName = (System.getenv('ANDROID_VERSION_NAME') ?: '1.2.4').trim()
+        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 41)))
+def androidVersionName = (System.getenv('ANDROID_VERSION_NAME') ?: '1.2.5').trim()
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')

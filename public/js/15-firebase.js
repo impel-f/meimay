@@ -3173,7 +3173,7 @@ function syncPairingSurnameDisplay() {
 
     const actionEl = document.getElementById('pairing-surname-action-label');
     if (actionEl) {
-        actionEl.textContent = surname ? '変更する' : '入力する';
+        actionEl.textContent = '設定';
     }
 }
 
@@ -3214,27 +3214,25 @@ function syncPairingRoleSelectionFromProfile() {
 
     const subtextEl = document.getElementById('pairing-role-subtext');
     if (subtextEl) {
-        subtextEl.hidden = !!preferredRoleLabel;
-        subtextEl.textContent = preferredRoleLabel ? '' : 'ママ / パパを選んでください';
+        subtextEl.hidden = true;
+        subtextEl.textContent = '';
     }
 
     const actionEl = document.getElementById('pairing-role-action-label');
     if (actionEl) {
-        actionEl.textContent = preferredRoleLabel ? '変更する' : '選ぶ';
+        actionEl.textContent = '設定';
     }
 
     const createLabel = document.getElementById('pairing-create-role-label');
     if (createLabel) {
-        createLabel.textContent = preferredRoleLabel
-            ? preferredRoleLabel + 'として連携コードを作ります'
-            : '設定でママ / パパを選ぶと連携できます';
+        createLabel.textContent = '';
+        createLabel.hidden = true;
     }
 
     const joinLabel = document.getElementById('pairing-join-role-label');
     if (joinLabel) {
-        joinLabel.textContent = preferredRoleLabel
-            ? preferredRoleLabel + 'として参加します'
-            : '設定でママ / パパを選ぶと参加できます';
+        joinLabel.textContent = '';
+        joinLabel.hidden = true;
     }
 
     if (!preferredRole || typeof MeimayPairing === 'undefined') return;

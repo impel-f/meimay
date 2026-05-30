@@ -121,7 +121,7 @@ window.MeimayLegalDocs = {
                 </select>
                 <span class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-black text-[#bca37f]">▼</span>
             </div>
-            <p id="support-category-help" class="mt-2 min-h-[2.5em] text-[11px] leading-relaxed text-[#9a8a70]">動かない、表示がおかしい、操作で困ったとき</p>
+            <p id="support-category-help" class="mt-2 min-h-[2.5em] text-[11px] leading-relaxed text-[#9a8a70]">動かない、表示がおかしい、操作できない</p>
             <button type="button" onclick="openSupportEmailFromSelect()" class="mt-3 w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-95 transition-transform">メールを作成</button>
         </div>
         <p class="mb-4">メールアプリが開かない場合は、<a class="text-[#b0863d] font-bold underline" href="mailto:meimay.app@gmail.com">meimay.app@gmail.com</a> 宛に送信してください。</p>

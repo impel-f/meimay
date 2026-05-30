@@ -2363,19 +2363,19 @@ function getStockCardSurfaceStyle(kind) {
     const border = getStockPaletteHex(palette, 'border', '#eadfce');
     const borderAlt = getStockPaletteHex(palette, 'borderAlt', border);
     if (kind === 'matched') {
-        const selfSoft = mixStockHexColor(accent, 0.22);
-        const partnerSoft = mixStockHexColor(accentAlt, 0.22);
-        const centerSoft = mixStockHexColor('#b9965b', 0.09, '#fffaf2');
+        const selfSoft = mixStockHexColor(accent, 0.28);
+        const partnerSoft = mixStockHexColor(accentAlt, 0.28);
+        const centerSoft = mixStockHexColor('#b9965b', 0.13, '#fffaf2');
         return {
             card: `border:1.5px solid transparent;background:linear-gradient(135deg, ${selfSoft} 0%, ${centerSoft} 46%, ${partnerSoft} 100%) padding-box, linear-gradient(135deg, ${border} 0%, #d8b36f 48%, ${borderAlt} 100%) border-box;box-shadow:0 8px 18px rgba(185,150,91,0.14);`,
             kanjiColor: '#4f463a',
             strokesColor: '#7d6671'
         };
     }
-    const cardStart = mixStockHexColor(accent, 0.16);
-    const cardEnd = mixStockHexColor(accent, 0.07);
+    const cardStart = mixStockHexColor(accent, 0.24);
+    const cardEnd = mixStockHexColor(accent, 0.13);
     return {
-        card: `border:1px solid ${border};background:linear-gradient(145deg, ${cardStart} 0%, ${cardEnd} 62%, #ffffff 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.72);`,
+        card: `border:1px solid ${border};background:linear-gradient(145deg, ${cardStart} 0%, ${cardEnd} 64%, #ffffff 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.68);`,
         kanjiColor: '#514839',
         strokesColor: palette.text || '#a6967a'
     };
@@ -2500,9 +2500,9 @@ function renderStock() {
 
     if (validItems.length === 0) {
         container.innerHTML = `
-            <div class="col-span-5 text-center py-20">
-                <p class="text-[#bca37f] italic text-lg mb-2">まだストックがありません</p>
-                <p class="text-sm text-[#a6967a]">スワイプ画面で漢字を選びましょう</p>
+            <div class="col-span-5 text-center py-16">
+                <div class="text-[#bca37f] text-lg font-black leading-relaxed">漢字ストックはまだありません</div>
+                <div class="mt-1 text-sm font-bold leading-relaxed text-[#a6967a]">漢字をスワイプして候補を選びましょう</div>
             </div>
         `;
         return;
@@ -4416,7 +4416,14 @@ function showFortuneDetail() {
 
     const res = currentBuildResult.fortune;
     const name = currentBuildResult.fullName;
-    const givens = currentBuildResult.combination.map(p => ({ kanji: p['漢字'], strokes: parseInt(p['画数']) || 0 }));
+    const givens = currentBuildResult.combination.map(p => {
+        const kanji = typeof p === 'string' ? p : (p?.['漢字'] || p?.kanji || '');
+        const rawStrokes = typeof p === 'string' ? 0 : (p?.['画数'] ?? p?.strokes ?? 0);
+        const strokes = typeof resolveFortuneStrokeForChar === 'function'
+            ? resolveFortuneStrokeForChar(kanji, rawStrokes)
+            : (parseInt(rawStrokes, 10) || 0);
+        return { kanji, strokes };
+    });
 
     const container = document.getElementById('for-grid');
     const rankingHeaderEl = document.getElementById('fortune-ranking-header');
@@ -4433,7 +4440,11 @@ function showFortuneDetail() {
     container.className = "flex flex-col w-full relative";
 
     // 姓のデータ（画数込み）
-    const surChars = getBuildFortuneSurnameData().filter(s => s.kanji);
+    const savedSurnameData = Array.isArray(currentBuildResult.surnameData)
+        ? currentBuildResult.surnameData
+        : [];
+    const surChars = (savedSurnameData.length > 0 ? savedSurnameData : getBuildFortuneSurnameData())
+        .filter(s => s.kanji);
     const givChars = givens;
     const nSur = surChars.length;
     const nGiv = givChars.length;

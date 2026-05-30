@@ -442,7 +442,7 @@ const PREMIUM_PRODUCT_PLANS = [
         id: 'meimay.premium.lifetime',
         title: '買い切り',
         price: '1,980円',
-        note: '更新なし・期限なし',
+        note: '期限なし',
         description: '',
         actionLabel: '購入へ進む',
         lifetime: true
@@ -542,6 +542,7 @@ function getLocalPremiumQueryPreviewMode() {
         const params = new URLSearchParams(String(locationInfo.search || ''));
         const value = String(params.get('localPremium') || '').trim().toLowerCase();
         if (value === 'trial') return 'trial';
+        if (value === 'partner' || value === 'partner-premium') return 'partner';
         if (value === '1' || value === 'true' || value === 'premium') return 'premium';
         return '';
     } catch (e) {
@@ -1780,6 +1781,18 @@ function isLifetimePremiumProduct(productId) {
 }
 
 function getConnectedPartnerPremiumSnapshot() {
+    if (getLocalPremiumQueryPreviewMode() === 'partner') {
+        const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+        return {
+            isPremium: true,
+            premiumSource: 'revenuecat',
+            subscriptionStatus: 'active',
+            appStoreExpiresAt: expiresAt,
+            premiumExpiresAt: expiresAt,
+            appStoreProductId: 'meimay.premium.pass.1month',
+            premiumProductId: 'meimay.premium.pass.1month'
+        };
+    }
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode && MeimayPairing.partnerUid
         && typeof MeimayShare !== 'undefined' && MeimayShare) {
         const liveSnapshot = typeof MeimayShare.getConnectedPremiumSnapshot === 'function'
@@ -1968,10 +1981,11 @@ function getSelfPremiumMembershipState() {
     const localPreviewMode = typeof getLocalPremiumQueryPreviewMode === 'function'
         ? getLocalPremiumQueryPreviewMode()
         : '';
-    const localPreviewTrialEndsAt = localPreviewMode === 'trial'
+    const localSelfPreviewMode = localPreviewMode === 'partner' ? '' : localPreviewMode;
+    const localPreviewTrialEndsAt = localSelfPreviewMode === 'trial'
         ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
         : null;
-    const storeRecord = !localPreviewMode && typeof getRevenueCatPremiumRecordFromManager === 'function'
+    const storeRecord = !localSelfPreviewMode && typeof getRevenueCatPremiumRecordFromManager === 'function'
         ? getRevenueCatPremiumRecordFromManager()
         : null;
     const storeState = storeRecord
@@ -1983,25 +1997,27 @@ function getSelfPremiumMembershipState() {
     }
 
     const remoteState = buildPremiumMembershipState({
-        isPremium: localPreviewMode ? true : PremiumManager._remotePremium,
-        premiumSource: localPreviewMode === 'trial' ? 'trial' : PremiumManager._remotePremiumSource,
-        subscriptionStatus: localPreviewMode === 'trial' ? 'trialing' : PremiumManager._remoteStatus,
+        isPremium: localSelfPreviewMode ? true : PremiumManager._remotePremium,
+        premiumSource: localSelfPreviewMode === 'trial' ? 'trial' : PremiumManager._remotePremiumSource,
+        subscriptionStatus: localSelfPreviewMode === 'trial' ? 'trialing' : PremiumManager._remoteStatus,
         appStoreExpiresAt: PremiumManager._remoteAppStoreExpiresAt,
         premiumExpiresAt: localPreviewTrialEndsAt || PremiumManager._remoteExpiresAt,
         appStoreProductId: PremiumManager._remoteProductId,
         premiumProductId: PremiumManager._remoteProductId,
-        trialStatus: localPreviewMode === 'trial' ? 'active' : PremiumManager._remoteTrialStatus,
-        trialStartedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialStartedAt,
+        trialStatus: localSelfPreviewMode === 'trial' ? 'active' : PremiumManager._remoteTrialStatus,
+        trialStartedAt: localSelfPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialStartedAt,
         trialEndsAt: localPreviewTrialEndsAt || PremiumManager._remoteTrialEndsAt,
-        trialConsumedAt: localPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialConsumedAt,
-        trialConsumedByRoom: localPreviewMode === 'trial' ? false : PremiumManager._remoteTrialConsumedByRoom
+        trialConsumedAt: localSelfPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialConsumedAt,
+        trialConsumedByRoom: localSelfPreviewMode === 'trial' ? false : PremiumManager._remoteTrialConsumedByRoom
     }, 'self', {
-        localPremium: localPreviewMode
+        localPremium: localSelfPreviewMode
             ? true
-            : (typeof PremiumManager.getLocalPremiumState === 'function'
+            : (localPreviewMode === 'partner'
+                ? false
+                : (typeof PremiumManager.getLocalPremiumState === 'function'
                 ? PremiumManager.getLocalPremiumState()
-                : false),
-        allowLocalFallback: isLocalPremiumFallbackAllowed()
+                    : false)),
+        allowLocalFallback: localPreviewMode === 'partner' ? false : isLocalPremiumFallbackAllowed()
     });
 
     if (remoteState && (remoteState.active || remoteState.expired || remoteState.hasPremiumIndicators)) {
@@ -3120,13 +3136,13 @@ function renderPremiumStatusCard(state) {
 
     return ''
         + '<div class="rounded-[18px] px-3 py-3 shadow-[0_10px_22px_rgba(123,95,52,0.08)] ' + toneClass + '">'
-        + '<div class="flex items-start justify-between gap-3">'
-        + '<div class="min-w-0">'
+        + '<div class="flex items-center justify-between gap-3">'
+        + '<div class="min-w-0 flex-1">'
         + '<div class="text-[13px] sm:text-[15px] font-black leading-tight" style="word-break:keep-all;overflow-wrap:normal;">' + escapePremiumHtml(title) + '</div>'
-        + (detail ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(detail) + '</p>' : '')
         + '</div>'
         + '<span class="shrink-0 rounded-full px-3 py-1 text-[10px] font-black ' + pillClass + '">' + escapePremiumHtml(pill) + '</span>'
         + '</div>'
+        + (detail ? '<p class="mt-2 w-full text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]" style="word-break:keep-all;overflow-wrap:normal;">' + escapePremiumHtml(detail) + '</p>' : '')
         + (body ? '<p class="mt-2 text-[12px] sm:text-[13px] leading-[1.6] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>' : '')
         + '</div>';
 }
@@ -3161,20 +3177,17 @@ function renderPremiumTrialCard(state) {
 }
 
 function renderPremiumPlanCards(state) {
-    if (!state || state.active) return '';
+    const showPaidPlans = !state || !state.active || state.isTrial;
+    if (!showPaidPlans) return '';
     const display = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
         ? PremiumManager.getDisplayStatus()
         : null;
-    if (display && (display.kind === 'premium-cache' || display.kind === 'checking')) return '';
+    if (display && (display.kind === 'premium-cache' || display.kind === 'checking') && !state?.isTrial) return '';
 
     return ''
         + '<div class="overflow-hidden rounded-[20px] border border-[#e3d6c2] bg-white shadow-[0_12px_28px_rgba(123,95,52,0.08)]">'
         + '<div class="border-b border-[#eee3d2] bg-[#fbf6ed] px-4 py-3">'
-        + '<div class="flex items-center justify-between gap-3">'
         + '<div class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">有料プラン</div>'
-        + '<div class="shrink-0 text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">購入・返金はストアで管理</div>'
-        + '</div>'
-        + '<p class="mt-1.5 text-[11px] sm:text-[12px] leading-[1.55] font-bold text-[#7a6a52]">有料プランを購入すると、連携中のパートナーも特典としてプレミアム機能を使えます。</p>'
         + '</div>'
         + '<div class="divide-y divide-[#f0e7d8]">'
         + PREMIUM_PRODUCT_PLANS.map((plan) => {
@@ -3183,20 +3196,25 @@ function renderPremiumPlanCards(state) {
             return ''
                 + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 bg-white">'
                 + '<div class="min-w-0">'
-                + '<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">'
+                + '<div class="flex items-baseline">'
                 + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
-                + (note ? '<span class="text-[10px] sm:text-[11px] font-medium text-[#9a8a70]">' + escapePremiumHtml(note) + '</span>' : '')
                 + '</div>'
                 + '<div class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
                 + '<span class="text-[21px] sm:text-[23px] font-black leading-none tracking-normal">' + escapePremiumHtml(plan.price) + '</span>'
                 + (plan.description ? '<span class="text-[10px] font-medium text-[#8b7e66]">' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'
+                + '<div class="flex min-w-[6.2rem] flex-col items-center gap-1">'
                 + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[6.2rem] rounded-[999px] px-3.5 py-2.5 text-[12px] font-black active:scale-[0.99] transition-transform ' + buttonClass + '">'
                 + escapePremiumHtml(plan.actionLabel)
                 + '</button>'
+                + (note ? '<span class="text-[10px] leading-none font-bold text-[#9a8a70]">' + escapePremiumHtml(note) + '</span>' : '')
+                + '</div>'
                 + '</div>';
         }).join('')
+        + '<div class="bg-[#fbf6ed] px-4 py-3">'
+        + '<p class="text-[11px] sm:text-[12px] leading-[1.65] font-bold text-[#7a6a52]">👑パートナー特典：有料プランを購入すると、連携中のパートナーもプレミアム機能を使えます。</p>'
+        + '</div>'
         + '</div>'
         + '</div>';
 }

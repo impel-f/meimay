@@ -947,6 +947,61 @@ function switchHistoryTab(tab) {
 let _lastSavedDetailIndex = null;
 let _lastSavedDetailSource = 'own';
 
+function getSavedCandidateGivenFortuneData(item) {
+    const combination = Array.isArray(item?.combination) ? item.combination : [];
+    return combination
+        .map(part => {
+            const kanji = typeof part === 'string'
+                ? part
+                : String(part?.['漢字'] || part?.kanji || '').trim();
+            if (!kanji) return null;
+            const rawStrokes = typeof part === 'string'
+                ? 0
+                : (part?.['画数'] ?? part?.strokes ?? part?.['\u753b\u6570'] ?? part?.['逕ｻ謨ｰ'] ?? 0);
+            const strokes = typeof resolveFortuneStrokeForChar === 'function'
+                ? resolveFortuneStrokeForChar(kanji, rawStrokes)
+                : (parseInt(rawStrokes, 10) || 0);
+            return { kanji, strokes };
+        })
+        .filter(Boolean);
+}
+
+function getSavedCandidateSurnameFortuneData(item) {
+    const displayParts = getSavedCandidateDisplayParts(item);
+    const displaySurname = String(displayParts.surname || '').trim();
+    if (!displaySurname) return [{ kanji: '', strokes: 0 }];
+
+    const currentSurname = String(typeof surnameStr !== 'undefined' ? surnameStr : '').trim();
+    const sourceData = currentSurname === displaySurname && Array.isArray(surnameData)
+        ? surnameData
+        : [];
+
+    if (typeof getFortuneSurnameData === 'function') {
+        const resolved = getFortuneSurnameData(sourceData, displaySurname);
+        return resolved.length > 0 ? resolved : [{ kanji: '', strokes: 0 }];
+    }
+
+    return Array.from(displaySurname).map(char => ({
+        kanji: char,
+        strokes: typeof resolveFortuneStrokeForChar === 'function'
+            ? resolveFortuneStrokeForChar(char, 0)
+            : 0
+    }));
+}
+
+function getSavedCandidateFortune(item) {
+    try {
+        if (typeof FortuneLogic === 'undefined' || !FortuneLogic.calculate) return item?.fortune || null;
+        const givArr = getSavedCandidateGivenFortuneData(item);
+        if (givArr.length === 0) return item?.fortune || null;
+        const surArr = getSavedCandidateSurnameFortuneData(item);
+        return FortuneLogic.calculate(surArr, givArr) || item?.fortune || null;
+    } catch (error) {
+        console.warn('HISTORY: Failed to recalculate saved fortune', error);
+        return item?.fortune || null;
+    }
+}
+
 /**
  * 保存済み名前の詳細を表示するモーダル
  */
@@ -967,7 +1022,7 @@ function showSavedNameDetail(index, source = 'own') {
         : 'all';
     const localDeleteIndex = source === 'own' ? index : -1;
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
-    const f = item.fortune;
+    const f = getSavedCandidateFortune(item);
     const originText = typeof getNameOriginDisplayTextForItem === 'function'
         ? getNameOriginDisplayTextForItem(item)
         : String(item.origin || '').trim();
@@ -1003,11 +1058,12 @@ function showSavedNameDetail(index, source = 'own') {
     const renderFortuneRow = (label, gaku) => {
         if (!gaku || !gaku.res) return '';
         const isSokaku = label === '総格';
+        const strokeValue = gaku.val ?? gaku.num ?? 0;
         return `
             <div class="flex items-center justify-between py-1.5 border-b border-[#eee5d8]/50 last:border-0 ${isSokaku ? 'mt-2 pt-3 border-t border-[#eee5d8]' : ''}">
                 <span class="text-[10px] font-bold text-[#a6967a] w-12 text-left">${label}</span>
                 <span class="text-xs font-black ${gaku.res.color} flex-1 text-center">${gaku.res.label}</span>
-                <span class="text-[10px] font-bold text-[#5d5444] text-right w-12">${gaku.val || gaku.num}画</span>
+                <span class="text-[10px] font-bold text-[#5d5444] text-right w-12">${strokeValue}画</span>
             </div>
         `;
     };
@@ -1151,8 +1207,19 @@ function showFortuneDetailFromSaved(index, source = 'own') {
     const item = sourceSaved[index];
     if (!item) return;
 
+    const displayParts = getSavedCandidateDisplayParts(item);
+    const fortune = getSavedCandidateFortune(item);
+    const fortuneSurnameData = getSavedCandidateSurnameFortuneData(item);
+
     // 現在のビルド結果としてセット（showFortuneDetailがこれを見るため）
-    currentBuildResult = JSON.parse(JSON.stringify(item));
+    currentBuildResult = {
+        ...JSON.parse(JSON.stringify(item)),
+        fullName: displayParts.fullName,
+        reading: displayParts.reading,
+        givenName: displayParts.givenName,
+        fortune,
+        surnameData: fortuneSurnameData
+    };
 
     closeSavedNameDetail();
 
@@ -2272,7 +2339,7 @@ function renderSavedScreen() {
                     ${renderCanvasSide(canvasState.partnerMain, 'partner', '未選択')}
                 </div>
             ` : `
-                <div class="mx-auto max-w-[320px]">
+                <div class="w-full">
                     ${renderCanvasSide(canvasState.ownMain, 'own', '未選択')}
                 </div>
             `}
@@ -2409,9 +2476,9 @@ function renderSavedScreen() {
 
     if (!visibleOwn.length && !visiblePartner.length) {
         html += `
-            <div class="text-center py-16 text-sm text-[#a6967a]">
-                <p>まだ保存済みの候補はありません</p>
-                <p class="text-[10px] mt-2">候補を保存するとここに並びます</p>
+            <div class="text-center py-16">
+                <div class="text-[#bca37f] text-lg font-black leading-relaxed">保存済みはまだありません</div>
+                <div class="mt-1 text-sm font-bold leading-relaxed text-[#a6967a]">ビルドした名前を保存するとここに並びます</div>
             </div>
         `;
     }

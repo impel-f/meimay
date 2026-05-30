@@ -50,7 +50,7 @@ function getMeimaySupportEmail() {
 const MEIMAY_SUPPORT_CATEGORIES = {
     bug: {
         label: '不具合・表示崩れ',
-        description: '動かない、表示がおかしい、操作できないとき',
+        description: '動かない、表示がおかしい、操作できない',
         prompts: [
             '困っている画面や操作:',
             '期待した動き:',
@@ -262,9 +262,9 @@ function showSupportEmailSheet(payload) {
     document.getElementById('support-email-sheet')?.remove();
     const modal = `
         <div class="overlay active modal-overlay-dark" id="support-email-sheet" onclick="if(event.target.id==='support-email-sheet')closeSupportEmailSheet()">
-            <div class="modal-sheet settings-sheet" onclick="event.stopPropagation()">
+            <div class="modal-sheet settings-sheet support-email-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSupportEmailSheet()">✕</button>
-                <h3 class="modal-title">メール内容を作成しました</h3>
+                <h3 class="modal-title">メール内容を作成</h3>
                 <p class="modal-desc">メールアプリが開かない環境では、宛先と本文をコピーして送信してください。</p>
                 <div class="settings-sheet-list">
                     <div class="settings-sheet-row">
@@ -276,7 +276,7 @@ function showSupportEmailSheet(payload) {
                         <strong>${escapeLegalHtml(payload.subject)}</strong>
                     </div>
                 </div>
-                <textarea readonly class="mt-3 h-44 w-full resize-none rounded-2xl border border-[#eadfcd] bg-[#fffaf4] px-4 py-3 text-[11px] leading-relaxed text-[#5d5444] outline-none">${escapeLegalHtml(payload.body)}</textarea>
+                <textarea readonly class="support-email-body mt-3 w-full resize-none rounded-2xl border border-[#eadfcd] bg-[#fffaf4] px-4 py-3 text-[11px] leading-relaxed text-[#5d5444] outline-none">${escapeLegalHtml(payload.body)}</textarea>
                 <button type="button" onclick="launchSupportMailClientFromSheet()" class="mt-3 w-full rounded-2xl bg-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-95 transition-transform">メールアプリを開く</button>
                 <div class="mt-2 grid grid-cols-2 gap-2">
                     <button type="button" onclick="copySupportEmailAddress()" class="rounded-2xl border border-[#d4c5af] bg-white px-4 py-3 text-xs font-black text-[#5d5444] active:scale-95 transition-transform">宛先をコピー</button>

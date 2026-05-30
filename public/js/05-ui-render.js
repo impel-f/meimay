@@ -384,11 +384,11 @@ function render() {
             ? `${nextStepCopy}。必要なら下の選択肢で候補を広げられます。`
             : '今の条件で追加できる候補はありません。';
         container.innerHTML = `
-            <div class="flex items-center justify-center h-full text-center px-4">
-                <div class="w-full max-w-[372px] rounded-[28px] border border-[#eadfce] bg-white/95 px-5 py-5 shadow-[0_18px_45px_rgba(93,84,68,0.12)] flex flex-col" style="max-height:calc(100% - 24px);">
+            <div class="swipe-empty-state-wrap">
+                <div class="swipe-empty-state-panel">
                     <p class="text-[#5d5444] font-black text-lg">☑候補をすべてみました</p>
                     <p class="mt-2 text-sm text-[#a6967a] leading-relaxed">${emptyStateCopy}</p>
-                    ${expansionHtml ? `<div class="my-4 flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1" style="max-height:min(46vh, 340px); overscroll-behavior:contain;">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
+                    ${expansionHtml ? `<div class="swipe-empty-state-options">${expansionHtml}</div>` : '<div class="my-5 h-px bg-[#efe6d8]"></div>'}
                     ${goToBuild ?
                 '<button onclick="window._addMoreFromBuild=false; openBuild()" class="btn-gold w-full py-4">ビルド画面へ →</button>' :
                 '<button onclick="proceedToNextSlot()" class="btn-gold w-full py-4">次の文字へ進む →</button>'
@@ -1924,6 +1924,23 @@ function getHomeMembershipStatusModel() {
         title: '無料プランでは常用漢字のみ使えます。'
     };
 
+    try {
+        const hostname = String(window.location?.hostname || '').toLowerCase();
+        const localPreviewAllowed = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+        const localPremium = localPreviewAllowed
+            ? String(new URLSearchParams(String(window.location?.search || '')).get('localPremium') || '').trim().toLowerCase()
+            : '';
+        if (localPremium === 'partner' || localPremium === 'partner-premium') {
+            const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+            const dateLabel = formatHomeMembershipDate(expiresAt);
+            return {
+                text: `プレミアム👑パートナー特典｜${dateLabel}まで`,
+                state: 'partner',
+                title: `パートナー特典で、${dateLabel}までプレミアムが有効です。`
+            };
+        }
+    } catch (e) { }
+
     if (typeof PremiumManager === 'undefined' || !PremiumManager) return fallback;
 
     try {
@@ -1934,10 +1951,11 @@ function getHomeMembershipStatusModel() {
             ? PremiumManager.getDisplayStatus()
             : null;
         const dateLabel = formatHomeMembershipDate(membership?.expiresAt);
+        const periodLabel = dateLabel ? `${dateLabel}まで` : '期限なし';
 
         if (membership?.active && membership.isTrial) {
             return {
-                text: '無料体験中👑',
+                text: `プレミアム体験中👑${dateLabel ? `｜${dateLabel}まで` : ''}`,
                 state: 'trial',
                 title: display?.homeDetail || '無料体験中はプレミアム機能を使えます。'
             };
@@ -1945,9 +1963,9 @@ function getHomeMembershipStatusModel() {
 
         if (membership?.active) {
             const partnerActive = membership.source === 'partner';
-            const ownerLabel = partnerActive ? 'パートナー特典👑' : 'プレミアム👑';
+            const ownerLabel = partnerActive ? 'プレミアム👑パートナー特典' : 'プレミアム👑';
             return {
-                text: ownerLabel,
+                text: dateLabel ? `${ownerLabel}｜${periodLabel}` : ownerLabel,
                 state: partnerActive ? 'partner' : 'premium',
                 title: display?.homeDetail || (dateLabel
                     ? `${dateLabel}までプレミアムが有効です。`
@@ -1957,19 +1975,18 @@ function getHomeMembershipStatusModel() {
 
         if (display?.kind === 'premium-cache') {
             const cachedPartnerActive = display.source === 'partner';
+            const displayLabel = String(display.shortLabel || 'プレミアム')
+                .replace(/^プレミアム/, 'プレミアム👑')
+                .replace(/・/g, '｜');
             return {
-                text: cachedPartnerActive ? 'パートナー特典👑' : 'プレミアム👑',
+                text: cachedPartnerActive ? displayLabel.replace(/^プレミアム👑/, 'プレミアム👑パートナー特典') : displayLabel,
                 state: cachedPartnerActive ? 'partner' : 'premium',
                 title: display.homeDetail || 'プレミアムが有効です。'
             };
         }
 
         if (display?.kind === 'checking') {
-            return {
-                text: '購入状態を確認中',
-                state: 'checking',
-                title: display.homeDetail || 'ストアの購入情報を確認しています。完了すると自動で反映されます。'
-            };
+            return fallback;
         }
 
         if (membership?.expired || display?.kind === 'expired') {
@@ -1994,6 +2011,43 @@ function getHomeMembershipStatusModel() {
     return fallback;
 }
 
+const HOME_MEMBERSHIP_STATUS_MAX_UNITS = 16;
+const HOME_MEMBERSHIP_STATUS_BASE_FONT_SIZE = 9.5;
+const HOME_MEMBERSHIP_STATUS_MIN_FONT_SIZE = 6.8;
+
+function getHomeMembershipStatusTextUnits(text) {
+    return Array.from(String(text || '').replace(/\s+/g, '')).reduce((total, char) => {
+        return total + (/^[\x20-\x7e]$/.test(char) ? 0.55 : 1);
+    }, 0);
+}
+
+function getHomeMembershipStatusFontSize(text) {
+    const units = getHomeMembershipStatusTextUnits(text);
+    if (units <= HOME_MEMBERSHIP_STATUS_MAX_UNITS) return HOME_MEMBERSHIP_STATUS_BASE_FONT_SIZE;
+    const shrink = (units - HOME_MEMBERSHIP_STATUS_MAX_UNITS) * 0.48;
+    return Math.max(HOME_MEMBERSHIP_STATUS_MIN_FONT_SIZE, HOME_MEMBERSHIP_STATUS_BASE_FONT_SIZE - shrink);
+}
+
+function fitHomeMembershipStatusText(statusEl) {
+    if (!statusEl || statusEl.classList.contains('hidden')) return;
+    const initialSize = getHomeMembershipStatusFontSize(statusEl.textContent || '');
+    statusEl.style.setProperty('--home-membership-font-size', `${initialSize.toFixed(1)}px`);
+
+    requestAnimationFrame(() => {
+        let size = initialSize;
+        let guard = 0;
+        while (
+            statusEl.scrollWidth > statusEl.clientWidth
+            && size > HOME_MEMBERSHIP_STATUS_MIN_FONT_SIZE
+            && guard < 12
+        ) {
+            size = Math.max(HOME_MEMBERSHIP_STATUS_MIN_FONT_SIZE, size - 0.25);
+            statusEl.style.setProperty('--home-membership-font-size', `${size.toFixed(1)}px`);
+            guard += 1;
+        }
+    });
+}
+
 function renderHomeMembershipStatus() {
     const statusEl = document.getElementById('home-membership-status');
     if (!statusEl) return;
@@ -2004,12 +2058,16 @@ function renderHomeMembershipStatus() {
     statusEl.setAttribute('aria-label', status.title);
     statusEl.dataset.planState = status.state;
     statusEl.classList.toggle('hidden', !status.text);
+    fitHomeMembershipStatusText(statusEl);
 }
 
 function shouldShowHomePremiumTrialCard() {
     if (typeof PremiumManager === 'undefined' || !PremiumManager) return false;
 
     try {
+        const status = getHomeMembershipStatusModel();
+        if (status?.state === 'premium' || status?.state === 'partner' || status?.state === 'trial') return false;
+
         const membership = typeof PremiumManager.getMembershipState === 'function'
             ? PremiumManager.getMembershipState()
             : null;
@@ -4629,7 +4687,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
 
     stageTrack.style.cssText = '';
     stageTrack.innerHTML = `
-        <div class="home-stage-grid grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-1 md:gap-x-1.5">
+        <div class="home-stage-grid items-stretch">
             ${displayedSteps.map((step, index) => {
                 const cardStyle = step.selected
                     ? tone.cardRecommended
@@ -4651,7 +4709,7 @@ function renderHomeStageTrack(likedCount, readingStockCount, savedCount, options
                     data-home-stage-button="true"
                     onclick="event.stopPropagation(); selectHomeStageTab('${step.key}')"
                     aria-pressed="${step.selected ? 'true' : 'false'}"
-                    class="home-stage-card mx-auto w-full max-w-[88px] min-h-[68px] rounded-[1.05rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:max-w-[114px] md:min-h-[106px] md:rounded-[1.4rem] md:px-1 md:py-1.5"
+                    class="home-stage-card mx-auto min-h-[68px] rounded-[1.05rem] border px-0.5 py-0.5 text-center active:scale-[0.98] transition-transform md:min-h-[106px] md:rounded-[1.4rem] md:px-1 md:py-1.5"
                     style="${cardStyle}">
                     <div class="home-stage-card-inner flex h-full flex-col items-center justify-start">
                         <div class="home-stage-label-row flex items-center justify-center gap-0.5 text-[8px] font-black leading-tight text-center md:gap-1 md:text-[10px]" style="color:${tone.text};">
