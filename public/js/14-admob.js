@@ -2660,16 +2660,8 @@ PremiumManager.startPurchase = async function (productId) {
     }
 };
 
-function getPremiumTrialRoomNotice() {
-    const inRoom = typeof MeimayPairing !== 'undefined' && MeimayPairing && MeimayPairing.roomCode;
-    const hasPartner = inRoom && !!MeimayPairing.partnerUid;
-    if (hasPartner) {
-        return '無料体験はこのアカウントだけで開始します。パートナーの無料枠は消費しません。';
-    }
-    if (inRoom) {
-        return 'パートナー参加前に開始すると、この端末の無料枠だけを使います。';
-    }
-    return '無料体験は1回だけ利用できます。';
+function getPremiumTrialDescription() {
+    return '3日間、プレミアム機能を無料で試せます。<br>無料体験は1回だけ利用できます。';
 }
 
 function getPremiumTrialButtonLabel() {
@@ -3190,17 +3182,16 @@ function renderPremiumTrialCard(state) {
     const unavailable = display?.kind === 'free-used-trial' || hasPremiumTrialConsumedMemory(selfState);
     const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
     const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
-    const notice = unavailable ? '' : getPremiumTrialRoomNotice();
     const body = unavailable
         ? 'このアカウントでは無料体験を利用済みです。'
-        : `3日間、プレミアム機能を無料で試せます。${notice ? ' ' + notice : ''}`;
+        : getPremiumTrialDescription();
 
     return ''
         + '<div class="rounded-[20px] border border-[#d7b57c] bg-[#fff7e8] px-3 py-3 shadow-[0_10px_24px_rgba(183,145,85,0.10)]">'
         + '<div class="flex items-start justify-between gap-3">'
         + '<div>'
         + '<div class="text-[10px] font-black tracking-[0.14em] text-[#b48642]">無料体験</div>'
-        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]" style="word-break:keep-all;overflow-wrap:normal;">' + escapePremiumHtml(body) + '</p>'
+        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]" style="word-break:keep-all;overflow-wrap:normal;">' + (unavailable ? escapePremiumHtml(body) : body) + '</p>'
         + '</div>'
         + '</div>'
         + '<button type="button" onclick="PremiumManager.startTrial()" class="mt-3 w-full py-2.5 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]' + disabledClass + '">'
