@@ -496,10 +496,9 @@ function render() {
     }
 
     container.appendChild(card);
-    fitKanjiSwipeReadings(card);
+    scheduleKanjiSwipeReadingFit(card);
     fitKanjiSwipeCard(card);
     requestAnimationFrame(() => {
-        fitKanjiSwipeReadings(card);
         fitKanjiSwipeCard(card);
     });
     console.log("RENDER: Card appended to container");
@@ -507,7 +506,22 @@ function render() {
     updateSwipeCounter();
 }
 
+function scheduleKanjiSwipeReadingFit(card) {
+    const run = () => {
+        if (!card?.isConnected) return;
+        fitKanjiSwipeReadings(card);
+    };
+    run();
+    requestAnimationFrame(run);
+    setTimeout(run, 80);
+    setTimeout(run, 220);
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+        document.fonts.ready.then(run).catch(() => {});
+    }
+}
+
 function fitKanjiSwipeReadings(card) {
+    if (!card?.isConnected) return;
     const container = card?.querySelector('.kanji-swipe-readings');
     if (!container) return;
 
@@ -536,10 +550,14 @@ function fitKanjiSwipeReadings(card) {
         return visible;
     };
 
-    showChips(chips);
+    const containerWidth = container.clientWidth || card?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 0) || 0;
+    const maxVisible = containerWidth > 360 ? 4 : 3;
+    const initialLimit = Math.max(1, Math.min(chips.length, maxVisible));
+
+    showChips(chooseChips(initialLimit));
     if (container.scrollWidth <= container.clientWidth + 1) return;
 
-    for (let limit = chips.length - 1; limit >= 1; limit--) {
+    for (let limit = initialLimit - 1; limit >= 1; limit--) {
         const visible = chooseChips(limit);
         showChips(visible);
         if (container.scrollWidth <= container.clientWidth + 1) return;

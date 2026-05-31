@@ -6421,6 +6421,12 @@ function navSearchAction() {
 // ==========================================
 
 const DAILY_KANJI_LIMIT = 100;
+let dailySeenKanjiCacheKey = '';
+let dailySeenKanjiCache = null;
+let dailyKanjiSwipeCountCacheKey = '';
+let dailyKanjiSwipeCountCache = null;
+let dailyReadingSwipeCountCacheKey = '';
+let dailyReadingSwipeCountCache = null;
 
 function _getDailyKey() {
     const d = new Date();
@@ -6429,17 +6435,30 @@ function _getDailyKey() {
 
 function getDailySeenKanji() {
     try {
-        const raw = localStorage.getItem(_getDailyKey());
-        return raw ? JSON.parse(raw) : [];
+        const key = _getDailyKey();
+        if (dailySeenKanjiCacheKey === key && Array.isArray(dailySeenKanjiCache)) {
+            return [...dailySeenKanjiCache];
+        }
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        dailySeenKanjiCacheKey = key;
+        dailySeenKanjiCache = Array.isArray(parsed) ? parsed : [];
+        return [...dailySeenKanjiCache];
     } catch (e) { return []; }
 }
 
 function addDailySeenKanji(kanji) {
     try {
-        const seen = getDailySeenKanji();
+        const key = _getDailyKey();
+        if (dailySeenKanjiCacheKey !== key || !Array.isArray(dailySeenKanjiCache)) {
+            getDailySeenKanji();
+        }
+        const seen = Array.isArray(dailySeenKanjiCache) ? dailySeenKanjiCache : [];
         if (!seen.includes(kanji)) {
             seen.push(kanji);
-            localStorage.setItem(_getDailyKey(), JSON.stringify(seen));
+            dailySeenKanjiCacheKey = key;
+            dailySeenKanjiCache = seen;
+            localStorage.setItem(key, JSON.stringify(seen));
         }
     } catch (e) { }
 }
@@ -6451,9 +6470,15 @@ function _getDailyKanjiSwipeKey() {
 
 function getDailyKanjiSwipeCount() {
     try {
-        const raw = localStorage.getItem(_getDailyKanjiSwipeKey());
+        const key = _getDailyKanjiSwipeKey();
+        if (dailyKanjiSwipeCountCacheKey === key && dailyKanjiSwipeCountCache !== null) {
+            return dailyKanjiSwipeCountCache;
+        }
+        const raw = localStorage.getItem(key);
         const count = Number(raw || 0);
-        return Number.isFinite(count) && count > 0 ? count : 0;
+        dailyKanjiSwipeCountCacheKey = key;
+        dailyKanjiSwipeCountCache = Number.isFinite(count) && count > 0 ? count : 0;
+        return dailyKanjiSwipeCountCache;
     } catch (e) {
         return 0;
     }
@@ -6461,8 +6486,13 @@ function getDailyKanjiSwipeCount() {
 
 function addDailyKanjiSwipeCount() {
     try {
-        const next = getDailyKanjiSwipeCount() + 1;
-        localStorage.setItem(_getDailyKanjiSwipeKey(), String(next));
+        const key = _getDailyKanjiSwipeKey();
+        const next = (dailyKanjiSwipeCountCacheKey === key && dailyKanjiSwipeCountCache !== null
+            ? dailyKanjiSwipeCountCache
+            : getDailyKanjiSwipeCount()) + 1;
+        dailyKanjiSwipeCountCacheKey = key;
+        dailyKanjiSwipeCountCache = next;
+        localStorage.setItem(key, String(next));
         if (typeof window !== 'undefined' && window.PremiumTrialNudge && typeof window.PremiumTrialNudge.record === 'function') {
             window.PremiumTrialNudge.record('kanji-swipe', {
                 swipeCount: next,
@@ -6488,9 +6518,15 @@ function _getDailyReadingSwipeKey() {
 
 function getDailyReadingSwipeCount() {
     try {
-        const raw = localStorage.getItem(_getDailyReadingSwipeKey());
+        const key = _getDailyReadingSwipeKey();
+        if (dailyReadingSwipeCountCacheKey === key && dailyReadingSwipeCountCache !== null) {
+            return dailyReadingSwipeCountCache;
+        }
+        const raw = localStorage.getItem(key);
         const count = Number(raw || 0);
-        return Number.isFinite(count) && count > 0 ? count : 0;
+        dailyReadingSwipeCountCacheKey = key;
+        dailyReadingSwipeCountCache = Number.isFinite(count) && count > 0 ? count : 0;
+        return dailyReadingSwipeCountCache;
     } catch (e) {
         return 0;
     }
@@ -6498,8 +6534,13 @@ function getDailyReadingSwipeCount() {
 
 function addDailyReadingSwipeCount() {
     try {
-        const next = getDailyReadingSwipeCount() + 1;
-        localStorage.setItem(_getDailyReadingSwipeKey(), String(next));
+        const key = _getDailyReadingSwipeKey();
+        const next = (dailyReadingSwipeCountCacheKey === key && dailyReadingSwipeCountCache !== null
+            ? dailyReadingSwipeCountCache
+            : getDailyReadingSwipeCount()) + 1;
+        dailyReadingSwipeCountCacheKey = key;
+        dailyReadingSwipeCountCache = next;
+        localStorage.setItem(key, String(next));
         return next;
     } catch (e) {
         return getDailyReadingSwipeCount();

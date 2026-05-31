@@ -1037,7 +1037,7 @@ function openTransferModal() {
             <div class="modal-sheet settings-sheet settings-transfer-sheet" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeTransferModal()">✕</button>
                 <h3 class="modal-title">バックアップと復元</h3>
-                <p class="modal-desc">端末を替えたときも、保存候補を復元キーで戻せます。無料体験の利用済み状態も引き継ぎます。パートナー連携は復元後に再設定してください。</p>
+                <p class="modal-desc">端末を替えたときも、名づけデータを復元キーで戻せます。パートナー連携は復元後に再設定してください。</p>
                 <div class="modal-body backup-restore-body">
                     <section class="backup-restore-card">
                         <div class="backup-restore-card-head">
@@ -1064,7 +1064,6 @@ function openTransferModal() {
                     <section class="backup-restore-card">
                         <div class="backup-restore-eyebrow">別端末から</div>
                         <label class="backup-restore-title" for="backup-restore-key-input">復元キーで戻す</label>
-                        <p class="backup-restore-copy">この端末にない候補だけを追加します。今ある候補は消えません。</p>
                         <input id="backup-restore-key-input" type="text" inputmode="text" autocomplete="off" maxlength="19" placeholder="XXXX-XXXX-XXXX-XXXX" aria-describedby="backup-restore-status" oninput="formatBackupRestoreKeyInput(event)" onkeydown="if(event.key==='Enter'){restoreBackupFromRestoreKey(event);}" class="backup-restore-input">
                         <button onclick="restoreBackupFromRestoreKey(event)" class="backup-restore-dark">
                             復元する
@@ -1072,7 +1071,7 @@ function openTransferModal() {
                     </section>
                     <section class="backup-restore-note">
                         <strong>復元ルール</strong>
-                        <span>IDや名字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。無料体験は重複して開始できません。</span>
+                        <span>IDや名字だけでは復元できません。復元キーをなくした場合は、元の端末で再発行してください。復元後も旧端末はそのまま使えますが、パートナー連携は新端末へ自動では移りません。</span>
                     </section>
                     <div id="backup-restore-status" class="backup-restore-status" role="status" aria-live="polite" data-tone="neutral">復元キーは、家族以外に共有しないでください。</div>
                 </div>
@@ -1166,7 +1165,7 @@ async function restoreBackupFromRestoreKey(event) {
     if (input && typeof MeimayUserBackup !== 'undefined' && MeimayUserBackup && typeof MeimayUserBackup._formatRestoreKey === 'function') {
         input.value = MeimayUserBackup._formatRestoreKey(normalizedKey);
     }
-    if (!confirm('復元キーのバックアップを、この端末に追加します。今ある候補は消えません。続けますか？')) {
+    if (!confirm('復元キーのバックアップを復元します。続けますか？')) {
         return;
     }
     const button = event && event.currentTarget && event.currentTarget.tagName === 'BUTTON'

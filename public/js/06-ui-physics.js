@@ -6,6 +6,18 @@
 /**
  * カードに物理演算を設定
  */
+function isSwipeDebugLogEnabled() {
+    try {
+        return typeof localStorage !== 'undefined' && localStorage.getItem('meimay_debug_swipe') === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function swipeDebugLog(...args) {
+    if (isSwipeDebugLogEnabled()) console.log(...args);
+}
+
 function setupPhysics(card, data) {
     let sx, sy, dx = 0, dy = 0, active = false;
     let moveFrame = null;
@@ -193,7 +205,7 @@ function manual(dir) {
     }
     // カードタップ直後のghost clickによる誤発動を防ぐ（300ms以内は無視）
     if (Date.now() - (window._lastCardTap || 0) < 300) {
-        console.log('PHYSICS: manual() blocked – ghost click guard');
+        swipeDebugLog('PHYSICS: manual() blocked – ghost click guard');
         return;
     }
     const data = stack[currentIdx];
@@ -313,7 +325,7 @@ function executeSwipe(dir, data) {
                 });
                 addedToStock = true;
             } else {
-                console.log(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);
+                swipeDebugLog(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);
             }
         }
     }
@@ -363,12 +375,12 @@ function executeSwipe(dir, data) {
         }
 
         swipes++;
-        console.log(`PHYSICS: Swipe ${dir} executed (total: ${swipes})`);
+        swipeDebugLog(`PHYSICS: Swipe ${dir} executed (total: ${swipes})`);
 
         // 10枚ごとの節目。初回だけモーダル、その後はトーストで流れを止めない。
         if (swipes > 0 && swipes % 10 === 0) {
             const checkpointSlot = (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) ? -1 : currentPos;
-            console.log(`CHOICE: ${swipes} swipes reached for slot ${checkpointSlot}`);
+            swipeDebugLog(`CHOICE: ${swipes} swipes reached for slot ${checkpointSlot}`);
             if (typeof showKanjiSwipeCheckpointNudge === 'function') {
                 showKanjiSwipeCheckpointNudge(checkpointSlot);
             } else if (typeof openChoiceModal === 'function') {

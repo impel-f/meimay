@@ -1373,20 +1373,18 @@ function getFreeBuildRankingCandidatePool() {
     const pool = [];
 
     source.forEach((item) => {
-        const displayKey = getLikedCandidateDisplayKey(item);
-        const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
-        if (!displayKey || seen.has(displayKey) || excludedKanjiFromBuild.includes(displayKey) || excludedKanjiFromBuild.includes(kanji)) return;
+        const kanji = resolveLikedCandidateKanji(item);
+        if (!kanji || seen.has(kanji) || isBuildCandidateExcluded(item)) return;
         if (item?.isSuper) {
-            seen.add(displayKey);
+            seen.add(kanji);
             pool.push(item);
         }
     });
 
     source.forEach((item) => {
-        const displayKey = getLikedCandidateDisplayKey(item);
-        const kanji = String(item?.['漢字'] || item?.kanji || '').trim();
-        if (!displayKey || seen.has(displayKey) || excludedKanjiFromBuild.includes(displayKey) || excludedKanjiFromBuild.includes(kanji)) return;
-        seen.add(displayKey);
+        const kanji = resolveLikedCandidateKanji(item);
+        if (!kanji || seen.has(kanji) || isBuildCandidateExcluded(item)) return;
+        seen.add(kanji);
         pool.push(item);
     });
 
@@ -3555,9 +3553,11 @@ function renderBuildFreeMode(container) {
     const pushCandidate = (item) => {
         if (!item) return;
         if (isBuildCandidateExcluded(item)) return;
-        const key = buildLikedCandidateKey(item);
+        const kanjiKey = resolveLikedCandidateKanji(item);
+        const key = getLikedCandidateDisplayKey(item) || buildLikedCandidateKey(item) || kanjiKey;
+        if (!kanjiKey || seen.has(kanjiKey)) return;
         if (!key || seen.has(key)) return;
-        seen.add(key);
+        seen.add(kanjiKey);
         allKanji.push({ ...item, _buildTarget: key });
     };
     // スーパーライク優先（自分→パートナー）

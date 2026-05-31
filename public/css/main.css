@@ -506,6 +506,7 @@ body.hide-top-bar .screen-header-shell {
     align-items: center;
     gap: 5px;
     width: 100%;
+    min-width: 0;
     max-height: 34px;
     overflow: hidden;
     padding: 2px 3px;
@@ -526,6 +527,10 @@ body.hide-top-bar .screen-header-shell {
     font-weight: 700;
     line-height: 1;
     white-space: nowrap;
+    flex: 0 0 auto;
+    max-width: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     box-shadow: 0 2px 5px rgba(93, 84, 68, 0.08);
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -536,6 +541,7 @@ body.hide-top-bar .screen-header-shell {
     box-shadow: none;
     font-size: 11px;
     padding-inline: 4px;
+    max-width: none;
 }
 
 .kanji-reading-chip[hidden],
