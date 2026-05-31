@@ -483,6 +483,10 @@ function withRevenueCatTimeout(operation, label, timeoutMs = REVENUECAT_REQUEST_
     ]);
 }
 
+function waitPremiumDelay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function normalizePremiumDate(value) {
     if (!value) return null;
 
@@ -586,6 +590,12 @@ function getRevenueCatUserCancelled(error) {
     return error?.userCancelled === true
         || code.includes('cancel')
         || message.includes('cancel');
+}
+
+function getRevenueCatErrorSummary(error) {
+    const code = String(error?.code || error?.errorCode || error?.underlyingErrorCode || '').trim();
+    const message = String(error?.message || error?.errorMessage || error?.localizedDescription || '').trim();
+    return { code, message };
 }
 
 function getRevenueCatPlatformApiKey(platform) {
@@ -700,6 +710,16 @@ function inferRevenueCatPlanExpiresAt(plan, entitlement) {
     return addMonthsToPremiumDate(purchasedAt, plan.durationMonths);
 }
 
+function getRevenueCatPurchaseResultProductId(result) {
+    return String(
+        result?.productIdentifier
+        || result?.productId
+        || result?.transaction?.productIdentifier
+        || result?.transaction?.productId
+        || ''
+    ).trim();
+}
+
 const RevenueCatBridge = {
     _configuredAppUserId: '',
     _configuredPlatform: '',
@@ -741,7 +761,11 @@ const RevenueCatBridge = {
             return plugin;
         }
 
-        await withRevenueCatTimeout(plugin.configure({ apiKey, appUserID }), 'RevenueCat configure');
+        await withRevenueCatTimeout(plugin.configure({
+            apiKey,
+            appUserID,
+            purchasesAreCompletedBy: 'REVENUECAT'
+        }), 'RevenueCat configure');
         this._configuredAppUserId = appUserID;
         this._configuredPlatform = platform;
         return plugin;
@@ -762,6 +786,13 @@ const RevenueCatBridge = {
         const plugin = await this.configure(user);
         if (typeof plugin.getCustomerInfo !== 'function') return null;
         return withRevenueCatTimeout(plugin.getCustomerInfo(), 'RevenueCat getCustomerInfo');
+    },
+
+    invalidateCustomerInfoCache: async function (user) {
+        const plugin = await this.configure(user);
+        if (typeof plugin.invalidateCustomerInfoCache !== 'function') return false;
+        await withRevenueCatTimeout(plugin.invalidateCustomerInfoCache(), 'RevenueCat invalidateCustomerInfoCache');
+        return true;
     },
 
     restorePurchases: async function (user) {
@@ -2491,19 +2522,25 @@ PremiumManager._applyImmediateTrialResult = async function (result = {}) {
     return this.isPremium();
 };
 
-PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackProductId = '') {
+PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackProductId = '', options = {}) {
     const customerInfo = result?.customerInfo || result || null;
     if (!customerInfo) return false;
 
     const entitlement = getRevenueCatEntitlement(customerInfo);
     const entitlementActive = getRevenueCatEntitlementActive(customerInfo);
+    const purchaseProductId = getRevenueCatPurchaseResultProductId(result);
     const productId = String(
         fallbackProductId
+        || purchaseProductId
         || entitlement?.productIdentifier
         || entitlement?.productId
         || ''
     ).trim();
     const plan = getPremiumProductPlan(productId);
+    const trustedPurchaseProduct = options && options.trustPurchaseResult === true
+        && !!plan
+        && !!purchaseProductId
+        && (!fallbackProductId || purchaseProductId === fallbackProductId);
     const entitlementExpiresAt = getRevenueCatEntitlementDate(entitlement, [
         'expirationDate',
         'expirationDateMillis',
@@ -2513,9 +2550,12 @@ PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackPr
     const inferredExpiresAt = entitlementActive && !entitlementExpiresAt
         ? inferRevenueCatPlanExpiresAt(plan, entitlement)
         : null;
-    const expiresAt = entitlementExpiresAt || inferredExpiresAt;
+    const trustedPurchaseExpiresAt = trustedPurchaseProduct && !entitlementExpiresAt
+        ? inferRevenueCatPlanExpiresAt(plan, entitlement)
+        : null;
+    const expiresAt = entitlementExpiresAt || inferredExpiresAt || trustedPurchaseExpiresAt;
     const expired = !!expiresAt && expiresAt.getTime() <= Date.now();
-    const active = entitlementActive && !expired;
+    const active = (entitlementActive || trustedPurchaseProduct) && !expired;
 
     this._storePremium = active;
     this._storePremiumSource = 'revenuecat';
@@ -2555,6 +2595,38 @@ PremiumManager._applyRevenueCatCustomerInfo = async function (result, fallbackPr
 
     await this._syncCurrentPremiumState();
     return active;
+};
+
+PremiumManager.recoverPurchaseStateAfterError = async function (user, plan, error = null) {
+    if (!user || !plan || !RevenueCatBridge.isAvailable()) return false;
+    const summary = getRevenueCatErrorSummary(error);
+    this._lastPurchaseError = {
+        code: summary.code,
+        message: summary.message,
+        productId: plan.id,
+        at: new Date().toISOString()
+    };
+    console.warn('PREMIUM: attempting purchase recovery', this._lastPurchaseError);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            if (attempt === 0) {
+                await RevenueCatBridge.invalidateCustomerInfoCache(user).catch(() => false);
+            } else {
+                await waitPremiumDelay(1200 * attempt);
+            }
+            const infoResult = await RevenueCatBridge.getCustomerInfo(user);
+            const activeFromInfo = await this._applyRevenueCatCustomerInfo(infoResult, plan.id);
+            if (activeFromInfo) return true;
+
+            const syncResult = await RevenueCatBridge.syncPurchases(user);
+            const activeFromSync = await this._applyRevenueCatCustomerInfo(syncResult, plan.id);
+            if (activeFromSync) return true;
+        } catch (recoverError) {
+            console.warn('PREMIUM: purchase recovery attempt failed', recoverError);
+        }
+    }
+    return false;
 };
 
 PremiumManager.refreshRevenueCatCustomerInfo = async function (user, restore = false) {
@@ -2671,8 +2743,10 @@ PremiumManager.startPurchase = async function (productId) {
             }));
         }
         const result = await RevenueCatBridge.purchaseProduct(plan.id, user);
-        const active = await this._applyRevenueCatCustomerInfo(result, plan.id);
-        await this.refreshPurchaseState(false);
+        let active = await this._applyRevenueCatCustomerInfo(result, plan.id, { trustPurchaseResult: true });
+        if (!active) {
+            active = await this.recoverPurchaseStateAfterError(user, plan, new Error('Purchase result did not include active entitlement yet.'));
+        }
         if (typeof trackMeimayEvent === 'function') {
             trackMeimayEvent('premium_purchase_completed', getPremiumPlanAnalyticsParams(plan, {
                 active: active ? 1 : 0
@@ -2693,14 +2767,29 @@ PremiumManager.startPurchase = async function (productId) {
                 showToast('購入をキャンセルしました', 'i');
             }
         } else {
+            const recovered = await this.recoverPurchaseStateAfterError(user, plan, e);
+            if (recovered) {
+                if (typeof trackMeimayEvent === 'function') {
+                    trackMeimayEvent('premium_purchase_completed', getPremiumPlanAnalyticsParams(plan, {
+                        active: 1,
+                        recovered: 1
+                    }));
+                }
+                if (typeof showToast === 'function') {
+                    showToast('プレミアムが有効になりました', 'OK');
+                }
+                return true;
+            }
+
             if (typeof trackMeimayEvent === 'function') {
                 trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
-                    reason: 'exception'
+                    reason: 'exception',
+                    error_code: getRevenueCatErrorSummary(e).code
                 }));
             }
             console.warn('PREMIUM: RevenueCat purchase failed', e);
             if (typeof showToast === 'function') {
-                showToast('購入を完了できませんでした', '!');
+                showToast('購入情報を確認できませんでした。請求が発生している場合は自動で反映されます', '!');
             }
         }
         return false;
@@ -3229,11 +3318,15 @@ function renderPremiumTrialCard(state) {
     if (display && (display.kind === 'premium-cache' || display.kind === 'checking')) return '';
     const selfState = getSelfPremiumMembershipState();
     const unavailable = display?.kind === 'free-used-trial' || hasPremiumTrialConsumedMemory(selfState);
-    const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
+    const buttonDisabled = PremiumManager._trialStartInProgress;
     const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
     const body = unavailable
         ? 'このアカウントでは無料体験を利用済みです。'
         : getPremiumTrialDescription();
+    const actionButton = unavailable ? '' : ''
+        + '<button type="button" onclick="PremiumManager.startTrial()" class="mt-3 w-full py-2.5 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]' + disabledClass + '">'
+        + escapePremiumHtml(getPremiumTrialButtonLabel())
+        + '</button>';
 
     return ''
         + '<div class="rounded-[20px] border border-[#d7b57c] bg-[#fff7e8] px-3 py-3 shadow-[0_10px_24px_rgba(183,145,85,0.10)]">'
@@ -3243,9 +3336,7 @@ function renderPremiumTrialCard(state) {
         + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]" style="word-break:keep-all;overflow-wrap:normal;">' + (unavailable ? escapePremiumHtml(body) : body) + '</p>'
         + '</div>'
         + '</div>'
-        + '<button type="button" onclick="PremiumManager.startTrial()" class="mt-3 w-full py-2.5 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]' + disabledClass + '">'
-        + escapePremiumHtml(unavailable ? '無料体験は利用済み' : getPremiumTrialButtonLabel())
-        + '</button>'
+        + actionButton
         + '</div>';
 }
 

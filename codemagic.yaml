@@ -30,7 +30,7 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "45"
+        ANDROID_VERSION_CODE: "47"
         ANDROID_VERSION_NAME: "1.2.5"
       node: v22.11.0
       java: 21
