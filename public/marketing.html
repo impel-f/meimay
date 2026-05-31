@@ -32,6 +32,7 @@
             --line: #e6dccb;
             --app-bg: #fdfaf5;
             --app-dot: rgba(212, 197, 175, 0.42);
+            --marketing-visual-width: 720px;
         }
 
         * {
@@ -333,7 +334,7 @@
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 18px;
-            max-width: 720px;
+            max-width: var(--marketing-visual-width);
             overflow-x: visible;
             overflow-y: visible;
             scroll-snap-type: none;
@@ -701,7 +702,7 @@
         }
 
         .pair-preview-real {
-            width: min(680px, 100%);
+            width: min(var(--marketing-visual-width), 100%);
             padding: 0;
             overflow: hidden;
         }
@@ -847,7 +848,7 @@
         }
 
         .final-saved-preview {
-            width: min(480px, 100%);
+            width: min(var(--marketing-visual-width), 100%);
             margin: 28px auto 0;
             border: 1px solid #eadfce;
             border-radius: 8px;
