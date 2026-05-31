@@ -1167,9 +1167,6 @@ function shouldSkipNativeStoreCheck(options = {}) {
 function getAdMobPremiumHoldReason() {
     if (PremiumManager.isPremium()) return 'premium-active';
     if (hasFreshPremiumAdSuppressionCache()) return 'premium-cache';
-    if (PremiumManager.isPurchaseStateCheckPending && PremiumManager.isPurchaseStateCheckPending()) {
-        return 'premium-check';
-    }
     const completed = PremiumManager.hasCompletedPurchaseStateCheck && PremiumManager.hasCompletedPurchaseStateCheck();
     if (!completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS) {
         return 'startup-premium-grace';
@@ -1747,6 +1744,14 @@ function closePremiumModal() {
         modal.style.removeProperty('z-index');
         delete modal.dataset.meimayModalKind;
     }
+    setTimeout(() => {
+        if (typeof syncAdBannerOverlaySuppression === 'function') {
+            syncAdBannerOverlaySuppression();
+        }
+        if (typeof requestAdBannerSurfaceRefresh === 'function') {
+            requestAdBannerSurfaceRefresh('premium-modal-close', { delayMs: 180 });
+        }
+    }, 80);
 }
 
 // 初期化
@@ -2033,6 +2038,25 @@ function getDefaultPremiumMembershipState() {
     return buildPremiumMembershipState({}, 'self', { allowLocalFallback: false });
 }
 
+function hasPremiumTrialConsumedMemory(selfState = null) {
+    const state = selfState || (typeof getSelfPremiumMembershipState === 'function'
+        ? getSelfPremiumMembershipState()
+        : null);
+    if (state && state.active) return false;
+    if (state && state.trialConsumed) return true;
+    if (PremiumManager && (PremiumManager._remoteTrialConsumedAt || ['consumed', 'expired'].includes(String(PremiumManager._remoteTrialStatus || '').trim().toLowerCase()))) {
+        return true;
+    }
+    try {
+        const nudge = typeof window !== 'undefined' ? window.PremiumTrialNudge : null;
+        if (nudge && typeof nudge.loadState === 'function') {
+            const nudgeState = nudge.loadState();
+            return !!(nudgeState && (nudgeState.trialConsumedAt || nudgeState.trialStartedAt));
+        }
+    } catch (e) { }
+    return false;
+}
+
 PremiumManager.isPremium = function () {
     const state = this.getMembershipState();
     return !!(state && state.active);
@@ -2110,7 +2134,7 @@ function getPremiumActiveDetailSentence(state, dateLabel) {
 PremiumManager.getDisplayStatus = function () {
     const state = this.getMembershipState();
     const selfState = getSelfPremiumMembershipState();
-    const trialUnavailable = !!(selfState && selfState.trialConsumed);
+    const trialUnavailable = hasPremiumTrialConsumedMemory(selfState);
     const remainingLabel = getPremiumRemainingLabel(state.expiresAt);
     const dateLabel = state.expiresAt ? formatPremiumMembershipDate(state.expiresAt) : '';
     const cachedPremiumState = !state.active && !state.expired && !state.hasPremiumIndicators
@@ -2164,18 +2188,6 @@ PremiumManager.getDisplayStatus = function () {
         };
     }
 
-    if (resolving) {
-        return {
-            active: false,
-            expired: false,
-            kind: 'checking',
-            drawerLines: ['購入状態を確認中', '完了後に反映します'],
-            homeTitle: '購入状態を確認中',
-            homeDetail: 'ストアの購入情報を確認しています。完了すると自動で反映されます。',
-            shortLabel: '購入状態を確認中'
-        };
-    }
-
     if (state.expired) {
         return {
             active: false,
@@ -2200,6 +2212,18 @@ PremiumManager.getDisplayStatus = function () {
         };
     }
 
+    if (resolving) {
+        return {
+            active: false,
+            expired: false,
+            kind: 'free',
+            drawerLines: ['無料プラン', '確認後に自動更新'],
+            homeTitle: '無料プラン',
+            homeDetail: '確認後に自動更新',
+            shortLabel: '無料プラン'
+        };
+    }
+
     return {
         active: false,
         expired: false,
@@ -2214,9 +2238,6 @@ PremiumManager.getDisplayStatus = function () {
 PremiumManager.beginPurchaseStateCheck = function () {
     this._purchaseStateCheckInFlight = true;
     this._purchaseStateCheckStartedAt = Date.now();
-    try {
-        hideAdBanner();
-    } catch (e) { }
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
 };
 
@@ -2702,7 +2723,7 @@ const PremiumTrialNudge = {
         const selfState = typeof getSelfPremiumMembershipState === 'function'
             ? getSelfPremiumMembershipState()
             : null;
-        if (selfState && selfState.trialConsumed) return false;
+        if (hasPremiumTrialConsumedMemory(selfState)) return false;
 
         const state = this.loadState();
         return !state.trialStartedAt;
@@ -2884,12 +2905,16 @@ const PremiumTrialNudge = {
 
     markTrialStatus: function (status) {
         const normalized = String(status || '').trim();
-        if (!['started', 'trial_active', 'paid_active'].includes(normalized)) return;
+        if (!['started', 'trial_active', 'paid_active', 'trial_unavailable', 'consumed', 'expired'].includes(normalized)) return;
         const state = this.loadState();
+        const now = Date.now();
+        const consumed = ['started', 'trial_active', 'trial_unavailable', 'consumed', 'expired'].includes(normalized);
         this.saveState({
             ...state,
-            trialStartedAt: Date.now(),
-            updatedAt: Date.now()
+            trialStartedAt: state.trialStartedAt || (normalized === 'started' || normalized === 'trial_active' ? now : undefined),
+            trialConsumedAt: consumed ? (state.trialConsumedAt || now) : state.trialConsumedAt,
+            lastTrialStatus: normalized,
+            updatedAt: now
         });
     }
 };
@@ -2933,6 +2958,12 @@ PremiumManager.startTrial = async function () {
             })
         });
         const result = await response.json().catch(() => ({}));
+        if (result && result.status === 'trial_unavailable'
+            && typeof PremiumTrialNudge !== 'undefined'
+            && PremiumTrialNudge
+            && typeof PremiumTrialNudge.markTrialStatus === 'function') {
+            PremiumTrialNudge.markTrialStatus(result.status);
+        }
         if (!response.ok || result.ok === false) {
             throw new Error(result.details || result.error || `HTTP ${response.status}`);
         }
@@ -3072,7 +3103,9 @@ function updatePremiumUI() {
 }
 
 function formatPremiumMatrixCell(value) {
-    return escapePremiumHtml(value).replace(/\n/g, '<br>');
+    const lines = String(value || '').split('\n').map((line) => escapePremiumHtml(line));
+    if (lines.length <= 1) return lines[0] || '';
+    return lines.map((line) => '<span class="block whitespace-nowrap">' + line + '</span>').join('');
 }
 
 function renderPremiumComparisonMatrix() {
@@ -3087,17 +3120,17 @@ function renderPremiumComparisonMatrix() {
 
     return ''
         + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf7]">'
-        + '<div class="grid grid-cols-[1.02fr_0.88fr_1.1fr] gap-x-2 border-b border-[#eadfcd] bg-[#f4ead8] px-3 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">'
+        + '<div class="premium-comparison-grid border-b border-[#eadfcd] bg-[#f4ead8] px-1.5 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">'
         + '<div class="flex items-center">できること</div>'
         + '<div class="flex items-center justify-center">無料</div>'
         + '<div class="flex items-center justify-center text-[#8e6c36]">プレミアム</div>'
         + '</div>'
         + '<div class="divide-y divide-[#efe5d3]">'
         + rows.map(({ item, free, premium }) => ''
-            + '<div class="grid grid-cols-[1.02fr_0.88fr_1.1fr] items-stretch gap-x-2 px-3 py-2.5 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">'
+            + '<div class="premium-comparison-grid items-stretch px-1.5 py-2.5 text-[10px] sm:text-[11px] leading-[1.5] text-[#2f271e]">'
             + '<div class="flex items-center font-bold">' + formatPremiumMatrixCell(item) + '</div>'
-            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[38px] w-full items-center justify-center whitespace-nowrap rounded-[12px] bg-white px-2 py-2 text-[10px] sm:text-[11px] font-semibold text-[#6c6252]">' + formatPremiumMatrixCell(free) + '</span></div>'
-            + '<div class="flex items-center justify-center text-center"><span class="inline-flex min-h-[38px] w-full items-center justify-center rounded-[12px] border border-[#dfc28f] bg-[#fff5df] px-2 py-2 font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
+            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell min-h-[38px] w-full rounded-[12px] bg-white px-1.5 py-2 text-[10px] sm:text-[11px] font-semibold text-[#6c6252]">' + formatPremiumMatrixCell(free) + '</span></div>'
+            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell premium-matrix-cell--premium min-h-[38px] rounded-[12px] border border-[#dfc28f] bg-[#fff5df] px-1.5 py-2 text-[10px] sm:text-[11px] font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
             + '</div>'
         ).join('')
         + '</div></div>';
@@ -3154,7 +3187,7 @@ function renderPremiumTrialCard(state) {
         : null;
     if (display && (display.kind === 'premium-cache' || display.kind === 'checking')) return '';
     const selfState = getSelfPremiumMembershipState();
-    const unavailable = selfState.trialConsumed;
+    const unavailable = display?.kind === 'free-used-trial' || hasPremiumTrialConsumedMemory(selfState);
     const buttonDisabled = unavailable || PremiumManager._trialStartInProgress;
     const disabledClass = buttonDisabled ? ' opacity-60 pointer-events-none' : '';
     const notice = unavailable ? '' : getPremiumTrialRoomNotice();
@@ -3167,7 +3200,7 @@ function renderPremiumTrialCard(state) {
         + '<div class="flex items-start justify-between gap-3">'
         + '<div>'
         + '<div class="text-[10px] font-black tracking-[0.14em] text-[#b48642]">無料体験</div>'
-        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]">' + escapePremiumHtml(body) + '</p>'
+        + '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.65] text-[#6d5a3d]" style="word-break:keep-all;overflow-wrap:normal;">' + escapePremiumHtml(body) + '</p>'
         + '</div>'
         + '</div>'
         + '<button type="button" onclick="PremiumManager.startTrial()" class="mt-3 w-full py-2.5 rounded-2xl bg-[#b98942] text-white text-sm font-black shadow-md active:scale-[0.99]' + disabledClass + '">'
@@ -3200,7 +3233,7 @@ function renderPremiumPlanCards(state) {
                 + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
                 + '</div>'
                 + '<div class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
-                + '<span class="text-[21px] sm:text-[23px] font-black leading-none tracking-normal">' + escapePremiumHtml(plan.price) + '</span>'
+                + '<span class="premium-plan-price">' + escapePremiumHtml(plan.price) + '</span>'
                 + (plan.description ? '<span class="text-[10px] font-medium text-[#8b7e66]">' + escapePremiumHtml(plan.description) + '</span>' : '')
                 + '</div>'
                 + '</div>'
@@ -3220,6 +3253,30 @@ function renderPremiumPlanCards(state) {
 }
 
 let premiumModalPurchaseSyncInFlight = false;
+
+function getPremiumModalRenderStateKey() {
+    try {
+        const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
+            ? PremiumManager.getMembershipState()
+            : getDefaultPremiumMembershipState();
+        const display = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getDisplayStatus === 'function'
+            ? PremiumManager.getDisplayStatus()
+            : null;
+        const selfState = typeof getSelfPremiumMembershipState === 'function'
+            ? getSelfPremiumMembershipState()
+            : null;
+        return [
+            display?.kind || '',
+            display?.active ? 'active' : 'inactive',
+            state?.source || '',
+            state?.isTrial ? 'trial' : '',
+            state?.expiresAt ? new Date(state.expiresAt).toISOString() : '',
+            hasPremiumTrialConsumedMemory(selfState) ? 'trial-used' : 'trial-open'
+        ].join('|');
+    } catch (e) {
+        return '';
+    }
+}
 
 function renderPremiumPurchaseSyncNotice(state, message = '') {
     if (state && state.active) return '';
@@ -3255,18 +3312,16 @@ async function syncPurchaseStateFromPremiumModal() {
     if (premiumModalPurchaseSyncInFlight) return;
     if (!PremiumManager || typeof PremiumManager.refreshPurchaseState !== 'function') return;
     if (typeof RevenueCatBridge !== 'undefined' && RevenueCatBridge && !RevenueCatBridge.isAvailable()) {
-        updatePremiumPurchaseSyncNotice('購入状態はアプリ版で自動確認します。');
         return;
     }
 
     premiumModalPurchaseSyncInFlight = true;
-    updatePremiumPurchaseSyncNotice('購入状態を確認しています。');
     const wasActive = PremiumManager.isPremium();
+    const beforeKey = getPremiumModalRenderStateKey();
 
     try {
         const refreshed = await PremiumManager.refreshPurchaseState(false, { silent: true, reason: 'premium-modal' });
         if (!refreshed) {
-            rerenderPremiumModalAfterSync('購入状態を確認できませんでした。時間をおいてもう一度お試しください。');
             return;
         }
         let isActive = PremiumManager.isPremium();
@@ -3284,12 +3339,12 @@ async function syncPurchaseStateFromPremiumModal() {
         if (typeof updatePremiumUI === 'function') {
             updatePremiumUI();
         }
-        rerenderPremiumModalAfterSync(isActive || wasActive
-            ? '購入状態を同期しました。'
-            : '購入状態を確認しました。');
+        const afterKey = getPremiumModalRenderStateKey();
+        if (afterKey && afterKey !== beforeKey) {
+            rerenderPremiumModalAfterSync(isActive || wasActive ? 'プレミアムが有効になりました。' : '');
+        }
     } catch (error) {
         console.warn('PREMIUM: premium modal sync failed', error);
-        rerenderPremiumModalAfterSync('購入状態を確認できませんでした。時間をおいてもう一度お試しください。');
     } finally {
         premiumModalPurchaseSyncInFlight = false;
     }
@@ -3318,11 +3373,11 @@ function showPremiumModal(options = {}) {
     modal.classList.add('active');
     modal.dataset.meimayModalKind = 'premium';
     modal.innerHTML = ''
-        + '<div data-premium-modal-root="true" class="detail-sheet max-w-none" style="max-width:min(92vw, 860px); max-height:min(88vh, 760px); overflow-x:hidden; overflow-y:auto; padding: clamp(16px, 2.6vw, 24px); background:#f7efdde6; border:1px solid #e4d9c6; border-radius:30px; box-shadow:0 24px 80px rgba(93,77,62,0.18);" onclick="event.stopPropagation()">'
-        + '<button class="modal-close-btn" style="top:14px;right:14px;width:40px;height:40px;font-size:22px;background:rgba(255,255,255,0.72);border:1px solid #eadfcd;" onclick="closePremiumModal()">×</button>'
+        + '<div data-premium-modal-root="true" class="detail-sheet premium-modal-sheet" onclick="event.stopPropagation()">'
+        + '<button class="modal-close-btn" style="top:14px;right:14px;width:42px;height:42px;min-width:42px;min-height:42px;max-width:42px;max-height:42px;font-size:22px;background:rgba(255,255,255,0.72);border:1px solid #eadfcd;" onclick="closePremiumModal()">×</button>'
         + '<div class="space-y-3">'
-        + '<div class="text-center px-10 sm:px-0">'
-        + '<h3 class="text-[1.25rem] sm:text-[1.55rem] font-black text-[#4b3a24]">👑プレミアム案内👑</h3>'
+        + '<div class="text-center px-0">'
+        + '<h3 class="premium-modal-title text-[1.38rem] sm:text-[1.48rem] font-black text-[#4b3a24]">👑プレミアム案内👑</h3>'
         + (subtitle ? '<p class="mt-1 text-[12px] sm:text-[13px] leading-[1.7] text-[#7a6a52]">' + escapePremiumHtml(subtitle) + '</p>' : '')
         + '</div>'
         + renderPremiumTrialCard(state)

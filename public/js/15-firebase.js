@@ -1943,6 +1943,28 @@ const MeimayPairing = {
         }
         const text = String(this._pendingShareText || this._buildShareCodeText() || '').trim();
         if (!text) return;
+        const nativeShare = window.Capacitor && window.Capacitor.Plugins
+            ? window.Capacitor.Plugins.Share
+            : null;
+        if (nativeShare && typeof nativeShare.share === 'function') {
+            if (typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('partner_link_shared', {
+                    method: 'modal_native_share',
+                    role: this.myRole || '',
+                    has_partner: this.partnerUid ? 1 : 0
+                });
+            }
+            nativeShare.share({
+                title: this._pendingShareSubject,
+                text: text,
+                dialogTitle: 'LINEなどで共有する'
+            }).then(() => {
+                this.closeShareCodeFallback();
+            }).catch(() => {
+                // キャンセル時はモーダルを残して、コピーやメールを選べるようにする
+            });
+            return;
+        }
         if (navigator.share && typeof navigator.share === 'function') {
             if (typeof trackMeimayEvent === 'function') {
                 trackMeimayEvent('partner_link_shared', {
@@ -1961,9 +1983,7 @@ const MeimayPairing = {
             });
             return;
         }
-        if (typeof showToast === 'function') {
-            showToast('この端末では共有シートを開けません。文面をコピーしてLINEなどに貼り付けてください', 'ℹ');
-        }
+        this.copyShareCodeText(event);
     },
 
     copyShareCodeText: function (event) {
@@ -1974,7 +1994,7 @@ const MeimayPairing = {
         const text = String(this._pendingShareText || this._buildShareCodeText() || '').trim();
         const onCopied = () => {
             this.closeShareCodeFallback();
-            if (typeof showToast === 'function') showToast('共有文をコピーしました。メールに貼れます', '\u2713');
+            if (typeof showToast === 'function') showToast('共有文をコピーしました。LINEやメールに貼れます', '\u2713');
         };
         if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
             navigator.clipboard.writeText(text).then(onCopied).catch(() => {
