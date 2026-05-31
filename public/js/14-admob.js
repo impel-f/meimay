@@ -898,6 +898,8 @@ const AD_BANNER_DOCK_TUCK = 0;
 const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
 const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
+const AD_BANNER_RESTORE_RETRY_MS = 260;
+const AD_BANNER_RESTORE_MAX_ATTEMPTS = 8;
 const AD_PREMIUM_STATE_GRACE_MS = 2500;
 const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
 const PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1255,7 +1257,7 @@ function syncAdBannerOverlaySuppression() {
     setNativeAdMobBannerSuppressed(shouldSuppress, 'overlay-sync');
 
     if (!shouldSuppress && !PremiumManager.isPremium()) {
-        showAdBanner();
+        restoreAdBannerForFreeUser('overlay-sync');
     }
 }
 
@@ -1266,7 +1268,7 @@ function setAdBannerOverlaySuppressed(suppressed, reason = '') {
     setNativeAdMobBannerSuppressed(shouldSuppress, reason);
 
     if (!shouldSuppress && !hasActiveAdBlockingOverlay()) {
-        showAdBanner();
+        restoreAdBannerForFreeUser(reason || 'overlay-release');
     }
 }
 
@@ -1301,20 +1303,67 @@ function shouldRefreshAdBannerForScreen(screenId) {
     return !blockedScreens.has(String(screenId || ''));
 }
 
+function restoreAdBannerForFreeUser(reason = '') {
+    ensureAdOverlayObserver();
+
+    if (PremiumManager.isPremium()) {
+        hideAdBanner();
+        return true;
+    }
+
+    const holdReason = getAdMobPremiumHoldReason();
+    if (holdReason) {
+        if (showHtmlAdBannerForHoldReason(holdReason)) return true;
+        hideAdBanner();
+        scheduleDeferredAdMobInit(holdReason);
+        return false;
+    }
+
+    if (hasActiveAdBlockingOverlay()) {
+        adBannerSuppressedByOverlay = true;
+        setHtmlAdBannerSuppressed(true);
+        setNativeAdMobBannerSuppressed(true, reason || 'overlay-active');
+        updateAdLayoutSpacing();
+        return false;
+    }
+
+    adBannerSuppressedByOverlay = false;
+    setHtmlAdBannerSuppressed(false);
+    setNativeAdMobBannerSuppressed(false, reason || 'restore-free-banner');
+    showAdBanner();
+    return true;
+}
+
 function requestAdBannerSurfaceRefresh(reason = '', options = {}) {
     if (adBannerSurfaceRefreshTimer) clearTimeout(adBannerSurfaceRefreshTimer);
     const delayMs = Number.isFinite(Number(options.delayMs)) ? Number(options.delayMs) : 350;
+    const attempt = Math.max(0, Number(options.attempt) || 0);
     adBannerSurfaceRefreshTimer = setTimeout(() => {
         adBannerSurfaceRefreshTimer = null;
-        if (PremiumManager.isPremium() || hasActiveAdBlockingOverlay()) return;
+        if (PremiumManager.isPremium()) return;
+        if (hasActiveAdBlockingOverlay()) {
+            syncAdBannerOverlaySuppression();
+            if (attempt < AD_BANNER_RESTORE_MAX_ATTEMPTS) {
+                requestAdBannerSurfaceRefresh(reason, {
+                    delayMs: AD_BANNER_RESTORE_RETRY_MS,
+                    attempt: attempt + 1
+                });
+            }
+            return;
+        }
         console.log('ADMOB: Refreshing banner surface', reason);
-        showAdBanner();
+        if (!restoreAdBannerForFreeUser(reason) && attempt < AD_BANNER_RESTORE_MAX_ATTEMPTS) {
+            requestAdBannerSurfaceRefresh(reason, {
+                delayMs: AD_BANNER_RESTORE_RETRY_MS,
+                attempt: attempt + 1
+            });
+        }
     }, Math.max(0, delayMs));
 }
 
 function refreshAdBannerAfterScreenChange(screenId) {
     if (!shouldRefreshAdBannerForScreen(screenId)) return;
-    requestAdBannerSurfaceRefresh(`screen:${screenId}`, { delayMs: 500 });
+    requestAdBannerSurfaceRefresh(`screen:${screenId}`, { delayMs: 120 });
 }
 
 function installAdBannerSurfaceRefreshListeners() {
@@ -3408,6 +3457,8 @@ window.openPremiumModalFromDrawer = openPremiumModalFromDrawer;
 window.closePremiumModal = closePremiumModal;
 window.hideAdBanner = hideAdBanner;
 window.showAdBanner = showAdBanner;
+window.restoreAdBannerForFreeUser = restoreAdBannerForFreeUser;
+window.requestAdBannerSurfaceRefresh = requestAdBannerSurfaceRefresh;
 window.refreshAdBannerAfterScreenChange = refreshAdBannerAfterScreenChange;
 window.setAdBannerOverlaySuppressed = setAdBannerOverlaySuppressed;
 window.syncAdBannerOverlaySuppression = syncAdBannerOverlaySuppression;

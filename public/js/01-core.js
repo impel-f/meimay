@@ -862,6 +862,9 @@ function changeScreen(id) {
     // 開いているモーダルを全て閉じる
     const modals = document.querySelectorAll('.overlay.active');
     modals.forEach(m => m.classList.remove('active'));
+    if (typeof syncAdBannerOverlaySuppression === 'function') {
+        setTimeout(() => syncAdBannerOverlaySuppression(), 0);
+    }
 
     // 全画面を非表示
     const screens = document.querySelectorAll('.screen');
@@ -946,6 +949,12 @@ function closeModal(id) {
     const modal = document.getElementById(id);
     if (modal) {
         modal.classList.remove('active');
+        if (typeof syncAdBannerOverlaySuppression === 'function') {
+            setTimeout(() => syncAdBannerOverlaySuppression(), 0);
+        }
+        if (typeof requestAdBannerSurfaceRefresh === 'function') {
+            requestAdBannerSurfaceRefresh(`modal-close:${id}`, { delayMs: 160 });
+        }
     }
 }
 
