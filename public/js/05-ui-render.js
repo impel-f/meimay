@@ -816,6 +816,9 @@ function renderKanjiDetailReadingChips(readings, activeReading = null) {
 function getCachedKanjiDetailText(kanji) {
     if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
     const cached = StorageBox.getKanjiAiCache(kanji);
+    if (typeof window.isKanjiDetailAiCacheCurrent === 'function' && !window.isKanjiDetailAiCacheCurrent(cached)) {
+        return '';
+    }
     return String(cached?.text || '').trim();
 }
 
@@ -1245,6 +1248,13 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
         if (data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');
+        }
+        if (typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent(likeData, {
+                source: 'detail_modal',
+                action: isSuper ? 'super' : 'like',
+                is_super: isSuper ? 1 : 0
+            });
         }
 
         // 漢字検索画面が表示中なら結果を即座に更新（❤アイコン反映）

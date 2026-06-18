@@ -9,6 +9,7 @@ let selectedVibes = new Set();
 let compoundBuildFlowState = null;
 let soundModeEntryOrigin = false; // 「入れたい音がある」から来た場合true（戻る挙動制御用）
 let soundEntryMode = 'browse';
+let soundEntryInputComposing = false;
 let searchMethodSelection = 'sound-browse';
 let searchMethodReturnToChooser = false;
 let searchMethodSubmitInProgress = false;
@@ -644,6 +645,14 @@ function getSearchMethodSubmitLabel() {
     return 'この方法で進む';
 }
 
+function getMethodChoiceSubmitContent(label) {
+    return `
+        <span class="method-choice-submit-spacer" aria-hidden="true"></span>
+        <span class="method-choice-submit-label">${label}</span>
+        <span class="method-choice-submit-arrow" aria-hidden="true">›</span>
+    `;
+}
+
 function selectSearchMethodChoice(method) {
     searchMethodSelection = method === 'reading' ? 'reading' : 'sound-browse';
     const soundChoice = document.getElementById('search-method-sound');
@@ -661,7 +670,7 @@ function selectSearchMethodChoice(method) {
         readingChoice.setAttribute('aria-pressed', selected ? 'true' : 'false');
     }
     if (submitBtn) {
-        submitBtn.innerHTML = `${getSearchMethodSubmitLabel()} <span aria-hidden="true">›</span>`;
+        submitBtn.innerHTML = getMethodChoiceSubmitContent(getSearchMethodSubmitLabel());
     }
     const scrollArea = document.querySelector('.search-method-shell .choice-flow-scroll');
     if (scrollArea) scrollArea.scrollTop = 0;
@@ -697,8 +706,8 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
     screen.innerHTML = `
         <div class="w-full max-w-sm text-center mt-2 mx-auto search-method-shell choice-flow-shell">
             <div class="choice-flow-scroll">
-                <h2 class="method-choice-heading">名前の探し方を選ぶ</h2>
-                <p class="method-choice-lead">今の状況に近いものを選んでください</p>
+                <h2 class="method-choice-heading">進め方を選ぶ</h2>
+                <p class="method-choice-lead">読みが決まっているかを選んでください</p>
 
                 <div id="search-method-choice-list" class="method-choice-list text-left mb-4">
                     <button id="search-method-sound" onclick="selectSearchMethodChoice('sound-browse')" class="wiz-gender-btn wiz-reading-choice method-choice-card search-method-card ${!isReadingSelected ? 'selected' : ''}" data-reading-candidate="no" aria-pressed="${!isReadingSelected ? 'true' : 'false'}">
@@ -711,7 +720,7 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
                             <span class="method-choice-selected-pill">選択中</span>
-                            <span class="method-choice-footer-copy">読みを探します</span>
+                            <span class="method-choice-footer-copy">読みを探す</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
@@ -726,11 +735,11 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                                 <div class="method-choice-radio" aria-hidden="true"></div>
                                 <span class="method-choice-title">読みが決まっている</span>
                             </div>
-                            <span class="method-choice-desc">「はると」「みなと」など、使いたい読みから漢字を探します</span>
+                            <span class="method-choice-desc">使いたい読みから漢字を探します</span>
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
                             <span class="method-choice-selected-pill">選択中</span>
-                            <span class="method-choice-footer-copy">漢字を探します</span>
+                            <span class="method-choice-footer-copy">漢字を探す</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">陽</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">暖</div>
@@ -740,8 +749,12 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                     </button>
                 </div>
             </div>
-            <div class="choice-flow-actions">
-                <button id="btn-search-method-submit" onclick="submitSearchMethodChoice()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">${getSearchMethodSubmitLabel()} <span aria-hidden="true">›</span></button>
+            <div class="choice-flow-actions search-method-flow-actions">
+                <button id="btn-search-method-submit" onclick="submitSearchMethodChoice()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">
+                    <span class="method-choice-submit-spacer" aria-hidden="true"></span>
+                    <span class="method-choice-submit-label">${getSearchMethodSubmitLabel()}</span>
+                    <span class="method-choice-submit-arrow" aria-hidden="true">›</span>
+                </button>
                 <button onclick="changeScreen('scr-mode')" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
             </div>
         </div>
@@ -773,7 +786,7 @@ function renderSoundEntryScreen() {
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
                             <span class="method-choice-selected-pill">選択中</span>
-                            <span class="method-choice-footer-copy">候補を見ます</span>
+                            <span class="method-choice-footer-copy">候補を見る</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f8e9ec;">あおい</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#e9f4ed;">ひなた</div>
@@ -796,7 +809,7 @@ function renderSoundEntryScreen() {
                         </div>
                         <div class="method-choice-footer" aria-hidden="true">
                             <span class="method-choice-selected-pill">選択中</span>
-                            <span class="method-choice-footer-copy">音を入力します</span>
+                            <span class="method-choice-footer-copy">音を入力する</span>
                             <div class="wiz-mini-preview method-choice-preview" aria-hidden="true">
                                 <div class="wiz-mini-card wiz-mini-card-back" style="background:#f5f8ec;">はると</div>
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">はるか</div>
@@ -819,7 +832,9 @@ function renderSoundEntryScreen() {
                             placeholder="例: はる"
                             class="premium-input mb-0 text-center"
                             style="font-size:1.7rem; padding:10px 0;"
-                            onkeydown="if(event.key==='Enter'){submitSoundEntry();}">
+                            oncompositionstart="setSoundEntryInputComposing(true)"
+                            oncompositionend="setSoundEntryInputComposing(false)"
+                            onkeydown="handleSoundEntryKeydown(event)">
                         <div class="mt-3 grid grid-cols-2 gap-2">
                             <label class="sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap">
                                 <input type="radio" name="sound-entry-position" value="prefix" class="sr-only" checked onchange="updateSoundEntryModeUI()">
@@ -833,8 +848,12 @@ function renderSoundEntryScreen() {
                     </div>
                 </div>
             </div>
-            <div class="choice-flow-actions">
-                <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">響きを見ながら探す <span aria-hidden="true">›</span></button>
+            <div class="choice-flow-actions sound-entry-flow-actions">
+                <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg method-choice-submit choice-flow-submit screen-wide-btn">
+                    <span class="method-choice-submit-spacer" aria-hidden="true"></span>
+                    <span class="method-choice-submit-label">響きを見ながら探す</span>
+                    <span class="method-choice-submit-arrow" aria-hidden="true">›</span>
+                </button>
                 <button onclick="goBack()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
             </div>
         </div>
@@ -842,14 +861,58 @@ function renderSoundEntryScreen() {
 }
 
 function selectSoundEntryMode(mode) {
-    soundEntryMode = mode === 'input' ? 'input' : 'browse';
+    const nextMode = mode === 'input' ? 'input' : 'browse';
+    const wasInputMode = soundEntryMode === 'input';
+    if (nextMode === 'input' && soundEntryMode === 'input') {
+        const input = document.getElementById('in-sound-entry');
+        if (soundEntryInputComposing || input?.dataset?.composing === 'true') {
+            if (input) setTimeout(() => input.focus(), 0);
+            return;
+        }
+        soundEntryMode = 'browse';
+        clearReadingStockSoundFilter();
+        if (typeof clearNativeTextEditingContext === 'function') {
+            clearNativeTextEditingContext({ focusSink: true });
+        } else if (input && typeof input.blur === 'function') {
+            input.blur();
+        }
+        updateSoundEntryModeUI({ focusInput: false });
+        return;
+    }
+
+    soundEntryMode = nextMode;
     if (soundEntryMode !== 'input') {
         clearReadingStockSoundFilter();
+        if (wasInputMode && typeof clearNativeTextEditingContext === 'function') {
+            clearNativeTextEditingContext({ focusSink: true });
+        } else if (wasInputMode) {
+            const input = document.getElementById('in-sound-entry');
+            if (input && typeof input.blur === 'function') input.blur();
+        }
     }
-    updateSoundEntryModeUI();
+    updateSoundEntryModeUI({ focusInput: soundEntryMode === 'input' });
 }
 
-function updateSoundEntryModeUI() {
+function setSoundEntryInputComposing(isComposing) {
+    soundEntryInputComposing = isComposing === true;
+    const input = document.getElementById('in-sound-entry');
+    if (input) input.dataset.composing = soundEntryInputComposing ? 'true' : 'false';
+}
+
+function handleSoundEntryKeydown(event) {
+    if (!event || event.key !== 'Enter') return;
+    if (event.isComposing || soundEntryInputComposing) return;
+    event.preventDefault();
+    if (typeof clearNativeTextEditingContext === 'function') {
+        clearNativeTextEditingContext({ focusSink: true });
+    } else {
+        const input = document.getElementById('in-sound-entry');
+        if (input && typeof input.blur === 'function') input.blur();
+    }
+    submitSoundEntry();
+}
+
+function updateSoundEntryModeUI(options = {}) {
     const isInputMode = soundEntryMode === 'input';
     const inputChoice = document.getElementById('sound-entry-choice-input');
     const browseChoice = document.getElementById('sound-entry-choice-browse');
@@ -882,7 +945,7 @@ function updateSoundEntryModeUI() {
 
     if (submitBtn) {
         const label = isInputMode ? 'この音で探す' : '響きを見ながら探す';
-        submitBtn.innerHTML = `${label} <span aria-hidden="true">›</span>`;
+        submitBtn.innerHTML = getMethodChoiceSubmitContent(label);
     }
 
     const posLabels = document.querySelectorAll('.sound-entry-pos-label');
@@ -892,7 +955,7 @@ function updateSoundEntryModeUI() {
         label.className = `sound-entry-pos-label flex items-center justify-center rounded-2xl border px-2 py-2 cursor-pointer whitespace-nowrap ${isChecked ? 'border-[#c8a873] bg-[#fff0d7] text-[#8b6c34]' : 'border-[#e4d8c7] bg-white text-[#8b7e66]'}`;
     });
 
-    if (isInputMode) {
+    if (isInputMode && options.focusInput !== false) {
         const input = document.getElementById('in-sound-entry');
         if (input) {
             setTimeout(() => input.focus(), 30);
@@ -9392,13 +9455,10 @@ function toggleSearchStock(k, btn) {
             btn.insertAdjacentHTML('beforeend', '<span class="absolute top-0.5 right-0.5 text-[8px]">❤️</span>');
         }
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(k['漢字'], k.gender || gender || 'neutral');
-        if (typeof trackMeimayEvent === 'function') {
-            trackMeimayEvent('kanji_saved', {
+        if (typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent(item, {
                 source: 'search',
-                slot_index: -1,
-                stock_count: Array.isArray(liked) ? liked.length : 0,
-                candidate_category: k['カテゴリ'] || k.category || '',
-                reading_tier: Number.isFinite(Number(k.readingTier)) ? Number(k.readingTier) : 0
+                action: 'like'
             });
         }
     }
@@ -9720,6 +9780,12 @@ function stockAISuggestion(kanji, btn) {
         }
         liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji, found.gender || gender || 'neutral');
+        if (typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent({ ...found, slot: -1, sessionReading: 'FREE' }, {
+                source: 'ai_suggestion',
+                action: 'like'
+            });
+        }
         btn.innerText = '解除';
         btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-full text-xs font-bold transition-all active:scale-95';
         btn.closest('.flex').classList.add('border-[#bca37f]', 'bg-[#fffbeb]');
@@ -9893,6 +9959,8 @@ window.initAdanaMode = initAdanaMode;
 window.initSoundModeEntry = initSoundModeEntry;
 window.selectSoundEntryMode = selectSoundEntryMode;
 window.updateSoundEntryModeUI = updateSoundEntryModeUI;
+window.setSoundEntryInputComposing = setSoundEntryInputComposing;
+window.handleSoundEntryKeydown = handleSoundEntryKeydown;
 window.submitSoundEntry = submitSoundEntry;
 window.proceedWithSoundReading = proceedWithSoundReading;
 window.setClassFilter = setClassFilter;
@@ -10566,6 +10634,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
     const sessionSegments = Array.isArray(option.path) ? [...option.path] : [];
     const modalBaseNickname = readingCombinationModalState.item.baseNickname || '';
     const modalBasePosition = readingCombinationModalState.item.basePosition === 'prefix' ? 'prefix' : '';
+    const addedKanjiItems = [];
 
     addReadingToStock(sessionReading, modalBaseNickname, readingCombinationModalState.item.tags || [], {
         segments: sessionSegments,
@@ -10578,7 +10647,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
     });
 
     candidate.combination.forEach((piece, slotIndex) => {
-        const existing = liked.find(item => item['����'] === piece['����'] && item.slot === slotIndex && item.sessionReading === sessionReading);
+        const existing = liked.find(item => item['漢字'] === piece['漢字'] && item.slot === slotIndex && item.sessionReading === sessionReading);
         if (existing) {
             existing.isSuper = existing.isSuper || !!asSuper;
             if (!existing.baseNickname && modalBaseNickname) existing.baseNickname = modalBaseNickname;
@@ -10588,7 +10657,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
             return;
         }
 
-        liked.push({
+        const nextItem = {
             ...piece,
             slot: slotIndex,
             sessionReading,
@@ -10598,7 +10667,24 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
             readingPromoted: true,
             source: 'reading-combination',
             isSuper: !!asSuper
-        });
+        };
+        liked.push(nextItem);
+        addedKanjiItems.push(nextItem);
+    });
+
+    addedKanjiItems.forEach((item) => {
+        if (item && item['漢字'] && !item.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+            MeimayStats.recordKanjiLike(item['漢字'], item.gender || readingCombinationModalState.item.gender || gender || 'neutral');
+        }
+        if (typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent(item, {
+                source: 'reading_combination',
+                action: asSuper ? 'super' : 'like',
+                is_super: asSuper ? 1 : 0,
+                saved_batch_count: addedKanjiItems.length,
+                combination_size: Array.isArray(candidate.combination) ? candidate.combination.length : 0
+            });
+        }
     });
 
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {

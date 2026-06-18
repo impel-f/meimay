@@ -2234,6 +2234,8 @@ function renderSavedScreen() {
         visibleOwn = visibleOwn.filter(entry => entry.shared || (entry.ownSelected && entry.partnerSelected));
         visiblePartner = [];
     }
+    const isSavedEmpty = !visibleOwn.length && !visiblePartner.length;
+    listContainer.classList.toggle('saved-list-content--empty', isSavedEmpty);
 
     const relationshipPalettes = typeof window.getMeimayRelationshipPalettes === 'function'
         ? window.getMeimayRelationshipPalettes()
@@ -2474,9 +2476,9 @@ function renderSavedScreen() {
         `;
     }
 
-    if (!visibleOwn.length && !visiblePartner.length) {
+    if (isSavedEmpty) {
         html += `
-            <div class="text-center py-16">
+            <div class="saved-empty-state text-center">
                 <div class="text-[#bca37f] text-lg font-black leading-relaxed">保存済みはまだありません</div>
                 <div class="mt-1 text-sm font-bold leading-relaxed text-[#a6967a]">ビルドした名前を保存するとここに並びます</div>
             </div>

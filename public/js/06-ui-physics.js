@@ -283,6 +283,7 @@ function executeSwipe(dir, data) {
 
     // データ処理（左以外はストック）
     let addedToStock = false;
+    let savedStockItem = null;
     if (data && dir !== 'left') {
         if (typeof isFreeSwipeMode !== 'undefined' && isFreeSwipeMode) {
             const isDuplicate = liked.some(item =>
@@ -291,13 +292,14 @@ function executeSwipe(dir, data) {
 
             if (!isDuplicate) {
                 seen.add(data['漢字']);
-                liked.push({
+                savedStockItem = {
                     ...data,
                     slot: -1,
                     isSuper: (dir === 'up'),
                     sessionReading: 'FREE',
                     sessionSegments: null
-                });
+                };
+                liked.push(savedStockItem);
                 addedToStock = true;
             }
         } else {
@@ -316,13 +318,14 @@ function executeSwipe(dir, data) {
 
             if (!isDuplicate) {
                 seen.add(data['漢字']);
-                liked.push({
+                savedStockItem = {
                     ...data,
                     slot: currentPos,
                     isSuper: (dir === 'up'),
                     sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
                     sessionSegments: [...segments]
-                });
+                };
+                liked.push(savedStockItem);
                 addedToStock = true;
             } else {
                 swipeDebugLog(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);
@@ -356,8 +359,16 @@ function executeSwipe(dir, data) {
         if (addedToStock && typeof notifyKanjiSwipeStockAdded === 'function') {
             notifyKanjiSwipeStockAdded(data, dir);
         }
-        if (data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+        if (addedToStock && data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');
+        }
+        if (addedToStock && savedStockItem && typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent(savedStockItem, {
+                source: 'swipe',
+                action: dir === 'up' ? 'super' : 'like',
+                is_super: dir === 'up' ? 1 : 0,
+                stock_count: Array.isArray(liked) ? liked.length : 0
+            });
         }
     }
 

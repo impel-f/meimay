@@ -242,6 +242,11 @@ function isOneCharSegmentPath(path) {
         && path.every((segment) => Array.from(normalizeKanaCandidateSegment(segment)).length === 1);
 }
 
+function hasOneCharKanaCandidateSegment(path) {
+    return Array.isArray(path)
+        && path.some((segment) => Array.from(normalizeKanaCandidateSegment(segment)).length === 1);
+}
+
 function getSegmentPathBadgeLabel(path) {
     if (!Array.isArray(path) || path.length === 0) return '分け方';
     return `${path.length}文字名`;
@@ -266,7 +271,7 @@ function getKanaCandidateScriptSettings() {
 
 function setKanaCandidatesEnabledForSegments(settings, segmentPath = segments) {
     const normalized = normalizeKanaCandidateScriptSettings(settings);
-    const enabledForPath = isOneCharSegmentPath(segmentPath);
+    const enabledForPath = hasOneCharKanaCandidateSegment(segmentPath);
     const nextSettings = {
         hiragana: enabledForPath && normalized.hiragana,
         katakana: enabledForPath && normalized.katakana
@@ -278,12 +283,12 @@ function setKanaCandidatesEnabledForSegments(settings, segmentPath = segments) {
 
 function isKanaCandidatesEnabledForSegments(segmentPath = segments) {
     const settings = getKanaCandidateScriptSettings();
-    return !!((settings.hiragana || settings.katakana) && isOneCharSegmentPath(segmentPath));
+    return !!((settings.hiragana || settings.katakana) && hasOneCharKanaCandidateSegment(segmentPath));
 }
 
 function getActiveKanaCandidateScriptSettings(segmentPath = segments, options = {}) {
     const settings = normalizeKanaCandidateScriptSettings(options.kanaScripts || getKanaCandidateScriptSettings());
-    if (!options.force && !isOneCharSegmentPath(segmentPath)) {
+    if (!options.force && !hasOneCharKanaCandidateSegment(segmentPath)) {
         return { hiragana: false, katakana: false };
     }
     return settings;
@@ -1092,7 +1097,32 @@ function calcSegments() {
 
     const normalSection = document.createElement('div');
     normalSection.className = 'mb-6';
-    normalSection.appendChild(createSectionTitle('読みの分け方を選ぶ', 'どのまとまりで漢字を探すか選びます'));
+    const segmentConfirmBtn = document.getElementById('seg-confirm-btn');
+    let selectedSegmentAction = null;
+    let selectedSegmentPath = null;
+    let updateSegmentKanaOptionState = () => {};
+    const setSelectedSegmentChoice = (button, action, segmentPath = null) => {
+        if (!button || typeof action !== 'function') return;
+        choiceTarget.querySelectorAll('.segment-choice-card').forEach((card) => {
+            card.classList.remove('selected');
+        });
+        button.classList.add('selected');
+        selectedSegmentAction = action;
+        selectedSegmentPath = Array.isArray(segmentPath) ? [...segmentPath] : null;
+        updateSegmentKanaOptionState(selectedSegmentPath);
+        if (segmentConfirmBtn) {
+            segmentConfirmBtn.disabled = false;
+        }
+    };
+    if (segmentConfirmBtn) {
+        segmentConfirmBtn.disabled = true;
+        segmentConfirmBtn.onclick = () => {
+            if (typeof selectedSegmentAction === 'function') {
+                selectedSegmentAction();
+            }
+        };
+    }
+
     const escapeSegmentOptionText = (value) => {
         if (typeof escapeHtmlText === 'function') return escapeHtmlText(value);
         return String(value || '')
@@ -1103,36 +1133,72 @@ function calcSegments() {
             .replace(/'/g, '&#39;');
     };
 
-    const hasOneCharPath = uniquePaths.some(path => isOneCharSegmentPath(path));
+    const hasSelectableOneCharPath = uniquePaths.some((path) => {
+        const availability = pathAvailabilityByKey.get(JSON.stringify(path)) || getPathCandidateAvailability(path);
+        return hasOneCharKanaCandidateSegment(path) && !(availability && availability.premiumOnly);
+    });
     const kanaSettings = getKanaCandidateScriptSettings();
-    const kanaOptionNote = hasOneCharPath
-        ? '一文字ずつに分ける候補を選んだとき、かなも候補に入ります。'
-        : 'この読みは一文字ずつに分けられないため、かな候補は使えません。';
+    const kanaOptionNote = '「の」「こ」など、1文字区切りの分け方で使えます。';
     const kanaOption = document.createElement('div');
-    kanaOption.className = `w-[92%] mx-auto mt-1 mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm text-left ${hasOneCharPath ? '' : 'opacity-50'}`;
+    let kanaSelectionDraft = { ...kanaSettings };
+    kanaOption.className = `segment-kana-option segment-kana-option--disabled w-[92%] mx-auto mt-1 mb-4 px-4 py-3 rounded-[26px] border border-[#eadfce] bg-white/80 shadow-sm text-left`;
     kanaOption.innerHTML = `
         <div class="mb-2 text-sm font-black text-[#5d5444]">かな表記も候補に出す</div>
         <div class="grid grid-cols-2 gap-2">
-            <label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : ''}">
-                <input id="seg-include-hiragana" type="checkbox" class="peer sr-only" ${kanaSettings.hiragana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
-                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
+            <label data-kana-toggle-label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all" aria-disabled="true">
+                <input id="seg-include-hiragana" type="checkbox" class="peer sr-only" ${kanaSettings.hiragana ? 'checked' : ''} disabled>
+                <span data-kana-checkmark class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
                 <span class="text-[13px] font-black text-[#6b6254] transition-colors peer-checked:text-[#5d5444]">ひらがな</span>
             </label>
-            <label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all ${hasOneCharPath ? 'cursor-pointer active:scale-[0.99]' : ''}">
-                <input id="seg-include-katakana" type="checkbox" class="peer sr-only" ${kanaSettings.katakana ? 'checked' : ''} ${hasOneCharPath ? '' : 'disabled'}>
-                <span class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
+            <label data-kana-toggle-label class="relative flex items-center justify-center gap-2 rounded-[18px] border border-[#eadfce] bg-[#fffaf4] px-3 py-2 text-center transition-all" aria-disabled="true">
+                <input id="seg-include-katakana" type="checkbox" class="peer sr-only" ${kanaSettings.katakana ? 'checked' : ''} disabled>
+                <span data-kana-checkmark class="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#d8c9b2] bg-white text-[10px] font-black text-transparent transition-all peer-checked:border-[#b9965b] peer-checked:bg-[#b9965b] peer-checked:text-white">✓</span>
                 <span class="text-[13px] font-black text-[#6b6254] transition-colors peer-checked:text-[#5d5444]">カタカナ</span>
             </label>
         </div>
-        <div class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">${kanaOptionNote}</div>
+        <div data-kana-option-note class="mt-2 text-[11px] leading-relaxed text-[#a6967a]">${kanaOptionNote}</div>
     `;
+    const syncKanaSelectionDraft = () => {
+        const includeHiraganaInput = kanaOption.querySelector('#seg-include-hiragana');
+        const includeKatakanaInput = kanaOption.querySelector('#seg-include-katakana');
+        kanaSelectionDraft = {
+            hiragana: !!(includeHiraganaInput && includeHiraganaInput.checked),
+            katakana: !!(includeKatakanaInput && includeKatakanaInput.checked)
+        };
+    };
+    kanaOption.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+        input.addEventListener('change', syncKanaSelectionDraft);
+    });
+    updateSegmentKanaOptionState = (segmentPath) => {
+        const enabled = hasSelectableOneCharPath && hasOneCharKanaCandidateSegment(segmentPath);
+        const wasEnabled = !kanaOption.classList.contains('segment-kana-option--disabled');
+        if (wasEnabled) syncKanaSelectionDraft();
+        kanaOption.classList.toggle('segment-kana-option--disabled', !enabled);
+        kanaOption.querySelectorAll('input[type="checkbox"]').forEach((input) => {
+            input.disabled = !enabled;
+            if (input.id === 'seg-include-hiragana') {
+                input.checked = enabled ? kanaSelectionDraft.hiragana : false;
+            }
+            if (input.id === 'seg-include-katakana') {
+                input.checked = enabled ? kanaSelectionDraft.katakana : false;
+            }
+        });
+        kanaOption.querySelectorAll('[data-kana-toggle-label]').forEach((label) => {
+            label.classList.toggle('cursor-pointer', enabled);
+            label.classList.toggle('active:scale-[0.99]', enabled);
+            label.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        });
+        const noteEl = kanaOption.querySelector('[data-kana-option-note]');
+        if (noteEl) noteEl.textContent = kanaOptionNote;
+    };
 
     if (uniquePaths.length > 0) {
+        let hasSelectedSegmentCard = false;
         uniquePaths.forEach((path, idx) => {
             const availability = pathAvailabilityByKey.get(JSON.stringify(path)) || getPathCandidateAvailability(path);
             const premiumOnlyPath = !!(availability && availability.premiumOnly);
             const btn = document.createElement('button');
-            btn.className = `w-[92%] mx-auto py-4 px-4 ${premiumOnlyPath ? 'bg-[#f3f2ef] border-[#d6d2ca] text-[#7b756c] hover:border-[#beb8ad]' : 'bg-[#fffaf4] border-[#eadfce] text-[#5d5444] hover:border-[#bca37f]'} font-black rounded-[34px] border shadow-sm transition-all mb-3 hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden`;
+            btn.className = `segment-choice-card method-choice-card group ${premiumOnlyPath ? 'segment-choice-card--locked' : ''}`;
             if (premiumOnlyPath) {
                 btn.style.backgroundColor = '#f3f2ef';
                 btn.style.borderColor = '#d6d2ca';
@@ -1140,7 +1206,7 @@ function calcSegments() {
             }
             const countLabel = getSegmentPathBadgeLabel(path);
             const premiumBadge = premiumOnlyPath
-                ? `<span class="shrink-0 inline-flex h-[24px] min-w-[54px] flex-col items-center justify-center rounded-full border px-2 leading-none shadow-sm" style="background:#e7e4df;border-color:#cfc9bf;color:#7b756c;">
+                ? `<span class="segment-choice-premium-badge" style="background:#e7e4df;border-color:#cfc9bf;color:#7b756c;">
                     <span class="text-[10px] leading-none">👑</span>
                     <span class="whitespace-nowrap text-[7px] font-black leading-none">人名用のみ</span>
                 </span>`
@@ -1153,12 +1219,33 @@ function calcSegments() {
             }).join('');
 
             btn.innerHTML = `
-                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border ${premiumOnlyPath ? 'border-[#d8d3ca] bg-white/80 text-[#8d8579]' : 'border-[#eadfce] bg-white text-[#b9965b]'} px-3 py-1 text-[10px] font-black shadow-sm">${escapeSegmentOptionText(countLabel)}</span>
-                <div data-segment-label class="min-w-0 flex-1 flex items-center flex-nowrap whitespace-nowrap overflow-hidden text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight">
-                    ${displayParts}
+                <div class="segment-choice-main">
+                    <span class="method-choice-radio" aria-hidden="true"></span>
+                    <div class="segment-choice-copy">
+                        <div class="segment-choice-title-row">
+                            <span data-segment-count class="segment-choice-count-pill ${premiumOnlyPath ? 'segment-choice-count-pill--locked' : ''}">${escapeSegmentOptionText(countLabel)}</span>
+                            ${premiumBadge}
+                        </div>
+                        <div data-segment-label class="segment-choice-reading">
+                            ${displayParts}
+                        </div>
+                    </div>
                 </div>
-                ${premiumBadge}
             `;
+            const selectThisSegmentCard = () => {
+                setSelectedSegmentChoice(btn, () => {
+                    const includeHiraganaInput = document.getElementById('seg-include-hiragana');
+                    const includeKatakanaInput = document.getElementById('seg-include-katakana');
+                    const kanaEnabledForPath = hasOneCharKanaCandidateSegment(path);
+                    selectSegment(path, {
+                        includeKanaScripts: {
+                            hiragana: kanaEnabledForPath && !!(includeHiraganaInput && includeHiraganaInput.checked && !includeHiraganaInput.disabled),
+                            katakana: kanaEnabledForPath && !!(includeKatakanaInput && includeKatakanaInput.checked && !includeKatakanaInput.disabled)
+                        }
+                    });
+                }, path);
+            };
+
             btn.onclick = () => {
                 if (premiumOnlyPath) {
                     setKanaCandidatesEnabledForSegments(false, []);
@@ -1171,18 +1258,12 @@ function calcSegments() {
                     }
                     return;
                 }
-                const includeHiraganaInput = document.getElementById('seg-include-hiragana');
-                const includeKatakanaInput = document.getElementById('seg-include-katakana');
-                selectSegment(path, {
-                    includeKanaScripts: {
-                        hiragana: !!(includeHiraganaInput && includeHiraganaInput.checked),
-                        katakana: !!(includeKatakanaInput && includeKatakanaInput.checked)
-                    }
-                });
+                selectThisSegmentCard();
             };
 
-            if (idx === 0 && !premiumOnlyPath) {
-                btn.classList.add('border-[#d9c09a]', 'bg-[#fffcf7]');
+            if (!hasSelectedSegmentCard && !premiumOnlyPath) {
+                selectThisSegmentCard();
+                hasSelectedSegmentCard = true;
             }
 
             normalSection.appendChild(btn);
@@ -1212,7 +1293,7 @@ function calcSegments() {
 
         compoundOptions.forEach((option, idx) => {
             const btn = document.createElement('button');
-            btn.className = "w-[92%] mx-auto py-4 px-4 bg-[#fffaf4] text-[#5d5444] font-black rounded-[34px] border border-[#eadfce] shadow-sm transition-all mb-3 hover:border-[#bca37f] hover:shadow-md active:scale-98 flex items-center gap-2 group text-left overflow-hidden";
+            btn.className = "segment-choice-card segment-choice-card--compound method-choice-card group";
             const labelParts = String(option.label || '').split(' / ').filter(Boolean);
             const displayLabelParts = labelParts.length > 0 ? labelParts : [''];
             const displayParts = displayLabelParts.map((part, index) => {
@@ -1221,24 +1302,34 @@ function calcSegments() {
                 return `${piece}<span data-segment-separator class="shrink-0 inline-flex items-center whitespace-nowrap px-2 text-sm text-[#d4c5af] opacity-40 group-hover:opacity-100 transition-opacity">/</span>`;
             }).join('');
             btn.innerHTML = `
-                <span data-segment-count class="shrink-0 inline-flex items-center rounded-full border border-[#eadfce] bg-white px-3 py-1 text-[10px] font-black text-[#b9965b] shadow-sm">${option.badgeLabel || 'まとめ読み'}</span>
-                <div data-segment-label class="min-w-0 flex-1 flex items-center flex-nowrap whitespace-nowrap overflow-hidden text-[clamp(0.9rem,2.3vw,1.05rem)] leading-tight">
-                    ${displayParts}
+                <div class="segment-choice-main">
+                    <span class="method-choice-radio" aria-hidden="true"></span>
+                    <div class="segment-choice-copy">
+                        <div class="segment-choice-title-row">
+                            <span data-segment-count class="segment-choice-count-pill">${option.badgeLabel || 'まとめ読み'}</span>
+                        </div>
+                        <div data-segment-label class="segment-choice-reading">
+                            ${displayParts}
+                        </div>
+                    </div>
                 </div>
             `;
-            btn.onclick = () => {
-                setKanaCandidatesEnabledForSegments(false, []);
-                if (typeof startCompoundReadingFlow === 'function') {
-                    startCompoundReadingFlow(option, {
-                        reading: nameReading,
-                        tags: Array.isArray(option.tags) ? option.tags : [],
-                        gender: gender || 'neutral'
-                    });
-                }
+            const selectThisCompoundCard = () => {
+                setSelectedSegmentChoice(btn, () => {
+                    setKanaCandidatesEnabledForSegments(false, []);
+                    if (typeof startCompoundReadingFlow === 'function') {
+                        startCompoundReadingFlow(option, {
+                            reading: nameReading,
+                            tags: Array.isArray(option.tags) ? option.tags : [],
+                            gender: gender || 'neutral'
+                        });
+                    }
+                }, null);
             };
+            btn.onclick = selectThisCompoundCard;
 
-            if (idx === 0) {
-                btn.classList.add('border-[#d9c7ab]');
+            if (!selectedSegmentAction) {
+                selectThisCompoundCard();
             }
 
             compoundSection.appendChild(btn);

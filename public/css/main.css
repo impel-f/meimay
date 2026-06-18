@@ -28,6 +28,7 @@
     --shadow-lg: 0 20px 45px rgba(93, 84, 68, 0.12);
     --shadow-xl: 0 30px 60px rgba(93, 84, 68, 0.18);
     --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
     --top-bar-height: calc(48px + var(--safe-top));
 }
 
@@ -180,6 +181,11 @@ body.hide-top-bar .screen-header-shell {
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
     box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.025);
     pointer-events: all;
+    transition: bottom 0.2s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+
+#admob-banner {
+    z-index: 10060 !important;
 }
 
 .nav-item {
@@ -369,7 +375,12 @@ body.hide-top-bar .screen-header-shell {
 
 #scr-main,
 #scr-swipe-universal {
-    padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.has-ad-banner #scr-main,
+body.has-ad-banner #scr-swipe-universal {
+    padding-bottom: calc(64px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-main #stack-container {
@@ -640,11 +651,6 @@ body.hide-top-bar .screen-header-shell {
     margin-bottom: clamp(6px, 1.2vh, 12px);
     padding-top: clamp(2px, 0.6vh, 6px) !important;
     padding-bottom: 0 !important;
-}
-
-body.has-ad-banner #swipe-action-btns,
-body.has-ad-banner #uni-swipe-action-btns {
-    margin-bottom: clamp(8px, 1.4vh, 14px);
 }
 
 #swipe-action-btns button,
@@ -1041,17 +1047,15 @@ body.has-ad-banner #uni-swipe-action-btns {
     display: flex !important;
 }
 
-body.has-ad-banner .overlay,
-body.has-ad-banner .modal-overlay-dark,
-body.has-ad-banner .meimay-child-modal-overlay {
-    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + 14px + env(safe-area-inset-bottom, 0px)) !important;
+body.has-ad-banner .overlay.active {
+    padding-bottom: calc(var(--ad-footer-offset, 56px) + 20px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-body.has-ad-banner .detail-sheet,
-body.has-ad-banner .modal-sheet,
-body.has-ad-banner .choice-sheet,
-body.has-ad-banner .meimay-child-modal-sheet {
-    max-height: min(82vh, calc(100vh - var(--ad-screen-safe-space, 124px) - 40px)) !important;
+body.has-ad-banner .overlay.active .detail-sheet,
+body.has-ad-banner .overlay.active .modal-sheet,
+body.has-ad-banner .overlay.active .choice-sheet,
+body.has-ad-banner .overlay.active .premium-modal-sheet {
+    max-height: min(88vh, calc(100dvh - var(--ad-footer-offset, 56px) - 44px - env(safe-area-inset-bottom, 0px))) !important;
 }
 
 .detail-sheet {
@@ -1779,6 +1783,14 @@ button {
     padding-bottom: calc(12px + var(--safe-bottom));
 }
 
+body.has-ad-banner #side-drawer nav {
+    padding-bottom: calc(16px + var(--ad-footer-offset, 56px) + var(--safe-bottom));
+}
+
+body.has-ad-banner #side-drawer > div:last-child {
+    padding-bottom: calc(12px + var(--ad-footer-offset, 56px) + var(--safe-bottom));
+}
+
 #drawer-avatar {
     background: linear-gradient(135deg, var(--profile-accent) 0%, var(--profile-accent-strong) 100%);
     box-shadow: 0 12px 24px var(--profile-shadow);
@@ -1832,6 +1844,10 @@ button {
     #side-drawer nav {
         padding-top: 8px !important;
         padding-bottom: calc(10px + var(--safe-bottom)) !important;
+    }
+
+    body.has-ad-banner #side-drawer nav {
+        padding-bottom: calc(10px + var(--ad-footer-offset, 56px) + var(--safe-bottom)) !important;
     }
 
     #side-drawer nav .px-6.py-2 {
@@ -1926,11 +1942,19 @@ body.hide-top-bar #top-bar {
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+body.has-ad-banner #scr-wizard {
+    padding-bottom: calc(12px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 .wizard-shell {
     height: calc(100dvh - var(--top-bar-height) - 16px);
     min-height: 0;
     padding-top: 18px;
     padding-bottom: 0;
+}
+
+body.has-ad-banner .wizard-shell {
+    height: calc(100dvh - var(--top-bar-height) - var(--ad-footer-offset, 56px) - 16px);
 }
 
 .wizard-progress-wrap {
@@ -1995,27 +2019,75 @@ body.hide-top-bar #top-bar {
 .wizard-action-area {
     width: 100%;
     flex: 0 0 auto;
-    min-height: 106px;
-    padding-top: 12px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 2.2vw, 10px);
+    padding-top: 10px;
     padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
 }
 
 .wizard-primary-btn {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 56px;
+    min-height: 56px;
+    padding: 0 clamp(8px, 2.6vw, 18px) !important;
     margin-bottom: 0 !important;
+    line-height: 1;
+}
+
+.wizard-primary-label {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    font-size: clamp(13px, 3.7vw, 15px);
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.wizard-primary-note {
+    display: block;
+    max-width: 100%;
+    color: rgba(255, 255, 255, 0.88);
+    font-size: clamp(8px, 2.45vw, 10px);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.wizard-primary-note[hidden] {
+    display: none;
 }
 
 .wizard-secondary-btn {
+    order: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    min-height: 32px;
-    margin-top: 6px;
-    border: 0;
-    background: transparent;
+    flex: 0 0 clamp(68px, 27%, 104px);
+    width: auto;
+    height: 56px;
+    min-height: 56px;
+    margin-top: 0;
+    border: 1.5px solid rgba(212, 197, 175, 0.55);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.86);
     color: #bca37f;
-    font-size: 14px;
-    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(93, 84, 68, 0.05);
+    font-size: clamp(12px, 3.5vw, 13px);
+    font-weight: 900;
     line-height: 1;
 }
 
@@ -2667,8 +2739,8 @@ select.wiz-birth-order-select:active {
    BOTTOM SAFE ZONE
    ============================================================
    ナビバー高さ計算：
-   - 通常: bottom:0, 高さ約80px → padding-bottom 160px で十分
-   - 広告あり: 広告 + ナビ + 少しの余白を実測値で確保
+   - 通常: bottom:0, 高さ約55px
+   - 広告あり: ナビだけを広告の上に移動し、画面側は通常のフッター避けを使う
    ============================================================ */
 
 /* スクリーン基本 padding-bottom にセーフエリアを加算 */
@@ -2676,26 +2748,58 @@ select.wiz-birth-order-select:active {
     padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-/* 広告あり: JS の --ad-screen-safe-space を優先して、余白を詰めすぎず広げすぎない */
-body.has-ad-banner .screen {
-    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
+/* Ads are docked below the footer, so screens keep their normal footer-safe padding. */
+
+#scr-input-reading,
+#scr-input-sound-entry,
+#scr-segment {
+    padding-bottom: calc(var(--ad-screen-safe-space, 84px) + 64px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
-body.has-ad-banner #scr-mode {
-    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
+#scr-input-reading,
+#scr-segment {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
 }
 
-body.has-ad-banner #scr-main,
-body.has-ad-banner #scr-swipe-universal {
-    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
+#scr-input-sound-entry {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+#scr-input-reading > div,
+#scr-segment > div,
+#scr-input-sound-entry > div {
+    width: 100%;
+    max-width: 390px;
+}
+
+body.has-ad-banner #scr-input-reading,
+body.has-ad-banner #scr-input-sound-entry,
+body.has-ad-banner #scr-segment {
+    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + 64px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+#scr-input-reading,
+#scr-segment {
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+}
+
+#scr-input-sound-entry {
+    overflow-y: hidden !important;
+}
+
+#scr-saved {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+body.has-ad-banner #scr-saved {
+    padding-bottom: calc(76px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-legal {
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) !important;
-}
-
-body.has-ad-banner #scr-legal {
-    padding-bottom: calc(var(--ad-screen-safe-space, 124px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-legal > div {
@@ -2715,15 +2819,10 @@ body.has-ad-banner #scr-legal {
     -webkit-touch-callout: default;
 }
 
-/* Build screen: keep the save button above the ad banner for free users */
+/* Build screen: keep the save button above the footer. */
 #build-screen-shell {
     height: calc(100dvh - var(--top-bar-height) - 92px - env(safe-area-inset-bottom, 0px)) !important;
     padding-bottom: 12px !important;
-}
-
-body.has-ad-banner #scr-build > #build-screen-shell {
-    height: calc(100dvh - var(--top-bar-height) - var(--ad-screen-safe-space, 124px) - env(safe-area-inset-bottom, 0px)) !important;
-    padding-bottom: 8px !important;
 }
 
 #build-scroll-area {
@@ -2736,12 +2835,11 @@ body.has-ad-banner #scr-build > #build-screen-shell {
     padding-bottom: 2px;
 }
 
-/* Keep the footer anchored; the ad banner is lifted above it in JS. */
+/* Free users: footer sits above the docked ad. Premium users keep the footer at the bottom. */
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
-    bottom: 0 !important;
+    bottom: var(--ad-footer-offset, 56px) !important;
 }
-
 
 /* h-screen を使った内部コンテナを flexbox で正しく収める
    flex:1 で .screen の padding を除いた残り高さを占有する */
@@ -3121,20 +3219,42 @@ body.has-ad-banner #universal-footer {
 
 .method-choice-submit {
     position: relative;
+    display: grid !important;
+    grid-template-columns: clamp(10px, 3vw, 18px) minmax(0, 1fr) clamp(16px, 4.5vw, 24px);
+    align-items: center;
+    justify-items: center;
+    gap: 0;
     max-width: 390px;
+    height: 56px;
     min-height: 54px;
+    padding: 0 clamp(8px, 2.8vw, 18px) !important;
     border-radius: 9999px !important;
-    font-size: 0.95rem !important;
+    font-size: clamp(12px, 3.55vw, 15px) !important;
     font-weight: 900 !important;
 }
 
-.method-choice-submit span {
-    position: absolute;
-    right: 28px;
-    top: 50%;
-    transform: translateY(-54%);
-    font-size: 28px;
+.method-choice-submit-label {
+    grid-column: 2;
+    min-width: 0;
+    max-width: 100%;
     line-height: 1;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.method-choice-submit-arrow {
+    grid-column: 3;
+    font-size: clamp(22px, 6.6vw, 28px);
+    line-height: 1;
+    transform: translateY(-2px);
+}
+
+.method-choice-submit-spacer {
+    grid-column: 1;
+    width: 100%;
+    height: 1px;
 }
 
 .method-choice-note {
@@ -3152,9 +3272,12 @@ body.has-ad-banner #universal-footer {
 }
 
 .choice-flow-shell {
-    min-height: calc(100dvh - var(--top-bar-height) - 158px - env(safe-area-inset-bottom, 0px));
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
     display: flex;
     flex-direction: column;
+    margin-top: 0 !important;
 }
 
 .choice-flow-scroll {
@@ -3178,11 +3301,326 @@ body.has-ad-banner #universal-footer {
 
 .choice-flow-actions {
     flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 2.2vw, 10px);
+    margin-top: auto;
     padding-top: 10px;
 }
 
 .choice-flow-submit {
-    margin-bottom: 10px !important;
+    order: 2;
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+    margin-bottom: 0 !important;
+}
+
+.choice-flow-actions .screen-back-btn {
+    order: 1;
+    flex: 0 0 clamp(68px, 27%, 104px);
+    width: auto !important;
+    height: 56px;
+    min-height: 56px;
+    padding: 0;
+    margin-left: 0;
+    margin-right: 0;
+    border-color: rgba(212, 197, 175, 0.55);
+    background: rgba(255, 255, 255, 0.86);
+    font-size: clamp(12px, 3.5vw, 13px);
+    font-weight: 900;
+    box-shadow: 0 4px 12px rgba(93, 84, 68, 0.05);
+}
+
+.reading-flow-actions {
+    margin-top: 8px;
+    padding-top: 4px;
+}
+
+.segment-flow-actions {
+    padding-top: 0;
+}
+
+#scr-input-reading .reading-flow-actions,
+#scr-segment .segment-flow-actions,
+#scr-input-sound-entry .search-method-flow-actions,
+#scr-input-sound-entry .sound-entry-flow-actions {
+    position: fixed;
+    left: max(16px, calc((100vw - 390px) / 2));
+    right: max(16px, calc((100vw - 390px) / 2));
+    bottom: calc(var(--ad-screen-safe-space, 84px) - 12px + env(safe-area-inset-bottom, 0px));
+    z-index: 9990;
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.reading-flow-actions .choice-flow-submit {
+    height: 56px;
+    min-height: 56px;
+    padding: 0 clamp(10px, 3vw, 18px) !important;
+    border-radius: 999px;
+    font-size: clamp(12px, 3.45vw, 14px) !important;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+#scr-input-reading h2,
+#scr-segment h2 {
+    margin: 0 0 0.25rem !important;
+    color: #8b7e66;
+    font-size: 1.5rem !important;
+    font-weight: 900 !important;
+    line-height: 1.15;
+    text-align: center;
+    letter-spacing: 0;
+}
+
+#scr-input-reading .reading-input-lead {
+    margin: 0 0 1rem;
+    color: #a6967a;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.1;
+    text-align: center;
+    letter-spacing: 0;
+}
+
+#scr-input-sound-entry .choice-flow-scroll {
+    padding-bottom: 96px;
+}
+
+#scr-segment .segment-screen-lead {
+    margin-bottom: 1.25rem;
+}
+
+#scr-segment #seg-options {
+    margin-bottom: 1rem !important;
+}
+
+.segment-choice-card {
+    width: 92%;
+    min-height: 84px;
+    margin: 0 auto 10px;
+    padding: 13px 16px !important;
+    border-radius: 24px !important;
+}
+
+.segment-choice-card--locked {
+    opacity: 0.9;
+}
+
+.segment-choice-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.segment-choice-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.segment-choice-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-bottom: 6px;
+}
+
+.segment-choice-title {
+    color: #5d5444;
+    font-size: 0.78rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.segment-choice-count-pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 12px;
+    border: 1px solid #eadfce;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(93, 84, 68, 0.06);
+    color: #b9965b;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.segment-choice-count-pill--locked {
+    border-color: #d8d3ca;
+    background: rgba(255, 255, 255, 0.8);
+    color: #8d8579;
+}
+
+.segment-choice-reading {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    color: #5d5444;
+    font-size: clamp(1.05rem, 5vw, 1.35rem);
+    font-weight: 900;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.segment-choice-reading [data-segment-separator] {
+    color: #d4c5af;
+    opacity: 0.72;
+}
+
+.segment-choice-premium-badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid;
+    border-radius: 999px;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(93, 84, 68, 0.06);
+}
+
+.segment-choice-card--compound {
+    margin-top: 0;
+}
+
+.segment-kana-option {
+    transition: opacity 0.16s ease, filter 0.16s ease;
+}
+
+.segment-kana-option--disabled {
+    opacity: 0.55;
+    filter: grayscale(0.25);
+}
+
+.segment-kana-option--disabled [data-kana-toggle-label] {
+    cursor: default;
+    background: rgba(246, 242, 235, 0.72);
+}
+
+.segment-kana-option--disabled [data-kana-checkmark] {
+    border-color: rgba(166, 150, 122, 0.34);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.segment-flow-actions .method-choice-submit:disabled {
+    opacity: 0.55;
+    box-shadow: none;
+    cursor: default;
+}
+
+@media (max-width: 640px) and (max-height: 620px) {
+    #scr-input-reading > div {
+        margin-top: 0 !important;
+    }
+
+    #scr-input-reading h2 {
+        margin-bottom: 0.5rem !important;
+        line-height: 1.25;
+    }
+
+    #scr-input-reading .reading-input-panel {
+        margin-bottom: 8px !important;
+        padding: 12px 14px;
+        border-radius: 24px;
+    }
+
+    #scr-input-reading .premium-input {
+        margin-bottom: 6px !important;
+        padding: 8px 0 !important;
+        font-size: 1.45rem !important;
+    }
+
+    #scr-input-reading .rule-box {
+        margin-top: 8px !important;
+    }
+
+    #scr-input-reading .rule-item {
+        padding: 9px 0;
+    }
+
+    .reading-flow-actions {
+        margin-top: 0;
+    }
+
+    #scr-segment > div {
+        margin-top: 0 !important;
+    }
+
+    #scr-segment .segment-screen-lead {
+        margin-bottom: 0.8rem;
+    }
+
+    #scr-segment #seg-options {
+        margin-bottom: 8px !important;
+    }
+
+    #scr-segment #seg-choice-target > div {
+        margin-bottom: 10px !important;
+    }
+
+    #scr-segment .segment-choice-card {
+        min-height: 66px;
+        margin-bottom: 8px;
+        padding: 9px 14px !important;
+        border-radius: 22px !important;
+    }
+
+    #scr-segment .segment-choice-main {
+        gap: 10px;
+    }
+
+    #scr-segment .method-choice-radio {
+        width: 1.45em;
+        height: 1.45em;
+    }
+
+    #scr-segment .method-choice-radio::after {
+        inset: 4px;
+    }
+
+    #scr-segment .segment-choice-title-row {
+        margin-bottom: 4px;
+    }
+
+    #scr-segment .segment-kana-option {
+        margin-bottom: 8px !important;
+        padding: 8px 12px !important;
+        border-radius: 20px;
+    }
+
+    #scr-segment .segment-kana-option > div:first-child {
+        margin-bottom: 6px !important;
+        font-size: 12px !important;
+        line-height: 1.15;
+    }
+
+    #scr-segment .segment-kana-option .grid {
+        gap: 6px;
+    }
+
+    #scr-segment .segment-kana-option label {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        border-radius: 14px;
+    }
+
+    #scr-segment .segment-kana-option > div:last-child {
+        display: none;
+    }
 }
 
 @media (max-width: 640px) {
@@ -3389,15 +3827,15 @@ body.has-ad-banner #universal-footer {
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    min-height: 42px;
-    padding: 0.55rem 1.1rem;
-    border: 1.5px solid rgba(212, 197, 175, 0.5);
+    min-height: 56px;
+    padding: 0;
+    border: 1.5px solid rgba(212, 197, 175, 0.55);
     border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.88);
-    box-shadow: 0 4px 12px rgba(93, 84, 68, 0.06);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 4px 12px rgba(93, 84, 68, 0.05);
     color: #bca37f;
-    font-size: 0.9rem;
-    font-weight: 800;
+    font-size: clamp(12px, 3.5vw, 13px);
+    font-weight: 900;
     line-height: 1;
     white-space: nowrap;
     transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -3984,6 +4422,19 @@ body.has-ad-banner #universal-footer {
     padding-right: 0 !important;
 }
 
+#saved-list-content.saved-list-content--empty {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: clamp(30px, 8vh, 78px) !important;
+    padding-bottom: clamp(8px, 2vh, 18px) !important;
+}
+
+.saved-empty-state {
+    width: 100%;
+    padding: clamp(10px, 2.4vh, 20px) 0;
+}
+
 .pairing-profile-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4275,12 +4726,12 @@ body.has-ad-banner #universal-footer {
 }
 
 .premium-modal-sheet {
-    width: min(calc(100vw - 48px), 440px) !important;
-    max-width: min(calc(100vw - 48px), 440px) !important;
+    width: min(calc(100vw - 28px), 440px) !important;
+    max-width: min(calc(100vw - 28px), 440px) !important;
     max-height: min(88vh, 760px) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
-    padding: clamp(22px, 6vw, 34px) !important;
+    padding: clamp(18px, 5vw, 34px) !important;
     border: 1px solid #e4d9c6 !important;
     border-radius: clamp(30px, 9vw, 52px) !important;
     background: rgba(247, 239, 221, 0.96) !important;
@@ -4304,9 +4755,17 @@ body.has-ad-banner #universal-footer {
 
 .premium-comparison-grid {
     display: grid;
-    grid-template-columns: minmax(84px, 0.9fr) minmax(66px, 0.72fr) minmax(96px, 1fr);
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: minmax(70px, 0.82fr) minmax(56px, 0.62fr) minmax(80px, 0.88fr);
     justify-content: center;
-    column-gap: 4px;
+    column-gap: 3px;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+.premium-comparison-grid > div {
+    min-width: 0;
 }
 
 .premium-matrix-cell {
@@ -4314,11 +4773,47 @@ body.has-ad-banner #universal-footer {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    white-space: nowrap;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    line-height: 1.35;
+}
+
+.premium-matrix-cell .whitespace-nowrap {
+    white-space: normal !important;
 }
 
 .premium-matrix-cell--premium {
-    width: min(100%, 6.2rem) !important;
+    width: 100% !important;
+    border-width: 0.75px !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+@media (max-width: 380px) {
+    .premium-modal-sheet {
+        width: calc(100vw - 20px) !important;
+        max-width: calc(100vw - 20px) !important;
+        padding: 16px 12px !important;
+        border-radius: 28px !important;
+    }
+
+    .premium-comparison-grid {
+        grid-template-columns: minmax(62px, 0.78fr) minmax(50px, 0.58fr) minmax(70px, 0.82fr);
+        column-gap: 2px;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+    }
+
+    .premium-matrix-cell {
+        padding-top: 7px !important;
+        padding-bottom: 7px !important;
+        font-size: 9px !important;
+        line-height: 1.32;
+    }
 }
 
 .premium-plan-price {

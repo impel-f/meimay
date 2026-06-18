@@ -34,9 +34,7 @@ const NativeAdMobAutoStartConfig = {
     androidEnabled: true,
     iosEnabled: true,
     androidShowBannerEnabled: true,
-    storageKey: 'meimay_native_admob_autostart',
-    firstRunHomeDelayMs: 0,
-    wizardRetryMs: 2500
+    storageKey: 'meimay_native_admob_autostart'
 };
 
 function getAdMobTestAdFlagFromRuntime() {
@@ -598,6 +596,87 @@ function getRevenueCatErrorSummary(error) {
     return { code, message };
 }
 
+function getRevenueCatErrorSearchText(error) {
+    const summary = getRevenueCatErrorSummary(error);
+    return [
+        summary.code,
+        summary.message,
+        error?.name,
+        error?.underlyingErrorMessage,
+        error?.readableErrorCode,
+        error?.domain,
+        error?.nativeErrorCode
+    ].map((value) => String(value || '').toLowerCase()).join(' ');
+}
+
+function classifyRevenueCatFailureReason(error, fallback = 'unknown') {
+    if (getRevenueCatUserCancelled(error)) return 'user_cancelled';
+
+    const text = getRevenueCatErrorSearchText(error);
+    if (!text.trim()) return fallback;
+    if (text.includes('timed out') || text.includes('timeout')) return 'timeout';
+    if (text.includes('network') || text.includes('offline') || text.includes('connection') || text.includes('failed to fetch')) return 'network';
+    if (text.includes('sdk is not available') || text.includes('purchases is not available')) return 'revenuecat_unavailable';
+    if (text.includes('sdk key') || text.includes('api key') || text.includes('not configured')) return 'revenuecat_not_configured';
+    if (text.includes('app user id') || text.includes('login') || text.includes('anonymous') || text.includes('auth')) return 'user_identity';
+    if (text.includes('getofferings') || text.includes('offering')) return 'offerings_unavailable';
+    if (text.includes('package was not found') || text.includes('product was not found') || text.includes('product not found')) return 'product_not_found';
+    if (text.includes('purchasepackage') && text.includes('not available')) return 'purchase_api_unavailable';
+    if (text.includes('billing unavailable') || text.includes('store unavailable') || text.includes('not allowed') || text.includes('not eligible')) return 'store_unavailable';
+    if (text.includes('payment') || text.includes('declined') || text.includes('card') || text.includes('insufficient')) return 'payment_declined';
+    if (text.includes('already') || text.includes('owned') || text.includes('active subscription')) return 'already_purchased';
+    if (text.includes('receipt') || text.includes('verification') || text.includes('invalid purchase')) return 'receipt_verification';
+    if (text.includes('entitlement') || text.includes('active entitlement')) return 'entitlement_not_active';
+    return fallback;
+}
+
+function inferRevenueCatFailureStage(error, fallback = 'purchase') {
+    const text = getRevenueCatErrorSearchText(error);
+    if (text.includes('sdk is not available') || text.includes('not configured')) return 'availability';
+    if (text.includes('login') || text.includes('configure') || text.includes('app user id')) return 'configure';
+    if (text.includes('getofferings') || text.includes('offering') || text.includes('package') || text.includes('product not found')) return 'offerings';
+    if (text.includes('purchasepackage') || text.includes('payment') || text.includes('billing') || text.includes('store') || getRevenueCatUserCancelled(error)) return 'purchase_sheet';
+    if (text.includes('customerinfo') || text.includes('syncpurchases') || text.includes('entitlement')) return 'entitlement_sync';
+    if (text.includes('timed out') && text.includes('purchase')) return 'purchase_sheet';
+    if (text.includes('timed out') && text.includes('offering')) return 'offerings';
+    if (text.includes('timed out') && text.includes('configure')) return 'configure';
+    return fallback;
+}
+
+function getRevenueCatFailureAnalyticsParams(error, options = {}) {
+    const summary = getRevenueCatErrorSummary(error);
+    const failureReason = options.failure_reason || classifyRevenueCatFailureReason(error, options.reason || 'exception');
+    return {
+        reason: options.reason || failureReason,
+        failure_reason: failureReason,
+        failure_stage: options.failure_stage || inferRevenueCatFailureStage(error, options.stage || 'purchase'),
+        error_code: summary.code,
+        error_name: String(error?.name || error?.constructor?.name || '').trim(),
+        error_bucket: failureReason,
+        revenuecat_user_cancelled: getRevenueCatUserCancelled(error) ? 1 : 0,
+        native_error_code: String(error?.nativeErrorCode || error?.underlyingErrorCode || '').trim(),
+        store_error_code: String(error?.storeErrorCode || error?.readableErrorCode || '').trim()
+    };
+}
+
+function trackPremiumPurchaseError(plan, error, options = {}) {
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
+            ...getRevenueCatFailureAnalyticsParams(error, options),
+            revenuecat_available: RevenueCatBridge.isAvailable() ? 1 : 0
+        }));
+    }
+
+    if (typeof trackMeimayErrorEvent === 'function') {
+        trackMeimayErrorEvent('premium_purchase', error, {
+            error_stage: options.failure_stage || options.stage || inferRevenueCatFailureStage(error),
+            error_reason: options.failure_reason || options.reason || classifyRevenueCatFailureReason(error),
+            product_id: plan?.id || '',
+            handled: true
+        });
+    }
+}
+
 function getRevenueCatPlatformApiKey(platform) {
     if (platform === 'ios') return RevenueCatConfig.iosPublicSdkKey;
     if (platform === 'android') return RevenueCatConfig.androidPublicSdkKey;
@@ -945,31 +1024,14 @@ let nativeAdMobBannerFailed = false;
 let adBannerSuppressedByOverlay = false;
 let adOverlayObserverReady = false;
 let adOverlaySyncTimer = null;
+let adBannerSuppressedByKeyboard = false;
+let adKeyboardLayoutReady = false;
+let adKeyboardBaselineHeight = 0;
 let adMobPremiumRetryTimer = null;
 let adBannerSurfaceRefreshTimer = null;
 let adBannerSurfaceRefreshListenersReady = false;
 let adSystemStartedAt = Date.now();
 let lastAdImpressionAnalytics = { key: '', at: 0 };
-let firstRunHomeAdReadyAtMs = 0;
-const deferNativeMonetizationForFirstRunSession = (() => {
-    try {
-        return typeof WizardData !== 'undefined'
-            && WizardData
-            && typeof WizardData.isCompleted === 'function'
-            && !WizardData.isCompleted();
-    } catch (e) {
-        return false;
-    }
-})();
-
-function getActiveScreenIdForNativeAds() {
-    try {
-        const active = document.querySelector('.screen.active');
-        return active ? String(active.id || '').trim() : '';
-    } catch (e) {
-        return '';
-    }
-}
 
 function trackAdImpressionAnalytics(mode, params = {}) {
     if (typeof trackMeimayEvent !== 'function') return;
@@ -1145,56 +1207,14 @@ function clearCachedConnectedPartnerPremiumSnapshot() {
 }
 
 function shouldDeferNativeMonetizationDuringWizard() {
-    if (!isCapacitorNativeAdRuntime()) return false;
-    try {
-        const wizardScreen = document.getElementById('scr-wizard');
-        const wizardVisible = !!(wizardScreen && wizardScreen.classList.contains('active'));
-        const wizardCompleted = typeof WizardData !== 'undefined'
-            && WizardData
-            && typeof WizardData.isCompleted === 'function'
-            && WizardData.isCompleted();
-        return wizardVisible || wizardCompleted !== true;
-    } catch (e) {
-        return false;
-    }
-}
-
-function getFirstRunNativeAdHoldReason() {
-    if (!isCapacitorNativeAdRuntime() || !deferNativeMonetizationForFirstRunSession) return '';
-
-    let wizardCompleted = false;
-    try {
-        wizardCompleted = typeof WizardData !== 'undefined'
-            && WizardData
-            && typeof WizardData.isCompleted === 'function'
-            && WizardData.isCompleted();
-    } catch (e) {
-        wizardCompleted = false;
-    }
-
-    const activeScreenId = getActiveScreenIdForNativeAds();
-    if (!wizardCompleted || activeScreenId === 'scr-wizard') {
-        firstRunHomeAdReadyAtMs = 0;
-        return 'first-run-wizard';
-    }
-
-    if (activeScreenId !== 'scr-mode') {
-        firstRunHomeAdReadyAtMs = 0;
-        return 'first-run-post-wizard';
-    }
-
-    if (!firstRunHomeAdReadyAtMs) {
-        firstRunHomeAdReadyAtMs = Date.now() + NativeAdMobAutoStartConfig.firstRunHomeDelayMs;
-    }
-    if (Date.now() < firstRunHomeAdReadyAtMs) return 'first-run-home-delay';
-    return '';
+    return false;
 }
 
 function shouldSkipNativeStoreCheck(options = {}) {
     if (!isCapacitorNativeAdRuntime()) return false;
     if (options && options.force === true) return false;
     const reason = String(options?.reason || '').trim();
-    return reason === 'auth-ready' || shouldDeferNativeMonetizationDuringWizard();
+    return reason === 'auth-ready';
 }
 
 function getAdMobPremiumHoldReason() {
@@ -1203,11 +1223,6 @@ function getAdMobPremiumHoldReason() {
     const completed = PremiumManager.hasCompletedPurchaseStateCheck && PremiumManager.hasCompletedPurchaseStateCheck();
     if (!completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS) {
         return 'startup-premium-grace';
-    }
-    const firstRunHoldReason = getFirstRunNativeAdHoldReason();
-    if (firstRunHoldReason) return firstRunHoldReason;
-    if (shouldDeferNativeMonetizationDuringWizard()) {
-        return 'first-run-wizard';
     }
     if (isNativeAdMobAutoStartDisabled()) return 'native-admob-autostart-disabled';
     return '';
@@ -1221,20 +1236,20 @@ function scheduleDeferredAdMobInit(reason = '') {
     if (reason === 'premium-active' || reason === 'premium-cache') return;
     if (reason === 'native-admob-autostart-disabled') return;
     if (adMobPremiumRetryTimer) return;
-    let delayMs = 1200;
-    if (reason === 'first-run-wizard' || reason === 'first-run-post-wizard') {
-        delayMs = NativeAdMobAutoStartConfig.wizardRetryMs;
-    } else if (reason === 'first-run-home-delay') {
-        delayMs = Math.max(1000, firstRunHomeAdReadyAtMs - Date.now() + 250);
-    }
+    const delayMs = 1200;
     adMobPremiumRetryTimer = setTimeout(() => {
         adMobPremiumRetryTimer = null;
         initAdMob();
     }, delayMs);
 }
 
+function getAdBannerFooterOffset(bannerHeight) {
+    const height = Number(bannerHeight) || 0;
+    return Math.max(0, height - AD_BANNER_DOCK_TUCK);
+}
+
 function getAdBannerFooterMargin() {
-    return Math.max(0, getBottomFooterHeight() - AD_BANNER_DOCK_TUCK);
+    return 0;
 }
 
 function measureAdBannerHeight(container) {
@@ -1244,12 +1259,16 @@ function measureAdBannerHeight(container) {
     return Math.ceil(rect.height || content.offsetHeight || container.offsetHeight || 0);
 }
 
+function isHtmlAdBannerSurfaceVisible(container) {
+    if (!container) return false;
+    const style = window.getComputedStyle ? window.getComputedStyle(container) : null;
+    if (style && (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0')) return false;
+    if (!container.firstElementChild && !String(container.textContent || '').trim()) return false;
+    return measureAdBannerHeight(container) > 0;
+}
+
 function hasActiveAdBlockingOverlay() {
-    return !!document.querySelector([
-        '.overlay.active',
-        '.meimay-child-modal-overlay',
-        '#drawer-overlay:not(.hidden)'
-    ].join(','));
+    return false;
 }
 
 function setHtmlAdBannerSuppressed(suppressed) {
@@ -1277,7 +1296,7 @@ function setNativeAdMobBannerSuppressed(suppressed, reason = '') {
 }
 
 function syncAdBannerOverlaySuppression() {
-    const shouldSuppress = !PremiumManager.isPremium() && hasActiveAdBlockingOverlay();
+    const shouldSuppress = false;
     if (shouldSuppress === adBannerSuppressedByOverlay) {
         setHtmlAdBannerSuppressed(shouldSuppress);
         return;
@@ -1293,12 +1312,12 @@ function syncAdBannerOverlaySuppression() {
 }
 
 function setAdBannerOverlaySuppressed(suppressed, reason = '') {
-    const shouldSuppress = suppressed === true && !PremiumManager.isPremium();
+    const shouldSuppress = false;
     adBannerSuppressedByOverlay = shouldSuppress;
     setHtmlAdBannerSuppressed(shouldSuppress);
     setNativeAdMobBannerSuppressed(shouldSuppress, reason);
 
-    if (!shouldSuppress && !hasActiveAdBlockingOverlay()) {
+    if (!PremiumManager.isPremium()) {
         restoreAdBannerForFreeUser(reason || 'overlay-release');
     }
 }
@@ -1326,7 +1345,6 @@ function ensureAdOverlayObserver() {
 
 function shouldRefreshAdBannerForScreen(screenId) {
     const blockedScreens = new Set([
-        'scr-wizard',
         'scr-gender',
         'scr-vibe',
         'scr-akinator'
@@ -1335,6 +1353,7 @@ function shouldRefreshAdBannerForScreen(screenId) {
 }
 
 function restoreAdBannerForFreeUser(reason = '') {
+    installAdKeyboardLayoutControl();
     ensureAdOverlayObserver();
 
     if (PremiumManager.isPremium()) {
@@ -1347,14 +1366,6 @@ function restoreAdBannerForFreeUser(reason = '') {
         if (showHtmlAdBannerForHoldReason(holdReason)) return true;
         hideAdBanner();
         scheduleDeferredAdMobInit(holdReason);
-        return false;
-    }
-
-    if (hasActiveAdBlockingOverlay()) {
-        adBannerSuppressedByOverlay = true;
-        setHtmlAdBannerSuppressed(true);
-        setNativeAdMobBannerSuppressed(true, reason || 'overlay-active');
-        updateAdLayoutSpacing();
         return false;
     }
 
@@ -1372,16 +1383,6 @@ function requestAdBannerSurfaceRefresh(reason = '', options = {}) {
     adBannerSurfaceRefreshTimer = setTimeout(() => {
         adBannerSurfaceRefreshTimer = null;
         if (PremiumManager.isPremium()) return;
-        if (hasActiveAdBlockingOverlay()) {
-            syncAdBannerOverlaySuppression();
-            if (attempt < AD_BANNER_RESTORE_MAX_ATTEMPTS) {
-                requestAdBannerSurfaceRefresh(reason, {
-                    delayMs: AD_BANNER_RESTORE_RETRY_MS,
-                    attempt: attempt + 1
-                });
-            }
-            return;
-        }
         console.log('ADMOB: Refreshing banner surface', reason);
         if (!restoreAdBannerForFreeUser(reason) && attempt < AD_BANNER_RESTORE_MAX_ATTEMPTS) {
             requestAdBannerSurfaceRefresh(reason, {
@@ -1390,6 +1391,89 @@ function requestAdBannerSurfaceRefresh(reason = '', options = {}) {
             });
         }
     }, Math.max(0, delayMs));
+}
+
+function isTextEditingElement(element) {
+    return !!(element && (
+        /^(INPUT|TEXTAREA|SELECT)$/.test(element.tagName || '')
+        || element.isContentEditable === true
+    ));
+}
+
+function getVisualViewportKeyboardInset() {
+    const viewport = window.visualViewport;
+    if (!viewport) return 0;
+
+    const viewportHeight = Number(viewport.height) || 0;
+    const viewportTop = Number(viewport.offsetTop) || 0;
+    const layoutHeight = Number(window.innerHeight) || 0;
+    if (!viewportHeight || !layoutHeight) return 0;
+
+    return Math.max(0, Math.round(layoutHeight - viewportHeight - viewportTop));
+}
+
+function isMobileKeyboardRuntime() {
+    const platform = getPlatform();
+    if (platform === 'ios' || platform === 'android') return true;
+    return navigator.maxTouchPoints > 1 && window.innerWidth <= 900;
+}
+
+function isKeyboardLikelyActive() {
+    if (getVisualViewportKeyboardInset() > 80) return true;
+
+    const viewportHeight = window.visualViewport && Number(window.visualViewport.height)
+        ? Number(window.visualViewport.height)
+        : Number(window.innerHeight) || 0;
+    if (adKeyboardBaselineHeight && viewportHeight && adKeyboardBaselineHeight - viewportHeight > 80) return true;
+
+    return isMobileKeyboardRuntime() && isTextEditingElement(document.activeElement);
+}
+
+function setAdKeyboardSuppression(active, reason = '') {
+    const shouldSuppress = active === true;
+    if (shouldSuppress === adBannerSuppressedByKeyboard) {
+        if (shouldSuppress) updateAdLayoutSpacing();
+        return;
+    }
+
+    adBannerSuppressedByKeyboard = shouldSuppress;
+    document.body.classList.toggle('keyboard-active', shouldSuppress);
+    document.body.style.setProperty('--keyboard-inset', shouldSuppress ? `${getVisualViewportKeyboardInset()}px` : '0px');
+    updateAdLayoutSpacing();
+}
+
+function refreshAdKeyboardLayout(reason = '') {
+    const viewportHeight = window.visualViewport && Number(window.visualViewport.height)
+        ? Number(window.visualViewport.height)
+        : Number(window.innerHeight) || 0;
+    if (!adKeyboardBaselineHeight && viewportHeight) {
+        adKeyboardBaselineHeight = viewportHeight;
+    } else if (!isTextEditingElement(document.activeElement) && viewportHeight > adKeyboardBaselineHeight) {
+        adKeyboardBaselineHeight = viewportHeight;
+    }
+    setAdKeyboardSuppression(isKeyboardLikelyActive(), reason);
+}
+
+function installAdKeyboardLayoutControl() {
+    if (adKeyboardLayoutReady || !document.body) return;
+    adKeyboardLayoutReady = true;
+    adKeyboardBaselineHeight = window.visualViewport && Number(window.visualViewport.height)
+        ? Number(window.visualViewport.height)
+        : Number(window.innerHeight) || 0;
+
+    const delayedRefresh = (reason) => {
+        refreshAdKeyboardLayout(reason);
+        setTimeout(() => refreshAdKeyboardLayout(reason), 120);
+        setTimeout(() => refreshAdKeyboardLayout(reason), 420);
+    };
+
+    document.addEventListener('focusin', () => delayedRefresh('focusin'), true);
+    document.addEventListener('focusout', () => delayedRefresh('focusout'), true);
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => refreshAdKeyboardLayout('visual-viewport-resize'));
+        window.visualViewport.addEventListener('scroll', () => refreshAdKeyboardLayout('visual-viewport-scroll'));
+    }
+    window.addEventListener('resize', () => refreshAdKeyboardLayout('window-resize'));
 }
 
 function refreshAdBannerAfterScreenChange(screenId) {
@@ -1412,17 +1496,36 @@ function installAdBannerSurfaceRefreshListeners() {
 
 function updateAdLayoutSpacing(bannerHeight) {
     if (PremiumManager.isPremium()) {
+        const container = document.getElementById('admob-banner');
+        if (container) {
+            container.style.display = 'none';
+            container.style.bottom = '';
+            container.style.visibility = '';
+            container.style.pointerEvents = '';
+            container.innerHTML = '';
+        }
+        if (adBannerMode === 'native' || nativeAdMobBannerLoaded) {
+            setNativeAdMobBannerSuppressed(true, 'premium-active-layout');
+        }
         adBannerVisible = false;
         adBannerMode = null;
         document.body.style.removeProperty('--ad-screen-safe-space');
+        document.body.style.removeProperty('--ad-banner-height');
+        document.body.style.removeProperty('--ad-footer-offset');
         document.body.classList.remove('has-ad-banner');
         return 0;
     }
 
     const container = document.getElementById('admob-banner');
     ensureAdOverlayObserver();
-    const footerMargin = getAdBannerFooterMargin();
     let measuredHeight = typeof bannerHeight === 'number' ? bannerHeight : 0;
+    const htmlSurfaceVisible = isHtmlAdBannerSurfaceVisible(container);
+
+    if (htmlSurfaceVisible) {
+        adBannerVisible = true;
+        if (!adBannerMode) adBannerMode = 'web';
+        if (measuredHeight <= 0) measuredHeight = measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT;
+    }
 
     if (adBannerVisible && measuredHeight <= 0) {
         if (adBannerMode === 'web' || adBannerMode === 'native-fallback') {
@@ -1432,18 +1535,24 @@ function updateAdLayoutSpacing(bannerHeight) {
         }
     }
 
+    const footerHeight = getBottomFooterHeight();
+    const footerOffset = getAdBannerFooterOffset(measuredHeight);
     if ((adBannerMode === 'web' || adBannerMode === 'native-fallback') && container) {
-        container.style.bottom = `${footerMargin}px`;
+        container.style.bottom = '0px';
     }
 
     if (measuredHeight > 0) {
-        const safeSpace = Math.max(AD_SCREEN_SAFE_SPACE_MIN, footerMargin + measuredHeight + AD_BANNER_GAP);
+        const safeSpace = Math.max(AD_SCREEN_SAFE_SPACE_MIN, footerHeight + footerOffset + AD_BANNER_GAP);
+        document.body.style.setProperty('--ad-banner-height', `${measuredHeight}px`);
+        document.body.style.setProperty('--ad-footer-offset', `${footerOffset}px`);
         document.body.style.setProperty('--ad-screen-safe-space', `${safeSpace}px`);
         document.body.classList.add('has-ad-banner');
         return safeSpace;
     }
 
     document.body.style.removeProperty('--ad-screen-safe-space');
+    document.body.style.removeProperty('--ad-banner-height');
+    document.body.style.removeProperty('--ad-footer-offset');
     if (!container || container.style.display === 'none') {
         document.body.classList.remove('has-ad-banner');
     }
@@ -1460,6 +1569,8 @@ function clearHtmlAdBanner(reason, error) {
     adBannerVisible = false;
     adBannerMode = null;
     document.body.style.removeProperty('--ad-screen-safe-space');
+    document.body.style.removeProperty('--ad-banner-height');
+    document.body.style.removeProperty('--ad-footer-offset');
     document.body.classList.remove('has-ad-banner');
 
     if (reason) {
@@ -1481,10 +1592,9 @@ function showNativeAdMobFallbackBanner(reason, error) {
 
     adBannerVisible = true;
     adBannerMode = 'native-fallback';
-    adBannerSuppressedByOverlay = hasActiveAdBlockingOverlay();
+    adBannerSuppressedByOverlay = false;
 
-    const footerMargin = getAdBannerFooterMargin();
-    container.style.bottom = `${footerMargin}px`;
+    container.style.bottom = '0px';
     container.style.display = 'flex';
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
     container.innerHTML = `
@@ -1596,6 +1706,7 @@ function initAdMob() {
 }
 
 async function initNativeAdMob(platform) {
+    installAdKeyboardLayoutControl();
     ensureAdOverlayObserver();
     const config = platform === 'ios' ? AdMobConfig.ios : AdMobConfig.android;
     const footerMargin = getAdBannerFooterMargin();
@@ -1607,14 +1718,6 @@ async function initNativeAdMob(platform) {
             return;
         }
         setupNativeAdMobBannerListeners(AdMob);
-
-        if (hasActiveAdBlockingOverlay()) {
-            adBannerVisible = true;
-            adBannerMode = 'native';
-            adBannerSuppressedByOverlay = true;
-            updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
-            return;
-        }
 
         if (!nativeAdMobInitializePromise) {
             const initializeOptions = platform === 'android'
@@ -1689,15 +1792,15 @@ function showAdBanner() {
 }
 
 function showWebAdBanner() {
+    installAdKeyboardLayoutControl();
     ensureAdOverlayObserver();
     const container = document.getElementById('admob-banner');
     if (!container || PremiumManager.isPremium()) return;
 
     adBannerVisible = true;
     adBannerMode = 'web';
-    adBannerSuppressedByOverlay = hasActiveAdBlockingOverlay();
-    const footerMargin = getAdBannerFooterMargin();
-    container.style.bottom = `${footerMargin}px`;
+    adBannerSuppressedByOverlay = false;
+    container.style.bottom = '0px';
     container.style.display = 'flex';
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
     container.innerHTML = `
@@ -1755,6 +1858,8 @@ function hideAdBanner() {
     nativeAdMobBannerLoaded = false;
     nativeAdMobBannerFailed = false;
     document.body.style.removeProperty('--ad-screen-safe-space');
+    document.body.style.removeProperty('--ad-banner-height');
+    document.body.style.removeProperty('--ad-footer-offset');
     document.body.classList.remove('has-ad-banner');
 
     const AdMob = getAdMobPlugin();
@@ -1836,6 +1941,7 @@ function closePremiumModal() {
 
 // 初期化
 function initAdSystem() {
+    installAdKeyboardLayoutControl();
     installAdBannerSurfaceRefreshListeners();
     setTimeout(() => {
         initAdMob();
@@ -2624,6 +2730,15 @@ PremiumManager.recoverPurchaseStateAfterError = async function (user, plan, erro
             if (activeFromSync) return true;
         } catch (recoverError) {
             console.warn('PREMIUM: purchase recovery attempt failed', recoverError);
+            if (typeof trackMeimayErrorEvent === 'function') {
+                trackMeimayErrorEvent('premium_purchase', recoverError, {
+                    error_stage: 'purchase_recovery',
+                    error_reason: classifyRevenueCatFailureReason(recoverError, 'recovery_attempt_failed'),
+                    product_id: plan.id,
+                    attempt_index: attempt + 1,
+                    handled: true
+                });
+            }
         }
     }
     return false;
@@ -2683,6 +2798,13 @@ PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
         return active;
     } catch (error) {
         console.warn('PREMIUM: silent store purchase sync failed', error);
+        if (typeof trackMeimayErrorEvent === 'function') {
+            trackMeimayErrorEvent('premium_purchase', error, {
+                error_stage: 'silent_store_sync',
+                error_reason: classifyRevenueCatFailureReason(error, 'silent_sync_failed'),
+                handled: true
+            });
+        }
         return false;
     } finally {
         this._silentStoreSyncInFlight = false;
@@ -2696,6 +2818,22 @@ PremiumManager.syncPurchasesSilently = async function (user, options = {}) {
 PremiumManager.startPurchase = async function (productId) {
     const plan = getPremiumProductPlan(productId);
     if (!plan) {
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('premium_purchase_failed', {
+                product_id: String(productId || '').trim(),
+                reason: 'invalid_product',
+                failure_reason: 'invalid_product',
+                failure_stage: 'plan_lookup'
+            });
+        }
+        if (typeof trackMeimayErrorEvent === 'function') {
+            trackMeimayErrorEvent('premium_purchase', new Error('Premium product plan was not found.'), {
+                error_stage: 'plan_lookup',
+                error_reason: 'invalid_product',
+                product_id: String(productId || '').trim(),
+                handled: true
+            });
+        }
         if (typeof showToast === 'function') {
             showToast('購入プランを確認できませんでした', '!');
         }
@@ -2710,6 +2848,14 @@ PremiumManager.startPurchase = async function (productId) {
             await this.bindToUserDoc(user);
         } catch (e) {
             console.warn('PREMIUM: Failed to prepare purchase link', e);
+            if (typeof trackMeimayErrorEvent === 'function') {
+                trackMeimayErrorEvent('premium_purchase', e, {
+                    error_stage: 'prepare_user',
+                    error_reason: 'user_bind_failed',
+                    product_id: plan.id,
+                    handled: true
+                });
+            }
         }
     }
 
@@ -2718,10 +2864,12 @@ PremiumManager.startPurchase = async function (productId) {
             trackMeimayEvent('premium_purchase_started', getPremiumPlanAnalyticsParams(plan, {
                 revenuecat_available: 0
             }));
-            trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
-                reason: 'revenuecat_unavailable'
-            }));
         }
+        trackPremiumPurchaseError(plan, new Error('RevenueCat SDK is not available in this build.'), {
+            reason: 'revenuecat_unavailable',
+            failure_reason: 'revenuecat_unavailable',
+            failure_stage: 'availability'
+        });
         if (typeof showToast === 'function') {
             showToast('購入はアプリ版で有効になります', 'i');
         }
@@ -2746,6 +2894,13 @@ PremiumManager.startPurchase = async function (productId) {
         let active = await this._applyRevenueCatCustomerInfo(result, plan.id, { trustPurchaseResult: true });
         if (!active) {
             active = await this.recoverPurchaseStateAfterError(user, plan, new Error('Purchase result did not include active entitlement yet.'));
+            if (!active && typeof trackMeimayEvent === 'function') {
+                trackMeimayEvent('premium_purchase_activation_pending', getPremiumPlanAnalyticsParams(plan, {
+                    reason: 'entitlement_not_active',
+                    failure_reason: 'entitlement_not_active',
+                    failure_stage: 'entitlement_sync'
+                }));
+            }
         }
         if (typeof trackMeimayEvent === 'function') {
             trackMeimayEvent('premium_purchase_completed', getPremiumPlanAnalyticsParams(plan, {
@@ -2760,7 +2915,11 @@ PremiumManager.startPurchase = async function (productId) {
         if (getRevenueCatUserCancelled(e)) {
             if (typeof trackMeimayEvent === 'function') {
                 trackMeimayEvent('premium_purchase_cancelled', getPremiumPlanAnalyticsParams(plan, {
-                    reason: 'user_cancelled'
+                    ...getRevenueCatFailureAnalyticsParams(e, {
+                        reason: 'user_cancelled',
+                        failure_reason: 'user_cancelled',
+                        failure_stage: 'purchase_sheet'
+                    })
                 }));
             }
             if (typeof showToast === 'function') {
@@ -2781,12 +2940,9 @@ PremiumManager.startPurchase = async function (productId) {
                 return true;
             }
 
-            if (typeof trackMeimayEvent === 'function') {
-                trackMeimayEvent('premium_purchase_failed', getPremiumPlanAnalyticsParams(plan, {
-                    reason: 'exception',
-                    error_code: getRevenueCatErrorSummary(e).code
-                }));
-            }
+            trackPremiumPurchaseError(plan, e, {
+                reason: 'exception'
+            });
             console.warn('PREMIUM: RevenueCat purchase failed', e);
             if (typeof showToast === 'function') {
                 showToast('購入情報を確認できませんでした。請求が発生している場合は自動で反映されます', '!');

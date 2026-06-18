@@ -556,11 +556,18 @@ const StorageBox = {
         }
     },
 
-    saveKanjiAiCache: function (kanji, text) {
+    saveKanjiAiCache: function (kanji, text, meta = {}) {
         try {
             const raw = localStorage.getItem(this.KEY_KANJI_AI_CACHE);
             const cache = raw ? JSON.parse(raw) : {};
-            cache[kanji] = { text, savedAt: new Date().toISOString() };
+            const promptVersion = typeof meta?.promptVersion === 'string'
+                ? meta.promptVersion.trim()
+                : '';
+            cache[kanji] = {
+                text,
+                savedAt: new Date().toISOString(),
+                ...(promptVersion ? { promptVersion } : {})
+            };
             localStorage.setItem(this.KEY_KANJI_AI_CACHE, JSON.stringify(cache));
         } catch (e) {
             console.error("STORAGE: kanji AI cache save failed", e);

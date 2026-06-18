@@ -20,6 +20,12 @@ const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 1200;
 const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
 
 const MEIMAY_ANALYTICS_QUEUE_LIMIT = 60;
+const MEIMAY_ERROR_EVENT_DEDUPE_MS = 60 * 1000;
+const MEIMAY_ERROR_EVENT_SESSION_LIMIT = 24;
+const meimayErrorEventState = {
+    count: 0,
+    seen: new Map()
+};
 
 function getMeimayAnalyticsRuntimeContext() {
     const capacitorPlatform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
@@ -217,6 +223,217 @@ window.MeimayAnalytics = MeimayAnalytics;
 window.trackMeimayEvent = function (eventName, params = {}) {
     return MeimayAnalytics.track(eventName, params);
 };
+
+function getMeimayErrorText(errorLike) {
+    if (!errorLike) return '';
+    if (typeof errorLike === 'string') return errorLike;
+    return String(
+        errorLike.message
+        || errorLike.errorMessage
+        || errorLike.reason?.message
+        || errorLike.reason
+        || errorLike.type
+        || ''
+    );
+}
+
+function getMeimayErrorName(errorLike) {
+    return String(
+        errorLike?.name
+        || errorLike?.reason?.name
+        || errorLike?.constructor?.name
+        || ''
+    ).trim();
+}
+
+function getMeimayErrorCode(errorLike) {
+    return String(
+        errorLike?.code
+        || errorLike?.errorCode
+        || errorLike?.reason?.code
+        || errorLike?.status
+        || ''
+    ).trim();
+}
+
+function getMeimayErrorBucket(errorLike, fallback = 'unknown') {
+    const code = getMeimayErrorCode(errorLike).toLowerCase();
+    const text = getMeimayErrorText(errorLike).toLowerCase();
+    const combined = `${code} ${text}`;
+
+    if (!combined.trim()) return fallback;
+    if (combined.includes('network') || combined.includes('offline') || combined.includes('failed to fetch')) return 'network';
+    if (combined.includes('timeout') || combined.includes('timed out')) return 'timeout';
+    if (combined.includes('permission') || combined.includes('denied') || combined.includes('unauthorized')) return 'permission';
+    if (combined.includes('quota') || combined.includes('rate') || combined.includes('too many')) return 'rate_limited';
+    if (combined.includes('not found') || combined.includes('404')) return 'not_found';
+    if (combined.includes('syntax') || combined.includes('unexpected token')) return 'syntax';
+    if (combined.includes('referenceerror') || combined.includes(' is not defined')) return 'reference';
+    if (combined.includes('typeerror') || combined.includes(' is not a function') || combined.includes('cannot read')) return 'type';
+    if (combined.includes('script error')) return 'cross_origin_script';
+    return fallback;
+}
+
+function getMeimayErrorSourcePath(value) {
+    try {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        const url = new URL(raw, window.location.href);
+        return `${url.pathname || ''}`.slice(0, 100);
+    } catch (_) {
+        return String(value || '').split('?')[0].slice(0, 100);
+    }
+}
+
+function shouldTrackMeimayErrorEvent(key) {
+    const now = Date.now();
+    if (meimayErrorEventState.count >= MEIMAY_ERROR_EVENT_SESSION_LIMIT) return false;
+
+    for (const [seenKey, seenAt] of meimayErrorEventState.seen.entries()) {
+        if (now - seenAt > MEIMAY_ERROR_EVENT_DEDUPE_MS) {
+            meimayErrorEventState.seen.delete(seenKey);
+        }
+    }
+
+    if (meimayErrorEventState.seen.has(key)) return false;
+    meimayErrorEventState.seen.set(key, now);
+    meimayErrorEventState.count += 1;
+    return true;
+}
+
+function trackMeimayErrorEvent(area, errorLike = null, params = {}) {
+    if (typeof trackMeimayEvent !== 'function') return false;
+    const errorArea = String(area || params.error_area || 'app').trim() || 'app';
+    const errorStage = String(params.error_stage || params.stage || '').trim();
+    const errorReason = String(params.error_reason || params.reason || getMeimayErrorBucket(errorLike)).trim() || 'unknown';
+    const errorCode = getMeimayErrorCode(errorLike);
+    const errorName = getMeimayErrorName(errorLike);
+    const sourceFile = getMeimayErrorSourcePath(params.source_file || params.filename || errorLike?.filename || '');
+    const lineNo = Number(params.line_no ?? params.lineno ?? errorLike?.lineno ?? 0) || 0;
+    const signature = [
+        errorArea,
+        errorStage,
+        errorReason,
+        errorCode,
+        errorName,
+        sourceFile,
+        lineNo
+    ].join('|');
+
+    if (params.dedupe !== false && !shouldTrackMeimayErrorEvent(signature)) return false;
+
+    return trackMeimayEvent('app_error', {
+        error_area: errorArea,
+        error_stage: errorStage,
+        error_reason: errorReason,
+        error_code: errorCode,
+        error_name: errorName,
+        error_bucket: getMeimayErrorBucket(errorLike, errorReason),
+        source_file: sourceFile,
+        line_no: lineNo,
+        handled: params.handled === false ? 0 : 1,
+        fatal: params.fatal ? 1 : 0,
+        ...params
+    });
+}
+
+window.trackMeimayErrorEvent = trackMeimayErrorEvent;
+
+if (typeof window !== 'undefined' && !window.__meimayGlobalErrorTrackingAttached) {
+    window.__meimayGlobalErrorTrackingAttached = true;
+    window.addEventListener('error', (event) => {
+        const target = event?.target;
+        if (target && target !== window) {
+            const tagName = String(target.tagName || '').toLowerCase();
+            const source = target.currentSrc || target.src || target.href || '';
+            trackMeimayErrorEvent('resource', event, {
+                error_stage: 'load',
+                error_reason: `${tagName || 'resource'}_load_failed`,
+                source_file: source,
+                handled: false
+            });
+            return;
+        }
+
+        trackMeimayErrorEvent('runtime', event?.error || event, {
+            error_stage: 'window_error',
+            error_reason: getMeimayErrorBucket(event?.error || event, 'runtime_exception'),
+            source_file: event?.filename || '',
+            line_no: event?.lineno || 0,
+            handled: false,
+            fatal: true
+        });
+    }, true);
+
+    window.addEventListener('unhandledrejection', (event) => {
+        trackMeimayErrorEvent('runtime', event?.reason || event, {
+            error_stage: 'unhandled_rejection',
+            error_reason: getMeimayErrorBucket(event?.reason || event, 'unhandled_rejection'),
+            handled: false,
+            fatal: true
+        });
+    });
+}
+
+function getKanjiSavedAnalyticsTagCount(item = {}) {
+    if (Array.isArray(item.tags)) return item.tags.length;
+    const raw = item['分類'] || item.category || item['カテゴリ'] || '';
+    if (!raw) return 0;
+    return String(raw)
+        .split(/[\s,、#]+/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .length;
+}
+
+function trackKanjiSavedEvent(item = {}, params = {}) {
+    const data = item && typeof item === 'object' ? item : {};
+    const kanji = String(data['漢字'] || data.kanji || params.kanji || '').trim();
+    if (!kanji || typeof trackMeimayEvent !== 'function') return false;
+
+    const slotIndex = Number.isFinite(Number(params.slot_index))
+        ? Number(params.slot_index)
+        : Number.isFinite(Number(data.slot))
+            ? Number(data.slot)
+            : -1;
+    const stockCount = Number.isFinite(Number(params.stock_count))
+        ? Number(params.stock_count)
+        : (typeof liked !== 'undefined' && Array.isArray(liked) ? liked.length : 0);
+    const segmentCount = Number.isFinite(Number(params.segment_count))
+        ? Number(params.segment_count)
+        : Array.isArray(data.sessionSegments)
+            ? data.sessionSegments.length
+            : (typeof segments !== 'undefined' && Array.isArray(segments) ? segments.length : 0);
+    const strokeCount = Number.isFinite(Number(data['画数'] || data.strokes))
+        ? Number(data['画数'] || data.strokes)
+        : 0;
+    const targetGender = params.target_gender || data.gender || (typeof gender !== 'undefined' ? gender : '');
+    const isSuper = params.is_super === 1 || params.is_super === true || data.isSuper === true;
+
+    return trackMeimayEvent('kanji_saved', {
+        source: params.source || data.source || data.origin || '',
+        save_action: params.action || (isSuper ? 'super' : 'like'),
+        is_super: isSuper ? 1 : 0,
+        slot_index: slotIndex,
+        segment_count: segmentCount,
+        stock_count: stockCount,
+        candidate_category: data['カテゴリ'] || data.category || data['分類'] || '',
+        reading_tier: Number.isFinite(Number(data.readingTier)) ? Number(data.readingTier) : 0,
+        stroke_count: strokeCount,
+        is_jouyou: data['常用漢字'] === true || data.jouyou === true ? 1 : 0,
+        is_kana_candidate: data.isKanaCandidate ? 1 : 0,
+        premium_candidate: data.isPremiumOnly || data.premiumOnly ? 1 : 0,
+        has_session_reading: data.sessionReading ? 1 : 0,
+        reading_promoted: data.readingPromoted ? 1 : 0,
+        has_base_nickname: data.baseNickname ? 1 : 0,
+        tag_count: getKanjiSavedAnalyticsTagCount(data),
+        target_gender: targetGender,
+        saved_batch_count: Number.isFinite(Number(params.saved_batch_count)) ? Number(params.saved_batch_count) : 1,
+        combination_size: Number.isFinite(Number(params.combination_size)) ? Number(params.combination_size) : 0
+    });
+}
+
+window.trackKanjiSavedEvent = trackKanjiSavedEvent;
 
 try {
     firebaseApp = firebase.initializeApp(firebaseConfig);

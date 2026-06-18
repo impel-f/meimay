@@ -133,6 +133,9 @@ module.exports = async (req, res) => {
   const normalizedKanji = typeof kanji === 'string' ? kanji.trim() : '';
   const normalizedReading = typeof reading === 'string' ? reading.trim() : '';
   const normalizedText = typeof text === 'string' ? text.trim() : '';
+  const normalizedPromptVersion = typeof req.body?.promptVersion === 'string'
+    ? req.body.promptVersion.trim()
+    : '';
 
   if (!isNonEmptyString(action, 40) || !isNonEmptyString(normalizedKanji, 64)) {
     return res.status(400).json({ error: 'Invalid cache request' });
@@ -175,10 +178,14 @@ module.exports = async (req, res) => {
       }
 
       const FieldValue = getFieldValue();
-      await db.collection('kanji_ai_explanations').doc(normalizedKanji).set({
+      const payload = {
         text: normalizedText,
         updatedAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
+      };
+      if (normalizedPromptVersion && normalizedPromptVersion.length <= 120) {
+        payload.promptVersion = normalizedPromptVersion;
+      }
+      await db.collection('kanji_ai_explanations').doc(normalizedKanji).set(payload, { merge: true });
 
       return res.status(200).json({ ok: true });
     }

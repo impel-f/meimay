@@ -64,6 +64,7 @@ function syncWizChildDateLabel() {
         display.textContent = formatWizChildDateLabel(value);
         display.classList.toggle('is-empty', !value);
     }
+    updateWizardPrimaryNotes();
 }
 
 function runWizardSideEffect(label, effect) {
@@ -121,6 +122,54 @@ function setupWizChildDatePicker() {
     });
 }
 
+function hasWizRoleSelection() {
+    return !!(wizRole || document.querySelector('.wiz-role-btn.selected'));
+}
+
+function hasWizGenderSelection() {
+    return !!(wizGender || document.querySelector('.wiz-baby-gender-btn.selected'));
+}
+
+function setWizardPrimaryNote(step, visible) {
+    const note = document.getElementById(`wiz-step-${step}-empty-note`);
+    const button = document.querySelector(`[data-wizard-optional-button="${step}"]`);
+    if (!note || !button) return;
+    const shouldShow = visible === true;
+    note.hidden = !shouldShow;
+    button.classList.toggle('has-note', shouldShow);
+}
+
+function updateWizardPrimaryNotes() {
+    const usernameInput = document.getElementById('wiz-username');
+    const surnameInput = document.getElementById('wiz-surname');
+    const surnameReadingInput = document.getElementById('wiz-surname-reading');
+    const childDateInput = document.getElementById('wiz-child-date');
+    const hasUsername = !!(usernameInput && usernameInput.value.trim());
+    const hasSurname = !!(surnameInput && surnameInput.value.trim());
+    const hasSurnameReading = !!(surnameReadingInput && surnameReadingInput.value.trim());
+    const childDateValue = childDateInput ? String(childDateInput.value || '').trim() : String(wizChildDate || '').trim();
+
+    setWizardPrimaryNote(1, !hasUsername && !hasWizRoleSelection());
+    setWizardPrimaryNote(2, !hasSurname && !hasSurnameReading);
+    setWizardPrimaryNote(3, !hasWizGenderSelection() || !childDateValue);
+}
+
+function setupWizardPrimaryNotes() {
+    [
+        document.getElementById('wiz-username'),
+        document.getElementById('wiz-surname'),
+        document.getElementById('wiz-surname-reading'),
+        document.getElementById('wiz-child-date')
+    ].forEach(input => {
+        if (!input || input.dataset.wizardPrimaryNoteReady === 'true') return;
+        input.dataset.wizardPrimaryNoteReady = 'true';
+        input.addEventListener('input', updateWizardPrimaryNotes);
+        input.addEventListener('change', updateWizardPrimaryNotes);
+    });
+
+    updateWizardPrimaryNotes();
+}
+
 function syncWizSurnamePreview() {
     const surnameInput = document.getElementById('wiz-surname');
     const readingInput = document.getElementById('wiz-surname-reading');
@@ -162,6 +211,7 @@ function selectWizRole(role) {
     document.querySelectorAll('.wiz-role-btn').forEach(btn => {
         btn.classList.toggle('selected', btn.getAttribute('data-role') === role);
     });
+    updateWizardPrimaryNotes();
 }
 
 function selectWizGender(gender) {
@@ -171,6 +221,7 @@ function selectWizGender(gender) {
         btn.classList.toggle('selected', isSelected);
         btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
+    updateWizardPrimaryNotes();
 }
 
 function selectWizBirthOrder(order) {
@@ -195,7 +246,7 @@ function syncWizardReadingChoiceCopy() {
     if (yesCopy) {
         const spans = yesCopy.querySelectorAll('span');
         if (spans[0]) spans[0].textContent = '読みが決まっている';
-        if (spans[1]) spans[1].textContent = '「はると」「みなと」など、使いたい読みから漢字を探します';
+        if (spans[1]) spans[1].textContent = '使いたい読みから漢字を探します';
     }
 
     const noCopy = document.querySelector('[data-reading-candidate="no"] .wiz-reading-choice-copy');
@@ -207,6 +258,7 @@ function syncWizardReadingChoiceCopy() {
 }
 
 function wizNext(currentStep) {
+    updateWizardPrimaryNotes();
     // Validation
     if (currentStep === 1) {
         // Username is optional, role is optional
@@ -274,6 +326,7 @@ function wizNext(currentStep) {
 
     // Update dots
     updateWizardDots(currentStep + 1);
+    updateWizardPrimaryNotes();
 }
 
 function wizPrev(currentStep) {
@@ -285,6 +338,7 @@ function wizPrev(currentStep) {
     if (current) current.classList.remove('active');
     if (prev) prev.classList.add('active');
     updateWizardDots(safeStep - 1);
+    updateWizardPrimaryNotes();
 }
 
 function updateWizardDots(step) {
@@ -906,6 +960,7 @@ function initDrawerWizard() {
     setupWizChildDatePicker();
     syncWizChildDateLabel();
     setupWizSurnamePreview();
+    setupWizardPrimaryNotes();
     renderDrawerMenu();
     setupDrawerSwipeGestures();
 

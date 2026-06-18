@@ -1087,7 +1087,8 @@ async function toggleRankingStock(kanjiStr, btn) {
         }
     } else {
         if (found) {
-            liked.push({ ...found, slot: -1, sessionReading: 'RANKING', fromPartner: false });
+            const nextItem = { ...found, slot: -1, sessionReading: 'RANKING', fromPartner: false };
+            liked.push(nextItem);
             if (btn) {
                 btn.innerText = '解除';
                 btn.className = 'px-3 py-1.5 bg-[#fef2f2] text-[#f28b82] rounded-xl text-xs font-bold transition-all active:scale-95 shrink-0';
@@ -1096,6 +1097,12 @@ async function toggleRankingStock(kanjiStr, btn) {
                 await MeimayStats.recordKanjiLike(normalizedKanji, {
                     gender: found.gender || gender || 'neutral',
                     delta: 1
+                });
+            }
+            if (typeof trackKanjiSavedEvent === 'function') {
+                trackKanjiSavedEvent(nextItem, {
+                    source: 'ranking',
+                    action: 'like'
                 });
             }
         }

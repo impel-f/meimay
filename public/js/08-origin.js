@@ -8,10 +8,13 @@ const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v14_20260510';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_meaning_details_v1_20260608';
+const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.01';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
 let activeNameOriginGenerationToken = 0;
+let kanjiMeaningDetailsPromise = null;
 
 const NAME_ORIGIN_LEFT_RIGHT_KANJI = new Set(Array.from(
     '明朋服期朝湖瑚珊理琉璃珠玲玖珂珀瑛瑞琳瑠環瑶琴珈祐祥裕俊侑佑佐佳依怜悟恒想惟慎拓陽陸陵梨桜桃椿楓柚梓樹波海洋浬渚治浩洸清淳湊満潤澪瀬沙汐汰江沖河晴暖昭時智暉彩結紗絢綾緒純紬詩誠語諒謙護証論'
@@ -1754,11 +1757,40 @@ function refundDailyKanjiDetailUse() {
     } catch (error) { }
 }
 
+async function loadKanjiMeaningDetails() {
+    if (!kanjiMeaningDetailsPromise) {
+        kanjiMeaningDetailsPromise = fetch(KANJI_MEANING_DETAILS_URL)
+            .then((response) => {
+                if (!response.ok) throw new Error(`meaning details load failed: ${response.status}`);
+                return response.json();
+            })
+            .catch((error) => {
+                console.warn('KANJI_MEANING_DETAILS:', error);
+                return {};
+            });
+    }
+    return kanjiMeaningDetailsPromise;
+}
+
+function getKanjiMeaningDetailText(kanji, meaningDetails) {
+    const entry = meaningDetails && typeof meaningDetails === 'object' ? meaningDetails[kanji] : null;
+    const raw = typeof entry === 'string' ? entry : entry?.meaning;
+    return typeof clean === 'function' ? clean(raw || '') : String(raw || '').trim();
+}
+
+function isKanjiDetailAiCacheCurrent(cached) {
+    return !!(cached && cached.promptVersion === KANJI_DETAIL_AI_PROMPT_VERSION);
+}
+
 function getStoredKanjiDetailAiText(kanji) {
     if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
     const cached = StorageBox.getKanjiAiCache(kanji);
+    if (!isKanjiDetailAiCacheCurrent(cached)) return '';
     return String(cached?.text || '').trim();
 }
+
+window.isKanjiDetailAiCacheCurrent = isKanjiDetailAiCacheCurrent;
+window.KANJI_DETAIL_AI_PROMPT_VERSION = KANJI_DETAIL_AI_PROMPT_VERSION;
 
 function sanitizeKanjiAiText(text) {
     return String(text || '')
@@ -2265,13 +2297,14 @@ function countRepresentativeIdiomCandidates(content) {
     return parseRepresentativeIdiomLines(content).length;
 }
 
-function buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint) {
+function buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint) {
     return `
 漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
 
 【入力情報】
 読み: ${readings || '不明'}
-意味: ${meaning || '不明'}
+意味の要約: ${meaning || '不明'}
+漢字データの詳細語義: ${detailedMeaning || meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
 
 以下の3項目をすべて必ず出力してください。1項目でも欠けた回答は失敗です。順番と見出しは完全一致させてください。
@@ -2282,7 +2315,7 @@ ${groundedHint?.promptContext
         : '部品やつくりを確実に断定できる範囲で、50〜80文字で説明してください。断定できない場合も、このセクションは省略せず、「一般には字形・字義の変化を踏まえて説明されます」のように不確かさを明記して必ず出力してください。'}
 
 【意味の深掘り】
-字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。必ず句点で終えてください。
+「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。必ず句点で終えてください。
 
 【代表的な熟語】
 この漢字を使った実在する熟語を3〜5個、読みと意味付きで挙げてください。2字熟語または3字熟語だけにし、1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
@@ -2294,6 +2327,8 @@ ${groundedHint?.promptContext
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・口調は必ずです・ます調で統一してください。
 ・「アプリ内辞書では」という表現は使わないでください。
+・詳細語義に複数の意味がある場合は、名前向きに自然な意味を中心にしつつ、字義の広がりがあることも反映してください。
+・詳細語義にある意味と矛盾する説明は書かないでください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
 ・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
 ・実在を確信できるものだけを書いてください。ただし、3個に満たない場合でも、一般的で安全な実在の熟語を優先して3個以上になるように選んでください。
@@ -2334,14 +2369,15 @@ function isMeaningSectionTooShallow(text) {
     return false;
 }
 
-function buildKanjiDetailRepairPrompt(kanji, readings, meaning, groundedHint, currentMeaning, currentIdioms) {
+function buildKanjiDetailRepairPrompt(kanji, readings, meaning, detailedMeaning, groundedHint, currentMeaning, currentIdioms) {
     const currentIdiomsCount = countRepresentativeIdiomCandidates(currentIdioms);
     return `
 漢字「${kanji}」の説明を完全な形に修正してください。
 
 【入力情報】
 読み: ${readings || '不明'}
-意味: ${meaning || '不明'}
+意味の要約: ${meaning || '不明'}
+漢字データの詳細語義: ${detailedMeaning || meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
 
 【現在の内容】
@@ -2356,7 +2392,8 @@ ${currentIdioms || 'なし'}
 ・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・【成り立ち】は、この漢字がどのように作られたかを50〜80文字で書いてください。不確かな部品や声符は断定せず、不確かさを明記してください。
-・【意味の深掘り】は、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
+・【意味の深掘り】は、「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
+・詳細語義にある意味と矛盾する説明は書かないでください。
 ・【代表的な熟語】は、実在する2字熟語または3字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。4字以上の語は書かないでください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
@@ -2458,6 +2495,8 @@ async function generateKanjiDetail(kanji, currentReading) {
         .map((item) => (typeof clean === 'function' ? clean(item) : String(item || '').trim()))
         .filter(Boolean)
         .join(' / ');
+    const kanjiMeaningDetails = await loadKanjiMeaningDetails();
+    const detailedMeaning = getKanjiMeaningDetailText(kanji, kanjiMeaningDetails);
     const kanjiDetailDataset = await loadKanjiDetailDataset();
     const datasetEntry = kanjiDetailDataset?.[kanji] || null;
     const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry);
@@ -2509,8 +2548,9 @@ async function generateKanjiDetail(kanji, currentReading) {
         if (typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
                 const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
-                const cachedText = sanitizeKanjiAiText(doc.exists ? doc.data()?.text : '');
-                if (cachedText) {
+                const cachedData = doc.exists ? (doc.data() || {}) : null;
+                const cachedText = sanitizeKanjiAiText(cachedData?.text || '');
+                if (cachedText && isKanjiDetailAiCacheCurrent(cachedData)) {
                     const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
                     const cachedStatus = getKanjiDetailCompletionStatus(mergedCachedText, groundedHint);
                     if (cachedStatus.complete) {
@@ -2524,6 +2564,11 @@ async function generateKanjiDetail(kanji, currentReading) {
                             idiomCount: cachedStatus.idiomsCount
                         });
                     }
+                } else if (cachedText) {
+                    console.warn('AI_KANJI_DETAIL: cached explanation prompt version expired', {
+                        kanji,
+                        cachedPromptVersion: cachedData?.promptVersion || ''
+                    });
                 }
             } catch (cacheError) {
                 console.warn('AI_KANJI_DETAIL: base cache read failed', cacheError);
@@ -2537,7 +2582,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, groundedHint)
+                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint)
                 }),
                 signal: controller.signal
             });
@@ -2583,6 +2628,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                                     kanji,
                                     readings,
                                     meaning,
+                                    detailedMeaning,
                                     groundedHint,
                                     status.meaningSection,
                                     status.idiomsSection
@@ -2641,7 +2687,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                     await callKanjiCacheApiWithAuth({
                         action: 'saveBase',
                         kanji: kanji,
-                        text: baseText
+                        text: baseText,
+                        promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION
                     });
                 } catch (cacheError) {
                     console.warn('AI_KANJI_DETAIL: base cache save failed via API', cacheError);
@@ -2718,7 +2765,9 @@ async function generateKanjiDetail(kanji, currentReading) {
 
         renderKanjiDetailSections(resultEl, combinedText);
         if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveKanjiAiCache === 'function') {
-            StorageBox.saveKanjiAiCache(kanji, combinedText);
+            StorageBox.saveKanjiAiCache(kanji, combinedText, {
+                promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION
+            });
         }
 
         if (finalIdiomsCount >= 3 && (readingFreshGenerated || (baseFreshGenerated && isSpecialKanjiAiReading(currentReading)))) {
