@@ -7,3 +7,4 @@
 - Before changing behavior, find the current implementation with `git grep` or `Select-String`. If `rg` is unavailable, use those fallbacks instead of appending new code.
 - After edits, run `git diff --check` and a JavaScript syntax check for touched files when possible.
 - Keep cache-busting script versions in `public/index.html` aligned with touched JavaScript files.
+- Do not stage or commit promotional/store-listing image assets or local release artifacts unless the user explicitly asks for those exact files. Keep `release/app-store-screenshots/`, `release/google-play-listing/`, `tmp/screenshots/`, and generated `.aab` files out of Git by default.
