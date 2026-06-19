@@ -8,3 +8,5 @@
 - After edits, run `git diff --check` and a JavaScript syntax check for touched files when possible.
 - Keep cache-busting script versions in `public/index.html` aligned with touched JavaScript files.
 - Do not stage or commit promotional/store-listing image assets or local release artifacts unless the user explicitly asks for those exact files. Keep `release/app-store-screenshots/`, `release/google-play-listing/`, `tmp/screenshots/`, and generated `.aab` files out of Git by default.
+- Before building Android AABs, run Capacitor sync, then `npm run prune:native-marketing-assets -- android`, and verify the generated AAB contains no `base/assets/public/marketing-assets/` entries.
+- Before publishing iOS builds, check the latest App Store Connect/TestFlight build number and make `CFBundleVersion`/`IOS_BUILD_NUMBER` strictly higher than the previously uploaded value; update both `codemagic.yaml` and `ios/App/App.xcodeproj/project.pbxproj` together.
