@@ -1,5 +1,6 @@
 .vercel
 node_modules
 .env
+.claude/worktrees/
 antigravity-discord-bot/
 release/app-store-screenshots/**/.profiles/
