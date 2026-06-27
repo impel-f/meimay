@@ -3818,6 +3818,33 @@ function queuePartnerStockSync(reason = 'stock') {
 window.queuePartnerStockSync = queuePartnerStockSync;
 
 let roomSyncSuspendInFlight = false;
+let roomRealtimeRefreshInFlight = false;
+let roomRealtimeRefreshLastAt = 0;
+const ROOM_REALTIME_REFRESH_INTERVAL_MS = 60000;
+
+function ensureRoomRealtimeOnReconnect(reason = 'reconnect') {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
+    if (!MeimayPairing || !MeimayPairing.roomCode || typeof MeimayPairing.resumeRoom !== 'function') return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    if (roomRealtimeRefreshInFlight) return;
+
+    const hasRoomListener = typeof MeimayPairing._roomUnsub === 'function';
+    const hasPartnerListener = !MeimayPairing.partnerUid
+        || (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare._partnerUnsub === 'function');
+    const now = Date.now();
+    if (hasRoomListener && hasPartnerListener && now - roomRealtimeRefreshLastAt < ROOM_REALTIME_REFRESH_INTERVAL_MS) return;
+
+    roomRealtimeRefreshInFlight = true;
+    roomRealtimeRefreshLastAt = now;
+    Promise.resolve(MeimayPairing.resumeRoom())
+        .catch((error) => {
+            console.warn(`PAIRING: Realtime listener refresh failed (${reason})`, error);
+        })
+        .finally(() => {
+            roomRealtimeRefreshInFlight = false;
+        });
+}
+
 function flushRoomSyncOnSuspend() {
     if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     if (roomSyncSuspendInFlight) return;
@@ -3841,6 +3868,7 @@ function flushRoomSyncOnReconnect() {
     if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.hydrateCachedPartnerSnapshot === 'function') {
         MeimayShare.hydrateCachedPartnerSnapshot('reconnect');
     }
+    ensureRoomRealtimeOnReconnect('reconnect');
     Promise.resolve(MeimayPairing.syncMyData())
         .catch((error) => {
             console.warn('PAIRING: Reconnect sync failed', error);
@@ -6035,6 +6063,38 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerLikedItems = this.getPartnerLiked();
     const ownSavedItems = this.getOwnSaved();
     const partnerSavedItems = this.getPartnerSaved();
+    const summaryListKey = (items, keyFn) => {
+        const list = Array.isArray(items) ? items : [];
+        if (list.length === 0) return '0';
+        let hash = 0;
+        list.forEach((item) => {
+            const stamp = [
+                keyFn(item) || '',
+                item?.updatedAt || item?.savedAt || item?.createdAt || item?.addedAt || item?.timestamp || item?.likedAt || '',
+                item?.approvedFromPartner ? 'ap' : '',
+                item?.approvedPartnerSavedKey || '',
+                item?.isSuper || item?.ownSuper || item?.partnerSuper ? 'sp' : '',
+                item?.partnerAlsoPicked ? 'both' : ''
+            ].join(':');
+            for (let index = 0; index < stamp.length; index++) {
+                hash = ((hash << 5) - hash + stamp.charCodeAt(index)) | 0;
+            }
+        });
+        return `${list.length}:${hash >>> 0}`;
+    };
+    const summaryCacheKey = [
+        'summary',
+        this._getPartnerContextCacheKey(),
+        summaryListKey(ownReadingItems, item => this.buildReadingStockKey(item)),
+        summaryListKey(partnerReadingItems, item => this.buildReadingStockKey(item)),
+        summaryListKey(ownLikedItems, item => this.buildLikedMatchKey(item)),
+        summaryListKey(partnerLikedItems, item => this.buildLikedMatchKey(item)),
+        summaryListKey(ownSavedItems, item => this.buildSavedMatchKey(item)),
+        summaryListKey(partnerSavedItems, item => this.buildSavedMatchKey(item))
+    ].join('|');
+    const cachedSummary = this._getCachedPartnerValue(summaryCacheKey);
+    if (cachedSummary) return cachedSummary;
+
     const partnerReadingKeys = new Set(partnerReadingItems.map(item => this.buildReadingStockKey(item)).filter(Boolean));
     const seenReadingKeys = new Set();
     const matchedReadingItems = ownReadingItems.filter(item => {
@@ -6093,7 +6153,7 @@ MeimayPartnerInsights.getSummary = function () {
         ...matchedLikedItems.slice(0, 3).map(item => item['漢字'] || '')
     ].filter(Boolean).slice(0, 4);
 
-    return {
+    const summary = {
         inRoom: !!MeimayPairing.roomCode,
         hasPartner: !!MeimayPairing.partnerUid,
         partnerLabel: partnerName,
@@ -6143,6 +6203,7 @@ MeimayPartnerInsights.getSummary = function () {
             matchedSavedItems
         }
     };
+    return this._setCachedPartnerValue(summaryCacheKey, summary);
 };
 
 function inferPartnerRole(role) {

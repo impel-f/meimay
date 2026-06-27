@@ -1529,8 +1529,9 @@ function getFortuneRankingScore(fortune, pieces = []) {
     return score;
 }
 
-const FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT = 50000;
-const FREE_BUILD_FORTUNE_BUCKET_COMBO_LIMIT = 150000;
+const FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT = 3000;
+const FREE_BUILD_FORTUNE_BUCKET_COMBO_LIMIT = 12000;
+const BUILD_COMBINATION_GENERATE_LIMIT = 3000;
 
 function estimateFreeBuildFortuneCombinationCount(sourceCount, variableSlots) {
     const count = Math.max(0, Number(sourceCount) || 0);
@@ -1578,12 +1579,14 @@ function buildExactFreeBuildFortuneRanking(pool, fixedPieces, variableSlots, res
     const ranked = [];
 
     function walk(depth, pieces) {
+        if (ranked.length >= FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT) return;
         if (depth === variableSlots) {
             ranked.push(createFreeBuildFortuneRankingItem(pieces, resolvedSurnameData));
             return;
         }
 
         pool.forEach((item) => {
+            if (ranked.length >= FREE_BUILD_FORTUNE_EXACT_COMBO_LIMIT) return;
             walk(depth + 1, [...pieces, item]);
         });
     }
@@ -2377,6 +2380,33 @@ function getStockCardSurfaceStyle(kind) {
         kanjiColor: '#514839',
         strokesColor: palette.text || '#a6967a'
     };
+}
+
+function getBuildReadingSourceKind(choice) {
+    if (choice?.hasSelf && choice?.hasPartner) return 'matched';
+    if (choice?.hasPartner) return 'partner';
+    return 'self';
+}
+
+function getBuildReadingSourceChipStyle(kind) {
+    const palette = typeof window.getMeimayOwnershipPalette === 'function'
+        ? window.getMeimayOwnershipPalette(kind)
+        : null;
+    if (!palette) {
+        if (kind === 'partner') return 'background:#fff5f6;color:#8b6d75;border-color:#ead7dc;';
+        if (kind === 'matched') return 'background:#fff3d8;color:#9a7841;border-color:#ead7ac;';
+        return 'background:#fffaf2;color:#8b7e66;border-color:#eadfce;';
+    }
+
+    if (kind === 'matched') {
+        return `background:${palette.surface || '#fff3d8'};color:${palette.text || '#7d6671'};border-color:${palette.border || '#ead7ac'};`;
+    }
+
+    const accent = getStockPaletteHex(palette, 'accent', kind === 'partner' ? '#f2a2b8' : '#8fbff8');
+    const border = getStockPaletteHex(palette, 'border', accent);
+    const surface = palette.mist || palette.accentSoft || mixStockHexColor(accent, 0.16);
+    const text = palette.text || palette.accentStrong || accent;
+    return `background:${surface};color:${text};border-color:${border};`;
 }
 
 function isStockMutualCard(item, kind = getStockOwnershipKind(item)) {
@@ -3403,12 +3433,9 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
         const showSegmentHint = !!segmentDisplay
             && displaySegments.length > 1
             && normalizedSegments === normalizedReading;
-        const sourceLabel = choice.hasSelf && choice.hasPartner ? 'ふたり' : choice.hasPartner ? '相手' : '自分';
-        const sourceClass = choice.hasSelf && choice.hasPartner
-            ? 'bg-[#fff3d8] text-[#9a7841] border-[#ead7ac]'
-            : choice.hasPartner
-                ? 'bg-[#fff0f5] text-[#a25f78] border-[#f4d3df]'
-                : 'bg-[#eef5ff] text-[#4f7cb8] border-[#d8e4ff]';
+        const sourceKind = getBuildReadingSourceKind(choice);
+        const sourceLabel = sourceKind === 'matched' ? 'ふたり' : sourceKind === 'partner' ? '相手' : '自分';
+        const sourceStyle = getBuildReadingSourceChipStyle(sourceKind);
         const isCurrent = choice.reading === currentReading
             && displaySegments.join('/') === currentSegments.join('/');
         const countLabel = `${Math.max(0, Number(choice.kanjiCount) || 0)}個`;
@@ -3417,7 +3444,7 @@ function renderBuildReadingDropdownChoices(dropdown, currentReading, currentSegm
             <span class="min-w-0 flex-1 pr-3">
                 <span class="block truncate text-sm font-bold text-[#5d5444]">${escapeBuildHtml(choice.reading)}${isCurrent ? '（現在）' : ''}</span>
                 ${showSegmentHint ? `<span class="mt-0.5 block truncate text-[10px] font-bold text-[#a6967a]">分け方：${escapeBuildHtml(segmentDisplay)}</span>` : ''}
-                <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none ${sourceClass}">${sourceLabel}</span>
+                <span class="mt-1 inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-black leading-none" style="${sourceStyle}">${sourceLabel}</span>
             </span>
             <span class="shrink-0 text-[10px] text-[#a6967a]">${countLabel}</span>
         </button>`;
@@ -4840,22 +4867,31 @@ function showFortuneRanking() {
 function generateAllCombinations() {
     const currentReading = getSafeBuildCurrentReading();
     const slotArrays = segments.map((seg, idx) => {
-        return getUniqueBuildSlotCandidates(seg, idx, currentReading, {
+        const candidates = getUniqueBuildSlotCandidates(seg, idx, currentReading, {
             excluded: excludedKanjiFromBuild
+        });
+        return candidates.slice().sort((a, b) => {
+            if (!!a?.isSuper !== !!b?.isSuper) return a?.isSuper ? -1 : 1;
+            return String(a?.['漢字'] || a?.kanji || '').localeCompare(String(b?.['漢字'] || b?.kanji || ''), 'ja');
         });
     });
     if (slotArrays.some(arr => arr.length === 0)) return [];
 
-    function combine(arrays, current = []) {
-        if (current.length === arrays.length) return [current];
-        const results = [];
-        const nextArray = arrays[current.length];
-        for (const item of nextArray) {
-            results.push(...combine(arrays, [...current, item]));
+    const combinations = [];
+    function walk(index, current) {
+        if (combinations.length >= BUILD_COMBINATION_GENERATE_LIMIT) return;
+        if (index >= slotArrays.length) {
+            combinations.push(current);
+            return;
         }
-        return results;
+        const nextArray = slotArrays[index];
+        for (const item of nextArray) {
+            if (combinations.length >= BUILD_COMBINATION_GENERATE_LIMIT) break;
+            walk(index + 1, [...current, item]);
+        }
     }
-    const combinations = combine(slotArrays);
+
+    walk(0, []);
     return combinations.map(pieces => ({
         pieces: pieces,
         name: pieces.map(p => p['漢字']).join(''),

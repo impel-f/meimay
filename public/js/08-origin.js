@@ -9,7 +9,7 @@ const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_meaning_details_v1_20260608';
-const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.01';
+const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
@@ -1872,7 +1872,7 @@ const KANJI_DETAIL_SECTION_ICON_MAP = {
     '代表的な熟語': '✨'
 };
 
-const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.22';
+const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.23';
 let kanjiDetailDatasetPromise = null;
 
 function isKanjiCharacter(ch) {

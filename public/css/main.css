@@ -2819,20 +2819,26 @@ body.has-ad-banner #scr-saved {
     -webkit-touch-callout: default;
 }
 
-/* Build screen: keep the save button above the footer. */
+/* Build screen: align the AI/save row with the shared back/next action row. */
 #build-screen-shell {
-    height: calc(100dvh - var(--top-bar-height) - 92px - env(safe-area-inset-bottom, 0px)) !important;
-    padding-bottom: 12px !important;
+    height: calc(100dvh - var(--top-bar-height)) !important;
+    padding-bottom: 0 !important;
 }
 
 #build-scroll-area {
     overscroll-behavior: contain;
-    padding-bottom: 10px;
+    padding-bottom: calc(var(--ad-screen-safe-space, 84px) + 64px + env(safe-area-inset-bottom, 0px));
 }
 
 #build-save-area {
-    padding-top: clamp(6px, 1.2vh, 12px) !important;
-    padding-bottom: 2px;
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--ad-screen-safe-space, 84px) - 12px + env(safe-area-inset-bottom, 0px));
+    z-index: 9990;
+    width: min(calc(100vw - 48px), 420px);
+    margin: 0;
+    padding: 0 !important;
+    transform: translateX(-50%);
 }
 
 /* Free users: footer sits above the docked ad. Premium users keep the footer at the bottom. */
@@ -3887,6 +3893,10 @@ body.has-ad-banner #universal-footer {
 
 #build-save-area .build-footer-action-btn {
     min-width: 0;
+    height: 56px;
+    min-height: 56px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
 
 #build-origin-btn .build-save-btn-title,

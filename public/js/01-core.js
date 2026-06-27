@@ -30,6 +30,7 @@ const MEIMAY_APP_STORE_URL = 'https://apps.apple.com/jp/app/id6760251452';
 const MEIMAY_APP_STORE_REVIEW_URL = 'https://apps.apple.com/app/id6760251452?action=write-review';
 const MEIMAY_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.impelf.meimay';
 const MEIMAY_GOOGLE_PLAY_PUBLIC = false;
+const KANJI_DATA_URL = '/data/kanji_data.json?v=26.03';
 const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
 const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
 const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
@@ -243,19 +244,39 @@ function showToast(message, icon = '✨', onAction = null, options = {}) {
 window.showToast = showToast;
 
 let _homeRenderRequest = null;
+let _homeRenderPendingWhileHidden = false;
+
+function isHomeProfileRenderTargetActive() {
+    const home = document.getElementById('scr-mode');
+    return !!(home && home.classList.contains('active'));
+}
+
 /**
  * ホーム画面の更新を予約（連打防止・GPU負荷軽減）
  */
 function requestRenderHomeProfile(options = {}) {
-    if (_homeRenderRequest) return;
+    const force = options.force === true;
+    if (_homeRenderRequest) {
+        if (force && typeof _homeRenderRequest === 'object') {
+            _homeRenderRequest.force = true;
+        }
+        return;
+    }
+    _homeRenderRequest = { force };
+
     const run = () => {
+        const shouldForce = !!(_homeRenderRequest && _homeRenderRequest.force);
         _homeRenderRequest = null;
+        if (!shouldForce && !isHomeProfileRenderTargetActive()) {
+            _homeRenderPendingWhileHidden = true;
+            return;
+        }
+        _homeRenderPendingWhileHidden = false;
         if (typeof renderHomeProfile === 'function') {
             renderHomeProfile();
         }
     };
 
-    _homeRenderRequest = true;
     const afterPaint = options.afterPaint !== false;
     if (afterPaint && typeof requestAnimationFrame === 'function') {
         requestAnimationFrame(() => setTimeout(run, 0));
@@ -268,6 +289,12 @@ function requestRenderHomeProfile(options = {}) {
     setTimeout(run, 0);
 }
 window.requestRenderHomeProfile = requestRenderHomeProfile;
+
+function flushDeferredHomeProfileRender() {
+    if (!_homeRenderPendingWhileHidden) return;
+    requestRenderHomeProfile({ force: true, afterPaint: false });
+}
+window.flushDeferredHomeProfileRender = flushDeferredHomeProfileRender;
 
 let yomiSearchData = [];
 let readingsData = []; // 追加: 読み(タグ付き)詳細データ
@@ -443,7 +470,7 @@ window.onload = () => {
     }
 
     // 漢字データの読み込み
-    fetch('/data/kanji_data.json')
+    fetch(KANJI_DATA_URL)
         .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
             return res.json();
@@ -467,6 +494,10 @@ window.onload = () => {
             });
 
             console.log(`CORE: ${validReadingsSet.size} unique readings indexed`);
+            const kanjiSearchScreen = document.getElementById('scr-kanji-search');
+            if (kanjiSearchScreen?.classList.contains('active') && typeof executeKanjiSearch === 'function') {
+                executeKanjiSearch();
+            }
             if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
                 if (typeof requestRenderHomeProfile === 'function') {
                     requestRenderHomeProfile();
@@ -921,7 +952,7 @@ function changeScreen(id) {
 
         // ホーム画面の場合、実績・プロファイルを更新
         if (id === 'scr-mode') {
-            requestRenderHomeProfile();
+            requestRenderHomeProfile({ force: true });
         }
         if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
             updateDailyRemainingDisplay();

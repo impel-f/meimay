@@ -2369,6 +2369,63 @@ function normalizeHomeBuildPool(candidatePoolOverride) {
 
 // 高速化のためのキャッシュとインデックス
 const _homeBuildPatternCountCache = new Map();
+const _homeBuildPatternCountStaleCache = new Map();
+const _homeBuildPatternCountDeferredKeys = new Set();
+const _homeBuildPatternCountDeferredQueue = [];
+const HOME_BUILD_PATTERN_DEFER_WORK_LIMIT = 5000;
+let _homeBuildPatternCountDeferredScheduled = false;
+let _homeBuildPatternCountLastValue = 0;
+
+function isHomeScreenActiveForBuildCountRefresh() {
+    const home = document.getElementById('scr-mode');
+    return !!(home && home.classList.contains('active'));
+}
+
+function requestHomeBuildPatternCountDrain() {
+    if (_homeBuildPatternCountDeferredScheduled) return;
+    _homeBuildPatternCountDeferredScheduled = true;
+
+    const run = () => {
+        _homeBuildPatternCountDeferredScheduled = false;
+        const task = _homeBuildPatternCountDeferredQueue.shift();
+        if (!task) return;
+
+        try {
+            const value = getHomeBuildPatternCount(task.candidatePoolOverride, task.readingStockOverride, { force: true });
+            _homeBuildPatternCountLastValue = Number.isFinite(value) ? value : 0;
+        } catch (error) {
+            console.warn('HOME: Deferred build pattern count failed', error);
+        } finally {
+            _homeBuildPatternCountDeferredKeys.delete(task.cacheKey);
+        }
+
+        if (isHomeScreenActiveForBuildCountRefresh() && typeof requestRenderHomeProfile === 'function') {
+            requestRenderHomeProfile({ force: true });
+        }
+        if (_homeBuildPatternCountDeferredQueue.length > 0) {
+            requestHomeBuildPatternCountDrain();
+        }
+    };
+
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 1200 });
+        return;
+    }
+    setTimeout(run, 320);
+}
+
+function scheduleHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, cacheKey) {
+    if (!cacheKey || _homeBuildPatternCountCache.has(cacheKey) || _homeBuildPatternCountDeferredKeys.has(cacheKey)) {
+        return;
+    }
+    _homeBuildPatternCountDeferredKeys.add(cacheKey);
+    _homeBuildPatternCountDeferredQueue.push({
+        candidatePoolOverride,
+        readingStockOverride,
+        cacheKey
+    });
+    requestHomeBuildPatternCountDrain();
+}
 
 function getHomeBuildHiddenReadingSet() {
     let removedList = [];
@@ -2455,7 +2512,7 @@ function getHomeBuildSlotCandidateCount(pool, segment, slotIndex, reading, poolI
     return matchedKanji.size;
 }
 
-function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
+function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, options = {}) {
     const pool = normalizeHomeBuildPool(candidatePoolOverride);
     const readingStock = Array.isArray(readingStockOverride)
         ? readingStockOverride
@@ -2472,6 +2529,15 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
     const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}`;
     if (_homeBuildPatternCountCache.has(cacheKey)) {
         return _homeBuildPatternCountCache.get(cacheKey);
+    }
+
+    const workEstimate = Math.max(0, pool.length) * Math.max(0, readingStock.length);
+    if (options.force !== true && workEstimate > HOME_BUILD_PATTERN_DEFER_WORK_LIMIT) {
+        scheduleHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, cacheKey);
+        if (_homeBuildPatternCountStaleCache.has(cacheKey)) {
+            return _homeBuildPatternCountStaleCache.get(cacheKey);
+        }
+        return _homeBuildPatternCountLastValue;
     }
 
     // プールのインデックス化（一度だけ実行して使い回す）
@@ -2567,6 +2633,9 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride) {
     // キャッシュに保存
     if (_homeBuildPatternCountCache.size > 50) _homeBuildPatternCountCache.clear();
     _homeBuildPatternCountCache.set(cacheKey, total);
+    if (_homeBuildPatternCountStaleCache.size > 80) _homeBuildPatternCountStaleCache.clear();
+    _homeBuildPatternCountStaleCache.set(cacheKey, total);
+    _homeBuildPatternCountLastValue = total;
 
     return total;
 }
