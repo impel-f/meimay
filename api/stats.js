@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { FieldValue, getAdminFirestore, verifyRequestAuth } = require('./_lib/firebase-admin');
 
 const READINGS_DATA_PATH = path.join(__dirname, '..', 'public', 'data', 'readings_data.json');
+const KANJI_USER_VOTES_COLLECTION = 'statistics_kanji_user_votes';
 let cachedReadingAllowlists = null;
 let readingAllowlistsLoaded = false;
 
@@ -121,6 +123,118 @@ function getStatsDocId(period) {
   if (normalized === 'monthly') return `monthly_${getCurrentMonthKey()}`;
   if (normalized === 'weekly') return `weekly_${getCurrentWeekKey()}`;
   return 'allTime';
+}
+
+function getStatsWriteDocId(period) {
+  return period === 'allTime' ? 'allTime' : getStatsDocId(period);
+}
+
+function getKanjiUserVoteDocId(uid, metric, kanji) {
+  return crypto
+    .createHash('sha256')
+    .update(`${uid}\n${metric}\n${kanji}`)
+    .digest('hex');
+}
+
+function cleanStatsVoteStrings(values, fallbackValues) {
+  const cleaned = (Array.isArray(values) ? values : [])
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  if (cleaned.length > 0) return Array.from(new Set(cleaned));
+  return Array.from(new Set(fallbackValues));
+}
+
+async function applyKanjiUserVote({
+  db,
+  uid,
+  kanji,
+  delta,
+  metric,
+  gender,
+  scope,
+  period,
+}) {
+  const voteDocId = getKanjiUserVoteDocId(uid, metric, kanji);
+  const voteRef = db.collection(KANJI_USER_VOTES_COLLECTION).doc(voteDocId);
+  const currentCollections = getStatsCollectionNames('kanji', metric, gender, scope);
+  const currentPeriodDocIds = getStatsWritePeriods(period).map(getStatsWriteDocId);
+
+  return db.runTransaction(async (transaction) => {
+    const voteSnap = await transaction.get(voteRef);
+    const vote = voteSnap.exists ? voteSnap.data() : null;
+    const isActive = vote?.active === true;
+    const now = FieldValue.serverTimestamp();
+
+    if (delta > 0) {
+      if (isActive) {
+        transaction.set(voteRef, {
+          lastDuplicateLikeAt: now,
+          updatedAt: now,
+        }, { merge: true });
+        return { applied: false, duplicate: true };
+      }
+
+      currentCollections.forEach((collection) => {
+        currentPeriodDocIds.forEach((docId) => {
+          const ref = db.collection(collection).doc(docId);
+          transaction.set(ref, {
+            [kanji]: FieldValue.increment(1),
+            updatedAt: now,
+          }, { merge: true });
+        });
+      });
+
+      transaction.set(voteRef, {
+        uid,
+        kanji,
+        metric,
+        gender,
+        scope,
+        active: true,
+        collections: currentCollections,
+        periodDocIds: currentPeriodDocIds,
+        likedAt: now,
+        updatedAt: now,
+      }, { merge: true });
+
+      return { applied: true, duplicate: false };
+    }
+
+    if (!isActive) {
+      transaction.set(voteRef, {
+        uid,
+        kanji,
+        metric,
+        gender,
+        scope,
+        active: false,
+        lastMissingUnlikeAt: now,
+        updatedAt: now,
+      }, { merge: true });
+      return { applied: false, missing: true };
+    }
+
+    const voteCollections = cleanStatsVoteStrings(vote?.collections, currentCollections);
+    const votePeriodDocIds = cleanStatsVoteStrings(vote?.periodDocIds, currentPeriodDocIds);
+
+    voteCollections.forEach((collection) => {
+      votePeriodDocIds.forEach((docId) => {
+        const ref = db.collection(collection).doc(docId);
+        transaction.set(ref, {
+          [kanji]: FieldValue.increment(-1),
+          updatedAt: now,
+        }, { merge: true });
+      });
+    });
+
+    transaction.set(voteRef, {
+      active: false,
+      unlikedAt: now,
+      updatedAt: now,
+    }, { merge: true });
+
+    return { applied: true, duplicate: false };
+  });
 }
 
 function normalizeStatsReadingKey(value) {
@@ -403,8 +517,9 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let authContext = null;
   try {
-    await verifyRequestAuth(req);
+    authContext = await verifyRequestAuth(req);
   } catch (error) {
     return buildErrorResponse(res, error, 'Authentication failed');
   }
@@ -471,6 +586,53 @@ module.exports = async (req, res) => {
   }
 
   const db = getAdminFirestore();
+
+  if (normalizedKind === 'kanji') {
+    const uid = String(authContext?.uid || '').trim();
+    if (!uid) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    if (normalizedDelta !== 1 && normalizedDelta !== -1) {
+      return res.status(200).json({
+        ok: true,
+        kind: normalizedKind,
+        gender: normalizedGender,
+        scope: normalizedScope,
+        period: normalizedUpdatePeriod,
+        applied: false,
+        skipped: true,
+        reason: 'kanji_stats_use_user_vote_dedupe'
+      });
+    }
+
+    try {
+      const result = await applyKanjiUserVote({
+        db,
+        uid,
+        kanji: normalizedValue,
+        delta: normalizedDelta,
+        metric: normalizedMetric,
+        gender: normalizedGender,
+        scope: normalizedScope,
+        period: normalizedUpdatePeriod,
+      });
+
+      return res.status(200).json({
+        ok: true,
+        kind: normalizedKind,
+        gender: normalizedGender,
+        scope: normalizedScope,
+        period: normalizedUpdatePeriod,
+        applied: result.applied === true,
+        duplicate: result.duplicate === true,
+        missing: result.missing === true
+      });
+    } catch (error) {
+      return buildErrorResponse(res, error, 'Statistics update failed');
+    }
+  }
+
   const increment = FieldValue.increment(normalizedDelta);
 
   try {

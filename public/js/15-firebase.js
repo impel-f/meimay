@@ -4133,6 +4133,36 @@ function getLocalStatsBucketKey(kind, metric, period, genderValue) {
     return [kind === 'reading' ? 'reading' : 'kanji', getLocalStatsMetric(kind, metric), period, genderValue || 'all'].join('|');
 }
 
+function getLocalKanjiVoteKey(metric, value) {
+    return ['kanji', getLocalStatsMetric('kanji', metric), value].join('|');
+}
+
+function normalizeLocalStatsStringList(values, fallbackValues) {
+    const cleaned = (Array.isArray(values) ? values : [])
+        .map((value) => String(value || '').trim())
+        .filter(Boolean);
+    if (cleaned.length > 0) return Array.from(new Set(cleaned));
+    return Array.from(new Set(fallbackValues));
+}
+
+function applyLocalStatsDelta(store, kind, metric, periods, genders, value, delta) {
+    periods.forEach((period) => {
+        genders.forEach((genderValue) => {
+            const bucketKey = getLocalStatsBucketKey(kind, metric, period, genderValue);
+            const bucket = store.buckets[bucketKey] && typeof store.buckets[bucketKey] === 'object'
+                ? store.buckets[bucketKey]
+                : {};
+            const nextCount = Math.max(0, (Number(bucket[value]) || 0) + delta);
+            if (nextCount > 0) {
+                bucket[value] = nextCount;
+            } else {
+                delete bucket[value];
+            }
+            store.buckets[bucketKey] = bucket;
+        });
+    });
+}
+
 function getLocalStatsMonthKey(date) {
     try {
         const parts = new Intl.DateTimeFormat('en-CA', {
@@ -4260,11 +4290,14 @@ function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderVal
         ? MeimayPartnerInsights.getOwnLiked()
         : (Array.isArray(liked) ? liked.filter((item) => !item?.fromPartner) : []);
 
+    const seenLikedKanji = new Set();
     ownLikedItems.forEach((item) => {
         const kanjiValue = extractLocalStatsKanjiValue(item);
         if (!kanjiValue) return;
+        if (seenLikedKanji.has(kanjiValue)) return;
         if (!isLocalStatsDateInPeriod(item?.addedAt || item?.timestamp || item?.likedAt, period)) return;
         if (!isLocalStatsGenderMatched(item?.gender || item?.settings?.gender || currentGender, normalizedGender)) return;
+        seenLikedKanji.add(kanjiValue);
         addLocalStatsTotal(totals, kanjiValue);
     });
 
@@ -4288,21 +4321,36 @@ function updateLocalStatsFromBody(body = {}) {
     const genders = getLocalStatsGenderTargetsForWrite(body.gender, body.scope);
     const store = readLocalStatsStore();
 
-    periods.forEach((period) => {
-        genders.forEach((genderValue) => {
-            const bucketKey = getLocalStatsBucketKey(kind, metric, period, genderValue);
-            const bucket = store.buckets[bucketKey] && typeof store.buckets[bucketKey] === 'object'
-                ? store.buckets[bucketKey]
-                : {};
-            const nextCount = Math.max(0, (Number(bucket[value]) || 0) + delta);
-            if (nextCount > 0) {
-                bucket[value] = nextCount;
-            } else {
-                delete bucket[value];
-            }
-            store.buckets[bucketKey] = bucket;
-        });
-    });
+    if (kind === 'kanji' && (delta === 1 || delta === -1)) {
+        const votes = store.kanjiVotes && typeof store.kanjiVotes === 'object'
+            ? store.kanjiVotes
+            : {};
+        const voteKey = getLocalKanjiVoteKey(metric, value);
+        const vote = votes[voteKey] && typeof votes[voteKey] === 'object' ? votes[voteKey] : null;
+        const isActive = vote?.active === true;
+
+        if (delta > 0 && isActive) return false;
+        if (delta < 0 && !isActive) return false;
+
+        const targetPeriods = delta > 0
+            ? periods
+            : normalizeLocalStatsStringList(vote?.periods, periods);
+        const targetGenders = delta > 0
+            ? genders
+            : normalizeLocalStatsStringList(vote?.genders, genders);
+
+        applyLocalStatsDelta(store, kind, metric, targetPeriods, targetGenders, value, delta);
+        votes[voteKey] = {
+            active: delta > 0,
+            periods: targetPeriods,
+            genders: targetGenders,
+            updatedAt: new Date().toISOString()
+        };
+        store.kanjiVotes = votes;
+        return writeLocalStatsStore(store);
+    }
+
+    applyLocalStatsDelta(store, kind, metric, periods, genders, value, delta);
 
     return writeLocalStatsStore(store);
 }
@@ -4441,7 +4489,10 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
-            notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+            const result = await response.json().catch(() => null);
+            if (!result || result.applied !== false) {
+                notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+            }
             return true;
         } catch (e) {
             console.error('STATS: recordKanjiLike error', e);
@@ -4479,7 +4530,10 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
-            notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+            const result = await response.json().catch(() => null);
+            if (!result || result.applied !== false) {
+                notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
+            }
             return true;
         } catch (e) {
             console.error('STATS: recordKanjiUnlike error', e);
@@ -5136,156 +5190,8 @@ const MeimayStats = {
         if (this._kanjiGenderStatsSeedPromise) return this._kanjiGenderStatsSeedPromise;
 
         const run = async () => {
-            const getMonthKeyFromDate = (date) => {
-                try {
-                    const parts = new Intl.DateTimeFormat('en-CA', {
-                        timeZone: 'Asia/Tokyo',
-                        year: 'numeric',
-                        month: '2-digit'
-                    }).formatToParts(date);
-                    const year = parts.find((part) => part.type === 'year')?.value;
-                    const month = parts.find((part) => part.type === 'month')?.value;
-                    if (year && month) return `${year}_${month}`;
-                } catch (error) {
-                    // Fallback below keeps seeding working even in older runtimes.
-                }
-
-                const offsetMs = 9 * 60 * 60 * 1000;
-                const shifted = new Date(date.getTime() + offsetMs);
-                return `${shifted.getUTCFullYear()}_${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
-            };
-
-            const currentMonthKey = this.getCurrentMonthKey();
-            const allTotals = new Map();
-            const totalsByGender = new Map();
-            const ownLikedItems = typeof MeimayPartnerInsights !== 'undefined' && typeof MeimayPartnerInsights.getOwnLiked === 'function'
-                ? MeimayPartnerInsights.getOwnLiked()
-                : (Array.isArray(liked) ? liked.filter((item) => !item?.fromPartner) : []);
-
-            const bumpTotals = (map, kanji, allDelta = 0, monthlyDelta = 0) => {
-                if (!kanji) return;
-                const current = map.get(kanji) || { allTime: 0, monthly: 0 };
-                current.allTime += Math.max(0, Number(allDelta) || 0);
-                current.monthly += Math.max(0, Number(monthlyDelta) || 0);
-                map.set(kanji, current);
-            };
-
-            const addGenderTotals = (genderKey, kanji, allDelta = 0, monthlyDelta = 0) => {
-                const current = totalsByGender.get(genderKey) || new Map();
-                bumpTotals(current, kanji, allDelta, monthlyDelta);
-                totalsByGender.set(genderKey, current);
-            };
-
-            ownLikedItems.forEach((item) => {
-                const kanji = item?.['漢字'] || item?.['貌｡蟄･'] || item?.kanji || '';
-                if (!kanji) return;
-
-                const genderKey = normalizeStatsGenderValue(item?.gender || item?.settings?.gender || gender);
-                const genderTargets = getStatsGenderTargets(genderKey);
-                const addedAt = item?.addedAt || item?.timestamp || item?.likedAt || '';
-                const addedDate = addedAt ? new Date(addedAt) : null;
-                const monthly = addedDate && !Number.isNaN(addedDate.getTime()) && getMonthKeyFromDate(addedDate) === currentMonthKey
-                    ? 1
-                    : 0;
-
-                bumpTotals(allTotals, kanji, 1, monthly);
-                genderTargets.forEach((target) => addGenderTotals(target, kanji, 1, monthly));
-            });
-
-            const genderBuckets = Array.from(totalsByGender.keys());
-            const globalDirect = await Promise.all([
-                this.fetchRankings('allTime', 'kanji', 'all'),
-                this.fetchRankings('monthly', 'kanji', 'all')
-            ]);
-            const serverAllTime = new Map();
-            const serverMonthly = new Map();
-
-            (Array.isArray(globalDirect[0]) ? globalDirect[0] : []).forEach((item) => {
-                const kanji = String(item?.kanji || item?.key || '').trim();
-                const count = Number(item?.count) || 0;
-                if (kanji && count > 0) serverAllTime.set(kanji, count);
-            });
-            (Array.isArray(globalDirect[1]) ? globalDirect[1] : []).forEach((item) => {
-                const kanji = String(item?.kanji || item?.key || '').trim();
-                const count = Number(item?.count) || 0;
-                if (kanji && count > 0) serverMonthly.set(kanji, count);
-            });
-
-            const tasks = [];
-            allTotals.forEach((counts, kanji) => {
-                const allTimeDelta = Math.max(0, (Number(counts.allTime) || 0) - (Number(serverAllTime.get(kanji)) || 0));
-                const monthlyDelta = Math.max(0, (Number(counts.monthly) || 0) - (Number(serverMonthly.get(kanji)) || 0));
-
-                if (allTimeDelta > 0) {
-                    tasks.push(this.recordKanjiLike(kanji, {
-                        scope: 'global',
-                        period: 'allTime',
-                        delta: allTimeDelta
-                    }));
-                }
-                if (monthlyDelta > 0) {
-                    tasks.push(this.recordKanjiLike(kanji, {
-                        scope: 'global',
-                        period: 'monthly',
-                        delta: monthlyDelta
-                    }));
-                }
-            });
-
-            for (const genderKey of genderBuckets) {
-                const genderTotals = totalsByGender.get(genderKey) || new Map();
-                const [serverGenderAllTimeItems, serverGenderMonthlyItems] = await Promise.all([
-                    this.fetchRankings('allTime', 'kanji', 'all', genderKey),
-                    this.fetchRankings('monthly', 'kanji', 'all', genderKey)
-                ]);
-                const serverGenderAllTime = new Map();
-                const serverGenderMonthly = new Map();
-
-                (Array.isArray(serverGenderAllTimeItems) ? serverGenderAllTimeItems : []).forEach((item) => {
-                    const kanji = String(item?.kanji || item?.key || '').trim();
-                    const count = Number(item?.count) || 0;
-                    if (kanji && count > 0) serverGenderAllTime.set(kanji, count);
-                });
-                (Array.isArray(serverGenderMonthlyItems) ? serverGenderMonthlyItems : []).forEach((item) => {
-                    const kanji = String(item?.kanji || item?.key || '').trim();
-                    const count = Number(item?.count) || 0;
-                    if (kanji && count > 0) serverGenderMonthly.set(kanji, count);
-                });
-
-                genderTotals.forEach((counts, kanji) => {
-                    const allTimeDelta = Math.max(0, (Number(counts.allTime) || 0) - (Number(serverGenderAllTime.get(kanji)) || 0));
-                    const monthlyDelta = Math.max(0, (Number(counts.monthly) || 0) - (Number(serverGenderMonthly.get(kanji)) || 0));
-
-                    if (allTimeDelta > 0) {
-                        tasks.push(this.recordKanjiLike(kanji, {
-                            gender: genderKey,
-                            scope: 'gender',
-                            period: 'allTime',
-                            delta: allTimeDelta
-                        }));
-                    }
-                    if (monthlyDelta > 0) {
-                        tasks.push(this.recordKanjiLike(kanji, {
-                            gender: genderKey,
-                            scope: 'gender',
-                            period: 'monthly',
-                            delta: monthlyDelta
-                        }));
-                    }
-                });
-            }
-
-            if (tasks.length === 0) {
-                localStorage.setItem(seededFlagKey, '1');
-                return true;
-            }
-
-            const results = await Promise.all(tasks);
-            const hasSuccess = results.some(Boolean);
-            if (hasSuccess) {
-                localStorage.setItem(seededFlagKey, '1');
-            }
-            return hasSuccess;
+            localStorage.setItem(seededFlagKey, '1');
+            return true;
         };
 
         this._kanjiGenderStatsSeedPromise = run().finally(() => {
