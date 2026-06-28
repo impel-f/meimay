@@ -4133,8 +4133,9 @@ function getLocalStatsBucketKey(kind, metric, period, genderValue) {
     return [kind === 'reading' ? 'reading' : 'kanji', getLocalStatsMetric(kind, metric), period, genderValue || 'all'].join('|');
 }
 
-function getLocalKanjiVoteKey(metric, value) {
-    return ['kanji', getLocalStatsMetric('kanji', metric), value].join('|');
+function getLocalStatsVoteKey(kind, metric, value) {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    return [normalizedKind, getLocalStatsMetric(normalizedKind, metric), value].join('|');
 }
 
 function normalizeLocalStatsStringList(values, fallbackValues) {
@@ -4321,11 +4322,15 @@ function updateLocalStatsFromBody(body = {}) {
     const genders = getLocalStatsGenderTargetsForWrite(body.gender, body.scope);
     const store = readLocalStatsStore();
 
-    if (kind === 'kanji' && (delta === 1 || delta === -1)) {
-        const votes = store.kanjiVotes && typeof store.kanjiVotes === 'object'
+    const shouldUseVoteDedupe = kind === 'kanji' || (kind === 'reading' && metric === 'like');
+    if (shouldUseVoteDedupe && (delta === 1 || delta === -1)) {
+        const legacyKanjiVotes = kind === 'kanji' && store.kanjiVotes && typeof store.kanjiVotes === 'object'
             ? store.kanjiVotes
-            : {};
-        const voteKey = getLocalKanjiVoteKey(metric, value);
+            : null;
+        const votes = store.userVotes && typeof store.userVotes === 'object'
+            ? store.userVotes
+            : (legacyKanjiVotes ? { ...legacyKanjiVotes } : {});
+        const voteKey = getLocalStatsVoteKey(kind, metric, value);
         const vote = votes[voteKey] && typeof votes[voteKey] === 'object' ? votes[voteKey] : null;
         const isActive = vote?.active === true;
 
@@ -4346,7 +4351,8 @@ function updateLocalStatsFromBody(body = {}) {
             genders: targetGenders,
             updatedAt: new Date().toISOString()
         };
-        store.kanjiVotes = votes;
+        store.userVotes = votes;
+        if (store.kanjiVotes) delete store.kanjiVotes;
         return writeLocalStatsStore(store);
     }
 
@@ -4607,7 +4613,10 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
-            notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+            const result = await response.json().catch(() => null);
+            if (!result || result.applied !== false) {
+                notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+            }
             return true;
         } catch (e) {
             console.error('STATS: recordReadingLike error', e);
@@ -4680,7 +4689,10 @@ const MeimayStats = {
                 body: JSON.stringify(body)
             });
             if (!response.ok) throw new Error(`API Error: ${response.status}`);
-            notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+            const result = await response.json().catch(() => null);
+            if (!result || result.applied !== false) {
+                notifyRankingCardState('reading', normalizedReading, normalizedDelta, normalizedDelta > 0);
+            }
             return true;
         } catch (e) {
             console.error('STATS: recordReadingUnlike error', e);

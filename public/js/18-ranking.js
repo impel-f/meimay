@@ -3,9 +3,10 @@
 let currentRankingType = 'kanji';
 const RANKING_PERIOD_STORAGE_KEY = 'meimay_ranking_period_v1';
 const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
-const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v1';
+const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v2';
 const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKING_CACHE_MAX_ENTRIES = 24;
+const READING_RANKING_METRIC = 'like';
 
 function normalizeRankingGender(value) {
     const raw = String(value || '').trim().toLowerCase();
@@ -974,13 +975,6 @@ async function seedRankingStatsIfNeeded(type) {
             seedTasks.push(MeimayStats.seedKanjiStatsFromLocalLikes());
         }
     }
-    if (type === 'reading' && typeof MeimayStats.seedSavedReadingStatsFromLocalNames === 'function') {
-        const readingSavedSeeded = getSeedFlag('meimay_reading_saved_stats_seeded_v1');
-        if (!readingSavedSeeded) {
-            seedTasks.push(MeimayStats.seedSavedReadingStatsFromLocalNames());
-        }
-    }
-
     if (seedTasks.length > 0) {
         await Promise.allSettled(seedTasks);
     }
@@ -997,7 +991,7 @@ async function fetchRankingItems(type, period, genderFilter) {
         return MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
     }
 
-    const readingRanking = await MeimayStats.fetchRankings(period, 'reading', 'saved', genderFilter);
+    const readingRanking = await MeimayStats.fetchRankings(period, 'reading', READING_RANKING_METRIC, genderFilter);
     return buildReadingRankingItems(readingRanking, genderFilter);
 }
 

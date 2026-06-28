@@ -5180,6 +5180,12 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     }
     if (result.created) {
         console.log("STOCK: Added reading to stock:", result.entry);
+        if (result.entry.statsTracked !== false && typeof syncReadingStockRankingStats === 'function') {
+            syncReadingStockRankingStats(result.entry.reading || reading, 1, 'all', {
+                gender: result.entry.gender || options.gender || gender || 'neutral',
+                scope: 'all'
+            });
+        }
         if (typeof trackMeimayEvent === 'function') {
             trackMeimayEvent('reading_saved', {
                 source: options.source || (options.readingPromoted ? 'reading_combination' : (appMode || '')),
@@ -5374,6 +5380,17 @@ function removeReadingFromStock(target) {
     }
 
     saveReadingStock(nextStock);
+    const syncedReadings = new Set();
+    removedItems.forEach((item) => {
+        if (item && item.statsTracked === false) return;
+        const reading = getReadingBaseReading(item?.reading || item?.key || target);
+        if (!reading || syncedReadings.has(reading)) return;
+        syncedReadings.add(reading);
+        syncReadingStockRankingStats(reading, -1, 'all', {
+            gender: item?.gender || gender || 'neutral',
+            scope: 'all'
+        });
+    });
     console.log("STOCK: Removed reading from stock:", target);
     return removedItems;
 }
