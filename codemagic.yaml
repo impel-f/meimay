@@ -101,8 +101,8 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
-        IOS_MARKETING_VERSION: "1.3.0"
-        IOS_BUILD_NUMBER: "27"
+        IOS_MARKETING_VERSION: "1.3.1"
+        IOS_BUILD_NUMBER_FLOOR: "28"
       node: v22.11.0
       xcode: latest
     scripts:
@@ -114,9 +114,39 @@ workflows:
         script: npm run prune:native-marketing-assets -- ios
       - name: Set iOS version and build number
         script: |
-          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.3.0}"
-          BUILD_VERSION="${IOS_BUILD_NUMBER:-${PROJECT_BUILD_NUMBER:-$BUILD_NUMBER}}"
-          BUILD_VERSION="${BUILD_VERSION:-27}"
+          set -euo pipefail
+          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.3.1}"
+
+          extract_number() {
+            printf '%s' "$1" | tr -d '\r' | grep -Eo '[0-9]+' | tail -n 1 || true
+          }
+
+          BUILD_FLOOR="$(extract_number "${IOS_BUILD_NUMBER_FLOOR:-0}")"
+          BUILD_FLOOR="${BUILD_FLOOR:-0}"
+          CI_BUILD_NUMBER="$(extract_number "${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-0}}")"
+          CI_BUILD_NUMBER="${CI_BUILD_NUMBER:-0}"
+
+          echo "Resolving iOS build number from App Store Connect..."
+          LATEST_BUILD_OUTPUT="$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" --platform IOS --all-versions)"
+          LATEST_BUILD_NUMBER="$(extract_number "$LATEST_BUILD_OUTPUT")"
+          if [ -z "$LATEST_BUILD_NUMBER" ]; then
+            echo "Failed to resolve latest App Store Connect build number. Raw output: $LATEST_BUILD_OUTPUT"
+            exit 1
+          fi
+
+          BUILD_VERSION=$((LATEST_BUILD_NUMBER + 1))
+          if [ "$BUILD_FLOOR" -gt "$BUILD_VERSION" ]; then
+            BUILD_VERSION="$BUILD_FLOOR"
+          fi
+          if [ "$CI_BUILD_NUMBER" -gt "$BUILD_VERSION" ]; then
+            BUILD_VERSION="$CI_BUILD_NUMBER"
+          fi
+          if [ "$BUILD_VERSION" -le "$LATEST_BUILD_NUMBER" ]; then
+            echo "Resolved iOS build number $BUILD_VERSION is not higher than App Store Connect latest $LATEST_BUILD_NUMBER"
+            exit 1
+          fi
+
+          echo "Using iOS marketing version $MARKETING_VERSION / build number $BUILD_VERSION (ASC latest: $LATEST_BUILD_NUMBER)"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
       - name: Initialize code signing keychain
