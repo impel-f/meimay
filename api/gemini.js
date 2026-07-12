@@ -6,8 +6,12 @@ const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 
 const MODEL_PRIORITY_GROUPS = [
   {
+    label: "Gemini 3.5 Flash",
+    candidates: ["gemini-3.5-flash"],
+  },
+  {
     label: "Gemini 3.1 Flash-Lite",
-    candidates: ["gemini-3.1-flash-lite-preview"],
+    candidates: ["gemini-3.1-flash-lite"],
   },
   {
     label: "Gemini 3 Flash",
@@ -66,12 +70,16 @@ function isPrepaymentCreditsDepleted(error) {
 }
 
 function buildModel(genAI, modelName) {
+  const generationConfig = {
+    maxOutputTokens: 2048,
+  };
+  if (modelName !== "gemini-3.5-flash") {
+    generationConfig.temperature = 0.2;
+  }
+
   return genAI.getGenerativeModel({
     model: modelName,
-    generationConfig: {
-maxOutputTokens: 2048,
-      temperature: 0.2,
-    },
+    generationConfig,
   });
 }
 

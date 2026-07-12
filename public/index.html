@@ -22,7 +22,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics-compat.js"></script>
 
     <link rel="stylesheet" href="/css/tailwind.generated.css?v=1.2.1">
-    <link rel="stylesheet" href="/css/main.css?v=26.115">
+    <link rel="stylesheet" href="/css/main.css?v=26.119">
     <link rel="stylesheet" href="/css/settings-style.css?v=25.26">
 
 </head>
@@ -127,7 +127,7 @@
         </nav>
 
         <div class="px-6 py-4 border-t border-[#eee5d8] text-[10px] text-[#a6967a]">
-            メイメー v1.3.1
+            メイメー v1.4.0
         </div>
     </aside>
 
@@ -293,6 +293,19 @@
                                     </div>
                                 </div>
                             </button>
+                            <button onclick="selectWizReadingCandidate('direct')" class="wiz-gender-btn wiz-reading-choice method-choice-card method-choice-card--simple" data-reading-candidate="direct" aria-pressed="false">
+                                <div class="wiz-reading-choice-copy">
+                                    <div class="method-choice-header">
+                                        <div class="method-choice-radio" aria-hidden="true"></div>
+                                        <span class="method-choice-title">候補名を直接指定</span>
+                                    </div>
+                                    <span class="method-choice-desc">名前と読みを入力して保存済みに入れます</span>
+                                </div>
+                                <div class="method-choice-footer" aria-hidden="true">
+                                    <span class="method-choice-selected-pill">選択中</span>
+                                    <span class="method-choice-footer-copy">直接指定する</span>
+                                </div>
+                            </button>
                         </div>
                     </div>
                     <p class="method-choice-note">あとから変更できます</p>
@@ -427,6 +440,13 @@
                     <span class="text-[10px] font-bold text-[#5d5444]">出会った候補</span>
                 </button>
             </div>
+            <button type="button" onclick="openDirectNameInput('search_footer')" class="direct-name-entry-card direct-name-entry-card--home w-full max-w-md">
+                <span class="direct-name-entry-icon">＋</span>
+                <span class="direct-name-entry-copy">
+                    <span class="direct-name-entry-title">候補名を追加</span>
+                    <span class="direct-name-entry-desc">名前と読みを直接指定します</span>
+                </span>
+            </button>
 
         </div>
 
@@ -542,6 +562,53 @@
             </div>
             <button id="btn-sound-entry-submit" onclick="submitSoundEntry()" class="btn-gold py-4 shadow-lg mb-3 screen-wide-btn">響きを見ながら探す</button>
             <button onclick="goBack()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+        </div>
+    </div>
+
+    <div id="scr-direct-name-input" class="screen">
+        <div class="w-full max-w-sm text-center mt-2 mx-auto direct-name-shell choice-flow-shell">
+            <div class="choice-flow-scroll direct-name-scroll">
+                <h2 class="method-choice-heading">候補名を追加</h2>
+                <p class="method-choice-lead">名前と読みを指定して保存済みに入れます</p>
+
+                <div class="direct-name-panel text-left">
+                    <label class="label-mini mb-2" for="direct-name-given">名前（漢字・かな）</label>
+                    <input type="text" id="direct-name-given" placeholder="例：陽斗"
+                        class="premium-input direct-name-input ime-active mb-4"
+                        autocomplete="off"
+                        maxlength="12"
+                        oninput="updateDirectNameInputPreview()"
+                        onkeydown="handleDirectNameInputKeydown(event)">
+
+                    <label class="label-mini mb-2" for="direct-name-reading">読み（ひらがな）</label>
+                    <input type="text" id="direct-name-reading" placeholder="例：はると"
+                        class="premium-input direct-name-input ime-active mb-4"
+                        autocomplete="off"
+                        maxlength="24"
+                        oninput="updateDirectNameInputPreview()"
+                        onkeydown="handleDirectNameInputKeydown(event)">
+
+                    <label class="label-mini mb-2" for="direct-name-message">メモ（任意）</label>
+                    <textarea id="direct-name-message"
+                        class="direct-name-message"
+                        placeholder="例：響きが好き、優しい印象"
+                        rows="2"
+                        maxlength="100"></textarea>
+
+                    <div id="direct-name-preview" class="direct-name-preview" aria-live="polite">
+                        <div class="direct-name-preview-reading">○○</div>
+                        <div class="direct-name-preview-name">○○</div>
+                    </div>
+                </div>
+            </div>
+            <div class="choice-flow-actions direct-name-flow-actions">
+                <button onclick="saveDirectNameInput()" class="btn-gold shadow-lg choice-flow-submit method-choice-submit screen-wide-btn">
+                    <span class="method-choice-submit-spacer" aria-hidden="true"></span>
+                    <span class="method-choice-submit-label">保存済みに追加</span>
+                    <span class="method-choice-submit-arrow" aria-hidden="true">›</span>
+                </button>
+                <button onclick="cancelDirectNameInput()" class="screen-back-btn screen-back-btn--wide screen-wide-btn">戻る</button>
+            </div>
         </div>
     </div>
 
@@ -1628,27 +1695,27 @@
     <!-- Module 02.5: Generator -->
     <script src="/js/engine_v2_generator.js?v=25.11"></script>
 
-    <script src="/js/01-core.js?v=26.30"></script>
-<script src="/js/02-engine.js?v=25.56"></script>
+    <script src="/js/01-core.js?v=26.31"></script>
+<script src="/js/02-engine.js?v=25.58"></script>
     <script src="/js/03-fortune.js?v=25.14"></script>
-    <script src="/js/04-ui-flow.js?v=27.76"></script>
+    <script src="/js/04-ui-flow.js?v=27.89"></script>
     <script src="/js/05-ui-render.js?v=25.126"></script>
     <script src="/js/06-ui-physics.js?v=25.22"></script>
-    <script src="/js/07-build.js?v=25.80"></script>
+    <script src="/js/07-build.js?v=25.83"></script>
 <script src="/js/08-origin.js?v=25.70"></script>
-    <script src="/js/09-storage.js?v=26.08"></script>
+    <script src="/js/09-storage.js?v=26.10"></script>
     <script src="/js/10-choice.js?v=25.11"></script>
     <script src="/js/11-settings.js?v=25.49"></script>
-    <script src="/js/12-history.js?v=25.67"></script>
-    <script src="/js/13-drawer-wizard.js?v=25.49"></script>
-    <script src="/js/14-admob.js?v=26.40"></script>
-<script src="/js/15-firebase.js?v=26.66"></script>
+    <script src="/js/12-history.js?v=25.71"></script>
+    <script src="/js/13-drawer-wizard.js?v=25.50"></script>
+    <script src="/js/14-admob.js?v=26.42"></script>
+<script src="/js/15-firebase.js?v=26.69"></script>
     <script src="/js/data/legal-docs.js?v=25.22"></script>
     <script src="/js/16-legal.js?v=25.22"></script>
     <script src="/js/data/todays-kanji-data.js?v=25.11"></script>
 <script src="/js/17-todays-kanji.js?v=25.12"></script>
     <script src="/js/18-ranking.js?v=25.44"></script>
-    <script src="/js/21-child-workspaces.js?v=26.74"></script>
+    <script src="/js/21-child-workspaces.js?v=26.77"></script>
 
 
 </body>

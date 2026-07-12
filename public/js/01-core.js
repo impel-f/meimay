@@ -1002,6 +1002,7 @@ function updateNavHighlight(screenId) {
         'scr-input-reading': 'nav-search',
         'scr-input-sound-entry': 'nav-search',
         'scr-segment': 'nav-search',
+        'scr-direct-name-input': 'nav-search',
         'scr-input-nickname': 'nav-search',
         'scr-vibe': 'nav-search',
         'scr-diagnosis-input': 'nav-search',

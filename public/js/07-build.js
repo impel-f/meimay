@@ -132,6 +132,7 @@ function getBuildCandidateCollectionStamp(items) {
         resolveLikedCandidateKanji(item),
         item?.fromPartner ? 'p' : 's',
         item?.isSuper ? 'super' : '',
+        item?.stockAccess || 'legacy-unlocked',
         item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || ''
     ].join(':'));
     return `${list.length}:${samples.join('|')}`;
@@ -156,8 +157,14 @@ function invalidateBuildCandidateSourceCaches() {
     buildMergedLikedCandidatesCache = [];
 }
 
-function warmBuildScreenCaches() {
+function isBuildScreenActive() {
+    const buildScreen = document.getElementById('scr-build');
+    return !!(buildScreen && buildScreen.classList.contains('active'));
+}
+
+function warmBuildScreenCaches(reason = 'build-cache', options = {}) {
     buildCacheWarmupTimer = null;
+    if (options.allowInactive !== true && !isBuildScreenActive()) return;
     try {
         getVisibleReadingModeKanjiBuildCandidates({ returnCache: true });
         getVisibleAllKanjiBuildCandidates({ returnCache: true });
@@ -169,7 +176,7 @@ function warmBuildScreenCaches() {
 
 function scheduleBuildCacheWarmup(reason = 'build-cache', delayMs = 120, options = {}) {
     cancelBuildCacheWarmup();
-    const warmup = () => warmBuildScreenCaches(reason);
+    const warmup = () => warmBuildScreenCaches(reason, options);
     const useIdle = options.idle !== false && typeof requestIdleCallback === 'function';
     if (useIdle) {
         buildCacheWarmupTimer = {
@@ -187,7 +194,7 @@ function scheduleBuildCacheWarmup(reason = 'build-cache', delayMs = 120, options
 function invalidateBuildDataCaches(reason = 'build-data') {
     invalidateBuildCandidateSourceCaches();
     invalidateBuildReadingChoicesCache();
-    scheduleBuildCacheWarmup(reason);
+    if (isBuildScreenActive()) scheduleBuildCacheWarmup(reason);
 }
 
 window.invalidateBuildDataCaches = invalidateBuildDataCaches;
@@ -407,6 +414,7 @@ function isImportedKanjiLibraryItem(item) {
 
 function isVisibleOwnKanjiBuildItem(item) {
     if (!item || isImportedKanjiLibraryItem(item)) return false;
+    if (typeof isKanjiStockItemUsable === 'function' && !isKanjiStockItemUsable(item)) return false;
     if (item.sessionReading === 'FREE') return true;
     return Number(item.slot) >= 0 && item.sessionReading !== 'SEARCH';
 }
@@ -476,6 +484,7 @@ function getVisibleAllKanjiBuildCandidates(options = {}) {
         ? partnerLikedSource
             .map(item => hydrateLikedCandidate(item, { fromPartner: true, partnerName }))
             .filter(item => !!item && !isImportedKanjiLibraryItem(item)
+                && (typeof isKanjiStockItemUsable !== 'function' || isKanjiStockItemUsable(item))
                 && (item.sessionReading === 'FREE' || item.fromPartner || Number(item.slot) >= 0)
                 && item.sessionReading !== 'SEARCH')
         : [];
@@ -512,7 +521,9 @@ function getVisibleReadingModeKanjiBuildCandidates(options = {}) {
         }
         buildReadingModeCandidatesCacheSignature = signature;
         buildReadingModeCandidatesCache = merged
-            .filter(item => !!item && !isImportedKanjiLibraryItem(item));
+            .filter(item => !!item
+                && !isImportedKanjiLibraryItem(item)
+                && (typeof isKanjiStockItemUsable !== 'function' || isKanjiStockItemUsable(item)));
         return options.returnCache === true
             ? buildReadingModeCandidatesCache
             : cloneBuildCandidateList(buildReadingModeCandidatesCache);
@@ -1903,6 +1914,17 @@ function mergeLikedCandidateOwnershipState(target, source) {
     target.ownSuper = !!target.ownSuper || !!source.ownSuper || (!source.fromPartner && !!source.isSuper);
     target.partnerSuper = !!target.partnerSuper || !!source.partnerSuper || (source.fromPartner && !!source.isSuper);
     target.isSuper = !!target.ownSuper || !!target.partnerSuper || !!target.isSuper || !!source.isSuper;
+    const targetUnlocked = typeof isKanjiStockPermanentlyUnlocked !== 'function'
+        || isKanjiStockPermanentlyUnlocked(target);
+    const sourceUnlocked = typeof isKanjiStockPermanentlyUnlocked !== 'function'
+        || isKanjiStockPermanentlyUnlocked(source);
+    if (targetUnlocked || sourceUnlocked) {
+        target.stockAccess = typeof KANJI_STOCK_ACCESS_UNLOCKED !== 'undefined'
+            ? KANJI_STOCK_ACCESS_UNLOCKED
+            : 'unlocked';
+        target.premiumUnlockedAt = target.premiumUnlockedAt || source.premiumUnlockedAt || null;
+        target.premiumUnlockReason = target.premiumUnlockReason || source.premiumUnlockReason || '';
+    }
     return target;
 }
 
@@ -2021,14 +2043,7 @@ function getMergedLikedCandidates() {
         
         if (merged.has(baseKey)) {
             const existing = merged.get(baseKey);
-            existing.partnerAlsoPicked = true;
-            if (isFromPartner) {
-                existing.partnerSuper = existing.partnerSuper || !!item.isSuper || !!item.partnerSuper;
-                existing.partnerName = existing.partnerName || item.partnerName || '';
-            } else {
-                existing.ownSuper = existing.ownSuper || !!item.isSuper || !!item.ownSuper;
-            }
-            existing.isSuper = existing.ownSuper || existing.partnerSuper;
+            mergeLikedCandidateOwnershipState(existing, item);
         } else {
             const newItem = { ...item };
             const kanjiKey = getLikedCandidateKanjiKey(item);
@@ -2607,9 +2622,23 @@ function renderStock() {
             const ownershipKind = getStockOwnershipKind(item);
             const hasStockStars = !!item?.isSuper || !!item?.ownSuper || !!item?.partnerSuper;
             const isMutualStock = isStockMutualCard(item, ownershipKind);
-            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}${isMutualStock ? ' stock-card-mutual' : ''}`;
+            const isLocked = typeof isPremiumRequiredKanjiStockItem === 'function'
+                && isPremiumRequiredKanjiStockItem(item)
+                && (typeof isKanjiStockItemUsable !== 'function' || !isKanjiStockItemUsable(item));
+            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}${isMutualStock ? ' stock-card-mutual' : ''}${isLocked ? ' stock-card-locked' : ''}`;
             card.dataset.stockOwnership = ownershipKind;
-            card.onclick = () => showDetailByData(item);
+            card.setAttribute('aria-label', isLocked
+                ? `${item.kanji || item['漢字'] || ''} 人名用漢字 プレミアムで利用できます`
+                : `${item.kanji || item['漢字'] || ''}の詳細を表示`);
+            card.onclick = () => {
+                if (isLocked) {
+                    if (typeof showPremiumModal === 'function') {
+                        showPremiumModal({ source: 'direct_name_stock_locked' });
+                    }
+                    return;
+                }
+                showDetailByData(item);
+            };
 
             let displayStrokes = item['画数'];
             if (displayStrokes === undefined && typeof master !== 'undefined') {
@@ -2618,12 +2647,15 @@ function renderStock() {
             }
 
             const surfaceStyle = getStockCardSurfaceStyle(ownershipKind);
-            card.style.cssText = `${surfaceStyle.card}; padding:10px 6px;`;
+            card.style.cssText = isLocked
+                ? 'background:#f2f0ec;border-color:#d8d2c8;padding:10px 6px;cursor:pointer;'
+                : `${surfaceStyle.card}; padding:10px 6px;`;
 
             card.innerHTML = `
-                <div class="stock-kanji" style="color:${surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
-                <div class="stock-strokes" style="color:${surfaceStyle.strokesColor}">${displayStrokes !== undefined ? displayStrokes : '--'}画</div>
-                ${renderStockSuperStars(item)}
+                ${isLocked ? '<div aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:11px;line-height:1;color:#8d887f;">🔒</div>' : ''}
+                <div class="stock-kanji" style="color:${isLocked ? '#99958d' : surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
+                <div class="stock-strokes" style="color:${isLocked ? '#aaa59d' : surfaceStyle.strokesColor}">${isLocked ? '人名用' : `${displayStrokes !== undefined ? displayStrokes : '--'}画`}</div>
+                ${isLocked ? '' : renderStockSuperStars(item)}
             `;
             cardsGrid.appendChild(card);
         });
@@ -4443,6 +4475,7 @@ function showFortuneDetail() {
 
     const res = currentBuildResult.fortune;
     const name = currentBuildResult.fullName;
+    const hideSurnameForDisplay = currentBuildResult.hideSurnameForDisplay === true;
     const givens = currentBuildResult.combination.map(p => {
         const kanji = typeof p === 'string' ? p : (p?.['漢字'] || p?.kanji || '');
         const rawStrokes = typeof p === 'string' ? 0 : (p?.['画数'] ?? p?.strokes ?? 0);
@@ -4585,7 +4618,7 @@ function showFortuneDetail() {
 
             
             <div style="display:flex;flex-direction:column;gap:${GAP}px;flex-shrink:0;align-items:center">
-                ${surChars.map(s => kBox(s.kanji, true)).join('')}
+                ${surChars.map(s => kBox(hideSurnameForDisplay ? '＊' : s.kanji, true)).join('')}
                 <div style="height:${DIV_H}px;display:flex;align-items:center;justify-content:center;color:#d4c5af;font-size:16px;font-weight:900;line-height:1">/</div>
                 ${givChars.map(g => kBox(g.kanji, false)).join('')}
             </div>

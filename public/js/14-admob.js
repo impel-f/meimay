@@ -497,6 +497,15 @@ function normalizePremiumDate(value) {
         return Number.isNaN(value.getTime()) ? null : value;
     }
 
+    if (typeof value === 'object') {
+        const seconds = Number(value.seconds ?? value._seconds);
+        const nanoseconds = Number(value.nanoseconds ?? value._nanoseconds ?? 0);
+        if (Number.isFinite(seconds) && Number.isFinite(nanoseconds)) {
+            const date = new Date((seconds * 1000) + Math.floor(nanoseconds / 1000000));
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+    }
+
     if (typeof value === 'number') {
         const date = new Date(value);
         return Number.isNaN(date.getTime()) ? null : date;
@@ -1012,7 +1021,6 @@ const AD_BANNER_RESTORE_RETRY_MS = 260;
 const AD_BANNER_RESTORE_MAX_ATTEMPTS = 8;
 const AD_PREMIUM_STATE_GRACE_MS = 2500;
 const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
-const PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const PARTNER_PREMIUM_CACHE_KEY = 'meimay_partner_premium_cache_v1';
 const PARTNER_PREMIUM_CACHE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 let adBannerVisible = false;
@@ -1079,8 +1087,9 @@ function hasFreshPremiumAdSuppressionCache() {
     if (!cache || cache.active !== true) return false;
     const expiresAt = normalizePremiumDate(cache.expiresAt);
     if (expiresAt) return expiresAt.getTime() > Date.now();
-    const updatedAtMs = Number(cache.updatedAtMs) || 0;
-    return !(updatedAtMs > 0 && Date.now() - updatedAtMs > PREMIUM_AD_SUPPRESSION_CACHE_MAX_AGE_MS);
+    if (isLifetimePremiumProduct(cache.productId)) return true;
+    clearPremiumAdSuppressionCache();
+    return false;
 }
 
 function getCurrentPairingRoomCodeForPremiumCache() {
@@ -1156,6 +1165,14 @@ function getCachedConnectedPartnerPremiumSnapshot() {
         const state = normalizePartnerPremiumCacheSnapshot(parsed.state || parsed);
         if (!state) return null;
         const expiresAt = normalizePremiumDate(state.premiumExpiresAt || state.appStoreExpiresAt || state.trialEndsAt || null);
+        const productId = String(state.appStoreProductId || state.premiumProductId || '').trim();
+        const status = String(state.subscriptionStatus || state.premiumStatus || '').trim().toLowerCase();
+        const activeWithoutExpiry = !expiresAt
+            && (state.isPremium === true || status === 'active' || status === 'trialing');
+        if (activeWithoutExpiry && !isLifetimePremiumProduct(productId)) {
+            clearCachedConnectedPartnerPremiumSnapshot();
+            return null;
+        }
 
         const updatedAtMs = Number(parsed.updatedAtMs) || 0;
         if (!expiresAt && updatedAtMs > 0 && Date.now() - updatedAtMs > PARTNER_PREMIUM_CACHE_MAX_AGE_MS) return null;
@@ -1178,6 +1195,19 @@ function setCachedConnectedPartnerPremiumSnapshot(snapshot, context = {}) {
     const state = normalizePartnerPremiumCacheSnapshot(snapshot);
     if (!state) return false;
     try {
+        const toCacheDate = (value) => {
+            const date = normalizePremiumDate(value);
+            return date ? date.toISOString() : null;
+        };
+        const cacheState = {
+            ...state,
+            appStoreExpiresAt: toCacheDate(state.appStoreExpiresAt),
+            premiumExpiresAt: toCacheDate(state.premiumExpiresAt),
+            trialStartedAt: toCacheDate(state.trialStartedAt),
+            trialEndsAt: toCacheDate(state.trialEndsAt),
+            trialConsumedAt: toCacheDate(state.trialConsumedAt),
+            updatedAt: toCacheDate(state.updatedAt)
+        };
         const roomCode = String(
             context.roomCode
             || getCurrentPairingRoomCodeForPremiumCache()
@@ -1191,7 +1221,7 @@ function setCachedConnectedPartnerPremiumSnapshot(snapshot, context = {}) {
         localStorage.setItem(PARTNER_PREMIUM_CACHE_KEY, JSON.stringify({
             roomCode,
             partnerUid,
-            state,
+            state: cacheState,
             updatedAtMs: Date.now()
         }));
         return true;
@@ -2021,7 +2051,17 @@ function buildPremiumMembershipState(record, source, options = {}) {
         && !hasPremiumIndicators
         && options.localPremium === true;
     const isPartner = source === 'partner';
+    const isLifetime = isLifetimePremiumProduct(productId);
+    const activeHintPresent = explicitPremium === true
+        || status === 'active'
+        || status === 'trialing'
+        || trialActive;
+    const missingRequiredExpiry = activeHintPresent
+        && !expiresAt
+        && !isLifetime
+        && !localFallbackActive;
     const active = !expired
+        && !missingRequiredExpiry
         && (explicitPremium === true || status === 'active' || status === 'trialing' || trialActive || localFallbackActive)
         && !(isPartner && isTrial);
     const expiresLabel = expiresAt ? formatPremiumMembershipDate(expiresAt) : '';
@@ -2077,6 +2117,7 @@ function buildPremiumMembershipState(record, source, options = {}) {
         trialStatus,
         trialEndsAt,
         trialConsumed,
+        missingRequiredExpiry,
         trialConsumedByRoom: data.trialConsumedByRoom === true,
         title: label,
         label,
@@ -2259,11 +2300,11 @@ PremiumManager.getMembershipState = function () {
 
     if (selfState.active) return selfState;
     if (shareablePartnerState && shareablePartnerState.active) return shareablePartnerState;
+    if (selfState.expired) return selfState;
+    if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     // Keep the last confirmed premium state while the native store check catches up.
     if (cachedPremiumState && cachedPremiumState.active) return cachedPremiumState;
-    if (selfState.expired) return selfState;
     if (selfState.hasPremiumIndicators) return selfState;
-    if (shareablePartnerState && shareablePartnerState.expired) return shareablePartnerState;
     if (shareablePartnerState && shareablePartnerState.hasPremiumIndicators) return shareablePartnerState;
 
     return getDefaultPremiumMembershipState();
@@ -3296,6 +3337,10 @@ function updatePremiumUI() {
     const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
         : getDefaultPremiumMembershipState();
+
+    if (state.active && typeof promotePremiumRequiredKanjiStockItems === 'function') {
+        promotePremiumRequiredKanjiStockItems({ reason: state.source || 'premium-activation' });
+    }
 
     if (state.active) {
         hideAdBanner();

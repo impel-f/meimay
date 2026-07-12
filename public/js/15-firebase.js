@@ -932,6 +932,121 @@ function buildRoomSyncWorkspaceState(state) {
     };
 }
 
+function aggregateRoomSyncWorkspaceSections(state) {
+    const aggregated = {
+        liked: [],
+        savedNames: [],
+        readingStock: [],
+        hiddenReadings: []
+    };
+    const seen = {
+        liked: new Set(),
+        savedNames: new Set(),
+        readingStock: new Set(),
+        hiddenReadings: new Set()
+    };
+    const children = state && typeof state === 'object' && state.children && typeof state.children === 'object'
+        ? state.children
+        : {};
+    Object.values(children).forEach((child) => {
+        const libraries = child?.libraries || {};
+        (Array.isArray(libraries.kanjiStock) ? libraries.kanjiStock : []).forEach((item) => {
+            const key = String(item?.['漢字'] || item?.kanji || '').trim();
+            if (!key || seen.liked.has(key)) return;
+            seen.liked.add(key);
+            aggregated.liked.push(item);
+        });
+        (Array.isArray(libraries.savedNames) ? libraries.savedNames : []).forEach((item) => {
+            const key = String(item?.fullName || item?.givenName || '').trim();
+            if (!key || seen.savedNames.has(key)) return;
+            seen.savedNames.add(key);
+            aggregated.savedNames.push(item);
+        });
+        (Array.isArray(libraries.readingStock) ? libraries.readingStock : []).forEach((item) => {
+            const key = String(item?.id || item?.reading || '').trim();
+            if (!key || seen.readingStock.has(key)) return;
+            seen.readingStock.add(key);
+            aggregated.readingStock.push(item);
+        });
+        (Array.isArray(libraries.hiddenReadings) ? libraries.hiddenReadings : []).forEach((item) => {
+            const key = String(item || '').trim();
+            if (!key || seen.hiddenReadings.has(key)) return;
+            seen.hiddenReadings.add(key);
+            aggregated.hiddenReadings.push(item);
+        });
+    });
+    return aggregated;
+}
+
+function buildBoundedRoomSyncPayload(payload, maxBytes = ROOM_SYNC_PAYLOAD_MAX_BYTES) {
+    const sectionKeys = ['liked', 'savedNames', 'readingStock', 'encounteredReadings', 'hiddenReadings', 'likedRemoved'];
+    const sources = Object.fromEntries(sectionKeys.map((key) => [key, Array.isArray(payload?.[key]) ? payload[key] : []]));
+    const bounded = {
+        ...payload,
+        roomSyncTruncated: true,
+        roomSyncTruncatedFields: []
+    };
+    sectionKeys.forEach((key) => {
+        bounded[key] = [];
+    });
+
+    sectionKeys.forEach((key) => {
+        const source = sources[key];
+        if (source.length === 0) return;
+        let low = 0;
+        let high = source.length;
+        let best = 0;
+        while (low <= high) {
+            const count = Math.floor((low + high) / 2);
+            bounded[key] = source.slice(Math.max(0, source.length - count));
+            if (estimateSerializedSizeBytes(bounded) <= maxBytes) {
+                best = count;
+                low = count + 1;
+            } else {
+                high = count - 1;
+            }
+        }
+        bounded[key] = source.slice(Math.max(0, source.length - best));
+        if (best < source.length) bounded.roomSyncTruncatedFields.push(key);
+    });
+
+    while (estimateSerializedSizeBytes(bounded) > maxBytes) {
+        const keyToTrim = sectionKeys.find((key) => bounded[key].length > 0);
+        if (!keyToTrim) break;
+        bounded[keyToTrim] = bounded[keyToTrim].slice(1);
+        if (!bounded.roomSyncTruncatedFields.includes(keyToTrim)) {
+            bounded.roomSyncTruncatedFields.push(keyToTrim);
+        }
+    }
+
+    if (estimateSerializedSizeBytes(bounded) <= maxBytes) return bounded;
+
+    return {
+        role: payload?.role || null,
+        displayName: payload?.displayName || '',
+        username: payload?.username || '',
+        nickname: payload?.nickname || '',
+        themeId: payload?.themeId || null,
+        liked: [],
+        savedNames: [],
+        readingStock: [],
+        encounteredReadings: [],
+        hiddenReadings: [],
+        likedRemoved: [],
+        meimayBackup: payload?.meimayBackup || null,
+        roomSyncTruncated: true,
+        roomSyncTruncatedFields: sectionKeys,
+        isPremium: payload?.isPremium === true,
+        premiumSource: payload?.premiumSource || null,
+        subscriptionStatus: payload?.subscriptionStatus || null,
+        premiumStatus: payload?.premiumStatus || null,
+        premiumExpiresAt: payload?.premiumExpiresAt || null,
+        appStoreExpiresAt: payload?.appStoreExpiresAt || null,
+        appStoreProductId: payload?.appStoreProductId || null,
+        premiumProductId: payload?.premiumProductId || null
+    };
+}
+
 function buildRoomSyncWorkspaceStateFingerprintValue(state) {
     const compact = buildRoomSyncWorkspaceState(state);
     if (!compact || typeof compact !== 'object') return null;
@@ -960,6 +1075,17 @@ function attachRoomSyncWorkspaceState(payload, workspaceState, workspaceStateUpd
                 ...basePayload,
                 meimayStateV2: compactWorkspaceState
             });
+            variants.push({
+                ...basePayload,
+                liked: [],
+                savedNames: [],
+                readingStock: [],
+                encounteredReadings: [],
+                hiddenReadings: [],
+                likedRemoved: [],
+                meimayStateV2: compactWorkspaceState,
+                roomSyncFlatSectionsOmitted: true
+            });
         }
     }
 
@@ -978,14 +1104,8 @@ function attachRoomSyncWorkspaceState(payload, workspaceState, workspaceStateUpd
         }
     }
 
-    if (variants.length > 1) {
-        console.warn('PAIRING: Room sync payload too large, trimming room sync fields');
-    }
-
-    return variants[variants.length - 1] || {
-        ...payload,
-        meimayStateV2UpdatedAt: workspaceStateUpdatedAt
-    };
+    console.warn('PAIRING: Room sync payload too large, trimming room sync fields');
+    return buildBoundedRoomSyncPayload(basePayload);
 }
 
 function buildRoomSyncContentFingerprint(roomPayload = {}) {
@@ -1015,7 +1135,10 @@ function buildRoomSyncContentFingerprint(roomPayload = {}) {
             trialEndsAt: roomPayload.trialEndsAt,
             trialConsumedByRoom: roomPayload.trialConsumedByRoom
         },
-        meimayStateV2: buildRoomSyncWorkspaceStateFingerprintValue(roomPayload.meimayStateV2)
+        meimayStateV2: buildRoomSyncWorkspaceStateFingerprintValue(roomPayload.meimayStateV2),
+        roomSyncFlatSectionsOmitted: roomPayload.roomSyncFlatSectionsOmitted === true,
+        roomSyncTruncated: roomPayload.roomSyncTruncated === true,
+        roomSyncTruncatedFields: Array.isArray(roomPayload.roomSyncTruncatedFields) ? roomPayload.roomSyncTruncatedFields : []
     });
 }
 
@@ -1138,6 +1261,7 @@ const MeimayFirestorePayload = {
         }
         const kanji = this._resolveLikedKanji(item);
         if (!kanji) return null;
+        const stockAccess = item?.stockAccess === 'premium-required' ? 'premium-required' : 'unlocked';
         return {
             '漢字': kanji,
             kanji,
@@ -1148,7 +1272,13 @@ const MeimayFirestorePayload = {
             kanji_reading: this._normalizeString(item?.kanji_reading),
             isSuper: !!item?.isSuper,
             gender: this._normalizeString(item?.gender || item?.settings?.gender || 'neutral') || 'neutral',
-            timestamp: item?.timestamp || item?.addedAt || item?.likedAt || null
+            timestamp: item?.timestamp || item?.addedAt || item?.likedAt || null,
+            source: this._normalizeString(item?.source),
+            directInput: item?.directInput === true,
+            stockAccess,
+            premiumUnlockedAt: item?.premiumUnlockedAt || null,
+            premiumUnlockReason: this._normalizeString(item?.premiumUnlockReason),
+            statsTracked: item?.statsTracked !== false
         };
     },
 
@@ -1190,12 +1320,23 @@ const MeimayFirestorePayload = {
         const combinationKeys = Array.isArray(item?.combinationKeys) && item.combinationKeys.length > 0
             ? item.combinationKeys.map((key) => this._normalizeString(key)).filter(Boolean)
             : combination.map((part) => this._normalizeString(part?.['漢字'] || part?.kanji)).filter(Boolean);
+        const isDirectInput = item?.directInput === true || item?.source === 'direct-name';
 
         return {
             fullName: this._normalizeString(item?.fullName),
             reading: this._normalizeString(item?.reading),
             givenName: this._normalizeString(item?.givenName),
             combinationKeys,
+            ...(isDirectInput ? {
+                combination: combination.map((part) => ({ ...(part || {}) })),
+                directInput: true,
+                source: 'direct-name',
+                savedKanjiDetailUnlocks: Array.isArray(item?.savedKanjiDetailUnlocks)
+                    ? item.savedKanjiDetailUnlocks.map((value) => this._normalizeString(value)).filter(Boolean)
+                    : []
+            } : {
+                source: this._normalizeString(item?.source)
+            }),
             message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
@@ -1241,6 +1382,11 @@ const MeimayFirestorePayload = {
             givenName: this._normalizeString(item?.givenName),
             combination,
             combinationKeys,
+            directInput: item?.directInput === true || item?.source === 'direct-name',
+            source: this._normalizeString(item?.source),
+            savedKanjiDetailUnlocks: Array.isArray(item?.savedKanjiDetailUnlocks)
+                ? item.savedKanjiDetailUnlocks.map((value) => this._normalizeString(value)).filter(Boolean)
+                : [],
             message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
             savedAt: item?.savedAt || item?.timestamp || null,
@@ -2547,10 +2693,16 @@ const MeimayShare = {
         if (!roomCode || !partnerUid) return false;
 
         try {
+            const cacheSnapshot = {
+                ...snapshot,
+                meimayBackup: null,
+                backup: null,
+                partnerUserBackup: null
+            };
             localStorage.setItem(this.PARTNER_SNAPSHOT_CACHE_KEY, JSON.stringify({
                 roomCode,
                 partnerUid,
-                snapshot,
+                snapshot: cacheSnapshot,
                 updatedAtMs: Date.now()
             }));
             this._partnerSnapshotPartnerUid = partnerUid;
@@ -3744,47 +3896,14 @@ async function handleEnterCode() {
 }
 (function hookStorageSync() {
     const waitForStorageBox = setInterval(() => {
-        if (typeof StorageBox !== 'undefined' && StorageBox.saveAll) {
-            const originalSaveAll = StorageBox.saveAll.bind(StorageBox);
-            StorageBox.saveAll = function (...args) {
-                const result = originalSaveAll(...args);
-                const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
-                if (!options.skipPartnerSync && MeimayPairing.roomCode) {
-                    // 繝・ヰ繧ｦ繝ｳ繧ｹ縺励※閾ｪ蜍募酔譛・
-                    MeimayPairing._autoSyncDebounced?.();
-                }
-                return result;
-            };
-
-            const originalSaveLiked = StorageBox.saveLiked.bind(StorageBox);
-            StorageBox.saveLiked = function (...args) {
-                const result = originalSaveLiked(...args);
-                const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
-                if (!options.skipPartnerSync && MeimayPairing.roomCode) {
-                    MeimayPairing._autoSyncDebounced?.();
-                }
-                return result;
-            };
-
-            if (typeof saveReadingStock === 'function') {
-                const originalSaveReadingStock = saveReadingStock.bind(window);
-                saveReadingStock = function (...args) {
-                    const result = originalSaveReadingStock(...args);
-                    const options = args[1] && typeof args[1] === 'object' ? args[1] : {};
-                    if (!options.skipPartnerSync && MeimayPairing.roomCode) {
-                        MeimayPairing._autoSyncDebounced?.();
-                    }
-                    return result;
-                };
-            }
-
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveAll && typeof MeimayPairing._autoSyncDebounced === 'function') {
             if (MeimayPairing.roomCode) {
                 // Flush any stock restored before the sync hook attached.
-                MeimayPairing._autoSyncDebounced?.();
+                MeimayPairing._autoSyncDebounced('storage-ready');
             }
 
             clearInterval(waitForStorageBox);
-            console.log("FIREBASE: Storage sync hooks attached");
+            console.log("FIREBASE: Storage sync ready");
         }
     }, 500);
     setTimeout(() => clearInterval(waitForStorageBox), 10000);
@@ -5397,12 +5516,16 @@ MeimayPairing.syncMyData = async function () {
     this._syncInProgress = true;
     let syncFailed = false;
     try {
-        // 送信前にアクティブ子の現在状態を meimayStateV2 へ書き込む
+        // Coalesced persistence is normally finished before the partner debounce.
+        // Flush only when a local snapshot is still pending to avoid cloning the
+        // full workspace again on every sync attempt.
         if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && MeimayChildWorkspaces.initialized) {
             try {
-                MeimayChildWorkspaces.persistActiveChildSnapshot('pre-sync');
+                if (typeof MeimayChildWorkspaces.flushPendingActiveChildSnapshot === 'function') {
+                    MeimayChildWorkspaces.flushPendingActiveChildSnapshot('pre-sync');
+                }
             } catch (e) {
-                console.warn('PAIRING: persistActiveChildSnapshot failed', e);
+                console.warn('PAIRING: pending child snapshot flush failed', e);
             }
         }
 
@@ -5523,7 +5646,6 @@ MeimayPairing.syncMyData = async function () {
             encounteredReadingsCount: Array.isArray(encounteredToStore) ? encounteredToStore.length : 0,
             hiddenReadingsCount: Array.isArray(hiddenReadings) ? hiddenReadings.length : 0,
             likedRemovedCount: Array.isArray(likedRemoved) ? likedRemoved.length : 0,
-            likedRemoved: cloneRoomArray(likedRemoved),
             pairRoomCode: String(this.roomCode || ''),
             roomCode: String(this.roomCode || ''),
             ...childWorkspaceStateV2Meta
@@ -5549,7 +5671,9 @@ MeimayPairing.syncMyData = async function () {
             hiddenReadings: cloneRoomArray(hiddenReadings),
             likedRemoved: cloneRoomArray(likedRemoved),
             meimayBackup: roomBackup,
-            backup: roomBackup,
+            roomSyncFlatSectionsOmitted: false,
+            roomSyncTruncated: false,
+            roomSyncTruncatedFields: [],
             isPremium: typeof premiumFields.isPremium === 'boolean' ? premiumFields.isPremium : false,
             premiumSource: typeof premiumFields.premiumSource === 'string'
                 ? premiumFields.premiumSource
@@ -5582,7 +5706,7 @@ MeimayPairing.syncMyData = async function () {
             trialConsumedByRoom: premiumFields.trialConsumedByRoom === true
         };
         const roomPayload = attachRoomSyncWorkspaceState(roomPayloadBase, childWorkspaceStateV2, childWorkspaceStateV2UpdatedAt);
-        roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        const shouldDeleteWorkspaceState = !roomPayload.meimayStateV2;
 
         // 変化がある場合のみ送信（指紋チェック）
         // updatedAtを除外して純粋なコンテンツの変化を確認
@@ -5593,6 +5717,12 @@ MeimayPairing.syncMyData = async function () {
             || ''
         ).trim();
         roomPayload.roomSyncFingerprint = contentFingerprint;
+        roomPayload.backup = firebase.firestore.FieldValue.delete();
+        if (shouldDeleteWorkspaceState) {
+            roomPayload.meimayStateV2 = firebase.firestore.FieldValue.delete();
+            roomPayload.meimayStateV2UpdatedAt = firebase.firestore.FieldValue.delete();
+        }
+        roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
         if (this._lastContentFingerprint !== contentFingerprint && existingContentFingerprint !== contentFingerprint) {
             await roomDataRef.set(roomPayload, { merge: true });
@@ -6266,6 +6396,8 @@ window.getPartnerRoleLabel = getPartnerRoleLabel;
 const MeimayUserBackup = {
     _syncTimer: null,
     _syncInFlight: false,
+    _syncDirty: false,
+    _syncRequestVersion: 0,
     _restoreInFlight: false,
     _lastSyncedFingerprint: '',
     _hooksInstalled: false,
@@ -6289,6 +6421,7 @@ const MeimayUserBackup = {
         this._remoteBackupDisabled = true;
         this._restoreInFlight = true;
         this._syncInFlight = false;
+        this._syncDirty = false;
         clearTimeout(this._syncTimer);
         this._syncTimer = null;
     },
@@ -6551,7 +6684,7 @@ const MeimayUserBackup = {
             if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.getRootSnapshot === 'function') {
                 const snapshot = MeimayChildWorkspaces.getRootSnapshot();
                 if (snapshot && typeof snapshot === 'object') {
-                    return this._safeClone(snapshot);
+                    return snapshot;
                 }
             }
 
@@ -6913,9 +7046,16 @@ const MeimayUserBackup = {
             backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');
         }
 
+        if (backup.meimayStateV2 && estimateSerializedSizeBytes(backup) > ROOM_SYNC_PAYLOAD_MAX_BYTES) {
+            delete backup.liked;
+            delete backup.savedNames;
+            delete backup.readingStock;
+            backup.flatSectionsOmitted = true;
+        }
+
         const patch = {
             meimayBackup: backup,
-            backup,
+            backup: firebase.firestore.FieldValue.delete(),
             meimayBackupFingerprint: effectiveFingerprint,
             pairRoomCode,
             roomCode: pairRoomCode,
@@ -7084,10 +7224,17 @@ const MeimayUserBackup = {
             throw error;
         }
 
+        const remoteChildWorkspaceStateV2 = remoteBackup.meimayStateV2
+            || remoteBackup.childWorkspaceStateV2
+            || remoteBackup.stateV2
+            || null;
+        const workspaceSections = remoteBackup.flatSectionsOmitted === true && remoteChildWorkspaceStateV2
+            ? aggregateRoomSyncWorkspaceSections(remoteChildWorkspaceStateV2)
+            : null;
         const remoteSections = {
-            liked: Array.isArray(remoteBackup.liked) ? remoteBackup.liked : [],
-            savedNames: Array.isArray(remoteBackup.savedNames) ? remoteBackup.savedNames : [],
-            readingStock: Array.isArray(remoteBackup.readingStock) ? remoteBackup.readingStock : []
+            liked: workspaceSections ? workspaceSections.liked : (Array.isArray(remoteBackup.liked) ? remoteBackup.liked : []),
+            savedNames: workspaceSections ? workspaceSections.savedNames : (Array.isArray(remoteBackup.savedNames) ? remoteBackup.savedNames : []),
+            readingStock: workspaceSections ? workspaceSections.readingStock : (Array.isArray(remoteBackup.readingStock) ? remoteBackup.readingStock : [])
         };
         const localSections = this._readCurrentSections();
         const mergedSections = options.replace === true
@@ -7107,10 +7254,6 @@ const MeimayUserBackup = {
         this._applyHiddenReadings(remoteBackup.hiddenReadings);
         this._applyEncounteredReadings(remoteBackup.encounteredReadings);
 
-        const remoteChildWorkspaceStateV2 = remoteBackup.meimayStateV2
-            || remoteBackup.childWorkspaceStateV2
-            || remoteBackup.stateV2
-            || null;
         if (remoteChildWorkspaceStateV2) {
             const localChildWorkspaceStateV2 = this._readChildWorkspaceStateV2();
             if (options.replace === true || this._shouldApplyRemoteChildWorkspaceStateV2(localChildWorkspaceStateV2, remoteChildWorkspaceStateV2)) {
@@ -7286,13 +7429,20 @@ const MeimayUserBackup = {
         if (this._isAppDataDeletionInProgress()) return;
         if (this._restoreInFlight) return;
         if (this._remoteBackupDisabled) return;
+        this._syncDirty = true;
+        this._syncRequestVersion += 1;
+        const requestVersion = this._syncRequestVersion;
         const currentUser = this._currentUser();
         if (!currentUser || typeof firebaseDb === 'undefined' || !firebaseDb) return;
         clearTimeout(this._syncTimer);
         this._syncTimer = setTimeout(() => {
-            this.syncLocalToRemote(currentUser, { force: false, reason }).catch((error) => {
-                console.warn('BACKUP: scheduled sync failed', error);
-            });
+            this.syncLocalToRemote(currentUser, { force: false, reason })
+                .then((synced) => {
+                    if (synced && this._syncRequestVersion === requestVersion) this._syncDirty = false;
+                })
+                .catch((error) => {
+                    console.warn('BACKUP: scheduled sync failed', error);
+                });
         }, REMOTE_BACKUP_SYNC_DEBOUNCE_MS);
     },
 
@@ -7306,7 +7456,8 @@ const MeimayUserBackup = {
                 const manager = this;
                 StorageBox.saveAll = function (...args) {
                     const result = originalSaveAll(...args);
-                    if (!manager._restoreInFlight) manager.scheduleSync('saveAll');
+                    const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                    if (!options.skipBackupSync && !manager._restoreInFlight) manager.scheduleSync('saveAll');
                     return result;
                 };
                 StorageBox.saveAll._meimayBackupWrapped = true;
@@ -7317,7 +7468,8 @@ const MeimayUserBackup = {
                 const manager = this;
                 StorageBox.saveLiked = function (...args) {
                     const result = originalSaveLiked(...args);
-                    if (!manager._restoreInFlight) manager.scheduleSync('saveLiked');
+                    const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                    if (!options.skipBackupSync && !manager._restoreInFlight) manager.scheduleSync('saveLiked');
                     return result;
                 };
                 StorageBox.saveLiked._meimayBackupWrapped = true;
@@ -7328,7 +7480,8 @@ const MeimayUserBackup = {
                 const manager = this;
                 StorageBox.saveSavedNames = function (...args) {
                     const result = originalSaveSavedNames(...args);
-                    if (!manager._restoreInFlight) manager.scheduleSync('saveSavedNames');
+                    const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                    if (!options.skipBackupSync && !manager._restoreInFlight) manager.scheduleSync('saveSavedNames');
                     return result;
                 };
                 StorageBox.saveSavedNames._meimayBackupWrapped = true;
@@ -7348,7 +7501,7 @@ const MeimayUserBackup = {
         }
 
         setInterval(() => {
-            this.scheduleSync('interval');
+            if (this._syncDirty) this.scheduleSync('retry');
         }, 60000);
     }
 };
@@ -7513,19 +7666,28 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 || roomBackup.childWorkspaceStateV2
                 || null;
 
-            if (!likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
+            const flatSectionsOmitted = data.roomSyncFlatSectionsOmitted === true;
+            if (flatSectionsOmitted && partnerChildWorkspaceStateV2) {
+                const workspaceSections = aggregateRoomSyncWorkspaceSections(partnerChildWorkspaceStateV2);
+                likedSource = workspaceSections.liked;
+                savedNamesSource = workspaceSections.savedNames;
+                readingStockSource = workspaceSections.readingStock;
+                hiddenReadingsSource = workspaceSections.hiddenReadings;
+            }
+
+            if (!flatSectionsOmitted && !likedSource.length && Array.isArray(roomBackup.liked) && roomBackup.liked.length > 0) {
                 likedSource = filterRemoved(roomBackup.liked);
             }
-            if (!savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
+            if (!flatSectionsOmitted && !savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
                 savedNamesSource = roomBackup.savedNames;
             }
-            if (!readingStockSource.length && Array.isArray(roomBackup.readingStock) && roomBackup.readingStock.length > 0) {
+            if (!flatSectionsOmitted && !readingStockSource.length && Array.isArray(roomBackup.readingStock) && roomBackup.readingStock.length > 0) {
                 readingStockSource = roomBackup.readingStock;
             }
-            if (!encounteredSource.length && Array.isArray(roomBackup.encounteredReadings) && roomBackup.encounteredReadings.length > 0) {
+            if (!flatSectionsOmitted && !encounteredSource.length && Array.isArray(roomBackup.encounteredReadings) && roomBackup.encounteredReadings.length > 0) {
                 encounteredSource = roomBackup.encounteredReadings;
             }
-            if (!hiddenReadingsSource.length && Array.isArray(roomBackup.hiddenReadings) && roomBackup.hiddenReadings.length > 0) {
+            if (!flatSectionsOmitted && !hiddenReadingsSource.length && Array.isArray(roomBackup.hiddenReadings) && roomBackup.hiddenReadings.length > 0) {
                 hiddenReadingsSource = roomBackup.hiddenReadings;
             }
 
@@ -7651,17 +7813,14 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
                 MeimayPartnerInsights.clearCache('partner-snapshot');
             }
-            if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
-                window.invalidateBuildDataCaches('partner-snapshot');
-            }
             if (partnerChildWorkspaceStateV2 && typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.applyPartnerRootSnapshot === 'function') {
                 MeimayChildWorkspaces.applyPartnerRootSnapshot(partnerChildWorkspaceStateV2);
                 if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
                     MeimayPartnerInsights.clearCache('partner-child-workspace');
                 }
-                if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
-                    window.invalidateBuildDataCaches('partner-child-workspace');
-                }
+            }
+            if (typeof window !== 'undefined' && typeof window.invalidateBuildDataCaches === 'function') {
+                window.invalidateBuildDataCaches(partnerChildWorkspaceStateV2 ? 'partner-child-workspace' : 'partner-snapshot');
             }
             this.partnerUserSnapshot = partnerPremiumSnapshot;
             if (partnerPremiumSnapshot && typeof window !== 'undefined' && typeof window.setCachedConnectedPartnerPremiumSnapshot === 'function') {

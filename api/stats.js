@@ -482,15 +482,6 @@ async function fetchRankingItems(kind, period, metric = 'all', gender = 'all') {
     .slice(0, 100);
 }
 
-function normalizeStatsReadingKey(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-
-  return raw
-    .replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
-    .replace(/[^\u3041-\u3093\u30fc]/g, '');
-}
-
 function getReadingAllowlists() {
   if (readingAllowlistsLoaded) {
     return cachedReadingAllowlists;

@@ -4,6 +4,7 @@
   "description": "メイメー - 赤ちゃんの命名アプリ",
   "main": "index.js",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "dev": "npx serve public",
     "build": "npm run build:tailwind",
     "deploy": "vercel --prod",
@@ -18,6 +19,7 @@
     "build:caution-kanji-list": "node scripts/build_caution_kanji_list.js",
     "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js",
     "build:tailwind": "tailwindcss -c tailwind.config.js -i ./public/css/tailwind-source.css -o ./public/css/tailwind.generated.css --minify",
+    "test:two-user-sync": "node --test tests/two-user-sync.test.js",
     "postinstall": "node scripts/patch-admob-privacy.js",
     "social:x:validate": "node scripts/social/x-post-due.js --validate-only",
     "social:x:dry-run": "node scripts/social/x-post-due.js --dry-run",

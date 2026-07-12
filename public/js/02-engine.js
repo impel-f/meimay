@@ -104,6 +104,62 @@ function isKanjiAccessibleForCurrentMembership(item) {
     return isCommonKanjiEntry(item);
 }
 
+const KANJI_STOCK_ACCESS_PREMIUM_REQUIRED = 'premium-required';
+const KANJI_STOCK_ACCESS_UNLOCKED = 'unlocked';
+
+function isPremiumRequiredKanjiStockItem(item) {
+    return !!item && item.stockAccess === KANJI_STOCK_ACCESS_PREMIUM_REQUIRED;
+}
+
+function isKanjiStockPermanentlyUnlocked(item) {
+    if (!item) return false;
+    if (isCommonKanjiEntry(item)) return true;
+    // Existing stock predates stockAccess and remains permanently available.
+    return !isPremiumRequiredKanjiStockItem(item);
+}
+
+function isKanjiStockItemUsable(item) {
+    return isKanjiStockPermanentlyUnlocked(item) || isPremiumAccessActive();
+}
+
+function promotePremiumRequiredKanjiStockItems(options = {}) {
+    if (!isPremiumAccessActive() || !Array.isArray(liked)) return 0;
+
+    const unlockedAt = new Date().toISOString();
+    const reason = String(options.reason || 'premium-activation').trim() || 'premium-activation';
+    let promotedCount = 0;
+
+    liked.forEach((item) => {
+        if (!item || item.fromPartner || !isPremiumRequiredKanjiStockItem(item)) return;
+        item.stockAccess = KANJI_STOCK_ACCESS_UNLOCKED;
+        item.premiumUnlockedAt = item.premiumUnlockedAt || unlockedAt;
+        item.premiumUnlockReason = item.premiumUnlockReason || reason;
+        promotedCount += 1;
+    });
+
+    if (typeof window !== 'undefined'
+        && window.MeimayChildWorkspaces
+        && typeof window.MeimayChildWorkspaces.promoteLockedKanjiStockItems === 'function') {
+        promotedCount += Number(window.MeimayChildWorkspaces.promoteLockedKanjiStockItems({
+            unlockedAt,
+            reason
+        })) || 0;
+    }
+
+    if (promotedCount > 0) {
+        if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox.saveLiked === 'function') {
+            StorageBox.saveLiked();
+        }
+        if (typeof trackMeimayEvent === 'function') {
+            trackMeimayEvent('kanji_stock_permanently_unlocked', {
+                count: promotedCount,
+                reason
+            });
+        }
+    }
+    return promotedCount;
+}
+
 function filterKanjiByCurrentMembership(items) {
     return (Array.isArray(items) ? items : []).filter(isKanjiAccessibleForCurrentMembership);
 }

@@ -201,7 +201,7 @@ function normalizeBackupRegisterPatch(body) {
     : [];
   const patch = {
     meimayBackup: backup,
-    backup,
+    backup: FieldValue.delete(),
     meimayBackupUpdatedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp()
   };

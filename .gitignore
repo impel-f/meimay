@@ -4,3 +4,8 @@ node_modules
 .claude/worktrees/
 antigravity-discord-bot/
 release/app-store-screenshots/**/.profiles/
+.codex/
+tmp/screenshots/
+release/*.aab
+release/app-store-screenshots/
+release/google-play-listing/

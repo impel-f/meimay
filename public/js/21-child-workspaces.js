@@ -577,6 +577,9 @@
         _persistenceLocked: false,
         _styleInstalled: false,
         _wrapped: false,
+        _snapshotPersistTimer: null,
+        _pendingSnapshotReason: '',
+        _pendingSnapshotOptions: null,
         _partnerAlignmentAutoTimer: null,
         _partnerAlignmentAutoShownKey: '',
 
@@ -601,7 +604,8 @@
             this.refreshVisibleUI('init');
             if (typeof updatePairingUI === 'function') updatePairingUI();
             window.addEventListener('beforeunload', () => this.persistActiveChildSnapshot('beforeunload'));
-            setInterval(() => this.persistActiveChildSnapshot('interval'), 15000);
+            window.addEventListener('pagehide', () => this.persistActiveChildSnapshot('pagehide'));
+            setInterval(() => this.flushPendingActiveChildSnapshot('interval'), 15000);
         },
 
         installStyles() {
@@ -775,6 +779,7 @@
                 this.wrapStorageMethod('saveAll');
                 this.wrapStorageMethod('saveLiked');
                 this.wrapStorageMethod('saveSavedNames');
+                this.wrapStorageMethod('saveNoped');
             }
              this.wrapNamedFunction('saveSettings');
             this.wrapNamedFunction('saveReadingStock');
@@ -797,7 +802,12 @@
                     this.persistActiveChildSnapshot('storage-load');
                     this.renderSwitchers();
                 } else {
-                    this.persistActiveChildSnapshot(methodName);
+                    const options = args[0] && typeof args[0] === 'object' ? args[0] : {};
+                    if (!options.skipChildWorkspaceSync) {
+                        this.scheduleActiveChildSnapshot(methodName, {
+                            skipRemoteSync: options.skipPartnerSync === true || options.skipBackupSync === true
+                        });
+                    }
                 }
                 return result;
             };
@@ -810,9 +820,15 @@
             const wrapped = function (...args) {
                 const result = original.apply(this, args);
                 if (manager.initialized) {
-                    manager.persistActiveChildSnapshot(functionName);
-                    manager.renderSwitchers();
-                    if (functionName === 'saveSettings') manager.decorateSettingsChildManagementCard();
+                    const optionsIndex = functionName === 'saveReadingStock' ? 1 : 0;
+                    const options = args[optionsIndex] && typeof args[optionsIndex] === 'object' ? args[optionsIndex] : {};
+                    manager.scheduleActiveChildSnapshot(functionName, {
+                        skipRemoteSync: options.skipPartnerSync === true || options.skipBackupSync === true
+                    });
+                    if (functionName === 'saveSettings') {
+                        manager.renderSwitchers();
+                        manager.decorateSettingsChildManagementCard();
+                    }
                 }
                 return result;
             };
@@ -1414,6 +1430,39 @@
             return cloneData(next, []);
         },
 
+        promoteLockedKanjiStockItems(options = {}) {
+            if (!this.root || !this.root.children) return 0;
+            const unlockedAt = String(options.unlockedAt || getNowIso());
+            const reason = String(options.reason || 'premium-activation').trim() || 'premium-activation';
+            const activeChildId = String(this.root.activeChildId || '').trim();
+            const promotedOutsideActive = new Set();
+            let changed = false;
+
+            const promoteItems = (items, countForResult) => {
+                (Array.isArray(items) ? items : []).forEach((item) => {
+                    if (!item || item.fromPartner || item.stockAccess !== 'premium-required') return;
+                    item.stockAccess = 'unlocked';
+                    item.premiumUnlockedAt = item.premiumUnlockedAt || unlockedAt;
+                    item.premiumUnlockReason = item.premiumUnlockReason || reason;
+                    changed = true;
+                    if (countForResult) {
+                        const kanji = String(item[KANJI_KEY] || item.kanji || '').trim();
+                        if (kanji) promotedOutsideActive.add(kanji);
+                    }
+                });
+            };
+
+            Object.entries(this.root.children).forEach(([childId, child]) => {
+                promoteItems(child?.libraries?.kanjiStock, childId !== activeChildId);
+            });
+            promoteItems(this.root.family?.sharedLibraries?.kanjiStock, true);
+
+            if (changed) {
+                this.saveRoot(this.root, { reason: 'premium-stock-unlock' });
+            }
+            return promotedOutsideActive.size;
+        },
+
         normalizeSavedLibrary(items, options = {}) {
             const source = Array.isArray(items) ? items : [];
             const ownerChildId = String(options.childId || '').trim();
@@ -1447,15 +1496,26 @@
 
         mergeKanjiLibraries(targetItems = [], sourceItems = [], options = {}) {
             const merged = cloneData(filterRemovedLikedItems(targetItems, options.likedRemovalSource), []);
-            const existingKanji = new Set(
-                merged.map((item) => getKanjiValue(item)).filter(Boolean)
+            const existingByKanji = new Map(
+                merged.map((item) => [getKanjiValue(item), item]).filter(([kanji]) => !!kanji)
             );
             let addedCount = 0;
             filterRemovedLikedItems(sourceItems, options.likedRemovalSource).forEach((item) => {
                 const kanji = getKanjiValue(item);
-                if (!kanji || existingKanji.has(kanji)) return;
+                if (!kanji) return;
+                const existing = existingByKanji.get(kanji);
+                if (existing) {
+                    const sourceUnlocked = typeof isKanjiStockPermanentlyUnlocked !== 'function'
+                        || isKanjiStockPermanentlyUnlocked(item);
+                    if (sourceUnlocked && existing.stockAccess === 'premium-required') {
+                        existing.stockAccess = 'unlocked';
+                        existing.premiumUnlockedAt = existing.premiumUnlockedAt || item?.premiumUnlockedAt || null;
+                        existing.premiumUnlockReason = existing.premiumUnlockReason || item?.premiumUnlockReason || '';
+                    }
+                    return;
+                }
                 const masterItem = findMasterKanjiItem(kanji);
-                merged.push({
+                const nextItem = {
                     ...(masterItem || {}),
                     ...cloneData(item, {}),
                     [KANJI_KEY]: kanji,
@@ -1465,8 +1525,9 @@
                     gender: normalizeGenderValue(item?.gender || masterItem?.gender || 'neutral'),
                     importedFromChildId: options.sourceChildId || '',
                     importedFromChildLabel: options.sourceLabel || ''
-                });
-                existingKanji.add(kanji);
+                };
+                merged.push(nextItem);
+                existingByKanji.set(kanji, nextItem);
                 addedCount += 1;
             });
             return { items: merged, addedCount };
@@ -1542,9 +1603,42 @@
             return buildWorkspaceSavedKey(item);
         },
 
-        persistActiveChildSnapshot(reason = 'manual') {
+        flushPendingActiveChildSnapshot(reason = 'scheduled-flush') {
+            if (!this._snapshotPersistTimer) return false;
+            const options = this._pendingSnapshotOptions || {};
+            this.persistActiveChildSnapshot(reason, options);
+            return true;
+        },
+
+        scheduleActiveChildSnapshot(reason = 'manual', options = {}) {
+            if (!this.initialized || this._persistenceLocked || !this.root) return;
+            this._pendingSnapshotReason = String(reason || 'manual');
+            const previous = this._pendingSnapshotOptions || {};
+            this._pendingSnapshotOptions = {
+                skipRemoteSync: this._pendingSnapshotOptions
+                    ? previous.skipRemoteSync === true && options.skipRemoteSync === true
+                    : options.skipRemoteSync === true
+            };
+            if (this._snapshotPersistTimer) clearTimeout(this._snapshotPersistTimer);
+            this._snapshotPersistTimer = setTimeout(() => {
+                const pendingReason = this._pendingSnapshotReason || 'scheduled';
+                const pendingOptions = this._pendingSnapshotOptions || {};
+                this._snapshotPersistTimer = null;
+                this._pendingSnapshotReason = '';
+                this._pendingSnapshotOptions = null;
+                this.persistActiveChildSnapshot(pendingReason, pendingOptions);
+            }, 320);
+        },
+
+        persistActiveChildSnapshot(reason = 'manual', options = {}) {
             if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
             if (!this.initialized || this._persistenceLocked || !this.root) return;
+            if (this._snapshotPersistTimer) {
+                clearTimeout(this._snapshotPersistTimer);
+                this._snapshotPersistTimer = null;
+                this._pendingSnapshotReason = '';
+                this._pendingSnapshotOptions = null;
+            }
             const activeChild = this.getActiveChild();
             if (!activeChild) return;
             activeChild.meta.updatedAt = getNowIso();
@@ -1552,7 +1646,12 @@
             this.root.children[activeChild.meta.id] = this.captureCurrentChildRecord(activeChild.meta);
             this.root.family = this.captureCurrentFamilyState();
             this.root.childOrder = this.buildOrderedChildIds(this.root);
-            const shouldSkipSync = (reason === 'storage-load' || reason === 'interval' || (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight));
+            const shouldSkipSync = options.skipRemoteSync === true
+                || reason === 'storage-load'
+                || reason === 'interval'
+                || reason === 'beforeunload'
+                || reason === 'pagehide'
+                || (typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight);
             this.saveRoot(this.root, { 
                 skipRemoteSync: shouldSkipSync,
                 reason: reason

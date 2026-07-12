@@ -1002,6 +1002,71 @@ function getSavedCandidateFortune(item) {
     }
 }
 
+function getSavedKanjiPartText(part) {
+    return typeof part === 'string'
+        ? String(part || '').trim()
+        : String(part?.['漢字'] || part?.kanji || '').trim();
+}
+
+function getSavedKanjiMasterData(part) {
+    const kanji = getSavedKanjiPartText(part);
+    if (!kanji || typeof master === 'undefined' || !Array.isArray(master)) return null;
+    return master.find(entry => entry && entry['漢字'] === kanji) || null;
+}
+
+function getSavedKanjiDetailUnlockSet(item) {
+    const values = Array.isArray(item?.savedKanjiDetailUnlocks)
+        ? item.savedKanjiDetailUnlocks
+        : [];
+    return new Set(values.map(value => String(value || '').trim()).filter(Boolean));
+}
+
+function isSavedKanjiUnlockedByStock(kanji) {
+    if (!kanji || !Array.isArray(liked)) return false;
+    return liked.some(entry =>
+        entry
+        && !entry.fromPartner
+        && String(entry['漢字'] || entry.kanji || '').trim() === kanji
+        && (typeof isKanjiStockPermanentlyUnlocked !== 'function' || isKanjiStockPermanentlyUnlocked(entry))
+    );
+}
+
+function canOpenSavedKanjiDetail(item, part, options = {}) {
+    const data = getSavedKanjiMasterData(part);
+    if (!data) return false;
+    if (typeof isKanjiAccessibleForCurrentMembership === 'function' && isKanjiAccessibleForCurrentMembership(data)) {
+        return true;
+    }
+    const kanji = String(data['漢字'] || '').trim();
+    const savedUnlockAllowed = options.allowSavedUnlock !== false;
+    return (savedUnlockAllowed && getSavedKanjiDetailUnlockSet(item).has(kanji)) || isSavedKanjiUnlockedByStock(kanji);
+}
+
+function showSavedNameKanjiDetail(index, source = 'own', partIndex = 0) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const sourceSaved = source === 'partner'
+        ? (pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [])
+        : getSavedNames();
+    const item = sourceSaved[index];
+    const part = Array.isArray(item?.combination) ? item.combination[partIndex] : null;
+    const data = getSavedKanjiMasterData(part);
+
+    if (!data) {
+        if (typeof showToast === 'function') showToast('漢字詳細は登録済みの漢字で見られます', '✓');
+        return;
+    }
+    if (!canOpenSavedKanjiDetail(item, part, { allowSavedUnlock: source !== 'partner' })) {
+        if (typeof showPremiumModal === 'function') {
+            showPremiumModal({ source: 'saved_name_jinmei_locked' });
+        } else {
+            alert('人名用漢字の詳細はプレミアムで見られます');
+        }
+        return;
+    }
+
+    showKanjiDetailFromSaved(data);
+}
+
 /**
  * 保存済み名前の詳細を表示するモーダル
  */
@@ -1044,7 +1109,7 @@ function showSavedNameDetail(index, source = 'own') {
         ? '由来を見る'
         : (canCreateOrigin ? '🤖AIで由来を作る' : '今日のAIは終了');
 
-    const displayParts = getSavedCandidateDisplayParts(item);
+    const displayParts = getSavedCandidateVisibleDisplayParts(item);
     const surStr = displayParts.surname || '';
     const givStr = displayParts.givenName || '';
     const surRead = displayParts.surnameReading || '';
@@ -1081,10 +1146,10 @@ function showSavedNameDetail(index, source = 'own') {
                     <div class="flex justify-center mb-10">
                         <div class="relative flex items-center justify-center min-h-[100px] bg-white rounded-2xl border border-[#eee5d8] shadow-[0_2px_10px_-4px_rgba(188,163,127,0.3)] px-10 py-6 overflow-hidden before:absolute before:inset-1 before:border before:border-dashed before:border-[#d4c5af] before:rounded-xl before:pointer-events-none flex-nowrap shrink-0">
                             <div class="flex items-end gap-2 z-10 flex-nowrap justify-center">
-                                <div class="flex flex-col items-center mr-8 shrink-0">
+                                ${surStr ? `<div class="flex flex-col items-center mr-8 shrink-0">
                                     <p class="text-[10px] text-[#a6967a] h-3.5 mb-1 font-bold">${surRead}</p>
                                     <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${surStr}</p>
-                                </div>
+                                </div>` : ''}
                                 <div class="flex flex-col items-center shrink-0">
                                     <p class="text-[10px] text-[#a6967a] h-3.5 mb-1 font-bold">${givRead}</p>
                                     <p class="${nameFontClass} font-black text-[#5d5444] tracking-widest leading-none">${givStr}</p>
@@ -1097,13 +1162,27 @@ function showSavedNameDetail(index, source = 'own') {
                     <div class="mb-10">
                         <label class="text-[10px] font-black text-[#a6967a] mb-4 block uppercase tracking-wider text-center">文字の構成（タップで詳細）</label>
                         <div class="flex gap-3 justify-center flex-wrap">
-                            ${(item.combination || []).map(kanji => {
-        const kStr = typeof kanji === 'string' ? kanji : kanji['漢字'];
+                            ${(item.combination || []).map((kanji, partIndex) => {
+        const kStr = getSavedKanjiPartText(kanji);
+        const masterData = getSavedKanjiMasterData(kanji);
+        const canOpenDetail = !!masterData && canOpenSavedKanjiDetail(item, kanji, { allowSavedUnlock: source !== 'partner' });
+        const isLockedDetail = !!masterData && !canOpenDetail;
+        const safeLabel = typeof escapeHtmlText === 'function' ? escapeHtmlText(kStr) : kStr;
+        const cardClick = masterData
+            ? `onclick="showSavedNameKanjiDetail(${index}, '${source}', ${partIndex})"`
+            : '';
+        const cardClass = canOpenDetail
+            ? 'cursor-pointer hover:border-[#bca37f] active:scale-90 group'
+            : (isLockedDetail ? 'cursor-pointer border-[#d7d1c8] bg-[#f3f2ef] group' : 'cursor-default opacity-80');
+        const charClass = canOpenDetail
+            ? 'text-[#5d5444] group-hover:text-[#bca37f]'
+            : (isLockedDetail ? 'text-[#89847b]' : 'text-[#8b7e66]');
         return `
-                                    <div onclick="showKanjiDetailFromSaved(${JSON.stringify(kanji).replace(/"/g, '&quot;')})"
-                                         class="w-16 h-20 bg-white border-2 border-[#eee5d8] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#bca37f] transition-all active:scale-90 shadow-sm relative group">
-                                        <div class="text-2xl font-black text-[#5d5444] group-hover:text-[#bca37f] transition-colors">${kStr}</div>
-                                        <div class="absolute bottom-1 right-1.5 text-[10px] opacity-40 group-hover:opacity-100 group-hover:text-[#bca37f]">🔍</div>
+                                    <div ${cardClick}
+                                         class="w-16 h-20 bg-white border-2 border-[#eee5d8] rounded-2xl flex flex-col items-center justify-center transition-all shadow-sm relative ${cardClass}">
+                                        ${isLockedDetail ? '<div class="absolute top-1 right-1.5 text-[10px] opacity-70">🔒</div>' : ''}
+                                        <div class="text-2xl font-black transition-colors ${charClass}">${safeLabel}</div>
+                                        ${canOpenDetail ? '<div class="absolute bottom-1 right-1.5 text-[10px] opacity-40 group-hover:opacity-100 group-hover:text-[#bca37f]">🔍</div>' : ''}
                                     </div>
                                 `;
     }).join('')}
@@ -1207,7 +1286,7 @@ function showFortuneDetailFromSaved(index, source = 'own') {
     const item = sourceSaved[index];
     if (!item) return;
 
-    const displayParts = getSavedCandidateDisplayParts(item);
+    const displayParts = getSavedCandidateVisibleDisplayParts(item);
     const fortune = getSavedCandidateFortune(item);
     const fortuneSurnameData = getSavedCandidateSurnameFortuneData(item);
 
@@ -1218,7 +1297,8 @@ function showFortuneDetailFromSaved(index, source = 'own') {
         reading: displayParts.reading,
         givenName: displayParts.givenName,
         fortune,
-        surnameData: fortuneSurnameData
+        surnameData: fortuneSurnameData,
+        hideSurnameForDisplay: !shouldShowSavedSurname()
     };
 
     closeSavedNameDetail();
@@ -1463,6 +1543,7 @@ window.resumeEncounteredReadingFromModal = resumeEncounteredReadingFromModal;
 window.searchEncounteredReadingFromModal = searchEncounteredReadingFromModal;
 window.showSavedNameDetail = showSavedNameDetail;
 window.closeSavedNameDetail = closeSavedNameDetail;
+window.showSavedNameKanjiDetail = showSavedNameKanjiDetail;
 window.showKanjiDetailFromSaved = showKanjiDetailFromSaved;
 window.showFortuneDetailFromSaved = showFortuneDetailFromSaved;
 window.loadSavedName = loadSavedName;
@@ -1739,6 +1820,38 @@ function canonicalizeSavedCandidateKeyValue(value) {
     return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`;
 }
 
+const SAVED_SURNAME_VISIBILITY_KEY = 'meimay_saved_show_surname';
+
+function shouldShowSavedSurname() {
+    try {
+        return typeof localStorage === 'undefined'
+            || localStorage.getItem(SAVED_SURNAME_VISIBILITY_KEY) !== '0';
+    } catch (error) {
+        return true;
+    }
+}
+
+function setSavedSurnameVisibility(visible) {
+    const nextVisible = visible !== false;
+    try {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(SAVED_SURNAME_VISIBILITY_KEY, nextVisible ? '1' : '0');
+        }
+    } catch (error) {
+        console.warn('SAVED: Failed to persist surname visibility', error);
+    }
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('saved_surname_visibility_changed', {
+            visible: nextVisible ? 1 : 0
+        });
+    }
+    renderSavedScreen();
+}
+
+function toggleSavedSurnameVisibility() {
+    setSavedSurnameVisibility(!shouldShowSavedSurname());
+}
+
 function getSavedCandidateDisplayParts(item) {
     const storedFullName = String(item?.fullName || '').trim();
     const storedFullNameParts = storedFullName.split(/\s+/).filter(Boolean);
@@ -1766,12 +1879,24 @@ function getSavedCandidateDisplayParts(item) {
     };
 }
 
+function getSavedCandidateVisibleDisplayParts(item) {
+    const displayParts = getSavedCandidateDisplayParts(item);
+    if (shouldShowSavedSurname()) return displayParts;
+    return {
+        ...displayParts,
+        surname: '',
+        fullName: displayParts.givenName || displayParts.fullName,
+        surnameReading: '',
+        reading: displayParts.givenReading || displayParts.reading
+    };
+}
+
 function getSavedCandidateDisplayName(item) {
-    return getSavedCandidateDisplayParts(item).fullName;
+    return getSavedCandidateVisibleDisplayParts(item).fullName;
 }
 
 function getSavedCandidateDisplayReading(item) {
-    return getSavedCandidateDisplayParts(item).reading;
+    return getSavedCandidateVisibleDisplayParts(item).reading;
 }
 
 function getSavedCandidateKey(item) {
@@ -2116,6 +2241,7 @@ function renderSavedScreen() {
         : (typeof getPartnerRoleLabel === 'function'
             ? getPartnerRoleLabel(MeimayShare?.partnerSnapshot?.role)
             : 'パートナー'));
+    const showSurname = shouldShowSavedSurname();
 
     const escapeHtml = (value) => String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -2357,7 +2483,20 @@ function renderSavedScreen() {
 
     canvasContainer.innerHTML = `
         <div class="rounded-[28px] border border-[#eee5d8] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f8f1e7] p-3 shadow-[0_18px_35px_-28px_rgba(123,104,83,0.55)]">
-            <div class="mb-2 text-[13px] font-black text-[#5d5444]">${escapeHtml(canvasHeaderText)}</div>
+            <div class="mb-2 flex items-center justify-between gap-3">
+                <div class="min-w-0 text-[13px] font-black text-[#5d5444]">${escapeHtml(canvasHeaderText)}</div>
+                <button type="button"
+                        class="saved-surname-toggle"
+                        role="switch"
+                        aria-checked="${showSurname ? 'true' : 'false'}"
+                        aria-label="名字を${showSurname ? '非表示にする' : '表示する'}"
+                        onclick="toggleSavedSurnameVisibility()">
+                    <span class="saved-surname-toggle-label">名字</span>
+                    <span class="saved-surname-toggle-track" aria-hidden="true">
+                        <span class="saved-surname-toggle-thumb"></span>
+                    </span>
+                </button>
+            </div>
             ${renderCanvasHtml}
         </div>
     `;
@@ -2494,3 +2633,4 @@ function renderSavedScreen() {
 }
 
 window.renderSavedScreen = renderSavedScreen;
+window.toggleSavedSurnameVisibility = toggleSavedSurnameVisibility;

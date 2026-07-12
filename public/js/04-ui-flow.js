@@ -18,6 +18,7 @@ let readingStockDeferredSaveTimer = null;
 let readingStockDeferredSerialized = null;
 let readingStockDeferredItems = null;
 let readingStockDeferredOptions = null;
+let directNameInputOrigin = 'search';
 // gender is defined in 01-core.js
 
 function normalizeReadingStockSoundValue(value) {
@@ -654,9 +655,10 @@ function getMethodChoiceSubmitContent(label) {
 }
 
 function selectSearchMethodChoice(method) {
-    searchMethodSelection = method === 'reading' ? 'reading' : 'sound-browse';
+    searchMethodSelection = method === 'reading' ? 'reading' : method === 'direct-name' ? 'direct-name' : 'sound-browse';
     const soundChoice = document.getElementById('search-method-sound');
     const readingChoice = document.getElementById('search-method-reading');
+    const directChoice = document.getElementById('search-method-direct');
     const submitBtn = document.getElementById('btn-search-method-submit');
 
     if (soundChoice) {
@@ -668,6 +670,11 @@ function selectSearchMethodChoice(method) {
         const selected = searchMethodSelection === 'reading';
         readingChoice.classList.toggle('selected', selected);
         readingChoice.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    }
+    if (directChoice) {
+        const selected = searchMethodSelection === 'direct-name';
+        directChoice.classList.toggle('selected', selected);
+        directChoice.setAttribute('aria-pressed', selected ? 'true' : 'false');
     }
     if (submitBtn) {
         submitBtn.innerHTML = getMethodChoiceSubmitContent(getSearchMethodSubmitLabel());
@@ -682,6 +689,10 @@ function submitSearchMethodChoice() {
         searchMethodSubmitInProgress = true;
         startMode('reading');
         searchMethodSubmitInProgress = false;
+        return;
+    }
+    if (searchMethodSelection === 'direct-name') {
+        openDirectNameInput('search_method');
         return;
     }
 
@@ -702,6 +713,7 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
         searchMethodSelection = getSearchMethodDefaultChoice();
     }
     const isReadingSelected = searchMethodSelection === 'reading';
+    const isDirectSelected = searchMethodSelection === 'direct-name';
 
     screen.innerHTML = `
         <div class="w-full max-w-sm text-center mt-2 mx-auto search-method-shell choice-flow-shell">
@@ -745,6 +757,20 @@ function renderSearchMethodChooserScreen(preserveSelection = false) {
                                 <div class="wiz-mini-card wiz-mini-card-center" style="background:#fff7f2;">暖</div>
                                 <div class="wiz-mini-card wiz-mini-card-front" style="background:#fff1f1;">悠</div>
                             </div>
+                        </div>
+                    </button>
+
+                    <button id="search-method-direct" onclick="selectSearchMethodChoice('direct-name')" class="wiz-gender-btn wiz-reading-choice method-choice-card method-choice-card--simple search-method-card ${isDirectSelected ? 'selected' : ''}" data-reading-candidate="direct" aria-pressed="${isDirectSelected ? 'true' : 'false'}">
+                        <div class="wiz-reading-choice-copy">
+                            <div class="method-choice-header">
+                                <div class="method-choice-radio" aria-hidden="true"></div>
+                                <span class="method-choice-title">候補名を直接指定</span>
+                            </div>
+                            <span class="method-choice-desc">名前と読みを入力して保存済みに入れます</span>
+                        </div>
+                        <div class="method-choice-footer" aria-hidden="true">
+                            <span class="method-choice-selected-pill">選択中</span>
+                            <span class="method-choice-footer-copy">直接指定する</span>
                         </div>
                     </button>
                 </div>
@@ -2310,13 +2336,349 @@ function persistGeneratedSavedName(saveData) {
     if (typeof trackMeimayEvent === 'function') {
         const combination = Array.isArray(mergedSaveData.combination) ? mergedSaveData.combination : [];
         trackMeimayEvent('name_saved', {
-            source: 'generated_result',
+            source: mergedSaveData.source || 'generated_result',
             is_update: preserved ? 1 : 0,
             saved_count: updated.length,
             kanji_count: combination.length,
             has_fortune: mergedSaveData.fortune ? 1 : 0,
             build_mode: typeof buildMode !== 'undefined' ? buildMode : ''
         });
+    }
+}
+
+function openDirectNameInput(origin = 'search') {
+    directNameInputOrigin = String(origin || 'search');
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('direct_name_input_opened', {
+            source: directNameInputOrigin
+        });
+    }
+    resetDirectNameInputForm();
+    changeScreen('scr-direct-name-input');
+    setTimeout(() => {
+        resetDirectNameInputForm();
+    }, 80);
+}
+
+function resetDirectNameInputForm() {
+    ['direct-name-given', 'direct-name-reading', 'direct-name-message'].forEach((id) => {
+        const field = document.getElementById(id);
+        if (field) field.value = '';
+    });
+    updateDirectNameInputPreview();
+}
+
+function getDirectNameInputReturnScreen() {
+    if (directNameInputOrigin === 'wizard') return 'scr-wizard';
+    if (directNameInputOrigin.startsWith('saved')) return 'scr-saved';
+    return 'scr-mode';
+}
+
+function cancelDirectNameInput() {
+    if (directNameInputOrigin === 'search_method' && typeof returnToSearchMethodChooser === 'function') {
+        returnToSearchMethodChooser();
+        return;
+    }
+    const returnScreen = getDirectNameInputReturnScreen();
+    if (returnScreen === 'scr-saved' && typeof openSavedNames === 'function') {
+        openSavedNames();
+        return;
+    }
+    changeScreen(returnScreen);
+}
+
+function normalizeDirectNameGivenValue(value) {
+    return String(value || '').replace(/\s+/g, '').trim();
+}
+
+function normalizeDirectNameReadingValue(value) {
+    const raw = String(value || '').trim();
+    const hira = typeof toHira === 'function' ? toHira(raw) : raw;
+    return hira.replace(/\s+/g, '');
+}
+
+function isValidDirectNameReading(value) {
+    return /^[ぁ-ゖゝゞー]+$/u.test(String(value || ''));
+}
+
+function isDirectNameCjkKanji(char) {
+    return /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/u.test(char);
+}
+
+function findDirectNameMasterKanji(char) {
+    if (!Array.isArray(master)) return null;
+    return master.find(item => item && item['漢字'] === char) || null;
+}
+
+function getDirectNameKanjiChars(givenName) {
+    const seen = new Set();
+    const chars = [];
+    Array.from(String(givenName || '')).forEach((char) => {
+        if (!isDirectNameCjkKanji(char) || seen.has(char)) return;
+        seen.add(char);
+        chars.push(char);
+    });
+    return chars;
+}
+
+function validateDirectNameInputValues() {
+    const givenNameInput = document.getElementById('direct-name-given');
+    const readingInput = document.getElementById('direct-name-reading');
+    const givenName = normalizeDirectNameGivenValue(givenNameInput ? givenNameInput.value : '');
+    const reading = normalizeDirectNameReadingValue(readingInput ? readingInput.value : '');
+
+    if (givenNameInput && givenNameInput.value !== givenName) givenNameInput.value = givenName;
+    if (readingInput && readingInput.value !== reading) readingInput.value = reading;
+
+    if (!givenName) {
+        return { ok: false, message: '名前を入力してください' };
+    }
+    if (!reading) {
+        return { ok: false, message: '読みを入力してください' };
+    }
+    if (!isValidDirectNameReading(reading)) {
+        if (readingInput && typeof readingInput.focus === 'function') readingInput.focus();
+        return { ok: false, message: '読みはひらがなで入力してください' };
+    }
+
+    const kanjiChars = getDirectNameKanjiChars(givenName);
+    if (kanjiChars.length > 0 && (!Array.isArray(master) || master.length === 0)) {
+        return {
+            ok: false,
+            message: '漢字データを読み込み中です。少し待ってからもう一度保存してください。'
+        };
+    }
+    const unknownKanji = kanjiChars.filter(char => !findDirectNameMasterKanji(char));
+    if (unknownKanji.length > 0) {
+        return {
+            ok: false,
+            message: `登録されていない漢字があります：${unknownKanji.join('、')}\n常用漢字・人名用漢字として登録されている漢字だけ保存できます。`
+        };
+    }
+
+    return { ok: true, givenName, reading, kanjiChars };
+}
+
+function buildDirectNameCombination(givenName) {
+    return Array.from(givenName).map((char, slotIndex) => {
+        const found = findDirectNameMasterKanji(char);
+        if (found) {
+            return {
+                ...found,
+                slot: slotIndex,
+                source: 'direct-name',
+                directInput: true
+            };
+        }
+
+        return {
+            '漢字': char,
+            '画数': 0,
+            kanji: char,
+            strokes: 0,
+            slot: slotIndex,
+            source: 'direct-name',
+            directInput: true,
+            isDirectNameLiteral: true,
+            isKanaCandidate: true
+        };
+    });
+}
+
+function addDirectNameKanjiStock(combination) {
+    if (!Array.isArray(combination) || combination.length === 0) return [];
+    if (!Array.isArray(liked)) return [];
+
+    const canUsePremiumKanji = typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
+    const addedItems = [];
+    let changed = false;
+    combination.forEach((piece) => {
+        const kanji = String(piece?.['漢字'] || piece?.kanji || '').trim();
+        if (!kanji || !isDirectNameCjkKanji(kanji)) return;
+
+        const masterItem = findDirectNameMasterKanji(kanji);
+        if (!masterItem) return;
+        const isCommon = typeof isCommonKanjiEntry === 'function' && isCommonKanjiEntry(masterItem);
+        const requiresPremium = !isCommon && !canUsePremiumKanji;
+
+        const permanentlyUnlockedStock = liked.find(item =>
+            item
+            && item['漢字'] === kanji
+            && !item.fromPartner
+            && (typeof isKanjiStockPermanentlyUnlocked !== 'function'
+                || isKanjiStockPermanentlyUnlocked(item))
+        );
+
+        const existing = liked.find(item =>
+            item
+            && item['漢字'] === kanji
+            && item.sessionReading === 'FREE'
+            && !item.fromPartner
+        );
+        if (existing) {
+            existing.source = existing.source || 'direct-name';
+            existing.directInput = true;
+            if ((canUsePremiumKanji || permanentlyUnlockedStock)
+                && typeof isPremiumRequiredKanjiStockItem === 'function'
+                && isPremiumRequiredKanjiStockItem(existing)) {
+                existing.stockAccess = typeof KANJI_STOCK_ACCESS_UNLOCKED !== 'undefined'
+                    ? KANJI_STOCK_ACCESS_UNLOCKED
+                    : 'unlocked';
+                existing.premiumUnlockedAt = existing.premiumUnlockedAt || new Date().toISOString();
+                existing.premiumUnlockReason = existing.premiumUnlockReason || 'direct-name-premium';
+                changed = true;
+            }
+            return;
+        }
+        if (permanentlyUnlockedStock) return;
+
+        const nextItem = {
+            ...masterItem,
+            slot: -1,
+            sessionReading: 'FREE',
+            readingPromoted: false,
+            source: 'direct-name',
+            directInput: true,
+            timestamp: new Date().toISOString(),
+            fromPartner: false,
+            partnerAlsoPicked: false,
+            stockAccess: requiresPremium
+                ? (typeof KANJI_STOCK_ACCESS_PREMIUM_REQUIRED !== 'undefined'
+                    ? KANJI_STOCK_ACCESS_PREMIUM_REQUIRED
+                    : 'premium-required')
+                : (typeof KANJI_STOCK_ACCESS_UNLOCKED !== 'undefined'
+                    ? KANJI_STOCK_ACCESS_UNLOCKED
+                    : 'unlocked'),
+            statsTracked: !requiresPremium
+        };
+        if (!requiresPremium && !isCommon) {
+            nextItem.premiumUnlockedAt = nextItem.timestamp;
+            nextItem.premiumUnlockReason = 'direct-name-premium';
+        }
+        liked.push(nextItem);
+        addedItems.push(nextItem);
+        changed = true;
+    });
+
+    addedItems.forEach((item) => {
+        if (item && item.statsTracked !== false && item['漢字'] && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
+            MeimayStats.recordKanjiLike(item['漢字'], item.gender || gender || 'neutral');
+        }
+        if (typeof trackKanjiSavedEvent === 'function') {
+            trackKanjiSavedEvent(item, {
+                source: 'direct_name',
+                action: 'save',
+                saved_batch_count: addedItems.length
+            });
+        }
+    });
+
+    if (changed && typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+    return addedItems;
+}
+
+function updateDirectNameInputPreview() {
+    const givenNameInput = document.getElementById('direct-name-given');
+    const readingInput = document.getElementById('direct-name-reading');
+    const previewName = document.querySelector('#direct-name-preview .direct-name-preview-name');
+    const previewReading = document.querySelector('#direct-name-preview .direct-name-preview-reading');
+    if (!previewName || !previewReading) return;
+
+    const givenName = normalizeDirectNameGivenValue(givenNameInput ? givenNameInput.value : '');
+    const reading = normalizeDirectNameReadingValue(readingInput ? readingInput.value : '');
+    const configuredSurname = typeof surnameStr !== 'undefined' ? String(surnameStr || '').trim() : '';
+    const configuredSurnameReading = typeof surnameReading !== 'undefined' ? String(surnameReading || '').trim() : '';
+    const previewGiven = givenName || '○○';
+    const previewGivenReading = reading || '○○';
+
+    previewName.textContent = [configuredSurname, previewGiven].filter(Boolean).join(' ');
+    previewReading.textContent = [configuredSurnameReading, previewGivenReading].filter(Boolean).join(' ');
+}
+
+function handleDirectNameInputKeydown(event) {
+    if (!event || event.key !== 'Enter' || event.isComposing) return;
+    event.preventDefault();
+    saveDirectNameInput();
+}
+
+function saveDirectNameInput() {
+    const validation = validateDirectNameInputValues();
+    if (!validation.ok) {
+        alert(validation.message);
+        return;
+    }
+
+    const messageInput = document.getElementById('direct-name-message');
+    const message = messageInput ? messageInput.value.trim().slice(0, 100) : '';
+    if (messageInput && messageInput.value.trim() !== message) messageInput.value = message;
+
+    const combination = buildDirectNameCombination(validation.givenName);
+    const surnameRuby = typeof surnameReading !== 'undefined' ? String(surnameReading || '').trim() : '';
+    const displaySurname = typeof surnameStr !== 'undefined' ? String(surnameStr || '').trim() : '';
+    const isPremium = typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
+    const unlockedKanji = isPremium
+        ? combination
+            .map(piece => String(piece?.['漢字'] || piece?.kanji || '').trim())
+            .filter(kanji => kanji && isDirectNameCjkKanji(kanji))
+        : [];
+
+    const stockedReading = addReadingToStock(validation.reading, validation.givenName, [], {
+        segments: [],
+        gender: typeof gender !== 'undefined' ? gender : 'neutral',
+        clearHidden: true,
+        readingPromoted: false,
+        source: 'direct-name'
+    });
+    const stockedKanjiItems = addDirectNameKanjiStock(combination);
+    const masterKanjiItems = combination
+        .map(piece => findDirectNameMasterKanji(String(piece?.['漢字'] || piece?.kanji || '').trim()))
+        .filter(Boolean);
+    const lockedJinmeiCount = isPremium
+        ? 0
+        : masterKanjiItems.filter(item => typeof isCommonKanjiEntry === 'function' && !isCommonKanjiEntry(item)).length;
+
+    persistGeneratedSavedName({
+        fullName: displaySurname ? `${displaySurname} ${validation.givenName}` : validation.givenName,
+        reading: surnameRuby ? `${surnameRuby} ${validation.reading}` : validation.reading,
+        givenName: validation.givenName,
+        combination,
+        segments: [],
+        fortune: null,
+        message,
+        source: 'direct-name',
+        directInput: true,
+        savedKanjiDetailUnlocks: unlockedKanji,
+        savedAt: new Date().toISOString(),
+        timestamp: new Date().toISOString()
+    });
+
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('direct_name_input_saved', {
+            source: directNameInputOrigin,
+            has_jinmei: masterKanjiItems.some(item => typeof isCommonKanjiEntry === 'function' && !isCommonKanjiEntry(item)) ? 1 : 0,
+            kanji_count: masterKanjiItems.length,
+            reading_length: Array.from(validation.reading).length
+        });
+        trackMeimayEvent('direct_name_input_stock_synced', {
+            source: directNameInputOrigin,
+            reading_synced: stockedReading ? 1 : 0,
+            kanji_synced_count: stockedKanjiItems.length,
+            locked_jinmei_count: lockedJinmeiCount,
+            premium: isPremium ? 1 : 0
+        });
+    }
+    if (typeof persistActiveChildWorkspaceSnapshot === 'function') {
+        persistActiveChildWorkspaceSnapshot('direct-name-save');
+    }
+    if (typeof refreshPartnerAwareUI === 'function') {
+        refreshPartnerAwareUI();
+    }
+    if (typeof openSavedNames === 'function') {
+        openSavedNames();
+    } else {
+        changeScreen('scr-saved');
     }
 }
 const READING_DISPLAY_TAG_ALIASES = {
@@ -2743,6 +3105,8 @@ function goBack() {
             return;
         }
         changeScreen('scr-mode');
+    } else if (id === 'scr-direct-name-input') {
+        cancelDirectNameInput();
     } else if (id === 'scr-input-reading' || id === 'scr-input-nickname') {
         if ((id === 'scr-input-reading' || id === 'scr-input-nickname') && searchMethodReturnToChooser) {
             returnToSearchMethodChooser();
@@ -6985,6 +7349,11 @@ window.renderReadingCardStarsV2 = renderReadingCardStarsV2;
 window.renderReadingTitleWithStarsV2 = renderReadingTitleWithStarsV2;
 window.startNicknameCandidateSwipe = startNicknameCandidateSwipe;
 window.initSoundMode = initSoundMode;
+window.openDirectNameInput = openDirectNameInput;
+window.cancelDirectNameInput = cancelDirectNameInput;
+window.saveDirectNameInput = saveDirectNameInput;
+window.updateDirectNameInputPreview = updateDirectNameInputPreview;
+window.handleDirectNameInputKeydown = handleDirectNameInputKeydown;
 window.openReadingCombinationDetailFromItem = openReadingCombinationDetailFromItem;
 
 
@@ -10447,10 +10816,6 @@ function getReadingCardToneV2(kind) {
     };
 }
 
-
-
-renderReadingStockSection = renderReadingStockSectionV2;
-window.renderReadingStockSection = renderReadingStockSectionV2;
 
 
 renderReadingStockSection = renderReadingStockSectionVisible;

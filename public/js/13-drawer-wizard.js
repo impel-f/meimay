@@ -233,9 +233,10 @@ function selectWizBirthOrder(order) {
 }
 
 function selectWizReadingCandidate(hasCandidate) {
-    wizHasReadingCandidate = !!hasCandidate;
-    document.querySelectorAll('[data-reading-candidate]').forEach(btn => {
-        const isSelected = btn.getAttribute('data-reading-candidate') === (hasCandidate ? 'yes' : 'no');
+    const selectedKey = hasCandidate === 'direct' ? 'direct' : hasCandidate ? 'yes' : 'no';
+    wizHasReadingCandidate = selectedKey === 'direct' ? 'direct' : selectedKey === 'yes';
+    document.querySelectorAll('#wiz-step-4 [data-reading-candidate]').forEach(btn => {
+        const isSelected = btn.getAttribute('data-reading-candidate') === selectedKey;
         btn.classList.toggle('selected', isSelected);
         btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     });
@@ -379,6 +380,9 @@ function wizFinish(mode) {
             : (existingData.surnameReading || ''),
         dueDate: childDate,
         hasReadingCandidate: wizHasReadingCandidate === true,
+        startMethod: wizHasReadingCandidate === 'direct'
+            ? 'direct-name'
+            : (wizHasReadingCandidate === true ? 'reading' : 'sound-browse'),
         gender: wizGender || existingData.gender || 'neutral',
         themeId: existingData.themeId || '',
         themeCustomized: !!existingData.themeCustomized,
@@ -461,7 +465,11 @@ function wizStartNaming() {
     if (wizHasReadingCandidate === null) {
         selectWizReadingCandidate(false);
     }
+    const shouldOpenDirectNameInput = wizHasReadingCandidate === 'direct';
     wizFinish();
+    if (shouldOpenDirectNameInput && typeof openDirectNameInput === 'function') {
+        setTimeout(() => openDirectNameInput('wizard_finish'), 120);
+    }
 }
 
 window.selectWizReadingCandidate = selectWizReadingCandidate;

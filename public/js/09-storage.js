@@ -148,20 +148,21 @@ const StorageBox = {
             }
             const serialized = JSON.stringify(safeLiked);
             localStorage.setItem(this.KEY_LIKED, serialized);
-            localStorage.setItem(this.KEY_LIKED_LEGACY, serialized);
             localStorage.setItem(this.KEY_LIKED_META, JSON.stringify({
                 count: safeLiked.length,
                 savedAt: new Date().toISOString()
             }));
             if (safeLiked.length > 0) {
-                localStorage.setItem(this.KEY_LIKED_BACKUP, serialized);
                 localStorage.removeItem(this.KEY_LIKED_CLEARED);
             } else {
-                localStorage.removeItem(this.KEY_LIKED_BACKUP);
                 if (hadLikedState) {
                     localStorage.setItem(this.KEY_LIKED_CLEARED, new Date().toISOString());
                 }
             }
+            // Legacy mirrors remain readable for migration, but keeping three full
+            // copies makes every swipe save block the main thread as stock grows.
+            localStorage.removeItem(this.KEY_LIKED_LEGACY);
+            localStorage.removeItem(this.KEY_LIKED_BACKUP);
             return true;
         } catch (e) {
             console.error("STORAGE: Save liked mirror failed", e);
@@ -824,7 +825,11 @@ const StorageBox = {
 setInterval(() => {
     if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
     if (liked.length > 0 || savedNames.length > 0) {
-        StorageBox.saveAll({ skipPartnerSync: true });
+        StorageBox.saveAll({
+            skipPartnerSync: true,
+            skipBackupSync: true,
+            skipChildWorkspaceSync: true
+        });
     }
 }, 30000);
 
@@ -855,6 +860,12 @@ function shareData() {
             reading: s.reading || '',
             givenName: s.givenName || '',
             combinationKeys: s.combination ? s.combination.map(k => k['漢字']) : [],
+            combination: s.directInput && Array.isArray(s.combination)
+                ? s.combination.map(k => ({ ...(k || {}) }))
+                : undefined,
+            directInput: s.directInput === true,
+            source: s.source || '',
+            savedKanjiDetailUnlocks: Array.isArray(s.savedKanjiDetailUnlocks) ? s.savedKanjiDetailUnlocks : [],
             message: s.message || '',
             savedAt: s.savedAt || s.timestamp,
             fromPartner: s.fromPartner || false
@@ -976,6 +987,9 @@ function receiveSharedData() {
                         givenName: name.givenName,
                         combination: combination,
                         fortune: fortune,
+                        directInput: name.directInput === true || name.source === 'direct-name',
+                        source: name.source || '',
+                        savedKanjiDetailUnlocks: Array.isArray(name.savedKanjiDetailUnlocks) ? name.savedKanjiDetailUnlocks : [],
                         message: name.message,
                         savedAt: name.savedAt,
                         fromPartner: true,
