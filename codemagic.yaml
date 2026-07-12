@@ -101,7 +101,7 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
-        IOS_MARKETING_VERSION: "1.3.1"
+        IOS_MARKETING_VERSION: "1.4.0"
         IOS_BUILD_NUMBER_FLOOR: "28"
       node: v22.11.0
       xcode: latest
@@ -115,7 +115,18 @@ workflows:
       - name: Set iOS version and build number
         script: |
           set -euo pipefail
-          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.3.1}"
+          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.4.0}"
+
+          PROJECT_MARKETING_VERSIONS="$(grep -E 'MARKETING_VERSION = ' "$CM_BUILD_DIR/$XCODE_PROJECT/project.pbxproj" | sed -E 's/.*MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"
+          WEB_MARKETING_VERSION="$(sed -nE 's/.*メイメー v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "$CM_BUILD_DIR/public/index.html" | head -n 1)"
+          if [ "$PROJECT_MARKETING_VERSIONS" != "$MARKETING_VERSION" ]; then
+            echo "iOS version mismatch: Codemagic=$MARKETING_VERSION, Xcode=$PROJECT_MARKETING_VERSIONS"
+            exit 1
+          fi
+          if [ "$WEB_MARKETING_VERSION" != "$MARKETING_VERSION" ]; then
+            echo "iOS version mismatch: Codemagic=$MARKETING_VERSION, app display=$WEB_MARKETING_VERSION"
+            exit 1
+          fi
 
           extract_number() {
             printf '%s' "$1" | tr -d '\r' | grep -Eo '[0-9]+' | tail -n 1 || true
