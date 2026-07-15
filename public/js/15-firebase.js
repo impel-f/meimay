@@ -732,6 +732,15 @@ function canonicalizePairingSavedNameKey(value) {
     return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
 }
 
+function getPairingExplicitApprovedSavedKey(item) {
+    if (!item) return '';
+    const explicitKey = canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey);
+    if (explicitKey) return explicitKey;
+    return item.approvedFromPartner === true
+        ? canonicalizePairingSavedNameKey(buildPairingSavedNameKey(item))
+        : '';
+}
+
 function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
     const canvas = extractSavedCanvasStateFromWorkspaceState(state);
     return String(canvas?.activeKey || canvas?.selectedKey || canvas?.ownKey || canvas?.partnerKey || '').trim();
@@ -2663,6 +2672,7 @@ const MeimayShare = {
     _partnerSnapshotPartnerUid: '',
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
     _lastPremiumStateSyncFingerprint: '',
+    _lastPartnerContentFingerprint: '',
     PARTNER_SNAPSHOT_CACHE_KEY: 'meimay_partner_snapshot_cache_v1',
     PARTNER_SNAPSHOT_CACHE_MAX_AGE_MS: 14 * 24 * 60 * 60 * 1000,
 
@@ -2799,6 +2809,33 @@ const MeimayShare = {
             trialEndsAt: state.trialEndsAt || null,
             trialConsumedByRoom: state.trialConsumedByRoom === true
         });
+    },
+
+    _buildPartnerContentFingerprint: function (data = {}) {
+        const roomFingerprint = String(
+            data.roomSyncFingerprint
+            || data.meimayRoomSyncFingerprint
+            || ''
+        ).trim();
+        if (roomFingerprint) {
+            try {
+                const parsed = JSON.parse(roomFingerprint);
+                if (parsed && typeof parsed === 'object') {
+                    delete parsed.premium;
+                    return JSON.stringify(parsed);
+                }
+            } catch (error) {
+                return roomFingerprint;
+            }
+        }
+
+        try {
+            const fallback = JSON.parse(buildRoomSyncContentFingerprint(data));
+            delete fallback.premium;
+            return JSON.stringify(fallback);
+        } catch (error) {
+            return '';
+        }
     },
 
     // 繝代・繝医リ繝ｼ縺ｮ繝・・繧ｿ繧偵Μ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡
@@ -6004,15 +6041,13 @@ MeimayPartnerInsights.getPartnerDisplayName = function () {
 
 MeimayPartnerInsights.getOwnApprovedSavedKeys = function () {
     return new Set(this.getOwnSaved()
-        .filter(item => item?.approvedFromPartner)
-        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .map(item => getPairingExplicitApprovedSavedKey(item))
         .filter(Boolean));
 };
 
 MeimayPartnerInsights.getPartnerApprovedSavedKeys = function () {
     return new Set(this.getPartnerSaved()
-        .filter(item => item?.approvedFromPartner)
-        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .map(item => getPairingExplicitApprovedSavedKey(item))
         .filter(Boolean));
 };
 
@@ -6165,15 +6200,13 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerSavedKeys = new Set(partnerSavedItems.map(item => this.buildSavedMatchKey(item)).filter(Boolean));
     const matchedSavedKeys = new Set();
     ownSavedItems
-        .filter(item => item?.approvedFromPartner)
-        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .map(item => getPairingExplicitApprovedSavedKey(item))
         .filter(Boolean)
         .forEach(key => {
             if (partnerSavedKeys.has(key)) matchedSavedKeys.add(key);
         });
     partnerSavedItems
-        .filter(item => item?.approvedFromPartner)
-        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
+        .map(item => getPairingExplicitApprovedSavedKey(item))
         .filter(Boolean)
         .forEach(key => {
             if (ownSavedKeys.has(key)) matchedSavedKeys.add(key);
@@ -6361,33 +6394,59 @@ window.getMeimayRelationshipPalettes = getMeimayRelationshipPalettes;
 window.getMeimayOwnershipPalette = getMeimayOwnershipPalette;
 window.renderMeimaySuperStars = renderMeimaySuperStars;
 
+let partnerAwareUiRefreshPending = false;
+let partnerAwareUiRefreshSequence = 0;
+
 function refreshPartnerAwareUI(options = {}) {
-    if (typeof applyProfileTheme === 'function') applyProfileTheme();
-    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile(options);
-    }
-    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
-        renderSavedScreen();
-    }
-    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
-        renderSettingsScreen();
-    }
-    if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
+    const runRefresh = () => {
+        partnerAwareUiRefreshPending = false;
+        if (typeof applyProfileTheme === 'function') applyProfileTheme();
         const activeScreenId = document.querySelector('.screen.active')?.id || '';
-        MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
-    }
-    if (document.getElementById('scr-stock')?.classList.contains('active')) {
-        if (typeof renderStock === 'function') renderStock();
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-    }
-    if (document.getElementById('scr-build')?.classList.contains('active')) {
-        if (typeof requestRenderBuildSelection === 'function') {
-            requestRenderBuildSelection('partner-aware-ui');
-        } else if (typeof renderBuildSelection === 'function') {
-            renderBuildSelection();
+        if (activeScreenId === 'scr-mode' && typeof renderHomeProfile === 'function') {
+            if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile({ afterPaint: false });
+            else renderHomeProfile();
         }
+        if (activeScreenId === 'scr-saved' && typeof renderSavedScreen === 'function') {
+            renderSavedScreen();
+        }
+        if (activeScreenId === 'scr-settings' && typeof renderSettingsScreen === 'function') {
+            renderSettingsScreen();
+        }
+        if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
+            MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
+        }
+        if (activeScreenId === 'scr-stock') {
+            if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
+                if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+            } else if (typeof renderStock === 'function') {
+                renderStock();
+            }
+        }
+        if (activeScreenId === 'scr-build') {
+            if (typeof requestRenderBuildSelection === 'function') {
+                requestRenderBuildSelection('partner-aware-ui');
+            } else if (typeof renderBuildSelection === 'function') {
+                renderBuildSelection();
+            }
+        }
+        if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+    };
+
+    if (options.afterPaint === false || options.immediate === true) {
+        partnerAwareUiRefreshSequence += 1;
+        runRefresh();
+        return;
     }
-    if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
+    if (partnerAwareUiRefreshPending) return;
+    partnerAwareUiRefreshPending = true;
+    const refreshSequence = ++partnerAwareUiRefreshSequence;
+    const runIfCurrent = () => {
+        if (refreshSequence !== partnerAwareUiRefreshSequence) return;
+        runRefresh();
+    };
+    if (typeof runAfterNextPaint === 'function') runAfterNextPaint(runIfCurrent);
+    else if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(runIfCurrent, 0));
+    else setTimeout(runIfCurrent, 0);
 }
 
 window.refreshPartnerAwareUI = refreshPartnerAwareUI;
@@ -7647,6 +7706,26 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 try {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
+            const partnerContentFingerprint = typeof this._buildPartnerContentFingerprint === 'function'
+                ? this._buildPartnerContentFingerprint(data)
+                : '';
+            if (partnerContentFingerprint && partnerContentFingerprint === this._lastPartnerContentFingerprint) {
+                const partnerPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
+                this.partnerUserSnapshot = partnerPremiumSnapshot;
+                if (this.partnerSnapshot && typeof this.partnerSnapshot === 'object') {
+                    this.partnerSnapshot.premiumState = partnerPremiumSnapshot;
+                }
+                if (partnerPremiumSnapshot && typeof window !== 'undefined' && typeof window.setCachedConnectedPartnerPremiumSnapshot === 'function') {
+                    window.setCachedConnectedPartnerPremiumSnapshot(partnerPremiumSnapshot, {
+                        roomCode: MeimayPairing.roomCode,
+                        partnerUid
+                    });
+                } else if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
+                    window.clearCachedConnectedPartnerPremiumSnapshot();
+                }
+                if (typeof updatePremiumUI === 'function') updatePremiumUI();
+                return;
+            }
             cleanupLegacyPartnerLocalData();
             const roomBackup = data.meimayBackup || data.backup || {};
             const roomLikedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
@@ -7803,6 +7882,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 backup: roomBackup,
                 partnerUserBackup
             };
+            this._lastPartnerContentFingerprint = partnerContentFingerprint;
             this._partnerSnapshotPartnerUid = partnerUid;
             if (typeof this.cachePartnerSnapshot === 'function') {
                 this.cachePartnerSnapshot(this.partnerSnapshot, {
@@ -7828,6 +7908,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     roomCode: MeimayPairing.roomCode,
                     partnerUid
                 });
+            } else if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
+                window.clearCachedConnectedPartnerPremiumSnapshot();
             }
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();
@@ -7864,6 +7946,7 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub = null;
     }
     this._listeningPartnerUid = '';
+    this._lastPartnerContentFingerprint = '';
     if (typeof this.clearCachedPartnerSnapshot === 'function') {
         this.clearCachedPartnerSnapshot();
     } else {

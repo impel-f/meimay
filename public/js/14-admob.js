@@ -59,10 +59,18 @@ function setAdMobTestAdMode(enabled) {
         localStorage.setItem(AdMobTestAdConfig.storageKey, enabled ? '1' : '0');
     } catch (e) { }
 
-    hideAdBanner();
-    setTimeout(() => {
-        initAdMob();
-    }, 250);
+    const restartWithSelectedAdMode = () => {
+        hideAdBanner({ reset: true });
+        setTimeout(() => {
+            initAdMob();
+        }, 250);
+    };
+
+    if (nativeAdMobShowPromise) {
+        Promise.resolve(nativeAdMobShowPromise).finally(restartWithSelectedAdMode);
+    } else {
+        restartWithSelectedAdMode();
+    }
 }
 
 function isAdMobTestAdMode(platform) {
@@ -378,11 +386,6 @@ const PremiumManager = {
             this._remoteTrialConsumedAt = data.trialConsumedAt || null;
             this._remoteTrialConsumedByRoom = data.trialConsumedByRoom === true;
 
-            if (this.isPremium()) {
-                hideAdBanner();
-            } else {
-                showAdBanner();
-            }
             updatePremiumUI();
 
             if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare.syncPremiumState === 'function') {
@@ -1016,16 +1019,25 @@ const AD_BANNER_GAP = 8;
 const AD_BANNER_DOCK_TUCK = 0;
 const AD_SCREEN_SAFE_SPACE_MIN = 124;
 const WEB_AD_BANNER_MIN_HEIGHT = 52;
-const NATIVE_AD_BANNER_MIN_HEIGHT = 56;
+const NATIVE_AD_BANNER_MIN_HEIGHT = 50;
 const AD_BANNER_RESTORE_RETRY_MS = 260;
 const AD_BANNER_RESTORE_MAX_ATTEMPTS = 8;
+const NATIVE_AD_BANNER_RETRY_BASE_MS = 1500;
+const NATIVE_AD_BANNER_RETRY_MAX_ATTEMPTS = 3;
 const AD_PREMIUM_STATE_GRACE_MS = 2500;
 const PREMIUM_AD_SUPPRESSION_CACHE_KEY = 'meimay_premium_ad_suppression_cache_v1';
 const PARTNER_PREMIUM_CACHE_KEY = 'meimay_partner_premium_cache_v1';
 const PARTNER_PREMIUM_CACHE_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 let adBannerVisible = false;
+let adBannerDesiredVisible = false;
 let adBannerMode = null;
 let nativeAdMobInitializePromise = null;
+let nativeAdMobShowPromise = null;
+let nativeAdMobBannerRequested = false;
+let nativeAdMobBannerPaused = false;
+let nativeAdMobBannerHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
+let nativeAdMobRetryTimer = null;
+let nativeAdMobRetryAttempt = 0;
 let nativeAdMobListenersReady = false;
 let nativeAdMobBannerLoaded = false;
 let nativeAdMobBannerFailed = false;
@@ -1250,10 +1262,6 @@ function shouldSkipNativeStoreCheck(options = {}) {
 function getAdMobPremiumHoldReason() {
     if (PremiumManager.isPremium()) return 'premium-active';
     if (hasFreshPremiumAdSuppressionCache()) return 'premium-cache';
-    const completed = PremiumManager.hasCompletedPurchaseStateCheck && PremiumManager.hasCompletedPurchaseStateCheck();
-    if (!completed && Date.now() - adSystemStartedAt < AD_PREMIUM_STATE_GRACE_MS) {
-        return 'startup-premium-grace';
-    }
     if (isNativeAdMobAutoStartDisabled()) return 'native-admob-autostart-disabled';
     return '';
 }
@@ -1310,17 +1318,25 @@ function setHtmlAdBannerSuppressed(suppressed) {
 
 function setNativeAdMobBannerSuppressed(suppressed, reason = '') {
     const AdMob = getAdMobPlugin();
-    if (!AdMob) return;
+    if (!AdMob || !nativeAdMobBannerRequested) return;
+
+    const shouldSuppress = suppressed === true;
+    const methodName = shouldSuppress ? 'hideBanner' : 'resumeBanner';
+    const method = AdMob[methodName];
+    if (typeof method !== 'function') return;
+    if (nativeAdMobBannerPaused === shouldSuppress) return;
+    nativeAdMobBannerPaused = shouldSuppress;
 
     try {
-        const methodName = suppressed ? 'hideBanner' : 'resumeBanner';
-        const method = AdMob[methodName];
-        if (typeof method !== 'function') return;
         const result = method.call(AdMob);
         if (result && typeof result.catch === 'function') {
-            result.catch((e) => console.warn('ADMOB: temporary banner visibility change failed', reason, e));
+            result.catch((e) => {
+                nativeAdMobBannerPaused = !shouldSuppress;
+                console.warn('ADMOB: temporary banner visibility change failed', reason, e);
+            });
         }
     } catch (e) {
+        nativeAdMobBannerPaused = !shouldSuppress;
         console.warn('ADMOB: temporary banner visibility change failed', reason, e);
     }
 }
@@ -1399,9 +1415,26 @@ function restoreAdBannerForFreeUser(reason = '') {
         return false;
     }
 
+    adBannerDesiredVisible = true;
     adBannerSuppressedByOverlay = false;
     setHtmlAdBannerSuppressed(false);
-    setNativeAdMobBannerSuppressed(false, reason || 'restore-free-banner');
+
+    const htmlContainer = document.getElementById('admob-banner');
+    if ((adBannerMode === 'web' || adBannerMode === 'native-fallback')
+        && isHtmlAdBannerSurfaceVisible(htmlContainer)) {
+        adBannerVisible = true;
+        updateAdLayoutSpacing(measureAdBannerHeight(htmlContainer));
+        return true;
+    }
+
+    if (getAdMobPlugin() && nativeAdMobBannerRequested) {
+        adBannerVisible = true;
+        adBannerMode = 'native';
+        setNativeAdMobBannerSuppressed(false, reason || 'restore-free-banner');
+        updateAdLayoutSpacing(nativeAdMobBannerHeight);
+        return true;
+    }
+
     showAdBanner();
     return true;
 }
@@ -1524,6 +1557,40 @@ function installAdBannerSurfaceRefreshListeners() {
     });
 }
 
+function clearNativeAdMobRetry(resetAttempt = false) {
+    if (nativeAdMobRetryTimer) {
+        clearTimeout(nativeAdMobRetryTimer);
+        nativeAdMobRetryTimer = null;
+    }
+    if (resetAttempt) nativeAdMobRetryAttempt = 0;
+}
+
+function scheduleNativeAdMobRetry(reason = '') {
+    if (nativeAdMobRetryTimer) return false;
+    if (nativeAdMobShowPromise) {
+        Promise.resolve(nativeAdMobShowPromise).finally(() => {
+            setTimeout(() => scheduleNativeAdMobRetry(reason), 0);
+        });
+        return true;
+    }
+    if (!adBannerDesiredVisible || PremiumManager.isPremium() || isNativeAdMobAutoStartDisabled()) return false;
+    if (nativeAdMobRetryAttempt >= NATIVE_AD_BANNER_RETRY_MAX_ATTEMPTS) {
+        console.warn('ADMOB: Native banner retry limit reached', reason);
+        return false;
+    }
+
+    const attempt = nativeAdMobRetryAttempt;
+    const delayMs = NATIVE_AD_BANNER_RETRY_BASE_MS * Math.pow(2, attempt);
+    nativeAdMobRetryAttempt += 1;
+    nativeAdMobRetryTimer = setTimeout(() => {
+        nativeAdMobRetryTimer = null;
+        if (!adBannerDesiredVisible || PremiumManager.isPremium()) return;
+        nativeAdMobBannerFailed = false;
+        initNativeAdMob(getPlatform());
+    }, delayMs);
+    return true;
+}
+
 function updateAdLayoutSpacing(bannerHeight) {
     if (PremiumManager.isPremium()) {
         const container = document.getElementById('admob-banner');
@@ -1620,6 +1687,14 @@ function showNativeAdMobFallbackBanner(reason, error) {
         return;
     }
 
+    if (adBannerMode === 'native-fallback' && isHtmlAdBannerSurfaceVisible(container)) {
+        adBannerDesiredVisible = true;
+        adBannerVisible = true;
+        updateAdLayoutSpacing(measureAdBannerHeight(container) || NATIVE_AD_BANNER_MIN_HEIGHT);
+        return;
+    }
+
+    adBannerDesiredVisible = true;
     adBannerVisible = true;
     adBannerMode = 'native-fallback';
     adBannerSuppressedByOverlay = false;
@@ -1672,11 +1747,21 @@ function setupNativeAdMobBannerListeners(AdMob) {
                 container.style.bottom = '';
                 container.innerHTML = '';
             }
+            nativeAdMobBannerRequested = true;
             nativeAdMobBannerLoaded = true;
             nativeAdMobBannerFailed = false;
+            clearNativeAdMobRetry(true);
+            if (!adBannerDesiredVisible || PremiumManager.isPremium()) {
+                adBannerVisible = false;
+                adBannerMode = null;
+                setNativeAdMobBannerSuppressed(true, 'loaded-while-hidden');
+                updateAdLayoutSpacing(0);
+                return;
+            }
+            nativeAdMobBannerPaused = false;
             adBannerVisible = true;
             adBannerMode = 'native';
-            updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
+            updateAdLayoutSpacing(nativeAdMobBannerHeight);
             trackAdImpressionAnalytics('native', {
                 ad_source: 'banner_loaded',
                 os_platform: getPlatform(),
@@ -1689,16 +1774,22 @@ function setupNativeAdMobBannerListeners(AdMob) {
             if (adBannerMode !== 'native') return;
             const height = Number(size && size.height);
             if (Number.isFinite(height) && height > 0) {
+                nativeAdMobBannerHeight = Math.max(height, NATIVE_AD_BANNER_MIN_HEIGHT);
                 nativeAdMobBannerLoaded = true;
                 adBannerVisible = true;
-                updateAdLayoutSpacing(Math.max(height, NATIVE_AD_BANNER_MIN_HEIGHT));
+                if (adBannerDesiredVisible && !PremiumManager.isPremium()) {
+                    updateAdLayoutSpacing(nativeAdMobBannerHeight);
+                }
             }
         });
 
         addBannerListener('bannerAdFailedToLoad', (error) => {
+            nativeAdMobBannerRequested = false;
+            nativeAdMobBannerPaused = false;
             nativeAdMobBannerLoaded = false;
             nativeAdMobBannerFailed = true;
             showNativeAdMobFallbackBanner('Native banner failed to load', error);
+            scheduleNativeAdMobRetry('banner-load-failed');
         });
     } catch (e) {
         nativeAdMobListenersReady = false;
@@ -1717,6 +1808,7 @@ function initAdMob() {
         return;
     }
 
+    adBannerDesiredVisible = true;
     const platform = getPlatform();
     const AdMob = getAdMobPlugin();
 
@@ -1741,64 +1833,96 @@ async function initNativeAdMob(platform) {
     const config = platform === 'ios' ? AdMobConfig.ios : AdMobConfig.android;
     const footerMargin = getAdBannerFooterMargin();
 
-    try {
-        const AdMob = getAdMobPlugin();
-        if (!AdMob) {
-            showNativeAdMobFallbackBanner('Native AdMob plugin is unavailable before initialization');
-            return;
-        }
-        setupNativeAdMobBannerListeners(AdMob);
+    const AdMob = getAdMobPlugin();
+    if (!AdMob) {
+        showNativeAdMobFallbackBanner('Native AdMob plugin is unavailable before initialization');
+        return false;
+    }
 
-        if (!nativeAdMobInitializePromise) {
-            const initializeOptions = platform === 'android'
-                ? {}
-                : {
-                    testingDevices: [],
-                    initializeForTesting: isAdMobTestAdMode(platform),
-                    publisherFirstPartyIdEnabled: AdMobPrivacyConfig.publisherFirstPartyIdEnabled,
-                    maxAdContentRating: AdMobPrivacyConfig.maxAdContentRating
-                };
-            nativeAdMobInitializePromise = AdMob.initialize(initializeOptions);
-        }
-        await nativeAdMobInitializePromise;
-
-        if (platform === 'android' && NativeAdMobAutoStartConfig.androidShowBannerEnabled !== true) {
-            clearHtmlAdBanner('Native AdMob initialized without banner for Android crash isolation');
-            console.log('ADMOB: Native initialized; Android banner display skipped for crash isolation');
-            return;
-        }
-
-        nativeAdMobBannerLoaded = false;
-        nativeAdMobBannerFailed = false;
-        adBannerMode = 'native';
-        await AdMob.showBanner({
-            adId: getAdMobBannerId(platform, config),
-            adSize: 'BANNER',
-            position: 'BOTTOM_CENTER',
-            margin: footerMargin,
-            isTesting: isAdMobTestAdMode(platform),
-            npa: AdMobPrivacyConfig.nonPersonalizedAds
-        });
-
-        if (nativeAdMobBannerFailed) return;
-
-        const container = document.getElementById('admob-banner');
-        if (container) {
-            container.style.display = 'none';
-            container.style.bottom = '';
-            container.innerHTML = '';
-        }
+    if (nativeAdMobBannerRequested) {
         adBannerVisible = true;
         adBannerMode = 'native';
-        updateAdLayoutSpacing(NATIVE_AD_BANNER_MIN_HEIGHT);
-
-        console.log('ADMOB: Native banner requested');
-    } catch (e) {
-        nativeAdMobInitializePromise = null;
-        nativeAdMobBannerLoaded = false;
-        nativeAdMobBannerFailed = true;
-        showNativeAdMobFallbackBanner('Native init failed', e);
+        setNativeAdMobBannerSuppressed(false, 'native-banner-existing');
+        updateAdLayoutSpacing(nativeAdMobBannerHeight);
+        return true;
     }
+    if (nativeAdMobShowPromise) return nativeAdMobShowPromise;
+    clearNativeAdMobRetry(false);
+
+    nativeAdMobShowPromise = (async () => {
+        try {
+            setupNativeAdMobBannerListeners(AdMob);
+
+            if (!nativeAdMobInitializePromise) {
+                const initializeOptions = platform === 'android'
+                    ? {}
+                    : {
+                        testingDevices: [],
+                        initializeForTesting: isAdMobTestAdMode(platform),
+                        publisherFirstPartyIdEnabled: AdMobPrivacyConfig.publisherFirstPartyIdEnabled,
+                        maxAdContentRating: AdMobPrivacyConfig.maxAdContentRating
+                    };
+                nativeAdMobInitializePromise = AdMob.initialize(initializeOptions);
+            }
+            await nativeAdMobInitializePromise;
+
+            if (platform === 'android' && NativeAdMobAutoStartConfig.androidShowBannerEnabled !== true) {
+                clearHtmlAdBanner('Native AdMob initialized without banner for Android crash isolation');
+                console.log('ADMOB: Native initialized; Android banner display skipped for crash isolation');
+                return false;
+            }
+
+            if (PremiumManager.isPremium() || !adBannerDesiredVisible) return false;
+
+            nativeAdMobBannerRequested = true;
+            nativeAdMobBannerPaused = false;
+            nativeAdMobBannerLoaded = false;
+            nativeAdMobBannerFailed = false;
+            nativeAdMobBannerHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
+            adBannerMode = 'native';
+            await AdMob.showBanner({
+                adId: getAdMobBannerId(platform, config),
+                adSize: 'BANNER',
+                position: 'BOTTOM_CENTER',
+                margin: footerMargin,
+                isTesting: isAdMobTestAdMode(platform),
+                npa: AdMobPrivacyConfig.nonPersonalizedAds
+            });
+
+            if (nativeAdMobBannerFailed) return false;
+
+            const container = document.getElementById('admob-banner');
+            if (container) {
+                container.style.display = 'none';
+                container.style.bottom = '';
+                container.innerHTML = '';
+            }
+
+            if (PremiumManager.isPremium() || !adBannerDesiredVisible) {
+                setNativeAdMobBannerSuppressed(true, 'state-changed-during-load');
+                return false;
+            }
+
+            adBannerVisible = true;
+            adBannerMode = 'native';
+            updateAdLayoutSpacing(nativeAdMobBannerHeight);
+            console.log('ADMOB: Native banner requested');
+            return true;
+        } catch (e) {
+            nativeAdMobInitializePromise = null;
+            nativeAdMobBannerRequested = false;
+            nativeAdMobBannerPaused = false;
+            nativeAdMobBannerLoaded = false;
+            nativeAdMobBannerFailed = true;
+            showNativeAdMobFallbackBanner('Native init failed', e);
+            scheduleNativeAdMobRetry('native-init-failed');
+            return false;
+        } finally {
+            nativeAdMobShowPromise = null;
+        }
+    })();
+
+    return nativeAdMobShowPromise;
 }
 
 function showAdBanner() {
@@ -1810,6 +1934,7 @@ function showAdBanner() {
         scheduleDeferredAdMobInit(holdReason);
         return;
     }
+    adBannerDesiredVisible = true;
     const platform = getPlatform();
     const AdMob = getAdMobPlugin();
     if (AdMob) {
@@ -1827,6 +1952,14 @@ function showWebAdBanner() {
     const container = document.getElementById('admob-banner');
     if (!container || PremiumManager.isPremium()) return;
 
+    if (adBannerMode === 'web' && isHtmlAdBannerSurfaceVisible(container)) {
+        adBannerDesiredVisible = true;
+        adBannerVisible = true;
+        updateAdLayoutSpacing(measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT);
+        return;
+    }
+
+    adBannerDesiredVisible = true;
     adBannerVisible = true;
     adBannerMode = 'web';
     adBannerSuppressedByOverlay = false;
@@ -1873,7 +2006,9 @@ function showWebAdBanner() {
     });
 }
 
-function hideAdBanner() {
+function hideAdBanner(options = {}) {
+    const reset = options && options.reset === true;
+    adBannerDesiredVisible = false;
     const container = document.getElementById('admob-banner');
     if (container) {
         container.style.display = 'none';
@@ -1885,21 +2020,29 @@ function hideAdBanner() {
     adBannerVisible = false;
     adBannerMode = null;
     adBannerSuppressedByOverlay = false;
-    nativeAdMobBannerLoaded = false;
-    nativeAdMobBannerFailed = false;
     document.body.style.removeProperty('--ad-screen-safe-space');
     document.body.style.removeProperty('--ad-banner-height');
     document.body.style.removeProperty('--ad-footer-offset');
     document.body.classList.remove('has-ad-banner');
 
+    if (reset) clearNativeAdMobRetry(true);
     const AdMob = getAdMobPlugin();
-    if (AdMob) {
+    if (AdMob && reset) {
         try {
-            const hideResult = AdMob.hideBanner();
-            if (hideResult && typeof hideResult.catch === 'function') {
-                hideResult.catch((e) => console.warn('ADMOB: hideBanner failed', e));
+            const removeResult = typeof AdMob.removeBanner === 'function'
+                ? AdMob.removeBanner()
+                : (typeof AdMob.hideBanner === 'function' ? AdMob.hideBanner() : null);
+            if (removeResult && typeof removeResult.catch === 'function') {
+                removeResult.catch((e) => console.warn('ADMOB: reset banner failed', e));
             }
-        } catch (e) { console.warn('ADMOB: hideBanner failed', e); }
+        } catch (e) { console.warn('ADMOB: reset banner failed', e); }
+        nativeAdMobBannerRequested = false;
+        nativeAdMobBannerPaused = false;
+        nativeAdMobBannerLoaded = false;
+        nativeAdMobBannerFailed = false;
+        nativeAdMobBannerHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
+    } else {
+        setNativeAdMobBannerSuppressed(true, 'premium-or-hidden');
     }
 }
 
@@ -1913,10 +2056,14 @@ window.MeimayAdMobDebug = {
             privacyConfig: { ...AdMobPrivacyConfig },
             premiumActive: PremiumManager.isPremium(),
             visible: adBannerVisible,
+            desiredVisible: adBannerDesiredVisible,
             mode: adBannerMode,
             suppressedByOverlay: adBannerSuppressedByOverlay,
             nativeLoaded: nativeAdMobBannerLoaded,
             nativeFailed: nativeAdMobBannerFailed,
+            nativeRequested: nativeAdMobBannerRequested,
+            nativePaused: nativeAdMobBannerPaused,
+            nativeHeight: nativeAdMobBannerHeight,
             safeSpace: document.body.style.getPropertyValue('--ad-screen-safe-space') || ''
         };
     },
@@ -2544,9 +2691,6 @@ PremiumManager.refreshPurchaseState = async function (restore = true, options = 
         return false;
     } finally {
         this.endPurchaseStateCheck();
-        if (getAdMobPremiumHoldReason() === '') {
-            showAdBanner();
-        }
     }
 };
 
@@ -3333,12 +3477,31 @@ PremiumManager.startTrial = async function () {
     }
 };
 
-function updatePremiumUI() {
+let lastPremiumUiMembershipFingerprint = '';
+
+function updatePremiumUI(options = {}) {
     const state = typeof PremiumManager !== 'undefined' && typeof PremiumManager.getMembershipState === 'function'
         ? PremiumManager.getMembershipState()
         : getDefaultPremiumMembershipState();
+    const expiresAtValue = state.expiresAt instanceof Date
+        ? state.expiresAt.toISOString()
+        : String(state.expiresAt || '');
+    const membershipFingerprint = JSON.stringify([
+        state.active === true,
+        state.expired === true,
+        state.source || '',
+        state.premiumSource || '',
+        state.status || '',
+        state.productId || '',
+        state.isTrial === true,
+        expiresAtValue,
+        state.label || ''
+    ]);
+    const membershipChanged = options.force === true
+        || membershipFingerprint !== lastPremiumUiMembershipFingerprint;
+    lastPremiumUiMembershipFingerprint = membershipFingerprint;
 
-    if (state.active && typeof promotePremiumRequiredKanjiStockItems === 'function') {
+    if (membershipChanged && state.active && typeof promotePremiumRequiredKanjiStockItems === 'function') {
         promotePremiumRequiredKanjiStockItems({ reason: state.source || 'premium-activation' });
     }
 
@@ -3354,21 +3517,29 @@ function updatePremiumUI() {
         premiumBadge.title = state.label || '';
     }
 
+    if (!membershipChanged) return;
+
     if (typeof updateDrawerProfile === 'function') {
         updateDrawerProfile();
     }
 
-    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
-        renderHomeProfile();
+    const activeScreenId = document.querySelector('.screen.active')?.id || '';
+    if (activeScreenId === 'scr-mode' && typeof renderHomeProfile === 'function') {
+        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile();
+        else renderHomeProfile();
     }
 
-    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')) {
+    if (activeScreenId === 'scr-saved' && typeof renderSavedScreen === 'function') {
         renderSavedScreen();
     }
 
     const stockScreen = document.getElementById('scr-stock');
-    if (typeof renderStock === 'function' && stockScreen && stockScreen.classList.contains('active')) {
-        renderStock();
+    if (stockScreen && stockScreen.classList.contains('active')) {
+        if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
+            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        } else if (typeof renderStock === 'function') {
+            renderStock();
+        }
     }
 
     const buildScreen = document.getElementById('scr-build');
@@ -3426,7 +3597,7 @@ function updatePremiumUI() {
         }
     }
 
-    if (typeof renderSettingsScreen === 'function') {
+    if (activeScreenId === 'scr-settings' && typeof renderSettingsScreen === 'function') {
         renderSettingsScreen();
     }
 

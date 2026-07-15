@@ -4632,8 +4632,21 @@ function startSwiping() {
     if (typeof clearTemporarySwipeRules === 'function') clearTemporarySwipeRules();
 
     function beginSwiping() {
-        if (typeof loadStack === 'function') loadStack();
         changeScreen('scr-main');
+        const stackContainer = document.getElementById('stack');
+        if (stackContainer) {
+            stackContainer.replaceChildren();
+            stackContainer.setAttribute('aria-busy', 'true');
+        }
+        const prepareStack = () => {
+            if (stackContainer) stackContainer.removeAttribute('aria-busy');
+            if (typeof loadStack === 'function') loadStack();
+        };
+        if (typeof runAfterScreenPaint === 'function') {
+            runAfterScreenPaint('scr-main', prepareStack);
+        } else {
+            setTimeout(prepareStack, 0);
+        }
         // 初回チュートリアルは非表示
     }
 
@@ -8120,10 +8133,13 @@ var searchReadingCurrentTotal = 0;
 var searchReadingIsAppending = false;
 var searchReadingScrollBound = false;
 var searchReadingLoadObserver = null;
+var searchOpenSequence = 0;
 var readingSearchPopularityRankCacheKey = '';
 var readingSearchPopularityRankCache = null;
 var readingSearchPopularityScoreCacheKey = '';
 var readingSearchPopularityScoreCache = new Map();
+var readingSearchResultsCacheSource = null;
+var readingSearchResultsCache = new Map();
 const readingSearchNameLengthProfileCache = new WeakMap();
 const KANJI_SEARCH_GLYPH_ALIASES = {
     '叱': '𠮟'
@@ -8451,7 +8467,6 @@ function setReadingSearchMatchMode(mode) {
 function openKanjiSearch(options = {}) {
     const config = options && typeof options === 'object' ? options : {};
     searchContentType = 'kanji';
-    changeScreen('scr-kanji-search');
     searchClassFilter = config.classFilter || '';
     searchStrokeFilter = config.strokeFilter || '';
     searchFlexibleMode = config.flexible === true;
@@ -8459,19 +8474,25 @@ function openKanjiSearch(options = {}) {
     resetKanjiSearchPaging();
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = typeof config.query === 'string' ? config.query : '';
-    updateKanjiSearchTitle();
-    updateSearchContentTypeUI();
-    renderSearchFilters();
-    updateSearchModeToggle();
-    updateSearchAllKanjiToggle();
-    const container = document.getElementById('kanji-search-results');
-    if (container) executeKanjiSearch();
+    const openSequence = ++searchOpenSequence;
+    changeScreen('scr-kanji-search');
+    const renderSearch = () => {
+        if (openSequence !== searchOpenSequence) return;
+        updateKanjiSearchTitle();
+        updateSearchContentTypeUI();
+        renderSearchFilters();
+        updateSearchModeToggle();
+        updateSearchAllKanjiToggle();
+        const container = document.getElementById('kanji-search-results');
+        if (container) executeKanjiSearch();
+    };
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-kanji-search', renderSearch);
+    else setTimeout(renderSearch, 0);
 }
 
 function openReadingSearch(options = {}) {
     const config = options && typeof options === 'object' ? options : {};
     searchContentType = 'reading';
-    changeScreen('scr-kanji-search');
     searchClassFilter = '';
     clearReadingTagFilters();
     if (config.tagFilter || config.classFilter) applyReadingSearchTagFilter(config.tagFilter || config.classFilter);
@@ -8484,13 +8505,20 @@ function openReadingSearch(options = {}) {
     resetReadingSearchPaging();
     const input = document.getElementById('kanji-search-input');
     if (input) input.value = typeof config.query === 'string' ? config.query : '';
-    updateKanjiSearchTitle();
-    updateSearchContentTypeUI();
-    renderSearchFilters();
-    updateSearchModeToggle();
-    updateSearchAllKanjiToggle();
-    const container = document.getElementById('kanji-search-results');
-    if (container) executeReadingSearch();
+    const openSequence = ++searchOpenSequence;
+    changeScreen('scr-kanji-search');
+    const renderSearch = () => {
+        if (openSequence !== searchOpenSequence) return;
+        updateKanjiSearchTitle();
+        updateSearchContentTypeUI();
+        renderSearchFilters();
+        updateSearchModeToggle();
+        updateSearchAllKanjiToggle();
+        const container = document.getElementById('kanji-search-results');
+        if (container) executeReadingSearch();
+    };
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-kanji-search', renderSearch);
+    else setTimeout(renderSearch, 0);
 }
 
 function handleKanjiSearchInput() {
@@ -9632,6 +9660,38 @@ function isReadingSearchItemStocked(item) {
     return !!findReadingStockItemInStock(getReadingStock(), item.reading);
 }
 
+function getReadingSearchStockedKeySet() {
+    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    return new Set((Array.isArray(stock) ? stock : [])
+        .map((item) => normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item))))
+        .filter(Boolean));
+}
+
+function getCachedReadingSearchResults(query) {
+    if (readingSearchResultsCacheSource !== readingsData) {
+        readingSearchResultsCacheSource = readingsData;
+        readingSearchResultsCache.clear();
+    }
+    const cacheKey = JSON.stringify([
+        query,
+        searchReadingGenderFilter,
+        searchReadingPopularFirst,
+        searchReadingMatchMode,
+        getReadingSearchActiveTagFilters()
+    ]);
+    if (readingSearchResultsCache.has(cacheKey)) {
+        return readingSearchResultsCache.get(cacheKey);
+    }
+
+    const results = readingsData
+        .map((item) => buildReadingSearchResultItem(item, query))
+        .filter(Boolean)
+        .sort(compareReadingSearchResults);
+    if (readingSearchResultsCache.size >= 12) readingSearchResultsCache.clear();
+    readingSearchResultsCache.set(cacheKey, results);
+    return results;
+}
+
 function renderReadingSearchTagChips(tags) {
     const visibleTags = getReadingDisplayTags(tags, 5);
     if (visibleTags.length === 0) return '';
@@ -9694,11 +9754,7 @@ function executeReadingSearch() {
     const rawQuery = input ? input.value.trim() : '';
     const query = normalizeReadingComparisonValue(rawQuery);
 
-    let results = readingsData
-        .map((item) => buildReadingSearchResultItem(item, query))
-        .filter(Boolean);
-
-    results.sort(compareReadingSearchResults);
+    const results = getCachedReadingSearchResults(query);
 
     if (results.length === 0) {
         container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">該当する読みがありません</div>';
@@ -9711,11 +9767,13 @@ function executeReadingSearch() {
     const visibleResults = results.slice(0, searchReadingVisibleLimit);
     const columnGap = 8;
     const columnWidth = (container.clientWidth - (READING_SEARCH_COLUMNS - 1) * columnGap) / READING_SEARCH_COLUMNS;
+    const stockedReadingKeys = getReadingSearchStockedKeySet();
     const fragment = document.createDocumentFragment();
     visibleResults.forEach((item) => {
         const cell = document.createElement('div');
         cell.style.gridColumn = 'span 1 / span 1';
-        const isStocked = isReadingSearchItemStocked(item);
+        const stockedKey = normalizeReadingComparisonValue(getReadingBaseReading(item.reading));
+        const isStocked = stockedReadingKeys.has(stockedKey);
         const cardStyle = isStocked
             ? { bg: '#fffbeb', border: '#bca37f', text: '#5d5444' }
             : { bg: '#ffffff', border: '#eee5d8', text: '#5d5444' };
@@ -9833,13 +9891,16 @@ function executeKanjiSearch() {
     const countDiv = document.createElement('div');
     countDiv.className = 'col-span-4 text-center text-[10px] text-[#a6967a] py-2';
     const visibleResults = results.slice(0, searchKanjiVisibleLimit);
+    const stockedKanji = new Set((Array.isArray(liked) ? liked : [])
+        .map(item => String(item?.['漢字'] || item?.kanji || '').trim())
+        .filter(Boolean));
     countDiv.innerText = `${results.length}件`;
     container.appendChild(countDiv);
 
     const resultFragment = document.createDocumentFragment();
     visibleResults.forEach(k => {
         const isPremiumLocked = k._premiumLockedSearch === true;
-        const isStocked = !isPremiumLocked && liked.some(l => l['漢字'] === k['漢字']);
+        const isStocked = !isPremiumLocked && stockedKanji.has(String(k['漢字'] || '').trim());
         const isFlagged = isKanjiSearchFlagged(k);
         const strokes = parseInt(k['画数']) || '?';
         let readings = ((k['音'] || '') + ',' + (k['訓'] || '') + ',' + (k['伝統名のり'] || ''))
@@ -11309,6 +11370,12 @@ function renderReadingStockSectionV2() {
             .filter(Boolean)
     )];
     const completedReadingSet = new Set(completedReadings);
+    const ownKanjiCountByReading = new Map();
+    ownLiked.forEach(item => {
+        const readingKey = getReadingBaseReading(item?.sessionReading || '');
+        if (!readingKey || item?.slot < 0) return;
+        ownKanjiCountByReading.set(readingKey, (ownKanjiCountByReading.get(readingKey) || 0) + 1);
+    });
 
     const displayPendingStock = [];
     const seenPendingReadings = new Set();
@@ -11346,7 +11413,7 @@ function renderReadingStockSectionV2() {
     };
 
     const completedCards = completedReadings.map(reading => {
-        const kanjiCount = ownLiked.filter(item => getReadingBaseReading(item.sessionReading) === reading && item.slot >= 0).length;
+        const kanjiCount = ownKanjiCountByReading.get(reading) || 0;
         const ownItem = findReadingStockItem(reading);
         const segmentSource = Array.isArray(ownItem?.segments) ? ownItem.segments.filter(Boolean) : [];
         const key = getPartnerViewReadingKey({ reading, segments: segmentSource }, pairInsights);
@@ -11521,7 +11588,7 @@ function renderReadingStockSectionV2() {
                         const isPromoted = !!item.readingPromoted;
                         const display = getReadingDisplayLabel(item, isPromoted ? { allowSegments: true } : { forceRaw: true });
                         const readingKey = getReadingBaseReading(item.reading || item.sessionReading || '');
-                        const kanjiCount = ownLiked.filter(entry => getReadingBaseReading(entry.sessionReading) === readingKey && entry.slot >= 0).length;
+                        const kanjiCount = ownKanjiCountByReading.get(readingKey) || 0;
                         const key = getPartnerViewReadingKey(item, pairInsights);
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
                         const kind = isReadingMatchedForView(item) ? 'matched' : 'self';

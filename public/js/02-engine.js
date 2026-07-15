@@ -85,6 +85,27 @@ function isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading) {
     });
 }
 
+function getSelectedKanjiSetForReadingSlot(slotIdx, currentReading) {
+    const selected = new Set();
+    if (!Array.isArray(liked)) return selected;
+    const normalizedCurrentReading = typeof normalizeReadingComparisonValue === 'function'
+        ? normalizeReadingComparisonValue(currentReading || '')
+        : String(currentReading || '').trim();
+
+    liked.forEach((item) => {
+        if (!item || item.slot != slotIdx) return;
+        const display = String(item['漢字'] || item.kanji || '').trim();
+        if (!display) return;
+        const itemReading = typeof normalizeReadingComparisonValue === 'function'
+            ? normalizeReadingComparisonValue(item.sessionReading || '')
+            : String(item.sessionReading || '').trim();
+        if (!normalizedCurrentReading || itemReading === normalizedCurrentReading) {
+            selected.add(display);
+        }
+    });
+    return selected;
+}
+
 function isPremiumAccessActive() {
     return typeof PremiumManager !== 'undefined'
         && PremiumManager
@@ -1585,7 +1606,8 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
         includeNoped,
         includeInappropriate,
         premiumOverride,
-        suppressLogs
+        suppressLogs,
+        selectedKanjiSet
     } = context || {};
     const byKanji = new Map();
     list.forEach((item) => {
@@ -1613,9 +1635,11 @@ function markApprovedSwipeCandidates(candidates, approvedKanjiList, context) {
         const currentReading = typeof getCurrentSessionReading === 'function'
             ? getCurrentSessionReading()
             : (Array.isArray(context?.segmentList) ? context.segmentList.join('') : '');
-        const alreadyLiked = typeof isKanjiSelectedForReadingSlot === 'function'
-            ? isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading)
-            : (Array.isArray(liked) ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji && item.sessionReading === currentReading) : false);
+        const alreadyLiked = selectedKanjiSet instanceof Set
+            ? selectedKanjiSet.has(kanji)
+            : (typeof isKanjiSelectedForReadingSlot === 'function'
+                ? isKanjiSelectedForReadingSlot(kanji, slotIdx, currentReading)
+                : (Array.isArray(liked) ? liked.some((item) => item && item.slot == slotIdx && item['漢字'] === kanji && item.sessionReading === currentReading) : false));
         if (alreadyLiked) {
             if (!suppressLogs) console.log(`ENGINE: Skipping approved ${kanji} because it is already liked at slot ${slotIdx}`);
             return;
@@ -1659,16 +1683,14 @@ function buildSwipeStackCandidates(options = {}) {
 
     if (!target || !Array.isArray(master) || master.length === 0) return [];
     const approvedKanjiList = getApprovedSwipeKanjiList(normalizedTarget);
+    const currentReading = typeof getCurrentSessionReading === 'function'
+        ? getCurrentSessionReading()
+        : segmentList.join('');
+    const selectedKanjiSet = getSelectedKanjiSetForReadingSlot(slotIdx, currentReading);
+    const premiumAccessActive = premiumOverride || isPremiumAccessActive();
 
     let candidates = master.filter(k => {
-        delete k._swipeMatchKind;
-        delete k._swipeMatchedReading;
-        delete k._swipeMatchedReadingRaw;
-        delete k._swipeMatchDisplayLabel;
-        delete k._swipeTargetReading;
-        delete k._swipeTargetSlot;
-
-        if (!premiumOverride && !isKanjiAccessibleForCurrentMembership(k)) {
+        if (!premiumAccessActive && !isCommonKanjiEntry(k)) {
             return false;
         }
         // 不適切フラグのハードフィルタ（設定でONにしない限り除外）
@@ -1689,10 +1711,7 @@ function buildSwipeStackCandidates(options = {}) {
         }
 
         // ユーザー要望：戻った時に、そのターンで選んだ（ストック済み）漢字は候補に出さない
-        const currentReading = typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segmentList.join('');
-        const alreadyLiked = typeof isKanjiSelectedForReadingSlot === 'function'
-            ? isKanjiSelectedForReadingSlot(k['漢字'], slotIdx, currentReading)
-            : liked.some(l => l.slot == slotIdx && l['漢字'] === k['漢字'] && l.sessionReading === currentReading);
+        const alreadyLiked = selectedKanjiSet.has(String(k['漢字'] || k.kanji || '').trim());
         if (alreadyLiked) {
             if (!suppressLogs) {
                 console.log(`ENGINE: Skipping ${k['漢字']} because it is already liked at slot ${slotIdx}`);
@@ -1704,6 +1723,16 @@ function buildSwipeStackCandidates(options = {}) {
         if (!includeNoped && typeof isKanjiNopedForReading === 'function' && isKanjiNopedForReading(k['漢字'], normalizedTarget, { includeBare: false })) {
             return false;
         }
+
+        delete k._swipeMatchKind;
+        delete k._swipeMatchedReading;
+        delete k._swipeMatchedReadingRaw;
+        delete k._swipeMatchDisplayLabel;
+        delete k._swipeTargetReading;
+        delete k._swipeTargetSlot;
+        delete k._approvedSwipeCandidate;
+        delete k._approvedSwipeOrder;
+        delete k._approvedSwipeNoise;
 
         // 読みデータの取得（メジャー/マイナー区分）
         // 全角括弧を除去してひらがなに正規化（例: あ（かり）→ あかり）
@@ -1844,7 +1873,8 @@ function buildSwipeStackCandidates(options = {}) {
         includeNoped,
         includeInappropriate,
         premiumOverride,
-        suppressLogs
+        suppressLogs,
+        selectedKanjiSet
     });
     candidates.forEach(k => {
         if (k._approvedSwipeCandidate) {
@@ -1980,11 +2010,16 @@ function loadStack() {
 
     // --- Free Stock Auto-Matching ---
     const freeItems = liked.filter(l => l.sessionReading === 'FREE');
+    const existingSlotKanji = new Set(
+        liked
+            .filter(item => item && item.slot === currentPos)
+            .map(item => String(item['漢字'] || item.kanji || '').trim())
+            .filter(Boolean)
+    );
     freeItems.forEach(freeItem => {
         // すでにこのスロットに登録済みならスキップ
-        const isDuplicateLocal = liked.some(item =>
-            item.slot === currentPos && item['漢字'] === freeItem['漢字']
-        );
+        const freeKanji = String(freeItem['漢字'] || freeItem.kanji || '').trim();
+        const isDuplicateLocal = !!freeKanji && existingSlotKanji.has(freeKanji);
         if (isDuplicateLocal) return;
 
         const readingBuckets = typeof getKanjiReadingBuckets === 'function'
@@ -2017,6 +2052,7 @@ function loadStack() {
                 sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
                 sessionSegments: [...segments]
             });
+            if (freeKanji) existingSlotKanji.add(freeKanji);
             console.log(`ENGINE: Auto-injected Free Stock => ${freeItem['漢字']} for slot ${currentPos}`);
         }
     });

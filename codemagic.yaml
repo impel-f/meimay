@@ -30,8 +30,8 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "54"
-        ANDROID_VERSION_NAME: "1.4.0"
+        ANDROID_VERSION_CODE: "55"
+        ANDROID_VERSION_NAME: "1.4.1"
       node: v22.11.0
       java: 21
     scripts:
@@ -53,6 +53,19 @@ workflows:
         script: |
           cd android
           ./gradlew bundleRelease
+      - name: Verify Android bundle contents
+        script: |
+          set -euo pipefail
+          AAB_PATH="$(find "$CM_BUILD_DIR/android/app/build/outputs/bundle/release" -name '*.aab' -type f | head -n 1)"
+          if [ -z "$AAB_PATH" ]; then
+            echo "Android release AAB was not generated"
+            exit 1
+          fi
+          unzip -Z1 "$AAB_PATH" > /tmp/meimay-aab-entries.txt
+          if grep -q '^base/assets/public/marketing-assets/' /tmp/meimay-aab-entries.txt; then
+            echo "Marketing-only assets were packaged in the Android release AAB"
+            exit 1
+          fi
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
       - android/app/build/outputs/mapping/release/mapping.txt
@@ -101,8 +114,8 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
-        IOS_MARKETING_VERSION: "1.4.0"
-        IOS_BUILD_NUMBER_FLOOR: "28"
+        IOS_MARKETING_VERSION: "1.4.1"
+        IOS_BUILD_NUMBER_FLOOR: "77"
       node: v22.11.0
       xcode: latest
     scripts:
@@ -115,7 +128,7 @@ workflows:
       - name: Set iOS version and build number
         script: |
           set -euo pipefail
-          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.4.0}"
+          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.4.1}"
 
           PROJECT_MARKETING_VERSIONS="$(grep -E 'MARKETING_VERSION = ' "$CM_BUILD_DIR/$XCODE_PROJECT/project.pbxproj" | sed -E 's/.*MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"
           WEB_MARKETING_VERSION="$(sed -nE 's/.*メイメー v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "$CM_BUILD_DIR/public/index.html" | head -n 1)"
@@ -158,8 +171,13 @@ workflows:
           fi
 
           echo "Using iOS marketing version $MARKETING_VERSION / build number $BUILD_VERSION (ASC latest: $LATEST_BUILD_NUMBER)"
+          PBXPROJ_PATH="$CM_BUILD_DIR/$XCODE_PROJECT/project.pbxproj"
+          sed -i '' -E "s/CURRENT_PROJECT_VERSION = [^;]+;/CURRENT_PROJECT_VERSION = $BUILD_VERSION;/g" "$PBXPROJ_PATH"
+          sed -i '' -E "s/MARKETING_VERSION = [^;]+;/MARKETING_VERSION = $MARKETING_VERSION;/g" "$PBXPROJ_PATH"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $MARKETING_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_VERSION" "$CM_BUILD_DIR/ios/App/App/Info.plist"
+          echo "IOS_RESOLVED_MARKETING_VERSION=$MARKETING_VERSION" >> "$CM_ENV"
+          echo "IOS_RESOLVED_BUILD_NUMBER=$BUILD_VERSION" >> "$CM_ENV"
       - name: Initialize code signing keychain
         script: keychain initialize
       - name: Fetch or create iOS App Store signing files
@@ -178,6 +196,33 @@ workflows:
             --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --archive-flags="-destination 'generic/platform=iOS'"
+      - name: Verify IPA version before publishing
+        script: |
+          set -euo pipefail
+          IPA_PATH="$(find "$CM_BUILD_DIR/build/ios/ipa" -name '*.ipa' -type f | head -n 1)"
+          if [ -z "$IPA_PATH" ]; then
+            echo "App Store IPA was not generated"
+            exit 1
+          fi
+          TEMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TEMP_DIR"' EXIT
+          unzip -q "$IPA_PATH" -d "$TEMP_DIR"
+          APP_PLIST="$(find "$TEMP_DIR/Payload" -path '*.app/Info.plist' -type f | head -n 1)"
+          if [ -z "$APP_PLIST" ]; then
+            echo "Info.plist was not found in the generated IPA"
+            exit 1
+          fi
+          IPA_MARKETING_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PLIST")"
+          IPA_BUILD_NUMBER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PLIST")"
+          if [ "$IPA_MARKETING_VERSION" != "$IOS_RESOLVED_MARKETING_VERSION" ]; then
+            echo "IPA marketing version mismatch: expected=$IOS_RESOLVED_MARKETING_VERSION actual=$IPA_MARKETING_VERSION"
+            exit 1
+          fi
+          if [ "$IPA_BUILD_NUMBER" != "$IOS_RESOLVED_BUILD_NUMBER" ]; then
+            echo "IPA build number mismatch: expected=$IOS_RESOLVED_BUILD_NUMBER actual=$IPA_BUILD_NUMBER"
+            exit 1
+          fi
+          echo "Verified IPA version $IPA_MARKETING_VERSION ($IPA_BUILD_NUMBER)"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

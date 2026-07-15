@@ -371,10 +371,11 @@ function openSavedNames(options = {}) {
         window.resetMeimayPartnerViewFocus();
     }
     changeScreen('scr-saved');
-    // 描画処理を遅延させてレスポンスを改善
-    setTimeout(() => {
+    const renderSaved = () => {
         if (typeof renderSavedScreen === 'function') renderSavedScreen();
-    }, 10);
+    };
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-saved', renderSaved);
+    else setTimeout(renderSaved, 0);
 }
 
 /**
@@ -382,7 +383,8 @@ function openSavedNames(options = {}) {
  */
 function openReadingHistory() {
     changeScreen('scr-history');
-    renderHistoryScreen();
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-history', renderHistoryScreen);
+    else setTimeout(renderHistoryScreen, 0);
 }
 
 let currentEncounteredTab = 'kanji';
@@ -391,7 +393,8 @@ let currentEncounteredReadingActionKey = '';
 function openEncounteredLibrary(tab = 'kanji') {
     currentEncounteredTab = tab === 'reading' ? 'reading' : 'kanji';
     changeScreen('scr-encountered');
-    renderEncounteredLibrary();
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-encountered', renderEncounteredLibrary);
+    else setTimeout(renderEncounteredLibrary, 0);
 }
 
 function switchEncounteredTab(tab) {
@@ -1679,6 +1682,15 @@ function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKe
     };
 }
 
+function markSavedCandidateApprovedByPartnerSelection(item, approvedPartnerSavedKey, selectedAt) {
+    return {
+        ...(item || {}),
+        approvedPartnerSavedKey: String(approvedPartnerSavedKey || '').trim(),
+        mainSelected: true,
+        mainSelectedAt: selectedAt || new Date().toISOString()
+    };
+}
+
 /*
 
 
@@ -2142,11 +2154,14 @@ function votePartnerSavedName(index) {
     let foundSourceInSaved = false;
     const updated = saved.map((item) => {
         const isSelected = getSavedCandidateKey(item) === sourceKey;
-        if (isSelected) foundSourceInSaved = true;
+        if (isSelected) {
+            foundSourceInSaved = true;
+            return markSavedCandidateApprovedByPartnerSelection(item, sourceKey, now);
+        }
         return {
             ...item,
-            mainSelected: isSelected,
-            mainSelectedAt: isSelected ? now : ''
+            mainSelected: false,
+            mainSelectedAt: ''
         };
     });
     let addedPartnerSavedItem = null;
@@ -2273,9 +2288,13 @@ function renderSavedScreen() {
         const availableWidth = parent.clientWidth || parent.getBoundingClientRect().width || 0;
         if (!availableWidth) return;
 
-        let size = maxSize;
+        node.style.fontSize = `${maxSize}px`;
+        const naturalWidth = node.scrollWidth || 0;
+        if (naturalWidth <= availableWidth) return;
+
+        let size = Math.max(minSize, Math.min(maxSize, Math.floor(maxSize * availableWidth / naturalWidth)));
         node.style.fontSize = `${size}px`;
-        while (size > minSize && node.scrollWidth > availableWidth) {
+        if (size > minSize && node.scrollWidth > availableWidth) {
             size -= 1;
             node.style.fontSize = `${size}px`;
         }

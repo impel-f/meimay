@@ -305,8 +305,10 @@ function saveProfileAppearance(nextValues = {}) {
  * 設定画面を開く（別画面として）
  */
 function openSettings() {
-    renderSettingsScreen();
     changeScreen('scr-settings');
+    const renderSettings = () => renderSettingsScreen();
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-settings', renderSettings);
+    else setTimeout(renderSettings, 0);
 }
 
 function getSettingsGenderLabel(value) {

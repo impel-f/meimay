@@ -290,6 +290,26 @@ function requestRenderHomeProfile(options = {}) {
 }
 window.requestRenderHomeProfile = requestRenderHomeProfile;
 
+function runAfterNextPaint(callback) {
+    if (typeof callback !== 'function') return;
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(callback, 0));
+        return;
+    }
+    setTimeout(callback, 0);
+}
+
+function runAfterScreenPaint(screenId, callback) {
+    runAfterNextPaint(() => {
+        const screen = document.getElementById(screenId);
+        if (!screen || !screen.classList.contains('active')) return;
+        callback();
+    });
+}
+
+window.runAfterNextPaint = runAfterNextPaint;
+window.runAfterScreenPaint = runAfterScreenPaint;
+
 function flushDeferredHomeProfileRender() {
     if (!_homeRenderPendingWhileHidden) return;
     requestRenderHomeProfile({ force: true, afterPaint: false });
@@ -952,7 +972,7 @@ function changeScreen(id) {
 
         // ホーム画面の場合、実績・プロファイルを更新
         if (id === 'scr-mode') {
-            requestRenderHomeProfile({ force: true });
+            requestRenderHomeProfile();
         }
         if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
             updateDailyRemainingDisplay();

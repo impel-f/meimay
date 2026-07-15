@@ -181,7 +181,7 @@ body.hide-top-bar .screen-header-shell {
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
     box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.025);
     pointer-events: all;
-    transition: bottom 0.2s ease, transform 0.18s ease, opacity 0.18s ease;
+    transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 #admob-banner {
