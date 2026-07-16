@@ -302,7 +302,12 @@ test('home and partner summaries normalize malformed legacy collections', () => 
   const renderSource = readSource('05-ui-render.js');
   const readHomeList = extractFunction(renderSource, 'readHomeList');
   const localFallback = extractFunction(renderSource, 'getHomeLocalStageSnapshotFallback');
-  const sandbox = { console: { warn() {} } };
+  const sandbox = {
+    console: { warn() {} },
+    getHomeBuildPatternCountSafe(candidatePool, readingStock) {
+      return candidatePool.length === 2 && readingStock.length === 1 ? 6 : 0;
+    }
+  };
   vm.createContext(sandbox);
   vm.runInContext(`
     ${readHomeList}
@@ -313,21 +318,103 @@ test('home and partner summaries normalize malformed legacy collections', () => 
       ownLikedCount: 4,
       ownReadingCount: 2,
       ownSavedCount: 1,
-      ownReadingItems: { malformed: true }
+      ownLikedItems: [{ kanji: '陽' }, { kanji: '斗' }],
+      ownReadingItems: [{ reading: 'はると' }]
     }, { hasPartner: true });
   `, sandbox);
 
   assert.deepEqual([...sandbox.fromInvalid], ['fallback']);
   assert.deepEqual([...sandbox.fromThrow], ['fallback']);
-  assert.equal(sandbox.localStage.mode, 'self');
+  assert.equal(sandbox.localStage.mode, 'shared');
   assert.equal(sandbox.localStage.likedCount, 4);
-  assert.equal(sandbox.localStage.readingStock.length, 0);
+  assert.equal(sandbox.localStage.readingStock.length, 1);
+  assert.equal(sandbox.localStage.buildCount, 6);
+  assert.equal(sandbox.localStage.actions.build, 'build');
 
   const firebaseSource = readSource('15-firebase.js');
   assert.match(firebaseSource, /const readList = \(methodName\) => \{/);
   assert.match(firebaseSource, /const ownReadingItems = readList\('getOwnReadingStock'\)/);
   assert.match(firebaseSource, /return Array\.isArray\(list\) \? list : \[\]/);
   assert.match(renderSource, /Shared overview failed; rendering local status/);
+});
+
+test('home build cache fingerprint changes when middle candidate data changes', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const fingerprint = extractFunction(renderSource, 'getHomeDataStateFingerprint');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${fingerprint}
+    const readings = [{ reading: 'はると', segments: ['はる', 'と'] }];
+    globalThis.before = getHomeDataStateFingerprint([
+      { kanji: '陽', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '斗', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '翔', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] }
+    ], readings);
+    globalThis.after = getHomeDataStateFingerprint([
+      { kanji: '陽', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '人', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '翔', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] }
+    ], readings);
+  `, sandbox);
+
+  assert.notEqual(sandbox.before, sandbox.after);
+});
+
+test('home build count uses the explicit shared kanji and reading pools', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const functions = [
+    'normalizeHomeBuildReadingValue',
+    'sanitizeHomeBuildSegments',
+    'getHomeBuildPatternSegments',
+    'normalizeHomeBuildPool',
+    'getHomeDataStateFingerprint',
+    'getHomeBuildPatternKey',
+    'getHomeBuildSlotCandidateCount',
+    'getHomeBuildPatternCount'
+  ].map(name => extractFunction(renderSource, name)).join('\n');
+  const sandbox = { console: { warn() {} }, window: {} };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const _homeBuildPatternCountCache = new Map();
+    const _homeBuildPatternCountStaleCache = new Map();
+    const HOME_BUILD_PATTERN_DEFER_WORK_LIMIT = 5000;
+    let _homeBuildPatternCountLastValue = 0;
+    ${functions}
+    globalThis.buildCount = getHomeBuildPatternCount([
+      { kanji: '陽', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '晴', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '斗', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] }
+    ], [
+      { reading: 'はると', segments: ['はる', 'と'] }
+    ]);
+  `, sandbox);
+
+  assert.equal(sandbox.buildCount, 2);
+});
+
+test('home overview isolates saved-name selection failures from build counts', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const readCanvas = extractFunction(renderSource, 'readHomeSavedCanvasState');
+  const sandbox = {
+    console: { warn() {} },
+    window: {
+      MeimayPartnerInsights: {
+        getSavedNameCanvasState() {
+          throw new Error('legacy saved canvas');
+        }
+      }
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${readCanvas}
+    globalThis.canvas = readHomeSavedCanvasState(8);
+  `, sandbox);
+
+  assert.equal(sandbox.canvas, null);
+  assert.match(renderSource, /const aggregateBuildPool = \[\.\.\.ownLikedItems, \.\.\.partnerLikedItemsVisible\]/);
+  assert.match(renderSource, /getHomeBuildPatternCountSafe\(\s*aggregateBuildPool,\s*aggregateReadingStock/);
 });
 
 test('large stock screens avoid quadratic grouping and yield between batches', () => {

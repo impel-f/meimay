@@ -2293,14 +2293,19 @@ function getHomePairSummaryText(pairing) {
 }
 
 function normalizeHomeBuildReadingValue(value) {
-    const raw = typeof getReadingBaseReading === 'function'
-        ? getReadingBaseReading(value)
-        : String(value || '').trim().split('::')[0].trim();
+    let raw = '';
+    try {
+        raw = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(value)
+            : String(value || '').trim().split('::')[0].trim();
+    } catch (error) {
+        raw = String(value || '').trim().split('::')[0].trim();
+    }
     if (!raw) return '';
 
     let normalized = raw;
     if (typeof toHira === 'function') normalized = toHira(normalized);
-    else if (typeof window.toHira === 'function') normalized = window.toHira(normalized);
+    else if (typeof window !== 'undefined' && typeof window.toHira === 'function') normalized = window.toHira(normalized);
 
     return normalized.replace(/[、,，・/]/g, '').replace(/\s+/g, '').toLowerCase();
 }
@@ -2312,22 +2317,35 @@ function sanitizeHomeBuildSegments(segments) {
 }
 
 function getHomeBuildPatternSegments(reading, segmentsSource) {
-    const baseReading = typeof getReadingBaseReading === 'function'
-        ? getReadingBaseReading(reading)
-        : String(reading || '').trim();
+    let baseReading = '';
+    try {
+        baseReading = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(reading)
+            : String(reading || '').trim();
+    } catch (error) {
+        baseReading = String(reading || '').trim();
+    }
     if (!baseReading) return [];
 
     const explicitSegments = sanitizeHomeBuildSegments(segmentsSource);
     if (explicitSegments.length > 0) return explicitSegments;
 
     if (typeof getPreferredReadingSegments === 'function') {
-        const preferredSegments = sanitizeHomeBuildSegments(getPreferredReadingSegments(baseReading));
-        if (preferredSegments.length > 0) return preferredSegments;
+        try {
+            const preferredSegments = sanitizeHomeBuildSegments(getPreferredReadingSegments(baseReading));
+            if (preferredSegments.length > 0) return preferredSegments;
+        } catch (error) {
+            console.warn('HOME: Preferred reading segments unavailable', error);
+        }
     }
 
     if (typeof getDisplaySegmentsForReading === 'function') {
-        const displaySegments = sanitizeHomeBuildSegments(getDisplaySegmentsForReading(baseReading));
-        if (displaySegments.length > 0) return displaySegments;
+        try {
+            const displaySegments = sanitizeHomeBuildSegments(getDisplaySegmentsForReading(baseReading));
+            if (displaySegments.length > 0) return displaySegments;
+        } catch (error) {
+            console.warn('HOME: Display reading segments unavailable', error);
+        }
     }
 
     return [baseReading];
@@ -2344,12 +2362,16 @@ function normalizeHomeBuildPool(candidatePoolOverride) {
         .map((item) => {
             if (!item) return null;
             if (typeof hydrateLikedCandidate === 'function') {
-                const hydrated = hydrateLikedCandidate(item, {
-                    fromPartner: !!item?.fromPartner,
-                    partnerAlsoPicked: !!item?.partnerAlsoPicked,
-                    partnerName: item?.partnerName || ''
-                });
-                if (hydrated) return hydrated;
+                try {
+                    const hydrated = hydrateLikedCandidate(item, {
+                        fromPartner: !!item?.fromPartner,
+                        partnerAlsoPicked: !!item?.partnerAlsoPicked,
+                        partnerName: item?.partnerName || ''
+                    });
+                    if (hydrated) return hydrated;
+                } catch (error) {
+                    console.warn('HOME: Falling back to raw build candidate', error);
+                }
             }
 
             const kanji = item['漢字'] || item.kanji || '';
@@ -2443,16 +2465,33 @@ function getHomeBuildHiddenReadingSet() {
 }
 
 function getHomeDataStateFingerprint(pool, readingStock) {
-    // タイムスタンプ(updatedAt)に依存すると、保存のたびにキャッシュが壊れる可能性があるため、
-    // データの「件数」と「IDの並び」をベースにした、より安定した指紋を使用する。
     const poolCount = Array.isArray(pool) ? pool.length : 0;
     const readingCount = Array.isArray(readingStock) ? readingStock.length : 0;
+    let hash = 2166136261;
+    const append = (value) => {
+        const text = String(value ?? '');
+        for (let index = 0; index < text.length; index++) {
+            hash ^= text.charCodeAt(index);
+            hash = Math.imul(hash, 16777619);
+        }
+        hash ^= 124;
+        hash = Math.imul(hash, 16777619);
+    };
 
-    // 内容のハッシュ代わりとして、最初と最後の要素の情報を少し混ぜる
-    const poolHint = poolCount > 0 ? (pool[0]?.['漢字'] || pool[0]?.kanji || '') + (pool[poolCount-1]?.['漢字'] || '') : '';
-    const readingHint = readingCount > 0 ? (readingStock[0]?.reading || '') + (readingStock[readingCount-1]?.reading || '') : '';
+    (Array.isArray(pool) ? pool : []).forEach((item) => {
+        append(item?.['漢字'] || item?.kanji || '');
+        append(Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1);
+        append(item?.sessionReading || '');
+        append(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
+        append(item?.kanji_reading || item?.reading || '');
+    });
+    (Array.isArray(readingStock) ? readingStock : []).forEach((item) => {
+        append(item?.reading || item?.sessionReading || '');
+        append(Array.isArray(item?.segments) ? item.segments.join('/') : '');
+        append(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
+    });
 
-    return `v2_${poolCount}_${readingCount}_${poolHint}_${readingHint}`;
+    return `v3_${poolCount}_${readingCount}_${(hash >>> 0).toString(36)}`;
 }
 
 function getHomeBuildPatternKey(reading, segments) {
@@ -2638,6 +2677,16 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, o
     _homeBuildPatternCountLastValue = total;
 
     return total;
+}
+
+function getHomeBuildPatternCountSafe(candidatePoolOverride, readingStockOverride, label = 'build patterns') {
+    try {
+        const count = getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride);
+        return Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    } catch (error) {
+        console.warn(`HOME: Failed to calculate ${label}`, error);
+        return 0;
+    }
 }
 
 function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
@@ -3794,6 +3843,24 @@ function renderHomeOverviewSwitch(pairing) {
     `;
 }
 
+function readHomeSavedCanvasState(savedCount) {
+    if (
+        savedCount <= 0
+        || typeof window === 'undefined'
+        || !window.MeimayPartnerInsights
+        || typeof window.MeimayPartnerInsights.getSavedNameCanvasState !== 'function'
+    ) {
+        return null;
+    }
+
+    try {
+        return window.MeimayPartnerInsights.getSavedNameCanvasState();
+    } catch (error) {
+        console.warn('HOME: Saved-name selection unavailable; continuing without it', error);
+        return null;
+    }
+}
+
 function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing) {
     const mode = getHomeOverviewMode(pairing);
     const counts = pairing?.counts || {
@@ -3871,7 +3938,12 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     let result = null;
     if (mode === 'shared') {
         const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
-        const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
+        const aggregateBuildPool = [...ownLikedItems, ...partnerLikedItemsVisible];
+        const aggregateBuildCount = getHomeBuildPatternCountSafe(
+            aggregateBuildPool,
+            aggregateReadingStock,
+            'shared build patterns'
+        );
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         result = {
             mode,
@@ -3894,7 +3966,11 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             }
         };
     } else if (mode === 'partner') {
-        const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
+        const partnerBuildCount = getHomeBuildPatternCountSafe(
+            partnerLikedItemsVisible,
+            partnerReadingStock,
+            'partner build patterns'
+        );
         result = {
             mode,
             readingStockCount: partnerReadingCount,
@@ -3916,7 +3992,11 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             }
         };
     } else {
-        const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
+        const ownBuildCount = getHomeBuildPatternCountSafe(
+            ownLikedItems,
+            ownReadingStock,
+            'own build patterns'
+        );
         const selfFallbackAction = (ownReadingCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         result = {
             mode: 'self',
@@ -3936,27 +4016,72 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     // aggregateCountsを後続で使えるように付与しておく
     result.aggregateCounts = aggregateCounts;
     result.pairing = pairing;
-    result.savedCanvasState = result.savedCount > 0
-        && typeof window !== 'undefined'
-        && window.MeimayPartnerInsights
-        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
-            ? window.MeimayPartnerInsights.getSavedNameCanvasState()
-            : null;
+    result.savedCanvasState = readHomeSavedCanvasState(result.savedCount);
     return result;
 }
 
 function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
-    const readingStock = readHomeList(homeOwnership?.ownReadingItems, [], 'fallback reading stock');
-    const likedCount = Math.max(0, Number(homeOwnership?.ownLikedCount) || 0);
-    const readingStockCount = Math.max(0, Number(homeOwnership?.ownReadingCount) || 0);
-    const savedCount = Math.max(0, Number(homeOwnership?.ownSavedCount) || 0);
+    const pairingHomeData = pairing?._homeData || {};
+    const ownReadingStock = readHomeList(
+        pairingHomeData.ownReadingItems,
+        homeOwnership?.ownReadingItems,
+        'fallback own reading stock'
+    );
+    const partnerReadingStock = readHomeList(
+        pairingHomeData.partnerReadingItems,
+        [],
+        'fallback partner reading stock'
+    );
+    const ownLikedItems = readHomeList(
+        pairingHomeData.ownLikedItems,
+        homeOwnership?.ownLikedItems,
+        'fallback own kanji stock'
+    );
+    const partnerLikedItems = readHomeList(
+        pairingHomeData.partnerLikedItems,
+        [],
+        'fallback partner kanji stock'
+    );
+    const counts = pairing?.counts || {};
+    const countFor = (section, key, fallback) => {
+        const value = counts?.[section]?.[key] ?? pairing?.[`${section}${key.charAt(0).toUpperCase()}${key.slice(1)}Count`];
+        return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : Math.max(0, Number(fallback) || 0);
+    };
+    let mode = 'self';
+    try {
+        mode = getHomeOverviewMode(pairing);
+    } catch (error) {
+        mode = pairing?.hasPartner ? 'shared' : 'self';
+    }
+
+    let readingStock = ownReadingStock;
+    let likedItems = ownLikedItems;
+    let likedCount = countFor('own', 'kanji', ownLikedItems.length);
+    let readingStockCount = countFor('own', 'reading', ownReadingStock.length);
+    let savedCount = countFor('own', 'saved', homeOwnership?.ownSavedCount);
+    if (mode === 'shared') {
+        readingStock = [...ownReadingStock, ...partnerReadingStock];
+        likedItems = [...ownLikedItems, ...partnerLikedItems];
+        likedCount = Math.max(0, Number(homeOwnership?.ownLikedCount) || likedItems.length);
+        readingStockCount = Math.max(0, Number(homeOwnership?.ownReadingCount) || readingStock.length);
+        savedCount = Math.max(0, Number(homeOwnership?.ownSavedCount) || 0);
+    } else if (mode === 'partner') {
+        readingStock = partnerReadingStock;
+        likedItems = partnerLikedItems;
+        likedCount = countFor('partner', 'kanji', partnerLikedItems.length);
+        readingStockCount = countFor('partner', 'reading', partnerReadingStock.length);
+        savedCount = countFor('partner', 'saved', 0);
+    }
+    const buildCount = typeof getHomeBuildPatternCountSafe === 'function'
+        ? getHomeBuildPatternCountSafe(likedItems, readingStock, 'fallback build patterns')
+        : 0;
     const fallbackAction = readingStockCount > 0 ? 'reading' : 'sound';
     return {
-        mode: 'self',
+        mode,
         likedCount,
         readingStockCount,
         savedCount,
-        buildCount: 0,
+        buildCount,
         readingStock,
         pairing,
         savedCanvasState: null,
@@ -3968,8 +4093,8 @@ function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
         actions: {
             reading: readingStockCount > 0 ? 'stock-reading' : 'sound',
             kanji: likedCount > 0 ? 'stock' : fallbackAction,
-            build: fallbackAction,
-            save: savedCount > 0 ? 'saved' : fallbackAction
+            build: buildCount > 0 ? 'build' : fallbackAction,
+            save: savedCount > 0 ? 'saved' : (buildCount > 0 ? 'build' : fallbackAction)
         }
     };
 }
