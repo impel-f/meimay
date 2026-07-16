@@ -6,7 +6,8 @@ const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
 const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v2';
 const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKING_CACHE_MAX_ENTRIES = 24;
-const RANKING_REQUEST_TIMEOUT_MS = 10 * 1000;
+const RANKING_REQUEST_TIMEOUT_MS = 9 * 1000;
+const RANKING_LOADING_WATCHDOG_MS = 10 * 1000;
 const READING_RANKING_METRIC = 'like';
 
 function normalizeRankingGender(value) {
@@ -78,6 +79,7 @@ let rankingSwipeSetupDone = false;
 let rankingStockRefreshTimer = null;
 let rankingLoadSequence = 0;
 let rankingLoadController = null;
+let rankingLoadingWatchdogTimer = null;
 
 function escapeRankingHtml(value) {
     return String(value ?? '')
@@ -882,7 +884,7 @@ function openRankingReadingAction(key, event = null) {
 
 function getRankingLoadingMessage() {
     return `
-        <div class="text-center py-20 text-[#a6967a] flex flex-col items-center justify-center gap-4">
+        <div data-ranking-state="loading" class="text-center py-20 text-[#a6967a] flex flex-col items-center justify-center gap-4">
             <div class="animate-spin w-8 h-8 border-4 border-[#eee5d8] border-t-[#bca37f] rounded-full mx-auto"></div>
             <div>ランキングを取得中...</div>
         </div>
@@ -898,6 +900,34 @@ function getRankingLoadErrorMessage() {
             </button>
         </div>
     `;
+}
+
+function clearRankingLoadingWatchdog() {
+    if (rankingLoadingWatchdogTimer !== null) {
+        clearTimeout(rankingLoadingWatchdogTimer);
+        rankingLoadingWatchdogTimer = null;
+    }
+}
+
+function startRankingLoadingWatchdog(loadId, listContainer, type, period, genderFilter) {
+    clearRankingLoadingWatchdog();
+    rankingLoadingWatchdogTimer = setTimeout(() => {
+        rankingLoadingWatchdogTimer = null;
+        if (loadId !== rankingLoadSequence || !isRankingViewCurrent(type, period, genderFilter)) {
+            return;
+        }
+        const stillLoading = typeof listContainer?.querySelector === 'function'
+            ? !!listContainer.querySelector('[data-ranking-state="loading"]')
+            : String(listContainer?.innerHTML || '').includes('data-ranking-state="loading"');
+        if (!stillLoading) return;
+
+        rankingLoadSequence += 1;
+        if (rankingLoadController && typeof rankingLoadController.abort === 'function') {
+            rankingLoadController.abort();
+        }
+        rankingLoadController = null;
+        listContainer.innerHTML = getRankingLoadErrorMessage();
+    }, RANKING_LOADING_WATCHDOG_MS);
 }
 
 function withRankingTimeout(promise, options = {}) {
@@ -1067,6 +1097,7 @@ async function loadRanking(options = {}) {
         }
     } else {
         listContainer.innerHTML = getRankingLoadingMessage();
+        startRankingLoadingWatchdog(loadId, listContainer, type, period, genderFilter);
     }
 
     if (typeof MeimayStats === 'undefined') {
@@ -1102,6 +1133,9 @@ async function loadRanking(options = {}) {
         if (cachedEntry) return;
         listContainer.innerHTML = getRankingLoadErrorMessage();
     } finally {
+        if (loadId === rankingLoadSequence) {
+            clearRankingLoadingWatchdog();
+        }
         if (rankingLoadController === loadController) {
             rankingLoadController = null;
         }

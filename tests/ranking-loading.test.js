@@ -74,6 +74,8 @@ test('an uncached stalled ranking load replaces the spinner with a retry action'
     const writeRankingCacheEntry = () => {};
     const isRankingViewCurrent = () => true;
     const renderRankingResult = () => {};
+    const startRankingLoadingWatchdog = () => {};
+    const clearRankingLoadingWatchdog = () => {};
     ${extractTopLevelFunction(source, 'getRankingLoadingMessage')}
     ${extractTopLevelFunction(source, 'getRankingLoadErrorMessage')}
     ${extractTopLevelFunction(source, 'withRankingTimeout')}
@@ -100,4 +102,104 @@ test('gender switches cancel the previous ranking request and expose a retry sta
   assert.match(errorMessage, /もう一度読み込む/);
   assert.match(firebaseSource, /options\?\.signal \? \{ signal: options\.signal \}/);
   assert.match(firebaseSource, /apiError\?\.name === 'AbortError'/);
+});
+
+test('ranking watchdog replaces a stuck loading surface and cancels the request', async () => {
+  const source = fs.readFileSync(RANKING_SOURCE_PATH, 'utf8');
+  const sandbox = {
+    clearTimeout,
+    setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const RANKING_LOADING_WATCHDOG_MS = 10;
+    let rankingLoadingWatchdogTimer = null;
+    let rankingLoadSequence = 4;
+    globalThis.abortCount = 0;
+    let rankingLoadController = {
+      abort() { globalThis.abortCount += 1; }
+    };
+    const listContainer = {
+      innerHTML: '<div data-ranking-state="loading"></div>',
+      querySelector(selector) {
+        return selector === '[data-ranking-state="loading"]' ? {} : null;
+      }
+    };
+    const isRankingViewCurrent = () => true;
+    ${extractTopLevelFunction(source, 'getRankingLoadErrorMessage')}
+    ${extractTopLevelFunction(source, 'clearRankingLoadingWatchdog')}
+    ${extractTopLevelFunction(source, 'startRankingLoadingWatchdog')}
+    startRankingLoadingWatchdog(4, listContainer, 'kanji', 'allTime', 'male');
+    globalThis.listContainer = listContainer;
+  `, sandbox);
+
+  await new Promise((resolve) => setTimeout(resolve, 25));
+  vm.runInContext(`
+    globalThis.watchdogResult = {
+      loadSequence: rankingLoadSequence,
+      controller: rankingLoadController
+    };
+  `, sandbox);
+  assert.equal(sandbox.abortCount, 1);
+  assert.equal(sandbox.watchdogResult.loadSequence, 5);
+  assert.equal(sandbox.watchdogResult.controller, null);
+  assert.match(sandbox.listContainer.innerHTML, /もう一度読み込む/);
+});
+
+test('public Firestore ranking fields are converted, combined, and sorted', () => {
+  const source = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const sandbox = {
+    Map,
+    Object,
+    Number,
+    String
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const normalizeStatsReadingText = (value) => String(value || '').trim();
+    const normalizeStatsGenderValue = (value) => value || 'all';
+    const getReadingRankingAllowlist = () => null;
+    ${extractTopLevelFunction(source, 'getPublicStatsFieldNumber')}
+    ${extractTopLevelFunction(source, 'accumulatePublicStatsDocument')}
+    ${extractTopLevelFunction(source, 'buildPublicStatsRankingItems')}
+    const totals = new Map();
+    accumulatePublicStatsDocument({
+      fields: {
+        '陽': { integerValue: '9' },
+        '斗': { doubleValue: 4 },
+        updatedAt: { timestampValue: '2026-07-16T00:00:00Z' }
+      }
+    }, 'kanji', totals);
+    accumulatePublicStatsDocument({
+      fields: {
+        '陽': { integerValue: '2' },
+        '空': { integerValue: '6' }
+      }
+    }, 'kanji', totals);
+    globalThis.items = buildPublicStatsRankingItems(totals, 'kanji', 'male');
+  `, sandbox);
+
+  assert.deepEqual(
+    Array.from(sandbox.items, (item) => ({ ...item })),
+    [
+      { kanji: '陽', count: 11 },
+      { kanji: '空', count: 6 },
+      { kanji: '斗', count: 4 }
+    ]
+  );
+});
+
+test('rankings prefer the public Firestore document path before the slow API fallback', () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const fetchRankings = firebaseSource.slice(
+    firebaseSource.indexOf('fetchRankings: async function'),
+    firebaseSource.indexOf('recordReadingSeen:', firebaseSource.indexOf('fetchRankings: async function'))
+  );
+
+  assert.match(fetchRankings, /fetchPublicFirestoreRankings\(/);
+  assert.match(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
+  assert.match(
+    extractTopLevelFunction(firebaseSource, 'getStatsRankingCollectionNames'),
+    /`\$\{collection\}_\$\{target\}`/
+  );
 });

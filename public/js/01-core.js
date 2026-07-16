@@ -585,7 +585,7 @@ function recoverActiveScreenContent(reason = 'visible') {
         return;
     }
     if (screenId === 'scr-ranking') {
-        const rankingWaiting = isScreenSurfaceWaiting('ranking-list-container', ['ランキングを読み込み中']);
+        const rankingWaiting = isScreenSurfaceWaiting('ranking-list-container', ['ランキングを取得中', 'ランキングを読み込み中']);
         const rankingRequestActive = typeof rankingLoadController !== 'undefined' && !!rankingLoadController;
         if ((isScreenSurfaceEmpty('ranking-list-container') || rankingWaiting)
             && !rankingRequestActive
