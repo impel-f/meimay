@@ -3178,7 +3178,8 @@ const MeimayPartnerInsights = {
         const filteredLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
             ? StorageBox._filterRemovedLikedItems(typeof liked !== 'undefined' ? liked : [])
             : (typeof liked !== 'undefined' ? liked : []);
-        return filteredLiked.filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
+        return (Array.isArray(filteredLiked) ? filteredLiked : [])
+            .filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
     },
 
     getPartnerLiked: function () {
@@ -3251,7 +3252,7 @@ const MeimayPartnerInsights = {
         const list = typeof getSavedNames === 'function'
             ? getSavedNames()
             : JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-        return list;
+        return Array.isArray(list) ? list : [];
     },
 
     getPartnerSaved: function () {
@@ -5872,7 +5873,8 @@ MeimayPartnerInsights.normalizeReading = function (value) {
 MeimayPartnerInsights.getOwnReadingStock = function () {
     const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
     const hiddenReadingSet = this.getOwnHiddenReadingSet();
-    return ownReadings.filter(item => !this._isHiddenReadingItem(item, hiddenReadingSet));
+    return (Array.isArray(ownReadings) ? ownReadings : [])
+        .filter(item => !this._isHiddenReadingItem(item, hiddenReadingSet));
 };
 
 MeimayPartnerInsights.getOwnEncounteredReadings = function () {
@@ -6135,12 +6137,21 @@ MeimayPartnerInsights.isReadingItemMatched = function (item) {
 };
 
 MeimayPartnerInsights.getSummary = function () {
-    const ownReadingItems = this.getOwnReadingStock();
-    const partnerReadingItems = this.getPartnerReadingStock();
-    const ownLikedItems = this.getOwnLiked();
-    const partnerLikedItems = this.getPartnerLiked();
-    const ownSavedItems = this.getOwnSaved();
-    const partnerSavedItems = this.getPartnerSaved();
+    const readList = (methodName) => {
+        try {
+            const value = typeof this[methodName] === 'function' ? this[methodName]() : [];
+            return Array.isArray(value) ? value : [];
+        } catch (error) {
+            console.warn(`PAIRING: Failed to read ${methodName} for summary`, error);
+            return [];
+        }
+    };
+    const ownReadingItems = readList('getOwnReadingStock');
+    const partnerReadingItems = readList('getPartnerReadingStock');
+    const ownLikedItems = readList('getOwnLiked');
+    const partnerLikedItems = readList('getPartnerLiked');
+    const ownSavedItems = readList('getOwnSaved');
+    const partnerSavedItems = readList('getPartnerSaved');
     const summaryListKey = (items, keyFn) => {
         const list = Array.isArray(items) ? items : [];
         if (list.length === 0) return '0';
@@ -6219,10 +6230,16 @@ MeimayPartnerInsights.getSummary = function () {
         .map(key => representativeSavedByKey.get(key))
         .filter(Boolean);
     const partnerName = this.getPartnerDisplayName();
-    const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : ownLikedItems.length;
-    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function'
-        ? window.getVisibleKanjiStockCardCount('partner', partnerLikedItems)
-        : partnerLikedItems.length;
+    let ownKanjiCount = ownLikedItems.length;
+    let partnerKanjiCount = partnerLikedItems.length;
+    if (typeof window.getVisibleKanjiStockCardCount === 'function') {
+        try {
+            ownKanjiCount = window.getVisibleKanjiStockCardCount('all', ownLikedItems);
+            partnerKanjiCount = window.getVisibleKanjiStockCardCount('partner', partnerLikedItems);
+        } catch (error) {
+            console.warn('PAIRING: Falling back to raw kanji counts', error);
+        }
+    }
     const matchedKanjiCount = matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),

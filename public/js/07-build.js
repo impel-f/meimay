@@ -2984,6 +2984,20 @@ function showBuildPreparingState() {
     }
 }
 
+function showBuildRenderErrorState() {
+    const container = document.getElementById('build-selection');
+    const headerContainer = document.getElementById('build-header-sticky');
+    if (typeof syncBuildSaveButton === 'function') {
+        syncBuildSaveButton(false);
+    }
+    if (headerContainer) {
+        headerContainer.innerHTML = '<div class="rounded-2xl border border-[#f0ddd8] bg-white px-4 py-3 text-sm font-bold text-[#8b7e66] shadow-sm">ビルドを表示できませんでした</div>';
+    }
+    if (container) {
+        container.innerHTML = '<div class="px-4 py-12 text-center text-sm font-bold text-[#a6967a]">いったん戻って、もう一度ビルドを開いてください。</div>';
+    }
+}
+
 /**
  * 固定ヘッダー（名前プレビュー）を更新
  */
@@ -3438,7 +3452,14 @@ function requestRenderBuildSelection(reason = 'build', options = {}) {
             buildSelectionRenderCallbacks = [];
             return;
         }
-        renderBuildSelection();
+        try {
+            renderBuildSelection();
+        } catch (error) {
+            buildSelectionRenderCallbacks = [];
+            console.error(`BUILD: Selection render failed (${reason})`, error);
+            showBuildRenderErrorState();
+            return;
+        }
         const callbacks = buildSelectionRenderCallbacks.splice(0);
         callbacks.forEach((callback) => {
             try {

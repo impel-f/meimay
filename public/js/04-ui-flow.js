@@ -3120,11 +3120,6 @@ function goBack() {
         } else {
             changeScreen('scr-mode');
         }
-    } else if (id === 'scr-nickname-swipe') {
-        changeScreen('scr-input-nickname');
-    } else if (id === 'scr-tomeji-selection') {
-        document.getElementById('nickname-liked-list').classList.remove('hidden');
-        changeScreen('scr-nickname-swipe');
     } else if (id === 'scr-vibe') {
         if (appMode === 'free') {
             changeScreen('scr-mode');
@@ -4032,24 +4027,6 @@ function finalizeNicknameFlow() {
 
 // Helper uniqueId
 function uniqueId() { return Math.random().toString(36).substr(2, 9); }
-
-/**
- * GoBack Override extension
- */
-const originalGoBack = window.goBack;
-window.goBack = function () {
-    const active = document.querySelector('.screen.active');
-    if (active && active.id === 'scr-nickname-swipe') {
-        changeScreen('scr-input-nickname');
-        return;
-    }
-    if (active && active.id === 'scr-tomeji-selection') {
-        document.getElementById('nickname-liked-list').classList.remove('hidden');
-        changeScreen('scr-nickname-swipe');
-        return;
-    }
-    originalGoBack();
-};
 
 /**
  * 自由選択モード初期化（メインのスワイプUIを使用）
@@ -9783,7 +9760,10 @@ function executeReadingSearch() {
     ensureReadingSearchScrollHandler(container);
 
     if (!Array.isArray(readingsData) || readingsData.length === 0) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みデータを読み込み中です...</div>';
+        const loadStatus = getCandidateDataLoadStatus('readingsData');
+        container.innerHTML = loadStatus === 'failed' || loadStatus === 'empty'
+            ? '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みデータを読み込めませんでした。アプリを開き直してお試しください。</div>'
+            : '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">読みデータを読み込み中です...</div>';
         return;
     }
 
@@ -9852,7 +9832,10 @@ function executeKanjiSearch() {
 
     // masterが未ロードの場合
     if (!master || master.length === 0) {
-        container.innerHTML = '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">漢字データを読み込み中です...</div>';
+        const loadStatus = getCandidateDataLoadStatus('master');
+        container.innerHTML = loadStatus === 'failed' || loadStatus === 'empty'
+            ? '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">漢字データを読み込めませんでした。アプリを開き直してお試しください。</div>'
+            : '<div class="col-span-4 text-center text-sm text-[#a6967a] py-10">漢字データを読み込み中です...</div>';
         return;
     }
 

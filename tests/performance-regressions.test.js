@@ -134,6 +134,17 @@ test('heavy destination screens render after the first screen paint', () => {
   assert.match(extractFunction(build, 'openBuild'), /runAfterScreenPaint\('scr-build'/);
 });
 
+test('deferred build rendering catches timer errors and replaces the loading state', () => {
+  const source = readSource('07-build.js');
+  const requestRender = extractFunction(source, 'requestRenderBuildSelection');
+  const errorState = extractFunction(source, 'showBuildRenderErrorState');
+
+  assert.match(requestRender, /try\s*\{\s*renderBuildSelection\(\)/);
+  assert.match(requestRender, /showBuildRenderErrorState\(\)/);
+  assert.match(errorState, /ビルドを表示できませんでした/);
+  assert.match(errorState, /もう一度ビルドを開いてください/);
+});
+
 test('shared deferred renderer runs even when the native WebView skips an animation frame', () => {
   const source = readSource('01-core.js');
   const runAfterNextPaint = extractFunction(source, 'runAfterNextPaint');
@@ -181,29 +192,45 @@ test('reading search stock markers use only visible reading stock', () => {
 test('home profile still renders when the native WebView skips an animation frame', () => {
   const source = readSource('01-core.js');
   const isActive = extractFunction(source, 'isHomeProfileRenderTargetActive');
+  const isMounted = extractFunction(source, 'isHomeProfileContentMounted');
+  const clearRecovery = extractFunction(source, 'clearHomeProfileRecovery');
+  const scheduleRecovery = extractFunction(source, 'scheduleHomeProfileRecovery');
   const requestRender = extractFunction(source, 'requestRenderHomeProfile');
   const timers = [];
   const sandbox = {
     timers,
+    console,
     clearTimeout() {},
     requestAnimationFrame() {},
     setTimeout(callback) {
       timers.push(callback);
       return timers.length;
     },
+    stageMounted: false,
     document: {
-      getElementById: () => ({ classList: { contains: () => true } })
+      getElementById(id) {
+        if (id === 'scr-mode') return { classList: { contains: () => true } };
+        if (id === 'home-stage-track' && sandbox.stageMounted) return { childElementCount: 1 };
+        return null;
+      }
     },
     renderCount: 0,
     renderHomeProfile() {
       sandbox.renderCount += 1;
+      sandbox.stageMounted = true;
     }
   };
   vm.createContext(sandbox);
   vm.runInContext(`
     let _homeRenderRequest = null;
     let _homeRenderPendingWhileHidden = false;
+    let _homeRenderRecoveryTimer = null;
+    let _homeRenderRecoveryAttempts = 0;
+    const HOME_RENDER_RECOVERY_MAX_ATTEMPTS = 3;
     ${isActive}
+    ${isMounted}
+    ${clearRecovery}
+    ${scheduleRecovery}
     ${requestRender}
     requestRenderHomeProfile({ force: true, afterPaint: false });
   `, sandbox);
@@ -212,6 +239,95 @@ test('home profile still renders when the native WebView skips an animation fram
   assert.equal(timers.length, 1);
   timers.shift()();
   assert.equal(sandbox.renderCount, 1);
+});
+
+test('home profile retries after a transient render failure and then mounts content', () => {
+  const source = readSource('01-core.js');
+  const isActive = extractFunction(source, 'isHomeProfileRenderTargetActive');
+  const isMounted = extractFunction(source, 'isHomeProfileContentMounted');
+  const clearRecovery = extractFunction(source, 'clearHomeProfileRecovery');
+  const scheduleRecovery = extractFunction(source, 'scheduleHomeProfileRecovery');
+  const requestRender = extractFunction(source, 'requestRenderHomeProfile');
+  const timers = [];
+  const sandbox = {
+    timers,
+    console: { error() {}, warn() {} },
+    clearTimeout() {},
+    requestAnimationFrame() {},
+    setTimeout(callback) {
+      timers.push(callback);
+      return timers.length;
+    },
+    stageMounted: false,
+    document: {
+      getElementById(id) {
+        if (id === 'scr-mode') return { classList: { contains: () => true } };
+        if (id === 'home-stage-track' && sandbox.stageMounted) return { childElementCount: 1 };
+        return null;
+      }
+    },
+    renderCount: 0,
+    renderHomeProfile() {
+      sandbox.renderCount += 1;
+      if (sandbox.renderCount === 1) throw new Error('transient');
+      sandbox.stageMounted = true;
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    let _homeRenderRequest = null;
+    let _homeRenderPendingWhileHidden = false;
+    let _homeRenderRecoveryTimer = null;
+    let _homeRenderRecoveryAttempts = 0;
+    const HOME_RENDER_RECOVERY_MAX_ATTEMPTS = 3;
+    ${isActive}
+    ${isMounted}
+    ${clearRecovery}
+    ${scheduleRecovery}
+    ${requestRender}
+    requestRenderHomeProfile({ force: true, afterPaint: false });
+  `, sandbox);
+
+  timers.shift()();
+  assert.equal(sandbox.renderCount, 1);
+  assert.equal(timers.length, 1);
+  timers.shift()();
+  assert.equal(timers.length, 1);
+  timers.shift()();
+  assert.equal(sandbox.renderCount, 2);
+  assert.equal(sandbox.stageMounted, true);
+});
+
+test('home and partner summaries normalize malformed legacy collections', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const readHomeList = extractFunction(renderSource, 'readHomeList');
+  const localFallback = extractFunction(renderSource, 'getHomeLocalStageSnapshotFallback');
+  const sandbox = { console: { warn() {} } };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${readHomeList}
+    ${localFallback}
+    globalThis.fromInvalid = readHomeList({ bad: true }, ['fallback'], 'invalid');
+    globalThis.fromThrow = readHomeList(() => { throw new Error('legacy'); }, ['fallback'], 'throwing');
+    globalThis.localStage = getHomeLocalStageSnapshotFallback({
+      ownLikedCount: 4,
+      ownReadingCount: 2,
+      ownSavedCount: 1,
+      ownReadingItems: { malformed: true }
+    }, { hasPartner: true });
+  `, sandbox);
+
+  assert.deepEqual([...sandbox.fromInvalid], ['fallback']);
+  assert.deepEqual([...sandbox.fromThrow], ['fallback']);
+  assert.equal(sandbox.localStage.mode, 'self');
+  assert.equal(sandbox.localStage.likedCount, 4);
+  assert.equal(sandbox.localStage.readingStock.length, 0);
+
+  const firebaseSource = readSource('15-firebase.js');
+  assert.match(firebaseSource, /const readList = \(methodName\) => \{/);
+  assert.match(firebaseSource, /const ownReadingItems = readList\('getOwnReadingStock'\)/);
+  assert.match(firebaseSource, /return Array\.isArray\(list\) \? list : \[\]/);
+  assert.match(renderSource, /Shared overview failed; rendering local status/);
 });
 
 test('large stock screens avoid quadratic grouping and yield between batches', () => {
