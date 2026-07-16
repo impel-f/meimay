@@ -636,7 +636,7 @@ async function getFirebaseIdToken(timeoutMs = 8000) {
             );
         });
 
-        return user ? await user.getIdToken() : null;
+        return user ? await withMeimayTimeout(user.getIdToken(), 10000, '認証情報の取得') : null;
     } catch (error) {
         console.warn('FIREBASE: Failed to wait for auth token', error);
         return null;
@@ -1603,6 +1603,7 @@ const MeimayPairing = {
     _markPairingUsedInFlight: false,
     _syncInProgress: false,
     _syncPending: false,
+    _syncRetryTimer: null,
     _pendingShareText: '',
     _pendingShareSubject: 'メイメー - ルームコードの共有',
     PAIRING_CACHE_KEY: 'meimay_pairing_history_v1',
@@ -1701,14 +1702,14 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
         if (!user || !user.uid || !firebaseDb || !this.roomCode) return false;
         try {
-            await firebaseDb.collection('users').doc(user.uid).set({
+            await withMeimayTimeout(firebaseDb.collection('users').doc(user.uid).set({
                 pairRoomCode: String(this.roomCode || '').trim(),
                 roomCode: String(this.roomCode || '').trim(),
                 pairRoomSlot: this.mySlot || null,
                 pairRoomRole: this.myRole || null,
                 pairRoomLinkReason: reason || null,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }), 15000, '連携情報の保存');
             return true;
         } catch (error) {
             console.warn('PAIRING: Failed to persist room link to user doc', error);
@@ -1720,13 +1721,13 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
         if (!user || !user.uid || !firebaseDb) return false;
         try {
-            await firebaseDb.collection('users').doc(user.uid).set({
+            await withMeimayTimeout(firebaseDb.collection('users').doc(user.uid).set({
                 pairRoomCode: null,
                 roomCode: null,
                 pairRoomSlot: null,
                 pairRoomRole: null,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }), 15000, '連携情報の解除');
             return true;
         } catch (error) {
             console.warn('PAIRING: Failed to clear room link from user doc', error);
@@ -1739,7 +1740,11 @@ const MeimayPairing = {
         if (!user || !user.uid || !firebaseDb) return false;
 
         try {
-            const userDoc = await firebaseDb.collection('users').doc(user.uid).get();
+            const userDoc = await withMeimayTimeout(
+                firebaseDb.collection('users').doc(user.uid).get(),
+                10000,
+                '連携情報の確認'
+            );
             const userData = userDoc.exists ? (userDoc.data() || {}) : {};
             const backup = userData.meimayBackup || userData.backup || {};
             const code = String(
@@ -1751,7 +1756,11 @@ const MeimayPairing = {
             ).trim().toUpperCase();
             if (!code) return false;
 
-            const roomDoc = await firebaseDb.collection('rooms').doc(code).get();
+            const roomDoc = await withMeimayTimeout(
+                firebaseDb.collection('rooms').doc(code).get(),
+                10000,
+                '連携ルームの確認'
+            );
             if (!roomDoc.exists) return false;
 
             const roomData = roomDoc.data() || {};
@@ -1776,6 +1785,10 @@ const MeimayPairing = {
 
     beginAppDataDeletion: function () {
         this._syncPending = false;
+        if (this._syncRetryTimer) {
+            clearTimeout(this._syncRetryTimer);
+            this._syncRetryTimer = null;
+        }
         this._isLeavingRoom = true;
         try {
             this._stopListening?.();
@@ -1807,7 +1820,11 @@ const MeimayPairing = {
 
         // Firestore縺ｧ繝ｫ繝ｼ繝縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱・
         try {
-            const doc = await firebaseDb.collection('rooms').doc(code).get();
+            const doc = await withMeimayTimeout(
+                firebaseDb.collection('rooms').doc(code).get(),
+                10000,
+                '連携ルームへの再接続'
+            );
             if (!doc.exists) {
                 console.warn('PAIRING: Saved room no longer exists, clearing');
                 this._clearLocal();
@@ -1992,7 +2009,11 @@ const MeimayPairing = {
         }
 
         try {
-            const roomDoc = await firebaseDb.collection('rooms').doc(upperCode).get();
+            const roomDoc = await withMeimayTimeout(
+                firebaseDb.collection('rooms').doc(upperCode).get(),
+                10000,
+                '連携コードの確認'
+            );
             if (!roomDoc.exists) {
                 if (typeof trackMeimayEvent === 'function') {
                     trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'code_not_found' });
@@ -2017,8 +2038,11 @@ const MeimayPairing = {
             let partnerSurnameReading = normalizePairingSurnameValue(data[partnerSurnameReadingField]);
             if (!partnerSurname && partnerUid) {
                 try {
-                    const partnerDataDoc = await firebaseDb.collection('rooms').doc(upperCode)
-                        .collection('data').doc(partnerUid).get();
+                    const partnerDataDoc = await withMeimayTimeout(
+                        firebaseDb.collection('rooms').doc(upperCode).collection('data').doc(partnerUid).get(),
+                        10000,
+                        'パートナー情報の確認'
+                    );
                     if (partnerDataDoc.exists) {
                         const partnerData = partnerDataDoc.data() || {};
                         partnerSurname = normalizePairingSurnameValue(
@@ -2055,14 +2079,14 @@ const MeimayPairing = {
             }
 
             if (!isExistingMemberB) {
-                await firebaseDb.collection('rooms').doc(upperCode).update({
+                await withMeimayTimeout(firebaseDb.collection('rooms').doc(upperCode).update({
                     memberBUid: user.uid,
                     memberBRole: role,
                     memberBSurname: pairingSurname.surname,
                     memberBSurnameReading: pairingSurname.reading || null,
                     pairedOnce: true,
                     pairedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                }), 15000, '連携ルームへの参加');
             } else {
                 this._markRoomPairedOnceIfNeeded(data);
             }
@@ -2163,11 +2187,11 @@ const MeimayPairing = {
         }
 
         try {
-            const roomDoc = await roomRef.get();
+            const roomDoc = await withMeimayTimeout(roomRef.get(), 10000, '連携解除の確認');
             const roomData = roomDoc.exists ? (roomDoc.data() || {}) : {};
 
             if (user) {
-                await roomRef.collection('data').doc(user.uid).delete();
+                await withMeimayTimeout(roomRef.collection('data').doc(user.uid).delete(), 15000, '連携データの解除');
                 await this._clearUserRoomLink();
             }
 
@@ -2188,53 +2212,12 @@ const MeimayPairing = {
             update[`${slotToClear}Role`] = null;
             update[`${slotToClear}Surname`] = null;
             update[`${slotToClear}SurnameReading`] = null;
-            await roomRef.set(update, { merge: true });
+            await withMeimayTimeout(roomRef.set(update, { merge: true }), 15000, '連携ルームの解除');
         } catch (e) {
             console.error('PAIRING: Leave room failed', e);
         } finally {
             this._isLeavingRoom = false;
             console.log('PAIRING: Left room');
-        }
-    },
-
-    // 閾ｪ蛻・・繝・・繧ｿ繧偵Ν繝ｼ繝縺ｫ繧｢繝・・繝ｭ繝ｼ繝会ｼ亥酔譛滂ｼ・
-    syncMyData: async function () {
-        if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
-        const user = MeimayAuth.getCurrentUser();
-        if (!user || !this.roomCode || this._isLeavingRoom) return;
-
-        try {
-            const hiddenReadings = readNormalizedHiddenReadings();
-            const pairingSurname = getCurrentPairingSurnameState();
-            const projectedSections = MeimayFirestorePayload.projectSections({
-                liked: typeof liked !== 'undefined' ? liked : [],
-                savedNames: JSON.parse(localStorage.getItem('meimay_saved') || '[]')
-            });
-
-            await firebaseDb.collection('rooms').doc(this.roomCode)
-                .collection('data').doc(user.uid).set({
-                role: this.myRole,
-                liked: projectedSections.liked,
-                savedNames: projectedSections.savedNames,
-                meimayStateV2: typeof MeimayUserBackup !== 'undefined' ? MeimayUserBackup._readChildWorkspaceStateV2() : null,
-                hiddenReadings,
-                surname: pairingSurname.surname,
-                surnameReading: pairingSurname.reading,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            const roomSurnameField = getPairingRoomSurnameField(this.mySlot);
-            const roomSurnameReadingField = getPairingRoomSurnameReadingField(this.mySlot);
-            if (roomSurnameField) {
-                await firebaseDb.collection('rooms').doc(this.roomCode).set({
-                    [roomSurnameField]: pairingSurname.surname || null,
-                    [roomSurnameReadingField]: pairingSurname.reading || null
-                }, { merge: true });
-            }
-
-            console.log('PAIRING: Synced my data to room');
-        } catch (e) {
-            console.error('PAIRING: Sync data failed', e);
         }
     },
 
@@ -2537,7 +2520,7 @@ const MeimayPairing = {
             const code = this._generateRoomCode();
             const roomRef = firebaseDb.collection('rooms').doc(code);
             try {
-                await firebaseDb.runTransaction(async (transaction) => {
+                await withMeimayTimeout(firebaseDb.runTransaction(async (transaction) => {
                     const snap = await transaction.get(roomRef);
                     if (snap.exists) {
                         const collision = new Error('room_code_collision');
@@ -2557,7 +2540,7 @@ const MeimayPairing = {
                         pairedAt: null,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                });
+                }), 20000, '連携ルームの作成');
                 return code;
             } catch (error) {
                 if (error?.code === 'room_code_collision') {
@@ -2602,10 +2585,10 @@ const MeimayPairing = {
         if (!roleField || !firebaseDb) return true;
 
         try {
-            await firebaseDb.collection('rooms').doc(this.roomCode).update({
+            await withMeimayTimeout(firebaseDb.collection('rooms').doc(this.roomCode).update({
                 [roleField]: nextRole,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }), 15000, '役割の更新');
             await this._persistUserRoomLink('role-update');
             if (typeof this.syncMyData === 'function') {
                 await this.syncMyData();
@@ -2638,10 +2621,10 @@ const MeimayPairing = {
 
         this._markPairingUsedInFlight = true;
         try {
-            await firebaseDb.collection('rooms').doc(this.roomCode).set({
+            await withMeimayTimeout(firebaseDb.collection('rooms').doc(this.roomCode).set({
                 pairedOnce: true,
                 pairedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }), 15000, '連携状態の更新');
         } catch (error) {
             console.warn('PAIRING: Failed to mark room as used', error);
         } finally {
@@ -4203,6 +4186,10 @@ function getStatsApiRequestUrl(path = '/api/stats') {
     return typeof getMeimayApiUrl === 'function' ? getMeimayApiUrl(path) : path;
 }
 
+function fetchStatsWithTimeout(input, init = {}) {
+    return fetchWithMeimayTimeout(input, init, 12000, 'ランキング通信');
+}
+
 function normalizeLocalStatsReading(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -4645,7 +4632,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4686,7 +4673,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4726,7 +4713,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4763,7 +4750,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4802,7 +4789,7 @@ const MeimayStats = {
                 return true;
             }
 
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4839,7 +4826,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetch(getStatsApiRequestUrl(), {
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4862,7 +4849,7 @@ const MeimayStats = {
 
         const run = async () => {
             try {
-                const response = await fetch(getStatsApiRequestUrl(), {
+                const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
                     method: 'POST',
                     headers: await getFirebaseRequestHeaders(),
                     body: JSON.stringify({
@@ -5369,7 +5356,7 @@ const MeimayStats = {
         return this._kanjiGenderStatsSeedPromise;
     },
 
-    fetchRankings: async function (type = 'allTime', kind = 'kanji', metric = 'all', gender = 'all') {
+    fetchRankings: async function (type = 'allTime', kind = 'kanji', metric = 'all', gender = 'all', options = {}) {
         const normalizedType = type === 'monthly' || type === 'weekly' ? type : 'allTime';
         const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
         const normalizedMetric = normalizedKind === 'reading'
@@ -5391,8 +5378,9 @@ const MeimayStats = {
                 query.set('gender', normalizedGender);
             }
 
-            const response = await fetch(getStatsApiRequestUrl(`/api/stats?${query.toString()}`), {
-                cache: 'no-store'
+            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(`/api/stats?${query.toString()}`), {
+                cache: 'no-store',
+                ...(options?.signal ? { signal: options.signal } : {})
             });
 
             if (response.ok) {
@@ -5421,6 +5409,7 @@ const MeimayStats = {
                     .slice(0, 100);
             }
         } catch (apiError) {
+            if (apiError?.name === 'AbortError') throw apiError;
             console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) API fallback`, apiError);
         }
 
@@ -5550,6 +5539,10 @@ MeimayPairing.syncMyData = async function () {
         return;
     }
 
+    if (this._syncRetryTimer) {
+        clearTimeout(this._syncRetryTimer);
+        this._syncRetryTimer = null;
+    }
     this._syncInProgress = true;
     let syncFailed = false;
     try {
@@ -5644,7 +5637,7 @@ MeimayPairing.syncMyData = async function () {
             ? { meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt }
             : {};
         const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
-        const roomDataDoc = await roomDataRef.get();
+        const roomDataDoc = await withMeimayTimeout(roomDataRef.get(), 15000, 'パートナー連携の確認');
         const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
         const likedClearFlag = localStorage.getItem('meimay_liked_cleared_at');
         const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
@@ -5762,7 +5755,7 @@ MeimayPairing.syncMyData = async function () {
         roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
         if (this._lastContentFingerprint !== contentFingerprint && existingContentFingerprint !== contentFingerprint) {
-            await roomDataRef.set(roomPayload, { merge: true });
+            await withMeimayTimeout(roomDataRef.set(roomPayload, { merge: true }), 15000, 'パートナー連携の保存');
             this._lastContentFingerprint = contentFingerprint;
             if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare._buildPremiumStateSyncFingerprint === 'function') {
                 MeimayShare._lastPremiumStateSyncFingerprint = MeimayShare._buildPremiumStateSyncFingerprint(this.roomCode, user.uid, roomPayload);
@@ -5781,13 +5774,15 @@ MeimayPairing.syncMyData = async function () {
         console.error('PAIRING: Sync data failed', e);
     } finally {
         this._syncInProgress = false;
-        if (!syncFailed && this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
-            this._syncPending = false;
-            setTimeout(() => {
+        if (this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
+            const retryDelay = syncFailed ? 5000 : 250;
+            if (!this._syncRetryTimer) this._syncRetryTimer = setTimeout(() => {
+                this._syncRetryTimer = null;
+                this._syncPending = false;
                 if (this.roomCode && typeof this.syncMyData === 'function') {
                     this.syncMyData();
                 }
-            }, 250);
+            }, retryDelay);
         }
     }
 };
@@ -6562,14 +6557,14 @@ const MeimayUserBackup = {
         const requestUrl = typeof getMeimayApiUrl === 'function'
             ? getMeimayApiUrl(this._restoreApiPath)
             : this._restoreApiPath;
-        const response = await fetch(requestUrl, {
+        const response = await fetchWithMeimayTimeout(requestUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({ action, ...payload })
-        });
+        }, 20000, 'バックアップ処理');
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
             const fallbackMessage = response.status === 404 && !data.error
@@ -7372,9 +7367,13 @@ const MeimayUserBackup = {
         }
 
         try {
-            await firebaseDb.collection('users').doc(currentUser.uid).set(
-                this._buildRemotePatch(sections, fingerprint),
-                { merge: true }
+            await withMeimayTimeout(
+                firebaseDb.collection('users').doc(currentUser.uid).set(
+                    this._buildRemotePatch(sections, fingerprint),
+                    { merge: true }
+                ),
+                15000,
+                'バックアップの保存'
             );
             this._lastSyncedFingerprint = fingerprint;
             this._lastRemoteBackupFingerprint = fingerprint;
@@ -7398,7 +7397,11 @@ const MeimayUserBackup = {
         if (this._restoreInFlight) return false;
 
         try {
-            const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
+            const doc = await withMeimayTimeout(
+                firebaseDb.collection('users').doc(currentUser.uid).get(),
+                15000,
+                'バックアップの確認'
+            );
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackupFingerprint = this._getRemoteBackupFingerprint(remoteData);
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
@@ -7654,7 +7657,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
     }
 
     try {
-        await firebaseDb.collection('rooms').doc(roomCode)
+        await withMeimayTimeout(firebaseDb.collection('rooms').doc(roomCode)
             .collection('data').doc(user.uid).set({
                 isPremium: state.isPremium,
                 premiumSource: state.premiumSource,
@@ -7671,7 +7674,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
                 trialEndsAt: state.trialEndsAt,
                 trialConsumedByRoom: state.trialConsumedByRoom === true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }), 15000, 'プレミアム状態の連携');
         this._lastPremiumStateSyncFingerprint = premiumSyncFingerprint;
         return true;
     } catch (e) {
@@ -7702,6 +7705,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
         .onSnapshot((doc) => {
+            const snapshotApplySequence = (Number(this._partnerSnapshotApplySequence) || 0) + 1;
+            this._partnerSnapshotApplySequence = snapshotApplySequence;
             void (async () => {
                 try {
             if (partnerUid !== MeimayPairing.partnerUid) return;
@@ -7782,7 +7787,11 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             );
             if (shouldFetchPartnerUserBackup) {
                 try {
-                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
+                    const partnerUserDoc = await withMeimayTimeout(
+                        firebaseDb.collection('users').doc(partnerUid).get(),
+                        10000,
+                        'パートナーデータの補完'
+                    );
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
@@ -7854,6 +7863,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 }
             }
 
+            if (snapshotApplySequence !== this._partnerSnapshotApplySequence || partnerUid !== MeimayPairing.partnerUid) return;
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: likedSource,
                 savedNames: savedNamesSource,

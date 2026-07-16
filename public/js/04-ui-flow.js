@@ -5314,6 +5314,26 @@ function sortReadingStockMatches(matches) {
     });
 }
 
+function buildReadingStockLookupIndex(stock) {
+    const byId = new Map();
+    const matchesByReading = new Map();
+    (Array.isArray(stock) ? stock : []).forEach((item) => {
+        if (!item) return;
+        const id = String(item.id || '').trim();
+        if (id && !byId.has(id)) byId.set(id, item);
+        const readingKey = normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item)));
+        if (!readingKey) return;
+        if (!matchesByReading.has(readingKey)) matchesByReading.set(readingKey, []);
+        matchesByReading.get(readingKey).push(item);
+    });
+    const byReading = new Map();
+    matchesByReading.forEach((matches, readingKey) => {
+        const bestMatch = sortReadingStockMatches(matches)[0] || null;
+        if (bestMatch) byReading.set(readingKey, bestMatch);
+    });
+    return { byId, byReading };
+}
+
 function findReadingStockItemInStock(stock, target, options = {}) {
     const normalizedTarget = normalizeReadingComparisonValue(getReadingBaseReading(target));
     if (!normalizedTarget) return null;
@@ -5479,7 +5499,13 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
     const normalizedSegmentsInput = Array.isArray(options.segments) ? options.segments.filter(Boolean) : [];
     const normalizedSegments = readingPromoted ? normalizedSegmentsInput : [];
     const targetId = getReadingStockKey(reading, normalizedSegments);
-    const existing = stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true });
+    const lookupIndex = options.lookupIndex && options.lookupIndex.byId instanceof Map && options.lookupIndex.byReading instanceof Map
+        ? options.lookupIndex
+        : null;
+    const normalizedReadingKey = normalizeReadingComparisonValue(getReadingBaseReading(reading));
+    const existing = lookupIndex
+        ? (lookupIndex.byId.get(targetId) || lookupIndex.byReading.get(normalizedReadingKey) || null)
+        : (stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true }));
 
     if (existing) {
         let changed = false;
@@ -5498,6 +5524,10 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
         changed = assignReadingStockField(existing, 'segments', nextSegments) || changed;
         const nextId = getReadingStockKey(reading, nextReadingPromoted ? nextSegments : []);
         changed = assignReadingStockField(existing, 'id', nextId) || changed;
+        if (lookupIndex) {
+            lookupIndex.byId.set(nextId, existing);
+            if (normalizedReadingKey) lookupIndex.byReading.set(normalizedReadingKey, existing);
+        }
         if (options.gender) {
             changed = assignReadingStockField(existing, 'gender', options.gender) || changed;
         }
@@ -5531,6 +5561,10 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
     if (options.source) entry.source = options.source;
 
     stock.push(entry);
+    if (lookupIndex) {
+        lookupIndex.byId.set(entry.id, entry);
+        if (normalizedReadingKey) lookupIndex.byReading.set(normalizedReadingKey, entry);
+    }
     return { entry, changed: true, created: true };
 }
 
@@ -5694,6 +5728,7 @@ function showSwipeStockToast(kind, message, icon) {
 function syncReadingStockFromLiked(items = liked) {
     const likedItems = Array.isArray(items) ? items : [];
     const stock = getReadingStock();
+    const lookupIndex = buildReadingStockLookupIndex(stock);
     let changed = false;
     const blockedReadings = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
     let hiddenReadings = new Set();
@@ -5737,7 +5772,8 @@ function syncReadingStockFromLiked(items = liked) {
                 gender: item.gender || gender || 'neutral',
                 readingPromoted,
                 source: readingPromoted ? (item.source || 'reading-combination') : item.source,
-                basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
+                basePosition: item.basePosition === 'prefix' ? 'prefix' : '',
+                lookupIndex
             }
         );
         changed = result.changed || changed;
@@ -8119,8 +8155,8 @@ var searchReadingLengthFilter = '';
 var searchFlexibleMode = false; // false=厳格(完全一致), true=柔軟(音訓前方一致)
 var searchShowAllKanji = false;
 var kanjiSearchInputTimer = null;
-const KANJI_SEARCH_BATCH_SIZE = 160;
-const READING_SEARCH_BATCH_SIZE = 120;
+const KANJI_SEARCH_BATCH_SIZE = 64;
+const READING_SEARCH_BATCH_SIZE = 60;
 const READING_SEARCH_COLUMNS = 3;
 const kanjiSearchItemCache = new WeakMap();
 var searchKanjiVisibleLimit = KANJI_SEARCH_BATCH_SIZE;
@@ -9527,12 +9563,11 @@ function loadMoreKanjiSearchResults() {
     if (searchKanjiIsAppending) return;
     if (searchKanjiVisibleLimit >= searchKanjiCurrentTotal) return;
     searchKanjiIsAppending = true;
-    executeKanjiSearch();
     setTimeout(() => {
         searchKanjiVisibleLimit += KANJI_SEARCH_BATCH_SIZE;
         searchKanjiIsAppending = false;
         executeKanjiSearch();
-    }, 180);
+    }, 40);
 }
 
 function observeKanjiSearchLoader(loader, container) {
@@ -9613,12 +9648,11 @@ function loadMoreReadingSearchResults() {
     if (searchReadingIsAppending) return;
     if (searchReadingVisibleLimit >= searchReadingCurrentTotal) return;
     searchReadingIsAppending = true;
-    executeReadingSearch();
     setTimeout(() => {
         searchReadingVisibleLimit += READING_SEARCH_BATCH_SIZE;
         searchReadingIsAppending = false;
         executeReadingSearch();
-    }, 180);
+    }, 40);
 }
 
 function observeReadingSearchLoader(loader, container) {
@@ -10070,12 +10104,15 @@ ${soundAnalysisNoped.length > 0 ? `【好みでない響き】\n${soundAnalysisN
 【注意】好きな響きと重複しない新しい候補を出してください。
 `.trim();
 
-    fetch(getMeimayApiUrl('/api/gemini'), {
+    fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
-    })
-        .then(res => res.json())
+    }, 35000, 'AI響き分析')
+        .then(res => {
+            if (!res.ok) throw new Error(`AI API Error: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             const aiText = data.text || '';
             parseAndShowAISoundResults(aiText);
@@ -10223,12 +10260,15 @@ ${likedKanji}
 漢字|画数|簡単な意味の説明（10文字以内）
 `.trim();
 
-    fetch(getMeimayApiUrl('/api/gemini'), {
+    fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
-    })
-        .then(res => res.json())
+    }, 35000, 'AI漢字提案')
+        .then(res => {
+            if (!res.ok) throw new Error(`AI API Error: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             const lines = (data.text || '').split('\n').filter(l => l.includes('|'));
             const suggestions = lines.map(l => {
@@ -10281,6 +10321,7 @@ ${likedKanji}
 }
 
 function stockAISuggestion(kanji, btn) {
+    const found = master.find(m => m['漢字'] === kanji);
     let isStocked = liked.some(l => l['漢字'] === kanji);
     if (isStocked) {
         let removedCount = 0;
@@ -10298,7 +10339,6 @@ function stockAISuggestion(kanji, btn) {
             MeimayStats.recordKanjiUnlike(kanji, found?.gender || gender || 'neutral');
         }
     } else {
-        const found = master.find(m => m['漢字'] === kanji);
         if (!found) {
             if (typeof showToast === 'function') {
                 showToast('漢字データが見つかりません', '🌙');
@@ -10437,12 +10477,15 @@ ${answersText}
 陽|はる、ひなた|12|明るく温かい印象
 `.trim();
 
-    fetch(getMeimayApiUrl('/api/gemini'), {
+    fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
-    })
-        .then(res => res.json())
+    }, 35000, 'AIおすすめ提案')
+        .then(res => {
+            if (!res.ok) throw new Error(`AI API Error: ${res.status}`);
+            return res.json();
+        })
         .then(data => {
             const text = data.text || '';
             const lines = text.split('\n').filter(l => l.includes('|'));

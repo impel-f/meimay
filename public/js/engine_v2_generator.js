@@ -3,6 +3,86 @@
  * ニックネームからの名前候補生成ロジック
  */
 
+let nameCandidateSourceCache = {
+    sourceRef: null,
+    sourceLength: -1,
+    sourceKind: '',
+    sourceData: [],
+    sourceByReading: new Map(),
+    filteredByGender: new Map()
+};
+
+function getNameCandidateSourceContext(gender) {
+    const hasReadingsData = typeof readingsData !== 'undefined'
+        && Array.isArray(readingsData)
+        && readingsData.length > 0;
+    const hasYomiSearchData = typeof yomiSearchData !== 'undefined'
+        && Array.isArray(yomiSearchData)
+        && yomiSearchData.length > 0;
+    const sourceRef = hasReadingsData
+        ? readingsData
+        : (hasYomiSearchData ? yomiSearchData : null);
+    const sourceKind = hasReadingsData ? 'readings' : (hasYomiSearchData ? 'yomi' : '');
+
+    if (!sourceRef) {
+        return { sourceData: [], sourceByReading: new Map(), filteredData: [] };
+    }
+
+    if (nameCandidateSourceCache.sourceRef !== sourceRef
+        || nameCandidateSourceCache.sourceLength !== sourceRef.length
+        || nameCandidateSourceCache.sourceKind !== sourceKind) {
+        const sourceData = sourceRef;
+        const sourceByReading = new Map();
+        sourceData.forEach((item) => {
+            const reading = getNameCandidateSourceReading(item, sourceKind);
+            if (reading && !sourceByReading.has(reading)) sourceByReading.set(reading, item);
+        });
+        nameCandidateSourceCache = {
+            sourceRef,
+            sourceLength: sourceRef.length,
+            sourceKind,
+            sourceData,
+            sourceByReading,
+            filteredByGender: new Map()
+        };
+    }
+
+    const genderKey = gender || 'neutral';
+    if (!nameCandidateSourceCache.filteredByGender.has(genderKey)) {
+        const filteredData = nameCandidateSourceCache.sourceData.filter((item) => {
+            if (gender === 'male' && item.gender === 'female') return false;
+            if (gender === 'female' && item.gender === 'male') return false;
+            return true;
+        });
+        nameCandidateSourceCache.filteredByGender.set(genderKey, filteredData);
+    }
+
+    return {
+        sourceData: nameCandidateSourceCache.sourceData,
+        sourceByReading: nameCandidateSourceCache.sourceByReading,
+        filteredData: nameCandidateSourceCache.filteredByGender.get(genderKey)
+    };
+}
+
+function getNameCandidateSourceReading(item, sourceKind) {
+    return sourceKind === 'readings' ? item?.reading : item?.yomi;
+}
+
+function getNameCandidateSourceValue(item, sourceKind) {
+    if (!item) return null;
+    const reading = sourceKind === 'readings' ? item.reading : item.yomi;
+    const examples = sourceKind === 'readings'
+        ? String(item.examples || '').split(/[,、]/).map(value => value.trim()).filter(Boolean)
+        : (Array.isArray(item.examples) ? item.examples : []);
+    return {
+        reading,
+        count: Number(item.count) || 0,
+        popular: sourceKind === 'readings' ? !!item.isPopular : !!item.popular,
+        examples,
+        tags: Array.isArray(item.tags) ? item.tags : []
+    };
+}
+
 /**
  * 名前候補を生成する
  * 読み方リスト_精緻化済.xlsxから生成された yomiSearchData を使用する
@@ -16,44 +96,27 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
 
     if (!nickname) return [];
 
-    // Prefer readingsData which has correct tags and gender, fallback to yomiSearchData
-    let sourceData = [];
-    if (typeof readingsData !== 'undefined' && readingsData && readingsData.length > 0) {
-        // map readingsData to the format expected by the generator (yomi, count, popular)
-        sourceData = readingsData.map(r => ({
-            yomi: r.reading,
-            count: r.count,
-            popular: r.isPopular,
-            gender: r.gender || (r.isNeutral ? 'neutral' : ''),
-            examples: r.examples ? r.examples.split(/[,、]/).map(x => x.trim()).filter(x => x) : [],
-            tags: r.tags || []
-        }));
-    } else if (typeof yomiSearchData !== 'undefined' && yomiSearchData && yomiSearchData.length > 0) {
-        sourceData = yomiSearchData;
-    } else {
+    // Normalize and index the 10k+ source rows only when the dataset changes.
+    const { sourceData, sourceByReading, filteredData } = getNameCandidateSourceContext(gender);
+    const sourceKind = nameCandidateSourceCache.sourceKind;
+    if (sourceData.length === 0) {
         console.warn("GEN: No data available for generation.");
         return [];
     }
 
-    // Filter by gender
-    let filteredData = sourceData.filter(item => {
-        if (gender === 'male' && item.gender === 'female') return false;
-        if (gender === 'female' && item.gender === 'male') return false;
-        return true;
-    });
-
     let candidates = [];
 
     // Check for exact match first
-    const exactMatch = filteredData.find(item => item.yomi === nickname);
+    const exactMatch = filteredData.find(item => getNameCandidateSourceReading(item, sourceKind) === nickname);
     if (exactMatch) {
+        const exactSource = getNameCandidateSourceValue(exactMatch, sourceKind);
         candidates.push({
-            reading: exactMatch.yomi,
+            reading: exactSource.reading,
             type: 'original',
             score: 10000, // force to top
-            examples: exactMatch.examples,
-            rawCount: exactMatch.count,
-            popular: exactMatch.popular
+            examples: exactSource.examples,
+            rawCount: exactSource.count,
+            popular: exactSource.popular
         });
     } else if (nickname.length >= 2 && nickname.length <= 3) {
         candidates.push({
@@ -68,33 +131,35 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
 
     // Find matches
     filteredData.forEach(item => {
-        if (item.yomi === nickname) return; // handled above
-        if (typeof noped !== 'undefined' && noped.has(item.yomi)) return; // NOPEスキップ
+        const sourceReading = getNameCandidateSourceReading(item, sourceKind);
+        if (!sourceReading || sourceReading === nickname) return; // handled above
+        if (typeof noped !== 'undefined' && noped.has(sourceReading)) return; // NOPEスキップ
 
         let match = false;
         let pType = '';
         if (position === 'prefix') {
-            if (item.yomi.startsWith(nickname)) {
+            if (sourceReading.startsWith(nickname)) {
                 match = true;
                 pType = 'suffix'; // The remaining part is a suffix
             }
         } else {
-            if (item.yomi.endsWith(nickname)) {
+            if (sourceReading.endsWith(nickname)) {
                 match = true;
                 pType = 'prefix'; // The remaining part is a prefix
             }
         }
 
         if (match) {
+            const source = getNameCandidateSourceValue(item, sourceKind);
             candidates.push({
-                reading: item.yomi,
+                reading: source.reading,
                 type: pType,
                 // Score isn't strictly needed because we will sort by popular then count,
                 // but we keep it for any legacy sorting if needed.
-                score: item.popular ? 5000 + item.count : item.count,
-                examples: item.examples,
-                rawCount: item.count,
-                popular: item.popular
+                score: source.popular ? 5000 + source.count : source.count,
+                examples: source.examples,
+                rawCount: source.count,
+                popular: source.popular
             });
         }
     });
@@ -122,23 +187,10 @@ function generateNameCandidates(nickname, gender, position = 'prefix') {
         }
     });
 
-    // Tags and examples are already attached if using readingsData, but we ensure it for fallback
-    if (sourceData === yomiSearchData && typeof readingsData !== 'undefined' && readingsData) {
-        uniqueCandidates.forEach(cand => {
-            const rd = readingsData.find(r => r.reading === cand.reading);
-            if (rd) {
-                cand.tags = rd.tags || [];
-                // cand.examples already handled above or can be supplemented
-            } else {
-                cand.tags = [];
-            }
-        });
-    } else {
-        uniqueCandidates.forEach(cand => {
-            const src = sourceData.find(r => r.yomi === cand.reading);
-            cand.tags = src ? src.tags || [] : [];
-        });
-    }
+    uniqueCandidates.forEach((candidate) => {
+        const source = sourceByReading.get(candidate.reading);
+        candidate.tags = source ? getNameCandidateSourceValue(source, sourceKind).tags : [];
+    });
 
     // AI候補リオーダー (if exists)
     const final = (typeof aiReorderCandidates === 'function')

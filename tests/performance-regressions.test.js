@@ -230,3 +230,129 @@ test('large stock screens avoid quadratic grouping and yield between batches', (
   assert.match(readingStock, /ownKanjiCountByReading\.get/);
   assert.doesNotMatch(readingStock, /ownLiked\.filter\(item => getReadingBaseReading/);
 });
+
+test('storage does not resave every collection on a fixed interval', () => {
+  const source = readSource('09-storage.js');
+  assert.doesNotMatch(source, /setInterval\([\s\S]*?StorageBox\.saveAll/);
+  assert.match(source, /beforeunload[\s\S]*?StorageBox\.saveAll\(\)/);
+});
+
+test('reading stock synchronization builds one lookup index for large collections', () => {
+  const source = readSource('04-ui-flow.js');
+  const syncReading = extractFunction(source, 'syncReadingStockFromLiked');
+  const upsert = extractFunction(source, 'upsertReadingStockEntry');
+
+  assert.match(syncReading, /const lookupIndex = buildReadingStockLookupIndex\(stock\)/);
+  assert.match(syncReading, /lookupIndex/);
+  assert.match(upsert, /lookupIndex\.byId\.get/);
+  assert.match(upsert, /lookupIndex\.byReading\.get/);
+});
+
+test('search paging renders once per smaller incremental batch', () => {
+  const source = readSource('04-ui-flow.js');
+  const kanjiBatch = Number(source.match(/const KANJI_SEARCH_BATCH_SIZE = (\d+)/)?.[1]);
+  const readingBatch = Number(source.match(/const READING_SEARCH_BATCH_SIZE = (\d+)/)?.[1]);
+  const loadKanji = extractFunction(source, 'loadMoreKanjiSearchResults');
+  const loadReading = extractFunction(source, 'loadMoreReadingSearchResults');
+  const countCalls = (body, call) => (body.match(new RegExp(`${call}\\(\\)`, 'g')) || []).length;
+
+  assert.ok(kanjiBatch > 0 && kanjiBatch <= 80);
+  assert.ok(readingBatch > 0 && readingBatch <= 80);
+  assert.equal(countCalls(loadKanji, 'executeKanjiSearch'), 1);
+  assert.equal(countCalls(loadReading, 'executeReadingSearch'), 1);
+});
+
+test('linked workspace snapshots are coalesced after rapid local changes', () => {
+  const source = readSource('21-child-workspaces.js');
+  const schedule = source.slice(
+    source.indexOf('scheduleActiveChildSnapshot(reason'),
+    source.indexOf('persistActiveChildSnapshot(reason', source.indexOf('scheduleActiveChildSnapshot(reason'))
+  );
+  assert.match(schedule, /clearTimeout\(this\._snapshotPersistTimer\)/);
+  assert.match(schedule, /}, 600\)/);
+});
+
+test('AI kanji removal resolves the master item before either branch', () => {
+  const source = readSource('04-ui-flow.js');
+  const stockSuggestion = extractFunction(source, 'stockAISuggestion');
+  const foundDeclaration = stockSuggestion.indexOf("const found = master.find");
+  const branch = stockSuggestion.indexOf('if (isStocked)');
+  assert.ok(foundDeclaration >= 0 && foundDeclaration < branch);
+});
+
+test('reading candidate generation reuses the normalized source and indexed tags', () => {
+  const source = readSource('engine_v2_generator.js');
+  const context = extractFunction(source, 'getNameCandidateSourceContext');
+  const getReading = extractFunction(source, 'getNameCandidateSourceReading');
+  const getValue = extractFunction(source, 'getNameCandidateSourceValue');
+  const generate = extractFunction(source, 'generateNameCandidates');
+  let mapCalls = 0;
+  const readings = Array.from({ length: 5000 }, (_, index) => ({
+    reading: index === 0 ? 'はると' : `はる${index}`,
+    count: 5000 - index,
+    isPopular: index < 10,
+    gender: 'male',
+    examples: '',
+    tags: ['test']
+  }));
+  readings.map = function (...args) {
+    mapCalls += 1;
+    return Array.prototype.map.apply(this, args);
+  };
+  const sandbox = { readingsData: readings, console };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    let nameCandidateSourceCache = {
+      sourceRef: null,
+      sourceLength: -1,
+      sourceKind: '',
+      sourceData: [],
+      sourceByReading: new Map(),
+      filteredByGender: new Map()
+    };
+    const noped = new Set();
+    ${getReading}
+    ${context}
+    ${getValue}
+    ${generate}
+    globalThis.first = generateNameCandidates('はる', 'male');
+    globalThis.second = generateNameCandidates('はる', 'male');
+  `, sandbox);
+
+  assert.equal(mapCalls, 0);
+  assert.equal(sandbox.first.length, sandbox.second.length);
+  assert.equal(sandbox.first.find(candidate => candidate.reading === 'はると').tags[0], 'test');
+  assert.match(generate, /sourceByReading\.get\(candidate\.reading\)/);
+  assert.doesNotMatch(generate, /sourceData\.find/);
+  assert.doesNotMatch(context, /sourceRef\.map/);
+});
+
+test('encountered candidate rendering uses indexed liked and reading stock state', () => {
+  const source = extractFunction(readSource('12-history.js'), 'renderEncounteredLibrary');
+  assert.match(source, /const likedKanjiSet = new Set/);
+  assert.match(source, /const stockedReadingSet =/);
+  assert.doesNotMatch(source, /liked\.some/);
+  assert.doesNotMatch(source, /getReadingStock\(\)\.some/);
+});
+
+test('free build reading suggestions reuse a reading index', () => {
+  const source = readSource('07-build.js');
+  const lookup = extractFunction(source, 'getBuildReadingLookup');
+  const allowed = extractFunction(source, 'getAllowedReadingsForBuild');
+  const suggest = extractFunction(source, 'suggestReadingsForKanji');
+  assert.match(lookup, /byReading\.get\(normalizedReading\)/);
+  assert.match(allowed, /allowedByGender\.has/);
+  assert.match(suggest, /readingLookup\.byReading\.get/);
+  assert.doesNotMatch(suggest, /dictionaryReadings\.filter/);
+});
+
+test('partner sync has one active implementation and bounded room creation', () => {
+  const source = readSource('15-firebase.js');
+  const implementations = source.match(/syncMyData\s*:\s*async|MeimayPairing\.syncMyData\s*=/g) || [];
+  assert.equal(implementations.length, 1);
+  const createStart = source.indexOf('_createUniqueRoomDocument: async function');
+  const createEnd = source.indexOf('updateMyRole:', createStart);
+  const createRoom = source.slice(createStart, createEnd);
+  assert.ok(createStart >= 0 && createEnd > createStart);
+  assert.match(createRoom, /withMeimayTimeout\(firebaseDb\.runTransaction/);
+});

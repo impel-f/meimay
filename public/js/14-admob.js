@@ -318,7 +318,7 @@ const PremiumManager = {
             try {
                 let existingUserData = null;
                 try {
-                    const snap = await docRef.get();
+                    const snap = await withMeimayTimeout(docRef.get(), 10000, '購入情報の確認');
                     existingUserData = snap.exists ? (snap.data() || {}) : null;
                 } catch (readError) {
                     existingUserData = null;
@@ -341,7 +341,7 @@ const PremiumManager = {
                     linkPayload.roomCode = '';
                 }
 
-                await docRef.set(linkPayload, { merge: true });
+                await withMeimayTimeout(docRef.set(linkPayload, { merge: true }), 15000, '購入情報の連携');
                 this._lastPremiumLinkFingerprint = linkFingerprint;
                 this._setLinkCacheFingerprint(linkFingerprint);
             } catch (e) {
@@ -3414,12 +3414,12 @@ PremiumManager.startTrial = async function () {
 
     try {
         const headers = typeof getFirebaseRequestHeaders === 'function'
-            ? await getFirebaseRequestHeaders()
+            ? await withMeimayTimeout(getFirebaseRequestHeaders(), 10000, '認証情報の取得')
             : { 'Content-Type': 'application/json' };
         const trialUrl = typeof getMeimayApiUrl === 'function'
             ? getMeimayApiUrl('/api/premium-trial')
             : '/api/premium-trial';
-        const response = await fetch(trialUrl, {
+        const response = await fetchWithMeimayTimeout(trialUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -3427,7 +3427,7 @@ PremiumManager.startTrial = async function () {
                     ? MeimayPairing.roomCode
                     : ''
             })
-        });
+        }, 20000, '無料体験の開始');
         const result = await response.json().catch(() => ({}));
         if (result && result.status === 'trial_unavailable'
             && typeof PremiumTrialNudge !== 'undefined'

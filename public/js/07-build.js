@@ -3805,10 +3805,42 @@ function normalizeReadingLookupKey(value) {
         : raw.replace(/\s+/g, '');
 }
 
+let buildReadingLookupCache = {
+    sourceRef: null,
+    sourceLength: -1,
+    byReading: new Map(),
+    allowedByGender: new Map()
+};
+
+function getBuildReadingLookup() {
+    const source = Array.isArray(readingsData) ? readingsData : [];
+    if (buildReadingLookupCache.sourceRef !== source
+        || buildReadingLookupCache.sourceLength !== source.length) {
+        const byReading = new Map();
+        source.forEach((entry, index) => {
+            const normalizedReading = normalizeReadingLookupKey(entry?.reading);
+            if (!normalizedReading) return;
+            if (!byReading.has(normalizedReading)) byReading.set(normalizedReading, []);
+            byReading.get(normalizedReading).push({ entry, index });
+        });
+        buildReadingLookupCache = {
+            sourceRef: source,
+            sourceLength: source.length,
+            byReading,
+            allowedByGender: new Map()
+        };
+    }
+    return buildReadingLookupCache;
+}
+
 function getAllowedReadingsForBuild(targetGender = gender || 'neutral') {
     if (!Array.isArray(readingsData) || readingsData.length === 0) return null;
 
     const normalizedTarget = targetGender === 'male' || targetGender === 'female' ? targetGender : 'all';
+    const lookup = getBuildReadingLookup();
+    if (lookup.allowedByGender.has(normalizedTarget)) {
+        return lookup.allowedByGender.get(normalizedTarget);
+    }
     const allowed = new Set();
 
     readingsData.forEach((entry) => {
@@ -3826,13 +3858,14 @@ function getAllowedReadingsForBuild(targetGender = gender || 'neutral') {
         allowed.add(normalizedReading);
     });
 
+    lookup.allowedByGender.set(normalizedTarget, allowed);
     return allowed;
 }
 
 function suggestReadingsForKanji(choices, container) {
     if (!choices || choices.length === 0) return;
     if (typeof master === 'undefined' || !master || master.length === 0) return;
-    const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
+    const readingLookup = getBuildReadingLookup();
     const allowedReadings = getAllowedReadingsForBuild(gender);
     const selectedName = choices.join('');
 
@@ -3869,14 +3902,14 @@ function suggestReadingsForKanji(choices, container) {
     if (!readingArrays.some(a => a.length === 0)) {
         const combinedReadings = cartesian(readingArrays);
         const combinedSet = new Set(combinedReadings);
-        const filtered = dictionaryReadings.filter((r) => {
-            const normalizedReading = normalizeReadingLookupKey(r?.reading);
-            if (!normalizedReading || !combinedSet.has(normalizedReading)) return false;
-            if (allowedReadings && !allowedReadings.has(normalizedReading)) return false;
-            return true;
+        const filtered = [];
+        combinedSet.forEach((normalizedReading) => {
+            if (allowedReadings && !allowedReadings.has(normalizedReading)) return;
+            (readingLookup.byReading.get(normalizedReading) || []).forEach((match) => filtered.push(match));
         });
+        filtered.sort((a, b) => a.index - b.index);
 
-        const exactMatches = filtered.map(r => {
+        const exactMatches = filtered.map(({ entry: r }) => {
             let score = 0;
             if (r.tags && typeof userTags !== 'undefined') {
                 r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });

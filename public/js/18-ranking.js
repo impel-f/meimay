@@ -6,6 +6,7 @@ const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
 const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v2';
 const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKING_CACHE_MAX_ENTRIES = 24;
+const RANKING_REQUEST_TIMEOUT_MS = 10 * 1000;
 const READING_RANKING_METRIC = 'like';
 
 function normalizeRankingGender(value) {
@@ -76,6 +77,7 @@ let rankingTouchStartY = 0;
 let rankingSwipeSetupDone = false;
 let rankingStockRefreshTimer = null;
 let rankingLoadSequence = 0;
+let rankingLoadController = null;
 
 function escapeRankingHtml(value) {
     return String(value ?? '')
@@ -887,6 +889,49 @@ function getRankingLoadingMessage() {
     `;
 }
 
+function getRankingLoadErrorMessage() {
+    return `
+        <div class="text-center py-16 text-[#a6967a] flex flex-col items-center justify-center gap-4">
+            <p class="text-sm leading-relaxed">ランキングを取得できませんでした。<br>通信状況を確認して、もう一度お試しください。</p>
+            <button type="button" onclick="loadRanking({ forceRefresh: true })" class="rounded-full border border-[#d9c7ad] bg-white px-5 py-2.5 text-xs font-bold text-[#8b7758] active:scale-95">
+                もう一度読み込む
+            </button>
+        </div>
+    `;
+}
+
+function withRankingTimeout(promise, options = {}) {
+    const timeoutMs = Number.isFinite(Number(options.timeoutMs))
+        ? Math.max(1, Number(options.timeoutMs))
+        : RANKING_REQUEST_TIMEOUT_MS;
+
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let timer = null;
+        const finish = (handler, value) => {
+            if (settled) return;
+            settled = true;
+            if (timer !== null) clearTimeout(timer);
+            handler(value);
+        };
+
+        timer = setTimeout(() => {
+            if (settled) return;
+            if (typeof options.onTimeout === 'function') {
+                try { options.onTimeout(); } catch (error) { }
+            }
+            const timeoutError = new Error('ランキングの取得がタイムアウトしました');
+            timeoutError.name = 'RankingTimeoutError';
+            finish(reject, timeoutError);
+        }, timeoutMs);
+
+        Promise.resolve(promise).then(
+            (value) => finish(resolve, value),
+            (error) => finish(reject, error)
+        );
+    });
+}
+
 function getRankingCacheKey(type, period, genderFilter) {
     const normalizedType = normalizeRankingType(type);
     const normalizedPeriod = normalizeRankingPeriod(period);
@@ -980,7 +1025,7 @@ async function seedRankingStatsIfNeeded(type) {
     }
 }
 
-async function fetchRankingItems(type, period, genderFilter) {
+async function fetchRankingItems(type, period, genderFilter, options = {}) {
     if (typeof MeimayStats === 'undefined' || typeof MeimayStats.fetchRankings !== 'function') {
         throw new Error('ランキングAPIを利用できません');
     }
@@ -988,10 +1033,10 @@ async function fetchRankingItems(type, period, genderFilter) {
     await seedRankingStatsIfNeeded(type);
 
     if (type === 'kanji') {
-        return MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter);
+        return MeimayStats.fetchRankings(period, 'kanji', 'all', genderFilter, options);
     }
 
-    const readingRanking = await MeimayStats.fetchRankings(period, 'reading', READING_RANKING_METRIC, genderFilter);
+    const readingRanking = await MeimayStats.fetchRankings(period, 'reading', READING_RANKING_METRIC, genderFilter, options);
     return buildReadingRankingItems(readingRanking, genderFilter);
 }
 
@@ -1009,6 +1054,10 @@ async function loadRanking(options = {}) {
     updateRankingButtonState();
 
     const loadId = ++rankingLoadSequence;
+    if (rankingLoadController && typeof rankingLoadController.abort === 'function') {
+        rankingLoadController.abort();
+    }
+    rankingLoadController = null;
     const cacheKey = getRankingCacheKey(type, period, genderFilter);
     const cachedEntry = readRankingCacheEntry(cacheKey);
     if (cachedEntry) {
@@ -1026,8 +1075,17 @@ async function loadRanking(options = {}) {
         return;
     }
 
+    const loadController = typeof AbortController === 'function' ? new AbortController() : null;
+    rankingLoadController = loadController;
+
     try {
-        const items = await fetchRankingItems(type, period, genderFilter);
+        const items = await withRankingTimeout(
+            fetchRankingItems(type, period, genderFilter, loadController ? { signal: loadController.signal } : {}),
+            {
+                timeoutMs: RANKING_REQUEST_TIMEOUT_MS,
+                onTimeout: () => loadController?.abort()
+            }
+        );
         const displayItems = type === 'kanji' ? filterRankingKanjiItems(items) : (Array.isArray(items) ? items : []);
         writeRankingCacheEntry(cacheKey, displayItems);
         if (loadId !== rankingLoadSequence || !isRankingViewCurrent(type, period, genderFilter)) {
@@ -1035,9 +1093,18 @@ async function loadRanking(options = {}) {
         }
         renderRankingResult(listContainer, displayItems, type, period);
     } catch (error) {
-        console.error('RANKING: loadRanking error', error);
+        if (loadId !== rankingLoadSequence || !isRankingViewCurrent(type, period, genderFilter)) {
+            return;
+        }
+        if (error?.name !== 'AbortError') {
+            console.error('RANKING: loadRanking error', error);
+        }
         if (cachedEntry) return;
-        listContainer.innerHTML = '<div class="text-center py-20 text-[#f28b82]">ランキングの取得に失敗しました。</div>';
+        listContainer.innerHTML = getRankingLoadErrorMessage();
+    } finally {
+        if (rankingLoadController === loadController) {
+            rankingLoadController = null;
+        }
     }
 }
 

@@ -34,6 +34,66 @@ const KANJI_DATA_URL = '/data/kanji_data.json?v=26.03';
 const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
 const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
 const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
+const MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS = 20 * 1000;
+
+function createMeimayTimeoutError(label = '通信') {
+    const error = new Error(`${label}がタイムアウトしました`);
+    error.name = 'MeimayTimeoutError';
+    error.code = 'meimay_timeout';
+    return error;
+}
+
+function withMeimayTimeout(promise, timeoutMs = MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS, label = '処理') {
+    const safeTimeoutMs = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
+        ? Number(timeoutMs)
+        : MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS;
+    let timer = null;
+    return Promise.race([
+        Promise.resolve(promise),
+        new Promise((resolve, reject) => {
+            timer = setTimeout(() => reject(createMeimayTimeoutError(label)), safeTimeoutMs);
+        })
+    ]).finally(() => {
+        if (timer) clearTimeout(timer);
+    });
+}
+
+async function fetchWithMeimayTimeout(input, init = {}, timeoutMs = MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS, label = '通信') {
+    if (typeof AbortController === 'undefined') {
+        return withMeimayTimeout(fetch(input, init), timeoutMs, label);
+    }
+
+    const controller = new AbortController();
+    const externalSignal = init && init.signal ? init.signal : null;
+    let timedOut = false;
+    const forwardAbort = () => controller.abort();
+    if (externalSignal) {
+        if (externalSignal.aborted) {
+            controller.abort();
+        } else if (typeof externalSignal.addEventListener === 'function') {
+            externalSignal.addEventListener('abort', forwardAbort, { once: true });
+        }
+    }
+    const timer = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs);
+
+    try {
+        return await fetch(input, { ...init, signal: controller.signal });
+    } catch (error) {
+        if (timedOut) throw createMeimayTimeoutError(label);
+        throw error;
+    } finally {
+        clearTimeout(timer);
+        if (externalSignal && typeof externalSignal.removeEventListener === 'function') {
+            externalSignal.removeEventListener('abort', forwardAbort);
+        }
+    }
+}
+
+window.withMeimayTimeout = withMeimayTimeout;
+window.fetchWithMeimayTimeout = fetchWithMeimayTimeout;
 
 function getMeimayRuntimePlatform() {
     try {
@@ -507,7 +567,7 @@ window.onload = () => {
     }
 
     // 漢字データの読み込み
-    fetch(KANJI_DATA_URL)
+    fetchWithMeimayTimeout(KANJI_DATA_URL, {}, 20000, '漢字データの読み込み')
         .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
             return res.json();
@@ -553,7 +613,7 @@ window.onload = () => {
             }
 
             // 四字熟語・ことわざデータの読み込み（非同期）
-            fetch('/data/idioms.json?v=25.01')
+            fetchWithMeimayTimeout('/data/idioms.json?v=25.01', {}, 20000, '熟語データの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -565,7 +625,7 @@ window.onload = () => {
                 .catch(err => console.warn("CORE: Failed to load idioms", err));
 
             // 画数データの読み込み（非同期）
-            fetch('/data/stroke_data.json')
+            fetchWithMeimayTimeout('/data/stroke_data.json', {}, 20000, '画数データの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return {};
@@ -580,7 +640,7 @@ window.onload = () => {
                 .catch(err => console.warn("CORE: Failed to load stroke data", err));
 
             // 響きから探す用データの読み込み（非同期）
-            fetch('/data/yomi_search_data.json')
+            fetchWithMeimayTimeout('/data/yomi_search_data.json', {}, 20000, '読み検索データの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -600,7 +660,7 @@ window.onload = () => {
                 });
 
             // タグ付き読みデータの読み込み（非同期）
-            fetch('/data/readings_data.json')
+            fetchWithMeimayTimeout('/data/readings_data.json', {}, 20000, '読み候補データの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -619,7 +679,7 @@ window.onload = () => {
                     console.warn("CORE: Failed to load readings data", err);
                 });
 
-            fetch('/data/compound_readings_data.json')
+            fetchWithMeimayTimeout('/data/compound_readings_data.json', {}, 20000, '複合読みデータの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -638,7 +698,7 @@ window.onload = () => {
                     console.warn("CORE: Failed to load compound reading data", err);
                 });
 
-            fetch('/data/reading_segment_rules.json')
+            fetchWithMeimayTimeout('/data/reading_segment_rules.json', {}, 20000, '読み分けルールの読み込み')
                 .then(res => {
                     if (res.ok) return res.json();
                     return null;

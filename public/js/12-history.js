@@ -511,10 +511,16 @@ function renderEncounteredLibrary() {
         return;
     }
 
-    const pairInsights = null;
-    const matchedKanjiSet = new Set();
-    const ownReadingKeys = new Set();
-    const partnerReadingKeys = new Set();
+    const likedKanjiSet = new Set((Array.isArray(liked) ? liked : [])
+        .map(item => item?.['漢字'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.['\u8c8d\uff62\u87c4\u30fb'] || item?.kanji)
+        .filter(Boolean));
+    const stockedReadingSet = currentEncounteredTab === 'reading' && typeof getReadingStock === 'function'
+        ? new Set(getReadingStock().flatMap((item) => {
+            const reading = item?.reading || item?.['\u96b1\uff6d\u7e3a\uff7f'];
+            const normalized = normalizeEncounteredReadingText(reading);
+            return [reading, normalized].filter(Boolean);
+        }))
+        : new Set();
     const groups = groupEncounteredItemsByDay(items);
 
     if (currentEncounteredTab === 'kanji') {
@@ -528,9 +534,7 @@ function renderEncounteredLibrary() {
                         </div>
                         <div class="grid grid-cols-4 gap-2">
                             ${group.items.map(item => {
-                                const isLiked = Array.isArray(liked)
-                                    ? liked.some(likedItem => (likedItem['漢字'] || likedItem['\u8c8c\uff61\u87c4\uff65'] || likedItem['\u8c8d\uff62\u87c4\u30fb'] || likedItem.kanji) === item.kanji)
-                                    : false;
+                                const isLiked = likedKanjiSet.has(item.kanji);
                                 const isMatched = false;
                                 const strokes = resolveEncounteredKanjiStrokes(item);
                                 const readings = String(item.kanjiReading || item.snapshot?.kanji_reading || '')
@@ -578,12 +582,8 @@ function renderEncounteredLibrary() {
                         ${group.items.map(item => {
                             const displayReading = normalizeEncounteredReadingText(item.reading);
                             if (!displayReading) return '';
-                            const isStocked = typeof getReadingStock === 'function'
-                                ? getReadingStock().some(stockItem => {
-                                    const sReading = stockItem.reading || stockItem['\u96b1\uff6d\u7e3a\uff7f'];
-                                    return sReading === displayReading || sReading === item.reading;
-                                })
-                                : false;
+                            const isStocked = stockedReadingSet.has(displayReading)
+                                || stockedReadingSet.has(item.reading);
                             const toneClass = isStocked
                                 ? 'border-[#f2b2b2] bg-[#fff1f1]'
                                 : 'border-[#eee5d8] bg-[#fdfaf5]';

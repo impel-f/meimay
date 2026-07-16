@@ -377,12 +377,12 @@ async function callNameOriginCacheApi(payload, options = {}) {
         headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(getMeimayApiUrl(NAME_ORIGIN_CACHE_API_PATH), {
+    const response = await fetchWithMeimayTimeout(getMeimayApiUrl(NAME_ORIGIN_CACHE_API_PATH), {
         method: 'POST',
         headers,
         body: JSON.stringify(payload),
         signal: options.signal
-    });
+    }, 20000, '名前の由来キャッシュ');
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok === false) {
         const error = new Error(data.details || data.error || `Name origin cache API returned ${response.status}`);
@@ -1322,16 +1322,11 @@ async function generateOrigin(options = {}) {
     renderNameOriginLoading(target);
 
     try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
-        const response = await fetch(getMeimayApiUrl('/api/gemini'), {
+        const response = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: buildNameOriginPrompt(target) }),
-            signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
+            body: JSON.stringify({ prompt: buildNameOriginPrompt(target) })
+        }, 30000, '名前の由来生成');
 
         if (!response.ok) {
             let errorMsg = `API Error: ${response.status}`;
@@ -1759,7 +1754,7 @@ function refundDailyKanjiDetailUse() {
 
 async function loadKanjiMeaningDetails() {
     if (!kanjiMeaningDetailsPromise) {
-        kanjiMeaningDetailsPromise = fetch(KANJI_MEANING_DETAILS_URL)
+        kanjiMeaningDetailsPromise = fetchWithMeimayTimeout(KANJI_MEANING_DETAILS_URL, {}, 20000, '漢字詳細データの読み込み')
             .then((response) => {
                 if (!response.ok) throw new Error(`meaning details load failed: ${response.status}`);
                 return response.json();
@@ -2029,7 +2024,7 @@ function extractRequiredKeywordsFromOriginText(originText) {
 
 async function loadKanjiDetailDataset() {
     if (!kanjiDetailDatasetPromise) {
-        kanjiDetailDatasetPromise = fetch(KANJI_DETAIL_DATASET_URL)
+        kanjiDetailDatasetPromise = fetchWithMeimayTimeout(KANJI_DETAIL_DATASET_URL, {}, 20000, '漢字深掘りデータの読み込み')
             .then((response) => {
                 if (!response.ok) throw new Error(`dataset load failed: ${response.status}`);
                 return response.json();
@@ -2405,17 +2400,17 @@ async function callKanjiCacheApiWithAuth(payload) {
     const headers = { 'Content-Type': 'application/json' };
     if (typeof firebaseAuth !== 'undefined' && firebaseAuth && firebaseAuth.currentUser) {
         try {
-            const token = await firebaseAuth.currentUser.getIdToken();
+            const token = await withMeimayTimeout(firebaseAuth.currentUser.getIdToken(), 10000, '認証情報の取得');
             headers['Authorization'] = `Bearer ${token}`;
         } catch (authErr) {
             console.warn('KANJI_CACHE_API: Failed to get auth token', authErr);
         }
     }
-    const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
+    const response = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/kanji-cache'), {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
-    });
+    }, 20000, '漢字キャッシュの保存');
     if (!response.ok) {
         throw new Error(`API returned ${response.status}`);
     }
@@ -2430,7 +2425,7 @@ async function resetKanjiDetailCache(kanji, currentReading) {
     }
 
     try {
-        const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
+        const response = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/kanji-cache'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2438,7 +2433,7 @@ async function resetKanjiDetailCache(kanji, currentReading) {
                 kanji,
                 reading: readingPayload
             })
-        });
+        }, 20000, '漢字キャッシュの削除');
 
         if (!response.ok) {
             let errorMsg = `Cache reset failed: ${response.status}`;
@@ -2547,7 +2542,11 @@ async function generateKanjiDetail(kanji, currentReading) {
         let cacheHit = false;
         if (typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
-                const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
+                const doc = await withMeimayTimeout(
+                    firebaseDb.collection('kanji_ai_explanations').doc(kanji).get(),
+                    10000,
+                    '漢字深掘りキャッシュの確認'
+                );
                 const cachedData = doc.exists ? (doc.data() || {}) : null;
                 const cachedText = sanitizeKanjiAiText(cachedData?.text || '');
                 if (cachedText && isKanjiDetailAiCacheCurrent(cachedData)) {
@@ -2576,17 +2575,13 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
 
         if (!cacheHit) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
-            const response = await fetch(getMeimayApiUrl('/api/gemini'), {
+            const response = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint)
-                }),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+                })
+            }, 30000, '漢字の深掘り生成');
 
             if (!response.ok) {
                 let errorMsg = `API Error: ${response.status}`;
@@ -2618,9 +2613,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                     if (status.complete) break;
 
                     try {
-                        const repairController = new AbortController();
-                        const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
-                        const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
+                        const repairResponse = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -2633,10 +2626,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                                     status.meaningSection,
                                     status.idiomsSection
                                 )
-                            }),
-                            signal: repairController.signal
-                        });
-                        clearTimeout(repairTimeoutId);
+                            })
+                        }, 30000, '漢字深掘りの補完');
 
                         if (repairResponse.ok) {
                             const repairData = await repairResponse.json();
@@ -2707,7 +2698,11 @@ async function generateKanjiDetail(kanji, currentReading) {
             let readingCacheHit = false;
             if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId && !cacheResetMarked) {
                 try {
-                const readingDoc = await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get();
+                const readingDoc = await withMeimayTimeout(
+                    firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get(),
+                    10000,
+                    '読み由来キャッシュの確認'
+                );
                 const cachedReason = sanitizeKanjiAiText(readingDoc.exists ? readingDoc.data()?.text : '');
                 if (cachedReason) {
                     readingText = `【「${currentReading}」の由来】\n${cachedReason}`;
@@ -2720,17 +2715,13 @@ async function generateKanjiDetail(kanji, currentReading) {
 
             if (!readingCacheHit) {
                 try {
-                const controller2 = new AbortController();
-                const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
-                const response2 = await fetch(getMeimayApiUrl('/api/gemini'), {
+                const response2 = await fetchWithMeimayTimeout(getMeimayApiUrl('/api/gemini'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         prompt: buildKanjiReadingPrompt(kanji, currentReading)
-                    }),
-                    signal: controller2.signal
-                });
-                clearTimeout(timeoutId2);
+                    })
+                }, 120000, '漢字の読み由来生成');
 
                 if (response2.ok) {
                     const data2 = await response2.json();
