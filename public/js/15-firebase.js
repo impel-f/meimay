@@ -4117,30 +4117,6 @@ function getStatsGenderTargets(genderValue) {
     return [];
 }
 
-function getStatsRankingCollectionNames(kind, metric = 'all', gender = 'all') {
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedMetric = normalizedKind === 'reading'
-        ? (metric === 'saved' || metric === 'like' || metric === 'direct' ? metric : 'all')
-        : 'all';
-
-    const baseCollections = normalizedKind !== 'reading'
-        ? ['statistics']
-        : normalizedMetric === 'saved'
-            ? ['reading_saved_statistics']
-            : normalizedMetric === 'like'
-                ? ['reading_like_statistics']
-                : normalizedMetric === 'direct'
-                    ? ['reading_statistics']
-                    : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
-
-    const genderTargets = getStatsGenderTargets(gender);
-    if (genderTargets.length === 0) {
-        return baseCollections;
-    }
-
-    return baseCollections.flatMap((collection) => genderTargets.map((target) => `${collection}_${target}`));
-}
-
 function buildStatsRequestBody(baseBody = {}, genderOrOptions = null, defaultScope = 'all') {
     const options = genderOrOptions && typeof genderOrOptions === 'object'
         ? genderOrOptions
@@ -4189,106 +4165,6 @@ function getStatsApiRequestUrl(path = '/api/stats') {
 
 function fetchStatsWithTimeout(input, init = {}) {
     return fetchWithMeimayTimeout(input, init, 12000, 'ランキング通信');
-}
-
-function getPublicStatsDocumentId(period) {
-    if (period === 'monthly') return `monthly_${getLocalStatsMonthKey(new Date())}`;
-    if (period === 'weekly') return `weekly_${getLocalStatsWeekKey(new Date())}`;
-    return 'allTime';
-}
-
-function getPublicStatsFieldNumber(field) {
-    if (!field || typeof field !== 'object') return 0;
-    const value = field.integerValue ?? field.doubleValue;
-    const count = Number(value);
-    return Number.isFinite(count) ? count : 0;
-}
-
-function accumulatePublicStatsDocument(payload, kind, totals) {
-    const fields = payload?.fields;
-    if (!fields || typeof fields !== 'object') return;
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-
-    Object.entries(fields).forEach(([key, field]) => {
-        if (key === 'updatedAt') return;
-        const count = getPublicStatsFieldNumber(field);
-        const normalizedKey = normalizedKind === 'reading'
-            ? normalizeStatsReadingText(key)
-            : String(key || '').trim();
-        if (!normalizedKey || count <= 0) return;
-        totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
-    });
-}
-
-function buildPublicStatsRankingItems(totals, kind, genderValue = 'all') {
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedGender = normalizeStatsGenderValue(genderValue);
-    const readingAllowlist = normalizedKind === 'reading'
-        ? getReadingRankingAllowlist(normalizedGender)
-        : null;
-
-    return Array.from(totals.entries())
-        .map(([key, count]) => normalizedKind === 'reading'
-            ? { reading: key, count }
-            : { kanji: key, count })
-        .filter((item) => {
-            const key = normalizedKind === 'reading' ? item.reading : item.kanji;
-            if (!key || item.count <= 0) return false;
-            return !readingAllowlist || readingAllowlist.has(key);
-        })
-        .sort((a, b) => {
-            if (b.count !== a.count) return b.count - a.count;
-            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
-            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
-            return aKey.localeCompare(bKey, 'ja');
-        })
-        .slice(0, 100);
-}
-
-async function fetchPublicFirestoreRankings(type = 'allTime', kind = 'kanji', metric = 'all', genderValue = 'all', options = {}) {
-    const normalizedPeriod = type === 'monthly' || type === 'weekly' ? type : 'allTime';
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedMetric = normalizedKind === 'reading'
-        ? (metric === 'saved' || metric === 'direct' || metric === 'like' ? metric : 'all')
-        : 'all';
-    const normalizedGender = normalizeStatsGenderValue(genderValue);
-    const collectionNames = getStatsRankingCollectionNames(normalizedKind, normalizedMetric, normalizedGender);
-    const documentId = getPublicStatsDocumentId(normalizedPeriod);
-    const projectId = String(firebaseConfig?.projectId || '').trim();
-    const apiKey = String(firebaseConfig?.apiKey || '').trim();
-    if (!projectId || !apiKey || collectionNames.length === 0) {
-        throw new Error('公開ランキングの接続先を利用できません');
-    }
-
-    const totals = new Map();
-    const results = await Promise.allSettled(collectionNames.map(async (collectionName) => {
-        const documentPath = `${encodeURIComponent(collectionName)}/${encodeURIComponent(documentId)}`;
-        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${documentPath}?key=${encodeURIComponent(apiKey)}`;
-        const response = await fetchWithMeimayTimeout(url, {
-            cache: 'no-store',
-            ...(options?.signal ? { signal: options.signal } : {})
-        }, 7000, 'ランキング通信');
-        if (response.status === 404) return null;
-        if (!response.ok) {
-            throw new Error(`公開ランキングの取得に失敗しました (${response.status})`);
-        }
-        return response.json();
-    }));
-
-    let successfulReads = 0;
-    results.forEach((result) => {
-        if (result.status !== 'fulfilled') return;
-        successfulReads += 1;
-        if (result.value) {
-            accumulatePublicStatsDocument(result.value, normalizedKind, totals);
-        }
-    });
-    if (successfulReads === 0) {
-        const firstError = results.find((result) => result.status === 'rejected');
-        throw firstError?.reason || new Error('公開ランキングを取得できませんでした');
-    }
-
-    return buildPublicStatsRankingItems(totals, normalizedKind, normalizedGender);
 }
 
 function normalizeLocalStatsReading(value) {
@@ -5466,19 +5342,6 @@ const MeimayStats = {
         const normalizedGender = normalizeStatsGenderValue(gender);
         const localItems = fetchLocalStatsRankings(normalizedType, normalizedKind, normalizedMetric, normalizedGender);
         if (Array.isArray(localItems)) return localItems;
-
-        try {
-            return await fetchPublicFirestoreRankings(
-                normalizedType,
-                normalizedKind,
-                normalizedMetric,
-                normalizedGender,
-                options
-            );
-        } catch (firestoreError) {
-            if (firestoreError?.name === 'AbortError') throw firestoreError;
-            console.warn(`STATS: direct ranking read(${normalizedKind}:${normalizedType}) fallback`, firestoreError);
-        }
 
         try {
             const query = new URLSearchParams({

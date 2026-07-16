@@ -3938,9 +3938,8 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     let result = null;
     if (mode === 'shared') {
         const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
-        const aggregateBuildPool = [...ownLikedItems, ...partnerLikedItemsVisible];
         const aggregateBuildCount = getHomeBuildPatternCountSafe(
-            aggregateBuildPool,
+            undefined,
             aggregateReadingStock,
             'shared build patterns'
         );

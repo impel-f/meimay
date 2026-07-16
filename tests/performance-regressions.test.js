@@ -361,7 +361,7 @@ test('home build cache fingerprint changes when middle candidate data changes', 
   assert.notEqual(sandbox.before, sandbox.after);
 });
 
-test('home build count uses the explicit shared kanji and reading pools', () => {
+test('home build count uses the provided kanji and reading pools', () => {
   const renderSource = readSource('05-ui-render.js');
   const functions = [
     'normalizeHomeBuildReadingValue',
@@ -393,6 +393,17 @@ test('home build count uses the explicit shared kanji and reading pools', () => 
   assert.equal(sandbox.buildCount, 2);
 });
 
+test('shared home build count keeps the established merged candidate pool', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const snapshot = extractFunction(renderSource, 'getHomeOverviewStageSnapshot');
+
+  assert.match(
+    snapshot,
+    /getHomeBuildPatternCountSafe\(\s*undefined,\s*aggregateReadingStock,/
+  );
+  assert.doesNotMatch(snapshot, /aggregateBuildPool/);
+});
+
 test('home overview isolates saved-name selection failures from build counts', () => {
   const renderSource = readSource('05-ui-render.js');
   const readCanvas = extractFunction(renderSource, 'readHomeSavedCanvasState');
@@ -413,8 +424,8 @@ test('home overview isolates saved-name selection failures from build counts', (
   `, sandbox);
 
   assert.equal(sandbox.canvas, null);
-  assert.match(renderSource, /const aggregateBuildPool = \[\.\.\.ownLikedItems, \.\.\.partnerLikedItemsVisible\]/);
-  assert.match(renderSource, /getHomeBuildPatternCountSafe\(\s*aggregateBuildPool,\s*aggregateReadingStock/);
+  assert.doesNotMatch(renderSource, /const aggregateBuildPool = \[\.\.\.ownLikedItems, \.\.\.partnerLikedItemsVisible\]/);
+  assert.match(renderSource, /getHomeBuildPatternCountSafe\(\s*undefined,\s*aggregateReadingStock/);
 });
 
 test('large stock screens avoid quadratic grouping and yield between batches', () => {

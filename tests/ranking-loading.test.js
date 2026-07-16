@@ -146,60 +146,16 @@ test('ranking watchdog replaces a stuck loading surface and cancels the request'
   assert.match(sandbox.listContainer.innerHTML, /もう一度読み込む/);
 });
 
-test('public Firestore ranking fields are converted, combined, and sorted', () => {
-  const source = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
-  const sandbox = {
-    Map,
-    Object,
-    Number,
-    String
-  };
-  vm.createContext(sandbox);
-  vm.runInContext(`
-    const normalizeStatsReadingText = (value) => String(value || '').trim();
-    const normalizeStatsGenderValue = (value) => value || 'all';
-    const getReadingRankingAllowlist = () => null;
-    ${extractTopLevelFunction(source, 'getPublicStatsFieldNumber')}
-    ${extractTopLevelFunction(source, 'accumulatePublicStatsDocument')}
-    ${extractTopLevelFunction(source, 'buildPublicStatsRankingItems')}
-    const totals = new Map();
-    accumulatePublicStatsDocument({
-      fields: {
-        '陽': { integerValue: '9' },
-        '斗': { doubleValue: 4 },
-        updatedAt: { timestampValue: '2026-07-16T00:00:00Z' }
-      }
-    }, 'kanji', totals);
-    accumulatePublicStatsDocument({
-      fields: {
-        '陽': { integerValue: '2' },
-        '空': { integerValue: '6' }
-      }
-    }, 'kanji', totals);
-    globalThis.items = buildPublicStatsRankingItems(totals, 'kanji', 'male');
-  `, sandbox);
-
-  assert.deepEqual(
-    Array.from(sandbox.items, (item) => ({ ...item })),
-    [
-      { kanji: '陽', count: 11 },
-      { kanji: '空', count: 6 },
-      { kanji: '斗', count: 4 }
-    ]
-  );
-});
-
-test('rankings prefer the public Firestore document path before the slow API fallback', () => {
+test('rankings use the established API path without a preflight data source', () => {
   const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const fetchRankings = firebaseSource.slice(
     firebaseSource.indexOf('fetchRankings: async function'),
     firebaseSource.indexOf('recordReadingSeen:', firebaseSource.indexOf('fetchRankings: async function'))
   );
 
-  assert.match(fetchRankings, /fetchPublicFirestoreRankings\(/);
-  assert.match(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
-  assert.match(
-    extractTopLevelFunction(firebaseSource, 'getStatsRankingCollectionNames'),
-    /`\$\{collection\}_\$\{target\}`/
-  );
+  assert.match(fetchRankings, /fetchStatsWithTimeout\(getStatsApiRequestUrl/);
+  assert.match(fetchRankings, /query\.set\('gender', normalizedGender\)/);
+  assert.match(fetchRankings, /options\?\.signal \? \{ signal: options\.signal \} : \{\}/);
+  assert.doesNotMatch(fetchRankings, /fetchFirestoreSdkRankings|fetchPublicFirestoreRankings/);
+  assert.doesNotMatch(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
 });
