@@ -6,7 +6,26 @@ const vm = require('node:vm');
 const acorn = require('acorn');
 
 const FIREBASE_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '15-firebase.js');
+const STORAGE_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '09-storage.js');
+const FLOW_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '04-ui-flow.js');
 const ROOM_SYNC_PAYLOAD_MAX_BYTES = 850 * 1024;
+
+function extractTopLevelFunction(source, functionName) {
+  const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
+  const node = ast.body.find((entry) => entry.type === 'FunctionDeclaration' && entry.id?.name === functionName);
+  assert.ok(node, `${functionName} must remain a top-level function`);
+  return source.slice(node.start, node.end);
+}
+
+function extractObjectMethod(source, objectName, methodName) {
+  const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
+  const declaration = ast.body.find((entry) => entry.type === 'VariableDeclaration'
+    && entry.declarations.some((item) => item.id?.name === objectName));
+  const objectNode = declaration?.declarations.find((item) => item.id?.name === objectName)?.init;
+  const property = objectNode?.properties?.find((item) => (item.key?.name || item.key?.value) === methodName);
+  assert.ok(property?.value, `${objectName}.${methodName} must remain available`);
+  return source.slice(property.value.start, property.value.end);
+}
 
 function loadSyncProtocol() {
   const source = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
@@ -366,6 +385,87 @@ test('partner snapshot follows candidate and child deletion without stale data',
 
   assert.deepEqual(userB.partnerSnapshot.liked.map((item) => item.kanji), ['陽']);
   assert.deepEqual(Object.keys(userB.partnerSnapshot.workspace.children), ['first-child']);
+});
+
+test('reading, kanji, and saved-name mutations stay connected to realtime partner sync', () => {
+  const storageSource = fs.readFileSync(STORAGE_SOURCE_PATH, 'utf8');
+  const flowSource = fs.readFileSync(FLOW_SOURCE_PATH, 'utf8');
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+
+  assert.match(extractObjectMethod(storageSource, 'StorageBox', 'saveLiked'), /queuePartnerStockSync\('saveLiked'\)/);
+  assert.match(extractObjectMethod(storageSource, 'StorageBox', 'saveSavedNames'), /queuePartnerStockSync\('saveSavedNames'\)/);
+  assert.match(extractTopLevelFunction(flowSource, 'saveReadingStock'), /queuePartnerStockSync\('saveReadingStock'\)/);
+  assert.match(extractTopLevelFunction(flowSource, 'removeCompletedReadingFromStock'), /rememberHiddenReading\(/);
+  assert.match(extractTopLevelFunction(firebaseSource, 'queuePartnerStockSync'), /_autoSyncDebounced\(reason\)/);
+  assert.match(extractTopLevelFunction(firebaseSource, 'buildRoomSyncContentFingerprint'), /hiddenReadings/);
+  assert.match(firebaseSource, /\.onSnapshot\(\(doc\) =>/);
+});
+
+test('partner view follows reading, kanji, and saved-name additions and removals', () => {
+  const room = new InMemoryPairRoom();
+  const userA = new PairClient('user-a', room);
+  const userB = new PairClient('user-b', room);
+  userB.connectTo('user-a');
+
+  const firstWorkspace = createWorkspace('A', [{
+    id: 'a-child',
+    kanjiStock: [{ kanji: '陽' }],
+    readingStock: [{ id: 'haruto', reading: 'はると' }],
+    savedNames: [{ fullName: '陽斗', givenName: '陽斗' }]
+  }]);
+  userA.sync(createRoomPayload({
+    uid: 'user-a',
+    displayName: 'A',
+    workspace: firstWorkspace,
+    sections: {
+      liked: [{ kanji: '陽' }],
+      readingStock: [{ id: 'haruto', reading: 'はると' }],
+      savedNames: [{ fullName: '陽斗', givenName: '陽斗' }]
+    }
+  }));
+  assert.deepEqual(userB.partnerSnapshot.liked.map((item) => item.kanji), ['陽']);
+  assert.deepEqual(userB.partnerSnapshot.readingStock.map((item) => item.reading), ['はると']);
+  assert.deepEqual(userB.partnerSnapshot.savedNames.map((item) => item.givenName), ['陽斗']);
+
+  const secondWorkspace = createWorkspace('A', [{
+    id: 'a-child',
+    kanjiStock: [{ kanji: '凪' }],
+    readingStock: [{ id: 'minato', reading: 'みなと' }],
+    savedNames: [{ fullName: '湊', givenName: '湊' }]
+  }]);
+  const removalPayload = createRoomPayload({
+    uid: 'user-a',
+    displayName: 'A',
+    workspace: secondWorkspace,
+    sections: {
+      liked: [{ kanji: '凪' }],
+      readingStock: [{ id: 'minato', reading: 'みなと' }],
+      savedNames: [{ fullName: '湊', givenName: '湊' }]
+    }
+  });
+  userA.sync(removalPayload);
+  assert.deepEqual(userB.partnerSnapshot.liked.map((item) => item.kanji), ['凪']);
+  assert.deepEqual(userB.partnerSnapshot.readingStock.map((item) => item.reading), ['みなと']);
+  assert.deepEqual(userB.partnerSnapshot.savedNames.map((item) => item.givenName), ['湊']);
+
+  // The final reading is retained remotely for compatibility but hidden immediately
+  // on both partner views by the synchronized hidden-reading marker.
+  const emptyWorkspace = createWorkspace('A', [{ id: 'a-child' }]);
+  const emptyPayload = createRoomPayload({
+    uid: 'user-a',
+    displayName: 'A',
+    workspace: emptyWorkspace,
+    sections: { hiddenReadings: ['みなと'] }
+  });
+  emptyPayload.readingStock = clone(removalPayload.readingStock);
+  emptyPayload.roomSyncFingerprint = protocol.buildRoomSyncContentFingerprint(emptyPayload);
+  userA.sync(emptyPayload);
+
+  const hiddenReadings = new Set(userB.partnerSnapshot.hiddenReadings);
+  const visiblePartnerReadings = userB.partnerSnapshot.readingStock.filter((item) => !hiddenReadings.has(item.reading));
+  assert.deepEqual(userB.partnerSnapshot.liked, []);
+  assert.deepEqual(userB.partnerSnapshot.savedNames, []);
+  assert.deepEqual(visiblePartnerReadings, []);
 });
 
 test('oversized sync keeps workspace data and stays below the Firestore safety limit', () => {

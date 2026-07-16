@@ -121,6 +121,7 @@ test('premium-only partner snapshots skip data hydration and screen refresh', ()
 test('heavy destination screens render after the first screen paint', () => {
   const core = readSource('01-core.js');
   const flow = readSource('04-ui-flow.js');
+  const build = readSource('07-build.js');
   const settings = readSource('11-settings.js');
   const history = readSource('12-history.js');
 
@@ -129,6 +130,88 @@ test('heavy destination screens render after the first screen paint', () => {
   assert.match(extractFunction(flow, 'openReadingSearch'), /runAfterScreenPaint\('scr-kanji-search'/);
   assert.match(extractFunction(settings, 'openSettings'), /runAfterScreenPaint\('scr-settings'/);
   assert.match(extractFunction(history, 'openSavedNames'), /runAfterScreenPaint\('scr-saved'/);
+  assert.match(extractFunction(build, 'openStock'), /runAfterScreenPaint\('scr-stock'/);
+  assert.match(extractFunction(build, 'openBuild'), /runAfterScreenPaint\('scr-build'/);
+});
+
+test('shared deferred renderer runs even when the native WebView skips an animation frame', () => {
+  const source = readSource('01-core.js');
+  const runAfterNextPaint = extractFunction(source, 'runAfterNextPaint');
+  const timers = [];
+  const sandbox = {
+    timers,
+    clearTimeout() {},
+    requestAnimationFrame() {},
+    setTimeout(callback) {
+      timers.push(callback);
+      return timers.length;
+    },
+    callbackCount: 0
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${runAfterNextPaint}
+    runAfterNextPaint(() => { callbackCount += 1; });
+  `, sandbox);
+
+  assert.equal(sandbox.callbackCount, 0);
+  assert.equal(timers.length, 1);
+  timers.shift()();
+  assert.equal(sandbox.callbackCount, 1);
+});
+
+test('reading search stock markers use only visible reading stock', () => {
+  const source = readSource('04-ui-flow.js');
+  const getStockedKeys = extractFunction(source, 'getReadingSearchStockedKeySet');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    function getReadingStock() { return [{ reading: 'はると' }, { reading: 'みなと' }]; }
+    function getVisibleReadingStock() { return [{ reading: 'はると' }]; }
+    function resolveReadingStockValue(item) { return item.reading; }
+    function getReadingBaseReading(value) { return String(value || '').split('::')[0]; }
+    function normalizeReadingComparisonValue(value) { return String(value || '').trim(); }
+    ${getStockedKeys}
+    globalThis.stockedKeys = getReadingSearchStockedKeySet();
+  `, sandbox);
+
+  assert.deepEqual([...sandbox.stockedKeys], ['はると']);
+});
+
+test('home profile still renders when the native WebView skips an animation frame', () => {
+  const source = readSource('01-core.js');
+  const isActive = extractFunction(source, 'isHomeProfileRenderTargetActive');
+  const requestRender = extractFunction(source, 'requestRenderHomeProfile');
+  const timers = [];
+  const sandbox = {
+    timers,
+    clearTimeout() {},
+    requestAnimationFrame() {},
+    setTimeout(callback) {
+      timers.push(callback);
+      return timers.length;
+    },
+    document: {
+      getElementById: () => ({ classList: { contains: () => true } })
+    },
+    renderCount: 0,
+    renderHomeProfile() {
+      sandbox.renderCount += 1;
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    let _homeRenderRequest = null;
+    let _homeRenderPendingWhileHidden = false;
+    ${isActive}
+    ${requestRender}
+    requestRenderHomeProfile({ force: true, afterPaint: false });
+  `, sandbox);
+
+  assert.equal(sandbox.renderCount, 0);
+  assert.equal(timers.length, 1);
+  timers.shift()();
+  assert.equal(sandbox.renderCount, 1);
 });
 
 test('large stock screens avoid quadratic grouping and yield between batches', () => {

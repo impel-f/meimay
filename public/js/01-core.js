@@ -278,12 +278,20 @@ function requestRenderHomeProfile(options = {}) {
     };
 
     const afterPaint = options.afterPaint !== false;
-    if (afterPaint && typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(() => setTimeout(run, 0));
-        return;
-    }
     if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(run);
+        let completed = false;
+        let fallbackTimer = null;
+        const runOnce = () => {
+            if (completed) return;
+            completed = true;
+            if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+            run();
+        };
+        fallbackTimer = setTimeout(runOnce, afterPaint ? 180 : 90);
+        requestAnimationFrame(() => {
+            if (afterPaint) setTimeout(runOnce, 0);
+            else runOnce();
+        });
         return;
     }
     setTimeout(run, 0);
@@ -293,7 +301,16 @@ window.requestRenderHomeProfile = requestRenderHomeProfile;
 function runAfterNextPaint(callback) {
     if (typeof callback !== 'function') return;
     if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(() => setTimeout(callback, 0));
+        let completed = false;
+        let fallbackTimer = null;
+        const runOnce = () => {
+            if (completed) return;
+            completed = true;
+            if (fallbackTimer !== null) clearTimeout(fallbackTimer);
+            callback();
+        };
+        fallbackTimer = setTimeout(runOnce, 180);
+        requestAnimationFrame(() => setTimeout(runOnce, 0));
         return;
     }
     setTimeout(callback, 0);
@@ -972,7 +989,7 @@ function changeScreen(id) {
 
         // ホーム画面の場合、実績・プロファイルを更新
         if (id === 'scr-mode') {
-            requestRenderHomeProfile();
+            requestRenderHomeProfile({ force: true, afterPaint: false });
         }
         if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
             updateDailyRemainingDisplay();

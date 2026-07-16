@@ -5,6 +5,7 @@ node_modules
 antigravity-discord-bot/
 release/app-store-screenshots/**/.profiles/
 .codex/
+.codex-remote-attachments/
 tmp/screenshots/
 release/*.aab
 release/app-store-screenshots/

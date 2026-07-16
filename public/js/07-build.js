@@ -1147,11 +1147,8 @@ function openStock(tab, options = {}) {
             }
         }
     };
-    if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(() => setTimeout(renderStockAfterPaint, 0));
-    } else {
-        setTimeout(renderStockAfterPaint, 16);
-    }
+    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-stock', renderStockAfterPaint);
+    else setTimeout(renderStockAfterPaint, 0);
 }
 
 /**
@@ -1775,6 +1772,7 @@ function confirmFbBuild() {
 }
 
 function switchStockTab(tab, options = {}) {
+    if (tab === 'reading') stockRenderSequence += 1;
     currentStockTab = tab;
 
     const readingTab = document.getElementById('stock-tab-reading');
@@ -2806,8 +2804,8 @@ function openBuild(options = {}) {
 
     if (wasBuildActive) {
         prepareBuildScreen();
-    } else if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(() => setTimeout(prepareBuildScreen, 0));
+    } else if (typeof runAfterScreenPaint === 'function') {
+        runAfterScreenPaint('scr-build', prepareBuildScreen);
     } else {
         setTimeout(prepareBuildScreen, 0);
     }

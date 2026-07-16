@@ -2292,12 +2292,20 @@ function renderSavedScreen() {
         const naturalWidth = node.scrollWidth || 0;
         if (naturalWidth <= availableWidth) return;
 
-        let size = Math.max(minSize, Math.min(maxSize, Math.floor(maxSize * availableWidth / naturalWidth)));
-        node.style.fontSize = `${size}px`;
-        if (size > minSize && node.scrollWidth > availableWidth) {
-            size -= 1;
+        let low = minSize;
+        let high = Math.max(minSize, Math.min(maxSize, Math.floor(maxSize * availableWidth / naturalWidth)));
+        let fittedSize = minSize;
+        while (low <= high) {
+            const size = Math.floor((low + high) / 2);
             node.style.fontSize = `${size}px`;
+            if (node.scrollWidth <= availableWidth) {
+                fittedSize = size;
+                low = size + 1;
+            } else {
+                high = size - 1;
+            }
         }
+        node.style.fontSize = `${fittedSize}px`;
     };
 
     const applySavedTextFit = () => {

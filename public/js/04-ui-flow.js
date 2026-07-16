@@ -9661,7 +9661,9 @@ function isReadingSearchItemStocked(item) {
 }
 
 function getReadingSearchStockedKeySet() {
-    const stock = typeof getReadingStock === 'function' ? getReadingStock() : [];
+    const stock = typeof getVisibleReadingStock === 'function'
+        ? getVisibleReadingStock()
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
     return new Set((Array.isArray(stock) ? stock : [])
         .map((item) => normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item))))
         .filter(Boolean));
@@ -11373,7 +11375,7 @@ function renderReadingStockSectionV2() {
     const ownKanjiCountByReading = new Map();
     ownLiked.forEach(item => {
         const readingKey = getReadingBaseReading(item?.sessionReading || '');
-        if (!readingKey || item?.slot < 0) return;
+        if (!readingKey || !(item?.slot >= 0)) return;
         ownKanjiCountByReading.set(readingKey, (ownKanjiCountByReading.get(readingKey) || 0) + 1);
     });
 
