@@ -6,8 +6,8 @@ const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
 const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v2';
 const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKING_CACHE_MAX_ENTRIES = 24;
-const RANKING_REQUEST_TIMEOUT_MS = 9 * 1000;
-const RANKING_LOADING_WATCHDOG_MS = 10 * 1000;
+const RANKING_REQUEST_TIMEOUT_MS = 12 * 1000;
+const RANKING_LOADING_WATCHDOG_MS = 13 * 1000;
 const READING_RANKING_METRIC = 'like';
 
 function normalizeRankingGender(value) {

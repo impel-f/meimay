@@ -3804,6 +3804,19 @@ function getHomeOverviewSwitchStyle(mode) {
     };
 }
 
+function getHomeSharedBuildSources(ownLikedItems, partnerLikedItems, ownReadingStock, partnerReadingStock) {
+    return {
+        candidatePool: [
+            ...(Array.isArray(ownLikedItems) ? ownLikedItems : []),
+            ...(Array.isArray(partnerLikedItems) ? partnerLikedItems : [])
+        ],
+        readingStock: [
+            ...(Array.isArray(ownReadingStock) ? ownReadingStock : []),
+            ...(Array.isArray(partnerReadingStock) ? partnerReadingStock : [])
+        ]
+    };
+}
+
 function cycleHomeOverviewMode() {
     const pairing = getPairingHomeSummary();
     const options = getHomeOverviewSwitchOptions(pairing);
@@ -3937,9 +3950,15 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
 
     let result = null;
     if (mode === 'shared') {
-        const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
+        const sharedBuildSources = getHomeSharedBuildSources(
+            ownLikedItems,
+            partnerLikedItemsVisible,
+            ownReadingStock,
+            partnerReadingStock
+        );
+        const aggregateReadingStock = sharedBuildSources.readingStock;
         const aggregateBuildCount = getHomeBuildPatternCountSafe(
-            undefined,
+            sharedBuildSources.candidatePool,
             aggregateReadingStock,
             'shared build patterns'
         );

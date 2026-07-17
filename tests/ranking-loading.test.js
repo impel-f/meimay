@@ -7,12 +7,23 @@ const acorn = require('acorn');
 
 const RANKING_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '18-ranking.js');
 const FIREBASE_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '15-firebase.js');
+const CORE_SOURCE_PATH = path.join(__dirname, '..', 'public', 'js', '01-core.js');
 
 function extractTopLevelFunction(source, name) {
   const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
   const node = ast.body.find((entry) => entry.type === 'FunctionDeclaration' && entry.id?.name === name);
   assert.ok(node, `${name} must remain a top-level function`);
   return source.slice(node.start, node.end);
+}
+
+function extractObjectMethod(source, objectName, methodName) {
+  const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
+  const declaration = ast.body.find((entry) => entry.type === 'VariableDeclaration'
+    && entry.declarations.some((item) => item.id?.name === objectName));
+  const objectNode = declaration?.declarations.find((item) => item.id?.name === objectName)?.init;
+  const property = objectNode?.properties?.find((item) => (item.key?.name || item.key?.value) === methodName);
+  assert.ok(property?.value, `${objectName}.${methodName} must remain available`);
+  return source.slice(property.value.start, property.value.end);
 }
 
 test('ranking request timeout always settles and invokes cancellation', async () => {
@@ -37,6 +48,30 @@ test('ranking request timeout always settles and invokes cancellation', async ()
 
   await assert.rejects(sandbox.timeoutPromise, (error) => error?.name === 'RankingTimeoutError');
   assert.equal(sandbox.cancelled, 1);
+});
+
+test('an Android HTTPS WebView uses the production API even before Capacitor is exposed', () => {
+  const coreSource = fs.readFileSync(CORE_SOURCE_PATH, 'utf8');
+  const functions = [
+    'isNativeAppRuntime',
+    'getMeimayProductionApiUrl',
+    'getMeimayApiUrl'
+  ].map((name) => extractTopLevelFunction(coreSource, name)).join('\n');
+  const sandbox = {
+    window: {
+      location: { protocol: 'https:', hostname: 'localhost' }
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const MEIMAY_PRODUCTION_API_ORIGIN = 'https://meimay.vercel.app';
+    ${functions}
+    globalThis.native = isNativeAppRuntime();
+    globalThis.url = getMeimayApiUrl('/api/stats?gender=male');
+  `, sandbox);
+
+  assert.equal(sandbox.native, true);
+  assert.equal(sandbox.url, 'https://meimay.vercel.app/api/stats?gender=male');
 });
 
 test('an uncached stalled ranking load replaces the spinner with a retry action', async () => {
@@ -146,16 +181,136 @@ test('ranking watchdog replaces a stuck loading surface and cancels the request'
   assert.match(sandbox.listContainer.innerHTML, /もう一度読み込む/);
 });
 
-test('rankings use the established API path without a preflight data source', () => {
+test('ranking API retries the production URL when a relative WebView request fails', async () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const functions = [
+    'normalizeStatsGenderValue',
+    'normalizeStatsRankingItems',
+    'getStatsApiRequestUrls',
+    'fetchStatsApiRankings'
+  ].map((name) => extractTopLevelFunction(firebaseSource, name)).join('\n');
+  const sandbox = {
+    Error,
+    Set,
+    Array,
+    String,
+    Number,
+    console: { warn() {} },
+    calls: [],
+    window: {
+      getMeimayProductionApiUrl(path) {
+        return `https://meimay.vercel.app${path}`;
+      }
+    },
+    getStatsApiRequestUrl(path) {
+      return path;
+    },
+    getReadingRankingAllowlist() {
+      return null;
+    },
+    async fetchStatsWithTimeout(url) {
+      sandbox.calls.push(url);
+      if (String(url).startsWith('/')) throw new Error('relative WebView request failed');
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { gender: 'female', items: [{ kanji: '花', count: 7 }] };
+        }
+      };
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`${functions}\nglobalThis.promise = fetchStatsApiRankings('/api/stats?gender=female', 'kanji', 'female');`, sandbox);
+
+  const items = await sandbox.promise;
+  assert.deepEqual(sandbox.calls, [
+    '/api/stats?gender=female',
+    'https://meimay.vercel.app/api/stats?gender=female'
+  ]);
+  assert.equal(items[0].kanji, '花');
+  assert.equal(items[0].count, 7);
+});
+
+test('ranking falls back to the public Firestore aggregate after API failure', async () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const fetchRankings = extractObjectMethod(firebaseSource, 'MeimayStats', 'fetchRankings');
+  const sandbox = {
+    URLSearchParams,
+    console: { warn() {} },
+    fetchLocalStatsRankings() { return null; },
+    normalizeStatsGenderValue(value) { return value; },
+    async fetchStatsApiRankings() { throw new Error('API unavailable'); },
+    async fetchFirestoreSdkRankings(type, kind, metric, gender) {
+      return [{ kanji: gender === 'male' ? '晴' : '花', count: 5 }];
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const stats = { fetchRankings: ${fetchRankings} };
+    globalThis.promise = stats.fetchRankings('allTime', 'kanji', 'all', 'male');
+  `, sandbox);
+
+  const items = await sandbox.promise;
+  assert.deepEqual(Array.from(items, (item) => item.kanji), ['晴']);
+});
+
+test('a slower male response cannot overwrite the selected female ranking', async () => {
+  const source = fs.readFileSync(RANKING_SOURCE_PATH, 'utf8');
+  const sandbox = { clearTimeout, setTimeout };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const RANKING_REQUEST_TIMEOUT_MS = 100;
+    let currentRankingType = 'kanji';
+    let currentRankingPeriod = 'allTime';
+    let currentRankingTab = 'allTime';
+    let currentRankingGender = 'male';
+    let rankingLoadSequence = 0;
+    let rankingLoadController = null;
+    const container = { innerHTML: '' };
+    const document = { getElementById: () => container };
+    const AbortController = class { constructor() { this.signal = { aborted: false }; } abort() { this.signal.aborted = true; } };
+    const MeimayStats = {};
+    const normalizeRankingType = (value) => value === 'reading' ? 'reading' : 'kanji';
+    const normalizeRankingPeriod = (value) => value === 'monthly' ? 'monthly' : 'allTime';
+    const normalizeRankingGender = (value) => ['male', 'female'].includes(value) ? value : 'all';
+    const updateRankingButtonState = () => {};
+    const getRankingCacheKey = (type, period, gender) => [type, period, gender].join('|');
+    const readRankingCacheEntry = () => null;
+    const writeRankingCacheEntry = () => {};
+    const filterRankingKanjiItems = (items) => items;
+    const startRankingLoadingWatchdog = () => {};
+    const clearRankingLoadingWatchdog = () => {};
+    const isRankingViewCurrent = (type, period, gender) => currentRankingGender === gender;
+    const fetchRankingItems = (type, period, gender) => new Promise((resolve) => {
+      setTimeout(() => resolve([{ kanji: gender === 'male' ? '晴' : '花', count: 1 }]), gender === 'male' ? 25 : 5);
+    });
+    const renderRankingResult = (target, items) => { target.innerHTML = items[0].kanji; };
+    ${extractTopLevelFunction(source, 'getRankingLoadingMessage')}
+    ${extractTopLevelFunction(source, 'getRankingLoadErrorMessage')}
+    ${extractTopLevelFunction(source, 'withRankingTimeout')}
+    ${extractTopLevelFunction(source, 'loadRanking')}
+    const malePromise = loadRanking();
+    currentRankingGender = 'female';
+    const femalePromise = loadRanking();
+    globalThis.promise = Promise.all([malePromise, femalePromise]);
+    globalThis.container = container;
+  `, sandbox);
+
+  await sandbox.promise;
+  assert.equal(sandbox.container.innerHTML, '花');
+});
+
+test('rankings keep API-first and Firestore fallback paths', () => {
   const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const fetchRankings = firebaseSource.slice(
     firebaseSource.indexOf('fetchRankings: async function'),
     firebaseSource.indexOf('recordReadingSeen:', firebaseSource.indexOf('fetchRankings: async function'))
   );
 
-  assert.match(fetchRankings, /fetchStatsWithTimeout\(getStatsApiRequestUrl/);
+  assert.match(fetchRankings, /fetchStatsApiRankings\(/);
+  assert.match(fetchRankings, /fetchFirestoreSdkRankings\(/);
   assert.match(fetchRankings, /query\.set\('gender', normalizedGender\)/);
-  assert.match(fetchRankings, /options\?\.signal \? \{ signal: options\.signal \} : \{\}/);
-  assert.doesNotMatch(fetchRankings, /fetchFirestoreSdkRankings|fetchPublicFirestoreRankings/);
+  assert.ok(fetchRankings.indexOf('fetchStatsApiRankings') < fetchRankings.indexOf('fetchFirestoreSdkRankings'));
   assert.doesNotMatch(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
 });

@@ -2973,6 +2973,26 @@ const MeimayShare = {
     }
 };
 
+function getWorkspaceChildRecordIds(workspaceRoot) {
+    if (!workspaceRoot || typeof workspaceRoot !== 'object') return [];
+    const children = workspaceRoot.children && typeof workspaceRoot.children === 'object'
+        ? workspaceRoot.children
+        : {};
+    const orderedIds = Array.isArray(workspaceRoot.childOrder)
+        ? workspaceRoot.childOrder.filter((childId) => children[childId])
+        : [];
+    return Array.from(new Set([...orderedIds, ...Object.keys(children)]));
+}
+
+function getSolePartnerChildRecord(partnerRoot) {
+    if (!partnerRoot || typeof partnerRoot !== 'object') return null;
+    const children = partnerRoot.children && typeof partnerRoot.children === 'object'
+        ? partnerRoot.children
+        : {};
+    const childIds = getWorkspaceChildRecordIds(partnerRoot);
+    return childIds.length === 1 ? children[childIds[0]] || null : null;
+}
+
 const MeimayPartnerInsights = {
     normalizeReading: function (value) {
         const text = String(value || '').trim();
@@ -3062,27 +3082,20 @@ const MeimayPartnerInsights = {
             const localRoot = manager.root && typeof manager.root === 'object'
                 ? manager.root
                 : (typeof manager.getRootSnapshot === 'function' ? manager.getRootSnapshot() : null);
-            const localChildren = localRoot?.children && typeof localRoot.children === 'object'
-                ? localRoot.children
-                : {};
-            const localChildCount = Array.isArray(localRoot?.childOrder) && localRoot.childOrder.length > 0
-                ? localRoot.childOrder.length
-                : Object.keys(localChildren).length;
+            const localChildCount = getWorkspaceChildRecordIds(localRoot).length;
             const activeChild = typeof manager.getActiveChild === 'function'
                 ? manager.getActiveChild()
                 : null;
             const partnerRoot = typeof manager.getPartnerWorkspaceRoot === 'function'
                 ? manager.getPartnerWorkspaceRoot()
                 : null;
-            const partnerChildren = partnerRoot?.children && typeof partnerRoot.children === 'object'
-                ? partnerRoot.children
-                : {};
-            const partnerChildCount = Array.isArray(partnerRoot?.childOrder) && partnerRoot.childOrder.length > 0
-                ? partnerRoot.childOrder.length
-                : Object.keys(partnerChildren).length;
-            const partnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
+            const partnerChildCount = getWorkspaceChildRecordIds(partnerRoot).length;
+            const matchedPartnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
                 ? manager.getPartnerChildForChild(activeChild)
                 : null;
+            // One partner child is unambiguous even when an older app has not written
+            // the explicit child-link metadata yet.
+            const partnerChild = matchedPartnerChild || getSolePartnerChildRecord(partnerRoot);
             const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
                 ? manager.isPartnerAlignmentReviewRequired()
                 : false;
@@ -3114,7 +3127,12 @@ const MeimayPartnerInsights = {
 
     _shouldSuppressUnscopedPartnerFallback: function () {
         const context = this._getPartnerChildContext();
-        return !!(context.requiresScopedChild && context.partnerRoot && !context.partnerChild);
+        return !!(
+            context.requiresScopedChild
+            && context.partnerRoot
+            && context.partnerChildCount > 1
+            && !context.partnerChild
+        );
     },
 
     _shouldUseScopedPartnerChildOnly: function () {
@@ -3125,7 +3143,7 @@ const MeimayPartnerInsights = {
     _getPartnerChildRecord: function () {
         const context = this._getPartnerChildContext();
         if (context.partnerChild && typeof context.partnerChild === 'object') return context.partnerChild;
-        if (context.requiresScopedChild) return null;
+        if (context.requiresScopedChild && context.partnerChildCount > 1) return null;
         const activeChildId = String(context.partnerRoot?.activeChildId || '').trim();
         const partnerChild = activeChildId && context.partnerRoot?.children?.[activeChildId]
             ? context.partnerRoot.children[activeChildId]
@@ -4163,8 +4181,149 @@ function getStatsApiRequestUrl(path = '/api/stats') {
     return typeof getMeimayApiUrl === 'function' ? getMeimayApiUrl(path) : path;
 }
 
-function fetchStatsWithTimeout(input, init = {}) {
-    return fetchWithMeimayTimeout(input, init, 12000, 'ランキング通信');
+function fetchStatsWithTimeout(input, init = {}, timeoutMs = 12000) {
+    return fetchWithMeimayTimeout(input, init, timeoutMs, 'ランキング通信');
+}
+
+function getStatsRankingCollectionNames(kind, metric = 'all', genderValue = 'all') {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedMetric = normalizedKind === 'reading'
+        ? (metric === 'saved' || metric === 'like' || metric === 'direct' ? metric : 'all')
+        : 'all';
+    const baseCollections = normalizedKind !== 'reading'
+        ? ['statistics']
+        : normalizedMetric === 'saved'
+            ? ['reading_saved_statistics']
+            : normalizedMetric === 'like'
+                ? ['reading_like_statistics']
+                : normalizedMetric === 'direct'
+                    ? ['reading_statistics']
+                    : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
+    const genderTargets = getStatsGenderTargets(genderValue);
+    return genderTargets.length > 0
+        ? baseCollections.flatMap((collection) => genderTargets.map((target) => `${collection}_${target}`))
+        : baseCollections;
+}
+
+function getStatsRankingDocumentId(period) {
+    if (period === 'monthly') return `monthly_${getLocalStatsMonthKey(new Date())}`;
+    if (period === 'weekly') return `weekly_${getLocalStatsWeekKey(new Date())}`;
+    return 'allTime';
+}
+
+function normalizeStatsRankingItems(items, kind, genderValue = 'all') {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedGender = normalizeStatsGenderValue(genderValue);
+    const readingAllowlist = normalizedKind === 'reading'
+        ? getReadingRankingAllowlist(normalizedGender)
+        : null;
+    return (Array.isArray(items) ? items : [])
+        .map((item) => {
+            const key = normalizedKind === 'reading'
+                ? String(item?.reading || item?.key || '').trim()
+                : String(item?.kanji || item?.key || '').trim();
+            return normalizedKind === 'reading'
+                ? { reading: key, count: Number(item?.count) || 0 }
+                : { kanji: key, count: Number(item?.count) || 0 };
+        })
+        .filter((item) => {
+            const key = normalizedKind === 'reading' ? item.reading : item.kanji;
+            return !!key && item.count > 0 && (!readingAllowlist || readingAllowlist.has(key));
+        })
+        .sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+            return aKey.localeCompare(bKey, 'ja');
+        })
+        .slice(0, 100);
+}
+
+function getStatsApiRequestUrls(path) {
+    const urls = [getStatsApiRequestUrl(path)];
+    if (typeof window !== 'undefined' && typeof window.getMeimayProductionApiUrl === 'function') {
+        urls.push(window.getMeimayProductionApiUrl(path));
+    }
+    return Array.from(new Set(urls.map((url) => String(url || '').trim()).filter(Boolean)));
+}
+
+async function fetchStatsApiRankings(path, kind, genderValue, options = {}) {
+    const requestedGender = normalizeStatsGenderValue(genderValue);
+    const urls = getStatsApiRequestUrls(path);
+    let lastError = null;
+    for (const url of urls) {
+        if (options?.signal?.aborted) {
+            const abortError = new Error('Ranking request aborted');
+            abortError.name = 'AbortError';
+            throw abortError;
+        }
+        try {
+            const response = await fetchStatsWithTimeout(url, {
+                cache: 'no-store',
+                ...(options?.signal ? { signal: options.signal } : {})
+            }, 3500);
+            if (!response.ok) {
+                throw new Error(`ランキングAPIの取得に失敗しました (${response.status})`);
+            }
+            const payload = await response.json();
+            const payloadGender = normalizeStatsGenderValue(payload?.gender);
+            if (requestedGender !== 'all' && payloadGender !== requestedGender) {
+                throw new Error('API gender mismatch');
+            }
+            return normalizeStatsRankingItems(payload?.items, kind, requestedGender);
+        } catch (error) {
+            if (error?.name === 'AbortError') throw error;
+            lastError = error;
+        }
+    }
+    throw lastError || new Error('ランキングAPIを利用できません');
+}
+
+async function fetchFirestoreSdkRankings(type, kind, metric, genderValue, options = {}) {
+    if (!firebaseDb || typeof firebaseDb.collection !== 'function') {
+        throw new Error('Firestore ranking source is unavailable');
+    }
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedGender = normalizeStatsGenderValue(genderValue);
+    const collectionNames = getStatsRankingCollectionNames(normalizedKind, metric, normalizedGender);
+    const documentId = getStatsRankingDocumentId(type);
+    const results = await Promise.allSettled(collectionNames.map((collectionName) => withMeimayTimeout(
+        firebaseDb.collection(collectionName).doc(documentId).get(),
+        4000,
+        'ランキング予備データの取得'
+    )));
+    if (options?.signal?.aborted) {
+        const abortError = new Error('Ranking request aborted');
+        abortError.name = 'AbortError';
+        throw abortError;
+    }
+
+    const totals = new Map();
+    let successfulReads = 0;
+    results.forEach((result) => {
+        if (result.status !== 'fulfilled') return;
+        successfulReads += 1;
+        const data = result.value?.exists && typeof result.value.data === 'function'
+            ? result.value.data() || {}
+            : {};
+        Object.entries(data).forEach(([key, value]) => {
+            if (key === 'updatedAt') return;
+            const normalizedKey = normalizedKind === 'reading'
+                ? normalizeStatsReadingText(key)
+                : String(key || '').trim();
+            const count = Number(value) || 0;
+            if (!normalizedKey || count <= 0) return;
+            totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
+        });
+    });
+    if (successfulReads === 0) {
+        const failed = results.find((result) => result.status === 'rejected');
+        throw failed?.reason || new Error('ランキング予備データを取得できませんでした');
+    }
+    const items = Array.from(totals.entries()).map(([key, count]) => normalizedKind === 'reading'
+        ? { reading: key, count }
+        : { kanji: key, count });
+    return normalizeStatsRankingItems(items, normalizedKind, normalizedGender);
 }
 
 function normalizeLocalStatsReading(value) {
@@ -5343,54 +5502,42 @@ const MeimayStats = {
         const localItems = fetchLocalStatsRankings(normalizedType, normalizedKind, normalizedMetric, normalizedGender);
         if (Array.isArray(localItems)) return localItems;
 
+        const query = new URLSearchParams({
+            period: normalizedType,
+            kind: normalizedKind,
+        });
+        if (normalizedKind === 'reading' && normalizedMetric !== 'all') {
+            query.set('metric', normalizedMetric);
+        }
+        if (normalizedGender !== 'all') {
+            query.set('gender', normalizedGender);
+        }
+
         try {
-            const query = new URLSearchParams({
-                period: normalizedType,
-                kind: normalizedKind,
-            });
-            if (normalizedKind === 'reading' && normalizedMetric !== 'all') {
-                query.set('metric', normalizedMetric);
-            }
-            if (normalizedGender !== 'all') {
-                query.set('gender', normalizedGender);
-            }
-
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(`/api/stats?${query.toString()}`), {
-                cache: 'no-store',
-                ...(options?.signal ? { signal: options.signal } : {})
-            });
-
-            if (response.ok) {
-                const payload = await response.json();
-                const apiItems = Array.isArray(payload?.items) ? payload.items : [];
-                const payloadGender = normalizeStatsGenderValue(payload?.gender);
-                if (normalizedGender !== 'all' && payloadGender !== normalizedGender) {
-                    throw new Error('API gender mismatch');
-                }
-                return apiItems
-                    .map((item) => {
-                        const key = normalizedKind === 'reading'
-                            ? String(item?.reading || item?.key || '').trim()
-                            : String(item?.kanji || item?.key || '').trim();
-                        return normalizedKind === 'reading'
-                            ? { reading: key, count: Number(item?.count) || 0 }
-                            : { kanji: key, count: Number(item?.count) || 0 };
-                    })
-                    .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
-                    .sort((a, b) => {
-                        if (b.count !== a.count) return b.count - a.count;
-                        const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
-                        const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
-                        return aKey.localeCompare(bKey, 'ja');
-                    })
-                    .slice(0, 100);
-            }
+            return await fetchStatsApiRankings(
+                `/api/stats?${query.toString()}`,
+                normalizedKind,
+                normalizedGender,
+                options
+            );
         } catch (apiError) {
             if (apiError?.name === 'AbortError') throw apiError;
             console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) API fallback`, apiError);
         }
 
-        return [];
+        try {
+            return await fetchFirestoreSdkRankings(
+                normalizedType,
+                normalizedKind,
+                normalizedMetric,
+                normalizedGender,
+                options
+            );
+        } catch (firestoreError) {
+            if (firestoreError?.name === 'AbortError') throw firestoreError;
+            console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) Firestore fallback`, firestoreError);
+            throw firestoreError;
+        }
     }
 };
 

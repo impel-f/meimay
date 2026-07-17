@@ -165,22 +165,39 @@ window.openMeimayExternalLink = openMeimayExternalLink;
 
 function isNativeAppRuntime() {
     try {
+        if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
+            return true;
+        }
         const platform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
             ? String(window.Capacitor.getPlatform() || '').toLowerCase()
             : '';
-        return platform === 'ios' || platform === 'android';
+        if (platform === 'ios' || platform === 'android') return true;
     } catch (e) {
-        return false;
+        // Continue with the WebView-origin fallback below.
     }
+
+    const protocol = String(window.location?.protocol || '').toLowerCase();
+    const hostname = String(window.location?.hostname || '').toLowerCase();
+    return protocol === 'capacitor:'
+        || protocol === 'ionic:'
+        || (protocol === 'https:' && hostname === 'localhost');
 }
 window.isNativeAppRuntime = isNativeAppRuntime;
+
+function getMeimayProductionApiUrl(path) {
+    const normalizedPath = String(path || '').startsWith('/')
+        ? String(path || '')
+        : `/${String(path || '')}`;
+    return `${MEIMAY_PRODUCTION_API_ORIGIN}${normalizedPath}`;
+}
+window.getMeimayProductionApiUrl = getMeimayProductionApiUrl;
 
 function getMeimayApiUrl(path) {
     const normalizedPath = String(path || '').startsWith('/')
         ? String(path || '')
         : `/${String(path || '')}`;
     return isNativeAppRuntime()
-        ? `${MEIMAY_PRODUCTION_API_ORIGIN}${normalizedPath}`
+        ? getMeimayProductionApiUrl(normalizedPath)
         : normalizedPath;
 }
 window.getMeimayApiUrl = getMeimayApiUrl;

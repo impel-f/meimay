@@ -27,6 +27,20 @@ function extractObjectMethod(source, objectName, methodName) {
   return source.slice(property.value.start, property.value.end);
 }
 
+function extractAssignedFunction(source, objectName, methodName) {
+  const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
+  const statement = ast.body.find((entry) => {
+    const assignment = entry.type === 'ExpressionStatement' ? entry.expression : null;
+    const left = assignment?.type === 'AssignmentExpression' ? assignment.left : null;
+    return left?.type === 'MemberExpression'
+      && left.object?.name === objectName
+      && (left.property?.name || left.property?.value) === methodName;
+  });
+  const functionNode = statement?.expression?.right;
+  assert.ok(functionNode, `${objectName}.${methodName} assigned function must remain available`);
+  return source.slice(functionNode.start, functionNode.end);
+}
+
 function loadSyncProtocol() {
   const source = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const ast = acorn.parse(source, { ecmaVersion: 'latest', sourceType: 'script' });
@@ -355,6 +369,177 @@ test('child workspaces remain separated and aggregate correctly for a partner', 
   assert.deepEqual(hydrated.workspace.children['first-child'].libraries.kanjiStock.map((item) => item.kanji), ['陽']);
   assert.deepEqual(hydrated.workspace.children['second-child'].libraries.kanjiStock.map((item) => item.kanji), ['凪']);
   assert.deepEqual(hydrated.liked.map((item) => item.kanji), ['陽', '凪']);
+});
+
+test('a sole legacy partner child remains readable before explicit child linking', () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const childIdResolver = extractTopLevelFunction(firebaseSource, 'getWorkspaceChildRecordIds');
+  const soleChildResolver = extractTopLevelFunction(firebaseSource, 'getSolePartnerChildRecord');
+  const getPartnerChildContext = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_getPartnerChildContext');
+  const suppressFallback = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_shouldSuppressUnscopedPartnerFallback');
+  const getPartnerChildRecord = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_getPartnerChildRecord');
+  const sandbox = { console: { warn() {} } };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${childIdResolver}
+    ${soleChildResolver}
+    const soleChild = {
+      meta: { id: 'partner-first-child' },
+      libraries: {
+        kanjiStock: [{ kanji: '陽' }],
+        readingStock: [{ reading: 'はると' }],
+        savedNames: [{ givenName: '陽斗' }]
+      }
+    };
+    const partnerRoot = {
+      activeChildId: 'partner-first-child',
+      childOrder: ['partner-first-child'],
+      children: { 'partner-first-child': soleChild }
+    };
+    const context = {
+      requiresScopedChild: true,
+      partnerRoot,
+      partnerChild: null,
+      partnerChildCount: 1
+    };
+    const MeimayChildWorkspaces = {
+      root: {
+        activeChildId: 'local-first-child',
+        childOrder: ['local-first-child'],
+        children: { 'local-first-child': { meta: { id: 'local-first-child', birthOrder: 1 } } }
+      },
+      getActiveChild() { return this.root.children['local-first-child']; },
+      getPartnerWorkspaceRoot() { return partnerRoot; },
+      getPartnerChildForChild() { return null; },
+      isPartnerAlignmentReviewRequired() { return true; }
+    };
+    const contextInsights = { _getPartnerChildContext: ${getPartnerChildContext} };
+    const resolvedContext = contextInsights._getPartnerChildContext();
+    const insights = {
+      _getPartnerChildContext() { return context; },
+      _shouldSuppressUnscopedPartnerFallback: ${suppressFallback},
+      _getPartnerChildRecord: ${getPartnerChildRecord}
+    };
+    globalThis.result = {
+      resolved: getSolePartnerChildRecord(partnerRoot),
+      resolvedContext,
+      suppressed: insights._shouldSuppressUnscopedPartnerFallback(),
+      record: insights._getPartnerChildRecord()
+    };
+  `, sandbox);
+
+  assert.equal(sandbox.result.suppressed, false);
+  assert.equal(sandbox.result.resolved.meta.id, 'partner-first-child');
+  assert.equal(sandbox.result.resolvedContext.partnerChild.meta.id, 'partner-first-child');
+  assert.equal(sandbox.result.record.libraries.readingStock[0].reading, 'はると');
+});
+
+test('legacy flat partner stocks survive an empty sole-child projection', () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const methodNames = [
+    '_getCachedPartnerValue',
+    '_setCachedPartnerValue',
+    '_shouldSuppressUnscopedPartnerFallback',
+    '_shouldUseScopedPartnerChildOnly',
+    '_getPartnerChildRecord',
+    '_getPartnerChildLibraries',
+    'getPartnerLikedRaw',
+    'getPartnerSaved'
+  ];
+  const methods = Object.fromEntries(methodNames.map((name) => [name, extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', name)]));
+  const getPartnerReadingStock = extractAssignedFunction(firebaseSource, 'MeimayPartnerInsights', 'getPartnerReadingStock');
+  const sandbox = { console: { warn() {} } };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const MeimayShare = {
+      partnerSnapshot: {
+        liked: [{ kanji: '怜' }],
+        readingStock: [{ reading: 'れい' }],
+        savedNames: [{ givenName: '怜', reading: 'れい' }]
+      }
+    };
+    const MeimayFirestorePayload = {
+      hydrateLikedItem(item) { return { ...item, kanji: item.kanji || item['漢字'] }; }
+    };
+    const normalizeReadingStockItem = (item) => item;
+    const child = {
+      meta: { id: 'partner-first-child' },
+      libraries: { kanjiStock: [], readingStock: [], savedNames: [] }
+    };
+    const context = {
+      requiresScopedChild: true,
+      partnerRoot: {
+        activeChildId: 'partner-first-child',
+        childOrder: ['partner-first-child'],
+        children: { 'partner-first-child': child }
+      },
+      partnerChild: null,
+      partnerChildCount: 1
+    };
+    const insights = {
+      _cache: {},
+      _getPartnerContextCacheKey() { return 'legacy-one-child'; },
+      _getPartnerChildContext() { return context; },
+      _safeClone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); },
+      getPartnerHiddenReadingSet() { return new Set(); },
+      _isHiddenReadingItem() { return false; },
+      _getCachedPartnerValue: ${methods._getCachedPartnerValue},
+      _setCachedPartnerValue: ${methods._setCachedPartnerValue},
+      _shouldSuppressUnscopedPartnerFallback: ${methods._shouldSuppressUnscopedPartnerFallback},
+      _shouldUseScopedPartnerChildOnly: ${methods._shouldUseScopedPartnerChildOnly},
+      _getPartnerChildRecord: ${methods._getPartnerChildRecord},
+      _getPartnerChildLibraries: ${methods._getPartnerChildLibraries},
+      getPartnerLikedRaw: ${methods.getPartnerLikedRaw},
+      getPartnerSaved: ${methods.getPartnerSaved},
+      getPartnerReadingStock: ${getPartnerReadingStock}
+    };
+    globalThis.result = {
+      liked: insights.getPartnerLikedRaw(),
+      readings: insights.getPartnerReadingStock(),
+      saved: insights.getPartnerSaved()
+    };
+  `, sandbox);
+
+  assert.deepEqual(Array.from(sandbox.result.liked, (item) => item.kanji), ['怜']);
+  assert.deepEqual(Array.from(sandbox.result.readings, (item) => item.reading), ['れい']);
+  assert.deepEqual(Array.from(sandbox.result.saved, (item) => item.givenName), ['怜']);
+});
+
+test('unlinked multi-child partner data stays isolated until the child is identified', () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const childIdResolver = extractTopLevelFunction(firebaseSource, 'getWorkspaceChildRecordIds');
+  const soleChildResolver = extractTopLevelFunction(firebaseSource, 'getSolePartnerChildRecord');
+  const suppressFallback = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_shouldSuppressUnscopedPartnerFallback');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${childIdResolver}
+    ${soleChildResolver}
+    const partnerRoot = {
+      childOrder: ['first'],
+      children: { first: {}, second: {} }
+    };
+    const insights = {
+      _getPartnerChildContext() {
+        return {
+          requiresScopedChild: true,
+          partnerRoot,
+          partnerChild: null,
+          partnerChildCount: getWorkspaceChildRecordIds(partnerRoot).length
+        };
+      },
+      _shouldSuppressUnscopedPartnerFallback: ${suppressFallback}
+    };
+    globalThis.result = {
+      childCount: getWorkspaceChildRecordIds(partnerRoot).length,
+      soleChild: getSolePartnerChildRecord(partnerRoot),
+      suppressed: insights._shouldSuppressUnscopedPartnerFallback()
+    };
+  `, sandbox);
+
+  assert.equal(sandbox.result.childCount, 2);
+  assert.equal(sandbox.result.soleChild, null);
+  assert.equal(sandbox.result.suppressed, true);
 });
 
 test('partner snapshot follows candidate and child deletion without stale data', () => {

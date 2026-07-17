@@ -393,15 +393,67 @@ test('home build count uses the provided kanji and reading pools', () => {
   assert.equal(sandbox.buildCount, 2);
 });
 
-test('shared home build count keeps the established merged candidate pool', () => {
+test('shared home build count uses the explicit union of own and partner sources', () => {
   const renderSource = readSource('05-ui-render.js');
+  const buildSources = extractFunction(renderSource, 'getHomeSharedBuildSources');
   const snapshot = extractFunction(renderSource, 'getHomeOverviewStageSnapshot');
+  const sandbox = {};
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${buildSources}
+    globalThis.sources = getHomeSharedBuildSources(
+      [{ kanji: '陽' }],
+      [{ kanji: '斗' }],
+      [{ reading: 'はる' }],
+      [{ reading: 'と' }]
+    );
+  `, sandbox);
 
-  assert.match(
-    snapshot,
-    /getHomeBuildPatternCountSafe\(\s*undefined,\s*aggregateReadingStock,/
-  );
-  assert.doesNotMatch(snapshot, /aggregateBuildPool/);
+  assert.deepEqual(Array.from(sandbox.sources.candidatePool, (item) => item.kanji), ['陽', '斗']);
+  assert.deepEqual(Array.from(sandbox.sources.readingStock, (item) => item.reading), ['はる', 'と']);
+  assert.match(snapshot, /sharedBuildSources\.candidatePool/);
+  assert.doesNotMatch(snapshot, /getHomeBuildPatternCountSafe\(\s*undefined,/);
+});
+
+test('shared build combinations cannot drop below the own-mode combinations', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const functions = [
+    'normalizeHomeBuildReadingValue',
+    'sanitizeHomeBuildSegments',
+    'getHomeBuildPatternSegments',
+    'normalizeHomeBuildPool',
+    'getHomeDataStateFingerprint',
+    'getHomeBuildPatternKey',
+    'getHomeBuildSlotCandidateCount',
+    'getHomeBuildPatternCount',
+    'getHomeSharedBuildSources'
+  ].map(name => extractFunction(renderSource, name)).join('\n');
+  const sandbox = { console: { warn() {} }, window: {} };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const _homeBuildPatternCountCache = new Map();
+    const _homeBuildPatternCountStaleCache = new Map();
+    const HOME_BUILD_PATTERN_DEFER_WORK_LIMIT = 5000;
+    let _homeBuildPatternCountLastValue = 0;
+    ${functions}
+    const ownLiked = [
+      { kanji: '陽', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '斗', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '翔', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] }
+    ];
+    const partnerLiked = [
+      { kanji: '春', slot: 0, sessionReading: 'はると', sessionSegments: ['はる', 'と'] },
+      { kanji: '人', slot: 1, sessionReading: 'はると', sessionSegments: ['はる', 'と'] }
+    ];
+    const ownReadings = [{ reading: 'はると', segments: ['はる', 'と'] }];
+    const sources = getHomeSharedBuildSources(ownLiked, partnerLiked, ownReadings, []);
+    globalThis.ownCount = getHomeBuildPatternCount(ownLiked, ownReadings);
+    globalThis.sharedCount = getHomeBuildPatternCount(sources.candidatePool, sources.readingStock);
+  `, sandbox);
+
+  assert.equal(sandbox.ownCount, 2);
+  assert.equal(sandbox.sharedCount, 6);
+  assert.ok(sandbox.sharedCount >= sandbox.ownCount);
 });
 
 test('home overview isolates saved-name selection failures from build counts', () => {
@@ -424,8 +476,8 @@ test('home overview isolates saved-name selection failures from build counts', (
   `, sandbox);
 
   assert.equal(sandbox.canvas, null);
-  assert.doesNotMatch(renderSource, /const aggregateBuildPool = \[\.\.\.ownLikedItems, \.\.\.partnerLikedItemsVisible\]/);
-  assert.match(renderSource, /getHomeBuildPatternCountSafe\(\s*undefined,\s*aggregateReadingStock/);
+  assert.match(renderSource, /getHomeSharedBuildSources\(/);
+  assert.match(renderSource, /getHomeBuildPatternCountSafe\(\s*sharedBuildSources\.candidatePool,\s*aggregateReadingStock/);
 });
 
 test('large stock screens avoid quadratic grouping and yield between batches', () => {
