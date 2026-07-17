@@ -1267,6 +1267,10 @@ function getAdMobPremiumHoldReason() {
 }
 
 function showHtmlAdBannerForHoldReason(reason) {
+    if (reason === 'native-admob-autostart-disabled' && !PremiumManager.isPremium()) {
+        showNativeAdMobFallbackBanner('Native banner autostart is disabled', null, { silent: true });
+        return true;
+    }
     return false;
 }
 
@@ -1427,11 +1431,17 @@ function restoreAdBannerForFreeUser(reason = '') {
         return true;
     }
 
-    if (getAdMobPlugin() && nativeAdMobBannerRequested) {
+    if (getAdMobPlugin() && nativeAdMobBannerRequested && nativeAdMobBannerLoaded) {
         adBannerVisible = true;
         adBannerMode = 'native';
+        showNativeAdMobBackdrop(htmlContainer, nativeAdMobBannerHeight);
         setNativeAdMobBannerSuppressed(false, reason || 'restore-free-banner');
         updateAdLayoutSpacing(nativeAdMobBannerHeight);
+        return true;
+    }
+
+    if (getAdMobPlugin() && nativeAdMobBannerRequested) {
+        showNativeAdMobFallbackBanner('Native banner is still loading', null, { silent: true });
         return true;
     }
 
@@ -1594,13 +1604,7 @@ function scheduleNativeAdMobRetry(reason = '') {
 function updateAdLayoutSpacing(bannerHeight) {
     if (PremiumManager.isPremium()) {
         const container = document.getElementById('admob-banner');
-        if (container) {
-            container.style.display = 'none';
-            container.style.bottom = '';
-            container.style.visibility = '';
-            container.style.pointerEvents = '';
-            container.innerHTML = '';
-        }
+        resetAdBannerContainerSurface(container);
         if (adBannerMode === 'native' || nativeAdMobBannerLoaded) {
             setNativeAdMobBannerSuppressed(true, 'premium-active-layout');
         }
@@ -1656,13 +1660,67 @@ function updateAdLayoutSpacing(bannerHeight) {
     return 0;
 }
 
+function resetAdBannerContainerSurface(container) {
+    if (!container) return;
+    container.style.display = 'none';
+    container.style.bottom = '';
+    container.style.height = '';
+    container.style.minHeight = '';
+    container.style.backgroundColor = '';
+    container.style.visibility = '';
+    container.style.pointerEvents = '';
+    container.innerHTML = '';
+}
+
+function renderAdMobFallbackSurface(container, options = {}) {
+    if (!container) return;
+    const testMode = options.testMode === true;
+    container.style.bottom = '0px';
+    container.style.display = 'flex';
+    container.style.height = '';
+    container.style.minHeight = `${WEB_AD_BANNER_MIN_HEIGHT}px`;
+    container.style.backgroundColor = '#f5f0e8';
+    container.style.visibility = '';
+    container.style.pointerEvents = '';
+    container.innerHTML = testMode
+        ? `
+            <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
+                    <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">AD</span>
+                    <span class="block truncate text-[10px] font-bold text-[#8b7e66]">AdMobテスト広告を確認中</span>
+                </div>
+                <span class="shrink-0 rounded-full bg-[#bca37f] px-3 py-1 text-[10px] font-black text-white">テスト</span>
+            </div>
+        `
+        : `
+            <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
+                    <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">PR</span>
+                    <span class="block truncate text-[10px] text-[#8b7e66]">プレミアムなら広告なし</span>
+                </div>
+                <button onclick="showPremiumModal({source:'ad_banner'})" class="shrink-0 px-3 py-1 bg-[#bca37f] text-white rounded-full text-[10px] font-bold hover:bg-[#8b7e66] transition-all">
+                    プランを見る
+                </button>
+            </div>
+        `;
+}
+
+function showNativeAdMobBackdrop(container, bannerHeight = NATIVE_AD_BANNER_MIN_HEIGHT) {
+    if (!container) return;
+    const height = Math.max(Number(bannerHeight) || 0, NATIVE_AD_BANNER_MIN_HEIGHT);
+    container.style.bottom = '0px';
+    container.style.display = 'block';
+    container.style.height = `${height}px`;
+    container.style.minHeight = `${height}px`;
+    container.style.backgroundColor = '#f5f0e8';
+    container.style.visibility = '';
+    container.style.pointerEvents = 'none';
+    container.innerHTML = '';
+}
+
 function clearHtmlAdBanner(reason, error) {
     const container = document.getElementById('admob-banner');
-    if (container) {
-        container.style.display = 'none';
-        container.style.bottom = '';
-        container.innerHTML = '';
-    }
+    resetAdBannerContainerSurface(container);
     adBannerVisible = false;
     adBannerMode = null;
     document.body.style.removeProperty('--ad-screen-safe-space');
@@ -1675,12 +1733,7 @@ function clearHtmlAdBanner(reason, error) {
     }
 }
 
-function showNativeAdMobFallbackBanner(reason, error) {
-    if (!isAdMobTestAdMode()) {
-        clearHtmlAdBanner(reason, error);
-        return;
-    }
-
+function showNativeAdMobFallbackBanner(reason, error, options = {}) {
     const container = document.getElementById('admob-banner');
     if (!container || PremiumManager.isPremium()) {
         clearHtmlAdBanner(reason, error);
@@ -1699,31 +1752,19 @@ function showNativeAdMobFallbackBanner(reason, error) {
     adBannerMode = 'native-fallback';
     adBannerSuppressedByOverlay = false;
 
-    container.style.bottom = '0px';
-    container.style.display = 'flex';
+    renderAdMobFallbackSurface(container, { testMode: isAdMobTestAdMode() });
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
-    container.innerHTML = `
-        <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2">
-                <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">AD</span>
-                <div class="min-w-0 flex-1">
-                    <span class="block truncate text-[10px] font-bold text-[#8b7e66]">AdMobテスト広告を確認中</span>
-                    <span class="block truncate text-[8px] text-[#a6967a]">表示されない場合はPremium状態・プラグイン・ログを確認</span>
-                </div>
-            </div>
-            <span class="shrink-0 rounded-full bg-[#bca37f] px-3 py-1 text-[10px] font-black text-white">テスト</span>
-        </div>
-    `;
 
     document.body.classList.add('has-ad-banner');
     updateAdLayoutSpacing(measureAdBannerHeight(container) || NATIVE_AD_BANNER_MIN_HEIGHT);
-    trackAdImpressionAnalytics('native_fallback', {
-        ad_source: 'fallback_banner',
+    const testMode = isAdMobTestAdMode(getPlatform());
+    trackAdImpressionAnalytics(testMode ? 'native_fallback' : 'premium_promo', {
+        ad_source: testMode ? 'fallback_banner' : 'premium_promo_banner',
         os_platform: getPlatform(),
-        is_test_ad: isAdMobTestAdMode(getPlatform()) ? 1 : 0
+        is_test_ad: testMode ? 1 : 0
     });
 
-    if (reason) {
+    if (reason && options.silent !== true) {
         console.warn(`ADMOB: ${reason}`, error || '');
     }
 }
@@ -1742,11 +1783,6 @@ function setupNativeAdMobBannerListeners(AdMob) {
 
         addBannerListener('bannerAdLoaded', () => {
             const container = document.getElementById('admob-banner');
-            if (container) {
-                container.style.display = 'none';
-                container.style.bottom = '';
-                container.innerHTML = '';
-            }
             nativeAdMobBannerRequested = true;
             nativeAdMobBannerLoaded = true;
             nativeAdMobBannerFailed = false;
@@ -1761,6 +1797,7 @@ function setupNativeAdMobBannerListeners(AdMob) {
             nativeAdMobBannerPaused = false;
             adBannerVisible = true;
             adBannerMode = 'native';
+            showNativeAdMobBackdrop(container, nativeAdMobBannerHeight);
             updateAdLayoutSpacing(nativeAdMobBannerHeight);
             trackAdImpressionAnalytics('native', {
                 ad_source: 'banner_loaded',
@@ -1771,13 +1808,14 @@ function setupNativeAdMobBannerListeners(AdMob) {
         });
 
         addBannerListener('bannerAdSizeChanged', (size) => {
-            if (adBannerMode !== 'native') return;
             const height = Number(size && size.height);
             if (Number.isFinite(height) && height > 0) {
                 nativeAdMobBannerHeight = Math.max(height, NATIVE_AD_BANNER_MIN_HEIGHT);
                 nativeAdMobBannerLoaded = true;
                 adBannerVisible = true;
                 if (adBannerDesiredVisible && !PremiumManager.isPremium()) {
+                    adBannerMode = 'native';
+                    showNativeAdMobBackdrop(document.getElementById('admob-banner'), nativeAdMobBannerHeight);
                     updateAdLayoutSpacing(nativeAdMobBannerHeight);
                 }
             }
@@ -1840,10 +1878,15 @@ async function initNativeAdMob(platform) {
     }
 
     if (nativeAdMobBannerRequested) {
-        adBannerVisible = true;
-        adBannerMode = 'native';
-        setNativeAdMobBannerSuppressed(false, 'native-banner-existing');
-        updateAdLayoutSpacing(nativeAdMobBannerHeight);
+        if (nativeAdMobBannerLoaded) {
+            adBannerVisible = true;
+            adBannerMode = 'native';
+            showNativeAdMobBackdrop(document.getElementById('admob-banner'), nativeAdMobBannerHeight);
+            setNativeAdMobBannerSuppressed(false, 'native-banner-existing');
+            updateAdLayoutSpacing(nativeAdMobBannerHeight);
+        } else {
+            showNativeAdMobFallbackBanner('Native banner is still loading', null, { silent: true });
+        }
         return true;
     }
     if (nativeAdMobShowPromise) return nativeAdMobShowPromise;
@@ -1851,6 +1894,8 @@ async function initNativeAdMob(platform) {
 
     nativeAdMobShowPromise = (async () => {
         try {
+            if (PremiumManager.isPremium() || !adBannerDesiredVisible) return false;
+            showNativeAdMobFallbackBanner('Native banner initialization started', null, { silent: true });
             setupNativeAdMobBannerListeners(AdMob);
 
             if (!nativeAdMobInitializePromise) {
@@ -1867,7 +1912,7 @@ async function initNativeAdMob(platform) {
             await nativeAdMobInitializePromise;
 
             if (platform === 'android' && NativeAdMobAutoStartConfig.androidShowBannerEnabled !== true) {
-                clearHtmlAdBanner('Native AdMob initialized without banner for Android crash isolation');
+                showNativeAdMobFallbackBanner('Native AdMob initialized without banner for Android crash isolation');
                 console.log('ADMOB: Native initialized; Android banner display skipped for crash isolation');
                 return false;
             }
@@ -1879,7 +1924,6 @@ async function initNativeAdMob(platform) {
             nativeAdMobBannerLoaded = false;
             nativeAdMobBannerFailed = false;
             nativeAdMobBannerHeight = NATIVE_AD_BANNER_MIN_HEIGHT;
-            adBannerMode = 'native';
             await AdMob.showBanner({
                 adId: getAdMobBannerId(platform, config),
                 adSize: 'BANNER',
@@ -1891,21 +1935,19 @@ async function initNativeAdMob(platform) {
 
             if (nativeAdMobBannerFailed) return false;
 
-            const container = document.getElementById('admob-banner');
-            if (container) {
-                container.style.display = 'none';
-                container.style.bottom = '';
-                container.innerHTML = '';
-            }
-
             if (PremiumManager.isPremium() || !adBannerDesiredVisible) {
                 setNativeAdMobBannerSuppressed(true, 'state-changed-during-load');
                 return false;
             }
 
             adBannerVisible = true;
-            adBannerMode = 'native';
-            updateAdLayoutSpacing(nativeAdMobBannerHeight);
+            if (nativeAdMobBannerLoaded) {
+                adBannerMode = 'native';
+                showNativeAdMobBackdrop(document.getElementById('admob-banner'), nativeAdMobBannerHeight);
+                updateAdLayoutSpacing(nativeAdMobBannerHeight);
+            } else {
+                showNativeAdMobFallbackBanner('Native banner requested and awaiting load', null, { silent: true });
+            }
             console.log('ADMOB: Native banner requested');
             return true;
         } catch (e) {
@@ -1963,44 +2005,13 @@ function showWebAdBanner() {
     adBannerVisible = true;
     adBannerMode = 'web';
     adBannerSuppressedByOverlay = false;
-    container.style.bottom = '0px';
-    container.style.display = 'flex';
+    renderAdMobFallbackSurface(container);
     setHtmlAdBannerSuppressed(adBannerSuppressedByOverlay);
-    container.innerHTML = `
-        <div class="w-full max-w-[728px] bg-[#f5f0e8] border-t border-[#eee5d8] py-2 px-4 flex items-center justify-between gap-3">
-            <div class="flex min-w-0 flex-1 items-center gap-2">
-                <span class="shrink-0 text-[9px] text-[#a6967a] font-bold bg-white px-1.5 py-0.5 rounded">AD</span>
-                <div class="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">
-                    <span class="block text-[10px] text-[#8b7e66] pr-3">繝｡繧､繝｡繝ｼ繧偵ｂ縺｣縺ｨ蠢ｫ驕ｩ縺ｫ</span>
-                </div>
-            </div>
-            <button onclick="showPremiumModal({source:'ad_banner'})" class="shrink-0 px-3 py-1 bg-[#bca37f] text-white rounded-full text-[10px] font-bold hover:bg-[#8b7e66] transition-all">
-                蠎・相繧帝撼陦ｨ遉ｺ
-            </button>
-        </div>
-    `;
-
-    const adBannerRow = container.firstElementChild;
-    if (adBannerRow) {
-        const scrollArea = adBannerRow.querySelector('div.min-w-0.flex-1.overflow-x-auto');
-        if (scrollArea) {
-            scrollArea.style.overflowX = 'hidden';
-        }
-        const spans = adBannerRow.querySelectorAll('span');
-        if (spans.length > 1) {
-            spans[1].textContent = '\u7121\u6599\u4f1a\u54e1\u5411\u3051\u5e83\u544a\u3092\u8868\u793a\u4e2d';
-            spans[1].title = '\u7121\u6599\u4f1a\u54e1\u5411\u3051\u5e83\u544a\u3092\u8868\u793a\u4e2d';
-        }
-        const bannerButton = adBannerRow.querySelector('button');
-        if (bannerButton) {
-            bannerButton.textContent = '\u30d7\u30e9\u30f3\u3092\u898b\u308b';
-        }
-    }
 
     document.body.classList.add('has-ad-banner');
     updateAdLayoutSpacing(measureAdBannerHeight(container) || WEB_AD_BANNER_MIN_HEIGHT);
     trackAdImpressionAnalytics('web_fallback', {
-        ad_source: 'html_banner',
+        ad_source: 'premium_promo_banner',
         os_platform: getPlatform(),
         is_test_ad: 0
     });
@@ -2010,13 +2021,7 @@ function hideAdBanner(options = {}) {
     const reset = options && options.reset === true;
     adBannerDesiredVisible = false;
     const container = document.getElementById('admob-banner');
-    if (container) {
-        container.style.display = 'none';
-        container.style.bottom = '';
-        container.style.visibility = '';
-        container.style.pointerEvents = '';
-        container.innerHTML = '';
-    }
+    resetAdBannerContainerSurface(container);
     adBannerVisible = false;
     adBannerMode = null;
     adBannerSuppressedByOverlay = false;

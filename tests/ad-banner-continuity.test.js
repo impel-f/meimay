@@ -57,6 +57,7 @@ vm.runInContext(`
   function ensureAdOverlayObserver() {}
   function getAdBannerFooterMargin() { return 0; }
   function showNativeAdMobFallbackBanner() {}
+  function showNativeAdMobBackdrop() {}
   function setupNativeAdMobBannerListeners() {}
   function clearHtmlAdBanner() {}
   function isAdMobTestAdMode() { return false; }
@@ -87,6 +88,7 @@ vm.runInContext(`
     setNativeAdMobBannerSuppressed,
     setState(next) {
       if (Object.prototype.hasOwnProperty.call(next, 'requested')) nativeAdMobBannerRequested = next.requested;
+      if (Object.prototype.hasOwnProperty.call(next, 'loaded')) nativeAdMobBannerLoaded = next.loaded;
       if (Object.prototype.hasOwnProperty.call(next, 'paused')) nativeAdMobBannerPaused = next.paused;
       if (Object.prototype.hasOwnProperty.call(next, 'desired')) adBannerDesiredVisible = next.desired;
       if (Object.prototype.hasOwnProperty.call(next, 'mode')) adBannerMode = next.mode;
@@ -101,9 +103,9 @@ test('fixed native banner height matches the 50dp BANNER size', () => {
   assert.match(source, /const NATIVE_AD_BANNER_MIN_HEIGHT = 50;/);
 });
 
-test('restoring an already visible banner does not reload or resume it', () => {
+test('restoring an already loaded banner does not reload or resume it', () => {
   const api = sandbox.adBannerTest;
-  api.setState({ requested: true, paused: false, desired: true });
+  api.setState({ requested: true, loaded: true, paused: false, desired: true });
   api.restoreAdBannerForFreeUser('screen:first');
   api.restoreAdBannerForFreeUser('screen:second');
 
@@ -112,6 +114,17 @@ test('restoring an already visible banner does not reload or resume it', () => {
   assert.equal(api.calls.layout, 2);
 });
 
+test('production native fallback is an opaque premium promotion instead of an empty slot', () => {
+  const fallbackSource = extractFunction(source, 'showNativeAdMobFallbackBanner');
+  const rendererSource = extractFunction(source, 'renderAdMobFallbackSurface');
+  const backdropSource = extractFunction(source, 'showNativeAdMobBackdrop');
+
+  assert.doesNotMatch(fallbackSource, /!isAdMobTestAdMode\(\)[\s\S]*clearHtmlAdBanner/);
+  assert.match(fallbackSource, /renderAdMobFallbackSurface/);
+  assert.match(rendererSource, /プレミアムなら広告なし/);
+  assert.match(rendererSource, /backgroundColor = '#f5f0e8'/);
+  assert.match(backdropSource, /backgroundColor = '#f5f0e8'/);
+});
 test('restoring the web fallback keeps the existing banner DOM mounted', () => {
   const api = sandbox.adBannerTest;
   const showCallsBefore = api.calls.show;

@@ -30,8 +30,8 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "61"
-        ANDROID_VERSION_NAME: "1.4.1"
+        ANDROID_VERSION_CODE: "62"
+        ANDROID_VERSION_NAME: "1.4.2"
       node: v22.11.0
       java: 21
     scripts:
@@ -114,7 +114,7 @@ workflows:
         XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
         APP_STORE_APPLE_ID: "6760251452"
-        IOS_MARKETING_VERSION: "1.4.1"
+        IOS_MARKETING_VERSION: "1.4.2"
         IOS_BUILD_NUMBER_FLOOR: "77"
       node: v22.11.0
       xcode: latest
@@ -128,7 +128,7 @@ workflows:
       - name: Set iOS version and build number
         script: |
           set -euo pipefail
-          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.4.1}"
+          MARKETING_VERSION="${IOS_MARKETING_VERSION:-1.4.2}"
 
           PROJECT_MARKETING_VERSIONS="$(grep -E 'MARKETING_VERSION = ' "$CM_BUILD_DIR/$XCODE_PROJECT/project.pbxproj" | sed -E 's/.*MARKETING_VERSION = ([^;]+);/\1/' | sort -u)"
           WEB_MARKETING_VERSION="$(sed -nE 's/.*メイメー v([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' "$CM_BUILD_DIR/public/index.html" | head -n 1)"
