@@ -2828,8 +2828,6 @@ function getHomeOwnershipSummary() {
         : null;
     const pairing = getPairingHomeSummary();
     const pairingHomeData = pairing?._homeData || {};
-    const isPaired = !!(pairing && pairing.roomCode);
-
     // デフォルトでは「自分のアイテム」を取得
     const ownLikedFallback = (typeof liked !== 'undefined' && Array.isArray(liked))
         ? liked.filter(item => !item?.fromPartner)
@@ -2870,36 +2868,14 @@ function getHomeOwnershipSummary() {
         'own reading stock'
     );
 
-    // 連携時はマージされた（自分＋パートナーの）総数を表示に利用する
-    const summaryCounts = pairing?.counts || {};
-    const readSummaryCount = (section, key, fallback = 0) => {
-        const value = summaryCounts?.[section]?.[key] ?? pairing?.[`${section}${key.charAt(0).toUpperCase()}${key.slice(1)}Count`];
-        return Number.isFinite(Number(value)) ? Number(value) : fallback;
-    };
-    const displayReadingCount = isPaired
-        ? Math.max(
-            0,
-            readSummaryCount('own', 'reading', ownReadingItems.length)
-                + readSummaryCount('partner', 'reading', 0)
-                - readSummaryCount('matched', 'reading', 0)
-        )
-        : ownReadingItems.length;
-    const displayLikedCount = isPaired
-        ? Math.max(
-            0,
-            readSummaryCount('own', 'kanji', ownLikedItems.length)
-                + readSummaryCount('partner', 'kanji', 0)
-                - readSummaryCount('matched', 'kanji', 0)
-        )
-        : ownLikedItems.length;
-    const displaySavedCount = isPaired
-        ? Math.max(
-            0,
-            readSummaryCount('own', 'saved', visibleOwnSavedItems.length)
-                + readSummaryCount('partner', 'saved', 0)
-                - readSummaryCount('matched', 'saved', 0)
-        )
-        : visibleOwnSavedItems.length;
+    let ownLikedCount = ownLikedItems.length;
+    if (typeof window.getVisibleKanjiStockCardCount === 'function') {
+        try {
+            ownLikedCount = window.getVisibleKanjiStockCardCount('self', ownLikedItems);
+        } catch (error) {
+            console.warn('HOME: Falling back to raw own kanji count', error);
+        }
+    }
 
     return {
         pairInsights,
@@ -2907,9 +2883,9 @@ function getHomeOwnershipSummary() {
         ownLikedItems,
         ownSavedItems: visibleOwnSavedItems,
         ownReadingItems,
-        ownLikedCount: displayLikedCount,
-        ownSavedCount: displaySavedCount,
-        ownReadingCount: displayReadingCount
+        ownLikedCount,
+        ownSavedCount: visibleOwnSavedItems.length,
+        ownReadingCount: ownReadingItems.length
     };
 }
 
@@ -3695,50 +3671,79 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
 }
 
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
-    const counts = pairing?.counts || {};
-    const ownReadingCount = Number.isFinite(Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount))
-        ? Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount)
-        : 0;
-    const ownKanjiCount = Number.isFinite(Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount))
-        ? Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount)
-        : 0;
-    const ownSavedCount = Number.isFinite(Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount))
-        ? Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount)
-        : 0;
-    const partnerReadingCount = Number.isFinite(Number(counts?.partner?.reading ?? pairing?.partnerReadingCount))
-        ? Number(counts?.partner?.reading ?? pairing?.partnerReadingCount)
-        : 0;
-    const partnerKanjiCount = Number.isFinite(Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount))
-        ? Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
-        : 0;
-    const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
-        ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
-        : 0;
-    const matchedReadingCount = Number.isFinite(Number(counts?.matched?.reading ?? pairing?.matchedReadingCount))
-        ? Number(counts?.matched?.reading ?? pairing?.matchedReadingCount)
-        : 0;
-    const matchedKanjiCount = Number.isFinite(Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount))
-        ? Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)
-        : 0;
-    const matchedSavedCount = Number.isFinite(Number(counts?.matched?.saved ?? pairing?.matchedNameCount))
-        ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
-        : 0;
-
-    const hasPartnerCounts = !!(
-        pairing?.hasPartner
-        || counts?.partner
-        || Number.isFinite(Number(pairing?.partnerKanjiCount))
-        || Number.isFinite(Number(pairing?.partnerReadingCount))
-    );
+    const resolved = getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, pairing);
 
     return {
-        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
-        likedCount: hasPartnerCounts
-            ? Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)
-            : (typeof window.getVisibleKanjiStockCardCount === 'function'
-                ? window.getVisibleKanjiStockCardCount('all')
-                : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)),
-        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
+        readingStockCount: resolved.aggregate.reading,
+        likedCount: resolved.aggregate.kanji,
+        savedCount: resolved.aggregate.saved
+    };
+}
+
+function getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, pairing) {
+    const counts = pairing?.counts || {};
+    const data = pairing?._homeData || {};
+    const hasHomeData = [
+        data.ownReadingItems,
+        data.partnerReadingItems,
+        data.ownLikedItems,
+        data.partnerLikedItems,
+        data.ownSavedItems,
+        data.partnerSavedItems
+    ].every(Array.isArray);
+    const numberOr = (value, fallback = 0) => Number.isFinite(Number(value))
+        ? Math.max(0, Number(value))
+        : Math.max(0, Number(fallback) || 0);
+    const visibleKanjiCount = (focus, items, fallback) => {
+        if (!Array.isArray(items)) return numberOr(fallback);
+        if (typeof window.getVisibleKanjiStockCardCount === 'function') {
+            try {
+                const scopedItems = focus === 'partner'
+                    ? items.map(item => ({ ...item, fromPartner: true }))
+                    : items.map(item => ({ ...item, fromPartner: false }));
+                return numberOr(window.getVisibleKanjiStockCardCount(focus, scopedItems), items.length);
+            } catch (error) {
+                console.warn(`HOME: Falling back to raw ${focus} kanji count`, error);
+            }
+        }
+        return items.length;
+    };
+
+    const own = {
+        reading: hasHomeData ? data.ownReadingItems.length : numberOr(counts?.own?.reading ?? pairing?.ownReadingCount, readingStockCount),
+        kanji: hasHomeData
+            ? visibleKanjiCount('self', data.ownLikedItems, likedCount)
+            : numberOr(counts?.own?.kanji ?? pairing?.ownKanjiCount, likedCount),
+        saved: hasHomeData ? data.ownSavedItems.length : numberOr(counts?.own?.saved ?? pairing?.ownSavedCount, savedCount)
+    };
+    const partner = {
+        reading: hasHomeData ? data.partnerReadingItems.length : numberOr(counts?.partner?.reading ?? pairing?.partnerReadingCount),
+        kanji: hasHomeData
+            ? visibleKanjiCount('partner', data.partnerLikedItems, counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
+            : numberOr(counts?.partner?.kanji ?? pairing?.partnerKanjiCount),
+        saved: hasHomeData ? data.partnerSavedItems.length : numberOr(counts?.partner?.saved ?? pairing?.partnerSavedCount)
+    };
+    const matched = {
+        reading: Math.min(own.reading, partner.reading, hasHomeData
+            ? (Array.isArray(data.matchedReadingItems) ? data.matchedReadingItems.length : 0)
+            : numberOr(counts?.matched?.reading ?? pairing?.matchedReadingCount)),
+        kanji: Math.min(own.kanji, partner.kanji, hasHomeData
+            ? (Array.isArray(data.matchedLikedItems) ? data.matchedLikedItems.length : 0)
+            : numberOr(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)),
+        saved: Math.min(own.saved, partner.saved, hasHomeData
+            ? (Array.isArray(data.matchedSavedItems) ? data.matchedSavedItems.length : 0)
+            : numberOr(counts?.matched?.saved ?? pairing?.matchedNameCount))
+    };
+
+    return {
+        own,
+        partner,
+        matched,
+        aggregate: {
+            reading: Math.max(0, own.reading + partner.reading - matched.reading),
+            kanji: Math.max(0, own.kanji + partner.kanji - matched.kanji),
+            saved: Math.max(0, own.saved + partner.saved - matched.saved)
+        }
     };
 }
 
@@ -3876,23 +3881,6 @@ function readHomeSavedCanvasState(savedCount) {
 
 function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing) {
     const mode = getHomeOverviewMode(pairing);
-    const counts = pairing?.counts || {
-        own: {
-            reading: readingStockCount,
-            kanji: likedCount,
-            saved: savedCount
-        },
-        partner: {
-            reading: 0,
-            kanji: 0,
-            saved: 0
-        },
-        matched: {
-            reading: pairing?.matchedReadingCount || 0,
-            kanji: pairing?.matchedKanjiCount || 0,
-            saved: pairing?.matchedNameCount || 0
-        }
-    };
     const insights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const pairingHomeData = pairing?._homeData || {};
     const wizard = getWizardHomeState();
@@ -3933,20 +3921,45 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         [],
         'overview partner reading stock'
     );
+    const ownSavedItems = readHomeList(
+        Array.isArray(pairingHomeData.ownSavedItems)
+            ? pairingHomeData.ownSavedItems
+            : (insights?.getOwnSaved ? () => insights.getOwnSaved() : []),
+        [],
+        'overview own saved names'
+    );
+    const partnerSavedItems = readHomeList(
+        Array.isArray(pairingHomeData.partnerSavedItems)
+            ? pairingHomeData.partnerSavedItems
+            : (insights?.getPartnerSaved ? () => insights.getPartnerSaved() : []),
+        [],
+        'overview partner saved names'
+    );
     const partnerLikedItemsVisible = partnerLikedItems;
-    const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
-    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
-    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
-    const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
-    let ownKanjiCount = Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
-    if (typeof window.getVisibleKanjiStockCardCount === 'function') {
-        try {
-            ownKanjiCount = window.getVisibleKanjiStockCardCount('all', ownLikedItems);
-        } catch (error) {
-            console.warn('HOME: Falling back to raw overview kanji count', error);
+    const resolvedCounts = getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, {
+        ...pairing,
+        _homeData: {
+            ...pairingHomeData,
+            ownReadingItems: ownReadingStock,
+            partnerReadingItems: partnerReadingStock,
+            ownLikedItems,
+            partnerLikedItems: partnerLikedItemsVisible,
+            ownSavedItems,
+            partnerSavedItems,
+            matchedReadingItems: Array.isArray(pairingHomeData.matchedReadingItems) ? pairingHomeData.matchedReadingItems : [],
+            matchedLikedItems: Array.isArray(pairingHomeData.matchedLikedItems) ? pairingHomeData.matchedLikedItems : [],
+            matchedSavedItems: Array.isArray(pairingHomeData.matchedSavedItems) ? pairingHomeData.matchedSavedItems : []
         }
-    }
-    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
+    });
+    const partnerReadingCount = resolvedCounts.partner.reading;
+    const partnerKanjiCount = resolvedCounts.partner.kanji;
+    const partnerSavedCount = resolvedCounts.partner.saved;
+    const ownReadingCount = resolvedCounts.own.reading;
+    const ownKanjiCount = resolvedCounts.own.kanji;
+    const ownSavedCount = resolvedCounts.own.saved;
+    aggregateCounts.readingStockCount = resolvedCounts.aggregate.reading;
+    aggregateCounts.likedCount = resolvedCounts.aggregate.kanji;
+    aggregateCounts.savedCount = resolvedCounts.aggregate.saved;
 
     let result = null;
     if (mode === 'shared') {
@@ -4060,11 +4073,33 @@ function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
         [],
         'fallback partner kanji stock'
     );
-    const counts = pairing?.counts || {};
-    const countFor = (section, key, fallback) => {
-        const value = counts?.[section]?.[key] ?? pairing?.[`${section}${key.charAt(0).toUpperCase()}${key.slice(1)}Count`];
-        return Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : Math.max(0, Number(fallback) || 0);
-    };
+    const ownSavedItems = readHomeList(
+        pairingHomeData.ownSavedItems,
+        homeOwnership?.ownSavedItems,
+        'fallback own saved names'
+    );
+    const partnerSavedItems = readHomeList(
+        pairingHomeData.partnerSavedItems,
+        [],
+        'fallback partner saved names'
+    );
+    const resolvedCounts = getHomeResolvedStageCounts(
+        homeOwnership?.ownLikedCount,
+        homeOwnership?.ownReadingCount,
+        homeOwnership?.ownSavedCount,
+        {
+            ...pairing,
+            _homeData: {
+                ...pairingHomeData,
+                ownReadingItems: ownReadingStock,
+                partnerReadingItems: partnerReadingStock,
+                ownLikedItems,
+                partnerLikedItems,
+                ownSavedItems,
+                partnerSavedItems
+            }
+        }
+    );
     let mode = 'self';
     try {
         mode = getHomeOverviewMode(pairing);
@@ -4074,22 +4109,19 @@ function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
 
     let readingStock = ownReadingStock;
     let likedItems = ownLikedItems;
-    let likedCount = countFor('own', 'kanji', ownLikedItems.length);
-    let readingStockCount = countFor('own', 'reading', ownReadingStock.length);
-    let savedCount = countFor('own', 'saved', homeOwnership?.ownSavedCount);
+    let activeCounts = resolvedCounts.own;
     if (mode === 'shared') {
         readingStock = [...ownReadingStock, ...partnerReadingStock];
         likedItems = [...ownLikedItems, ...partnerLikedItems];
-        likedCount = Math.max(0, Number(homeOwnership?.ownLikedCount) || likedItems.length);
-        readingStockCount = Math.max(0, Number(homeOwnership?.ownReadingCount) || readingStock.length);
-        savedCount = Math.max(0, Number(homeOwnership?.ownSavedCount) || 0);
+        activeCounts = resolvedCounts.aggregate;
     } else if (mode === 'partner') {
         readingStock = partnerReadingStock;
         likedItems = partnerLikedItems;
-        likedCount = countFor('partner', 'kanji', partnerLikedItems.length);
-        readingStockCount = countFor('partner', 'reading', partnerReadingStock.length);
-        savedCount = countFor('partner', 'saved', 0);
+        activeCounts = resolvedCounts.partner;
     }
+    const likedCount = activeCounts.kanji;
+    const readingStockCount = activeCounts.reading;
+    const savedCount = activeCounts.saved;
     const buildCount = typeof getHomeBuildPatternCountSafe === 'function'
         ? getHomeBuildPatternCountSafe(likedItems, readingStock, 'fallback build patterns')
         : 0;
@@ -4104,9 +4136,9 @@ function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
         pairing,
         savedCanvasState: null,
         aggregateCounts: {
-            likedCount,
-            readingStockCount,
-            savedCount
+            likedCount: resolvedCounts.aggregate.kanji,
+            readingStockCount: resolvedCounts.aggregate.reading,
+            savedCount: resolvedCounts.aggregate.saved
         },
         actions: {
             reading: readingStockCount > 0 ? 'stock-reading' : 'sound',

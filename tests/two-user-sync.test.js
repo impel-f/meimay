@@ -434,6 +434,69 @@ test('a sole legacy partner child remains readable before explicit child linking
   assert.equal(sandbox.result.record.libraries.readingStock[0].reading, 'はると');
 });
 
+test('a unique matching child slot remains readable before explicit child linking', () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const childIdResolver = extractTopLevelFunction(firebaseSource, 'getWorkspaceChildRecordIds');
+  const soleChildResolver = extractTopLevelFunction(firebaseSource, 'getSolePartnerChildRecord');
+  const getPartnerChildContext = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_getPartnerChildContext');
+  const suppressFallback = extractObjectMethod(firebaseSource, 'MeimayPartnerInsights', '_shouldSuppressUnscopedPartnerFallback');
+  const sandbox = { console: { warn() {} } };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${childIdResolver}
+    ${soleChildResolver}
+    const partnerRoot = {
+      activeChildId: 'partner-first-child',
+      childOrder: ['partner-first-child', 'partner-second-child'],
+      children: {
+        'partner-first-child': {
+          meta: { id: 'partner-first-child', birthOrder: 1 },
+          libraries: {
+            kanjiStock: [{ kanji: '怜' }],
+            readingStock: [{ reading: 'れい' }],
+            savedNames: [{ givenName: '怜' }]
+          }
+        },
+        'partner-second-child': {
+          meta: { id: 'partner-second-child', birthOrder: 2 },
+          libraries: {
+            kanjiStock: [{ kanji: '凪' }],
+            readingStock: [{ reading: 'なぎ' }],
+            savedNames: []
+          }
+        }
+      }
+    };
+    const MeimayChildWorkspaces = {
+      root: {
+        activeChildId: 'local-first-child',
+        childOrder: ['local-first-child', 'local-second-child'],
+        children: {
+          'local-first-child': { meta: { id: 'local-first-child', birthOrder: 1 } },
+          'local-second-child': { meta: { id: 'local-second-child', birthOrder: 2 } }
+        }
+      },
+      getActiveChild() { return this.root.children['local-first-child']; },
+      getPartnerWorkspaceRoot() { return partnerRoot; },
+      getPartnerChildForChild() { return null; },
+      isPartnerAlignmentReviewRequired() { return true; }
+    };
+    const insights = { _getPartnerChildContext: ${getPartnerChildContext} };
+    const context = insights._getPartnerChildContext();
+    insights._getPartnerChildContext = () => context;
+    insights._shouldSuppressUnscopedPartnerFallback = ${suppressFallback};
+    globalThis.result = {
+      context,
+      suppressed: insights._shouldSuppressUnscopedPartnerFallback()
+    };
+  `, sandbox);
+
+  assert.equal(sandbox.result.context.partnerChild.meta.id, 'partner-first-child');
+  assert.equal(sandbox.result.context.partnerChild.libraries.kanjiStock[0].kanji, '怜');
+  assert.equal(sandbox.result.context.requiresScopedChild, true);
+  assert.equal(sandbox.result.suppressed, false);
+});
+
 test('legacy flat partner stocks survive an empty sole-child projection', () => {
   const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const methodNames = [
@@ -584,6 +647,8 @@ test('reading, kanji, and saved-name mutations stay connected to realtime partne
   assert.match(extractTopLevelFunction(firebaseSource, 'queuePartnerStockSync'), /_autoSyncDebounced\(reason\)/);
   assert.match(extractTopLevelFunction(firebaseSource, 'buildRoomSyncContentFingerprint'), /hiddenReadings/);
   assert.match(firebaseSource, /\.onSnapshot\(\(doc\) =>/);
+  assert.match(firebaseSource, /likedSource\.length === 0 && savedNamesSource\.length === 0 && readingStockSource\.length === 0/);
+  assert.match(firebaseSource, /partnerContentFingerprint === hydratedPartnerFingerprint/);
 });
 
 test('partner view follows reading, kanji, and saved-name additions and removals', () => {
@@ -651,6 +716,109 @@ test('partner view follows reading, kanji, and saved-name additions and removals
   assert.deepEqual(userB.partnerSnapshot.liked, []);
   assert.deepEqual(userB.partnerSnapshot.savedNames, []);
   assert.deepEqual(visiblePartnerReadings, []);
+});
+
+test('an empty in-memory partner snapshot is rehydrated even when the room fingerprint is unchanged', async () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const listenPartnerData = extractAssignedFunction(firebaseSource, 'MeimayShare', 'listenPartnerData');
+  let roomListener = null;
+  const sandbox = {
+    console: { log() {}, warn() {} },
+    setTimeout,
+    clearTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    const MeimayPairing = { roomCode: 'ROOM01', partnerUid: 'partner-b' };
+    const partnerBackup = {
+      liked: [{ kanji: '怜' }],
+      readingStock: [{ reading: 'れい' }],
+      savedNames: [{ givenName: '怜', reading: 'れい' }]
+    };
+    const firebaseDb = {
+      collection(name) {
+        if (name === 'users') {
+          return {
+            doc() {
+              return {
+                get: async () => ({
+                  exists: true,
+                  data: () => ({ meimayBackup: partnerBackup })
+                })
+              };
+            }
+          };
+        }
+        return {
+          doc() {
+            return {
+              collection() {
+                return {
+                  doc() {
+                    return {
+                      onSnapshot(callback) {
+                        roomListener = callback;
+                        return () => {};
+                      }
+                    };
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+    };
+    const StorageBox = { _filterRemovedLikedItems: (items) => Array.isArray(items) ? items : [] };
+    const MeimayFirestorePayload = {
+      hydrateSections(sections) {
+        return {
+          liked: sections.liked || [],
+          savedNames: sections.savedNames || [],
+          readingStock: sections.readingStock || [],
+          encounteredReadings: sections.encounteredReadings || []
+        };
+      }
+    };
+    const MeimayPartnerInsights = { clearCache() {} };
+    const withMeimayTimeout = (promise) => promise;
+    const cleanupLegacyPartnerLocalData = () => {};
+    const hasRoomSyncArrayField = () => true;
+    const readNormalizedHiddenReadingsFromSnapshot = (items) => items || [];
+    const aggregateRoomSyncWorkspaceSections = () => ({ liked: [], savedNames: [], readingStock: [], hiddenReadings: [] });
+    const updatePairingUI = () => {};
+    const updatePremiumUI = () => {};
+    const MeimayShare = {
+      _partnerUnsub: null,
+      _partnerUserUnsub: null,
+      _partnerSnapshotApplySequence: 0,
+      _lastPartnerContentFingerprint: 'same-content',
+      _partnerSnapshotPartnerUid: 'partner-b',
+      partnerSnapshot: { liked: [], savedNames: [], readingStock: [] },
+      _buildPartnerContentFingerprint: () => 'same-content',
+      buildPublicPremiumSnapshot: () => null,
+      cachePartnerSnapshot() {}
+    };
+    MeimayShare.listenPartnerData = ${listenPartnerData};
+    MeimayShare.listenPartnerData('partner-b');
+    roomListener({
+      exists: true,
+      data: () => ({
+        roomSyncFingerprint: 'same-content',
+        liked: [],
+        savedNames: [],
+        readingStock: [],
+        hiddenReadings: []
+      })
+    });
+    globalThis.MeimayShareResult = MeimayShare;
+  `, sandbox);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.deepEqual(Array.from(sandbox.MeimayShareResult.partnerSnapshot.liked, (item) => item.kanji), ['怜']);
+  assert.deepEqual(Array.from(sandbox.MeimayShareResult.partnerSnapshot.readingStock, (item) => item.reading), ['れい']);
+  assert.deepEqual(Array.from(sandbox.MeimayShareResult.partnerSnapshot.savedNames, (item) => item.givenName), ['怜']);
+  assert.equal(sandbox.MeimayShareResult.partnerSnapshot.contentFingerprint, 'same-content');
 });
 
 test('oversized sync keeps workspace data and stays below the Firestore safety limit', () => {

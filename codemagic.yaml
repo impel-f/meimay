@@ -30,7 +30,7 @@ workflows:
       groups:
         - android-signing
       vars:
-        ANDROID_VERSION_CODE: "63"
+        ANDROID_VERSION_CODE: "64"
         ANDROID_VERSION_NAME: "1.4.2"
       node: v22.11.0
       java: 21
@@ -66,6 +66,22 @@ workflows:
             echo "Marketing-only assets were packaged in the Android release AAB"
             exit 1
           fi
+          MAPPING_PATH="$CM_BUILD_DIR/android/app/build/outputs/mapping/release/mapping.txt"
+          if [ ! -f "$MAPPING_PATH" ]; then
+            echo "R8 mapping was not generated for the Android release"
+            exit 1
+          fi
+          for REQUIRED_CLASS in \
+            com.impelf.meimay.MainActivity \
+            com.getcapacitor.plugin.SystemBars \
+            com.getcapacitor.community.admob.AdMob \
+            com.capacitorjs.plugins.share.SharePlugin \
+            com.revenuecat.purchases.capacitor.PurchasesPlugin; do
+            if ! grep -Fq "$REQUIRED_CLASS -> $REQUIRED_CLASS:" "$MAPPING_PATH"; then
+              echo "Required Android class was removed or renamed by R8: $REQUIRED_CLASS"
+              exit 1
+            fi
+          done
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
       - android/app/build/outputs/mapping/release/mapping.txt

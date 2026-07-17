@@ -2675,7 +2675,8 @@ const MeimayShare = {
             displayName: '',
             username: '',
             nickname: '',
-            themeId: ''
+            themeId: '',
+            contentFingerprint: ''
         };
     },
 
@@ -2743,6 +2744,7 @@ const MeimayShare = {
         if (!snapshot) return false;
         this.partnerSnapshot = snapshot;
         this._partnerSnapshotPartnerUid = String(snapshot.__meimayPartnerUid || MeimayPairing?.partnerUid || '').trim();
+        this._lastPartnerContentFingerprint = String(snapshot.contentFingerprint || '').trim();
         if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
             MeimayPartnerInsights.clearCache(`partner-cache-${reason}`);
         }
@@ -3090,21 +3092,45 @@ const MeimayPartnerInsights = {
                 ? manager.getPartnerWorkspaceRoot()
                 : null;
             const partnerChildCount = getWorkspaceChildRecordIds(partnerRoot).length;
-            const matchedPartnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
-                ? manager.getPartnerChildForChild(activeChild)
-                : null;
-            // One partner child is unambiguous even when an older app has not written
-            // the explicit child-link metadata yet.
-            const partnerChild = matchedPartnerChild || getSolePartnerChildRecord(partnerRoot);
-            const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
-                ? manager.isPartnerAlignmentReviewRequired()
-                : false;
             const activeBirthOrder = Number(activeChild?.meta?.birthOrder || activeChild?.birthOrder || 1);
             const activeTwinIndex = activeChild?.meta?.birthGroupIndex
                 ?? activeChild?.meta?.twinIndex
                 ?? activeChild?.birthGroupIndex
                 ?? activeChild?.twinIndex
                 ?? null;
+            const matchedPartnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
+                ? manager.getPartnerChildForChild(activeChild)
+                : null;
+            const normalizeSlotValue = (value) => {
+                if (value === null || value === undefined || value === '') return '';
+                const numeric = Number(value);
+                return Number.isFinite(numeric) ? String(numeric) : String(value).trim();
+            };
+            const buildChildSlotKey = (child) => {
+                if (!child) return '';
+                const birthOrder = Number(child?.meta?.birthOrder || child?.birthOrder || 1);
+                const twinIndex = child?.meta?.birthGroupIndex
+                    ?? child?.meta?.twinIndex
+                    ?? child?.birthGroupIndex
+                    ?? child?.twinIndex
+                    ?? null;
+                return `${Number.isFinite(birthOrder) && birthOrder > 0 ? birthOrder : 1}:${normalizeSlotValue(twinIndex)}`;
+            };
+            const activeSlotKey = buildChildSlotKey(activeChild);
+            const partnerSlotMatches = activeSlotKey
+                ? getWorkspaceChildRecordIds(partnerRoot)
+                    .map(childId => partnerRoot?.children?.[childId])
+                    .filter(child => child && buildChildSlotKey(child) === activeSlotKey)
+                : [];
+            // Older partner builds may not have written explicit child-link metadata.
+            // A unique birth-order/twin slot is still safe to use and avoids a false zero state.
+            const slotMatchedPartnerChild = partnerSlotMatches.length === 1 ? partnerSlotMatches[0] : null;
+            const partnerChild = matchedPartnerChild
+                || slotMatchedPartnerChild
+                || getSolePartnerChildRecord(partnerRoot);
+            const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
+                ? manager.isPartnerAlignmentReviewRequired()
+                : false;
 
             return {
                 manager,
@@ -4277,6 +4303,68 @@ async function fetchStatsApiRankings(path, kind, genderValue, options = {}) {
         }
     }
     throw lastError || new Error('ランキングAPIを利用できません');
+}
+
+function getPublicStatsFieldNumber(field) {
+    if (!field || typeof field !== 'object') return 0;
+    const count = Number(field.integerValue ?? field.doubleValue);
+    return Number.isFinite(count) ? count : 0;
+}
+
+async function fetchPublicFirestoreRankings(type, kind, metric, genderValue, options = {}) {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedGender = normalizeStatsGenderValue(genderValue);
+    const collectionNames = getStatsRankingCollectionNames(normalizedKind, metric, normalizedGender);
+    const documentId = getStatsRankingDocumentId(type);
+    const projectId = String(firebaseConfig?.projectId || '').trim();
+    const apiKey = String(firebaseConfig?.apiKey || '').trim();
+    if (!projectId || !apiKey || collectionNames.length === 0) {
+        throw new Error('公開ランキングの接続先を利用できません');
+    }
+
+    const results = await Promise.allSettled(collectionNames.map(async (collectionName) => {
+        const path = `${encodeURIComponent(collectionName)}/${encodeURIComponent(documentId)}`;
+        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${path}?key=${encodeURIComponent(apiKey)}`;
+        const response = await fetchStatsWithTimeout(url, {
+            cache: 'no-store',
+            ...(options?.signal ? { signal: options.signal } : {})
+        }, 3500);
+        if (response.status === 404) return null;
+        if (!response.ok) throw new Error(`公開ランキングの取得に失敗しました (${response.status})`);
+        return response.json();
+    }));
+    if (options?.signal?.aborted) {
+        const abortError = new Error('Ranking request aborted');
+        abortError.name = 'AbortError';
+        throw abortError;
+    }
+
+    const totals = new Map();
+    let successfulReads = 0;
+    results.forEach((result) => {
+        if (result.status !== 'fulfilled') return;
+        successfulReads += 1;
+        const fields = result.value?.fields;
+        if (!fields || typeof fields !== 'object') return;
+        Object.entries(fields).forEach(([key, field]) => {
+            if (key === 'updatedAt') return;
+            const normalizedKey = normalizedKind === 'reading'
+                ? normalizeStatsReadingText(key)
+                : String(key || '').trim();
+            const count = getPublicStatsFieldNumber(field);
+            if (!normalizedKey || count <= 0) return;
+            totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
+        });
+    });
+    if (successfulReads === 0) {
+        const failed = results.find((result) => result.status === 'rejected');
+        throw failed?.reason || new Error('公開ランキングを取得できませんでした');
+    }
+
+    const items = Array.from(totals.entries()).map(([key, count]) => normalizedKind === 'reading'
+        ? { reading: key, count }
+        : { kanji: key, count });
+    return normalizeStatsRankingItems(items, normalizedKind, normalizedGender);
 }
 
 async function fetchFirestoreSdkRankings(type, kind, metric, genderValue, options = {}) {
@@ -5502,6 +5590,19 @@ const MeimayStats = {
         const localItems = fetchLocalStatsRankings(normalizedType, normalizedKind, normalizedMetric, normalizedGender);
         if (Array.isArray(localItems)) return localItems;
 
+        try {
+            return await fetchPublicFirestoreRankings(
+                normalizedType,
+                normalizedKind,
+                normalizedMetric,
+                normalizedGender,
+                options
+            );
+        } catch (firestoreRestError) {
+            if (firestoreRestError?.name === 'AbortError') throw firestoreRestError;
+            console.warn(`STATS: direct ranking read(${normalizedKind}:${normalizedType}) fallback`, firestoreRestError);
+        }
+
         const query = new URLSearchParams({
             period: normalizedType,
             kind: normalizedKind,
@@ -6357,7 +6458,7 @@ MeimayPartnerInsights.getSummary = function () {
     let partnerKanjiCount = partnerLikedItems.length;
     if (typeof window.getVisibleKanjiStockCardCount === 'function') {
         try {
-            ownKanjiCount = window.getVisibleKanjiStockCardCount('all', ownLikedItems);
+            ownKanjiCount = window.getVisibleKanjiStockCardCount('self', ownLikedItems);
             partnerKanjiCount = window.getVisibleKanjiStockCardCount('partner', partnerLikedItems);
         } catch (error) {
             console.warn('PAIRING: Falling back to raw kanji counts', error);
@@ -7854,7 +7955,12 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             const partnerContentFingerprint = typeof this._buildPartnerContentFingerprint === 'function'
                 ? this._buildPartnerContentFingerprint(data)
                 : '';
-            if (partnerContentFingerprint && partnerContentFingerprint === this._lastPartnerContentFingerprint) {
+            const hydratedPartnerFingerprint = String(this.partnerSnapshot?.contentFingerprint || '').trim();
+            const canReuseHydratedPartnerSnapshot = partnerContentFingerprint
+                && partnerContentFingerprint === this._lastPartnerContentFingerprint
+                && partnerContentFingerprint === hydratedPartnerFingerprint
+                && String(this._partnerSnapshotPartnerUid || '').trim() === String(partnerUid || '').trim();
+            if (canReuseHydratedPartnerSnapshot) {
                 const partnerPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
                 this.partnerUserSnapshot = partnerPremiumSnapshot;
                 if (this.partnerSnapshot && typeof this.partnerSnapshot === 'object') {
@@ -7924,6 +8030,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 || !hasRoomSyncArrayField(data, roomBackup, 'savedNames')
                 || !hasRoomSyncArrayField(data, roomBackup, 'readingStock')
                 || !partnerChildWorkspaceStateV2
+                || (likedSource.length === 0 && savedNamesSource.length === 0 && readingStockSource.length === 0)
             );
             if (shouldFetchPartnerUserBackup) {
                 try {
@@ -8030,7 +8137,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     : '',
                 meimayBackup: roomBackup,
                 backup: roomBackup,
-                partnerUserBackup
+                partnerUserBackup,
+                contentFingerprint: partnerContentFingerprint
             };
             this._lastPartnerContentFingerprint = partnerContentFingerprint;
             this._partnerSnapshotPartnerUid = partnerUid;

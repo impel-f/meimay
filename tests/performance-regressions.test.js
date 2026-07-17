@@ -108,14 +108,16 @@ test('partner-aware refreshes in the same frame are coalesced', () => {
   assert.equal(sandbox.calls.drawer, 1);
 });
 
-test('premium-only partner snapshots skip data hydration and screen refresh', () => {
+test('premium-only partner snapshots are reused only after full partner hydration', () => {
   const source = readSource('15-firebase.js');
-  const unchangedGuard = source.indexOf('partnerContentFingerprint === this._lastPartnerContentFingerprint');
+  const unchangedGuard = source.indexOf('if (canReuseHydratedPartnerSnapshot)');
   const cleanup = source.indexOf('cleanupLegacyPartnerLocalData()', unchangedGuard);
   const guardEnd = source.indexOf('return;', unchangedGuard);
 
-  assert.ok(unchangedGuard >= 0, 'partner content fingerprint guard must exist');
+  assert.ok(unchangedGuard >= 0, 'hydrated partner fingerprint guard must exist');
   assert.ok(guardEnd > unchangedGuard && guardEnd < cleanup, 'unchanged content must return before hydration');
+  assert.match(source, /partnerContentFingerprint === hydratedPartnerFingerprint/);
+  assert.match(source, /contentFingerprint: partnerContentFingerprint/);
 });
 
 test('heavy destination screens render after the first screen paint', () => {
@@ -301,9 +303,11 @@ test('home profile retries after a transient render failure and then mounts cont
 test('home and partner summaries normalize malformed legacy collections', () => {
   const renderSource = readSource('05-ui-render.js');
   const readHomeList = extractFunction(renderSource, 'readHomeList');
+  const resolveCounts = extractFunction(renderSource, 'getHomeResolvedStageCounts');
   const localFallback = extractFunction(renderSource, 'getHomeLocalStageSnapshotFallback');
   const sandbox = {
     console: { warn() {} },
+    window: {},
     getHomeBuildPatternCountSafe(candidatePool, readingStock) {
       return candidatePool.length === 2 && readingStock.length === 1 ? 6 : 0;
     }
@@ -311,6 +315,7 @@ test('home and partner summaries normalize malformed legacy collections', () => 
   vm.createContext(sandbox);
   vm.runInContext(`
     ${readHomeList}
+    ${resolveCounts}
     ${localFallback}
     globalThis.fromInvalid = readHomeList({ bad: true }, ['fallback'], 'invalid');
     globalThis.fromThrow = readHomeList(() => { throw new Error('legacy'); }, ['fallback'], 'throwing');
@@ -326,7 +331,7 @@ test('home and partner summaries normalize malformed legacy collections', () => 
   assert.deepEqual([...sandbox.fromInvalid], ['fallback']);
   assert.deepEqual([...sandbox.fromThrow], ['fallback']);
   assert.equal(sandbox.localStage.mode, 'shared');
-  assert.equal(sandbox.localStage.likedCount, 4);
+  assert.equal(sandbox.localStage.likedCount, 2);
   assert.equal(sandbox.localStage.readingStock.length, 1);
   assert.equal(sandbox.localStage.buildCount, 6);
   assert.equal(sandbox.localStage.actions.build, 'build');
@@ -447,13 +452,138 @@ test('shared build combinations cannot drop below the own-mode combinations', ()
     ];
     const ownReadings = [{ reading: 'はると', segments: ['はる', 'と'] }];
     const sources = getHomeSharedBuildSources(ownLiked, partnerLiked, ownReadings, []);
+    const emptyPartnerSources = getHomeSharedBuildSources(ownLiked, [], ownReadings, []);
     globalThis.ownCount = getHomeBuildPatternCount(ownLiked, ownReadings);
     globalThis.sharedCount = getHomeBuildPatternCount(sources.candidatePool, sources.readingStock);
+    globalThis.emptyPartnerSharedCount = getHomeBuildPatternCount(
+      emptyPartnerSources.candidatePool,
+      emptyPartnerSources.readingStock
+    );
   `, sandbox);
 
   assert.equal(sandbox.ownCount, 2);
   assert.equal(sandbox.sharedCount, 6);
+  assert.equal(sandbox.emptyPartnerSharedCount, sandbox.ownCount);
   assert.ok(sandbox.sharedCount >= sandbox.ownCount);
+});
+
+test('home mode counts ignore stale summaries and use the same live candidate arrays', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const resolveCounts = extractFunction(renderSource, 'getHomeResolvedStageCounts');
+  const sandbox = {
+    console: { warn() {} },
+    window: {
+      getVisibleKanjiStockCardCount(focus, items) {
+        if (focus === 'self') return items.filter((item) => item.fromPartner !== true).length;
+        if (focus === 'partner') return items.filter((item) => item.fromPartner === true).length;
+        return items.length;
+      }
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${resolveCounts}
+    const ownLikedItems = Array.from({ length: 34 }, (_, index) => ({ kanji: '自' + index }));
+    const ownReadingItems = Array.from({ length: 15 }, (_, index) => ({ reading: 'よみ' + index }));
+    const ownSavedItems = Array.from({ length: 8 }, (_, index) => ({ givenName: '名' + index }));
+    const emptyPartner = {
+      counts: {
+        own: { reading: 15, kanji: 14, saved: 5 },
+        partner: { reading: 0, kanji: 0, saved: 0 },
+        matched: { reading: 0, kanji: 0, saved: 0 }
+      },
+      _homeData: {
+        ownReadingItems,
+        partnerReadingItems: [],
+        ownLikedItems,
+        partnerLikedItems: [],
+        ownSavedItems,
+        partnerSavedItems: [],
+        matchedReadingItems: [],
+        matchedLikedItems: [],
+        matchedSavedItems: []
+      }
+    };
+    globalThis.emptyPartnerCounts = getHomeResolvedStageCounts(14, 15, 5, emptyPartner);
+
+    const partnerData = {
+      ...emptyPartner,
+      _homeData: {
+        ...emptyPartner._homeData,
+        partnerReadingItems: [{ reading: 'みなと' }],
+        partnerLikedItems: [{ kanji: '凪', fromPartner: true }],
+        partnerSavedItems: [{ givenName: '湊' }]
+      }
+    };
+    globalThis.partnerCounts = getHomeResolvedStageCounts(14, 15, 5, partnerData);
+  `, sandbox);
+
+  assert.deepEqual({ ...sandbox.emptyPartnerCounts.own }, { reading: 15, kanji: 34, saved: 8 });
+  assert.deepEqual({ ...sandbox.emptyPartnerCounts.aggregate }, { reading: 15, kanji: 34, saved: 8 });
+  assert.deepEqual({ ...sandbox.partnerCounts.partner }, { reading: 1, kanji: 1, saved: 1 });
+  assert.deepEqual({ ...sandbox.partnerCounts.aggregate }, { reading: 16, kanji: 35, saved: 9 });
+});
+
+test('home fallback cannot restore stale linked summary counts', () => {
+  const renderSource = readSource('05-ui-render.js');
+  const resolveCounts = extractFunction(renderSource, 'getHomeResolvedStageCounts');
+  const fallbackSnapshot = extractFunction(renderSource, 'getHomeLocalStageSnapshotFallback');
+  const sandbox = {
+    console: { warn() {} },
+    window: {
+      getVisibleKanjiStockCardCount(focus, items) {
+        if (focus === 'self') return items.filter((item) => item.fromPartner !== true).length;
+        if (focus === 'partner') return items.filter((item) => item.fromPartner === true).length;
+        return items.length;
+      }
+    },
+    readHomeList(value, fallback) {
+      const resolved = typeof value === 'function' ? value() : value;
+      return Array.isArray(resolved) ? resolved : (Array.isArray(fallback) ? fallback : []);
+    },
+    getHomeOverviewMode() { return 'shared'; },
+    getHomeBuildPatternCountSafe(likedItems) { return likedItems.length; }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`
+    ${resolveCounts}
+    ${fallbackSnapshot}
+    const ownLikedItems = Array.from({ length: 34 }, (_, index) => ({ kanji: '自' + index }));
+    const ownReadingItems = Array.from({ length: 15 }, (_, index) => ({ reading: 'よみ' + index }));
+    const ownSavedItems = Array.from({ length: 8 }, (_, index) => ({ givenName: '名' + index }));
+    globalThis.result = getHomeLocalStageSnapshotFallback({
+      ownLikedCount: 34,
+      ownReadingCount: 15,
+      ownSavedCount: 8,
+      ownLikedItems,
+      ownReadingItems,
+      ownSavedItems
+    }, {
+      counts: {
+        own: { reading: 15, kanji: 14, saved: 5 },
+        partner: { reading: 0, kanji: 0, saved: 0 },
+        matched: { reading: 0, kanji: 0, saved: 0 }
+      },
+      _homeData: {
+        ownReadingItems,
+        partnerReadingItems: [],
+        ownLikedItems,
+        partnerLikedItems: [],
+        ownSavedItems,
+        partnerSavedItems: []
+      }
+    });
+  `, sandbox);
+
+  assert.equal(sandbox.result.mode, 'shared');
+  assert.equal(sandbox.result.readingStockCount, 15);
+  assert.equal(sandbox.result.likedCount, 34);
+  assert.equal(sandbox.result.savedCount, 8);
+  assert.deepEqual({ ...sandbox.result.aggregateCounts }, {
+    likedCount: 34,
+    readingStockCount: 15,
+    savedCount: 8
+  });
 });
 
 test('home overview isolates saved-name selection failures from build counts', () => {

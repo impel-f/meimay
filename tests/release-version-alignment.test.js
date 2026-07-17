@@ -48,3 +48,16 @@ test('release build numbers stay aligned and Codemagic verifies generated artifa
   assert.match(codemagic, /Verify Android bundle contents/);
   assert.match(codemagic, /Verify IPA version before publishing/);
 });
+
+test('Android release enables edge-to-edge and R8 without bypassing Capacitor', () => {
+  const gradle = read('android/app/build.gradle');
+  const codemagic = read('codemagic.yaml');
+  const mainActivity = read('android/app/src/main/java/com/impelf/meimay/MainActivity.java');
+
+  assert.match(gradle, /release\s*\{[\s\S]*?minifyEnabled true/);
+  assert.match(gradle, /release\s*\{[\s\S]*?shrinkResources true/);
+  assert.match(gradle, /getDefaultProguardFile\('proguard-android-optimize\.txt'\)/);
+  assert.match(mainActivity, /class MainActivity extends BridgeActivity/);
+  assert.match(mainActivity, /EdgeToEdge\.enable\(this\);\s*super\.onCreate\(savedInstanceState\);/);
+  assert.match(codemagic, /Required Android class was removed or renamed by R8/);
+});

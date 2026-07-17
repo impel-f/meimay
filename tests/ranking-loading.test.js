@@ -232,17 +232,24 @@ test('ranking API retries the production URL when a relative WebView request fai
   assert.equal(items[0].count, 7);
 });
 
-test('ranking falls back to the public Firestore aggregate after API failure', async () => {
+test('ranking reads the public Firestore aggregate before the slower API', async () => {
   const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const fetchRankings = extractObjectMethod(firebaseSource, 'MeimayStats', 'fetchRankings');
+  let apiCalls = 0;
   const sandbox = {
     URLSearchParams,
     console: { warn() {} },
     fetchLocalStatsRankings() { return null; },
     normalizeStatsGenderValue(value) { return value; },
-    async fetchStatsApiRankings() { throw new Error('API unavailable'); },
-    async fetchFirestoreSdkRankings(type, kind, metric, gender) {
+    async fetchPublicFirestoreRankings(type, kind, metric, gender) {
       return [{ kanji: gender === 'male' ? '晴' : '花', count: 5 }];
+    },
+    async fetchStatsApiRankings() {
+      apiCalls += 1;
+      throw new Error('API must not be used after a successful direct read');
+    },
+    async fetchFirestoreSdkRankings() {
+      throw new Error('SDK must not be used after a successful direct read');
     }
   };
   vm.createContext(sandbox);
@@ -253,6 +260,49 @@ test('ranking falls back to the public Firestore aggregate after API failure', a
 
   const items = await sandbox.promise;
   assert.deepEqual(Array.from(items, (item) => item.kanji), ['晴']);
+  assert.equal(apiCalls, 0);
+});
+
+test('public Firestore ranking reads gender documents without the Vercel API', async () => {
+  const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
+  const functions = [
+    'normalizeStatsRankingItems',
+    'getPublicStatsFieldNumber',
+    'fetchPublicFirestoreRankings'
+  ].map((name) => extractTopLevelFunction(firebaseSource, name)).join('\n');
+  const calls = [];
+  const sandbox = {
+    Error,
+    Map,
+    Number,
+    String,
+    Array,
+    Promise,
+    encodeURIComponent,
+    firebaseConfig: { projectId: 'meimay-app', apiKey: 'public-key' },
+    normalizeStatsGenderValue(value) { return value; },
+    getStatsRankingCollectionNames(kind, metric, gender) { return [`statistics_${gender}`]; },
+    getStatsRankingDocumentId() { return 'allTime'; },
+    getReadingRankingAllowlist() { return null; },
+    normalizeStatsReadingText(value) { return value; },
+    async fetchStatsWithTimeout(url) {
+      calls.push(url);
+      return {
+        ok: true,
+        status: 200,
+        async json() {
+          return { fields: { 晴: { integerValue: '12' }, 陽: { integerValue: '8' } } };
+        }
+      };
+    }
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(`${functions}\nglobalThis.promise = fetchPublicFirestoreRankings('allTime', 'kanji', 'all', 'male');`, sandbox);
+
+  const items = await sandbox.promise;
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /statistics_male\/allTime/);
+  assert.deepEqual(Array.from(items, (item) => [item.kanji, item.count]), [['晴', 12], ['陽', 8]]);
 });
 
 test('a slower male response cannot overwrite the selected female ranking', async () => {
@@ -301,16 +351,18 @@ test('a slower male response cannot overwrite the selected female ranking', asyn
   assert.equal(sandbox.container.innerHTML, '花');
 });
 
-test('rankings keep API-first and Firestore fallback paths', () => {
+test('rankings keep direct Firestore, API, and SDK fallback paths in reliability order', () => {
   const firebaseSource = fs.readFileSync(FIREBASE_SOURCE_PATH, 'utf8');
   const fetchRankings = firebaseSource.slice(
     firebaseSource.indexOf('fetchRankings: async function'),
     firebaseSource.indexOf('recordReadingSeen:', firebaseSource.indexOf('fetchRankings: async function'))
   );
 
+  assert.match(fetchRankings, /fetchPublicFirestoreRankings\(/);
   assert.match(fetchRankings, /fetchStatsApiRankings\(/);
   assert.match(fetchRankings, /fetchFirestoreSdkRankings\(/);
   assert.match(fetchRankings, /query\.set\('gender', normalizedGender\)/);
+  assert.ok(fetchRankings.indexOf('fetchPublicFirestoreRankings') < fetchRankings.indexOf('fetchStatsApiRankings'));
   assert.ok(fetchRankings.indexOf('fetchStatsApiRankings') < fetchRankings.indexOf('fetchFirestoreSdkRankings'));
-  assert.doesNotMatch(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
+  assert.match(firebaseSource, /firestore\.googleapis\.com\/v1\/projects/);
 });
