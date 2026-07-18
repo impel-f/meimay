@@ -2443,16 +2443,33 @@ function getHomeBuildHiddenReadingSet() {
 }
 
 function getHomeDataStateFingerprint(pool, readingStock) {
-    // タイムスタンプ(updatedAt)に依存すると、保存のたびにキャッシュが壊れる可能性があるため、
-    // データの「件数」と「IDの並び」をベースにした、より安定した指紋を使用する。
-    const poolCount = Array.isArray(pool) ? pool.length : 0;
-    const readingCount = Array.isArray(readingStock) ? readingStock.length : 0;
+    const poolItems = Array.isArray(pool) ? pool : [];
+    const readingItems = Array.isArray(readingStock) ? readingStock : [];
+    let hash = 2166136261;
+    const addValue = (value) => {
+        const text = String(value ?? '');
+        for (let index = 0; index < text.length; index++) {
+            hash ^= text.charCodeAt(index);
+            hash = Math.imul(hash, 16777619);
+        }
+        hash ^= 31;
+        hash = Math.imul(hash, 16777619);
+    };
 
-    // 内容のハッシュ代わりとして、最初と最後の要素の情報を少し混ぜる
-    const poolHint = poolCount > 0 ? (pool[0]?.['漢字'] || pool[0]?.kanji || '') + (pool[poolCount-1]?.['漢字'] || '') : '';
-    const readingHint = readingCount > 0 ? (readingStock[0]?.reading || '') + (readingStock[readingCount-1]?.reading || '') : '';
+    poolItems.forEach((item) => {
+        addValue(item?.['漢字'] || item?.kanji || '');
+        addValue(item?.sessionReading || '');
+        addValue(Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1);
+        addValue(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
+        addValue(item?.kanji_reading || item?.reading || '');
+    });
+    readingItems.forEach((item) => {
+        addValue(item?.reading || item?.sessionReading || '');
+        addValue(Array.isArray(item?.segments) ? item.segments.join('/') : '');
+        addValue(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
+    });
 
-    return `v2_${poolCount}_${readingCount}_${poolHint}_${readingHint}`;
+    return `v3_${poolItems.length}_${readingItems.length}_${hash >>> 0}`;
 }
 
 function getHomeBuildPatternKey(reading, segments) {
@@ -2783,9 +2800,7 @@ function getHomeOwnershipSummary() {
                 : (typeof savedNames !== 'undefined' && Array.isArray(savedNames) ? savedNames : []);
             return Array.isArray(savedSource) ? savedSource : [];
         })();
-    const visibleOwnSavedItems = Array.isArray(ownSavedItems)
-        ? ownSavedItems.filter(item => !item?.fromPartner && !item?.approvedFromPartner)
-        : [];
+    const visibleOwnSavedItems = getHomeAuthoredSavedItems(ownSavedItems);
     const ownReadingItems = Array.isArray(pairingHomeData.ownReadingItems)
         ? pairingHomeData.ownReadingItems
         : pairInsights?.getOwnReadingStock
@@ -2814,15 +2829,6 @@ function getHomeOwnershipSummary() {
                 - readSummaryCount('matched', 'kanji', 0)
         )
         : ownLikedItems.length;
-    const displaySavedCount = isPaired
-        ? Math.max(
-            0,
-            readSummaryCount('own', 'saved', visibleOwnSavedItems.length)
-                + readSummaryCount('partner', 'saved', 0)
-                - readSummaryCount('matched', 'saved', 0)
-        )
-        : visibleOwnSavedItems.length;
-
     return {
         pairInsights,
         pairing,
@@ -2830,7 +2836,7 @@ function getHomeOwnershipSummary() {
         ownSavedItems: visibleOwnSavedItems,
         ownReadingItems,
         ownLikedCount: displayLikedCount,
-        ownSavedCount: displaySavedCount,
+        ownSavedCount: visibleOwnSavedItems.length,
         ownReadingCount: displayReadingCount
     };
 }
@@ -3616,6 +3622,65 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
     return 'まずは読み候補を集めて、名前の方向性を見つけましょう。';
 }
 
+function getHomeAuthoredSavedItems(items) {
+    return (Array.isArray(items) ? items : []).filter(item => (
+        item
+        && item.fromPartner !== true
+        && item.approvedFromPartner !== true
+    ));
+}
+
+function getHomeSavedIdentityKey(item) {
+    if (!item) return '';
+    try {
+        if (typeof getSavedCandidateKey === 'function') {
+            const key = getSavedCandidateKey(item);
+            if (key) return String(key);
+        }
+    } catch (error) {
+        console.warn('HOME: Failed to resolve saved candidate key', error);
+    }
+
+    const combination = Array.isArray(item.combination)
+        ? item.combination.map(part => part?.['漢字'] || part?.kanji || '').join('').trim()
+        : (Array.isArray(item.combinationKeys) ? item.combinationKeys.join('').trim() : '');
+    const rawName = String(item.givenName || combination || item.fullName || item.name || '').trim();
+    const nameParts = rawName.split(/\s+/).filter(Boolean);
+    const givenName = combination || (nameParts.length > 1 ? nameParts[nameParts.length - 1] : rawName);
+    const rawReading = String(item.givenReading || item.givenNameReading || item.reading || item.yomi || '').trim();
+    const readingParts = rawReading.split(/\s+/).filter(Boolean);
+    const givenReading = normalizeHomeBuildReadingValue(readingParts.length > 1
+        ? readingParts[readingParts.length - 1]
+        : rawReading);
+    return givenName ? `${givenName}::${combination}::${givenReading || givenName}` : '';
+}
+
+function getHomeSavedModeCounts(ownItems, partnerItems, fallback = {}) {
+    const hasLists = Array.isArray(ownItems) && Array.isArray(partnerItems);
+    if (!hasLists) {
+        const own = Math.max(0, Number(fallback.own) || 0);
+        const partner = Math.max(0, Number(fallback.partner) || 0);
+        const matched = Math.max(0, Math.min(own, partner, Number(fallback.matched) || 0));
+        return { own, partner, shared: Math.max(0, own + partner - matched) };
+    }
+
+    const ownVisible = getHomeAuthoredSavedItems(ownItems);
+    const partnerVisible = getHomeAuthoredSavedItems(partnerItems);
+    const sharedKeys = new Set();
+    let unkeyedCount = 0;
+    [...ownVisible, ...partnerVisible].forEach((item) => {
+        const key = getHomeSavedIdentityKey(item);
+        if (key) sharedKeys.add(key);
+        else unkeyedCount += 1;
+    });
+
+    return {
+        own: ownVisible.length,
+        partner: partnerVisible.length,
+        shared: sharedKeys.size + unkeyedCount
+    };
+}
+
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
     const counts = pairing?.counts || {};
     const ownReadingCount = Number.isFinite(Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount))
@@ -3652,6 +3717,15 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
         || Number.isFinite(Number(pairing?.partnerKanjiCount))
         || Number.isFinite(Number(pairing?.partnerReadingCount))
     );
+    const savedModeCounts = getHomeSavedModeCounts(
+        pairing?._homeData?.ownSavedItems,
+        pairing?._homeData?.partnerSavedItems,
+        {
+            own: ownSavedCount,
+            partner: partnerSavedCount,
+            matched: matchedSavedCount
+        }
+    );
 
     return {
         readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
@@ -3660,7 +3734,7 @@ function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairi
             : (typeof window.getVisibleKanjiStockCardCount === 'function'
                 ? window.getVisibleKanjiStockCardCount('all')
                 : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)),
-        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
+        savedCount: savedModeCounts.shared
     };
 }
 
@@ -3808,18 +3882,41 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
         : insights?.getPartnerReadingStock
         ? insights.getPartnerReadingStock()
         : [];
+    const ownSavedItems = Array.isArray(pairingHomeData.ownSavedItems)
+        ? pairingHomeData.ownSavedItems
+        : insights?.getOwnSaved
+        ? insights.getOwnSaved()
+        : null;
+    const partnerSavedItems = Array.isArray(pairingHomeData.partnerSavedItems)
+        ? pairingHomeData.partnerSavedItems
+        : insights?.getPartnerSaved
+        ? insights.getPartnerSaved()
+        : null;
     const partnerLikedItemsVisible = partnerLikedItems;
     const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
     const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
-    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
     const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
     const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
-    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
+    const savedModeCounts = getHomeSavedModeCounts(ownSavedItems, partnerSavedItems, {
+        own: counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount,
+        partner: counts?.partner?.saved ?? pairing?.partnerSavedCount,
+        matched: counts?.matched?.saved ?? pairing?.matchedNameCount
+    });
+    const partnerSavedCount = savedModeCounts.partner;
+    const ownSavedCount = savedModeCounts.own;
+    aggregateCounts.savedCount = savedModeCounts.shared;
 
     let result = null;
     if (mode === 'shared') {
+        const aggregateCandidatePool = [...ownLikedItems, ...partnerLikedItemsVisible];
         const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
-        const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
+        const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
+        const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
+        const aggregateBuildCount = Math.max(
+            getHomeBuildPatternCount(aggregateCandidatePool, aggregateReadingStock),
+            ownBuildCount,
+            partnerBuildCount
+        );
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         result = {
             mode,

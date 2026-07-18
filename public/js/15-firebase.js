@@ -6111,6 +6111,16 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerLikedItems = this.getPartnerLiked();
     const ownSavedItems = this.getOwnSaved();
     const partnerSavedItems = this.getPartnerSaved();
+    const ownVisibleSavedItems = ownSavedItems.filter(item => (
+        item
+        && item.fromPartner !== true
+        && item.approvedFromPartner !== true
+    ));
+    const partnerVisibleSavedItems = partnerSavedItems.filter(item => (
+        item
+        && item.fromPartner !== true
+        && item.approvedFromPartner !== true
+    ));
     const summaryListKey = (items, keyFn) => {
         const list = Array.isArray(items) ? items : [];
         if (list.length === 0) return '0';
@@ -6210,8 +6220,8 @@ MeimayPartnerInsights.getSummary = function () {
         partnerReadingCount: partnerReadingItems.length,
         ownKanjiCount: ownKanjiCount,
         partnerKanjiCount: partnerKanjiCount,
-        ownSavedCount: ownSavedItems.length,
-        partnerSavedCount: partnerSavedItems.length,
+        ownSavedCount: ownVisibleSavedItems.length,
+        partnerSavedCount: partnerVisibleSavedItems.length,
         matchedReadingCount: matchedReadingItems.length,
         matchedKanjiCount: matchedKanjiCount,
         matchedNameCount: matchedSavedItems.length,
@@ -6219,18 +6229,18 @@ MeimayPartnerInsights.getSummary = function () {
         matchedLikedItems: matchedLikedItems,
         matchedSavedItems: matchedSavedItems,
         matchedTotalCount: matchedReadingItems.length + matchedKanjiCount + matchedSavedItems.length,
-        ownTotalCount: ownReadingItems.length + ownKanjiCount + ownSavedItems.length,
-        partnerTotalCount: partnerReadingItems.length + partnerKanjiCount + partnerSavedItems.length,
+        ownTotalCount: ownReadingItems.length + ownKanjiCount + ownVisibleSavedItems.length,
+        partnerTotalCount: partnerReadingItems.length + partnerKanjiCount + partnerVisibleSavedItems.length,
         counts: {
             own: {
                 reading: ownReadingItems.length,
                 kanji: ownKanjiCount,
-                saved: ownSavedItems.length
+                saved: ownVisibleSavedItems.length
             },
             partner: {
                 reading: partnerReadingItems.length,
                 kanji: partnerKanjiCount,
-                saved: partnerSavedItems.length
+                saved: partnerVisibleSavedItems.length
             },
             matched: {
                 reading: matchedReadingItems.length,
