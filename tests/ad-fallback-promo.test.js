@@ -7,6 +7,10 @@ const source = fs.readFileSync(
   path.join(__dirname, '..', 'public', 'js', '14-admob.js'),
   'utf8'
 );
+const styles = fs.readFileSync(
+  path.join(__dirname, '..', 'public', 'css', 'main.css'),
+  'utf8'
+);
 
 test('native ad failure keeps the stable dock and shows a premium promo for free users', () => {
   const start = source.indexOf('function showNativeAdMobFallbackBanner');
@@ -19,4 +23,11 @@ test('native ad failure keeps the stable dock and shows a premium promo for free
   assert.match(fallbackSource, /プレミアムなら広告なし/);
   assert.match(fallbackSource, /プランを見る/);
   assert.match(fallbackSource, /updateAdLayoutSpacing\(/);
+});
+
+test('ad dock and footer stay opaque while the native banner loads', () => {
+  assert.match(source, /function showNativeAdMobBackdrop/);
+  assert.match(source, /container\.style\.backgroundColor = '#f5f0e8'/);
+  assert.match(styles, /#admob-banner\s*\{[^}]*background:\s*#f5f0e8/s);
+  assert.match(styles, /body\.has-ad-banner #universal-footer\s*\{[^}]*background:\s*#fdfaf5 !important/s);
 });

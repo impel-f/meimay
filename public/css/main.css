@@ -186,6 +186,7 @@ body.hide-top-bar .screen-header-shell {
 
 #admob-banner {
     z-index: 10060 !important;
+    background: #f5f0e8;
 }
 
 .nav-item {
@@ -2848,6 +2849,9 @@ body.has-ad-banner #scr-saved {
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
     bottom: var(--ad-footer-offset, 56px) !important;
+    background: #fdfaf5 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 /* h-screen を使った内部コンテナを flexbox で正しく収める
@@ -5741,4 +5745,3 @@ body.has-ad-banner .context-coachmark--above-actions {
         line-height: 1.7;
     }
 }
-
