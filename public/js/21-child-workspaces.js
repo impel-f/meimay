@@ -1627,7 +1627,7 @@
                 this._pendingSnapshotReason = '';
                 this._pendingSnapshotOptions = null;
                 this.persistActiveChildSnapshot(pendingReason, pendingOptions);
-            }, 600);
+            }, 320);
         },
 
         persistActiveChildSnapshot(reason = 'manual', options = {}) {

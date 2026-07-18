@@ -371,11 +371,10 @@ function openSavedNames(options = {}) {
         window.resetMeimayPartnerViewFocus();
     }
     changeScreen('scr-saved');
-    const renderSaved = () => {
+    // 描画処理を遅延させてレスポンスを改善
+    setTimeout(() => {
         if (typeof renderSavedScreen === 'function') renderSavedScreen();
-    };
-    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-saved', renderSaved);
-    else setTimeout(renderSaved, 0);
+    }, 10);
 }
 
 /**
@@ -383,8 +382,7 @@ function openSavedNames(options = {}) {
  */
 function openReadingHistory() {
     changeScreen('scr-history');
-    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-history', renderHistoryScreen);
-    else setTimeout(renderHistoryScreen, 0);
+    renderHistoryScreen();
 }
 
 let currentEncounteredTab = 'kanji';
@@ -393,8 +391,7 @@ let currentEncounteredReadingActionKey = '';
 function openEncounteredLibrary(tab = 'kanji') {
     currentEncounteredTab = tab === 'reading' ? 'reading' : 'kanji';
     changeScreen('scr-encountered');
-    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-encountered', renderEncounteredLibrary);
-    else setTimeout(renderEncounteredLibrary, 0);
+    renderEncounteredLibrary();
 }
 
 function switchEncounteredTab(tab) {
@@ -511,16 +508,10 @@ function renderEncounteredLibrary() {
         return;
     }
 
-    const likedKanjiSet = new Set((Array.isArray(liked) ? liked : [])
-        .map(item => item?.['漢字'] || item?.['\u8c8c\uff61\u87c4\uff65'] || item?.['\u8c8d\uff62\u87c4\u30fb'] || item?.kanji)
-        .filter(Boolean));
-    const stockedReadingSet = currentEncounteredTab === 'reading' && typeof getReadingStock === 'function'
-        ? new Set(getReadingStock().flatMap((item) => {
-            const reading = item?.reading || item?.['\u96b1\uff6d\u7e3a\uff7f'];
-            const normalized = normalizeEncounteredReadingText(reading);
-            return [reading, normalized].filter(Boolean);
-        }))
-        : new Set();
+    const pairInsights = null;
+    const matchedKanjiSet = new Set();
+    const ownReadingKeys = new Set();
+    const partnerReadingKeys = new Set();
     const groups = groupEncounteredItemsByDay(items);
 
     if (currentEncounteredTab === 'kanji') {
@@ -534,7 +525,9 @@ function renderEncounteredLibrary() {
                         </div>
                         <div class="grid grid-cols-4 gap-2">
                             ${group.items.map(item => {
-                                const isLiked = likedKanjiSet.has(item.kanji);
+                                const isLiked = Array.isArray(liked)
+                                    ? liked.some(likedItem => (likedItem['漢字'] || likedItem['\u8c8c\uff61\u87c4\uff65'] || likedItem['\u8c8d\uff62\u87c4\u30fb'] || likedItem.kanji) === item.kanji)
+                                    : false;
                                 const isMatched = false;
                                 const strokes = resolveEncounteredKanjiStrokes(item);
                                 const readings = String(item.kanjiReading || item.snapshot?.kanji_reading || '')
@@ -582,8 +575,12 @@ function renderEncounteredLibrary() {
                         ${group.items.map(item => {
                             const displayReading = normalizeEncounteredReadingText(item.reading);
                             if (!displayReading) return '';
-                            const isStocked = stockedReadingSet.has(displayReading)
-                                || stockedReadingSet.has(item.reading);
+                            const isStocked = typeof getReadingStock === 'function'
+                                ? getReadingStock().some(stockItem => {
+                                    const sReading = stockItem.reading || stockItem['\u96b1\uff6d\u7e3a\uff7f'];
+                                    return sReading === displayReading || sReading === item.reading;
+                                })
+                                : false;
                             const toneClass = isStocked
                                 ? 'border-[#f2b2b2] bg-[#fff1f1]'
                                 : 'border-[#eee5d8] bg-[#fdfaf5]';
@@ -1682,15 +1679,6 @@ function buildApprovedPartnerSavedItem(item, partnerName, approvedPartnerSavedKe
     };
 }
 
-function markSavedCandidateApprovedByPartnerSelection(item, approvedPartnerSavedKey, selectedAt) {
-    return {
-        ...(item || {}),
-        approvedPartnerSavedKey: String(approvedPartnerSavedKey || '').trim(),
-        mainSelected: true,
-        mainSelectedAt: selectedAt || new Date().toISOString()
-    };
-}
-
 /*
 
 
@@ -2154,14 +2142,11 @@ function votePartnerSavedName(index) {
     let foundSourceInSaved = false;
     const updated = saved.map((item) => {
         const isSelected = getSavedCandidateKey(item) === sourceKey;
-        if (isSelected) {
-            foundSourceInSaved = true;
-            return markSavedCandidateApprovedByPartnerSelection(item, sourceKey, now);
-        }
+        if (isSelected) foundSourceInSaved = true;
         return {
             ...item,
-            mainSelected: false,
-            mainSelectedAt: ''
+            mainSelected: isSelected,
+            mainSelectedAt: isSelected ? now : ''
         };
     });
     let addedPartnerSavedItem = null;
@@ -2288,24 +2273,12 @@ function renderSavedScreen() {
         const availableWidth = parent.clientWidth || parent.getBoundingClientRect().width || 0;
         if (!availableWidth) return;
 
-        node.style.fontSize = `${maxSize}px`;
-        const naturalWidth = node.scrollWidth || 0;
-        if (naturalWidth <= availableWidth) return;
-
-        let low = minSize;
-        let high = Math.max(minSize, Math.min(maxSize, Math.floor(maxSize * availableWidth / naturalWidth)));
-        let fittedSize = minSize;
-        while (low <= high) {
-            const size = Math.floor((low + high) / 2);
+        let size = maxSize;
+        node.style.fontSize = `${size}px`;
+        while (size > minSize && node.scrollWidth > availableWidth) {
+            size -= 1;
             node.style.fontSize = `${size}px`;
-            if (node.scrollWidth <= availableWidth) {
-                fittedSize = size;
-                low = size + 1;
-            } else {
-                high = size - 1;
-            }
         }
-        node.style.fontSize = `${fittedSize}px`;
     };
 
     const applySavedTextFit = () => {

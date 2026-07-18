@@ -821,6 +821,18 @@ const StorageBox = {
     }
 };
 
+// 定期的な自動保存（30秒ごと）
+setInterval(() => {
+    if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
+    if (liked.length > 0 || savedNames.length > 0) {
+        StorageBox.saveAll({
+            skipPartnerSync: true,
+            skipBackupSync: true,
+            skipChildWorkspaceSync: true
+        });
+    }
+}, 30000);
+
 // ページ離脱時に保存
 window.addEventListener('beforeunload', () => {
     if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;

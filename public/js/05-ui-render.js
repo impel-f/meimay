@@ -2293,19 +2293,14 @@ function getHomePairSummaryText(pairing) {
 }
 
 function normalizeHomeBuildReadingValue(value) {
-    let raw = '';
-    try {
-        raw = typeof getReadingBaseReading === 'function'
-            ? getReadingBaseReading(value)
-            : String(value || '').trim().split('::')[0].trim();
-    } catch (error) {
-        raw = String(value || '').trim().split('::')[0].trim();
-    }
+    const raw = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(value)
+        : String(value || '').trim().split('::')[0].trim();
     if (!raw) return '';
 
     let normalized = raw;
     if (typeof toHira === 'function') normalized = toHira(normalized);
-    else if (typeof window !== 'undefined' && typeof window.toHira === 'function') normalized = window.toHira(normalized);
+    else if (typeof window.toHira === 'function') normalized = window.toHira(normalized);
 
     return normalized.replace(/[、,，・/]/g, '').replace(/\s+/g, '').toLowerCase();
 }
@@ -2317,35 +2312,22 @@ function sanitizeHomeBuildSegments(segments) {
 }
 
 function getHomeBuildPatternSegments(reading, segmentsSource) {
-    let baseReading = '';
-    try {
-        baseReading = typeof getReadingBaseReading === 'function'
-            ? getReadingBaseReading(reading)
-            : String(reading || '').trim();
-    } catch (error) {
-        baseReading = String(reading || '').trim();
-    }
+    const baseReading = typeof getReadingBaseReading === 'function'
+        ? getReadingBaseReading(reading)
+        : String(reading || '').trim();
     if (!baseReading) return [];
 
     const explicitSegments = sanitizeHomeBuildSegments(segmentsSource);
     if (explicitSegments.length > 0) return explicitSegments;
 
     if (typeof getPreferredReadingSegments === 'function') {
-        try {
-            const preferredSegments = sanitizeHomeBuildSegments(getPreferredReadingSegments(baseReading));
-            if (preferredSegments.length > 0) return preferredSegments;
-        } catch (error) {
-            console.warn('HOME: Preferred reading segments unavailable', error);
-        }
+        const preferredSegments = sanitizeHomeBuildSegments(getPreferredReadingSegments(baseReading));
+        if (preferredSegments.length > 0) return preferredSegments;
     }
 
     if (typeof getDisplaySegmentsForReading === 'function') {
-        try {
-            const displaySegments = sanitizeHomeBuildSegments(getDisplaySegmentsForReading(baseReading));
-            if (displaySegments.length > 0) return displaySegments;
-        } catch (error) {
-            console.warn('HOME: Display reading segments unavailable', error);
-        }
+        const displaySegments = sanitizeHomeBuildSegments(getDisplaySegmentsForReading(baseReading));
+        if (displaySegments.length > 0) return displaySegments;
     }
 
     return [baseReading];
@@ -2362,16 +2344,12 @@ function normalizeHomeBuildPool(candidatePoolOverride) {
         .map((item) => {
             if (!item) return null;
             if (typeof hydrateLikedCandidate === 'function') {
-                try {
-                    const hydrated = hydrateLikedCandidate(item, {
-                        fromPartner: !!item?.fromPartner,
-                        partnerAlsoPicked: !!item?.partnerAlsoPicked,
-                        partnerName: item?.partnerName || ''
-                    });
-                    if (hydrated) return hydrated;
-                } catch (error) {
-                    console.warn('HOME: Falling back to raw build candidate', error);
-                }
+                const hydrated = hydrateLikedCandidate(item, {
+                    fromPartner: !!item?.fromPartner,
+                    partnerAlsoPicked: !!item?.partnerAlsoPicked,
+                    partnerName: item?.partnerName || ''
+                });
+                if (hydrated) return hydrated;
             }
 
             const kanji = item['漢字'] || item.kanji || '';
@@ -2465,33 +2443,16 @@ function getHomeBuildHiddenReadingSet() {
 }
 
 function getHomeDataStateFingerprint(pool, readingStock) {
+    // タイムスタンプ(updatedAt)に依存すると、保存のたびにキャッシュが壊れる可能性があるため、
+    // データの「件数」と「IDの並び」をベースにした、より安定した指紋を使用する。
     const poolCount = Array.isArray(pool) ? pool.length : 0;
     const readingCount = Array.isArray(readingStock) ? readingStock.length : 0;
-    let hash = 2166136261;
-    const append = (value) => {
-        const text = String(value ?? '');
-        for (let index = 0; index < text.length; index++) {
-            hash ^= text.charCodeAt(index);
-            hash = Math.imul(hash, 16777619);
-        }
-        hash ^= 124;
-        hash = Math.imul(hash, 16777619);
-    };
 
-    (Array.isArray(pool) ? pool : []).forEach((item) => {
-        append(item?.['漢字'] || item?.kanji || '');
-        append(Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1);
-        append(item?.sessionReading || '');
-        append(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
-        append(item?.kanji_reading || item?.reading || '');
-    });
-    (Array.isArray(readingStock) ? readingStock : []).forEach((item) => {
-        append(item?.reading || item?.sessionReading || '');
-        append(Array.isArray(item?.segments) ? item.segments.join('/') : '');
-        append(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
-    });
+    // 内容のハッシュ代わりとして、最初と最後の要素の情報を少し混ぜる
+    const poolHint = poolCount > 0 ? (pool[0]?.['漢字'] || pool[0]?.kanji || '') + (pool[poolCount-1]?.['漢字'] || '') : '';
+    const readingHint = readingCount > 0 ? (readingStock[0]?.reading || '') + (readingStock[readingCount-1]?.reading || '') : '';
 
-    return `v3_${poolCount}_${readingCount}_${(hash >>> 0).toString(36)}`;
+    return `v2_${poolCount}_${readingCount}_${poolHint}_${readingHint}`;
 }
 
 function getHomeBuildPatternKey(reading, segments) {
@@ -2679,16 +2640,6 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, o
     return total;
 }
 
-function getHomeBuildPatternCountSafe(candidatePoolOverride, readingStockOverride, label = 'build patterns') {
-    try {
-        const count = getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride);
-        return Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-    } catch (error) {
-        console.warn(`HOME: Failed to calculate ${label}`, error);
-        return 0;
-    }
-}
-
 function getHomeStageMetric(stepKey, likedCount, readingStockCount, savedCount) {
     if (stepKey === 'reading') {
         return {
@@ -2725,26 +2676,10 @@ function getHomeStageAction(stepKey, likedCount, readingStockCount, savedCount) 
     return 'sound';
 }
 
-function readHomeList(source, fallback = [], label = 'data') {
-    const safeFallback = Array.isArray(fallback) ? fallback : [];
-    try {
-        const value = typeof source === 'function' ? source() : source;
-        return Array.isArray(value) ? value : safeFallback;
-    } catch (error) {
-        console.warn(`HOME: Failed to read ${label}`, error);
-        return safeFallback;
-    }
-}
-
 function getPairingHomeSummary() {
-    let baseSummary = null;
-    if (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.getSummary) {
-        try {
-            baseSummary = window.MeimayPartnerInsights.getSummary();
-        } catch (error) {
-            console.warn('HOME: Partner summary unavailable; rendering local status', error);
-        }
-    }
+    const baseSummary = (typeof window.MeimayPartnerInsights !== 'undefined' && window.MeimayPartnerInsights.getSummary)
+        ? window.MeimayPartnerInsights.getSummary()
+        : null;
     const roomCode = typeof MeimayPairing !== 'undefined' ? MeimayPairing.roomCode : null;
     const myRoleLabel = typeof getRoleLabel === 'function'
         ? getRoleLabel(typeof MeimayPairing !== 'undefined' ? MeimayPairing.myRole : null, '自分')
@@ -2828,54 +2763,65 @@ function getHomeOwnershipSummary() {
         : null;
     const pairing = getPairingHomeSummary();
     const pairingHomeData = pairing?._homeData || {};
+    const isPaired = !!(pairing && pairing.roomCode);
+
     // デフォルトでは「自分のアイテム」を取得
-    const ownLikedFallback = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.filter(item => !item?.fromPartner)
-        : [];
-    const ownLikedItems = readHomeList(
-        Array.isArray(pairingHomeData.ownLikedItems)
-            ? pairingHomeData.ownLikedItems
-            : (pairInsights?.getOwnLiked ? () => pairInsights.getOwnLiked() : ownLikedFallback),
-        ownLikedFallback,
-        'own kanji stock'
-    );
-    const ownSavedFallback = (() => {
+    const ownLikedItems = Array.isArray(pairingHomeData.ownLikedItems)
+        ? pairingHomeData.ownLikedItems
+        : pairInsights?.getOwnLiked
+        ? pairInsights.getOwnLiked()
+        : ((typeof liked !== 'undefined' && Array.isArray(liked))
+            ? liked.filter(item => !item?.fromPartner)
+            : []);
+    const ownSavedItems = Array.isArray(pairingHomeData.ownSavedItems)
+        ? pairingHomeData.ownSavedItems
+        : pairInsights?.getOwnSaved
+        ? pairInsights.getOwnSaved()
+        : (() => {
             const savedSource = typeof getSavedNames === 'function'
                 ? getSavedNames()
                 : (typeof savedNames !== 'undefined' && Array.isArray(savedNames) ? savedNames : []);
             return Array.isArray(savedSource) ? savedSource : [];
         })();
-    const ownSavedItems = readHomeList(
-        Array.isArray(pairingHomeData.ownSavedItems)
-            ? pairingHomeData.ownSavedItems
-            : (pairInsights?.getOwnSaved ? () => pairInsights.getOwnSaved() : ownSavedFallback),
-        ownSavedFallback,
-        'own saved names'
-    );
     const visibleOwnSavedItems = Array.isArray(ownSavedItems)
         ? ownSavedItems.filter(item => !item?.fromPartner && !item?.approvedFromPartner)
         : [];
-    const ownReadingFallback = readHomeList(
-        typeof getReadingStock === 'function' ? () => getReadingStock() : [],
-        [],
-        'local reading stock'
-    );
-    const ownReadingItems = readHomeList(
-        Array.isArray(pairingHomeData.ownReadingItems)
-            ? pairingHomeData.ownReadingItems
-            : (pairInsights?.getOwnReadingStock ? () => pairInsights.getOwnReadingStock() : ownReadingFallback),
-        ownReadingFallback,
-        'own reading stock'
-    );
+    const ownReadingItems = Array.isArray(pairingHomeData.ownReadingItems)
+        ? pairingHomeData.ownReadingItems
+        : pairInsights?.getOwnReadingStock
+        ? pairInsights.getOwnReadingStock()
+        : ((typeof getReadingStock === 'function') ? getReadingStock() : []);
 
-    let ownLikedCount = ownLikedItems.length;
-    if (typeof window.getVisibleKanjiStockCardCount === 'function') {
-        try {
-            ownLikedCount = window.getVisibleKanjiStockCardCount('self', ownLikedItems);
-        } catch (error) {
-            console.warn('HOME: Falling back to raw own kanji count', error);
-        }
-    }
+    // 連携時はマージされた（自分＋パートナーの）総数を表示に利用する
+    const summaryCounts = pairing?.counts || {};
+    const readSummaryCount = (section, key, fallback = 0) => {
+        const value = summaryCounts?.[section]?.[key] ?? pairing?.[`${section}${key.charAt(0).toUpperCase()}${key.slice(1)}Count`];
+        return Number.isFinite(Number(value)) ? Number(value) : fallback;
+    };
+    const displayReadingCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'reading', ownReadingItems.length)
+                + readSummaryCount('partner', 'reading', 0)
+                - readSummaryCount('matched', 'reading', 0)
+        )
+        : ownReadingItems.length;
+    const displayLikedCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'kanji', ownLikedItems.length)
+                + readSummaryCount('partner', 'kanji', 0)
+                - readSummaryCount('matched', 'kanji', 0)
+        )
+        : ownLikedItems.length;
+    const displaySavedCount = isPaired
+        ? Math.max(
+            0,
+            readSummaryCount('own', 'saved', visibleOwnSavedItems.length)
+                + readSummaryCount('partner', 'saved', 0)
+                - readSummaryCount('matched', 'saved', 0)
+        )
+        : visibleOwnSavedItems.length;
 
     return {
         pairInsights,
@@ -2883,9 +2829,9 @@ function getHomeOwnershipSummary() {
         ownLikedItems,
         ownSavedItems: visibleOwnSavedItems,
         ownReadingItems,
-        ownLikedCount,
-        ownSavedCount: visibleOwnSavedItems.length,
-        ownReadingCount: ownReadingItems.length
+        ownLikedCount: displayLikedCount,
+        ownSavedCount: displaySavedCount,
+        ownReadingCount: displayReadingCount
     };
 }
 
@@ -3671,79 +3617,50 @@ function getHomeStatusLine(likedCount, readingStockCount, savedCount, buildCount
 }
 
 function getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing) {
-    const resolved = getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, pairing);
-
-    return {
-        readingStockCount: resolved.aggregate.reading,
-        likedCount: resolved.aggregate.kanji,
-        savedCount: resolved.aggregate.saved
-    };
-}
-
-function getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, pairing) {
     const counts = pairing?.counts || {};
-    const data = pairing?._homeData || {};
-    const hasHomeData = [
-        data.ownReadingItems,
-        data.partnerReadingItems,
-        data.ownLikedItems,
-        data.partnerLikedItems,
-        data.ownSavedItems,
-        data.partnerSavedItems
-    ].every(Array.isArray);
-    const numberOr = (value, fallback = 0) => Number.isFinite(Number(value))
-        ? Math.max(0, Number(value))
-        : Math.max(0, Number(fallback) || 0);
-    const visibleKanjiCount = (focus, items, fallback) => {
-        if (!Array.isArray(items)) return numberOr(fallback);
-        if (typeof window.getVisibleKanjiStockCardCount === 'function') {
-            try {
-                const scopedItems = focus === 'partner'
-                    ? items.map(item => ({ ...item, fromPartner: true }))
-                    : items.map(item => ({ ...item, fromPartner: false }));
-                return numberOr(window.getVisibleKanjiStockCardCount(focus, scopedItems), items.length);
-            } catch (error) {
-                console.warn(`HOME: Falling back to raw ${focus} kanji count`, error);
-            }
-        }
-        return items.length;
-    };
+    const ownReadingCount = Number.isFinite(Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount))
+        ? Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? readingStockCount)
+        : 0;
+    const ownKanjiCount = Number.isFinite(Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount))
+        ? Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? likedCount)
+        : 0;
+    const ownSavedCount = Number.isFinite(Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount))
+        ? Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount)
+        : 0;
+    const partnerReadingCount = Number.isFinite(Number(counts?.partner?.reading ?? pairing?.partnerReadingCount))
+        ? Number(counts?.partner?.reading ?? pairing?.partnerReadingCount)
+        : 0;
+    const partnerKanjiCount = Number.isFinite(Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount))
+        ? Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
+        : 0;
+    const partnerSavedCount = Number.isFinite(Number(counts?.partner?.saved ?? pairing?.partnerSavedCount))
+        ? Number(counts?.partner?.saved ?? pairing?.partnerSavedCount)
+        : 0;
+    const matchedReadingCount = Number.isFinite(Number(counts?.matched?.reading ?? pairing?.matchedReadingCount))
+        ? Number(counts?.matched?.reading ?? pairing?.matchedReadingCount)
+        : 0;
+    const matchedKanjiCount = Number.isFinite(Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount))
+        ? Number(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)
+        : 0;
+    const matchedSavedCount = Number.isFinite(Number(counts?.matched?.saved ?? pairing?.matchedNameCount))
+        ? Number(counts?.matched?.saved ?? pairing?.matchedNameCount)
+        : 0;
 
-    const own = {
-        reading: hasHomeData ? data.ownReadingItems.length : numberOr(counts?.own?.reading ?? pairing?.ownReadingCount, readingStockCount),
-        kanji: hasHomeData
-            ? visibleKanjiCount('self', data.ownLikedItems, likedCount)
-            : numberOr(counts?.own?.kanji ?? pairing?.ownKanjiCount, likedCount),
-        saved: hasHomeData ? data.ownSavedItems.length : numberOr(counts?.own?.saved ?? pairing?.ownSavedCount, savedCount)
-    };
-    const partner = {
-        reading: hasHomeData ? data.partnerReadingItems.length : numberOr(counts?.partner?.reading ?? pairing?.partnerReadingCount),
-        kanji: hasHomeData
-            ? visibleKanjiCount('partner', data.partnerLikedItems, counts?.partner?.kanji ?? pairing?.partnerKanjiCount)
-            : numberOr(counts?.partner?.kanji ?? pairing?.partnerKanjiCount),
-        saved: hasHomeData ? data.partnerSavedItems.length : numberOr(counts?.partner?.saved ?? pairing?.partnerSavedCount)
-    };
-    const matched = {
-        reading: Math.min(own.reading, partner.reading, hasHomeData
-            ? (Array.isArray(data.matchedReadingItems) ? data.matchedReadingItems.length : 0)
-            : numberOr(counts?.matched?.reading ?? pairing?.matchedReadingCount)),
-        kanji: Math.min(own.kanji, partner.kanji, hasHomeData
-            ? (Array.isArray(data.matchedLikedItems) ? data.matchedLikedItems.length : 0)
-            : numberOr(counts?.matched?.kanji ?? pairing?.matchedKanjiCount)),
-        saved: Math.min(own.saved, partner.saved, hasHomeData
-            ? (Array.isArray(data.matchedSavedItems) ? data.matchedSavedItems.length : 0)
-            : numberOr(counts?.matched?.saved ?? pairing?.matchedNameCount))
-    };
+    const hasPartnerCounts = !!(
+        pairing?.hasPartner
+        || counts?.partner
+        || Number.isFinite(Number(pairing?.partnerKanjiCount))
+        || Number.isFinite(Number(pairing?.partnerReadingCount))
+    );
 
     return {
-        own,
-        partner,
-        matched,
-        aggregate: {
-            reading: Math.max(0, own.reading + partner.reading - matched.reading),
-            kanji: Math.max(0, own.kanji + partner.kanji - matched.kanji),
-            saved: Math.max(0, own.saved + partner.saved - matched.saved)
-        }
+        readingStockCount: Math.max(0, ownReadingCount + partnerReadingCount - matchedReadingCount),
+        likedCount: hasPartnerCounts
+            ? Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)
+            : (typeof window.getVisibleKanjiStockCardCount === 'function'
+                ? window.getVisibleKanjiStockCardCount('all')
+                : Math.max(0, ownKanjiCount + partnerKanjiCount - matchedKanjiCount)),
+        savedCount: Math.max(0, ownSavedCount + partnerSavedCount - matchedSavedCount)
     };
 }
 
@@ -3809,19 +3726,6 @@ function getHomeOverviewSwitchStyle(mode) {
     };
 }
 
-function getHomeSharedBuildSources(ownLikedItems, partnerLikedItems, ownReadingStock, partnerReadingStock) {
-    return {
-        candidatePool: [
-            ...(Array.isArray(ownLikedItems) ? ownLikedItems : []),
-            ...(Array.isArray(partnerLikedItems) ? partnerLikedItems : [])
-        ],
-        readingStock: [
-            ...(Array.isArray(ownReadingStock) ? ownReadingStock : []),
-            ...(Array.isArray(partnerReadingStock) ? partnerReadingStock : [])
-        ]
-    };
-}
-
 function cycleHomeOverviewMode() {
     const pairing = getPairingHomeSummary();
     const options = getHomeOverviewSwitchOptions(pairing);
@@ -3861,120 +3765,61 @@ function renderHomeOverviewSwitch(pairing) {
     `;
 }
 
-function readHomeSavedCanvasState(savedCount) {
-    if (
-        savedCount <= 0
-        || typeof window === 'undefined'
-        || !window.MeimayPartnerInsights
-        || typeof window.MeimayPartnerInsights.getSavedNameCanvasState !== 'function'
-    ) {
-        return null;
-    }
-
-    try {
-        return window.MeimayPartnerInsights.getSavedNameCanvasState();
-    } catch (error) {
-        console.warn('HOME: Saved-name selection unavailable; continuing without it', error);
-        return null;
-    }
-}
-
 function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing) {
     const mode = getHomeOverviewMode(pairing);
+    const counts = pairing?.counts || {
+        own: {
+            reading: readingStockCount,
+            kanji: likedCount,
+            saved: savedCount
+        },
+        partner: {
+            reading: 0,
+            kanji: 0,
+            saved: 0
+        },
+        matched: {
+            reading: pairing?.matchedReadingCount || 0,
+            kanji: pairing?.matchedKanjiCount || 0,
+            saved: pairing?.matchedNameCount || 0
+        }
+    };
     const insights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const pairingHomeData = pairing?._homeData || {};
     const wizard = getWizardHomeState();
     const aggregateCounts = getHomeAggregateCounts(likedCount, readingStockCount, savedCount, pairing);
-    const localLikedFallback = (typeof liked !== 'undefined' && Array.isArray(liked))
-        ? liked.filter(item => !item?.fromPartner)
+    const ownLikedItems = Array.isArray(pairingHomeData.ownLikedItems)
+        ? pairingHomeData.ownLikedItems
+        : insights?.getOwnLiked
+        ? insights.getOwnLiked()
+        : ((typeof liked !== 'undefined' && Array.isArray(liked))
+            ? liked.filter(item => !item?.fromPartner)
+            : []);
+    const partnerLikedItems = Array.isArray(pairingHomeData.partnerLikedItems)
+        ? pairingHomeData.partnerLikedItems
+        : insights?.getPartnerLiked ? insights.getPartnerLiked() : [];
+    const ownReadingStock = Array.isArray(pairingHomeData.ownReadingItems)
+        ? pairingHomeData.ownReadingItems
+        : insights?.getOwnReadingStock
+        ? insights.getOwnReadingStock()
+        : (typeof getReadingStock === 'function' ? getReadingStock() : []);
+    const partnerReadingStock = Array.isArray(pairingHomeData.partnerReadingItems)
+        ? pairingHomeData.partnerReadingItems
+        : insights?.getPartnerReadingStock
+        ? insights.getPartnerReadingStock()
         : [];
-    const ownLikedItems = readHomeList(
-        Array.isArray(pairingHomeData.ownLikedItems)
-            ? pairingHomeData.ownLikedItems
-            : (insights?.getOwnLiked ? () => insights.getOwnLiked() : localLikedFallback),
-        localLikedFallback,
-        'overview own kanji stock'
-    );
-    const partnerLikedItems = readHomeList(
-        Array.isArray(pairingHomeData.partnerLikedItems)
-            ? pairingHomeData.partnerLikedItems
-            : (insights?.getPartnerLiked ? () => insights.getPartnerLiked() : []),
-        [],
-        'overview partner kanji stock'
-    );
-    const localReadingFallback = readHomeList(
-        typeof getReadingStock === 'function' ? () => getReadingStock() : [],
-        [],
-        'overview local reading stock'
-    );
-    const ownReadingStock = readHomeList(
-        Array.isArray(pairingHomeData.ownReadingItems)
-            ? pairingHomeData.ownReadingItems
-            : (insights?.getOwnReadingStock ? () => insights.getOwnReadingStock() : localReadingFallback),
-        localReadingFallback,
-        'overview own reading stock'
-    );
-    const partnerReadingStock = readHomeList(
-        Array.isArray(pairingHomeData.partnerReadingItems)
-            ? pairingHomeData.partnerReadingItems
-            : (insights?.getPartnerReadingStock ? () => insights.getPartnerReadingStock() : []),
-        [],
-        'overview partner reading stock'
-    );
-    const ownSavedItems = readHomeList(
-        Array.isArray(pairingHomeData.ownSavedItems)
-            ? pairingHomeData.ownSavedItems
-            : (insights?.getOwnSaved ? () => insights.getOwnSaved() : []),
-        [],
-        'overview own saved names'
-    );
-    const partnerSavedItems = readHomeList(
-        Array.isArray(pairingHomeData.partnerSavedItems)
-            ? pairingHomeData.partnerSavedItems
-            : (insights?.getPartnerSaved ? () => insights.getPartnerSaved() : []),
-        [],
-        'overview partner saved names'
-    );
     const partnerLikedItemsVisible = partnerLikedItems;
-    const resolvedCounts = getHomeResolvedStageCounts(likedCount, readingStockCount, savedCount, {
-        ...pairing,
-        _homeData: {
-            ...pairingHomeData,
-            ownReadingItems: ownReadingStock,
-            partnerReadingItems: partnerReadingStock,
-            ownLikedItems,
-            partnerLikedItems: partnerLikedItemsVisible,
-            ownSavedItems,
-            partnerSavedItems,
-            matchedReadingItems: Array.isArray(pairingHomeData.matchedReadingItems) ? pairingHomeData.matchedReadingItems : [],
-            matchedLikedItems: Array.isArray(pairingHomeData.matchedLikedItems) ? pairingHomeData.matchedLikedItems : [],
-            matchedSavedItems: Array.isArray(pairingHomeData.matchedSavedItems) ? pairingHomeData.matchedSavedItems : []
-        }
-    });
-    const partnerReadingCount = resolvedCounts.partner.reading;
-    const partnerKanjiCount = resolvedCounts.partner.kanji;
-    const partnerSavedCount = resolvedCounts.partner.saved;
-    const ownReadingCount = resolvedCounts.own.reading;
-    const ownKanjiCount = resolvedCounts.own.kanji;
-    const ownSavedCount = resolvedCounts.own.saved;
-    aggregateCounts.readingStockCount = resolvedCounts.aggregate.reading;
-    aggregateCounts.likedCount = resolvedCounts.aggregate.kanji;
-    aggregateCounts.savedCount = resolvedCounts.aggregate.saved;
+    const partnerReadingCount = Number(counts?.partner?.reading ?? pairing?.partnerReadingCount ?? (Array.isArray(partnerReadingStock) ? partnerReadingStock.length : 0));
+    const partnerKanjiCount = Number(counts?.partner?.kanji ?? pairing?.partnerKanjiCount ?? (Array.isArray(partnerLikedItemsVisible) ? partnerLikedItemsVisible.length : 0));
+    const partnerSavedCount = Number(counts?.partner?.saved ?? pairing?.partnerSavedCount ?? 0);
+    const ownReadingCount = Number(counts?.own?.reading ?? pairing?.ownReadingCount ?? (Array.isArray(ownReadingStock) ? ownReadingStock.length : readingStockCount ?? 0));
+    const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : Number(counts?.own?.kanji ?? pairing?.ownKanjiCount ?? (Array.isArray(ownLikedItems) ? ownLikedItems.length : likedCount ?? 0));
+    const ownSavedCount = Number(counts?.own?.saved ?? pairing?.ownSavedCount ?? savedCount ?? 0);
 
     let result = null;
     if (mode === 'shared') {
-        const sharedBuildSources = getHomeSharedBuildSources(
-            ownLikedItems,
-            partnerLikedItemsVisible,
-            ownReadingStock,
-            partnerReadingStock
-        );
-        const aggregateReadingStock = sharedBuildSources.readingStock;
-        const aggregateBuildCount = getHomeBuildPatternCountSafe(
-            sharedBuildSources.candidatePool,
-            aggregateReadingStock,
-            'shared build patterns'
-        );
+        const aggregateReadingStock = [...ownReadingStock, ...partnerReadingStock];
+        const aggregateBuildCount = getHomeBuildPatternCount(undefined, aggregateReadingStock);
         const aggregateFallbackAction = (aggregateCounts.readingStockCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         result = {
             mode,
@@ -3997,11 +3842,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             }
         };
     } else if (mode === 'partner') {
-        const partnerBuildCount = getHomeBuildPatternCountSafe(
-            partnerLikedItemsVisible,
-            partnerReadingStock,
-            'partner build patterns'
-        );
+        const partnerBuildCount = getHomeBuildPatternCount(partnerLikedItemsVisible, partnerReadingStock);
         result = {
             mode,
             readingStockCount: partnerReadingCount,
@@ -4023,11 +3864,7 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
             }
         };
     } else {
-        const ownBuildCount = getHomeBuildPatternCountSafe(
-            ownLikedItems,
-            ownReadingStock,
-            'own build patterns'
-        );
+        const ownBuildCount = getHomeBuildPatternCount(ownLikedItems, ownReadingStock);
         const selfFallbackAction = (ownReadingCount > 0 || wizard.hasReadingCandidate) ? 'reading' : 'sound';
         result = {
             mode: 'self',
@@ -4047,106 +3884,13 @@ function getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount,
     // aggregateCountsを後続で使えるように付与しておく
     result.aggregateCounts = aggregateCounts;
     result.pairing = pairing;
-    result.savedCanvasState = readHomeSavedCanvasState(result.savedCount);
+    result.savedCanvasState = result.savedCount > 0
+        && typeof window !== 'undefined'
+        && window.MeimayPartnerInsights
+        && typeof window.MeimayPartnerInsights.getSavedNameCanvasState === 'function'
+            ? window.MeimayPartnerInsights.getSavedNameCanvasState()
+            : null;
     return result;
-}
-
-function getHomeLocalStageSnapshotFallback(homeOwnership, pairing) {
-    const pairingHomeData = pairing?._homeData || {};
-    const ownReadingStock = readHomeList(
-        pairingHomeData.ownReadingItems,
-        homeOwnership?.ownReadingItems,
-        'fallback own reading stock'
-    );
-    const partnerReadingStock = readHomeList(
-        pairingHomeData.partnerReadingItems,
-        [],
-        'fallback partner reading stock'
-    );
-    const ownLikedItems = readHomeList(
-        pairingHomeData.ownLikedItems,
-        homeOwnership?.ownLikedItems,
-        'fallback own kanji stock'
-    );
-    const partnerLikedItems = readHomeList(
-        pairingHomeData.partnerLikedItems,
-        [],
-        'fallback partner kanji stock'
-    );
-    const ownSavedItems = readHomeList(
-        pairingHomeData.ownSavedItems,
-        homeOwnership?.ownSavedItems,
-        'fallback own saved names'
-    );
-    const partnerSavedItems = readHomeList(
-        pairingHomeData.partnerSavedItems,
-        [],
-        'fallback partner saved names'
-    );
-    const resolvedCounts = getHomeResolvedStageCounts(
-        homeOwnership?.ownLikedCount,
-        homeOwnership?.ownReadingCount,
-        homeOwnership?.ownSavedCount,
-        {
-            ...pairing,
-            _homeData: {
-                ...pairingHomeData,
-                ownReadingItems: ownReadingStock,
-                partnerReadingItems: partnerReadingStock,
-                ownLikedItems,
-                partnerLikedItems,
-                ownSavedItems,
-                partnerSavedItems
-            }
-        }
-    );
-    let mode = 'self';
-    try {
-        mode = getHomeOverviewMode(pairing);
-    } catch (error) {
-        mode = pairing?.hasPartner ? 'shared' : 'self';
-    }
-
-    let readingStock = ownReadingStock;
-    let likedItems = ownLikedItems;
-    let activeCounts = resolvedCounts.own;
-    if (mode === 'shared') {
-        readingStock = [...ownReadingStock, ...partnerReadingStock];
-        likedItems = [...ownLikedItems, ...partnerLikedItems];
-        activeCounts = resolvedCounts.aggregate;
-    } else if (mode === 'partner') {
-        readingStock = partnerReadingStock;
-        likedItems = partnerLikedItems;
-        activeCounts = resolvedCounts.partner;
-    }
-    const likedCount = activeCounts.kanji;
-    const readingStockCount = activeCounts.reading;
-    const savedCount = activeCounts.saved;
-    const buildCount = typeof getHomeBuildPatternCountSafe === 'function'
-        ? getHomeBuildPatternCountSafe(likedItems, readingStock, 'fallback build patterns')
-        : 0;
-    const fallbackAction = readingStockCount > 0 ? 'reading' : 'sound';
-    return {
-        mode,
-        likedCount,
-        readingStockCount,
-        savedCount,
-        buildCount,
-        readingStock,
-        pairing,
-        savedCanvasState: null,
-        aggregateCounts: {
-            likedCount: resolvedCounts.aggregate.kanji,
-            readingStockCount: resolvedCounts.aggregate.reading,
-            savedCount: resolvedCounts.aggregate.saved
-        },
-        actions: {
-            reading: readingStockCount > 0 ? 'stock-reading' : 'sound',
-            kanji: likedCount > 0 ? 'stock' : fallbackAction,
-            build: buildCount > 0 ? 'build' : fallbackAction,
-            save: savedCount > 0 ? 'saved' : (buildCount > 0 ? 'build' : fallbackAction)
-        }
-    };
 }
 
 function renderHomeProfile() {
@@ -4158,13 +3902,7 @@ function renderHomeProfile() {
         ? getHomePreferenceSummary(homeOwnership.ownLikedItems)
         : { shortText: 'まだ傾向なし' };
     const pairing = homeOwnership.pairing || getPairingHomeSummary();
-    let stageSnapshot = null;
-    try {
-        stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
-    } catch (error) {
-        console.warn('HOME: Shared overview failed; rendering local status', error);
-        stageSnapshot = getHomeLocalStageSnapshotFallback(homeOwnership, pairing);
-    }
+    const stageSnapshot = getHomeOverviewStageSnapshot(likedCount, readingStockCount, savedCount, pairing);
     const nextStep = getHomeNextStep(
         stageSnapshot.likedCount,
         stageSnapshot.readingStockCount,
@@ -4192,18 +3930,10 @@ function renderHomeProfile() {
     if (summaryPanel) summaryPanel.classList.remove('hidden');
     if (heroCard) heroCard.style.cssText = '';
 
-    [
-        ['overview switch', () => renderHomeOverviewSwitch(pairing)],
-        ['membership status', () => renderHomeMembershipStatus()],
-        ['premium trial', () => renderHomePremiumTrialCard()],
-        ['child date', () => renderHomeChildDateLabel()]
-    ].forEach(([label, render]) => {
-        try {
-            render();
-        } catch (error) {
-            console.warn(`HOME: Failed to render ${label}`, error);
-        }
-    });
+    renderHomeOverviewSwitch(pairing);
+    renderHomeMembershipStatus();
+    renderHomePremiumTrialCard();
+    renderHomeChildDateLabel();
     renderHomeStageTrack(stageSnapshot.likedCount, stageSnapshot.readingStockCount, stageSnapshot.savedCount, stageSnapshot);
 
     const elSaved = document.getElementById('home-liked-name-count');

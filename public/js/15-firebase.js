@@ -636,7 +636,7 @@ async function getFirebaseIdToken(timeoutMs = 8000) {
             );
         });
 
-        return user ? await withMeimayTimeout(user.getIdToken(), 10000, '認証情報の取得') : null;
+        return user ? await user.getIdToken() : null;
     } catch (error) {
         console.warn('FIREBASE: Failed to wait for auth token', error);
         return null;
@@ -730,15 +730,6 @@ function canonicalizePairingSavedNameKey(value) {
     const readingTarget = readingParts.length > 1 ? readingParts[readingParts.length - 1] : rawReading;
     const givenReading = (typeof toHira === 'function' ? toHira(readingTarget) : readingTarget).replace(/\s+/g, '');
     return `${givenName || combinationKey}::${combinationKey}::${givenReading || givenName || combinationKey}`.trim();
-}
-
-function getPairingExplicitApprovedSavedKey(item) {
-    if (!item) return '';
-    const explicitKey = canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey);
-    if (explicitKey) return explicitKey;
-    return item.approvedFromPartner === true
-        ? canonicalizePairingSavedNameKey(buildPairingSavedNameKey(item))
-        : '';
 }
 
 function extractSavedCanvasOwnKeyFromWorkspaceState(state) {
@@ -1603,7 +1594,6 @@ const MeimayPairing = {
     _markPairingUsedInFlight: false,
     _syncInProgress: false,
     _syncPending: false,
-    _syncRetryTimer: null,
     _pendingShareText: '',
     _pendingShareSubject: 'メイメー - ルームコードの共有',
     PAIRING_CACHE_KEY: 'meimay_pairing_history_v1',
@@ -1702,14 +1692,14 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
         if (!user || !user.uid || !firebaseDb || !this.roomCode) return false;
         try {
-            await withMeimayTimeout(firebaseDb.collection('users').doc(user.uid).set({
+            await firebaseDb.collection('users').doc(user.uid).set({
                 pairRoomCode: String(this.roomCode || '').trim(),
                 roomCode: String(this.roomCode || '').trim(),
                 pairRoomSlot: this.mySlot || null,
                 pairRoomRole: this.myRole || null,
                 pairRoomLinkReason: reason || null,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }), 15000, '連携情報の保存');
+            }, { merge: true });
             return true;
         } catch (error) {
             console.warn('PAIRING: Failed to persist room link to user doc', error);
@@ -1721,13 +1711,13 @@ const MeimayPairing = {
         const user = MeimayAuth.getCurrentUser() || firebaseAuth?.currentUser || null;
         if (!user || !user.uid || !firebaseDb) return false;
         try {
-            await withMeimayTimeout(firebaseDb.collection('users').doc(user.uid).set({
+            await firebaseDb.collection('users').doc(user.uid).set({
                 pairRoomCode: null,
                 roomCode: null,
                 pairRoomSlot: null,
                 pairRoomRole: null,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }), 15000, '連携情報の解除');
+            }, { merge: true });
             return true;
         } catch (error) {
             console.warn('PAIRING: Failed to clear room link from user doc', error);
@@ -1740,11 +1730,7 @@ const MeimayPairing = {
         if (!user || !user.uid || !firebaseDb) return false;
 
         try {
-            const userDoc = await withMeimayTimeout(
-                firebaseDb.collection('users').doc(user.uid).get(),
-                10000,
-                '連携情報の確認'
-            );
+            const userDoc = await firebaseDb.collection('users').doc(user.uid).get();
             const userData = userDoc.exists ? (userDoc.data() || {}) : {};
             const backup = userData.meimayBackup || userData.backup || {};
             const code = String(
@@ -1756,11 +1742,7 @@ const MeimayPairing = {
             ).trim().toUpperCase();
             if (!code) return false;
 
-            const roomDoc = await withMeimayTimeout(
-                firebaseDb.collection('rooms').doc(code).get(),
-                10000,
-                '連携ルームの確認'
-            );
+            const roomDoc = await firebaseDb.collection('rooms').doc(code).get();
             if (!roomDoc.exists) return false;
 
             const roomData = roomDoc.data() || {};
@@ -1785,10 +1767,6 @@ const MeimayPairing = {
 
     beginAppDataDeletion: function () {
         this._syncPending = false;
-        if (this._syncRetryTimer) {
-            clearTimeout(this._syncRetryTimer);
-            this._syncRetryTimer = null;
-        }
         this._isLeavingRoom = true;
         try {
             this._stopListening?.();
@@ -1820,11 +1798,7 @@ const MeimayPairing = {
 
         // Firestore縺ｧ繝ｫ繝ｼ繝縺悟ｭ伜惠縺吶ｋ縺狗｢ｺ隱・
         try {
-            const doc = await withMeimayTimeout(
-                firebaseDb.collection('rooms').doc(code).get(),
-                10000,
-                '連携ルームへの再接続'
-            );
+            const doc = await firebaseDb.collection('rooms').doc(code).get();
             if (!doc.exists) {
                 console.warn('PAIRING: Saved room no longer exists, clearing');
                 this._clearLocal();
@@ -2009,11 +1983,7 @@ const MeimayPairing = {
         }
 
         try {
-            const roomDoc = await withMeimayTimeout(
-                firebaseDb.collection('rooms').doc(upperCode).get(),
-                10000,
-                '連携コードの確認'
-            );
+            const roomDoc = await firebaseDb.collection('rooms').doc(upperCode).get();
             if (!roomDoc.exists) {
                 if (typeof trackMeimayEvent === 'function') {
                     trackMeimayEvent('partner_link_failed', { method: 'join_code', reason: 'code_not_found' });
@@ -2038,11 +2008,8 @@ const MeimayPairing = {
             let partnerSurnameReading = normalizePairingSurnameValue(data[partnerSurnameReadingField]);
             if (!partnerSurname && partnerUid) {
                 try {
-                    const partnerDataDoc = await withMeimayTimeout(
-                        firebaseDb.collection('rooms').doc(upperCode).collection('data').doc(partnerUid).get(),
-                        10000,
-                        'パートナー情報の確認'
-                    );
+                    const partnerDataDoc = await firebaseDb.collection('rooms').doc(upperCode)
+                        .collection('data').doc(partnerUid).get();
                     if (partnerDataDoc.exists) {
                         const partnerData = partnerDataDoc.data() || {};
                         partnerSurname = normalizePairingSurnameValue(
@@ -2079,14 +2046,14 @@ const MeimayPairing = {
             }
 
             if (!isExistingMemberB) {
-                await withMeimayTimeout(firebaseDb.collection('rooms').doc(upperCode).update({
+                await firebaseDb.collection('rooms').doc(upperCode).update({
                     memberBUid: user.uid,
                     memberBRole: role,
                     memberBSurname: pairingSurname.surname,
                     memberBSurnameReading: pairingSurname.reading || null,
                     pairedOnce: true,
                     pairedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }), 15000, '連携ルームへの参加');
+                });
             } else {
                 this._markRoomPairedOnceIfNeeded(data);
             }
@@ -2187,11 +2154,11 @@ const MeimayPairing = {
         }
 
         try {
-            const roomDoc = await withMeimayTimeout(roomRef.get(), 10000, '連携解除の確認');
+            const roomDoc = await roomRef.get();
             const roomData = roomDoc.exists ? (roomDoc.data() || {}) : {};
 
             if (user) {
-                await withMeimayTimeout(roomRef.collection('data').doc(user.uid).delete(), 15000, '連携データの解除');
+                await roomRef.collection('data').doc(user.uid).delete();
                 await this._clearUserRoomLink();
             }
 
@@ -2212,12 +2179,53 @@ const MeimayPairing = {
             update[`${slotToClear}Role`] = null;
             update[`${slotToClear}Surname`] = null;
             update[`${slotToClear}SurnameReading`] = null;
-            await withMeimayTimeout(roomRef.set(update, { merge: true }), 15000, '連携ルームの解除');
+            await roomRef.set(update, { merge: true });
         } catch (e) {
             console.error('PAIRING: Leave room failed', e);
         } finally {
             this._isLeavingRoom = false;
             console.log('PAIRING: Left room');
+        }
+    },
+
+    // 閾ｪ蛻・・繝・・繧ｿ繧偵Ν繝ｼ繝縺ｫ繧｢繝・・繝ｭ繝ｼ繝会ｼ亥酔譛滂ｼ・
+    syncMyData: async function () {
+        if (typeof isMeimayAppDataDeletionInProgress === 'function' && isMeimayAppDataDeletionInProgress()) return;
+        const user = MeimayAuth.getCurrentUser();
+        if (!user || !this.roomCode || this._isLeavingRoom) return;
+
+        try {
+            const hiddenReadings = readNormalizedHiddenReadings();
+            const pairingSurname = getCurrentPairingSurnameState();
+            const projectedSections = MeimayFirestorePayload.projectSections({
+                liked: typeof liked !== 'undefined' ? liked : [],
+                savedNames: JSON.parse(localStorage.getItem('meimay_saved') || '[]')
+            });
+
+            await firebaseDb.collection('rooms').doc(this.roomCode)
+                .collection('data').doc(user.uid).set({
+                role: this.myRole,
+                liked: projectedSections.liked,
+                savedNames: projectedSections.savedNames,
+                meimayStateV2: typeof MeimayUserBackup !== 'undefined' ? MeimayUserBackup._readChildWorkspaceStateV2() : null,
+                hiddenReadings,
+                surname: pairingSurname.surname,
+                surnameReading: pairingSurname.reading,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            const roomSurnameField = getPairingRoomSurnameField(this.mySlot);
+            const roomSurnameReadingField = getPairingRoomSurnameReadingField(this.mySlot);
+            if (roomSurnameField) {
+                await firebaseDb.collection('rooms').doc(this.roomCode).set({
+                    [roomSurnameField]: pairingSurname.surname || null,
+                    [roomSurnameReadingField]: pairingSurname.reading || null
+                }, { merge: true });
+            }
+
+            console.log('PAIRING: Synced my data to room');
+        } catch (e) {
+            console.error('PAIRING: Sync data failed', e);
         }
     },
 
@@ -2520,7 +2528,7 @@ const MeimayPairing = {
             const code = this._generateRoomCode();
             const roomRef = firebaseDb.collection('rooms').doc(code);
             try {
-                await withMeimayTimeout(firebaseDb.runTransaction(async (transaction) => {
+                await firebaseDb.runTransaction(async (transaction) => {
                     const snap = await transaction.get(roomRef);
                     if (snap.exists) {
                         const collision = new Error('room_code_collision');
@@ -2540,7 +2548,7 @@ const MeimayPairing = {
                         pairedAt: null,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                }), 20000, '連携ルームの作成');
+                });
                 return code;
             } catch (error) {
                 if (error?.code === 'room_code_collision') {
@@ -2585,10 +2593,10 @@ const MeimayPairing = {
         if (!roleField || !firebaseDb) return true;
 
         try {
-            await withMeimayTimeout(firebaseDb.collection('rooms').doc(this.roomCode).update({
+            await firebaseDb.collection('rooms').doc(this.roomCode).update({
                 [roleField]: nextRole,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }), 15000, '役割の更新');
+            });
             await this._persistUserRoomLink('role-update');
             if (typeof this.syncMyData === 'function') {
                 await this.syncMyData();
@@ -2621,10 +2629,10 @@ const MeimayPairing = {
 
         this._markPairingUsedInFlight = true;
         try {
-            await withMeimayTimeout(firebaseDb.collection('rooms').doc(this.roomCode).set({
+            await firebaseDb.collection('rooms').doc(this.roomCode).set({
                 pairedOnce: true,
                 pairedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }), 15000, '連携状態の更新');
+            }, { merge: true });
         } catch (error) {
             console.warn('PAIRING: Failed to mark room as used', error);
         } finally {
@@ -2655,7 +2663,6 @@ const MeimayShare = {
     _partnerSnapshotPartnerUid: '',
     partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
     _lastPremiumStateSyncFingerprint: '',
-    _lastPartnerContentFingerprint: '',
     PARTNER_SNAPSHOT_CACHE_KEY: 'meimay_partner_snapshot_cache_v1',
     PARTNER_SNAPSHOT_CACHE_MAX_AGE_MS: 14 * 24 * 60 * 60 * 1000,
 
@@ -2675,8 +2682,7 @@ const MeimayShare = {
             displayName: '',
             username: '',
             nickname: '',
-            themeId: '',
-            contentFingerprint: ''
+            themeId: ''
         };
     },
 
@@ -2744,7 +2750,6 @@ const MeimayShare = {
         if (!snapshot) return false;
         this.partnerSnapshot = snapshot;
         this._partnerSnapshotPartnerUid = String(snapshot.__meimayPartnerUid || MeimayPairing?.partnerUid || '').trim();
-        this._lastPartnerContentFingerprint = String(snapshot.contentFingerprint || '').trim();
         if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
             MeimayPartnerInsights.clearCache(`partner-cache-${reason}`);
         }
@@ -2794,33 +2799,6 @@ const MeimayShare = {
             trialEndsAt: state.trialEndsAt || null,
             trialConsumedByRoom: state.trialConsumedByRoom === true
         });
-    },
-
-    _buildPartnerContentFingerprint: function (data = {}) {
-        const roomFingerprint = String(
-            data.roomSyncFingerprint
-            || data.meimayRoomSyncFingerprint
-            || ''
-        ).trim();
-        if (roomFingerprint) {
-            try {
-                const parsed = JSON.parse(roomFingerprint);
-                if (parsed && typeof parsed === 'object') {
-                    delete parsed.premium;
-                    return JSON.stringify(parsed);
-                }
-            } catch (error) {
-                return roomFingerprint;
-            }
-        }
-
-        try {
-            const fallback = JSON.parse(buildRoomSyncContentFingerprint(data));
-            delete fallback.premium;
-            return JSON.stringify(fallback);
-        } catch (error) {
-            return '';
-        }
     },
 
     // 繝代・繝医リ繝ｼ縺ｮ繝・・繧ｿ繧偵Μ繧｢繝ｫ繧ｿ繧､繝蜿嶺ｿ｡
@@ -2975,26 +2953,6 @@ const MeimayShare = {
     }
 };
 
-function getWorkspaceChildRecordIds(workspaceRoot) {
-    if (!workspaceRoot || typeof workspaceRoot !== 'object') return [];
-    const children = workspaceRoot.children && typeof workspaceRoot.children === 'object'
-        ? workspaceRoot.children
-        : {};
-    const orderedIds = Array.isArray(workspaceRoot.childOrder)
-        ? workspaceRoot.childOrder.filter((childId) => children[childId])
-        : [];
-    return Array.from(new Set([...orderedIds, ...Object.keys(children)]));
-}
-
-function getSolePartnerChildRecord(partnerRoot) {
-    if (!partnerRoot || typeof partnerRoot !== 'object') return null;
-    const children = partnerRoot.children && typeof partnerRoot.children === 'object'
-        ? partnerRoot.children
-        : {};
-    const childIds = getWorkspaceChildRecordIds(partnerRoot);
-    return childIds.length === 1 ? children[childIds[0]] || null : null;
-}
-
 const MeimayPartnerInsights = {
     normalizeReading: function (value) {
         const text = String(value || '').trim();
@@ -3084,53 +3042,36 @@ const MeimayPartnerInsights = {
             const localRoot = manager.root && typeof manager.root === 'object'
                 ? manager.root
                 : (typeof manager.getRootSnapshot === 'function' ? manager.getRootSnapshot() : null);
-            const localChildCount = getWorkspaceChildRecordIds(localRoot).length;
+            const localChildren = localRoot?.children && typeof localRoot.children === 'object'
+                ? localRoot.children
+                : {};
+            const localChildCount = Array.isArray(localRoot?.childOrder) && localRoot.childOrder.length > 0
+                ? localRoot.childOrder.length
+                : Object.keys(localChildren).length;
             const activeChild = typeof manager.getActiveChild === 'function'
                 ? manager.getActiveChild()
                 : null;
             const partnerRoot = typeof manager.getPartnerWorkspaceRoot === 'function'
                 ? manager.getPartnerWorkspaceRoot()
                 : null;
-            const partnerChildCount = getWorkspaceChildRecordIds(partnerRoot).length;
+            const partnerChildren = partnerRoot?.children && typeof partnerRoot.children === 'object'
+                ? partnerRoot.children
+                : {};
+            const partnerChildCount = Array.isArray(partnerRoot?.childOrder) && partnerRoot.childOrder.length > 0
+                ? partnerRoot.childOrder.length
+                : Object.keys(partnerChildren).length;
+            const partnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
+                ? manager.getPartnerChildForChild(activeChild)
+                : null;
+            const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
+                ? manager.isPartnerAlignmentReviewRequired()
+                : false;
             const activeBirthOrder = Number(activeChild?.meta?.birthOrder || activeChild?.birthOrder || 1);
             const activeTwinIndex = activeChild?.meta?.birthGroupIndex
                 ?? activeChild?.meta?.twinIndex
                 ?? activeChild?.birthGroupIndex
                 ?? activeChild?.twinIndex
                 ?? null;
-            const matchedPartnerChild = activeChild && typeof manager.getPartnerChildForChild === 'function'
-                ? manager.getPartnerChildForChild(activeChild)
-                : null;
-            const normalizeSlotValue = (value) => {
-                if (value === null || value === undefined || value === '') return '';
-                const numeric = Number(value);
-                return Number.isFinite(numeric) ? String(numeric) : String(value).trim();
-            };
-            const buildChildSlotKey = (child) => {
-                if (!child) return '';
-                const birthOrder = Number(child?.meta?.birthOrder || child?.birthOrder || 1);
-                const twinIndex = child?.meta?.birthGroupIndex
-                    ?? child?.meta?.twinIndex
-                    ?? child?.birthGroupIndex
-                    ?? child?.twinIndex
-                    ?? null;
-                return `${Number.isFinite(birthOrder) && birthOrder > 0 ? birthOrder : 1}:${normalizeSlotValue(twinIndex)}`;
-            };
-            const activeSlotKey = buildChildSlotKey(activeChild);
-            const partnerSlotMatches = activeSlotKey
-                ? getWorkspaceChildRecordIds(partnerRoot)
-                    .map(childId => partnerRoot?.children?.[childId])
-                    .filter(child => child && buildChildSlotKey(child) === activeSlotKey)
-                : [];
-            // Older partner builds may not have written explicit child-link metadata.
-            // A unique birth-order/twin slot is still safe to use and avoids a false zero state.
-            const slotMatchedPartnerChild = partnerSlotMatches.length === 1 ? partnerSlotMatches[0] : null;
-            const partnerChild = matchedPartnerChild
-                || slotMatchedPartnerChild
-                || getSolePartnerChildRecord(partnerRoot);
-            const alignmentNeedsReview = typeof manager.isPartnerAlignmentReviewRequired === 'function'
-                ? manager.isPartnerAlignmentReviewRequired()
-                : false;
 
             return {
                 manager,
@@ -3153,12 +3094,7 @@ const MeimayPartnerInsights = {
 
     _shouldSuppressUnscopedPartnerFallback: function () {
         const context = this._getPartnerChildContext();
-        return !!(
-            context.requiresScopedChild
-            && context.partnerRoot
-            && context.partnerChildCount > 1
-            && !context.partnerChild
-        );
+        return !!(context.requiresScopedChild && context.partnerRoot && !context.partnerChild);
     },
 
     _shouldUseScopedPartnerChildOnly: function () {
@@ -3169,7 +3105,7 @@ const MeimayPartnerInsights = {
     _getPartnerChildRecord: function () {
         const context = this._getPartnerChildContext();
         if (context.partnerChild && typeof context.partnerChild === 'object') return context.partnerChild;
-        if (context.requiresScopedChild && context.partnerChildCount > 1) return null;
+        if (context.requiresScopedChild) return null;
         const activeChildId = String(context.partnerRoot?.activeChildId || '').trim();
         const partnerChild = activeChildId && context.partnerRoot?.children?.[activeChildId]
             ? context.partnerRoot.children[activeChildId]
@@ -3222,8 +3158,7 @@ const MeimayPartnerInsights = {
         const filteredLiked = typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox._filterRemovedLikedItems === 'function'
             ? StorageBox._filterRemovedLikedItems(typeof liked !== 'undefined' ? liked : [])
             : (typeof liked !== 'undefined' ? liked : []);
-        return (Array.isArray(filteredLiked) ? filteredLiked : [])
-            .filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
+        return filteredLiked.filter(item => !item?.fromPartner && !this._isHiddenReadingItem(item, hiddenSet) && !this._isImportedLibraryItem(item));
     },
 
     getPartnerLiked: function () {
@@ -3296,7 +3231,7 @@ const MeimayPartnerInsights = {
         const list = typeof getSavedNames === 'function'
             ? getSavedNames()
             : JSON.parse(localStorage.getItem('meimay_saved') || '[]');
-        return Array.isArray(list) ? list : [];
+        return list;
     },
 
     getPartnerSaved: function () {
@@ -4161,6 +4096,30 @@ function getStatsGenderTargets(genderValue) {
     return [];
 }
 
+function getStatsRankingCollectionNames(kind, metric = 'all', gender = 'all') {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    const normalizedMetric = normalizedKind === 'reading'
+        ? (metric === 'saved' || metric === 'like' || metric === 'direct' ? metric : 'all')
+        : 'all';
+
+    const baseCollections = normalizedKind !== 'reading'
+        ? ['statistics']
+        : normalizedMetric === 'saved'
+            ? ['reading_saved_statistics']
+            : normalizedMetric === 'like'
+                ? ['reading_like_statistics']
+                : normalizedMetric === 'direct'
+                    ? ['reading_statistics']
+                    : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
+
+    const genderTargets = getStatsGenderTargets(gender);
+    if (genderTargets.length === 0) {
+        return baseCollections;
+    }
+
+    return baseCollections.flatMap((collection) => genderTargets.map((target) => `${collection}_${target}`));
+}
+
 function buildStatsRequestBody(baseBody = {}, genderOrOptions = null, defaultScope = 'all') {
     const options = genderOrOptions && typeof genderOrOptions === 'object'
         ? genderOrOptions
@@ -4205,213 +4164,6 @@ function isLocalStatsRuntime() {
 
 function getStatsApiRequestUrl(path = '/api/stats') {
     return typeof getMeimayApiUrl === 'function' ? getMeimayApiUrl(path) : path;
-}
-
-function fetchStatsWithTimeout(input, init = {}, timeoutMs = 12000) {
-    return fetchWithMeimayTimeout(input, init, timeoutMs, 'ランキング通信');
-}
-
-function getStatsRankingCollectionNames(kind, metric = 'all', genderValue = 'all') {
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedMetric = normalizedKind === 'reading'
-        ? (metric === 'saved' || metric === 'like' || metric === 'direct' ? metric : 'all')
-        : 'all';
-    const baseCollections = normalizedKind !== 'reading'
-        ? ['statistics']
-        : normalizedMetric === 'saved'
-            ? ['reading_saved_statistics']
-            : normalizedMetric === 'like'
-                ? ['reading_like_statistics']
-                : normalizedMetric === 'direct'
-                    ? ['reading_statistics']
-                    : ['reading_statistics', 'reading_like_statistics', 'reading_saved_statistics'];
-    const genderTargets = getStatsGenderTargets(genderValue);
-    return genderTargets.length > 0
-        ? baseCollections.flatMap((collection) => genderTargets.map((target) => `${collection}_${target}`))
-        : baseCollections;
-}
-
-function getStatsRankingDocumentId(period) {
-    if (period === 'monthly') return `monthly_${getLocalStatsMonthKey(new Date())}`;
-    if (period === 'weekly') return `weekly_${getLocalStatsWeekKey(new Date())}`;
-    return 'allTime';
-}
-
-function normalizeStatsRankingItems(items, kind, genderValue = 'all') {
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedGender = normalizeStatsGenderValue(genderValue);
-    const readingAllowlist = normalizedKind === 'reading'
-        ? getReadingRankingAllowlist(normalizedGender)
-        : null;
-    return (Array.isArray(items) ? items : [])
-        .map((item) => {
-            const key = normalizedKind === 'reading'
-                ? String(item?.reading || item?.key || '').trim()
-                : String(item?.kanji || item?.key || '').trim();
-            return normalizedKind === 'reading'
-                ? { reading: key, count: Number(item?.count) || 0 }
-                : { kanji: key, count: Number(item?.count) || 0 };
-        })
-        .filter((item) => {
-            const key = normalizedKind === 'reading' ? item.reading : item.kanji;
-            return !!key && item.count > 0 && (!readingAllowlist || readingAllowlist.has(key));
-        })
-        .sort((a, b) => {
-            if (b.count !== a.count) return b.count - a.count;
-            const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
-            const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
-            return aKey.localeCompare(bKey, 'ja');
-        })
-        .slice(0, 100);
-}
-
-function getStatsApiRequestUrls(path) {
-    const urls = [getStatsApiRequestUrl(path)];
-    if (typeof window !== 'undefined' && typeof window.getMeimayProductionApiUrl === 'function') {
-        urls.push(window.getMeimayProductionApiUrl(path));
-    }
-    return Array.from(new Set(urls.map((url) => String(url || '').trim()).filter(Boolean)));
-}
-
-async function fetchStatsApiRankings(path, kind, genderValue, options = {}) {
-    const requestedGender = normalizeStatsGenderValue(genderValue);
-    const urls = getStatsApiRequestUrls(path);
-    let lastError = null;
-    for (const url of urls) {
-        if (options?.signal?.aborted) {
-            const abortError = new Error('Ranking request aborted');
-            abortError.name = 'AbortError';
-            throw abortError;
-        }
-        try {
-            const response = await fetchStatsWithTimeout(url, {
-                cache: 'no-store',
-                ...(options?.signal ? { signal: options.signal } : {})
-            }, 3500);
-            if (!response.ok) {
-                throw new Error(`ランキングAPIの取得に失敗しました (${response.status})`);
-            }
-            const payload = await response.json();
-            const payloadGender = normalizeStatsGenderValue(payload?.gender);
-            if (requestedGender !== 'all' && payloadGender !== requestedGender) {
-                throw new Error('API gender mismatch');
-            }
-            return normalizeStatsRankingItems(payload?.items, kind, requestedGender);
-        } catch (error) {
-            if (error?.name === 'AbortError') throw error;
-            lastError = error;
-        }
-    }
-    throw lastError || new Error('ランキングAPIを利用できません');
-}
-
-function getPublicStatsFieldNumber(field) {
-    if (!field || typeof field !== 'object') return 0;
-    const count = Number(field.integerValue ?? field.doubleValue);
-    return Number.isFinite(count) ? count : 0;
-}
-
-async function fetchPublicFirestoreRankings(type, kind, metric, genderValue, options = {}) {
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedGender = normalizeStatsGenderValue(genderValue);
-    const collectionNames = getStatsRankingCollectionNames(normalizedKind, metric, normalizedGender);
-    const documentId = getStatsRankingDocumentId(type);
-    const projectId = String(firebaseConfig?.projectId || '').trim();
-    const apiKey = String(firebaseConfig?.apiKey || '').trim();
-    if (!projectId || !apiKey || collectionNames.length === 0) {
-        throw new Error('公開ランキングの接続先を利用できません');
-    }
-
-    const results = await Promise.allSettled(collectionNames.map(async (collectionName) => {
-        const path = `${encodeURIComponent(collectionName)}/${encodeURIComponent(documentId)}`;
-        const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/${path}?key=${encodeURIComponent(apiKey)}`;
-        const response = await fetchStatsWithTimeout(url, {
-            cache: 'no-store',
-            ...(options?.signal ? { signal: options.signal } : {})
-        }, 3500);
-        if (response.status === 404) return null;
-        if (!response.ok) throw new Error(`公開ランキングの取得に失敗しました (${response.status})`);
-        return response.json();
-    }));
-    if (options?.signal?.aborted) {
-        const abortError = new Error('Ranking request aborted');
-        abortError.name = 'AbortError';
-        throw abortError;
-    }
-
-    const totals = new Map();
-    let successfulReads = 0;
-    results.forEach((result) => {
-        if (result.status !== 'fulfilled') return;
-        successfulReads += 1;
-        const fields = result.value?.fields;
-        if (!fields || typeof fields !== 'object') return;
-        Object.entries(fields).forEach(([key, field]) => {
-            if (key === 'updatedAt') return;
-            const normalizedKey = normalizedKind === 'reading'
-                ? normalizeStatsReadingText(key)
-                : String(key || '').trim();
-            const count = getPublicStatsFieldNumber(field);
-            if (!normalizedKey || count <= 0) return;
-            totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
-        });
-    });
-    if (successfulReads === 0) {
-        const failed = results.find((result) => result.status === 'rejected');
-        throw failed?.reason || new Error('公開ランキングを取得できませんでした');
-    }
-
-    const items = Array.from(totals.entries()).map(([key, count]) => normalizedKind === 'reading'
-        ? { reading: key, count }
-        : { kanji: key, count });
-    return normalizeStatsRankingItems(items, normalizedKind, normalizedGender);
-}
-
-async function fetchFirestoreSdkRankings(type, kind, metric, genderValue, options = {}) {
-    if (!firebaseDb || typeof firebaseDb.collection !== 'function') {
-        throw new Error('Firestore ranking source is unavailable');
-    }
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
-    const normalizedGender = normalizeStatsGenderValue(genderValue);
-    const collectionNames = getStatsRankingCollectionNames(normalizedKind, metric, normalizedGender);
-    const documentId = getStatsRankingDocumentId(type);
-    const results = await Promise.allSettled(collectionNames.map((collectionName) => withMeimayTimeout(
-        firebaseDb.collection(collectionName).doc(documentId).get(),
-        4000,
-        'ランキング予備データの取得'
-    )));
-    if (options?.signal?.aborted) {
-        const abortError = new Error('Ranking request aborted');
-        abortError.name = 'AbortError';
-        throw abortError;
-    }
-
-    const totals = new Map();
-    let successfulReads = 0;
-    results.forEach((result) => {
-        if (result.status !== 'fulfilled') return;
-        successfulReads += 1;
-        const data = result.value?.exists && typeof result.value.data === 'function'
-            ? result.value.data() || {}
-            : {};
-        Object.entries(data).forEach(([key, value]) => {
-            if (key === 'updatedAt') return;
-            const normalizedKey = normalizedKind === 'reading'
-                ? normalizeStatsReadingText(key)
-                : String(key || '').trim();
-            const count = Number(value) || 0;
-            if (!normalizedKey || count <= 0) return;
-            totals.set(normalizedKey, (Number(totals.get(normalizedKey)) || 0) + count);
-        });
-    });
-    if (successfulReads === 0) {
-        const failed = results.find((result) => result.status === 'rejected');
-        throw failed?.reason || new Error('ランキング予備データを取得できませんでした');
-    }
-    const items = Array.from(totals.entries()).map(([key, count]) => normalizedKind === 'reading'
-        ? { reading: key, count }
-        : { kanji: key, count });
-    return normalizeStatsRankingItems(items, normalizedKind, normalizedGender);
 }
 
 function normalizeLocalStatsReading(value) {
@@ -4856,7 +4608,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4897,7 +4649,7 @@ const MeimayStats = {
                 if (localSaved) notifyRankingCardState('kanji', kanjiString, normalizedDelta, normalizedDelta > 0);
                 return localSaved;
             }
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4937,7 +4689,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -4974,7 +4726,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -5013,7 +4765,7 @@ const MeimayStats = {
                 return true;
             }
 
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -5050,7 +4802,7 @@ const MeimayStats = {
                 return localSaved;
             }
 
-            const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+            const response = await fetch(getStatsApiRequestUrl(), {
                 method: 'POST',
                 headers: await getFirebaseRequestHeaders(),
                 body: JSON.stringify(body)
@@ -5073,7 +4825,7 @@ const MeimayStats = {
 
         const run = async () => {
             try {
-                const response = await fetchStatsWithTimeout(getStatsApiRequestUrl(), {
+                const response = await fetch(getStatsApiRequestUrl(), {
                     method: 'POST',
                     headers: await getFirebaseRequestHeaders(),
                     body: JSON.stringify({
@@ -5580,7 +5332,7 @@ const MeimayStats = {
         return this._kanjiGenderStatsSeedPromise;
     },
 
-    fetchRankings: async function (type = 'allTime', kind = 'kanji', metric = 'all', gender = 'all', options = {}) {
+    fetchRankings: async function (type = 'allTime', kind = 'kanji', metric = 'all', gender = 'all') {
         const normalizedType = type === 'monthly' || type === 'weekly' ? type : 'allTime';
         const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
         const normalizedMetric = normalizedKind === 'reading'
@@ -5591,54 +5343,51 @@ const MeimayStats = {
         if (Array.isArray(localItems)) return localItems;
 
         try {
-            return await fetchPublicFirestoreRankings(
-                normalizedType,
-                normalizedKind,
-                normalizedMetric,
-                normalizedGender,
-                options
-            );
-        } catch (firestoreRestError) {
-            if (firestoreRestError?.name === 'AbortError') throw firestoreRestError;
-            console.warn(`STATS: direct ranking read(${normalizedKind}:${normalizedType}) fallback`, firestoreRestError);
-        }
+            const query = new URLSearchParams({
+                period: normalizedType,
+                kind: normalizedKind,
+            });
+            if (normalizedKind === 'reading' && normalizedMetric !== 'all') {
+                query.set('metric', normalizedMetric);
+            }
+            if (normalizedGender !== 'all') {
+                query.set('gender', normalizedGender);
+            }
 
-        const query = new URLSearchParams({
-            period: normalizedType,
-            kind: normalizedKind,
-        });
-        if (normalizedKind === 'reading' && normalizedMetric !== 'all') {
-            query.set('metric', normalizedMetric);
-        }
-        if (normalizedGender !== 'all') {
-            query.set('gender', normalizedGender);
-        }
+            const response = await fetch(getStatsApiRequestUrl(`/api/stats?${query.toString()}`), {
+                cache: 'no-store'
+            });
 
-        try {
-            return await fetchStatsApiRankings(
-                `/api/stats?${query.toString()}`,
-                normalizedKind,
-                normalizedGender,
-                options
-            );
+            if (response.ok) {
+                const payload = await response.json();
+                const apiItems = Array.isArray(payload?.items) ? payload.items : [];
+                const payloadGender = normalizeStatsGenderValue(payload?.gender);
+                if (normalizedGender !== 'all' && payloadGender !== normalizedGender) {
+                    throw new Error('API gender mismatch');
+                }
+                return apiItems
+                    .map((item) => {
+                        const key = normalizedKind === 'reading'
+                            ? String(item?.reading || item?.key || '').trim()
+                            : String(item?.kanji || item?.key || '').trim();
+                        return normalizedKind === 'reading'
+                            ? { reading: key, count: Number(item?.count) || 0 }
+                            : { kanji: key, count: Number(item?.count) || 0 };
+                    })
+                    .filter((item) => (normalizedKind === 'reading' ? item.reading : item.kanji) && item.count > 0)
+                    .sort((a, b) => {
+                        if (b.count !== a.count) return b.count - a.count;
+                        const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
+                        const bKey = normalizedKind === 'reading' ? b.reading : b.kanji;
+                        return aKey.localeCompare(bKey, 'ja');
+                    })
+                    .slice(0, 100);
+            }
         } catch (apiError) {
-            if (apiError?.name === 'AbortError') throw apiError;
             console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) API fallback`, apiError);
         }
 
-        try {
-            return await fetchFirestoreSdkRankings(
-                normalizedType,
-                normalizedKind,
-                normalizedMetric,
-                normalizedGender,
-                options
-            );
-        } catch (firestoreError) {
-            if (firestoreError?.name === 'AbortError') throw firestoreError;
-            console.warn(`STATS: fetchRankings(${normalizedKind}:${normalizedType}) Firestore fallback`, firestoreError);
-            throw firestoreError;
-        }
+        return [];
     }
 };
 
@@ -5764,10 +5513,6 @@ MeimayPairing.syncMyData = async function () {
         return;
     }
 
-    if (this._syncRetryTimer) {
-        clearTimeout(this._syncRetryTimer);
-        this._syncRetryTimer = null;
-    }
     this._syncInProgress = true;
     let syncFailed = false;
     try {
@@ -5862,7 +5607,7 @@ MeimayPairing.syncMyData = async function () {
             ? { meimayStateV2UpdatedAt: childWorkspaceStateV2UpdatedAt }
             : {};
         const roomDataRef = firebaseDb.collection('rooms').doc(this.roomCode).collection('data').doc(user.uid);
-        const roomDataDoc = await withMeimayTimeout(roomDataRef.get(), 15000, 'パートナー連携の確認');
+        const roomDataDoc = await roomDataRef.get();
         const existingRoomData = roomDataDoc.exists ? (roomDataDoc.data() || {}) : {};
         const likedClearFlag = localStorage.getItem('meimay_liked_cleared_at');
         const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
@@ -5980,7 +5725,7 @@ MeimayPairing.syncMyData = async function () {
         roomPayload.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
 
         if (this._lastContentFingerprint !== contentFingerprint && existingContentFingerprint !== contentFingerprint) {
-            await withMeimayTimeout(roomDataRef.set(roomPayload, { merge: true }), 15000, 'パートナー連携の保存');
+            await roomDataRef.set(roomPayload, { merge: true });
             this._lastContentFingerprint = contentFingerprint;
             if (typeof MeimayShare !== 'undefined' && MeimayShare && typeof MeimayShare._buildPremiumStateSyncFingerprint === 'function') {
                 MeimayShare._lastPremiumStateSyncFingerprint = MeimayShare._buildPremiumStateSyncFingerprint(this.roomCode, user.uid, roomPayload);
@@ -5999,15 +5744,13 @@ MeimayPairing.syncMyData = async function () {
         console.error('PAIRING: Sync data failed', e);
     } finally {
         this._syncInProgress = false;
-        if (this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
-            const retryDelay = syncFailed ? 5000 : 250;
-            if (!this._syncRetryTimer) this._syncRetryTimer = setTimeout(() => {
-                this._syncRetryTimer = null;
-                this._syncPending = false;
+        if (!syncFailed && this._syncPending && this.roomCode && !(typeof MeimayShare !== 'undefined' && MeimayShare._restoreInFlight)) {
+            this._syncPending = false;
+            setTimeout(() => {
                 if (this.roomCode && typeof this.syncMyData === 'function') {
                     this.syncMyData();
                 }
-            }, retryDelay);
+            }, 250);
         }
     }
 };
@@ -6097,8 +5840,7 @@ MeimayPartnerInsights.normalizeReading = function (value) {
 MeimayPartnerInsights.getOwnReadingStock = function () {
     const ownReadings = typeof getReadingStock === 'function' ? getReadingStock() : [];
     const hiddenReadingSet = this.getOwnHiddenReadingSet();
-    return (Array.isArray(ownReadings) ? ownReadings : [])
-        .filter(item => !this._isHiddenReadingItem(item, hiddenReadingSet));
+    return ownReadings.filter(item => !this._isHiddenReadingItem(item, hiddenReadingSet));
 };
 
 MeimayPartnerInsights.getOwnEncounteredReadings = function () {
@@ -6262,13 +6004,15 @@ MeimayPartnerInsights.getPartnerDisplayName = function () {
 
 MeimayPartnerInsights.getOwnApprovedSavedKeys = function () {
     return new Set(this.getOwnSaved()
-        .map(item => getPairingExplicitApprovedSavedKey(item))
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean));
 };
 
 MeimayPartnerInsights.getPartnerApprovedSavedKeys = function () {
     return new Set(this.getPartnerSaved()
-        .map(item => getPairingExplicitApprovedSavedKey(item))
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean));
 };
 
@@ -6361,21 +6105,12 @@ MeimayPartnerInsights.isReadingItemMatched = function (item) {
 };
 
 MeimayPartnerInsights.getSummary = function () {
-    const readList = (methodName) => {
-        try {
-            const value = typeof this[methodName] === 'function' ? this[methodName]() : [];
-            return Array.isArray(value) ? value : [];
-        } catch (error) {
-            console.warn(`PAIRING: Failed to read ${methodName} for summary`, error);
-            return [];
-        }
-    };
-    const ownReadingItems = readList('getOwnReadingStock');
-    const partnerReadingItems = readList('getPartnerReadingStock');
-    const ownLikedItems = readList('getOwnLiked');
-    const partnerLikedItems = readList('getPartnerLiked');
-    const ownSavedItems = readList('getOwnSaved');
-    const partnerSavedItems = readList('getPartnerSaved');
+    const ownReadingItems = this.getOwnReadingStock();
+    const partnerReadingItems = this.getPartnerReadingStock();
+    const ownLikedItems = this.getOwnLiked();
+    const partnerLikedItems = this.getPartnerLiked();
+    const ownSavedItems = this.getOwnSaved();
+    const partnerSavedItems = this.getPartnerSaved();
     const summaryListKey = (items, keyFn) => {
         const list = Array.isArray(items) ? items : [];
         if (list.length === 0) return '0';
@@ -6430,13 +6165,15 @@ MeimayPartnerInsights.getSummary = function () {
     const partnerSavedKeys = new Set(partnerSavedItems.map(item => this.buildSavedMatchKey(item)).filter(Boolean));
     const matchedSavedKeys = new Set();
     ownSavedItems
-        .map(item => getPairingExplicitApprovedSavedKey(item))
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean)
         .forEach(key => {
             if (partnerSavedKeys.has(key)) matchedSavedKeys.add(key);
         });
     partnerSavedItems
-        .map(item => getPairingExplicitApprovedSavedKey(item))
+        .filter(item => item?.approvedFromPartner)
+        .map(item => canonicalizePairingSavedNameKey(item.approvedPartnerSavedKey) || this.buildSavedMatchKey(item))
         .filter(Boolean)
         .forEach(key => {
             if (ownSavedKeys.has(key)) matchedSavedKeys.add(key);
@@ -6454,16 +6191,10 @@ MeimayPartnerInsights.getSummary = function () {
         .map(key => representativeSavedByKey.get(key))
         .filter(Boolean);
     const partnerName = this.getPartnerDisplayName();
-    let ownKanjiCount = ownLikedItems.length;
-    let partnerKanjiCount = partnerLikedItems.length;
-    if (typeof window.getVisibleKanjiStockCardCount === 'function') {
-        try {
-            ownKanjiCount = window.getVisibleKanjiStockCardCount('self', ownLikedItems);
-            partnerKanjiCount = window.getVisibleKanjiStockCardCount('partner', partnerLikedItems);
-        } catch (error) {
-            console.warn('PAIRING: Falling back to raw kanji counts', error);
-        }
-    }
+    const ownKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function' ? window.getVisibleKanjiStockCardCount('all', ownLikedItems) : ownLikedItems.length;
+    const partnerKanjiCount = typeof window.getVisibleKanjiStockCardCount === 'function'
+        ? window.getVisibleKanjiStockCardCount('partner', partnerLikedItems)
+        : partnerLikedItems.length;
     const matchedKanjiCount = matchedLikedItems.length;
     const previewLabels = [
         ...matchedSavedItems.slice(0, 2).map(item => item.givenName || item.fullName || ''),
@@ -6630,59 +6361,33 @@ window.getMeimayRelationshipPalettes = getMeimayRelationshipPalettes;
 window.getMeimayOwnershipPalette = getMeimayOwnershipPalette;
 window.renderMeimaySuperStars = renderMeimaySuperStars;
 
-let partnerAwareUiRefreshPending = false;
-let partnerAwareUiRefreshSequence = 0;
-
 function refreshPartnerAwareUI(options = {}) {
-    const runRefresh = () => {
-        partnerAwareUiRefreshPending = false;
-        if (typeof applyProfileTheme === 'function') applyProfileTheme();
-        const activeScreenId = document.querySelector('.screen.active')?.id || '';
-        if (activeScreenId === 'scr-mode' && typeof renderHomeProfile === 'function') {
-            if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile({ afterPaint: false });
-            else renderHomeProfile();
-        }
-        if (activeScreenId === 'scr-saved' && typeof renderSavedScreen === 'function') {
-            renderSavedScreen();
-        }
-        if (activeScreenId === 'scr-settings' && typeof renderSettingsScreen === 'function') {
-            renderSettingsScreen();
-        }
-        if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
-            MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
-        }
-        if (activeScreenId === 'scr-stock') {
-            if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
-                if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
-            } else if (typeof renderStock === 'function') {
-                renderStock();
-            }
-        }
-        if (activeScreenId === 'scr-build') {
-            if (typeof requestRenderBuildSelection === 'function') {
-                requestRenderBuildSelection('partner-aware-ui');
-            } else if (typeof renderBuildSelection === 'function') {
-                renderBuildSelection();
-            }
-        }
-        if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
-    };
-
-    if (options.afterPaint === false || options.immediate === true) {
-        partnerAwareUiRefreshSequence += 1;
-        runRefresh();
-        return;
+    if (typeof applyProfileTheme === 'function') applyProfileTheme();
+    if (typeof renderHomeProfile === 'function' && document.getElementById('scr-mode')) {
+        if (typeof requestRenderHomeProfile === 'function') requestRenderHomeProfile(options);
     }
-    if (partnerAwareUiRefreshPending) return;
-    partnerAwareUiRefreshPending = true;
-    const refreshSequence = ++partnerAwareUiRefreshSequence;
-    const runIfCurrent = () => {
-        if (refreshSequence !== partnerAwareUiRefreshSequence) return;
-        runRefresh();
-    };
-    if (typeof runAfterNextPaint === 'function') runAfterNextPaint(runIfCurrent);
-    else if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(runIfCurrent, 0));
-    else setTimeout(runIfCurrent, 0);
+    if (typeof renderSavedScreen === 'function' && document.getElementById('scr-saved')?.classList.contains('active')) {
+        renderSavedScreen();
+    }
+    if (typeof renderSettingsScreen === 'function' && document.getElementById('scr-settings')?.classList.contains('active')) {
+        renderSettingsScreen();
+    }
+    if (typeof MeimayChildWorkspaces !== 'undefined' && MeimayChildWorkspaces && typeof MeimayChildWorkspaces.renderSwitchers === 'function') {
+        const activeScreenId = document.querySelector('.screen.active')?.id || '';
+        MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
+    }
+    if (document.getElementById('scr-stock')?.classList.contains('active')) {
+        if (typeof renderStock === 'function') renderStock();
+        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+    }
+    if (document.getElementById('scr-build')?.classList.contains('active')) {
+        if (typeof requestRenderBuildSelection === 'function') {
+            requestRenderBuildSelection('partner-aware-ui');
+        } else if (typeof renderBuildSelection === 'function') {
+            renderBuildSelection();
+        }
+    }
+    if (typeof updateDrawerProfile === 'function') updateDrawerProfile();
 }
 
 window.refreshPartnerAwareUI = refreshPartnerAwareUI;
@@ -6798,14 +6503,14 @@ const MeimayUserBackup = {
         const requestUrl = typeof getMeimayApiUrl === 'function'
             ? getMeimayApiUrl(this._restoreApiPath)
             : this._restoreApiPath;
-        const response = await fetchWithMeimayTimeout(requestUrl, {
+        const response = await fetch(requestUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({ action, ...payload })
-        }, 20000, 'バックアップ処理');
+        });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.ok === false) {
             const fallbackMessage = response.status === 404 && !data.error
@@ -7608,13 +7313,9 @@ const MeimayUserBackup = {
         }
 
         try {
-            await withMeimayTimeout(
-                firebaseDb.collection('users').doc(currentUser.uid).set(
-                    this._buildRemotePatch(sections, fingerprint),
-                    { merge: true }
-                ),
-                15000,
-                'バックアップの保存'
+            await firebaseDb.collection('users').doc(currentUser.uid).set(
+                this._buildRemotePatch(sections, fingerprint),
+                { merge: true }
             );
             this._lastSyncedFingerprint = fingerprint;
             this._lastRemoteBackupFingerprint = fingerprint;
@@ -7638,11 +7339,7 @@ const MeimayUserBackup = {
         if (this._restoreInFlight) return false;
 
         try {
-            const doc = await withMeimayTimeout(
-                firebaseDb.collection('users').doc(currentUser.uid).get(),
-                15000,
-                'バックアップの確認'
-            );
+            const doc = await firebaseDb.collection('users').doc(currentUser.uid).get();
             const remoteData = doc.exists ? (doc.data() || {}) : {};
             const remoteBackupFingerprint = this._getRemoteBackupFingerprint(remoteData);
             const remoteBackup = remoteData.meimayBackup || remoteData.backup || null;
@@ -7898,7 +7595,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
     }
 
     try {
-        await withMeimayTimeout(firebaseDb.collection('rooms').doc(roomCode)
+        await firebaseDb.collection('rooms').doc(roomCode)
             .collection('data').doc(user.uid).set({
                 isPremium: state.isPremium,
                 premiumSource: state.premiumSource,
@@ -7915,7 +7612,7 @@ MeimayShare.syncPremiumState = async function (premiumState = null) {
                 trialEndsAt: state.trialEndsAt,
                 trialConsumedByRoom: state.trialConsumedByRoom === true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }), 15000, 'プレミアム状態の連携');
+            }, { merge: true });
         this._lastPremiumStateSyncFingerprint = premiumSyncFingerprint;
         return true;
     } catch (e) {
@@ -7946,37 +7643,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
     this._partnerUnsub = firebaseDb.collection('rooms').doc(MeimayPairing.roomCode)
         .collection('data').doc(partnerUid)
         .onSnapshot((doc) => {
-            const snapshotApplySequence = (Number(this._partnerSnapshotApplySequence) || 0) + 1;
-            this._partnerSnapshotApplySequence = snapshotApplySequence;
             void (async () => {
                 try {
             if (partnerUid !== MeimayPairing.partnerUid) return;
             const data = doc.exists ? (doc.data() || {}) : {};
-            const partnerContentFingerprint = typeof this._buildPartnerContentFingerprint === 'function'
-                ? this._buildPartnerContentFingerprint(data)
-                : '';
-            const hydratedPartnerFingerprint = String(this.partnerSnapshot?.contentFingerprint || '').trim();
-            const canReuseHydratedPartnerSnapshot = partnerContentFingerprint
-                && partnerContentFingerprint === this._lastPartnerContentFingerprint
-                && partnerContentFingerprint === hydratedPartnerFingerprint
-                && String(this._partnerSnapshotPartnerUid || '').trim() === String(partnerUid || '').trim();
-            if (canReuseHydratedPartnerSnapshot) {
-                const partnerPremiumSnapshot = this.buildPublicPremiumSnapshot(data);
-                this.partnerUserSnapshot = partnerPremiumSnapshot;
-                if (this.partnerSnapshot && typeof this.partnerSnapshot === 'object') {
-                    this.partnerSnapshot.premiumState = partnerPremiumSnapshot;
-                }
-                if (partnerPremiumSnapshot && typeof window !== 'undefined' && typeof window.setCachedConnectedPartnerPremiumSnapshot === 'function') {
-                    window.setCachedConnectedPartnerPremiumSnapshot(partnerPremiumSnapshot, {
-                        roomCode: MeimayPairing.roomCode,
-                        partnerUid
-                    });
-                } else if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
-                    window.clearCachedConnectedPartnerPremiumSnapshot();
-                }
-                if (typeof updatePremiumUI === 'function') updatePremiumUI();
-                return;
-            }
             cleanupLegacyPartnerLocalData();
             const roomBackup = data.meimayBackup || data.backup || {};
             const roomLikedRemovalSource = Array.isArray(roomBackup?.likedRemoved) && roomBackup.likedRemoved.length > 0
@@ -8030,15 +7700,10 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 || !hasRoomSyncArrayField(data, roomBackup, 'savedNames')
                 || !hasRoomSyncArrayField(data, roomBackup, 'readingStock')
                 || !partnerChildWorkspaceStateV2
-                || (likedSource.length === 0 && savedNamesSource.length === 0 && readingStockSource.length === 0)
             );
             if (shouldFetchPartnerUserBackup) {
                 try {
-                    const partnerUserDoc = await withMeimayTimeout(
-                        firebaseDb.collection('users').doc(partnerUid).get(),
-                        10000,
-                        'パートナーデータの補完'
-                    );
+                    const partnerUserDoc = await firebaseDb.collection('users').doc(partnerUid).get();
                     if (partnerUserDoc.exists) {
                         const partnerUserData = partnerUserDoc.data() || {};
                         const partnerBackup = partnerUserData.meimayBackup || partnerUserData.backup || {};
@@ -8110,7 +7775,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 }
             }
 
-            if (snapshotApplySequence !== this._partnerSnapshotApplySequence || partnerUid !== MeimayPairing.partnerUid) return;
             const hydratedSections = MeimayFirestorePayload.hydrateSections({
                 liked: likedSource,
                 savedNames: savedNamesSource,
@@ -8137,10 +7801,8 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     : '',
                 meimayBackup: roomBackup,
                 backup: roomBackup,
-                partnerUserBackup,
-                contentFingerprint: partnerContentFingerprint
+                partnerUserBackup
             };
-            this._lastPartnerContentFingerprint = partnerContentFingerprint;
             this._partnerSnapshotPartnerUid = partnerUid;
             if (typeof this.cachePartnerSnapshot === 'function') {
                 this.cachePartnerSnapshot(this.partnerSnapshot, {
@@ -8166,8 +7828,6 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                     roomCode: MeimayPairing.roomCode,
                     partnerUid
                 });
-            } else if (typeof window !== 'undefined' && typeof window.clearCachedConnectedPartnerPremiumSnapshot === 'function') {
-                window.clearCachedConnectedPartnerPremiumSnapshot();
             }
             if (typeof updatePremiumUI === 'function') {
                 updatePremiumUI();
@@ -8204,7 +7864,6 @@ MeimayShare.stopListening = function () {
         this._partnerUserUnsub = null;
     }
     this._listeningPartnerUid = '';
-    this._lastPartnerContentFingerprint = '';
     if (typeof this.clearCachedPartnerSnapshot === 'function') {
         this.clearCachedPartnerSnapshot();
     } else {

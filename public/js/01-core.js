@@ -34,66 +34,6 @@ const KANJI_DATA_URL = '/data/kanji_data.json?v=26.03';
 const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
 const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
 const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
-const MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS = 20 * 1000;
-
-function createMeimayTimeoutError(label = '通信') {
-    const error = new Error(`${label}がタイムアウトしました`);
-    error.name = 'MeimayTimeoutError';
-    error.code = 'meimay_timeout';
-    return error;
-}
-
-function withMeimayTimeout(promise, timeoutMs = MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS, label = '処理') {
-    const safeTimeoutMs = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0
-        ? Number(timeoutMs)
-        : MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS;
-    let timer = null;
-    return Promise.race([
-        Promise.resolve(promise),
-        new Promise((resolve, reject) => {
-            timer = setTimeout(() => reject(createMeimayTimeoutError(label)), safeTimeoutMs);
-        })
-    ]).finally(() => {
-        if (timer) clearTimeout(timer);
-    });
-}
-
-async function fetchWithMeimayTimeout(input, init = {}, timeoutMs = MEIMAY_DEFAULT_OPERATION_TIMEOUT_MS, label = '通信') {
-    if (typeof AbortController === 'undefined') {
-        return withMeimayTimeout(fetch(input, init), timeoutMs, label);
-    }
-
-    const controller = new AbortController();
-    const externalSignal = init && init.signal ? init.signal : null;
-    let timedOut = false;
-    const forwardAbort = () => controller.abort();
-    if (externalSignal) {
-        if (externalSignal.aborted) {
-            controller.abort();
-        } else if (typeof externalSignal.addEventListener === 'function') {
-            externalSignal.addEventListener('abort', forwardAbort, { once: true });
-        }
-    }
-    const timer = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-    }, timeoutMs);
-
-    try {
-        return await fetch(input, { ...init, signal: controller.signal });
-    } catch (error) {
-        if (timedOut) throw createMeimayTimeoutError(label);
-        throw error;
-    } finally {
-        clearTimeout(timer);
-        if (externalSignal && typeof externalSignal.removeEventListener === 'function') {
-            externalSignal.removeEventListener('abort', forwardAbort);
-        }
-    }
-}
-
-window.withMeimayTimeout = withMeimayTimeout;
-window.fetchWithMeimayTimeout = fetchWithMeimayTimeout;
 
 function getMeimayRuntimePlatform() {
     try {
@@ -165,39 +105,22 @@ window.openMeimayExternalLink = openMeimayExternalLink;
 
 function isNativeAppRuntime() {
     try {
-        if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) {
-            return true;
-        }
         const platform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function'
             ? String(window.Capacitor.getPlatform() || '').toLowerCase()
             : '';
-        if (platform === 'ios' || platform === 'android') return true;
+        return platform === 'ios' || platform === 'android';
     } catch (e) {
-        // Continue with the WebView-origin fallback below.
+        return false;
     }
-
-    const protocol = String(window.location?.protocol || '').toLowerCase();
-    const hostname = String(window.location?.hostname || '').toLowerCase();
-    return protocol === 'capacitor:'
-        || protocol === 'ionic:'
-        || (protocol === 'https:' && hostname === 'localhost');
 }
 window.isNativeAppRuntime = isNativeAppRuntime;
-
-function getMeimayProductionApiUrl(path) {
-    const normalizedPath = String(path || '').startsWith('/')
-        ? String(path || '')
-        : `/${String(path || '')}`;
-    return `${MEIMAY_PRODUCTION_API_ORIGIN}${normalizedPath}`;
-}
-window.getMeimayProductionApiUrl = getMeimayProductionApiUrl;
 
 function getMeimayApiUrl(path) {
     const normalizedPath = String(path || '').startsWith('/')
         ? String(path || '')
         : `/${String(path || '')}`;
     return isNativeAppRuntime()
-        ? getMeimayProductionApiUrl(normalizedPath)
+        ? `${MEIMAY_PRODUCTION_API_ORIGIN}${normalizedPath}`
         : normalizedPath;
 }
 window.getMeimayApiUrl = getMeimayApiUrl;
@@ -322,55 +245,10 @@ window.showToast = showToast;
 
 let _homeRenderRequest = null;
 let _homeRenderPendingWhileHidden = false;
-let _homeRenderRecoveryTimer = null;
-let _homeRenderRecoveryAttempts = 0;
-const HOME_RENDER_RECOVERY_MAX_ATTEMPTS = 3;
 
 function isHomeProfileRenderTargetActive() {
     const home = document.getElementById('scr-mode');
     return !!(home && home.classList.contains('active'));
-}
-
-function isHomeProfileContentMounted() {
-    const stageTrack = document.getElementById('home-stage-track');
-    return !!(stageTrack && stageTrack.childElementCount > 0);
-}
-
-function clearHomeProfileRecovery() {
-    if (_homeRenderRecoveryTimer !== null) {
-        clearTimeout(_homeRenderRecoveryTimer);
-        _homeRenderRecoveryTimer = null;
-    }
-    _homeRenderRecoveryAttempts = 0;
-}
-
-function scheduleHomeProfileRecovery(reason = 'empty') {
-    if (!isHomeProfileRenderTargetActive() || isHomeProfileContentMounted()) {
-        clearHomeProfileRecovery();
-        return;
-    }
-    if (_homeRenderRecoveryTimer !== null || _homeRenderRecoveryAttempts >= HOME_RENDER_RECOVERY_MAX_ATTEMPTS) {
-        return;
-    }
-
-    const attempt = _homeRenderRecoveryAttempts + 1;
-    const delayMs = Math.min(1200, 180 * attempt);
-    _homeRenderRecoveryTimer = setTimeout(() => {
-        _homeRenderRecoveryTimer = null;
-        _homeRenderRecoveryAttempts = attempt;
-        if (!isHomeProfileRenderTargetActive() || isHomeProfileContentMounted()) {
-            clearHomeProfileRecovery();
-            return;
-        }
-        console.warn(`HOME: Retrying empty profile render (${reason}, ${attempt}/${HOME_RENDER_RECOVERY_MAX_ATTEMPTS})`);
-        requestRenderHomeProfile({ force: true, afterPaint: false, recovery: true });
-    }, delayMs);
-}
-
-function recoverVisibleHomeProfile(reason = 'visible') {
-    if (!isHomeProfileRenderTargetActive() || isHomeProfileContentMounted()) return;
-    requestRenderHomeProfile({ force: true, afterPaint: false });
-    scheduleHomeProfileRecovery(reason);
 }
 
 /**
@@ -378,9 +256,6 @@ function recoverVisibleHomeProfile(reason = 'visible') {
  */
 function requestRenderHomeProfile(options = {}) {
     const force = options.force === true;
-    if (options.recovery !== true) {
-        _homeRenderRecoveryAttempts = 0;
-    }
     if (_homeRenderRequest) {
         if (force && typeof _homeRenderRequest === 'object') {
             _homeRenderRequest.force = true;
@@ -398,276 +273,28 @@ function requestRenderHomeProfile(options = {}) {
         }
         _homeRenderPendingWhileHidden = false;
         if (typeof renderHomeProfile === 'function') {
-            try {
-                renderHomeProfile();
-            } catch (error) {
-                console.error('HOME: Profile render failed', error);
-            }
-        }
-        if (isHomeProfileContentMounted()) {
-            clearHomeProfileRecovery();
-        } else {
-            scheduleHomeProfileRecovery('render-incomplete');
+            renderHomeProfile();
         }
     };
 
     const afterPaint = options.afterPaint !== false;
+    if (afterPaint && typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(run, 0));
+        return;
+    }
     if (typeof requestAnimationFrame === 'function') {
-        let completed = false;
-        let fallbackTimer = null;
-        const runOnce = () => {
-            if (completed) return;
-            completed = true;
-            if (fallbackTimer !== null) clearTimeout(fallbackTimer);
-            run();
-        };
-        fallbackTimer = setTimeout(runOnce, afterPaint ? 180 : 90);
-        requestAnimationFrame(() => {
-            if (afterPaint) setTimeout(runOnce, 0);
-            else runOnce();
-        });
+        requestAnimationFrame(run);
         return;
     }
     setTimeout(run, 0);
 }
 window.requestRenderHomeProfile = requestRenderHomeProfile;
 
-function runAfterNextPaint(callback) {
-    if (typeof callback !== 'function') return;
-    if (typeof requestAnimationFrame === 'function') {
-        let completed = false;
-        let fallbackTimer = null;
-        const runOnce = () => {
-            if (completed) return;
-            completed = true;
-            if (fallbackTimer !== null) clearTimeout(fallbackTimer);
-            callback();
-        };
-        fallbackTimer = setTimeout(runOnce, 180);
-        requestAnimationFrame(() => setTimeout(runOnce, 0));
-        return;
-    }
-    setTimeout(callback, 0);
-}
-
-function runScreenTaskSafely(label, task, options = {}) {
-    if (typeof task !== 'function') return undefined;
-    const taskLabel = String(label || 'screen task');
-    const handleError = (error) => {
-        console.error(`CORE: ${taskLabel} failed`, error);
-        if (typeof options.onError === 'function') {
-            try {
-                options.onError(error);
-            } catch (fallbackError) {
-                console.error(`CORE: ${taskLabel} fallback failed`, fallbackError);
-            }
-        }
-    };
-
-    try {
-        const result = task();
-        if (result && typeof result.catch === 'function') {
-            result.catch(handleError);
-        }
-        return result;
-    } catch (error) {
-        handleError(error);
-        return undefined;
-    }
-}
-
-const SCREEN_RENDER_SURFACE_IDS = {
-    'scr-kanji-search': 'kanji-search-results',
-    'scr-ranking': 'ranking-list-container',
-    'scr-stock': 'stock-list',
-    'scr-build': 'build-selection',
-    'scr-settings': 'settings-screen-content',
-    'scr-akinator': 'akinator-content',
-    'scr-legal': 'legal-content',
-    'scr-saved': 'saved-list-content',
-    'scr-history': 'history-list-content',
-    'scr-encountered': 'encountered-list-content',
-    'scr-main': 'stack',
-    'scr-swipe-universal': 'uni-stack'
-};
-
-function renderScreenFailureState(screenId) {
-    const readingStockActive = screenId === 'scr-stock'
-        && typeof currentStockTab !== 'undefined'
-        && currentStockTab === 'reading';
-    const surfaceId = readingStockActive
-        ? 'reading-stock-section'
-        : SCREEN_RENDER_SURFACE_IDS[screenId];
-    const surface = surfaceId ? document.getElementById(surfaceId) : null;
-    if (!surface) return;
-    const currentText = String(surface.textContent || '').trim();
-    const isWaiting = ['読み込み中', '準備しています', '準備中'].some(phrase => currentText.includes(phrase));
-    if (!isWaiting && (surface.childElementCount > 0 || currentText)) return;
-    surface.innerHTML = `
-        <div class="w-full px-5 py-12 text-center text-sm font-bold text-[#a6967a]">
-            <p class="text-[#5d5444]">表示を準備できませんでした</p>
-            <p class="mt-2 text-[11px] font-medium leading-relaxed">画面を開き直すと再読み込みします。</p>
-        </div>
-    `;
-}
-
-function runAfterScreenPaint(screenId, callback) {
-    runAfterNextPaint(() => {
-        const screen = document.getElementById(screenId);
-        if (!screen || !screen.classList.contains('active')) return;
-        runScreenTaskSafely(`deferred render (${screenId})`, callback, {
-            onError: () => renderScreenFailureState(screenId)
-        });
-    });
-}
-
-window.runAfterNextPaint = runAfterNextPaint;
-window.runAfterScreenPaint = runAfterScreenPaint;
-window.runScreenTaskSafely = runScreenTaskSafely;
-
 function flushDeferredHomeProfileRender() {
     if (!_homeRenderPendingWhileHidden) return;
     requestRenderHomeProfile({ force: true, afterPaint: false });
 }
 window.flushDeferredHomeProfileRender = flushDeferredHomeProfileRender;
-
-let _activeScreenRecoveryTimer = null;
-
-function isScreenSurfaceEmpty(surfaceId) {
-    const surface = document.getElementById(surfaceId);
-    return !!(surface && surface.childElementCount === 0 && !String(surface.textContent || '').trim());
-}
-
-function isScreenSurfaceWaiting(surfaceId, phrases = []) {
-    const surface = document.getElementById(surfaceId);
-    if (!surface) return false;
-    const text = String(surface.textContent || '').trim();
-    return phrases.some(phrase => text.includes(phrase));
-}
-
-function recoverActiveScreenContent(reason = 'visible') {
-    const activeScreen = document.querySelector('.screen.active');
-    if (!activeScreen) return;
-    const screenId = activeScreen.id;
-    const recover = (label, task) => runScreenTaskSafely(
-        `${label} recovery (${reason})`,
-        task,
-        { onError: () => renderScreenFailureState(screenId) }
-    );
-
-    if (screenId === 'scr-mode') {
-        recoverVisibleHomeProfile(reason);
-        return;
-    }
-
-    if (screenId === 'scr-stock') {
-        const readingTabActive = typeof currentStockTab !== 'undefined' && currentStockTab === 'reading';
-        const readingEmpty = document.getElementById('reading-stock-empty');
-        const readingMounted = !isScreenSurfaceEmpty('reading-stock-section')
-            || !!(readingEmpty && !readingEmpty.classList.contains('hidden'));
-        if (readingTabActive && !readingMounted && typeof renderReadingStockSectionVisible === 'function') {
-            recover('reading stock', () => renderReadingStockSectionVisible());
-        } else if (!readingTabActive && isScreenSurfaceEmpty('stock-list') && typeof renderStock === 'function') {
-            recover('kanji stock', () => renderStock());
-        }
-        return;
-    }
-
-    if (screenId === 'scr-build') {
-        const buildIsEmpty = isScreenSurfaceEmpty('build-header-sticky') && isScreenSurfaceEmpty('build-selection');
-        const buildIsWaiting = isScreenSurfaceWaiting('build-selection', ['候補を準備しています']);
-        const renderPending = typeof buildSelectionRenderTimer !== 'undefined' && !!buildSelectionRenderTimer;
-        if ((buildIsEmpty || buildIsWaiting) && !renderPending && typeof requestRenderBuildSelection === 'function') {
-            recover('build', () => requestRenderBuildSelection('screen-recovery', { delayMs: 0 }));
-        }
-        return;
-    }
-
-    if (screenId === 'scr-settings' && isScreenSurfaceEmpty('settings-screen-content') && typeof renderSettingsScreen === 'function') {
-        recover('settings', () => renderSettingsScreen());
-        return;
-    }
-    if (screenId === 'scr-saved'
-        && (isScreenSurfaceEmpty('saved-naming-canvas') || isScreenSurfaceEmpty('saved-list-content'))
-        && typeof renderSavedScreen === 'function') {
-        recover('saved names', () => renderSavedScreen());
-        return;
-    }
-    if (screenId === 'scr-history' && isScreenSurfaceEmpty('history-list-content') && typeof renderHistoryScreen === 'function') {
-        recover('history', () => renderHistoryScreen());
-        return;
-    }
-    if (screenId === 'scr-encountered' && isScreenSurfaceEmpty('encountered-list-content') && typeof renderEncounteredLibrary === 'function') {
-        recover('encountered library', () => renderEncounteredLibrary());
-        return;
-    }
-    if (screenId === 'scr-ranking') {
-        const rankingWaiting = isScreenSurfaceWaiting('ranking-list-container', ['ランキングを取得中', 'ランキングを読み込み中']);
-        const rankingRequestActive = typeof rankingLoadController !== 'undefined' && !!rankingLoadController;
-        if ((isScreenSurfaceEmpty('ranking-list-container') || rankingWaiting)
-            && !rankingRequestActive
-            && typeof loadRanking === 'function') {
-            recover('ranking', () => loadRanking());
-        }
-        return;
-    }
-    if (screenId === 'scr-kanji-search') {
-        const searchWaiting = isScreenSurfaceWaiting('kanji-search-results', ['読み込み中']);
-        const dataStatus = window.meimayDataLoadStatus || {};
-        const activeDataStatus = typeof searchContentType !== 'undefined' && searchContentType === 'reading'
-            ? dataStatus.readingsData
-            : dataStatus.master;
-        if ((isScreenSurfaceEmpty('kanji-search-results') || (searchWaiting && activeDataStatus !== 'loading'))
-            && typeof executeActiveSearch === 'function') {
-            recover('search', () => executeActiveSearch());
-        }
-        return;
-    }
-    if (screenId === 'scr-main') {
-        const emptyState = document.getElementById('main-empty-state');
-        const session = document.getElementById('main-session-content');
-        if (emptyState
-            && session
-            && emptyState.classList.contains('hidden')
-            && session.classList.contains('hidden')
-            && typeof updateSwipeMainState === 'function') {
-            recover('kanji swipe state', () => updateSwipeMainState());
-        }
-        if (session && !session.classList.contains('hidden') && isScreenSurfaceEmpty('stack') && typeof render === 'function') {
-            recover('kanji swipe', () => render());
-        }
-        return;
-    }
-    if (screenId === 'scr-swipe-universal') {
-        const session = document.getElementById('uni-session-content');
-        if (session && !session.classList.contains('hidden') && isScreenSurfaceEmpty('uni-stack') && typeof renderUniversalCard === 'function') {
-            recover('reading swipe', () => renderUniversalCard());
-        }
-        return;
-    }
-    if (screenId === 'scr-login' && typeof updatePairingUI === 'function') {
-        recover('pairing', () => updatePairingUI());
-        return;
-    }
-    if (screenId === 'scr-akinator' && isScreenSurfaceEmpty('akinator-content') && typeof renderAkinatorStep === 'function') {
-        recover('AI recommendation', () => renderAkinatorStep());
-        return;
-    }
-    if (screenId === 'scr-legal' && isScreenSurfaceEmpty('legal-content') && typeof switchLegalTab === 'function') {
-        const legalType = typeof currentLegalTabType !== 'undefined' ? currentLegalTabType : 'terms';
-        recover('legal', () => switchLegalTab(legalType));
-    }
-}
-
-function scheduleActiveScreenRecovery(reason = 'screen-change', delayMs = 480) {
-    if (_activeScreenRecoveryTimer !== null) clearTimeout(_activeScreenRecoveryTimer);
-    _activeScreenRecoveryTimer = setTimeout(() => {
-        _activeScreenRecoveryTimer = null;
-        runScreenTaskSafely('active screen recovery', () => recoverActiveScreenContent(reason));
-    }, Math.max(0, Number(delayMs) || 0));
-}
-
-window.recoverActiveScreenContent = recoverActiveScreenContent;
 
 let yomiSearchData = [];
 let readingsData = []; // 追加: 読み(タグ付き)詳細データ
@@ -843,7 +470,7 @@ window.onload = () => {
     }
 
     // 漢字データの読み込み
-    fetchWithMeimayTimeout(KANJI_DATA_URL, {}, 20000, '漢字データの読み込み')
+    fetch(KANJI_DATA_URL)
         .then(res => {
             if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
             return res.json();
@@ -889,7 +516,7 @@ window.onload = () => {
             }
 
             // 四字熟語・ことわざデータの読み込み（非同期）
-            fetchWithMeimayTimeout('/data/idioms.json?v=25.01', {}, 20000, '熟語データの読み込み')
+            fetch('/data/idioms.json?v=25.01')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -901,7 +528,7 @@ window.onload = () => {
                 .catch(err => console.warn("CORE: Failed to load idioms", err));
 
             // 画数データの読み込み（非同期）
-            fetchWithMeimayTimeout('/data/stroke_data.json', {}, 20000, '画数データの読み込み')
+            fetch('/data/stroke_data.json')
                 .then(res => {
                     if (res.ok) return res.json();
                     return {};
@@ -916,7 +543,7 @@ window.onload = () => {
                 .catch(err => console.warn("CORE: Failed to load stroke data", err));
 
             // 響きから探す用データの読み込み（非同期）
-            fetchWithMeimayTimeout('/data/yomi_search_data.json', {}, 20000, '読み検索データの読み込み')
+            fetch('/data/yomi_search_data.json')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -936,7 +563,7 @@ window.onload = () => {
                 });
 
             // タグ付き読みデータの読み込み（非同期）
-            fetchWithMeimayTimeout('/data/readings_data.json', {}, 20000, '読み候補データの読み込み')
+            fetch('/data/readings_data.json')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -955,7 +582,7 @@ window.onload = () => {
                     console.warn("CORE: Failed to load readings data", err);
                 });
 
-            fetchWithMeimayTimeout('/data/compound_readings_data.json', {}, 20000, '複合読みデータの読み込み')
+            fetch('/data/compound_readings_data.json')
                 .then(res => {
                     if (res.ok) return res.json();
                     return [];
@@ -974,7 +601,7 @@ window.onload = () => {
                     console.warn("CORE: Failed to load compound reading data", err);
                 });
 
-            fetchWithMeimayTimeout('/data/reading_segment_rules.json', {}, 20000, '読み分けルールの読み込み')
+            fetch('/data/reading_segment_rules.json')
                 .then(res => {
                     if (res.ok) return res.json();
                     return null;
@@ -1234,69 +861,67 @@ function installNativeUndoSuppression() {
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 0);
-            scheduleActiveScreenRecovery('visibilitychange', 120);
         }
-    });
-    window.addEventListener('pageshow', () => {
-        scheduleActiveScreenRecovery('pageshow', 120);
     });
 }
 
 installNativeUndoSuppression();
 
 function changeScreen(id) {
-    const screenId = String(id || '').trim();
-    const target = document.getElementById(screenId);
-    if (!target || !target.classList.contains('screen')) {
-        console.error(`CORE: Screen not found: ${screenId}`);
-        return false;
-    }
-
-    console.log(`CORE: Screen transition -> ${screenId}`);
-    const shouldFocusSink = !shouldKeepNativeTextEditingForScreen(screenId);
+    console.log(`CORE: Screen transition -> ${id}`);
+    const shouldFocusSink = !shouldKeepNativeTextEditingForScreen(id);
     const activeScreen = document.querySelector('.screen.active');
 
-    if (screenId === 'scr-build' && typeof window.restoreBuildScreenAfterNavigation === 'function') {
-        runScreenTaskSafely('restore build screen', () => window.restoreBuildScreenAfterNavigation());
+    if (id === 'scr-build' && typeof window.restoreBuildScreenAfterNavigation === 'function') {
+        window.restoreBuildScreenAfterNavigation();
     }
 
     if (
         activeScreen &&
         activeScreen.id === 'scr-build' &&
-        screenId !== 'scr-build' &&
+        id !== 'scr-build' &&
         typeof window.teardownBuildScreenForNavigation === 'function'
     ) {
-        runScreenTaskSafely('teardown build screen', () => window.teardownBuildScreenForNavigation({ defer: true }));
+        window.teardownBuildScreenForNavigation({ defer: true });
     }
 
-    runScreenTaskSafely('clear native text editing', () => clearNativeTextEditingContext({
+    clearNativeTextEditingContext({
         focusSink: shouldFocusSink
-    }));
+    });
 
     // 1. [最優先] 画面の表示切り替えを即座に実行
     // 開いているモーダルを全て閉じる
     const modals = document.querySelectorAll('.overlay.active');
     modals.forEach(m => m.classList.remove('active'));
     if (typeof syncAdBannerOverlaySuppression === 'function') {
-        setTimeout(() => runScreenTaskSafely('sync ad overlay', () => syncAdBannerOverlaySuppression()), 0);
+        setTimeout(() => syncAdBannerOverlaySuppression(), 0);
     }
 
-    // 遷移先を必ず残したまま、他画面だけを非表示にする
+    // 全画面を非表示
     const screens = document.querySelectorAll('.screen');
-    screens.forEach(s => s.classList.toggle('active', s === target));
-    target.scrollTop = 0;
-    if (shouldFocusSink) {
-        setTimeout(() => runScreenTaskSafely('focus screen sink', () => clearNativeTextEditingContext({ focusSink: true })), 80);
-        setTimeout(() => runScreenTaskSafely('refocus screen sink', () => clearNativeTextEditingContext({ focusSink: true })), 600);
+    screens.forEach(s => s.classList.remove('active'));
+
+    // ターゲット画面を表示
+    const target = document.getElementById(id);
+    if (target) {
+        target.classList.add('active');
+        target.scrollTop = 0;
+        if (shouldFocusSink) {
+            setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 80);
+            setTimeout(() => clearNativeTextEditingContext({ focusSink: true }), 600);
+        }
+    } else {
+        console.error(`CORE: Screen not found: ${id}`);
+        return;
     }
 
     // ナビゲーションハイライト更新（これは高速なので即時実行）
-    runScreenTaskSafely('update navigation highlight', () => updateNavHighlight(screenId));
+    updateNavHighlight(id);
     if (typeof trackMeimayEvent === 'function') {
-        runScreenTaskSafely('track screen view', () => trackMeimayEvent('screen_view', {
-            screen_id: screenId,
+        trackMeimayEvent('screen_view', {
+            screen_id: id,
             previous_screen_id: activeScreen ? activeScreen.id : ''
-        }));
+        });
     }
 
     // 2. [後回し] 重いレンダリングや集計処理を非同期で実行（画面遷移をブロックしない）
@@ -1311,7 +936,7 @@ function changeScreen(id) {
         ];
 
         if (footer) {
-            if (wizardScreens.includes(screenId)) {
+            if (wizardScreens.includes(id)) {
                 footer.classList.add('hidden');
             } else {
                 footer.classList.remove('hidden');
@@ -1319,35 +944,33 @@ function changeScreen(id) {
         }
 
         if (typeof updateAdLayoutSpacing === 'function') {
-            runScreenTaskSafely('update ad spacing', () => updateAdLayoutSpacing());
+            updateAdLayoutSpacing();
         }
         if (typeof refreshAdBannerAfterScreenChange === 'function') {
-            runScreenTaskSafely('refresh ad banner', () => refreshAdBannerAfterScreenChange(screenId));
+            refreshAdBannerAfterScreenChange(id);
         }
 
         // ホーム画面の場合、実績・プロファイルを更新
-        if (screenId === 'scr-mode') {
-            runScreenTaskSafely('render home profile', () => requestRenderHomeProfile({ force: true, afterPaint: false }));
+        if (id === 'scr-mode') {
+            requestRenderHomeProfile({ force: true });
         }
-        if ((screenId === 'scr-mode' || screenId === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
-            runScreenTaskSafely('update daily remaining display', () => updateDailyRemainingDisplay());
+        if ((id === 'scr-mode' || id === 'scr-input-reading') && typeof updateDailyRemainingDisplay === 'function') {
+            updateDailyRemainingDisplay();
         }
 
-        if (screenId === 'scr-login' && typeof updatePairingUI === 'function') {
-            runScreenTaskSafely('update pairing UI', () => updatePairingUI());
+        if (id === 'scr-login' && typeof updatePairingUI === 'function') {
+            updatePairingUI();
         }
 
         // 歴史画面のスクロール位置復元など
-        if (screenId === 'scr-history' && typeof restoreHistoryScroll === 'function') {
-            runScreenTaskSafely('restore history scroll', () => restoreHistoryScroll());
+        if (id === 'scr-history' && typeof restoreHistoryScroll === 'function') {
+            restoreHistoryScroll();
         }
 
         if (typeof maybeShowContextualCoachmark === 'function') {
-            runScreenTaskSafely('show contextual coachmark', () => maybeShowContextualCoachmark(screenId));
+            maybeShowContextualCoachmark(id);
         }
     }, 0);
-    scheduleActiveScreenRecovery(`screen-change:${screenId}`);
-    return true;
 }
 
 /**

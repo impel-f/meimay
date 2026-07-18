@@ -38,8 +38,6 @@ const BUILD_READING_DROPDOWN_INITIAL_LIMIT = 40;
 const BUILD_READING_DROPDOWN_INCREMENT = 40;
 let buildSlotVisibleLimits = {};
 let buildFreeSlotVisibleLimits = {};
-let stockRenderSequence = 0;
-const STOCK_RENDER_BATCH_CARD_LIMIT = 45;
 
 function escapeBuildHtml(value) {
     return String(value ?? '')
@@ -134,8 +132,6 @@ function getBuildCandidateCollectionStamp(items) {
         resolveLikedCandidateKanji(item),
         item?.fromPartner ? 'p' : 's',
         item?.isSuper ? 'super' : '',
-        item?.ownSuper ? 'own-super' : '',
-        item?.partnerSuper ? 'partner-super' : '',
         item?.stockAccess || 'legacy-unlocked',
         item?.updatedAt || item?.addedAt || item?.timestamp || item?.savedAt || ''
     ].join(':'));
@@ -451,25 +447,6 @@ function getVisibleOwnKanjiBuildCandidates(options = {}) {
         : cloneBuildCandidateList(buildOwnCandidatesCache);
 }
 
-function mergeFreeBuildKanjiCandidates(ownItems, partnerItems) {
-    const mergedByKanji = new Map();
-    const mergeItems = (items) => {
-        (Array.isArray(items) ? items : []).forEach((item) => {
-            const kanji = resolveLikedCandidateKanji(item);
-            if (!kanji) return;
-            if (mergedByKanji.has(kanji)) {
-                mergeLikedCandidateOwnershipState(mergedByKanji.get(kanji), item);
-                return;
-            }
-            mergedByKanji.set(kanji, { ...item });
-        });
-    };
-
-    mergeItems(ownItems);
-    mergeItems(partnerItems);
-    return [...mergedByKanji.values()];
-}
-
 /**
  * 自由組み立て用：自分＋パートナー両方の漢字候補を返す
  */
@@ -512,8 +489,15 @@ function getVisibleAllKanjiBuildCandidates(options = {}) {
                 && item.sessionReading !== 'SEARCH')
         : [];
 
+    // 重複チェック（同じ漢字が自分にもある場合はownItemsを優先）
+    const ownKanjiSet = new Set(ownItems.map(item => String(item?.['漢字'] || item?.kanji || '').trim()).filter(Boolean));
+    const uniquePartnerItems = partnerItems.filter(item => {
+        const k = String(item?.['漢字'] || item?.kanji || '').trim();
+        return k && !ownKanjiSet.has(k);
+    });
+
     buildAllCandidatesCacheSignature = signature;
-    buildAllCandidatesCache = mergeFreeBuildKanjiCandidates(ownItems, partnerItems);
+    buildAllCandidatesCache = [...ownItems, ...uniquePartnerItems];
     return options.returnCache === true
         ? buildAllCandidatesCache
         : cloneBuildCandidateList(buildAllCandidatesCache);
@@ -1147,8 +1131,11 @@ function openStock(tab, options = {}) {
             }
         }
     };
-    if (typeof runAfterScreenPaint === 'function') runAfterScreenPaint('scr-stock', renderStockAfterPaint);
-    else setTimeout(renderStockAfterPaint, 0);
+    if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(renderStockAfterPaint, 0));
+    } else {
+        setTimeout(renderStockAfterPaint, 16);
+    }
 }
 
 /**
@@ -1772,7 +1759,6 @@ function confirmFbBuild() {
 }
 
 function switchStockTab(tab, options = {}) {
-    if (tab === 'reading') stockRenderSequence += 1;
     currentStockTab = tab;
 
     const readingTab = document.getElementById('stock-tab-reading');
@@ -1997,12 +1983,6 @@ function hydrateLikedCandidate(item, options = {}) {
     const fromPartner = options.fromPartner ?? sourceItem?.fromPartner === true;
 
     const masterItem = findBuildMasterItem(kanji);
-    const ownSuper = fromPartner
-        ? false
-        : !!sourceItem?.ownSuper || !!sourceItem?.isSuper;
-    const partnerSuper = fromPartner
-        ? !!sourceItem?.partnerSuper || !!sourceItem?.isSuper
-        : !!sourceItem?.partnerSuper;
 
     return {
         ...(masterItem || {}),
@@ -2016,9 +1996,9 @@ function hydrateLikedCandidate(item, options = {}) {
         sessionReading: sourceItem?.sessionReading || '',
         sessionSegments: Array.isArray(sourceItem?.sessionSegments) ? sourceItem.sessionSegments : [],
         sessionDisplaySegments: Array.isArray(sourceItem?.sessionDisplaySegments) ? sourceItem.sessionDisplaySegments : [],
-        isSuper: ownSuper || partnerSuper,
-        ownSuper,
-        partnerSuper,
+        isSuper: !!sourceItem?.isSuper,
+        ownSuper: fromPartner ? false : !!sourceItem?.isSuper,
+        partnerSuper: fromPartner ? !!sourceItem?.isSuper : false,
         fromPartner,
         partnerAlsoPicked: !!options.partnerAlsoPicked || !!sourceItem?.partnerAlsoPicked,
         partnerName: options.partnerName || sourceItem?.partnerName || ''
@@ -2148,7 +2128,6 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
     });
 
     const segGroups = {};
-    const segGroupItemMaps = {};
     validItems.forEach(item => {
         let segRaw = '\u95be\uff6a\u9015\uff71';
         if (item.sessionReading === 'FREE') {
@@ -2164,16 +2143,12 @@ function getVisibleKanjiStockCardCount(kanjiFocus = 'all', candidatePoolOverride
         const seg = isCompoundSlotPlaceholder(segRaw)
             ? getReadableSegmentForItem(item, historyLookup)
             : segRaw;
-        if (!segGroups[seg]) {
-            segGroups[seg] = [];
-            segGroupItemMaps[seg] = new Map();
-        }
+        if (!segGroups[seg]) segGroups[seg] = [];
 
         const kanjiKey = getSegmentKanjiCandidateKey(item, seg) || getLikedCandidateDisplayKey(item);
-        const dup = segGroupItemMaps[seg].get(kanjiKey);
+        const dup = segGroups[seg].find(entry => (getSegmentKanjiCandidateKey(entry, seg) || getLikedCandidateDisplayKey(entry)) === kanjiKey);
         if (!dup) {
             segGroups[seg].push(item);
-            segGroupItemMaps[seg].set(kanjiKey, item);
             return;
         }
 
@@ -2501,24 +2476,10 @@ function getCardSuperFlags(item) {
     };
 }
 
-function hasBuildSuperPreference(item) {
-    const flags = getCardSuperFlags(item);
-    return flags.self || flags.partner;
-}
-
-function getFreeBuildCandidatePriority(item) {
-    const flags = getCardSuperFlags(item);
-    if (flags.self && flags.partner) return 0;
-    if (flags.self) return 1;
-    if (flags.partner) return 2;
-    return item?.fromPartner ? 4 : 3;
-}
-
 function renderStockSuperStars(item) {
     const superFlags = getCardSuperFlags(item);
     if (typeof window.renderMeimaySuperStars !== 'function') {
-        const stars = `${superFlags.self ? '★' : ''}${superFlags.partner ? '★' : ''}`;
-        return stars ? `<div class="stock-stars">${stars}</div>` : '';
+        return superFlags.self || superFlags.partner ? '<div class="stock-stars">★</div>' : '';
     }
     return window.renderMeimaySuperStars({
         self: superFlags.self,
@@ -2531,8 +2492,7 @@ function renderStockSuperStars(item) {
 function renderBuildSuperStars(item) {
     const superFlags = getCardSuperFlags(item);
     if (typeof window.renderMeimaySuperStars !== 'function') {
-        const stars = `${superFlags.self ? '★' : ''}${superFlags.partner ? '★' : ''}`;
-        return stars ? `<div class="build-piece-star">${stars}</div>` : '';
+        return superFlags.self || superFlags.partner ? '<div class="build-piece-star">★</div>' : '';
     }
     return window.renderMeimaySuperStars({
         self: superFlags.self,
@@ -2546,7 +2506,6 @@ function renderStock() {
     const container = document.getElementById('stock-list');
     if (!container) return;
 
-    const renderSequence = ++stockRenderSequence;
     container.innerHTML = '';
 
     // パートナー連携状態の確認
@@ -2598,7 +2557,6 @@ function renderStock() {
     const historyLookup = getLatestReadingHistoryLookup();
 
     const segGroups = {};
-    const segGroupItemMaps = {};
     validItems.forEach(item => {
         let segRaw = '自由';
         if (item.sessionReading === 'FREE') {
@@ -2612,16 +2570,12 @@ function renderStock() {
         }
 
         const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
-        if (!segGroups[seg]) {
-            segGroups[seg] = [];
-            segGroupItemMaps[seg] = new Map();
-        }
+        if (!segGroups[seg]) segGroups[seg] = [];
 
         const itemSegmentKey = getSegmentKanjiCandidateKey(item, seg) || buildLikedCandidateKey(item);
-        const dup = segGroupItemMaps[seg].get(itemSegmentKey);
+        const dup = segGroups[seg].find(e => (getSegmentKanjiCandidateKey(e, seg) || buildLikedCandidateKey(e)) === itemSegmentKey);
         if (!dup) {
             segGroups[seg].push(item);
-            segGroupItemMaps[seg].set(itemSegmentKey, item);
         } else {
             mergeLikedCandidateOwnershipState(dup, item);
         }
@@ -2633,101 +2587,81 @@ function renderStock() {
         return a.localeCompare(b, 'ja');
     });
 
-    let nextGroupIndex = 0;
-    const renderNextStockBatch = () => {
-        if (renderSequence !== stockRenderSequence) return;
-        const stockScreen = document.getElementById('scr-stock');
-        if (!stockScreen || !stockScreen.classList.contains('active')) return;
+    sortedKeys.forEach(seg => {
+        const items = segGroups[seg];
+        if (items.length === 0) return;
 
-        const batchFragment = document.createDocumentFragment();
-        let batchCardCount = 0;
-        while (nextGroupIndex < sortedKeys.length && batchCardCount < STOCK_RENDER_BATCH_CARD_LIMIT) {
-            const seg = sortedKeys[nextGroupIndex];
-            nextGroupIndex += 1;
-            const items = segGroups[seg];
-            if (items.length === 0) continue;
+        items.sort((a, b) => {
+            if (a.isSuper && !b.isSuper) return -1;
+            if (!a.isSuper && b.isSuper) return 1;
+            return 0;
+        });
 
-            items.sort((a, b) => Number(hasBuildSuperPreference(b)) - Number(hasBuildSuperPreference(a)));
+        const safeId = seg === 'FREE' ? 'FREE' : encodeURIComponent(seg).replace(/%/g, '');
+        const segHeader = document.createElement('div');
+        segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
+        segHeader.onclick = () => toggleReadingGroup(safeId);
+        segHeader.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+                <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
+                    <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
+                    ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}件)</span>
+                </span>
+                <div class="h-px flex-1 bg-[#d4c5af]"></div>
+            </div>
+        `;
+        container.appendChild(segHeader);
 
-            const safeId = seg === 'FREE' ? 'FREE' : encodeURIComponent(seg).replace(/%/g, '');
-            const segHeader = document.createElement('div');
-            segHeader.className = 'col-span-5 mt-6 mb-3 cursor-pointer select-none active:scale-95 transition-transform group';
-            segHeader.onclick = () => toggleReadingGroup(safeId);
-            segHeader.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                    <span class="text-base font-black text-[#bca37f] px-4 py-1.5 bg-white rounded-full border border-[#d4c5af] flex items-center gap-2 shadow-sm group-hover:bg-[#f8f5ef] transition-colors">
-                        <span id="icon-${safeId}" class="text-xs transition-transform">▼</span>
-                        ${seg} <span class="text-xs ml-1 text-[#a6967a]">(${items.length}件)</span>
-                    </span>
-                    <div class="h-px flex-1 bg-[#d4c5af]"></div>
-                </div>
-            `;
-            batchFragment.appendChild(segHeader);
+        const cardsGrid = document.createElement('div');
+        cardsGrid.id = `group-${safeId}`;
+        cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
 
-            const cardsGrid = document.createElement('div');
-            cardsGrid.id = `group-${safeId}`;
-            cardsGrid.className = 'col-span-5 grid grid-cols-5 gap-2 mb-4 transition-all duration-300 transform origin-top';
-
-            items.forEach(item => {
-                const card = document.createElement('div');
-                const ownershipKind = getStockOwnershipKind(item);
-                const hasStockStars = !!item?.isSuper || !!item?.ownSuper || !!item?.partnerSuper;
-                const isMutualStock = isStockMutualCard(item, ownershipKind);
-                const isLocked = typeof isPremiumRequiredKanjiStockItem === 'function'
-                    && isPremiumRequiredKanjiStockItem(item)
-                    && (typeof isKanjiStockItemUsable !== 'function' || !isKanjiStockItemUsable(item));
-                card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}${isMutualStock ? ' stock-card-mutual' : ''}${isLocked ? ' stock-card-locked' : ''}`;
-                card.dataset.stockOwnership = ownershipKind;
-                card.setAttribute('aria-label', isLocked
-                    ? `${item.kanji || item['漢字'] || ''} 人名用漢字 プレミアムで利用できます`
-                    : `${item.kanji || item['漢字'] || ''}の詳細を表示`);
-                card.onclick = () => {
-                    if (isLocked) {
-                        if (typeof showPremiumModal === 'function') {
-                            showPremiumModal({ source: 'direct_name_stock_locked' });
-                        }
-                        return;
+        items.forEach(item => {
+            const card = document.createElement('div');
+            const ownershipKind = getStockOwnershipKind(item);
+            const hasStockStars = !!item?.isSuper || !!item?.ownSuper || !!item?.partnerSuper;
+            const isMutualStock = isStockMutualCard(item, ownershipKind);
+            const isLocked = typeof isPremiumRequiredKanjiStockItem === 'function'
+                && isPremiumRequiredKanjiStockItem(item)
+                && (typeof isKanjiStockItemUsable !== 'function' || !isKanjiStockItemUsable(item));
+            card.className = `stock-card relative${hasStockStars ? ' has-stock-stars' : ''}${isMutualStock ? ' stock-card-mutual' : ''}${isLocked ? ' stock-card-locked' : ''}`;
+            card.dataset.stockOwnership = ownershipKind;
+            card.setAttribute('aria-label', isLocked
+                ? `${item.kanji || item['漢字'] || ''} 人名用漢字 プレミアムで利用できます`
+                : `${item.kanji || item['漢字'] || ''}の詳細を表示`);
+            card.onclick = () => {
+                if (isLocked) {
+                    if (typeof showPremiumModal === 'function') {
+                        showPremiumModal({ source: 'direct_name_stock_locked' });
                     }
-                    showDetailByData(item);
-                };
-
-                let displayStrokes = item['画数'];
-                if (displayStrokes === undefined && typeof master !== 'undefined') {
-                    const m = findBuildMasterItem(item['漢字']);
-                    if (m) displayStrokes = m['画数'];
+                    return;
                 }
+                showDetailByData(item);
+            };
 
-                const surfaceStyle = getStockCardSurfaceStyle(ownershipKind);
-                card.style.cssText = isLocked
-                    ? 'background:#f2f0ec;border-color:#d8d2c8;padding:10px 6px;cursor:pointer;'
-                    : `${surfaceStyle.card}; padding:10px 6px;`;
+            let displayStrokes = item['画数'];
+            if (displayStrokes === undefined && typeof master !== 'undefined') {
+                const m = findBuildMasterItem(item['漢字']);
+                if (m) displayStrokes = m['画数'];
+            }
 
-                card.innerHTML = `
-                    ${isLocked ? '<div aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:11px;line-height:1;color:#8d887f;">🔒</div>' : ''}
-                    <div class="stock-kanji" style="color:${isLocked ? '#99958d' : surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
-                    <div class="stock-strokes" style="color:${isLocked ? '#aaa59d' : surfaceStyle.strokesColor}">${isLocked ? '人名用' : `${displayStrokes !== undefined ? displayStrokes : '--'}画`}</div>
-                    ${isLocked ? '' : renderStockSuperStars(item)}
-                `;
-                cardsGrid.appendChild(card);
-            });
+            const surfaceStyle = getStockCardSurfaceStyle(ownershipKind);
+            card.style.cssText = isLocked
+                ? 'background:#f2f0ec;border-color:#d8d2c8;padding:10px 6px;cursor:pointer;'
+                : `${surfaceStyle.card}; padding:10px 6px;`;
 
-            batchFragment.appendChild(cardsGrid);
-            batchCardCount += items.length;
-        }
+            card.innerHTML = `
+                ${isLocked ? '<div aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:11px;line-height:1;color:#8d887f;">🔒</div>' : ''}
+                <div class="stock-kanji" style="color:${isLocked ? '#99958d' : surfaceStyle.kanjiColor}">${item.kanji || item['漢字'] || ''}</div>
+                <div class="stock-strokes" style="color:${isLocked ? '#aaa59d' : surfaceStyle.strokesColor}">${isLocked ? '人名用' : `${displayStrokes !== undefined ? displayStrokes : '--'}画`}</div>
+                ${isLocked ? '' : renderStockSuperStars(item)}
+            `;
+            cardsGrid.appendChild(card);
+        });
 
-        container.appendChild(batchFragment);
-        if (nextGroupIndex >= sortedKeys.length) return;
-        if (typeof runAfterNextPaint === 'function') {
-            runAfterNextPaint(renderNextStockBatch);
-        } else if (typeof requestAnimationFrame === 'function') {
-            requestAnimationFrame(() => setTimeout(renderNextStockBatch, 0));
-        } else {
-            setTimeout(renderNextStockBatch, 0);
-        }
-    };
-
-    renderNextStockBatch();
+        container.appendChild(cardsGrid);
+    });
 }
 
 window.clearKanjiPartnerFocus = clearKanjiPartnerFocus;
@@ -2804,8 +2738,8 @@ function openBuild(options = {}) {
 
     if (wasBuildActive) {
         prepareBuildScreen();
-    } else if (typeof runAfterScreenPaint === 'function') {
-        runAfterScreenPaint('scr-build', prepareBuildScreen);
+    } else if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => setTimeout(prepareBuildScreen, 0));
     } else {
         setTimeout(prepareBuildScreen, 0);
     }
@@ -2981,20 +2915,6 @@ function showBuildPreparingState() {
     }
     if (container) {
         container.innerHTML = '<div class="px-4 py-12 text-center text-sm font-bold text-[#a6967a]">候補を準備しています</div>';
-    }
-}
-
-function showBuildRenderErrorState() {
-    const container = document.getElementById('build-selection');
-    const headerContainer = document.getElementById('build-header-sticky');
-    if (typeof syncBuildSaveButton === 'function') {
-        syncBuildSaveButton(false);
-    }
-    if (headerContainer) {
-        headerContainer.innerHTML = '<div class="rounded-2xl border border-[#f0ddd8] bg-white px-4 py-3 text-sm font-bold text-[#8b7e66] shadow-sm">ビルドを表示できませんでした</div>';
-    }
-    if (container) {
-        container.innerHTML = '<div class="px-4 py-12 text-center text-sm font-bold text-[#a6967a]">いったん戻って、もう一度ビルドを開いてください。</div>';
     }
 }
 
@@ -3452,14 +3372,7 @@ function requestRenderBuildSelection(reason = 'build', options = {}) {
             buildSelectionRenderCallbacks = [];
             return;
         }
-        try {
-            renderBuildSelection();
-        } catch (error) {
-            buildSelectionRenderCallbacks = [];
-            console.error(`BUILD: Selection render failed (${reason})`, error);
-            showBuildRenderErrorState();
-            return;
-        }
+        renderBuildSelection();
         const callbacks = buildSelectionRenderCallbacks.splice(0);
         callbacks.forEach((callback) => {
             try {
@@ -3706,10 +3619,19 @@ function renderBuildFreeMode(container) {
         seen.add(kanjiKey);
         allKanji.push({ ...item, _buildTarget: key });
     };
-    freeModeSource
-        .slice()
-        .sort((a, b) => getFreeBuildCandidatePriority(a) - getFreeBuildCandidatePriority(b))
-        .forEach(pushCandidate);
+    // スーパーライク優先（自分→パートナー）
+    freeModeSource.forEach(item => {
+        if (item.isSuper && !item.fromPartner) pushCandidate(item);
+    });
+    freeModeSource.forEach(item => {
+        if (item.isSuper && item.fromPartner) pushCandidate(item);
+    });
+    freeModeSource.forEach(item => {
+        if (!item.isSuper && !item.fromPartner) pushCandidate(item);
+    });
+    freeModeSource.forEach(item => {
+        if (!item.isSuper && item.fromPartner) pushCandidate(item);
+    });
 
     if (allKanji.length === 0) {
         const empty = document.createElement('div');
@@ -3826,42 +3748,10 @@ function normalizeReadingLookupKey(value) {
         : raw.replace(/\s+/g, '');
 }
 
-let buildReadingLookupCache = {
-    sourceRef: null,
-    sourceLength: -1,
-    byReading: new Map(),
-    allowedByGender: new Map()
-};
-
-function getBuildReadingLookup() {
-    const source = Array.isArray(readingsData) ? readingsData : [];
-    if (buildReadingLookupCache.sourceRef !== source
-        || buildReadingLookupCache.sourceLength !== source.length) {
-        const byReading = new Map();
-        source.forEach((entry, index) => {
-            const normalizedReading = normalizeReadingLookupKey(entry?.reading);
-            if (!normalizedReading) return;
-            if (!byReading.has(normalizedReading)) byReading.set(normalizedReading, []);
-            byReading.get(normalizedReading).push({ entry, index });
-        });
-        buildReadingLookupCache = {
-            sourceRef: source,
-            sourceLength: source.length,
-            byReading,
-            allowedByGender: new Map()
-        };
-    }
-    return buildReadingLookupCache;
-}
-
 function getAllowedReadingsForBuild(targetGender = gender || 'neutral') {
     if (!Array.isArray(readingsData) || readingsData.length === 0) return null;
 
     const normalizedTarget = targetGender === 'male' || targetGender === 'female' ? targetGender : 'all';
-    const lookup = getBuildReadingLookup();
-    if (lookup.allowedByGender.has(normalizedTarget)) {
-        return lookup.allowedByGender.get(normalizedTarget);
-    }
     const allowed = new Set();
 
     readingsData.forEach((entry) => {
@@ -3879,14 +3769,13 @@ function getAllowedReadingsForBuild(targetGender = gender || 'neutral') {
         allowed.add(normalizedReading);
     });
 
-    lookup.allowedByGender.set(normalizedTarget, allowed);
     return allowed;
 }
 
 function suggestReadingsForKanji(choices, container) {
     if (!choices || choices.length === 0) return;
     if (typeof master === 'undefined' || !master || master.length === 0) return;
-    const readingLookup = getBuildReadingLookup();
+    const dictionaryReadings = Array.isArray(readingsData) ? readingsData : [];
     const allowedReadings = getAllowedReadingsForBuild(gender);
     const selectedName = choices.join('');
 
@@ -3923,14 +3812,14 @@ function suggestReadingsForKanji(choices, container) {
     if (!readingArrays.some(a => a.length === 0)) {
         const combinedReadings = cartesian(readingArrays);
         const combinedSet = new Set(combinedReadings);
-        const filtered = [];
-        combinedSet.forEach((normalizedReading) => {
-            if (allowedReadings && !allowedReadings.has(normalizedReading)) return;
-            (readingLookup.byReading.get(normalizedReading) || []).forEach((match) => filtered.push(match));
+        const filtered = dictionaryReadings.filter((r) => {
+            const normalizedReading = normalizeReadingLookupKey(r?.reading);
+            if (!normalizedReading || !combinedSet.has(normalizedReading)) return false;
+            if (allowedReadings && !allowedReadings.has(normalizedReading)) return false;
+            return true;
         });
-        filtered.sort((a, b) => a.index - b.index);
 
-        const exactMatches = filtered.map(({ entry: r }) => {
+        const exactMatches = filtered.map(r => {
             let score = 0;
             if (r.tags && typeof userTags !== 'undefined') {
                 r.tags.forEach(t => { if (userTags[t]) score += userTags[t]; });
@@ -4081,11 +3970,68 @@ function executeFbBuild() {
 window.renderBuildFreeMode = renderBuildFreeMode;
 window.executeFbBuild = executeFbBuild;
 
+/**
+ * 漢字のアクションメニュー（ポップアップ）を表示
+ */
+function openKanjiActionMenu(target, slotIdx, isFreeMode) {
+    // ?????????????
+    document.getElementById('kanji-action-popup')?.remove();
+
+    const targetLabel = String(target || '').trim();
+    const localItem = findLocalLikedCandidateByTarget(targetLabel);
+    const item = localItem || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = item?.['??'] || item?.kanji || targetLabel;
+    const actionTarget = getLikedCandidateDisplayKey(localItem || item) || targetLabel;
+    const popupTargetLiteral = JSON.stringify(actionTarget);
+    const isSuper = item?.isSuper ?? false;
+
+    const popupHtml = `
+        <div class="overlay active modal-overlay-dark" id="kanji-action-popup" onclick="if(event.target.id==='kanji-action-popup')closeKanjiActionMenu()">
+            <div class="modal-sheet w-11/12 max-w-sm flex flex-col gap-3 p-6" onclick="event.stopPropagation()">
+                <div class="text-center mb-2">
+                    <div class="text-4xl font-black text-[#5d5444] mb-1">${kanji}</div>
+                    <div class="text-xs text-[#a6967a]">????????</div>
+                </div>
+
+                <button onclick='openKanjiDetailFromBuild(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">i</span>
+                    ???????
+                </button>
+
+                <button onclick='toggleSuperLikeInStock(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">${isSuper ? '?' : '?'}</span>
+                    SUPER ${isSuper ? '?????' : '?????'}
+                </button>
+
+                <button onclick='removeFromBuildCandidates(${slotIdx}, ${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#5d5444] flex items-center justify-center gap-2 hover:border-[#bca37f] transition-all active:scale-95">
+                    <span class="text-lg">?</span> ??????
+                </button>
+
+                <button onclick='confirmStockDeletion(${popupTargetLiteral})' class="w-full py-4 bg-white border-2 border-[#eee5d8] rounded-2xl text-[15px] font-bold text-[#d44e4e] flex items-center justify-center gap-2 hover:border-[#d44e4e] transition-all active:scale-95">
+                    <span class="text-lg">?</span> ???????????
+                </button>
+
+                <button onclick="closeKanjiActionMenu()" class="mt-2 w-full py-3 text-sm font-bold text-[#a6967a] hover:text-[#5d5444] transition-all">
+                    ?????
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', popupHtml);
+}
+
+function closeKanjiActionMenu() {
+    document.getElementById('kanji-action-popup')?.remove();
+}
+
 function openKanjiDetailFromBuild(target) {
     const kanjiStr = typeof resolveLikedCandidateKanji === 'function' ? resolveLikedCandidateKanji(target) : String(target || '').trim();
     const likedItem = findLikedCandidateByTarget(target) || null;
     const masterItem = findBuildMasterItem(kanjiStr);
     const detailItem = { ...(masterItem || {}), ...(likedItem || {}) };
+
+    closeKanjiActionMenu();
 
     if (!detailItem || !detailItem['漢字']) {
         if (typeof showToast === 'function') showToast('漢字データが見つかりません', '!');
@@ -4105,7 +4051,133 @@ function openKanjiDetailFromBuild(target) {
     if (typeof showToast === 'function') showToast('詳細を表示できません', '!');
 }
 
+/**
+ * SUPER???????
+ */
+function toggleSuperLikeInStock(target) {
+    if (!liked) return;
+    const targetLabel = String(target || '').trim();
+    const item = findLocalLikedCandidateByTarget(targetLabel);
+    if (item) {
+        item.isSuper = !item.isSuper;
+        if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+            StorageBox.saveLiked();
+        }
+        const kanji = item['??'] || item.kanji || targetLabel;
+        showToast(`?${kanji}??SUPER${item.isSuper ? '?????' : '???????'}`, '?');
+
+        withScrollPreservation(() => {
+            renderBuildSelection();
+            if (buildMode === 'free') executeFbBuild();
+        });
+    }
+    closeKanjiActionMenu();
+}
+
+/**
+ * ??????????????????
+ */
+function removeFromBuildCandidates(slotIdx, target) {
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+    rememberBuildCandidateExclusions(targetItem || targetLabel);
+
+    if (buildMode === 'free') {
+        fbChoices[slotIdx] = null;
+        fbSelectedReading = null;
+        rebuildFbChoiceMarks();
+        withScrollPreservation(() => {
+            renderBuildSelection();
+            executeFbBuild();
+        });
+    } else {
+        if (typeof selectedPieces !== 'undefined') {
+            selectedPieces = selectedPieces.map((p) => {
+                if (!p) return p;
+                const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
+                return matchesLikedCandidateTarget(hydrated, targetLabel) ? null : p;
+            });
+        }
+        updateNamePreview();
+        renderBuildSelection();
+    }
+    persistBuildCandidateExclusions();
+    showToast(`?${kanji}?????????????`, '?');
+    closeKanjiActionMenu();
+}
+
+/**
+ * ???????????
+ */
+function confirmStockDeletion(target) {
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+    if (confirm(`???${kanji}??????????????????
+?????????????`)) {
+        removeKanjiFromStock(targetLabel);
+        closeKanjiActionMenu();
+    }
+}
+
+/**
+ * ??????????????
+ */
+function removeKanjiFromStock(target) {
+    if (!liked) return;
+
+    const targetLabel = String(target || '').trim();
+    const targetItem = findLocalLikedCandidateByTarget(targetLabel) || findLikedCandidateByTarget(targetLabel) || null;
+    const kanji = targetItem?.['??'] || targetItem?.kanji || targetLabel;
+    const targetKey = targetItem ? getLikedCandidateDisplayKey(targetItem) : targetLabel;
+    rememberBuildCandidateExclusions(targetItem || targetLabel);
+    if (typeof StorageBox !== 'undefined' && StorageBox && typeof StorageBox.recordRemovedLikedItems === 'function') {
+        StorageBox.recordRemovedLikedItems(targetItem || targetLabel);
+    }
+    const hydrateForTarget = (item) => hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true });
+    const removedItems = liked.filter(item => matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
+    const initialCount = liked.length;
+    liked = liked.filter(item => !matchesLikedCandidateTarget(hydrateForTarget(item), targetKey));
+
+    if (liked.length < initialCount && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiUnlike) {
+        removedItems.forEach(item => {
+            if (item.isKanaCandidate) return;
+            MeimayStats.recordKanjiUnlike(kanji, item.gender || gender || 'neutral');
+        });
+    }
+
+    fbChoices = fbChoices.map(c => c === kanji ? null : c);
+    rebuildFbChoiceMarks();
+    // ????????????
+    if (typeof selectedPieces !== 'undefined') {
+        selectedPieces = selectedPieces.map((p) => {
+            if (!p) return p;
+            const hydrated = hydrateLikedCandidate(p, { fromPartner: p?.fromPartner === true });
+            return matchesLikedCandidateTarget(hydrated, targetKey) ? null : p;
+        });
+    }
+
+    if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
+        StorageBox.saveLiked();
+    }
+
+    showToast(`?${kanji}???????????`, '?');
+
+    withScrollPreservation(() => {
+        renderBuildSelection();
+        if (buildMode === 'free') executeFbBuild();
+        else updateNamePreview();
+    });
+}
+
+window.openKanjiActionMenu = openKanjiActionMenu;
+window.closeKanjiActionMenu = closeKanjiActionMenu;
 window.openKanjiDetailFromBuild = openKanjiDetailFromBuild;
+window.toggleSuperLikeInStock = toggleSuperLikeInStock;
+window.removeFromBuildCandidates = removeFromBuildCandidates;
+window.confirmStockDeletion = confirmStockDeletion;
+window.removeKanjiFromStock = removeKanjiFromStock;
 
 window.selectFbKanji = function (slotIdx, kanji) {
     withScrollPreservation(() => {
@@ -4210,7 +4282,7 @@ function sortByFortune(items, slotIndex) {
             }
         }
 
-        if (hasBuildSuperPreference(item)) score += 100;
+        if (item.isSuper) score += 100;
 
         return { item, score };
     });
@@ -4814,7 +4886,7 @@ function showFortuneRanking() {
             if ([15, 16, 21, 23, 24, 31, 32, 41, 45].includes(val)) score += 500;
         }
 
-        const superCount = combo.pieces.filter(hasBuildSuperPreference).length;
+        const superCount = combo.pieces.filter(p => p.isSuper).length;
         score += superCount * 100; // Superボーナスは少し控えめに
         return { combination: combo, fortune: fortune, score: score };
     });
@@ -4832,8 +4904,7 @@ function generateAllCombinations() {
             excluded: excludedKanjiFromBuild
         });
         return candidates.slice().sort((a, b) => {
-            const superRank = Number(hasBuildSuperPreference(b)) - Number(hasBuildSuperPreference(a));
-            if (superRank !== 0) return superRank;
+            if (!!a?.isSuper !== !!b?.isSuper) return a?.isSuper ? -1 : 1;
             return String(a?.['漢字'] || a?.kanji || '').localeCompare(String(b?.['漢字'] || b?.kanji || ''), 'ja');
         });
     });
