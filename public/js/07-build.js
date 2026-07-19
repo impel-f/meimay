@@ -833,6 +833,74 @@ function getBuildReadingChoiceKanjiCount(reading, candidateSegments = [], option
     return seen.size;
 }
 
+function getExactBuildPatternCountForSources(candidatePool = [], readingStock = []) {
+    const source = (Array.isArray(candidatePool) ? candidatePool : [])
+        .map(item => typeof hydrateLikedCandidate === 'function'
+            ? hydrateLikedCandidate(item, { fromPartner: item?.fromPartner === true })
+            : item)
+        .filter(item => !!item
+            && !isImportedKanjiLibraryItem(item)
+            && (typeof isKanjiStockItemUsable !== 'function' || isKanjiStockItemUsable(item)));
+    const stock = Array.isArray(readingStock) ? readingStock : [];
+    if (source.length === 0 || stock.length === 0) return 0;
+
+    const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
+        ? getLatestReadingHistoryLookup()
+        : {};
+    const patterns = new Map();
+
+    stock.forEach((item) => {
+        const rawReading = item?.reading || item?.sessionReading || '';
+        const reading = typeof getReadingBaseReading === 'function'
+            ? getReadingBaseReading(rawReading)
+            : String(rawReading || '').trim().split('::')[0].trim();
+        if (!reading) return;
+
+        const rawSegments = Array.isArray(item?.segments) && item.segments.length > 0
+            ? item.segments
+            : item?.sessionSegments;
+        const candidateSegments = getBuildCandidateSegmentsForReading(reading, rawSegments, historyLookup);
+        if (candidateSegments.length === 0) return;
+
+        const key = `${reading}::${candidateSegments.join('/')}`;
+        if (!patterns.has(key)) patterns.set(key, { reading, segments: candidateSegments });
+    });
+
+    const slotCandidateCache = new Map();
+    let total = 0;
+    patterns.forEach((pattern) => {
+        let combinations = 1;
+        for (let index = 0; index < pattern.segments.length; index++) {
+            const candidates = getUniqueBuildSlotCandidates(
+                pattern.segments[index],
+                index,
+                pattern.reading,
+                {
+                    candidateSource: source,
+                    excluded: [],
+                    includeKana: false,
+                    ignoreCompoundFixedPiece: true,
+                    slotCandidateCache
+                }
+            );
+            if (candidates.length === 0) {
+                combinations = 0;
+                break;
+            }
+            combinations = combinations > Number.MAX_SAFE_INTEGER / candidates.length
+                ? Number.MAX_SAFE_INTEGER
+                : combinations * candidates.length;
+        }
+        total = total > Number.MAX_SAFE_INTEGER - combinations
+            ? Number.MAX_SAFE_INTEGER
+            : total + combinations;
+    });
+
+    return total;
+}
+
+window.getExactBuildPatternCountForSources = getExactBuildPatternCountForSources;
+
 function getBuildReadingChoiceSources() {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const ownLikedItems = pairInsights?.getOwnLiked
@@ -2180,6 +2248,8 @@ function getBuildSlotCandidateCacheKey(seg, idx, currentReading, options = {}) {
         String(currentReading || ''),
         options.partnerOnly ? 'partner' : '',
         options.matchedOnly ? 'matched' : '',
+        options.includeKana === false ? 'stock-only' : 'with-kana',
+        options.ignoreCompoundFixedPiece === true ? 'no-fixed-piece' : 'fixed-piece',
         excluded.join('|')
     ].join('::');
 }
@@ -2196,7 +2266,9 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         return cache.get(cacheKey).slice();
     }
 
-    const fixedPiece = getCompoundFixedPieceForSlot(idx);
+    const fixedPiece = options.ignoreCompoundFixedPiece === true
+        ? null
+        : getCompoundFixedPieceForSlot(idx);
     if (fixedPiece) {
         const fixedResult = [{ ...fixedPiece }];
         if (cache) cache.set(cacheKey, fixedResult);
@@ -2244,7 +2316,7 @@ function getBuildSlotCandidates(seg, idx, currentReading, options = {}) {
         return true;
     });
 
-    if (partnerOnly || matchedOnly || typeof window.getKanaCandidatesForSegment !== 'function') {
+    if (options.includeKana === false || partnerOnly || matchedOnly || typeof window.getKanaCandidatesForSegment !== 'function') {
         if (cache) cache.set(cacheKey, stockCandidates);
         return stockCandidates.slice();
     }

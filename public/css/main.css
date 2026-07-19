@@ -187,6 +187,15 @@ body.hide-top-bar .screen-header-shell {
 #admob-banner {
     z-index: 10060 !important;
     background: #f5f0e8;
+    height: 56px;
+    min-height: 56px;
+    box-sizing: border-box;
+}
+
+#admob-banner .meimay-ad-banner-row {
+    height: 56px;
+    min-height: 56px;
+    box-sizing: border-box;
 }
 
 .nav-item {

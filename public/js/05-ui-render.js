@@ -2462,6 +2462,8 @@ function getHomeDataStateFingerprint(pool, readingStock) {
         addValue(Number.isFinite(Number(item?.slot)) ? Number(item.slot) : -1);
         addValue(Array.isArray(item?.sessionSegments) ? item.sessionSegments.join('/') : '');
         addValue(item?.kanji_reading || item?.reading || '');
+        addValue(item?.stockAccess || '');
+        addValue(item?.premiumUnlockedAt || '');
     });
     readingItems.forEach((item) => {
         addValue(item?.reading || item?.sessionReading || '');
@@ -2543,18 +2545,40 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, o
 
     // キャッシュチェック
     const fingerprint = getHomeDataStateFingerprint(pool, readingStock);
-    const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}`;
+    const membershipStamp = typeof PremiumManager !== 'undefined'
+        && PremiumManager
+        && typeof PremiumManager.isPremium === 'function'
+        && PremiumManager.isPremium()
+            ? 'premium'
+            : 'free';
+    const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}_${membershipStamp}`;
     if (_homeBuildPatternCountCache.has(cacheKey)) {
         return _homeBuildPatternCountCache.get(cacheKey);
     }
 
-    const workEstimate = Math.max(0, pool.length) * Math.max(0, readingStock.length);
+    const readingSlotEstimate = readingStock.reduce((sum, item) => {
+        const explicitSegments = Array.isArray(item?.segments) && item.segments.length > 0
+            ? item.segments
+            : item?.sessionSegments;
+        return sum + Math.max(1, Array.isArray(explicitSegments) ? explicitSegments.filter(Boolean).length : 1);
+    }, 0);
+    const workEstimate = Math.max(0, pool.length) * Math.max(0, readingSlotEstimate);
     if (options.force !== true && workEstimate > HOME_BUILD_PATTERN_DEFER_WORK_LIMIT) {
         scheduleHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, cacheKey);
         if (_homeBuildPatternCountStaleCache.has(cacheKey)) {
             return _homeBuildPatternCountStaleCache.get(cacheKey);
         }
         return _homeBuildPatternCountLastValue;
+    }
+
+    if (typeof window !== 'undefined' && typeof window.getExactBuildPatternCountForSources === 'function') {
+        const total = window.getExactBuildPatternCountForSources(pool, readingStock);
+        if (_homeBuildPatternCountCache.size > 50) _homeBuildPatternCountCache.clear();
+        _homeBuildPatternCountCache.set(cacheKey, total);
+        if (_homeBuildPatternCountStaleCache.size > 80) _homeBuildPatternCountStaleCache.clear();
+        _homeBuildPatternCountStaleCache.set(cacheKey, total);
+        _homeBuildPatternCountLastValue = total;
+        return total;
     }
 
     // プールのインデックス化（一度だけ実行して使い回す）

@@ -31,3 +31,20 @@ test('ad dock and footer stay opaque while the native banner loads', () => {
   assert.match(styles, /#admob-banner\s*\{[^}]*background:\s*#f5f0e8/s);
   assert.match(styles, /body\.has-ad-banner #universal-footer\s*\{[^}]*background:\s*#fdfaf5 !important/s);
 });
+
+test('native, fallback, and premium promo banners share one fixed dock height', () => {
+  assert.match(source, /const WEB_AD_BANNER_MIN_HEIGHT = 56;/);
+  assert.match(source, /const NATIVE_AD_BANNER_MIN_HEIGHT = 56;/);
+  assert.match(source, /container\.style\.height = `\$\{NATIVE_AD_BANNER_MIN_HEIGHT\}px`/);
+  assert.match(source, /container\.style\.height = `\$\{WEB_AD_BANNER_MIN_HEIGHT\}px`/);
+  assert.match(styles, /#admob-banner\s*\{[^}]*height:\s*56px;[^}]*min-height:\s*56px;/s);
+});
+
+test('native ad failures keep the fallback visible while retrying with backoff', () => {
+  assert.match(source, /const NATIVE_AD_BANNER_RETRY_DELAYS = \[30000, 60000, 120000, 300000\];/);
+  assert.match(source, /function scheduleNativeAdMobBannerRetry/);
+  assert.match(source, /scheduleNativeAdMobBannerRetry\(reason \|\| 'native-fallback'\)/);
+  assert.match(source, /function startNativeAdMobBannerLoadTimer/);
+  assert.match(source, /const keepFallbackVisible = adBannerMode === 'native-fallback'/);
+  assert.match(source, /if \(!keepFallbackVisible\)/);
+});

@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const acorn = require('acorn');
 
 const uiPath = path.join(__dirname, '..', 'public', 'js', '05-ui-render.js');
+const buildPath = path.join(__dirname, '..', 'public', 'js', '07-build.js');
 const firebasePath = path.join(__dirname, '..', 'public', 'js', '15-firebase.js');
 
 function extractFunctions(filePath, functionNames) {
@@ -82,6 +83,36 @@ vm.runInContext(`
 
 const overview = sandbox.homeOverview;
 
+vm.runInContext(`
+  function isCompoundSlotPlaceholder() { return false; }
+  function hydrateLikedCandidate(item) { return { ...item }; }
+  function isImportedKanjiLibraryItem() { return false; }
+  function isKanjiStockItemUsable() { return true; }
+  function getBuildHiddenReadingSet() { return new Set(); }
+  function getLatestReadingHistoryLookup() { return {}; }
+  function getReadingBaseReading(value) { return String(value || '').split('::')[0].trim(); }
+  function getPreferredReadingSegments() { return []; }
+  function getDisplaySegmentsForReading(reading) { return [reading]; }
+  function getCompoundFixedPieceForSlot() { return null; }
+  function resolveLikedCandidateKanji(item) { return String(item?.['漢字'] || item?.kanji || ''); }
+  function buildLikedCandidateKey(item) { return resolveLikedCandidateKanji(item); }
+  function getLikedCandidateKanjiKey(item) { return resolveLikedCandidateKanji(item); }
+  function getLikedCandidateDisplayKey(item) { return resolveLikedCandidateKanji(item); }
+  function mergeLikedCandidateOwnershipState(target) { return target; }
+  function toHira(value) { return String(value || ''); }
+  ${extractFunctions(buildPath, [
+    'getBuildCandidateSegmentsForReading',
+    'getExactBuildPatternCountForSources',
+    'getBuildSlotCandidateCacheKey',
+    'getBuildSlotCandidates',
+    'getUniqueBuildSlotCandidates',
+    'normalizeLikedCandidateSegmentKey',
+    'getSegmentKanjiCandidateKey'
+  ])}
+  window.getExactBuildPatternCountForSources = getExactBuildPatternCountForSources;
+  globalThis.exactBuildPatternCount = getExactBuildPatternCountForSources;
+`, sandbox, { filename: buildPath });
+
 function kanjiCandidate(kanji, slot) {
   return {
     '漢字': kanji,
@@ -109,6 +140,25 @@ test('shared build count uses the union of both users and is never below either 
   assert.equal(shared, 4);
   assert.ok(shared >= own);
   assert.ok(shared >= partner);
+});
+
+test('home build count matches the build screen slot candidates without enumerating names', () => {
+  const yoshi = Array.from('佳吉義良嘉善芳喜慶', (kanji) => ({
+    '漢字': kanji,
+    slot: 0,
+    sessionReading: 'よしはる',
+    sessionSegments: ['よし', 'はる']
+  }));
+  const haru = Array.from('春晴陽温暖', (kanji) => ({
+    '漢字': kanji,
+    slot: 1,
+    sessionReading: 'よしはる',
+    sessionSegments: ['よし', 'はる']
+  }));
+  const stock = [{ reading: 'よしはる', segments: ['よし', 'はる'] }];
+
+  assert.equal(sandbox.exactBuildPatternCount([...yoshi, ...haru], stock), 45);
+  assert.equal(overview.getHomeBuildPatternCount([...yoshi, ...haru], stock), 45);
 });
 
 test('home mode snapshots preserve individual counts and expand the shared build pool', () => {
