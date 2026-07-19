@@ -847,6 +847,9 @@ function getExactBuildPatternCountForSources(candidatePool = [], readingStock = 
     const historyLookup = typeof getLatestReadingHistoryLookup === 'function'
         ? getLatestReadingHistoryLookup()
         : {};
+    const hiddenReadingSet = typeof getBuildHiddenReadingSet === 'function'
+        ? getBuildHiddenReadingSet()
+        : new Set();
     const patterns = new Map();
 
     stock.forEach((item) => {
@@ -854,7 +857,7 @@ function getExactBuildPatternCountForSources(candidatePool = [], readingStock = 
         const reading = typeof getReadingBaseReading === 'function'
             ? getReadingBaseReading(rawReading)
             : String(rawReading || '').trim().split('::')[0].trim();
-        if (!reading) return;
+        if (!reading || hiddenReadingSet.has(reading)) return;
 
         const rawSegments = Array.isArray(item?.segments) && item.segments.length > 0
             ? item.segments
@@ -900,6 +903,20 @@ function getExactBuildPatternCountForSources(candidatePool = [], readingStock = 
 }
 
 window.getExactBuildPatternCountForSources = getExactBuildPatternCountForSources;
+
+function refreshHomeAfterExactBuildCounterReady() {
+    if (typeof requestRenderHomeProfile === 'function') {
+        requestRenderHomeProfile({ force: true });
+    } else if (typeof renderHomeProfile === 'function') {
+        renderHomeProfile();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', refreshHomeAfterExactBuildCounterReady, { once: true });
+} else {
+    setTimeout(refreshHomeAfterExactBuildCounterReady, 0);
+}
 
 function getBuildReadingChoiceSources() {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;

@@ -2551,7 +2551,12 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, o
         && PremiumManager.isPremium()
             ? 'premium'
             : 'free';
-    const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}_${membershipStamp}`;
+    const exactCounter = typeof window !== 'undefined'
+        && typeof window.getExactBuildPatternCountForSources === 'function'
+            ? window.getExactBuildPatternCountForSources
+            : null;
+    const countEngineStamp = exactCounter ? 'exact-v1' : 'fallback-v1';
+    const cacheKey = `${fingerprint}_${!!candidatePoolOverride}_${!!readingStockOverride}_${membershipStamp}_${countEngineStamp}`;
     if (_homeBuildPatternCountCache.has(cacheKey)) {
         return _homeBuildPatternCountCache.get(cacheKey);
     }
@@ -2571,8 +2576,8 @@ function getHomeBuildPatternCount(candidatePoolOverride, readingStockOverride, o
         return _homeBuildPatternCountLastValue;
     }
 
-    if (typeof window !== 'undefined' && typeof window.getExactBuildPatternCountForSources === 'function') {
-        const total = window.getExactBuildPatternCountForSources(pool, readingStock);
+    if (exactCounter) {
+        const total = exactCounter(pool, readingStock);
         if (_homeBuildPatternCountCache.size > 50) _homeBuildPatternCountCache.clear();
         _homeBuildPatternCountCache.set(cacheKey, total);
         if (_homeBuildPatternCountStaleCache.size > 80) _homeBuildPatternCountStaleCache.clear();
