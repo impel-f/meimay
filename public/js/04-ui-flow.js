@@ -2628,6 +2628,7 @@ function saveDirectNameInput() {
         segments: [],
         gender: typeof gender !== 'undefined' ? gender : 'neutral',
         clearHidden: true,
+        trackRankingVote: true,
         readingPromoted: false,
         source: 'direct-name'
     });
@@ -5456,7 +5457,7 @@ function assignReadingStockField(entry, key, value) {
 function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {}) {
     if (!Array.isArray(stock)) return { entry: null, changed: false, created: false };
 
-    const shouldTrackStats = false;
+    const shouldTrackStats = options.trackRankingVote === true;
     const normalizedBaseNickname = typeof baseNickname === 'string' ? baseNickname.trim() : '';
     const normalizedTags = Array.isArray(tags)
         ? [...new Set(tags.filter(tag => typeof tag === 'string' && tag.trim()))]
@@ -5466,9 +5467,38 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
     const normalizedSegmentsInput = Array.isArray(options.segments) ? options.segments.filter(Boolean) : [];
     const normalizedSegments = readingPromoted ? normalizedSegmentsInput : [];
     const targetId = getReadingStockKey(reading, normalizedSegments);
-    const existing = stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true });
+    const stockLookupIndex = options.stockLookupIndex
+        && options.stockLookupIndex.byId instanceof Map
+        && options.stockLookupIndex.byReading instanceof Map
+        ? options.stockLookupIndex
+        : null;
+    const normalizedLookupReading = normalizeReadingComparisonValue(getReadingBaseReading(reading));
+    const existing = stockLookupIndex
+        ? (stockLookupIndex.byId.get(targetId) || stockLookupIndex.byReading.get(normalizedLookupReading) || null)
+        : (stock.find(item => item.id === targetId) || findReadingStockItemInStock(stock, reading, { includeHidden: true }));
+    const refreshStockLookupIndex = (entry, previousId = '') => {
+        if (!stockLookupIndex || !entry) return;
+        const currentId = String(entry.id || '').trim();
+        if (previousId && previousId !== currentId && stockLookupIndex.byId.get(previousId) === entry) {
+            stockLookupIndex.byId.delete(previousId);
+        }
+        if (currentId && (!stockLookupIndex.byId.has(currentId) || stockLookupIndex.byId.get(currentId) === entry)) {
+            stockLookupIndex.byId.set(currentId, entry);
+        }
+        const entryReading = normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(entry)));
+        if (!entryReading) return;
+        const currentBest = stockLookupIndex.byReading.get(entryReading);
+        if (!currentBest || currentBest === entry) {
+            stockLookupIndex.byReading.set(entryReading, entry);
+            return;
+        }
+        const best = sortReadingStockMatches([currentBest, entry])[0] || currentBest;
+        stockLookupIndex.byReading.set(entryReading, best);
+    };
 
     if (existing) {
+        const previousId = String(existing.id || '').trim();
+        const wasStatsTracked = existing.statsTracked !== false;
         let changed = false;
         const nextTags = [...new Set([...(existing.tags || []), ...normalizedTags])];
         changed = assignReadingStockField(existing, 'tags', nextTags) || changed;
@@ -5497,7 +5527,16 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
         if (options.source) {
             changed = assignReadingStockField(existing, 'source', options.source) || changed;
         }
-        return { entry: existing, changed, created: false };
+        if (shouldTrackStats && !wasStatsTracked) {
+            changed = assignReadingStockField(existing, 'statsTracked', true) || changed;
+        }
+        refreshStockLookupIndex(existing, previousId);
+        return {
+            entry: existing,
+            changed,
+            created: false,
+            rankingVoteActivated: shouldTrackStats && !wasStatsTracked
+        };
     }
 
     const entry = normalizeReadingStockItem({
@@ -5518,7 +5557,13 @@ function upsertReadingStockEntry(stock, reading, baseNickname, tags, options = {
     if (options.source) entry.source = options.source;
 
     stock.push(entry);
-    return { entry, changed: true, created: true };
+    refreshStockLookupIndex(entry);
+    return {
+        entry,
+        changed: true,
+        created: true,
+        rankingVoteActivated: entry.statsTracked !== false
+    };
 }
 
 function addReadingToStock(reading, baseNickname, tags, options = {}) {
@@ -5544,12 +5589,6 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
     }
     if (result.created) {
         console.log("STOCK: Added reading to stock:", result.entry);
-        if (result.entry.statsTracked !== false && typeof syncReadingStockRankingStats === 'function') {
-            syncReadingStockRankingStats(result.entry.reading || reading, 1, 'all', {
-                gender: result.entry.gender || options.gender || gender || 'neutral',
-                scope: 'all'
-            });
-        }
         if (typeof trackMeimayEvent === 'function') {
             trackMeimayEvent('reading_saved', {
                 source: options.source || (options.readingPromoted ? 'reading_combination' : (appMode || '')),
@@ -5560,6 +5599,12 @@ function addReadingToStock(reading, baseNickname, tags, options = {}) {
                 stock_count: Array.isArray(stock) ? stock.length : 0
             });
         }
+    }
+    if (result.rankingVoteActivated && typeof syncReadingStockRankingStats === 'function') {
+        syncReadingStockRankingStats(result.entry.reading || reading, 1, 'all', {
+            gender: result.entry.gender || options.gender || gender || 'neutral',
+            scope: 'all'
+        });
     }
     return result.entry;
 }
@@ -5699,6 +5744,25 @@ function syncReadingStockFromLiked(items = liked) {
             .map(value => normalizeHiddenReading(value))
             .filter(Boolean)
     );
+    const stockLookupIndex = {
+        byId: new Map(),
+        byReading: new Map()
+    };
+    stock.forEach(item => {
+        if (!item) return;
+        const itemId = String(item.id || '').trim();
+        if (itemId && !stockLookupIndex.byId.has(itemId)) {
+            stockLookupIndex.byId.set(itemId, item);
+        }
+        const itemReading = normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item)));
+        if (!itemReading) return;
+        const currentBest = stockLookupIndex.byReading.get(itemReading);
+        if (!currentBest) {
+            stockLookupIndex.byReading.set(itemReading, item);
+            return;
+        }
+        stockLookupIndex.byReading.set(itemReading, sortReadingStockMatches([currentBest, item])[0] || currentBest);
+    });
     likedItems.forEach(item => {
         if (!item || item.fromPartner) return;
         if (String(item?.importedFromChildId || '').trim()) return;
@@ -5724,7 +5788,8 @@ function syncReadingStockFromLiked(items = liked) {
                 gender: item.gender || gender || 'neutral',
                 readingPromoted,
                 source: readingPromoted ? (item.source || 'reading-combination') : item.source,
-                basePosition: item.basePosition === 'prefix' ? 'prefix' : ''
+                basePosition: item.basePosition === 'prefix' ? 'prefix' : '',
+                stockLookupIndex
             }
         );
         changed = result.changed || changed;
@@ -5759,23 +5824,217 @@ function removeReadingFromStock(target) {
     return removedItems;
 }
 
-function syncReadingStockRankingStats(reading, delta = 1, period = 'all', genderOrOptions = null) {
-    if (typeof MeimayStats === 'undefined') return;
+const READING_RANKING_OUTBOX_STORAGE_KEY = 'meimay_reading_ranking_outbox_v1';
+const READING_RANKING_OUTBOX_RETRY_DELAYS = [5000, 30000, 120000, 300000];
+let readingRankingOutboxFlushPromise = null;
+let readingRankingOutboxRetryTimer = null;
+let readingRankingOutboxRetryAttempt = 0;
 
-    const normalizedReading = getReadingBaseReading(reading);
-    if (!normalizedReading) return;
+function normalizeReadingRankingOutboxReading(value) {
+    const raw = getReadingBaseReading(value);
+    if (!raw) return '';
+    if (typeof normalizeStatsReadingText === 'function') {
+        return normalizeStatsReadingText(raw);
+    }
+    const hiragana = raw.replace(/[\u30A1-\u30F6]/g, (char) => (
+        String.fromCharCode(char.charCodeAt(0) - 0x60)
+    ));
+    if (!/^[\u3041-\u3093\u30FC]+$/u.test(hiragana)) return '';
+    return Array.from(hiragana).length <= 24 ? hiragana : '';
+}
+
+function normalizeReadingRankingOutboxEntry(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const reading = normalizeReadingRankingOutboxReading(value.reading || value.key || '');
+    if (!reading || typeof value.active !== 'boolean') return null;
+    const period = ['allTime', 'monthly', 'weekly'].includes(value.period) ? value.period : 'all';
+    const options = value.options && typeof value.options === 'object' && !Array.isArray(value.options)
+        ? value.options
+        : {};
+    const genderValue = ['male', 'female', 'neutral', 'all'].includes(String(options.gender || '').trim().toLowerCase())
+        ? String(options.gender).trim().toLowerCase()
+        : 'neutral';
+    const scopeValue = ['global', 'gender', 'all'].includes(String(options.scope || '').trim().toLowerCase())
+        ? String(options.scope).trim().toLowerCase()
+        : 'all';
+    return {
+        reading,
+        active: value.active,
+        period,
+        options: {
+            gender: genderValue,
+            scope: scopeValue
+        },
+        revision: Math.max(1, Number(value.revision) || 1),
+        updatedAt: Math.max(0, Number(value.updatedAt) || 0)
+    };
+}
+
+function readReadingRankingOutbox() {
+    try {
+        const raw = localStorage.getItem(READING_RANKING_OUTBOX_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        const sourceEntries = Array.isArray(parsed)
+            ? parsed
+            : (parsed?.entries && typeof parsed.entries === 'object'
+                ? Object.values(parsed.entries)
+                : (parsed && typeof parsed === 'object' ? Object.values(parsed) : []));
+        const entries = {};
+        sourceEntries.forEach((value) => {
+            const normalized = normalizeReadingRankingOutboxEntry(value);
+            if (normalized) entries[normalized.reading] = normalized;
+        });
+        return entries;
+    } catch (error) {
+        console.warn('STATS: reading ranking outbox read failed', error);
+        return {};
+    }
+}
+
+function writeReadingRankingOutbox(entries) {
+    try {
+        const normalizedEntries = {};
+        Object.values(entries && typeof entries === 'object' ? entries : {}).forEach((value) => {
+            const normalized = normalizeReadingRankingOutboxEntry(value);
+            if (normalized) normalizedEntries[normalized.reading] = normalized;
+        });
+        if (Object.keys(normalizedEntries).length === 0) {
+            localStorage.removeItem(READING_RANKING_OUTBOX_STORAGE_KEY);
+            return true;
+        }
+        localStorage.setItem(READING_RANKING_OUTBOX_STORAGE_KEY, JSON.stringify({
+            version: 1,
+            entries: normalizedEntries
+        }));
+        return true;
+    } catch (error) {
+        console.warn('STATS: reading ranking outbox write failed', error);
+        return false;
+    }
+}
+
+function enqueueReadingRankingOutbox(reading, active, period = 'all', genderOrOptions = null) {
+    const normalizedReading = normalizeReadingRankingOutboxReading(reading);
+    if (!normalizedReading) return null;
+    const options = genderOrOptions && typeof genderOrOptions === 'object'
+        ? genderOrOptions
+        : { gender: genderOrOptions };
+    const entries = readReadingRankingOutbox();
+    const previous = entries[normalizedReading];
+    const entry = normalizeReadingRankingOutboxEntry({
+        reading: normalizedReading,
+        active: active === true,
+        period,
+        options,
+        revision: (Number(previous?.revision) || 0) + 1,
+        updatedAt: Date.now()
+    });
+    if (!entry || !writeReadingRankingOutbox({ ...entries, [normalizedReading]: entry })) return null;
+    return entry;
+}
+
+function scheduleReadingRankingOutboxRetry() {
+    if (readingRankingOutboxRetryTimer || typeof setTimeout !== 'function') return;
+    const delayIndex = Math.min(
+        readingRankingOutboxRetryAttempt,
+        READING_RANKING_OUTBOX_RETRY_DELAYS.length - 1
+    );
+    const delayMs = READING_RANKING_OUTBOX_RETRY_DELAYS[delayIndex];
+    readingRankingOutboxRetryAttempt += 1;
+    readingRankingOutboxRetryTimer = setTimeout(() => {
+        readingRankingOutboxRetryTimer = null;
+        flushReadingRankingOutbox();
+    }, delayMs);
+}
+
+function flushReadingRankingOutbox() {
+    if (readingRankingOutboxFlushPromise) return readingRankingOutboxFlushPromise;
+
+    readingRankingOutboxFlushPromise = (async () => {
+        while (true) {
+            const entries = readReadingRankingOutbox();
+            const nextEntry = Object.values(entries)
+                .sort((left, right) => left.updatedAt - right.updatedAt)[0];
+            if (!nextEntry) {
+                readingRankingOutboxRetryAttempt = 0;
+                if (readingRankingOutboxRetryTimer && typeof clearTimeout === 'function') {
+                    clearTimeout(readingRankingOutboxRetryTimer);
+                    readingRankingOutboxRetryTimer = null;
+                }
+                return true;
+            }
+
+            if (typeof MeimayStats === 'undefined') {
+                scheduleReadingRankingOutboxRetry();
+                return false;
+            }
+            const method = nextEntry.active
+                ? MeimayStats.recordReadingLike
+                : MeimayStats.recordReadingUnlike;
+            if (typeof method !== 'function') {
+                scheduleReadingRankingOutboxRetry();
+                return false;
+            }
+
+            let sent = false;
+            try {
+                sent = await method.call(
+                    MeimayStats,
+                    nextEntry.reading,
+                    nextEntry.active ? 1 : -1,
+                    nextEntry.period,
+                    nextEntry.options
+                );
+            } catch (error) {
+                console.warn('STATS: reading stock sync failed', error);
+            }
+            if (sent !== true) {
+                console.warn('STATS: reading stock sync remains queued', nextEntry.reading);
+                scheduleReadingRankingOutboxRetry();
+                return false;
+            }
+
+            const latestEntries = readReadingRankingOutbox();
+            const latestEntry = latestEntries[nextEntry.reading];
+            if (latestEntry && latestEntry.revision === nextEntry.revision) {
+                delete latestEntries[nextEntry.reading];
+                writeReadingRankingOutbox(latestEntries);
+            }
+            readingRankingOutboxRetryAttempt = 0;
+        }
+    })().finally(() => {
+        readingRankingOutboxFlushPromise = null;
+    });
+
+    return readingRankingOutboxFlushPromise;
+}
+
+function syncReadingStockRankingStats(reading, delta = 1, period = 'all', genderOrOptions = null) {
+    const normalizedReading = normalizeReadingRankingOutboxReading(reading);
+    if (!normalizedReading) return Promise.resolve(false);
 
     const normalizedDelta = Number(delta);
-    if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return;
+    if (!Number.isInteger(normalizedDelta) || normalizedDelta === 0) return Promise.resolve(false);
 
-    const method = normalizedDelta > 0
-        ? MeimayStats.recordReadingLike
-        : MeimayStats.recordReadingUnlike;
-    if (typeof method !== 'function') return;
+    const queued = enqueueReadingRankingOutbox(
+        normalizedReading,
+        normalizedDelta > 0,
+        period,
+        genderOrOptions
+    );
+    if (!queued) return Promise.resolve(false);
+    return flushReadingRankingOutbox();
+}
 
-    method.call(MeimayStats, normalizedReading, normalizedDelta, period, genderOrOptions).catch((error) => {
-        console.warn('STATS: reading stock sync failed', error);
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('online', () => {
+        readingRankingOutboxRetryAttempt = 0;
+        flushReadingRankingOutbox();
     });
+    window.addEventListener('load', () => {
+        flushReadingRankingOutbox();
+    }, { once: true });
 }
 
 function scheduleHiddenReadingStateSync(reason = 'hiddenReading') {
@@ -6114,6 +6373,7 @@ const SOUND_SESSION_WARMUP_LIMIT = 12;
 const SOUND_EVENT_LOG_LIMIT = 240;
 const SOUND_RANK_DEBUG_STORAGE_KEY = 'meimay_sound_debug_rank';
 const SOUND_DIVERSIFY_LOOKBACK = 5;
+const normalizedSoundPreferenceBuckets = new WeakSet();
 
 let soundPreferenceData = normalizeSoundPreferenceData({
     liked: [],
@@ -6249,8 +6509,14 @@ function normalizeSoundEventRecord(event) {
     return { ...event, reading, eventType: String(event.eventType || event.type || event.action || '').trim(), timestamp: event.timestamp || event.createdAt || new Date().toISOString(), dwellMs: Number(event.dwellMs || 0) || 0, scoreDelta: Number(event.scoreDelta || 0) || 0 };
 }
 function normalizeSoundPreferenceData(source) {
+    if (source && typeof source === 'object' && normalizedSoundPreferenceBuckets.has(source)) {
+        return source;
+    }
     const normalized = createSoundPreferenceBucket();
-    if (!source || typeof source !== 'object') return normalized;
+    if (!source || typeof source !== 'object') {
+        normalizedSoundPreferenceBuckets.add(normalized);
+        return normalized;
+    }
     normalized.version = Number(source.version || normalized.version) || normalized.version;
     normalized.liked = normalizeSoundStringList(source.liked);
     normalized.noped = normalizeSoundStringList(source.noped);
@@ -6270,6 +6536,7 @@ function normalizeSoundPreferenceData(source) {
         normalized.noped.forEach(reading => applySoundEventToProfile(normalized, { reading }, 'skipped', { source: 'legacy', persist: false }, { skipEventLog: true }));
     }
     normalized.meta.updatedAt = normalized.meta.updatedAt || normalized.meta.createdAt;
+    normalizedSoundPreferenceBuckets.add(normalized);
     return normalized;
 }
 function createSoundSessionState() {
@@ -6637,19 +6904,50 @@ function getSoundDiversityConflictScore(candidateProfile, historyProfiles = []) 
 function diversifySoundCandidates(scoredCandidates, recentProfiles = []) {
     const source = Array.isArray(scoredCandidates) ? [...scoredCandidates] : [];
     const result = [];
-    const seedHistory = Array.isArray(recentProfiles) ? recentProfiles.filter(Boolean) : [];
-    while (source.length > 0) {
-        const history = [...seedHistory, ...result.map(item => item._soundProfile).filter(Boolean)];
-        let chosenIndex = 0;
+    if (source.length === 0) return result;
+    const history = (Array.isArray(recentProfiles) ? recentProfiles.filter(Boolean) : []).slice(-SOUND_DIVERSIFY_LOOKBACK);
+    const nextIndexes = new Int32Array(source.length);
+    for (let index = 0; index < source.length; index += 1) {
+        nextIndexes[index] = index + 1 < source.length ? index + 1 : -1;
+    }
+    let headIndex = 0;
+    let remainingCount = source.length;
+    while (remainingCount > 0 && headIndex >= 0) {
+        let chosenSourceIndex = headIndex;
+        let chosenPreviousIndex = -1;
         let chosenPenalty = Infinity;
-        const lookahead = Math.min(12, source.length);
-        for (let i = 0; i < lookahead; i += 1) {
-            const candidate = source[i];
+        const lookahead = Math.min(12, remainingCount);
+        let sourceIndex = headIndex;
+        let previousIndex = -1;
+        for (let i = 0; i < lookahead && sourceIndex >= 0; i += 1) {
+            const candidate = source[sourceIndex];
             const penalty = getSoundDiversityConflictScore(candidate?._soundProfile, history);
-            if (penalty <= 0) { chosenIndex = i; chosenPenalty = penalty; break; }
-            if (penalty < chosenPenalty) { chosenPenalty = penalty; chosenIndex = i; }
+            if (penalty <= 0) {
+                chosenSourceIndex = sourceIndex;
+                chosenPreviousIndex = previousIndex;
+                chosenPenalty = penalty;
+                break;
+            }
+            if (penalty < chosenPenalty) {
+                chosenPenalty = penalty;
+                chosenSourceIndex = sourceIndex;
+                chosenPreviousIndex = previousIndex;
+            }
+            previousIndex = sourceIndex;
+            sourceIndex = nextIndexes[sourceIndex];
         }
-        result.push(source.splice(chosenIndex, 1)[0]);
+        if (chosenPreviousIndex < 0) {
+            headIndex = nextIndexes[chosenSourceIndex];
+        } else {
+            nextIndexes[chosenPreviousIndex] = nextIndexes[chosenSourceIndex];
+        }
+        const chosen = source[chosenSourceIndex];
+        result.push(chosen);
+        if (chosen?._soundProfile) {
+            history.push(chosen._soundProfile);
+            if (history.length > SOUND_DIVERSIFY_LOOKBACK) history.shift();
+        }
+        remainingCount -= 1;
     }
     return result;
 }
@@ -11302,12 +11600,26 @@ function renderReadingStockSectionV2() {
     const removedReadingSet = new Set(removedList.map(item => getReadingBaseReading(item)).filter(Boolean));
 
     const ownLiked = getVisibleOwnLikedReadingsForUI();
-    const completedReadings = [...new Set(
-        ownLiked
-            .filter(item => item.sessionReading && item.sessionReading !== 'FREE' && item.sessionReading !== 'SEARCH' && item.slot >= 0 && !removedReadingSet.has(getReadingBaseReading(item.sessionReading)))
-            .map(item => getReadingBaseReading(item.sessionReading))
-            .filter(Boolean)
-    )];
+    const completedReadings = [];
+    const completedReadingSeen = new Set();
+    const ownKanjiCountByReading = new Map();
+    ownLiked.forEach(item => {
+        const reading = getReadingBaseReading(item?.sessionReading || '');
+        if (reading && item?.slot >= 0) {
+            ownKanjiCountByReading.set(reading, (ownKanjiCountByReading.get(reading) || 0) + 1);
+        }
+        if (!item?.sessionReading
+            || item.sessionReading === 'FREE'
+            || item.sessionReading === 'SEARCH'
+            || !(item.slot >= 0)
+            || !reading
+            || removedReadingSet.has(reading)
+            || completedReadingSeen.has(reading)) {
+            return;
+        }
+        completedReadingSeen.add(reading);
+        completedReadings.push(reading);
+    });
     const completedReadingSet = new Set(completedReadings);
 
     const displayPendingStock = [];
@@ -11322,6 +11634,21 @@ function renderReadingStockSectionV2() {
         if (!readingKey || seenPendingReadings.has(readingKey)) return;
         seenPendingReadings.add(readingKey);
         displayPendingStock.push(item);
+    });
+    const readingStockByReading = new Map();
+    const readingStockBuckets = new Map();
+    const hiddenReadingSet = typeof getHiddenReadingSet === 'function' ? getHiddenReadingSet() : null;
+    pendingStock.forEach(item => {
+        if (!item) return;
+        if (hiddenReadingSet instanceof Set && typeof isReadingStockVisible === 'function' && !isReadingStockVisible(item, hiddenReadingSet)) return;
+        const readingKey = normalizeReadingComparisonValue(getReadingBaseReading(resolveReadingStockValue(item)));
+        if (!readingKey) return;
+        if (!readingStockBuckets.has(readingKey)) readingStockBuckets.set(readingKey, []);
+        readingStockBuckets.get(readingKey).push(item);
+    });
+    readingStockBuckets.forEach((items, readingKey) => {
+        const best = sortReadingStockMatches(items)[0] || null;
+        if (best) readingStockByReading.set(readingKey, best);
     });
 
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
@@ -11346,8 +11673,8 @@ function renderReadingStockSectionV2() {
     };
 
     const completedCards = completedReadings.map(reading => {
-        const kanjiCount = ownLiked.filter(item => getReadingBaseReading(item.sessionReading) === reading && item.slot >= 0).length;
-        const ownItem = findReadingStockItem(reading);
+        const kanjiCount = ownKanjiCountByReading.get(reading) || 0;
+        const ownItem = readingStockByReading.get(normalizeReadingComparisonValue(reading)) || null;
         const segmentSource = Array.isArray(ownItem?.segments) ? ownItem.segments.filter(Boolean) : [];
         const key = getPartnerViewReadingKey({ reading, segments: segmentSource }, pairInsights);
         const normalizedReading = getPartnerViewNormalizedReading(reading, pairInsights);
@@ -11521,7 +11848,7 @@ function renderReadingStockSectionV2() {
                         const isPromoted = !!item.readingPromoted;
                         const display = getReadingDisplayLabel(item, isPromoted ? { allowSegments: true } : { forceRaw: true });
                         const readingKey = getReadingBaseReading(item.reading || item.sessionReading || '');
-                        const kanjiCount = ownLiked.filter(entry => getReadingBaseReading(entry.sessionReading) === readingKey && entry.slot >= 0).length;
+                        const kanjiCount = ownKanjiCountByReading.get(readingKey) || 0;
                         const key = getPartnerViewReadingKey(item, pairInsights);
                         const partnerItem = partnerReadingByKey.get(key) || partnerReadingByReading.get(getPartnerViewNormalizedReading(item?.reading, pairInsights)) || null;
                         const kind = isReadingMatchedForView(item) ? 'matched' : 'self';
@@ -11633,6 +11960,8 @@ async function startNicknameCandidateSwipe(baseReading) {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
                     clearHidden: true,
+                    trackRankingVote: true,
+                    source: 'reading-swipe',
                     basePosition: nicknamePosition === 'prefix' ? 'prefix' : '',
                     deferSave: true
                 });
@@ -11662,6 +11991,8 @@ function initSoundMode() {
                     isSuper: action === 'super',
                     gender: item.gender || gender || 'neutral',
                     clearHidden: true,
+                    trackRankingVote: true,
+                    source: 'reading-swipe',
                     deferSave: true
                 });
             }

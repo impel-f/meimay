@@ -2646,6 +2646,7 @@ function renderStock() {
     const historyLookup = getLatestReadingHistoryLookup();
 
     const segGroups = {};
+    const segGroupItemByKey = {};
     validItems.forEach(item => {
         let segRaw = '自由';
         if (item.sessionReading === 'FREE') {
@@ -2659,12 +2660,16 @@ function renderStock() {
         }
 
         const seg = isCompoundSlotPlaceholder(segRaw) ? getReadableSegmentForItem(item, historyLookup) : segRaw;
-        if (!segGroups[seg]) segGroups[seg] = [];
+        if (!segGroups[seg]) {
+            segGroups[seg] = [];
+            segGroupItemByKey[seg] = new Map();
+        }
 
         const itemSegmentKey = getSegmentKanjiCandidateKey(item, seg) || buildLikedCandidateKey(item);
-        const dup = segGroups[seg].find(e => (getSegmentKanjiCandidateKey(e, seg) || buildLikedCandidateKey(e)) === itemSegmentKey);
+        const dup = segGroupItemByKey[seg].get(itemSegmentKey);
         if (!dup) {
             segGroups[seg].push(item);
+            segGroupItemByKey[seg].set(itemSegmentKey, item);
         } else {
             mergeLikedCandidateOwnershipState(dup, item);
         }

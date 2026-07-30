@@ -1047,8 +1047,149 @@ function buildBoundedRoomSyncPayload(payload, maxBytes = ROOM_SYNC_PAYLOAD_MAX_B
     };
 }
 
-function buildRoomSyncWorkspaceStateFingerprintValue(state) {
-    const compact = buildRoomSyncWorkspaceState(state);
+function buildBoundedUserBackupPayload(backup, maxBytes = ROOM_SYNC_PAYLOAD_MAX_BYTES) {
+    const source = safeJsonCloneForRoomSync(backup, null);
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+    if (estimateSerializedSizeBytes(source) <= maxBytes) return source;
+
+    const bounded = safeJsonCloneForRoomSync(source, {});
+    const truncatedFields = new Set(
+        Array.isArray(bounded.backupTruncatedFields) ? bounded.backupTruncatedFields : []
+    );
+    const workspace = bounded.meimayStateV2 && typeof bounded.meimayStateV2 === 'object'
+        ? bounded.meimayStateV2
+        : null;
+
+    if (workspace) {
+        ['liked', 'savedNames', 'readingStock'].forEach((key) => {
+            if (Array.isArray(bounded[key])) {
+                delete bounded[key];
+                truncatedFields.add(key);
+            }
+        });
+        bounded.flatSectionsOmitted = true;
+        if (estimateSerializedSizeBytes(bounded) <= maxBytes) {
+            bounded.backupTruncated = false;
+            bounded.backupTruncatedFields = Array.from(truncatedFields);
+            return bounded;
+        }
+    }
+
+    const targets = [];
+    const addTarget = (container, key, path) => {
+        if (!container || !Array.isArray(container[key])) return;
+        const values = container[key].slice();
+        container[key] = [];
+        targets.push({ container, key, path, values });
+    };
+
+    addTarget(bounded, 'likedRemoved', 'likedRemoved');
+    addTarget(bounded, 'hiddenReadings', 'hiddenReadings');
+    addTarget(bounded, 'encounteredReadings', 'encounteredReadings');
+
+    if (workspace) {
+        Object.entries(workspace.children || {}).forEach(([childId, child]) => {
+            const libraries = child && child.libraries && typeof child.libraries === 'object'
+                ? child.libraries
+                : null;
+            addTarget(libraries, 'kanjiStock', `meimayStateV2.children.${childId}.libraries.kanjiStock`);
+            addTarget(libraries, 'savedNames', `meimayStateV2.children.${childId}.libraries.savedNames`);
+            addTarget(libraries, 'readingStock', `meimayStateV2.children.${childId}.libraries.readingStock`);
+            addTarget(libraries, 'hiddenReadings', `meimayStateV2.children.${childId}.libraries.hiddenReadings`);
+        });
+    } else {
+        addTarget(bounded, 'liked', 'liked');
+        addTarget(bounded, 'savedNames', 'savedNames');
+        addTarget(bounded, 'readingStock', 'readingStock');
+    }
+
+    bounded.backupTruncated = true;
+    bounded.backupTruncatedFields = [];
+
+    targets.forEach((target) => {
+        let low = 0;
+        let high = target.values.length;
+        let best = 0;
+        while (low <= high) {
+            const count = Math.floor((low + high) / 2);
+            target.container[target.key] = target.values.slice(Math.max(0, target.values.length - count));
+            if (estimateSerializedSizeBytes(bounded) <= maxBytes) {
+                best = count;
+                low = count + 1;
+            } else {
+                high = count - 1;
+            }
+        }
+        target.container[target.key] = target.values.slice(Math.max(0, target.values.length - best));
+        if (best < target.values.length) truncatedFields.add(target.path);
+    });
+
+    bounded.backupTruncatedFields = Array.from(truncatedFields);
+    while (estimateSerializedSizeBytes(bounded) > maxBytes) {
+        const target = targets.find((entry) => entry.container[entry.key].length > 0);
+        if (!target) break;
+        target.container[target.key] = target.container[target.key].slice(1);
+        truncatedFields.add(target.path);
+        bounded.backupTruncatedFields = Array.from(truncatedFields);
+    }
+
+    if (estimateSerializedSizeBytes(bounded) <= maxBytes) return bounded;
+
+    return {
+        schemaVersion: Number(source.schemaVersion) || 1,
+        fingerprint: String(source.fingerprint || ''),
+        syncedAtMs: Number(source.syncedAtMs) || Date.now(),
+        likedCount: Number(source.likedCount) || 0,
+        savedNamesCount: Number(source.savedNamesCount) || 0,
+        readingStockCount: Number(source.readingStockCount) || 0,
+        likedRemovedCount: Number(source.likedRemovedCount) || 0,
+        backupTruncated: true,
+        backupTruncatedFields: ['meimayStateV2', 'liked', 'savedNames', 'readingStock', 'likedRemoved']
+    };
+}
+
+function buildBoundedUserBackupPatch(patch, maxBytes = ROOM_SYNC_PAYLOAD_MAX_BYTES) {
+    if (!patch || typeof patch !== 'object') return patch;
+    if (estimateSerializedSizeBytes(patch) <= maxBytes) return patch;
+
+    const bounded = {
+        ...patch,
+        hiddenReadings: Array.isArray(patch.hiddenReadings) ? patch.hiddenReadings.slice() : patch.hiddenReadings
+    };
+    const originalBackup = patch.meimayBackup && typeof patch.meimayBackup === 'object'
+        ? patch.meimayBackup
+        : {};
+    const patchWithoutBackup = { ...bounded, meimayBackup: null };
+    const overheadBytes = estimateSerializedSizeBytes(patchWithoutBackup);
+    const backupBudget = Math.max(2048, maxBytes - overheadBytes - 2048);
+    bounded.meimayBackup = buildBoundedUserBackupPayload(originalBackup, backupBudget);
+
+    if (estimateSerializedSizeBytes(bounded) <= maxBytes) return bounded;
+
+    if (Array.isArray(bounded.hiddenReadings) && bounded.hiddenReadings.length > 0) {
+        bounded.hiddenReadings = [];
+        if (bounded.meimayBackup && typeof bounded.meimayBackup === 'object') {
+            bounded.meimayBackup.backupTruncated = true;
+            const fields = new Set(bounded.meimayBackup.backupTruncatedFields || []);
+            fields.add('topLevel.hiddenReadings');
+            bounded.meimayBackup.backupTruncatedFields = Array.from(fields);
+        }
+    }
+    ['liked', 'savedNames', 'readingStock'].forEach((key) => {
+        if (Array.isArray(bounded[key]) && bounded[key].length > 0) bounded[key] = [];
+    });
+
+    if (estimateSerializedSizeBytes(bounded) <= maxBytes) return bounded;
+
+    const error = new Error('Firestore backup payload exceeds the configured safety limit');
+    error.code = 'backup_payload_too_large';
+    throw error;
+}
+
+function buildRoomSyncWorkspaceStateFingerprintValue(state, options = {}) {
+    const compact = options.alreadyCompact === true
+        ? state
+        : buildRoomSyncWorkspaceState(state);
     if (!compact || typeof compact !== 'object') return null;
 
     const fingerprintValue = safeJsonCloneForRoomSync(compact, null);
@@ -1228,14 +1369,32 @@ const MeimayFirestorePayload = {
         return master.find((entry) => this._normalizeString(entry?.['漢字'] || entry?.kanji) === target) || null;
     },
 
-    _findReadingSource(reading) {
-        const target = this._normalizeReading(reading);
-        if (!target || typeof readingsData === 'undefined' || !Array.isArray(readingsData)) return null;
-        return readingsData.find((entry) => {
+    _getReadingSourceIndex() {
+        if (typeof readingsData === 'undefined' || !Array.isArray(readingsData)) return null;
+        const cached = this._readingSourceIndexCache;
+        if (cached && cached.source === readingsData && cached.length === readingsData.length) {
+            return cached.index;
+        }
+
+        const index = new Map();
+        readingsData.forEach((entry) => {
             const entryReading = this._normalizeReading(entry?.reading);
             const entryAdana = this._normalizeReading(entry?.adana);
-            return entryReading === target || entryAdana === target;
-        }) || null;
+            if (entryReading && !index.has(entryReading)) index.set(entryReading, entry);
+            if (entryAdana && !index.has(entryAdana)) index.set(entryAdana, entry);
+        });
+        this._readingSourceIndexCache = {
+            source: readingsData,
+            length: readingsData.length,
+            index
+        };
+        return index;
+    },
+
+    _findReadingSource(reading) {
+        const target = this._normalizeReading(reading);
+        if (!target) return null;
+        return this._getReadingSourceIndex()?.get(target) || null;
     },
 
     _resolveLikedKanji(item) {
@@ -4024,6 +4183,11 @@ if (typeof showToast === 'function') window.showToast = showToast;
 function normalizeStatsReadingText(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
+    const hiragana = raw.replace(/[\u30A1-\u30F6]/g, (char) => (
+        String.fromCharCode(char.charCodeAt(0) - 0x60)
+    ));
+    if (!/^[\u3041-\u3093\u30FC]+$/u.test(hiragana)) return '';
+    if (Array.from(hiragana).length > 24) return '';
 
     const partnerNormalizer = typeof MeimayPartnerInsights !== 'undefined'
         && typeof MeimayPartnerInsights.normalizeReading === 'function'
@@ -4031,12 +4195,13 @@ function normalizeStatsReadingText(value) {
         : null;
 
     const normalized = partnerNormalizer
-        ? partnerNormalizer(raw)
-        : raw
-            .replace(/[\u30A1-\u30F6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
-            .replace(/[^縺・繧薙・]/g, '');
+        ? partnerNormalizer(hiragana)
+        : hiragana;
 
-    return String(normalized || '').trim();
+    const result = String(normalized || '').trim();
+    return /^[\u3041-\u3093\u30FC]+$/u.test(result) && Array.from(result).length <= 24
+        ? result
+        : '';
 }
 
 function getReadingRankingAllowlist(targetGender = 'all') {
@@ -4169,9 +4334,12 @@ function getStatsApiRequestUrl(path = '/api/stats') {
 function normalizeLocalStatsReading(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
-    return raw
-        .replace(/[\u30a1-\u30f6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
-        .replace(/[^\u3041-\u3093\u30fc]/g, '');
+    const normalized = raw.replace(/[\u30a1-\u30f6]/g, (char) => (
+        String.fromCharCode(char.charCodeAt(0) - 0x60)
+    ));
+    return /^[\u3041-\u3093\u30fc]+$/u.test(normalized) && Array.from(normalized).length <= 24
+        ? normalized
+        : '';
 }
 
 function normalizeLocalStatsValue(kind, value) {
@@ -4255,6 +4423,16 @@ function getLocalStatsBucketKey(kind, metric, period, genderValue) {
 function getLocalStatsVoteKey(kind, metric, value) {
     const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
     return [normalizedKind, getLocalStatsMetric(normalizedKind, metric), value].join('|');
+}
+
+function isLocalStatsVoteActive(store, kind, metric, value) {
+    const normalizedValue = normalizeLocalStatsValue(kind, value);
+    if (!normalizedValue) return false;
+    const votes = store && store.userVotes && typeof store.userVotes === 'object'
+        ? store.userVotes
+        : {};
+    const vote = votes[getLocalStatsVoteKey(kind, metric, normalizedValue)];
+    return !!(vote && vote.active === true);
 }
 
 function normalizeLocalStatsStringList(values, fallbackValues) {
@@ -4366,7 +4544,7 @@ function extractLocalStatsSavedKanjiValues(item) {
         .filter((char) => /[\u4e00-\u9fff]/.test(char));
 }
 
-function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderValue) {
+function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderValue, store = null) {
     const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
     const normalizedMetric = getLocalStatsMetric(normalizedKind, metric);
     const normalizedGender = normalizeStatsGenderValue(genderValue);
@@ -4389,7 +4567,9 @@ function collectLocalStatsSnapshotTotals(totals, kind, metric, period, genderVal
                 if (entry && entry.statsTracked === false) return;
                 if (!isLocalStatsDateInPeriod(entry?.addedAt, period)) return;
                 if (!isLocalStatsGenderMatched(entry?.gender || entry?.settings?.gender || currentGender, normalizedGender)) return;
-                addLocalStatsTotal(totals, normalizeLocalStatsReading(entry?.reading || entry?.key || ''));
+                const reading = normalizeLocalStatsReading(entry?.reading || entry?.key || '');
+                if (isLocalStatsVoteActive(store, 'reading', 'like', reading)) return;
+                addLocalStatsTotal(totals, reading);
             });
         }
 
@@ -4510,7 +4690,7 @@ function fetchLocalStatsRankings(type = 'allTime', kind = 'kanji', metric = 'all
         });
     });
 
-    collectLocalStatsSnapshotTotals(totals, normalizedKind, normalizedMetric, normalizedPeriod, normalizedGender);
+    collectLocalStatsSnapshotTotals(totals, normalizedKind, normalizedMetric, normalizedPeriod, normalizedGender, store);
 
     return Array.from(totals.entries())
         .map(([key, count]) => normalizedKind === 'reading'
@@ -6387,8 +6567,11 @@ function refreshPartnerAwareUI(options = {}) {
         MeimayChildWorkspaces.renderSwitchers(activeScreenId ? [activeScreenId] : undefined);
     }
     if (document.getElementById('scr-stock')?.classList.contains('active')) {
-        if (typeof renderStock === 'function') renderStock();
-        if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        if (typeof currentStockTab !== 'undefined' && currentStockTab === 'reading') {
+            if (typeof renderReadingStockSection === 'function') renderReadingStockSection();
+        } else if (typeof renderStock === 'function') {
+            renderStock();
+        }
     }
     if (document.getElementById('scr-build')?.classList.contains('active')) {
         if (typeof requestRenderBuildSelection === 'function') {
@@ -6927,7 +7110,7 @@ const MeimayUserBackup = {
         const list = Array.isArray(items) ? items : [];
         return list.map((item) => {
             if (typeof normalizeReadingStockItem === 'function') {
-                return normalizeReadingStockItem(this._safeClone(item));
+                return normalizeReadingStockItem(item);
             }
             return this._safeClone(item);
         }).filter(Boolean);
@@ -6952,7 +7135,22 @@ const MeimayUserBackup = {
         ));
     },
 
-    _fingerprint: function (sections) {
+    _hashFingerprintValue: function (value) {
+        const text = String(value || '');
+        let hashA = 0x811c9dc5;
+        let hashB = 0x9e3779b9;
+        for (let index = 0; index < text.length; index += 1) {
+            const code = text.charCodeAt(index);
+            hashA = Math.imul(hashA ^ code, 0x01000193);
+            hashB = Math.imul(hashB ^ code, 0x5bd1e995);
+            hashB ^= hashB >>> 13;
+        }
+        const left = (hashA >>> 0).toString(16).padStart(8, '0');
+        const right = (hashB >>> 0).toString(16).padStart(8, '0');
+        return `v2:${text.length.toString(36)}:${left}${right}`;
+    },
+
+    _fingerprint: function (sections, syncContext = null) {
         try {
             const projectedSections = MeimayFirestorePayload.projectSections(sections);
             const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
@@ -6967,8 +7165,15 @@ const MeimayUserBackup = {
             const savedClearFlag = typeof StorageBox !== 'undefined' && StorageBox.KEY_SAVED_CLEARED
                 ? localStorage.getItem(StorageBox.KEY_SAVED_CLEARED)
                 : localStorage.getItem('meimay_saved_cleared_at');
+            const context = syncContext && typeof syncContext === 'object' ? syncContext : null;
+            const compactChildWorkspaceStateV2 = context && Object.prototype.hasOwnProperty.call(context, 'compactChildWorkspaceStateV2')
+                ? context.compactChildWorkspaceStateV2
+                : (typeof buildRoomSyncWorkspaceState === 'function'
+                    ? buildRoomSyncWorkspaceState(sections?.childWorkspaceStateV2)
+                    : null);
+            if (context) context.compactChildWorkspaceStateV2 = compactChildWorkspaceStateV2;
             const childWorkspaceFingerprintValue = typeof buildRoomSyncWorkspaceStateFingerprintValue === 'function'
-                ? buildRoomSyncWorkspaceStateFingerprintValue(sections?.childWorkspaceStateV2)
+                ? buildRoomSyncWorkspaceStateFingerprintValue(compactChildWorkspaceStateV2, { alreadyCompact: true })
                 : this._getChildWorkspaceStateV2Stamp(sections?.childWorkspaceStateV2);
             return JSON.stringify({
                 liked: projectedSections.liked || [],
@@ -6996,9 +7201,20 @@ const MeimayUserBackup = {
         ).trim();
     },
 
-    _buildRemotePatch: function (sections, fingerprint = '') {
-        const effectiveFingerprint = String(fingerprint || this._fingerprint(sections) || '').trim();
+    _matchesRemoteFingerprint: function (remoteFingerprint, localFingerprint) {
+        const remote = String(remoteFingerprint || '').trim();
+        const local = String(localFingerprint || '').trim();
+        if (!remote || !local) return false;
+        return remote === local || remote === this._hashFingerprintValue(local);
+    },
+
+    _buildRemotePatch: function (sections, fingerprint = '', syncContext = null) {
+        const localFingerprint = String(fingerprint || this._fingerprint(sections, syncContext) || '').trim();
+        const effectiveFingerprint = localFingerprint.startsWith('v2:')
+            ? localFingerprint
+            : this._hashFingerprintValue(localFingerprint);
         const childWorkspaceStateV2 = sections?.childWorkspaceStateV2 || this._readChildWorkspaceStateV2();
+        const context = syncContext && typeof syncContext === 'object' ? syncContext : null;
         const projectedSections = MeimayFirestorePayload.projectSections({
             ...(sections || {}),
             savedNames: typeof canonicalizeSavedNamesForSync === 'function'
@@ -7016,6 +7232,12 @@ const MeimayUserBackup = {
             : [];
         const likedShouldClear = likedClearFlag
             || (Array.isArray(likedRemoved) && likedRemoved.length > 0 && (!Array.isArray(projectedSections.liked) || projectedSections.liked.length === 0));
+        const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
+            ? String(MeimayPairing.roomCode)
+            : null;
+        const hiddenReadings = typeof readNormalizedHiddenReadings === 'function'
+            ? readNormalizedHiddenReadings()
+            : (Array.isArray(sections?.hiddenReadings) ? sections.hiddenReadings : []);
         const backup = {
             schemaVersion: 1,
             fingerprint: effectiveFingerprint,
@@ -7024,14 +7246,9 @@ const MeimayUserBackup = {
             savedNamesCount: Array.isArray(projectedSections.savedNames) ? projectedSections.savedNames.length : 0,
             readingStockCount: Array.isArray(projectedSections.readingStock) ? projectedSections.readingStock.length : 0,
             likedRemovedCount: Array.isArray(likedRemoved) ? likedRemoved.length : 0,
-            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : [])
+            likedRemoved: this._safeClone(Array.isArray(likedRemoved) ? likedRemoved : []),
+            hiddenReadings: this._safeClone(Array.isArray(hiddenReadings) ? hiddenReadings : [])
         };
-        const pairRoomCode = typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode
-            ? String(MeimayPairing.roomCode)
-            : null;
-        const hiddenReadings = typeof readNormalizedHiddenReadings === 'function'
-            ? readNormalizedHiddenReadings()
-            : [];
 
         if (Array.isArray(projectedSections.liked) && projectedSections.liked.length > 0 && !likedShouldClear) {
             backup.liked = this._safeClone(projectedSections.liked);
@@ -7047,20 +7264,16 @@ const MeimayUserBackup = {
             backup.readingStock = this._safeClone(this._normalizeReadingStockList(projectedSections.readingStock));
         }
         if (childWorkspaceStateV2 && typeof childWorkspaceStateV2 === 'object') {
-            const compactChildWorkspaceStateV2 = typeof buildRoomSyncWorkspaceState === 'function'
-                ? buildRoomSyncWorkspaceState(childWorkspaceStateV2)
-                : this._safeClone(childWorkspaceStateV2);
+            const compactChildWorkspaceStateV2 = context && Object.prototype.hasOwnProperty.call(context, 'compactChildWorkspaceStateV2')
+                ? context.compactChildWorkspaceStateV2
+                : (typeof buildRoomSyncWorkspaceState === 'function'
+                    ? buildRoomSyncWorkspaceState(childWorkspaceStateV2)
+                    : this._safeClone(childWorkspaceStateV2));
+            if (context) context.compactChildWorkspaceStateV2 = compactChildWorkspaceStateV2;
             if (compactChildWorkspaceStateV2) {
                 backup.meimayStateV2 = this._safeClone(compactChildWorkspaceStateV2);
             }
             backup.meimayStateV2UpdatedAt = String(childWorkspaceStateV2.updatedAt || childWorkspaceStateV2.savedAt || childWorkspaceStateV2.createdAt || '');
-        }
-
-        if (backup.meimayStateV2 && estimateSerializedSizeBytes(backup) > ROOM_SYNC_PAYLOAD_MAX_BYTES) {
-            delete backup.liked;
-            delete backup.savedNames;
-            delete backup.readingStock;
-            backup.flatSectionsOmitted = true;
         }
 
         const patch = {
@@ -7085,13 +7298,14 @@ const MeimayUserBackup = {
                 : [];
         }
 
-        return patch;
+        return buildBoundedUserBackupPatch(patch);
     },
 
     _buildRestoreApiBackupPayload: function (sections) {
         try {
-            const fingerprint = this._fingerprint(sections);
-            const patch = this._buildRemotePatch(sections, fingerprint);
+            const syncContext = {};
+            const fingerprint = this._fingerprint(sections, syncContext);
+            const patch = this._buildRemotePatch(sections, fingerprint, syncContext);
             const backup = this._safeClone(patch?.meimayBackup || patch?.backup || null);
             if (!backup || typeof backup !== 'object') return null;
             return {
@@ -7317,18 +7531,20 @@ const MeimayUserBackup = {
         const sections = options.sections || this._readCurrentSections();
         if (!this._hasData(sections)) return false;
 
-        const fingerprint = this._fingerprint(sections);
+        const syncContext = {};
+        const fingerprint = this._fingerprint(sections, syncContext);
         if (!options.force && fingerprint === this._lastSyncedFingerprint) {
             return true;
         }
 
         try {
+            const patch = this._buildRemotePatch(sections, fingerprint, syncContext);
             await firebaseDb.collection('users').doc(currentUser.uid).set(
-                this._buildRemotePatch(sections, fingerprint),
+                patch,
                 { merge: true }
             );
             this._lastSyncedFingerprint = fingerprint;
-            this._lastRemoteBackupFingerprint = fingerprint;
+            this._lastRemoteBackupFingerprint = String(patch?.meimayBackupFingerprint || '').trim();
             console.log(`BACKUP: synced Firestore backup for ${currentUser.uid}`);
             return true;
         } catch (error) {
@@ -7417,9 +7633,9 @@ const MeimayUserBackup = {
 
             const refreshedSections = this._readCurrentSections();
             const refreshedFingerprint = this._fingerprint(refreshedSections);
-            if (remoteBackupFingerprint && remoteBackupFingerprint === refreshedFingerprint) {
+            if (this._matchesRemoteFingerprint(remoteBackupFingerprint, refreshedFingerprint)) {
                 this._lastSyncedFingerprint = refreshedFingerprint;
-                this._lastRemoteBackupFingerprint = refreshedFingerprint;
+                this._lastRemoteBackupFingerprint = remoteBackupFingerprint;
                 return true;
             }
 

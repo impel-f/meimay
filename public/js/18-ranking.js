@@ -3,7 +3,7 @@
 let currentRankingType = 'kanji';
 const RANKING_PERIOD_STORAGE_KEY = 'meimay_ranking_period_v1';
 const RANKING_GENDER_STORAGE_KEY = 'meimay_ranking_gender_v1';
-const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v2';
+const RANKING_CACHE_STORAGE_KEY = 'meimay_ranking_cache_v3';
 const RANKING_CACHE_TTL_MS = 10 * 60 * 1000;
 const RANKING_CACHE_MAX_ENTRIES = 24;
 const READING_RANKING_METRIC = 'like';
@@ -256,10 +256,12 @@ function getRankingCardTone(index) {
 }
 
 function updateRankingCardState(kind, key, delta = 0, stocked = null) {
+    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
+    invalidateRankingCache(normalizedKind);
+
     const listContainer = document.getElementById('ranking-list-container');
     if (!listContainer) return false;
 
-    const normalizedKind = kind === 'reading' ? 'reading' : 'kanji';
     const normalizedKey = normalizedKind === 'reading'
         ? normalizeRankingReadingText(key)
         : String(key || '').trim();
@@ -613,7 +615,7 @@ function renderRankingEmptyState(type, period) {
     const typeLabel = type === 'reading' ? '読み' : '漢字';
     const periodLabel = period === 'monthly' ? '月間' : '総合';
     const message = type === 'reading'
-        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>名前として保存されるとここに並びます。`
+        ? `${periodLabel}の${typeLabel}ランキングはまだありません。<br>気になる読みを選んだり、候補名を保存するとここに並びます。`
         : `${periodLabel}の${typeLabel}ランキングはまだありません。<br>ストックが増えるとここに並びます。`;
 
     return `
@@ -912,6 +914,20 @@ function writeRankingCacheStore(store) {
     } catch (error) {
         // Cache writes are best-effort.
     }
+}
+
+function invalidateRankingCache(kind = '') {
+    const normalizedKind = kind === 'reading' ? 'reading' : (kind === 'kanji' ? 'kanji' : '');
+    const store = readRankingCacheStore();
+    const nextStore = Object.fromEntries(
+        Object.entries(store).filter(([key]) => {
+            if (!normalizedKind) return false;
+            return !key.startsWith(`${normalizedKind}|`);
+        })
+    );
+    if (Object.keys(nextStore).length === Object.keys(store).length) return false;
+    writeRankingCacheStore(nextStore);
+    return true;
 }
 
 function readRankingCacheEntry(cacheKey) {

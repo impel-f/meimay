@@ -308,6 +308,25 @@ function normalizeStatsReadingKey(value) {
     .replace(/[^ぁ-んー]/g, '');
 }
 
+function isSafeReadingLikeValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+
+  const hiragana = raw.replace(/[ァ-ヶ]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60));
+  if (!/^[ぁ-んー]+$/u.test(hiragana)) return false;
+
+  const normalized = normalizeStatsReadingKey(hiragana);
+  const length = Array.from(normalized).length;
+  return length >= 1 && length <= 24;
+}
+
+function isAllowedReadingForRanking(reading, metric = 'all', gender = 'all') {
+  if (normalizeStatsMetric(metric) === 'like' && isSafeReadingLikeValue(reading)) {
+    return true;
+  }
+  return isAllowedReadingForGender(reading, gender);
+}
+
 function getRequestedPeriod(req) {
   const queryPeriod = typeof req?.query?.period === 'string' ? req.query.period : '';
   if (queryPeriod) return queryPeriod;
@@ -472,7 +491,7 @@ async function fetchRankingItems(kind, period, metric = 'all', gender = 'all') {
   const normalizedKind = normalizeStatsKind(kind);
   return Array.from(totals.values())
     .filter((item) => item.count > 0)
-    .filter((item) => normalizedKind !== 'reading' || isAllowedReadingForGender(item.reading, gender))
+    .filter((item) => normalizedKind !== 'reading' || isAllowedReadingForRanking(item.reading, metric, gender))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
       const aKey = normalizedKind === 'reading' ? a.reading : a.kanji;
@@ -617,7 +636,13 @@ module.exports = async (req, res) => {
     }
   }
 
-  const normalizedValue = normalizeStatsValue(normalizedKind, normalizedKind === 'reading' ? (reading || key) : (kanji || key));
+  const requestedValue = normalizedKind === 'reading' ? (reading || key) : (kanji || key);
+  if (normalizedKind === 'reading' && !isSafeReadingLikeValue(requestedValue)) {
+    return res.status(400).json({
+      error: 'Reading must contain only hiragana or katakana and be 24 characters or fewer'
+    });
+  }
+  const normalizedValue = normalizeStatsValue(normalizedKind, requestedValue);
   const normalizedDelta = Number(delta);
 
   if (!normalizedValue || normalizedValue.length > (normalizedKind === 'reading' ? 128 : 64)) {
@@ -627,7 +652,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Delta must be a non-zero integer' });
   }
 
-  if (normalizedKind === 'reading' && !isAllowedReadingForGender(normalizedValue, normalizedGender)) {
+  if (normalizedKind === 'reading' && !isAllowedReadingForRanking(normalizedValue, normalizedMetric, normalizedGender)) {
     return res.status(200).json({
       ok: true,
       kind: normalizedKind,

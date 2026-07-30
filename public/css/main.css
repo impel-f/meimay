@@ -187,14 +187,14 @@ body.hide-top-bar .screen-header-shell {
 #admob-banner {
     z-index: 10060 !important;
     background: #f5f0e8;
-    height: 56px;
-    min-height: 56px;
+    height: 50px;
+    min-height: 50px;
     box-sizing: border-box;
 }
 
 #admob-banner .meimay-ad-banner-row {
-    height: 56px;
-    min-height: 56px;
+    height: 50px;
+    min-height: 50px;
     box-sizing: border-box;
 }
 
@@ -390,7 +390,7 @@ body.hide-top-bar .screen-header-shell {
 
 body.has-ad-banner #scr-main,
 body.has-ad-banner #scr-swipe-universal {
-    padding-bottom: calc(64px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(64px + var(--ad-footer-offset, 50px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-main #stack-container {
@@ -1058,14 +1058,14 @@ body.has-ad-banner #scr-swipe-universal {
 }
 
 body.has-ad-banner .overlay.active {
-    padding-bottom: calc(var(--ad-footer-offset, 56px) + 20px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(var(--ad-footer-offset, 50px) + 20px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 body.has-ad-banner .overlay.active .detail-sheet,
 body.has-ad-banner .overlay.active .modal-sheet,
 body.has-ad-banner .overlay.active .choice-sheet,
 body.has-ad-banner .overlay.active .premium-modal-sheet {
-    max-height: min(88vh, calc(100dvh - var(--ad-footer-offset, 56px) - 44px - env(safe-area-inset-bottom, 0px))) !important;
+    max-height: min(88vh, calc(100dvh - var(--ad-footer-offset, 50px) - 44px - env(safe-area-inset-bottom, 0px))) !important;
 }
 
 .detail-sheet {
@@ -1794,11 +1794,11 @@ button {
 }
 
 body.has-ad-banner #side-drawer nav {
-    padding-bottom: calc(16px + var(--ad-footer-offset, 56px) + var(--safe-bottom));
+    padding-bottom: calc(16px + var(--ad-footer-offset, 50px) + var(--safe-bottom));
 }
 
 body.has-ad-banner #side-drawer > div:last-child {
-    padding-bottom: calc(12px + var(--ad-footer-offset, 56px) + var(--safe-bottom));
+    padding-bottom: calc(12px + var(--ad-footer-offset, 50px) + var(--safe-bottom));
 }
 
 #drawer-avatar {
@@ -1857,7 +1857,7 @@ body.has-ad-banner #side-drawer > div:last-child {
     }
 
     body.has-ad-banner #side-drawer nav {
-        padding-bottom: calc(10px + var(--ad-footer-offset, 56px) + var(--safe-bottom)) !important;
+        padding-bottom: calc(10px + var(--ad-footer-offset, 50px) + var(--safe-bottom)) !important;
     }
 
     #side-drawer nav .px-6.py-2 {
@@ -1953,7 +1953,7 @@ body.hide-top-bar #top-bar {
 }
 
 body.has-ad-banner #scr-wizard {
-    padding-bottom: calc(12px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(12px + var(--ad-footer-offset, 50px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .wizard-shell {
@@ -1964,7 +1964,7 @@ body.has-ad-banner #scr-wizard {
 }
 
 body.has-ad-banner .wizard-shell {
-    height: calc(100dvh - var(--top-bar-height) - var(--ad-footer-offset, 56px) - 16px);
+    height: calc(100dvh - var(--top-bar-height) - var(--ad-footer-offset, 50px) - 16px);
 }
 
 .wizard-progress-wrap {
@@ -2808,7 +2808,7 @@ body.has-ad-banner #scr-direct-name-input {
 }
 
 body.has-ad-banner #scr-saved {
-    padding-bottom: calc(76px + var(--ad-footer-offset, 56px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(76px + var(--ad-footer-offset, 50px) + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 #scr-legal {
@@ -2857,7 +2857,7 @@ body.has-ad-banner #scr-saved {
 /* Free users: footer sits above the docked ad. Premium users keep the footer at the bottom. */
 body.has-ad-banner #bottom-nav,
 body.has-ad-banner #universal-footer {
-    bottom: var(--ad-footer-offset, 56px) !important;
+    bottom: var(--ad-footer-offset, 50px) !important;
     background: #fdfaf5 !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
