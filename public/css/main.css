@@ -1058,7 +1058,8 @@ body.has-ad-banner #scr-swipe-universal {
 }
 
 body.has-ad-banner .overlay.active {
-    padding-bottom: calc(var(--ad-footer-offset, 50px) + 20px + env(safe-area-inset-bottom, 0px)) !important;
+    bottom: calc(var(--ad-footer-offset, 50px) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 20px !important;
 }
 
 body.has-ad-banner .overlay.active .detail-sheet,
