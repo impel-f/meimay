@@ -71,7 +71,10 @@ function createWorkspace(owner, children) {
       meta: {
         id: child.id,
         displayLabel: child.label || `${owner}-${index + 1}`,
-        updatedAt: child.updatedAt || '2026-07-12T00:00:00.000Z'
+        updatedAt: child.updatedAt || '2026-07-12T00:00:00.000Z',
+        gender: child.gender || 'neutral',
+        dueDate: child.dueDate || '',
+        birthDate: child.birthDate || ''
       },
       prefs: { rule: 'strict' },
       libraries: {
@@ -366,6 +369,36 @@ test('partner snapshot follows candidate and child deletion without stale data',
 
   assert.deepEqual(userB.partnerSnapshot.liked.map((item) => item.kanji), ['陽']);
   assert.deepEqual(Object.keys(userB.partnerSnapshot.workspace.children), ['first-child']);
+});
+
+test('child meta updates propagate to the partner workspace snapshot', () => {
+  const room = new InMemoryPairRoom();
+  const userA = new PairClient('user-a', room);
+  const userB = new PairClient('user-b', room);
+  userB.connectTo('user-a');
+
+  userA.sync(createRoomPayload({
+    uid: 'user-a',
+    displayName: 'A',
+    workspace: createWorkspace('A', [
+      { id: 'first-child', gender: 'male', dueDate: '2026-09-01', kanjiStock: [{ kanji: '陽' }] }
+    ]),
+    sections: { liked: [{ kanji: '陽' }] }
+  }));
+  assert.equal(userB.partnerSnapshot.workspace.children['first-child'].meta.gender, 'male');
+  assert.equal(userB.partnerSnapshot.workspace.children['first-child'].meta.dueDate, '2026-09-01');
+
+  userA.sync(createRoomPayload({
+    uid: 'user-a',
+    displayName: 'A',
+    workspace: createWorkspace('A', [
+      { id: 'first-child', gender: 'female', dueDate: '2026-10-05', kanjiStock: [{ kanji: '陽' }] }
+    ]),
+    sections: { liked: [{ kanji: '陽' }] }
+  }));
+
+  assert.equal(userB.partnerSnapshot.workspace.children['first-child'].meta.gender, 'female');
+  assert.equal(userB.partnerSnapshot.workspace.children['first-child'].meta.dueDate, '2026-10-05');
 });
 
 test('oversized sync keeps workspace data and stays below the Firestore safety limit', () => {

@@ -1254,6 +1254,9 @@
         captureCurrentChildRecord(existingMeta = {}) {
             const draftReadingInput = document.getElementById('in-name');
             const compoundFlow = typeof window.getCompoundBuildFlow === 'function' ? window.getCompoundBuildFlow() : (window.meimayCompoundBuildFlow || null);
+            const hasExplicitGender = Object.prototype.hasOwnProperty.call(existingMeta, 'gender');
+            const hasExplicitDueDate = Object.prototype.hasOwnProperty.call(existingMeta, 'dueDate');
+            const hasExplicitBirthDate = Object.prototype.hasOwnProperty.call(existingMeta, 'birthDate');
             const birthGroupIndex = existingMeta.birthGroupIndex ?? existingMeta.twinIndex ?? null;
             const birthGroupSize = birthGroupIndex === null
                 ? null
@@ -1277,7 +1280,11 @@
                     id: String(existingMeta.id || '').trim(),
                     birthOrder: normalizePositiveInteger(existingMeta.birthOrder, 1),
                     displayLabel: buildDisplayLabel(existingMeta.birthOrder, birthGroupIndex, birthGroupSize),
-                    gender: normalizeGenderValue(typeof gender !== 'undefined' ? gender : existingMeta.gender),
+                    gender: normalizeGenderValue(
+                        hasExplicitGender
+                            ? existingMeta.gender
+                            : (typeof gender !== 'undefined' ? gender : existingMeta.gender)
+                    ),
                     birthGroupId: existingMeta.birthGroupId || existingMeta.twinGroupId || (birthGroupIndex === null ? null : `bg_${normalizePositiveInteger(existingMeta.birthOrder, 1)}`),
                     birthGroupIndex,
                     birthGroupSize,
@@ -1287,7 +1294,11 @@
                     twinCount: birthGroupSize,
                     createdAt: existingMeta.createdAt || getNowIso(),
                     updatedAt: getNowIso(),
-                    dueDate: String(existingMeta.dueDate || existingMeta.birthDate || getLegacyWizardChildDateValue()).trim(),
+                    dueDate: String(
+                        (hasExplicitDueDate || hasExplicitBirthDate)
+                            ? (existingMeta.dueDate || existingMeta.birthDate || '')
+                            : getLegacyWizardChildDateValue()
+                    ).trim(),
                     birthDate: ''
                 },
                 prefs: {
@@ -1642,7 +1653,6 @@
             const activeChild = this.getActiveChild();
             if (!activeChild) return;
             activeChild.meta.updatedAt = getNowIso();
-            activeChild.meta.gender = normalizeGenderValue(typeof gender !== 'undefined' ? gender : activeChild.meta.gender);
             this.root.children[activeChild.meta.id] = this.captureCurrentChildRecord(activeChild.meta);
             this.root.family = this.captureCurrentFamilyState();
             this.root.childOrder = this.buildOrderedChildIds(this.root);
