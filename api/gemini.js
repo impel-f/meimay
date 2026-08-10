@@ -1,49 +1,21 @@
 const {
-  GoogleGenerativeAI,
-} = require("@google/generative-ai");
+  GoogleGenAI,
+} = require("@google/genai");
 
 const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 
 const MODEL_PRIORITY_GROUPS = [
   {
+    label: "Gemini 3.6 Flash",
+    candidates: ["gemini-3.6-flash"],
+  },
+  {
     label: "Gemini 3.5 Flash",
     candidates: ["gemini-3.5-flash"],
   },
   {
-    label: "Gemini 3.1 Flash-Lite",
-    candidates: ["gemini-3.1-flash-lite"],
-  },
-  {
-    label: "Gemini 3 Flash",
-    candidates: ["gemini-3-flash-preview"],
-  },
-  {
-    label: "Gemini 2.5 Flash",
-    candidates: ["gemini-2.5-flash", "gemini-2.5-flash-preview-09-2025"],
-  },
-  {
-    label: "Gemini 2.5 Flash-Lite",
-    candidates: ["gemini-2.5-flash-lite", "gemini-2.5-flash-lite-preview-09-2025"],
-  },
-  {
-    label: "Gemma 3 27B",
-    candidates: ["gemma-3-27b-it"],
-  },
-  {
-    label: "Gemma 3 12B",
-    candidates: ["gemma-3-12b-it"],
-  },
-  {
-    label: "Gemma 3 4B",
-    candidates: ["gemma-3-4b-it"],
-  },
-  {
-    label: "Gemma 3 2B (tentative)",
-    candidates: ["gemma-3-2b-it"],
-  },
-  {
-    label: "Gemma 3 1B",
-    candidates: ["gemma-3-1b-it"],
+    label: "Gemini 3.5 Flash-Lite",
+    candidates: ["gemini-3.5-flash-lite"],
   },
 ];
 
@@ -69,21 +41,16 @@ function isPrepaymentCreditsDepleted(error) {
   );
 }
 
-function buildModel(genAI, modelName) {
-  const generationConfig = {
+function buildGenerationConfig() {
+  return {
     maxOutputTokens: 2048,
+    httpOptions: {
+      timeout: MODEL_REQUEST_TIMEOUT_MS,
+    },
   };
-  if (modelName !== "gemini-3.5-flash") {
-    generationConfig.temperature = 0.2;
-  }
-
-  return genAI.getGenerativeModel({
-    model: modelName,
-    generationConfig,
-  });
 }
 
-async function generateWithFallback(genAI, prompt) {
+async function generateWithFallback(ai, prompt) {
   const attempts = [];
   let lastError = null;
 
@@ -100,12 +67,12 @@ async function generateWithFallback(genAI, prompt) {
       console.log(`API: Trying ${group.label} (${modelName})`);
 
       try {
-        const model = buildModel(genAI, modelName);
-        const result = await model.generateContent(prompt, {
-          timeout: MODEL_REQUEST_TIMEOUT_MS,
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: buildGenerationConfig(),
         });
-        const response = await result.response;
-        const text = response.text();
+        const text = response.text;
 
         if (!text || !text.trim()) {
           throw new Error(`Empty response from ${group.label} (${modelName})`);
@@ -169,8 +136,8 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "API key not configured" });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const { text, modelName, attempts } = await generateWithFallback(genAI, prompt);
+    const ai = new GoogleGenAI({ apiKey });
+    const { text, modelName, attempts } = await generateWithFallback(ai, prompt);
 
     return res.status(200).json({
       text,
@@ -186,4 +153,10 @@ module.exports = async (req, res) => {
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
+};
+
+module.exports._test = {
+  MODEL_PRIORITY_GROUPS,
+  buildGenerationConfig,
+  generateWithFallback,
 };
