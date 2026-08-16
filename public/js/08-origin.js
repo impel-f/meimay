@@ -4,12 +4,12 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v15_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v16_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v2_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v2_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v3_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v3_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -122,7 +122,7 @@ function normalizeNameOriginText(text) {
         .trim();
 }
 
-function validateGeneratedNameOriginText(text) {
+function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     const normalized = normalizeNameOriginText(text)
         .replace(/^```(?:json)?\s*/i, '')
         .replace(/\s*```$/, '')
@@ -139,9 +139,24 @@ function validateGeneratedNameOriginText(text) {
         throw new Error('名前由来の項目が不足しています。');
     }
     const bannedPattern = /(?:芯の強さ|葵のようにまっすぐ|自然に伝えられます|説明できます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく)/;
+    const sourceMeanings = getNameOriginCombination(result)
+        .map((part) => getNameOriginMeaning(part))
+        .join(' ');
+    const guardedExpansions = [
+        { output: /(?:前向き|前を向)/, source: /(?:前向き|前を向)/ },
+        { output: /健やか/, source: /(?:健やか|健康|丈夫)/ },
+        { output: /(?:温かな心|温かい心)/, source: /(?:温か|暖か|心|慈愛)/ },
+        { output: /たくまし/, source: /(?:たくまし|強い|勇)/ },
+        { output: /思いやり/, source: /(?:思いやり|慈愛|心)/ }
+    ];
     for (const key of expectedKeys) {
         if (typeof parsed[key] !== 'string') throw new Error(`名前由来の${key}が文字列ではありません。`);
         if (bannedPattern.test(parsed[key])) throw new Error(`名前由来の${key}に根拠外の定型表現があります。`);
+        for (const rule of guardedExpansions) {
+            if (rule.output.test(parsed[key]) && !rule.source.test(sourceMeanings)) {
+                throw new Error(`名前由来の${key}に漢字データ外の意味があります。`);
+            }
+        }
     }
     return JSON.stringify(parsed);
 }
@@ -1411,7 +1426,7 @@ async function generateOrigin(options = {}) {
                 modelCacheVersion
             });
             if (cloudCache?.hit) {
-                cachedText = validateGeneratedNameOriginText(cloudCache.text || '');
+                cachedText = validateGeneratedNameOriginText(cloudCache.text || '', target);
                 cachedModelName = String(cloudCache.modelName || '').trim();
             }
         } catch (error) {
@@ -1462,7 +1477,10 @@ async function generateOrigin(options = {}) {
         const response = await fetch(getMeimayApiUrl('/api/gemini'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: buildNameOriginPrompt(target) }),
+            body: JSON.stringify({
+                prompt: buildNameOriginPrompt(target),
+                taskType: 'nameOrigin'
+            }),
             signal: controller.signal
         });
 
@@ -1481,7 +1499,7 @@ async function generateOrigin(options = {}) {
         const data = await response.json();
         modelCacheVersion = String(data.model_cache_version || modelCacheVersion).trim();
         const modelName = String(data.debug_used_model || '').trim();
-        const aiText = validateGeneratedNameOriginText(data.text);
+        const aiText = validateGeneratedNameOriginText(data.text, target);
         if (!aiText) throw new Error('由来文を取得できませんでした。');
 
         target.origin = aiText;
@@ -2784,7 +2802,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint)
+                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint),
+                    taskType: 'kanjiFact'
                 }),
                 signal: controller.signal
             });
@@ -2836,7 +2855,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                                     groundedHint,
                                     status.meaningSection,
                                     status.idiomsSection
-                                )
+                                ),
+                                taskType: 'kanjiFact'
                             }),
                             signal: repairController.signal
                         });
@@ -2921,7 +2941,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        prompt: buildKanjiReadingPrompt(kanji, currentReading, readingEvidence)
+                        prompt: buildKanjiReadingPrompt(kanji, currentReading, readingEvidence),
+                        taskType: 'kanjiFact'
                     }),
                     signal: controller2.signal
                 });

@@ -30,7 +30,7 @@ const MEIMAY_APP_STORE_URL = 'https://apps.apple.com/jp/app/id6760251452';
 const MEIMAY_APP_STORE_REVIEW_URL = 'https://apps.apple.com/app/id6760251452?action=write-review';
 const MEIMAY_GOOGLE_PLAY_URL = 'https://play.google.com/store/apps/details?id=com.impelf.meimay';
 const MEIMAY_GOOGLE_PLAY_PUBLIC = false;
-const KANJI_DATA_URL = '/data/kanji_data.json?v=26.03';
+const KANJI_DATA_URL = '/data/kanji_data.json?v=26.04';
 const MEIMAY_APP_DATA_DELETE_FLAG_KEY = 'meimay_app_data_delete_in_progress_v1';
 const MEIMAY_APP_DATA_DELETED_AT_KEY = 'meimay_app_data_deleted_at_v1';
 const MEIMAY_APP_DATA_DELETE_RECENT_MS = 10 * 60 * 1000;
@@ -1110,4 +1110,3 @@ function getTagStyle(tag) {
 }
 
 console.log("CORE: Module loaded (v15.3 - Added Tag Scores and Styles)");
-

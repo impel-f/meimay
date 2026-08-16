@@ -56,6 +56,27 @@ test('Gemini generation config keeps the server timeout without legacy sampling 
   });
 });
 
+test('kanji fact checks use low-temperature Google Search grounding', () => {
+  assert.deepEqual(buildGenerationConfig('kanjiFact'), {
+    maxOutputTokens: 2048,
+    httpOptions: {
+      timeout: 12_000,
+    },
+    temperature: 0.1,
+    tools: [{ googleSearch: {} }],
+  });
+});
+
+test('name origins use a lower temperature without web grounding', () => {
+  assert.deepEqual(buildGenerationConfig('nameOrigin'), {
+    maxOutputTokens: 2048,
+    httpOptions: {
+      timeout: 12_000,
+    },
+    temperature: 0.2,
+  });
+});
+
 test('Gemini falls back to the next GA model and records each attempt', async () => {
   const requestedModels = [];
   const ai = {

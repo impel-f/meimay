@@ -31,16 +31,23 @@ function isPrepaymentCreditsDepleted(error) {
   );
 }
 
-function buildGenerationConfig() {
-  return {
+function buildGenerationConfig(taskType = '') {
+  const config = {
     maxOutputTokens: 2048,
     httpOptions: {
       timeout: MODEL_REQUEST_TIMEOUT_MS,
     },
   };
+  if (taskType === 'kanjiFact') {
+    config.temperature = 0.1;
+    config.tools = [{ googleSearch: {} }];
+  } else if (taskType === 'nameOrigin') {
+    config.temperature = 0.2;
+  }
+  return config;
 }
 
-async function generateWithFallback(ai, prompt) {
+async function generateWithFallback(ai, prompt, options = {}) {
   const attempts = [];
   let lastError = null;
 
@@ -60,7 +67,7 @@ async function generateWithFallback(ai, prompt) {
         const response = await ai.models.generateContent({
           model: modelName,
           contents: prompt,
-          config: buildGenerationConfig(),
+          config: buildGenerationConfig(options.taskType),
         });
         const text = response.text;
 
@@ -74,6 +81,7 @@ async function generateWithFallback(ai, prompt) {
         return {
           text,
           modelName,
+          groundingMetadata: response?.candidates?.[0]?.groundingMetadata || null,
           attempts,
         };
       } catch (error) {
@@ -125,6 +133,9 @@ module.exports = async (req, res) => {
 
   try {
     const { prompt } = req.body;
+    const taskType = ['kanjiFact', 'nameOrigin'].includes(req.body?.taskType)
+      ? req.body.taskType
+      : '';
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!prompt) return res.status(400).json({ error: "Prompt is required" });
@@ -133,12 +144,15 @@ module.exports = async (req, res) => {
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    const { text, modelName, attempts } = await generateWithFallback(ai, prompt);
+    const { text, modelName, groundingMetadata, attempts } = await generateWithFallback(ai, prompt, { taskType });
 
     return res.status(200).json({
       text,
       debug_used_model: modelName,
       model_cache_version: MODEL_CACHE_VERSION,
+      debug_grounding_queries: Array.isArray(groundingMetadata?.webSearchQueries)
+        ? groundingMetadata.webSearchQueries
+        : [],
       debug_attempts: attempts,
     });
   } catch (error) {
