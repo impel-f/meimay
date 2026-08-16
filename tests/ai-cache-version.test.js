@@ -1,5 +1,12 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
+
+const originSource = fs.readFileSync(
+  path.join(__dirname, '..', 'public', 'js', '08-origin.js'),
+  'utf8'
+);
 
 const {
   MODEL_CACHE_VERSION,
@@ -48,4 +55,27 @@ test('known fallback models use isolated cache generations', () => {
     promptVersion: 'name_origin_v19',
     modelCacheVersion: fallbackVersion,
   }).modelCacheVersion, fallbackVersion);
+});
+
+test('client reuses only recent compatible kanji prompts from the same model generation', () => {
+  assert.match(originSource, /KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set/);
+  assert.match(originSource, /'kanji_detail_v9_20260816'/);
+  assert.match(originSource, /'kanji_detail_v8_20260816'/);
+  assert.match(originSource, /cached\.modelCacheVersion === modelCacheVersion/);
+  assert.match(originSource, /for \(const promptVersion of KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS\)/);
+});
+
+test('persisted name origins remain visible without regeneration after cache version changes', () => {
+  assert.match(originSource, /getNameOriginStoredTextForItem\(item\)[\s\S]*\|\| normalizeNameOriginText\(item\?\.origin\)/);
+  const persistedRead = originSource.indexOf('const persistedOriginText = normalizeNameOriginText(target?.origin);');
+  const modelMetadataRead = originSource.indexOf('const modelMetadata = await getActiveAiModelMetadata();', persistedRead);
+  assert.ok(persistedRead >= 0);
+  assert.ok(modelMetadataRead > persistedRead, 'saved origin should render before model/cache lookup');
+});
+
+test('the app UI does not expose the third-party data source screen', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
+  const drawerSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', '13-drawer-wizard.js'), 'utf8');
+  assert.doesNotMatch(indexSource, /legal-tab-sources/);
+  assert.doesNotMatch(drawerSource, /legal-sources|データの出典/);
 });

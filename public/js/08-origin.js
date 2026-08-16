@@ -9,6 +9,11 @@ const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v10_20260816';
+const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
+    KANJI_DETAIL_AI_PROMPT_VERSION,
+    'kanji_detail_v9_20260816',
+    'kanji_detail_v8_20260816'
+]);
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
@@ -546,7 +551,8 @@ function getNameOriginStoredTextForItem(item, modelCacheVersion = getActiveAiMod
 }
 
 function getNameOriginDisplayTextForItem(item) {
-    const storedText = getNameOriginStoredTextForItem(item);
+    const storedText = getNameOriginStoredTextForItem(item)
+        || normalizeNameOriginText(item?.origin);
     return storedText ? buildNameOriginCopyText(item, storedText) : '';
 }
 
@@ -1386,8 +1392,19 @@ async function generateOrigin(options = {}) {
     const target = options.result || currentBuildResult;
     const givenName = getNameOriginGivenName(target);
     const combination = getNameOriginCombination(target);
-    if (!target || !givenName || combination.length === 0) {
+    if (!target || !givenName) {
         alert('名前が決定されていません');
+        return;
+    }
+
+    const persistedOriginText = normalizeNameOriginText(target?.origin);
+    if (persistedOriginText && !options.force) {
+        renderAIOriginResult(target, persistedOriginText, false, options);
+        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
+        return;
+    }
+    if (combination.length === 0) {
+        alert('名前の漢字情報が見つかりません');
         return;
     }
 
@@ -1935,14 +1952,21 @@ function isKanjiDetailAiCacheCurrent(cached, modelCacheVersion = getActiveAiMode
         && cached.modelCacheVersion === modelCacheVersion);
 }
 
+function isKanjiDetailAiCacheCompatible(cached, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    return !!(cached
+        && KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS.has(cached.promptVersion)
+        && cached.modelCacheVersion === modelCacheVersion);
+}
+
 function getStoredKanjiDetailAiText(kanji, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
     if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
     const cached = StorageBox.getKanjiAiCache(kanji);
-    if (!isKanjiDetailAiCacheCurrent(cached, modelCacheVersion)) return '';
+    if (!isKanjiDetailAiCacheCompatible(cached, modelCacheVersion)) return '';
     return String(cached?.text || '').trim();
 }
 
 window.isKanjiDetailAiCacheCurrent = isKanjiDetailAiCacheCurrent;
+window.isKanjiDetailAiCacheCompatible = isKanjiDetailAiCacheCompatible;
 window.KANJI_DETAIL_AI_PROMPT_VERSION = KANJI_DETAIL_AI_PROMPT_VERSION;
 
 function sanitizeKanjiAiText(text) {
@@ -2819,11 +2843,6 @@ async function generateKanjiDetail(kanji, currentReading) {
     let modelCacheVersion = modelMetadata.modelCacheVersion;
     let baseModelName = '';
     let readingModelName = '';
-    const baseCacheId = buildVersionedKanjiCacheDocId([
-        kanji,
-        KANJI_DETAIL_AI_PROMPT_VERSION,
-        modelCacheVersion
-    ]);
     const readingCacheId = !isSpecialKanjiAiReading(currentReading)
         ? buildVersionedKanjiCacheDocId([
             kanji,
@@ -2883,15 +2902,30 @@ async function generateKanjiDetail(kanji, currentReading) {
 
         if (!cacheHit && typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
-                const doc = await firebaseDb.collection('kanji_ai_explanations').doc(baseCacheId).get();
-                const cachedData = doc.exists ? (doc.data() || {}) : null;
-                const cachedText = sanitizeKanjiAiText(cachedData?.text || '');
-                if (cachedText && isKanjiDetailAiCacheCurrent(cachedData, modelCacheVersion)) {
+                let cachedData = null;
+                let cachedText = '';
+                for (const promptVersion of KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS) {
+                    const compatibleCacheId = buildVersionedKanjiCacheDocId([
+                        kanji,
+                        promptVersion,
+                        modelCacheVersion
+                    ]);
+                    const doc = await firebaseDb.collection('kanji_ai_explanations').doc(compatibleCacheId).get();
+                    const candidateData = doc.exists ? (doc.data() || {}) : null;
+                    if (!isKanjiDetailAiCacheCompatible(candidateData, modelCacheVersion)) continue;
+                    const candidateText = sanitizeKanjiAiText(candidateData?.text || '');
+                    if (!candidateText) continue;
+                    cachedData = candidateData;
+                    cachedText = candidateText;
+                    break;
+                }
+                if (cachedText) {
                     const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry, kanji, null, etymologyFact, compoundItems);
                     const cachedStatus = getKanjiDetailCompletionStatus(mergedCachedText, groundedHint);
                     if (cachedStatus.complete) {
                         baseText = canonicalizeKanjiDetailText(mergedCachedText);
                         finalIdiomsCount = cachedStatus.idiomsCount;
+                        baseModelName = String(cachedData?.modelName || '').trim();
                         cacheHit = true;
                     } else {
                         console.warn('AI_KANJI_DETAIL: cached explanation rejected', {
@@ -2900,11 +2934,6 @@ async function generateKanjiDetail(kanji, currentReading) {
                             idiomCount: cachedStatus.idiomsCount
                         });
                     }
-                } else if (cachedText) {
-                    console.warn('AI_KANJI_DETAIL: cached explanation prompt version expired', {
-                        kanji,
-                        cachedPromptVersion: cachedData?.promptVersion || ''
-                    });
                 }
             } catch (cacheError) {
                 console.warn('AI_KANJI_DETAIL: base cache read failed', cacheError);
