@@ -28,6 +28,7 @@ test('name origin output merges the family message and wish without duplicate se
   assert.doesNotMatch(originSource, /キーは必ず "decision", "wish", "sound", "familyLine"/);
   assert.match(originSource, /decisionは35〜60字/);
   assert.match(originSource, /soundは25〜45字/);
+  assert.match(originSource, /「選ばれます」のような受け身の説明口調を使わない/);
 });
 
 test('kanji details put naming meaning first and cap visible idioms', () => {

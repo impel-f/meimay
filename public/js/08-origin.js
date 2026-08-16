@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v20_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v21_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -1360,6 +1360,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 
 【表現】
 ・decisionとwishで同じ内容・結論・語尾を繰り返さない。
+・decisionは「〜が決め手です」「〜を組み合わせた名前です」の自然な現在形にし、「選ばれます」のような受け身の説明口調を使わない。
 ・将来を断定せず、「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」などの定型比喩を使わない。
 ・名字との相性は書かない。ただしcheckの確認材料に名字由来の項目がある場合だけ触れてよい。
 ・soundでは漢字の意味、性別、流行、年代、語源に触れない。
