@@ -1,15 +1,22 @@
 name: Gemini production smoke
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - codex/gemini-production-smoke
+    paths-ignore:
+      - tmp/gemini-production-results/**
+
+permissions:
+  contents: write
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+
       - name: Wait for production deployment
         run: sleep 45
 
@@ -17,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p results
+          mkdir -p tmp/gemini-production-results
           token="8d38b390-f351-4af3-9ee9-1da30dc6fe7d"
           for id in \
             kanji_rudder \
@@ -39,12 +46,14 @@ jobs:
               --retry-delay 15 \
               --max-time 120 \
               "https://meimay.vercel.app/api/gemini-smoke?token=${token}&id=${id}" \
-              > "results/${id}.json"
+              > "tmp/gemini-production-results/${id}.json"
           done
 
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        with:
-          name: gemini-production-smoke-results
-          path: results/*.json
-          if-no-files-found: error
+      - name: Commit results to temporary branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tmp/gemini-production-results/*.json
+          git commit -m "Record Gemini production smoke results [skip smoke]"
+          git push
