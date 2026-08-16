@@ -1042,6 +1042,107 @@ function canOpenSavedKanjiDetail(item, part, options = {}) {
     return (savedUnlockAllowed && getSavedKanjiDetailUnlockSet(item).has(kanji)) || isSavedKanjiUnlockedByStock(kanji);
 }
 
+function canEditSavedNameMemo(item, source = 'own') {
+    return source === 'own'
+        && !!item
+        && item.fromPartner !== true
+        && item.approvedFromPartner !== true;
+}
+
+function escapeSavedNameMemoText(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function showSavedNameMemoEditor(index, source = 'own') {
+    const saved = getSavedNames();
+    const item = source === 'own' ? saved[index] : null;
+    if (!canEditSavedNameMemo(item, source)) {
+        if (typeof showToast === 'function') showToast('自分が追加した候補だけ編集できます', '✓');
+        return false;
+    }
+
+    closeSavedNameMemoEditor();
+    const modal = `
+        <div class="overlay active modal-overlay-dark" id="saved-memo-editor-modal"
+             style="z-index:10002 !important"
+             onclick="if(event.target.id==='saved-memo-editor-modal')closeSavedNameMemoEditor()">
+            <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
+                <button class="modal-close-x" onclick="closeSavedNameMemoEditor()">✕</button>
+                <h3 class="modal-title">メモを編集</h3>
+                <div class="modal-body">
+                    <label class="mb-2 block text-xs font-bold text-[#a6967a]" for="saved-memo-editor-input">メモ（任意）</label>
+                    <textarea id="saved-memo-editor-input"
+                              class="w-full resize-none rounded-2xl border-2 border-[#eee5d8] bg-white px-4 py-3 text-sm font-medium text-[#5d5444] outline-none transition-all focus:border-[#bca37f]"
+                              placeholder="例：響きが好き、優しい印象"
+                              rows="3"
+                              maxlength="100"></textarea>
+                    <p class="mt-2 text-right text-[10px] font-bold text-[#a6967a]">100文字まで</p>
+                </div>
+                <div class="modal-footer flex gap-2">
+                    <button onclick="closeSavedNameMemoEditor()" class="flex-1 rounded-xl bg-white py-4 text-xs font-bold text-[#a6967a]">戻る</button>
+                    <button onclick="saveSavedNameMemo(${index})" class="btn-modal-primary flex-1">保存する</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modal);
+    const input = document.getElementById('saved-memo-editor-input');
+    if (input) {
+        input.value = String(item.message || '').slice(0, 100);
+        setTimeout(() => input.focus(), 50);
+    }
+    return true;
+}
+
+function closeSavedNameMemoEditor() {
+    document.getElementById('saved-memo-editor-modal')?.remove();
+}
+
+function saveSavedNameMemo(index) {
+    const saved = getSavedNames();
+    const item = saved[index];
+    if (!canEditSavedNameMemo(item, 'own')) {
+        closeSavedNameMemoEditor();
+        if (typeof showToast === 'function') showToast('自分が追加した候補だけ編集できます', '✓');
+        return false;
+    }
+
+    const input = document.getElementById('saved-memo-editor-input');
+    const message = String(input?.value || '').trim().slice(0, 100);
+    const updated = saved.map((entry, entryIndex) => entryIndex === index
+        ? { ...entry, message }
+        : entry);
+
+    if (typeof savedNames !== 'undefined') savedNames = updated;
+    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+        StorageBox.saveSavedNames();
+    } else {
+        localStorage.setItem('meimay_saved', JSON.stringify(updated));
+        localStorage.removeItem('meimay_saved_cleared_at');
+    }
+    persistActiveChildWorkspaceSnapshot('edit-saved-name-memo');
+    if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
+        MeimayPairing._autoSyncDebounced?.();
+    }
+    if (typeof trackMeimayEvent === 'function') {
+        trackMeimayEvent('saved_name_memo_updated', {
+            has_message: message ? 1 : 0
+        });
+    }
+
+    closeSavedNameMemoEditor();
+    closeSavedNameDetail();
+    if (typeof renderSavedScreen === 'function') renderSavedScreen();
+    showSavedNameDetail(index, 'own');
+    if (typeof showToast === 'function') showToast(message ? 'メモを更新しました' : 'メモを削除しました', '✓');
+    return true;
+}
+
 function showSavedNameKanjiDetail(index, source = 'own', partIndex = 0) {
     const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
     const sourceSaved = source === 'partner'
@@ -1087,6 +1188,8 @@ function showSavedNameDetail(index, source = 'own') {
         : 'all';
     const localDeleteIndex = source === 'own' ? index : -1;
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
+    const canEditMemo = canEditSavedNameMemo(item, source);
+    const safeMessage = escapeSavedNameMemoText(item.message || '');
     const f = getSavedCandidateFortune(item);
     const originText = typeof getNameOriginDisplayTextForItem === 'function'
         ? getNameOriginDisplayTextForItem(item)
@@ -1189,10 +1292,13 @@ function showSavedNameDetail(index, source = 'own') {
                         </div>
                     </div>
 
-                    ${item.message ? `
+                    ${(item.message || canEditMemo) ? `
                     <div class="mb-8 p-5 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
-                        <div class="text-[13px] font-black text-[#a6967a] absolute -top-2.5 left-6 bg-white px-2 py-0.5 rounded-full border border-[#eee5d8] leading-none">📝</div>
-                        <div class="text-sm text-[#5d5444] font-medium leading-relaxed">💬 ${item.message}</div>
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <div class="text-[11px] font-black text-[#a6967a]">📝 メモ</div>
+                            ${canEditMemo ? `<button onclick="showSavedNameMemoEditor(${index}, 'own')" class="shrink-0 rounded-full border border-[#dccdb8] bg-white px-3 py-1.5 text-[10px] font-black text-[#9a7a4a] transition active:scale-95">編集</button>` : ''}
+                        </div>
+                        <div class="text-sm text-[#5d5444] font-medium leading-relaxed">${safeMessage || 'まだメモはありません。'}</div>
                     </div>
                     ` : ''}
 
@@ -1542,6 +1648,9 @@ window.stockEncounteredReadingFromModal = stockEncounteredReadingFromModal;
 window.resumeEncounteredReadingFromModal = resumeEncounteredReadingFromModal;
 window.searchEncounteredReadingFromModal = searchEncounteredReadingFromModal;
 window.showSavedNameDetail = showSavedNameDetail;
+window.showSavedNameMemoEditor = showSavedNameMemoEditor;
+window.closeSavedNameMemoEditor = closeSavedNameMemoEditor;
+window.saveSavedNameMemo = saveSavedNameMemo;
 window.closeSavedNameDetail = closeSavedNameDetail;
 window.showSavedNameKanjiDetail = showSavedNameKanjiDetail;
 window.showKanjiDetailFromSaved = showKanjiDetailFromSaved;
