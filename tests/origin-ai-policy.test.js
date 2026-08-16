@@ -8,6 +8,7 @@ const originSource = fs.readFileSync(
   'utf8'
 );
 const detailDataset = require('../public/data/kanji_detail_dataset.json');
+const etymologyFacts = require('../public/data/kanji_etymology_facts.json');
 
 function getOriginText(kanji) {
   return (detailDataset[kanji]?.sections || [])
@@ -67,6 +68,9 @@ test('known regression kanji retain the verified glyph components', () => {
   assert.match(getOriginText('舵'), /舟.*它/);
   assert.match(getOriginText('櫂'), /木.*翟/);
   assert.match(getOriginText('孟'), /子.*皿/);
+  assert.equal(etymologyFacts.entries['舵'].phoneticComponent, '它');
+  assert.equal(etymologyFacts.entries['櫂'].phoneticComponent, '翟');
+  assert.equal(etymologyFacts.entries['孟'].phoneticComponent, '皿');
 });
 
 test('broken private-use glyphs are rejected by the grounded-origin quality gate', () => {

@@ -1,0 +1,32 @@
+{
+  "舵": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰舟它",
+    "semanticComponent": "舟",
+    "phoneticComponent": "它",
+    "sources": [
+      {
+        "name": "kanjitisiki.com",
+        "url": "https://kanjitisiki.com/zinmei/464.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "櫂": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰木翟",
+    "semanticComponent": "木",
+    "phoneticComponent": "翟",
+    "sources": [
+      {
+        "name": "kanjitisiki.com",
+        "url": "https://kanjitisiki.com/zinmei/271.html",
+        "kind": "cross_check"
+      }
+    ]
+  }
+}

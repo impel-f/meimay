@@ -1,0 +1,5578 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "kanji_detail_dataset.json",
+  "entries": {
+    "一": {
+      "formationTypes": [
+        "指事"
+      ],
+      "structure": "一",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/19968",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "力": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿻丿𠃌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21147",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "夕": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿴𠂊丶",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22805",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "大": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿻一人",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22823",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "士": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱十一",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22763",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "久": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "久",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20037",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "先": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱𠂒儿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20808",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "丈": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "丈",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/19976",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "月": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "月",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26376",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "天": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱一大",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22825",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "文": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱亠乂",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25991",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "太": {
+      "formationTypes": [],
+      "structure": "⿵大丶",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22826",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "友": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿸𠂇又",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21451",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "仁": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿰亻二",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20161",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "二",
+      "verificationStatus": "single_source"
+    },
+    "丹": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "丹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20025",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "斗": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "斗",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26007",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "匂": {
+      "formationTypes": [],
+      "structure": "⿹勹匕",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21250",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "正": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱一止",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27491",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "生": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "生",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29983",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "央": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "央",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22830",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "世": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "世",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/19990",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "舵": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰舟它",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33333",
+          "kind": "reference"
+        },
+        {
+          "name": "kanjitisiki.com",
+          "url": "https://kanjitisiki.com/zinmei/464.html",
+          "kind": "cross_check"
+        }
+      ],
+      "semanticComponent": "舟",
+      "phoneticComponent": "它",
+      "verificationStatus": "cross_checked"
+    },
+    "平": {
+      "formationTypes": [],
+      "structure": "⿻干丷 ⿻干八",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24179",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "史": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "史",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21490",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "永": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "永",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27704",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "叶": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰口十",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21494",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "弘": {
+      "formationTypes": [
+        "象形",
+        "形声"
+      ],
+      "structure": "⿰弓厶",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24344",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "会": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱𠆢云",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20250",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "光": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿳⺌一儿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20809",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "安": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱宀女",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23433",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "成": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿵戊𠃌 ⿵戊丁 ⿵戉丁 #2",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25104",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "丁",
+      "verificationStatus": "single_source"
+    },
+    "宇": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱宀于",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23431",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "于",
+      "verificationStatus": "single_source"
+    },
+    "伽": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰亻加",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20285",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "加",
+      "verificationStatus": "single_source"
+    },
+    "帆": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰巾凡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24070",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "凡",
+      "verificationStatus": "single_source"
+    },
+    "壮": {
+      "formationTypes": [],
+      "structure": "⿰丬士",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22766",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "朴": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木卜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26420",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "卜",
+      "verificationStatus": "single_source"
+    },
+    "旭": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺九日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26093",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "九",
+      "verificationStatus": "single_source"
+    },
+    "汐": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰氵夕",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27728",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夕",
+      "verificationStatus": "single_source"
+    },
+    "俠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰亻夾",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20448",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夾",
+      "verificationStatus": "single_source"
+    },
+    "君": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿸尹口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21531",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "尹",
+      "verificationStatus": "single_source"
+    },
+    "希": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "⿱㐅布",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24076",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "初": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰衤刀",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21021",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "努": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱奴力",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21162",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "奴",
+      "verificationStatus": "single_source"
+    },
+    "良": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "⿱丶艮 ⿱丨艮",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33391",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "快": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄夬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24555",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "志": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱士心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24535",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "士",
+      "verificationStatus": "single_source"
+    },
+    "宵": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱宀肖",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23477",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "肖",
+      "verificationStatus": "single_source"
+    },
+    "孝": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱耂子",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23389",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "秀": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱禾乃",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31168",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "寿": {
+      "formationTypes": [],
+      "structure": "⿸丰寸",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23551",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "伸": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻申",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20280",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "申",
+      "verificationStatus": "single_source"
+    },
+    "励": {
+      "formationTypes": [],
+      "structure": "⿰厉力",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21169",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "佐": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻左",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20304",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "左",
+      "verificationStatus": "single_source"
+    },
+    "杏": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱木口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26447",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "口",
+      "verificationStatus": "single_source"
+    },
+    "亨": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿳亠口了",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20136",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "冴": {
+      "formationTypes": [],
+      "structure": "⿰冫牙",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20916",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "辰": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "辰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36784",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "芙": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹夫",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33433",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夫",
+      "verificationStatus": "single_source"
+    },
+    "空": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱穴工",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31354",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "工",
+      "verificationStatus": "single_source"
+    },
+    "金": {
+      "formationTypes": [
+        "象形",
+        "形声",
+        "会意形声"
+      ],
+      "structure": "金",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/37329",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "知": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰矢口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30693",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "矢",
+      "verificationStatus": "single_source"
+    },
+    "歩": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱止少",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27497",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "明": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰日月",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26126",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "幸": {
+      "formationTypes": [],
+      "structure": "⿱土𢆉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24184",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "実": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱宀𡗗",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23455",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "和": {
+      "formationTypes": [
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿰禾口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21644",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "英": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹央",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33521",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "央",
+      "verificationStatus": "single_source"
+    },
+    "治": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵台",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27835",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "台",
+      "verificationStatus": "single_source"
+    },
+    "松": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木公",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26494",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "公",
+      "verificationStatus": "single_source"
+    },
+    "念": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱今心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24565",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "今",
+      "verificationStatus": "single_source"
+    },
+    "宗": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱宀示",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23447",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "忠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱中心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24544",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "中",
+      "verificationStatus": "single_source"
+    },
+    "宝": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱宀玉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23453",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "征": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰彳正",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24449",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "正",
+      "verificationStatus": "single_source"
+    },
+    "拓": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰扌石",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25299",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "石",
+      "verificationStatus": "single_source"
+    },
+    "佳": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻圭",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20339",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "圭",
+      "verificationStatus": "single_source"
+    },
+    "昇": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱日升",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26119",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "升",
+      "verificationStatus": "single_source"
+    },
+    "尚": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱⺌冋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23578",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "旺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日王",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26106",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "王",
+      "verificationStatus": "single_source"
+    },
+    "奈": {
+      "formationTypes": [],
+      "structure": "⿱大示",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22856",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "弥": {
+      "formationTypes": [],
+      "structure": "⿰弓尔 ⿰弓尓",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24357",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "引": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰弓丨",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24341",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "昂": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱日卬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26114",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "卬",
+      "verificationStatus": "single_source"
+    },
+    "昌": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱日日 #1",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26124",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "孟": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱子皿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23391",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "皿",
+      "verificationStatus": "single_source"
+    },
+    "怜": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰忄令",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24604",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "令",
+      "verificationStatus": "single_source"
+    },
+    "昊": {
+      "formationTypes": [],
+      "structure": "⿱日天",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26122",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "茉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹末",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33545",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "末",
+      "verificationStatus": "single_source"
+    },
+    "音": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿱立日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38899",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "言",
+      "verificationStatus": "single_source"
+    },
+    "秋": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰禾火",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31179",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "春": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿱𡗗日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26149",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "星": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱日生",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26143",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "足": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "⿱口龰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36275",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "昭": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日召",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26157",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "召",
+      "verificationStatus": "single_source"
+    },
+    "柱": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木主",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26609",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "主",
+      "verificationStatus": "single_source"
+    },
+    "美": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱𦍌大",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32654",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "洋": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵羊",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27915",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "栄": {
+      "formationTypes": [],
+      "structure": "⿳⺍冖木 ⿳⺍冖朩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26628",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "律": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰彳聿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24459",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "聿",
+      "verificationStatus": "single_source"
+    },
+    "飛": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "飛",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39131",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "勇": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱甬力 ⿱⿱龴田力",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21191",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "甬",
+      "verificationStatus": "single_source"
+    },
+    "厚": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿸厂㫗",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21402",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "保": {
+      "formationTypes": [
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿰亻呆",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20445",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "映": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日央",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26144",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "央",
+      "verificationStatus": "single_source"
+    },
+    "皇": {
+      "formationTypes": [
+        "象形",
+        "会意形声"
+      ],
+      "structure": "⿱白王",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30343",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "姿": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱次女",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23039",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "次",
+      "verificationStatus": "single_source"
+    },
+    "城": {
+      "formationTypes": [
+        "会意形声"
+      ],
+      "structure": "⿰土成",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22478",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "成",
+      "verificationStatus": "single_source"
+    },
+    "陣": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰阝車",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38499",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "陳",
+      "verificationStatus": "single_source"
+    },
+    "泉": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿱白水",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27849",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "奏": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱𡗗天",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22863",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "香": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱禾日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39321",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "恒": {
+      "formationTypes": [],
+      "structure": "⿰忄亘",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24658",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "咲": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰口关",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21682",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "关",
+      "verificationStatus": "single_source"
+    },
+    "柔": {
+      "formationTypes": [
+        "会意",
+        "形声"
+      ],
+      "structure": "⿱矛木 ⿱矛朩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26580",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "珍": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰王㐱",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29645",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "㐱",
+      "verificationStatus": "single_source"
+    },
+    "俊": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻夋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20426",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夋",
+      "verificationStatus": "single_source"
+    },
+    "帥": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰𠂤巾",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24101",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "𠂤",
+      "verificationStatus": "single_source"
+    },
+    "柳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木卯",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26611",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "郁": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰有阝",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/37057",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "彦": {
+      "formationTypes": [],
+      "structure": "⿸产彡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24422",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "茜": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹西",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33564",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "祐": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰礻右 ⿰示右",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31056",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "右",
+      "verificationStatus": "single_source"
+    },
+    "玲": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王令",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29618",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "令",
+      "verificationStatus": "single_source"
+    },
+    "洸": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵光",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27960",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "珀": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王白",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29632",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "白",
+      "verificationStatus": "single_source"
+    },
+    "起": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺走巳 ⿺走己",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36215",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "巳",
+      "verificationStatus": "single_source"
+    },
+    "真": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱十具",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30495",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "速": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶束",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36895",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "束",
+      "verificationStatus": "single_source"
+    },
+    "流": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿰氵㐬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27969",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "㐬",
+      "verificationStatus": "single_source"
+    },
+    "航": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰舟亢",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33322",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "亢",
+      "verificationStatus": "single_source"
+    },
+    "笑": {
+      "formationTypes": [
+        "形声",
+        "象形",
+        "会意"
+      ],
+      "structure": "⿱竹夭",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31505",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夭",
+      "verificationStatus": "single_source"
+    },
+    "味": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰口未",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21619",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "未",
+      "verificationStatus": "single_source"
+    },
+    "特": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰牛寺",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29305",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "寺",
+      "verificationStatus": "single_source"
+    },
+    "桜": {
+      "formationTypes": [],
+      "structure": "⿰木⿱⺍女",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26716",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "恩": {
+      "formationTypes": [
+        "会意形声"
+      ],
+      "structure": "⿱因心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24681",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "因",
+      "verificationStatus": "single_source"
+    },
+    "容": {
+      "formationTypes": [
+        "会意",
+        "形声"
+      ],
+      "structure": "⿱宀谷",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23481",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "純": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰糸屯 ⿰糹屯",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32020",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "屯",
+      "verificationStatus": "single_source"
+    },
+    "恵": {
+      "formationTypes": [],
+      "structure": "⿱𤰔心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24693",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "軒": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰車干",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36562",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "干",
+      "verificationStatus": "single_source"
+    },
+    "振": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰扌辰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25391",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "辰",
+      "verificationStatus": "single_source"
+    },
+    "扇": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿸户羽 ⿸戶羽 ⿸戸羽",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25159",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "透": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶秀",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36879",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "秀",
+      "verificationStatus": "single_source"
+    },
+    "恋": {
+      "formationTypes": [],
+      "structure": "⿱亦心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24651",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "悟": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄吾",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24735",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "吾",
+      "verificationStatus": "single_source"
+    },
+    "哲": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱折口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21746",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "姫": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰女臣",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23019",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "臣",
+      "verificationStatus": "single_source"
+    },
+    "剛": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿰岡刂",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21083",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "岡",
+      "verificationStatus": "single_source"
+    },
+    "珠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王朱",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29664",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "朱",
+      "verificationStatus": "single_source"
+    },
+    "泰": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱𡗗氺",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27888",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "大",
+      "verificationStatus": "single_source"
+    },
+    "桂": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木圭",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26690",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "圭",
+      "verificationStatus": "single_source"
+    },
+    "晃": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱日光",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26179",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "光",
+      "verificationStatus": "single_source"
+    },
+    "浩": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵告 ⿰氵吿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28009",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "告",
+      "verificationStatus": "single_source"
+    },
+    "紗": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸少 ⿰糹少",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32023",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "少",
+      "verificationStatus": "single_source"
+    },
+    "峻": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰山夋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23803",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夋",
+      "verificationStatus": "single_source"
+    },
+    "隼": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱隹十",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38588",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "晋": {
+      "formationTypes": [],
+      "structure": "⿱亚日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26187",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "挺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰扌廷",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25402",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "廷",
+      "verificationStatus": "single_source"
+    },
+    "凌": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰冫夌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20940",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夌",
+      "verificationStatus": "single_source"
+    },
+    "栞": {
+      "formationTypes": [
+        "会意",
+        "形声"
+      ],
+      "structure": "⿱幵木 ⿱幵朩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26654",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "赳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺走丩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36211",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "丩",
+      "verificationStatus": "single_source"
+    },
+    "晄": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日光",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26180",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "光",
+      "verificationStatus": "single_source"
+    },
+    "理": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰王里",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29702",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "里",
+      "verificationStatus": "single_source"
+    },
+    "章": {
+      "formationTypes": [
+        "象形",
+        "会意"
+      ],
+      "structure": "⿱立早",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31456",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "進": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶隹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36914",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "隹",
+      "verificationStatus": "single_source"
+    },
+    "深": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵罙",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28145",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "健": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻建",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20581",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "建",
+      "verificationStatus": "single_source"
+    },
+    "康": {
+      "formationTypes": [
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿸广隶",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24247",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "清": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵青",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28165",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "陸": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰阝坴",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38520",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "坴",
+      "verificationStatus": "single_source"
+    },
+    "淡": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵炎",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28129",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "炎",
+      "verificationStatus": "single_source"
+    },
+    "基": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱其土",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22522",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "其",
+      "verificationStatus": "single_source"
+    },
+    "情": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄青 ⿰忄靑",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24773",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "靑",
+      "verificationStatus": "single_source"
+    },
+    "頂": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰丁頁",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38914",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "丁",
+      "verificationStatus": "single_source"
+    },
+    "乾": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰𠦝乞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20094",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "倝",
+      "verificationStatus": "single_source"
+    },
+    "彩": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰采彡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24425",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "采",
+      "verificationStatus": "single_source"
+    },
+    "猛": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰犭孟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29467",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "孟",
+      "verificationStatus": "single_source"
+    },
+    "貫": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿱毌貝",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36011",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "毌",
+      "verificationStatus": "single_source"
+    },
+    "啓": {
+      "formationTypes": [],
+      "structure": "⿱𢼄口 ⿱⿰戶攵口 ⿱⿰戸攵口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21843",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "紺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸甘 ⿰糹甘",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32058",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "甘",
+      "verificationStatus": "single_source"
+    },
+    "隆": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰阝㚅 ⿰阝⿱夂生",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38534",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "渓": {
+      "formationTypes": [],
+      "structure": "⿰氵⿱爫夫",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28179",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "淑": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰氵叔",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28113",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "叔",
+      "verificationStatus": "single_source"
+    },
+    "崇": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱山宗",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23815",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "宗",
+      "verificationStatus": "single_source"
+    },
+    "悠": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿱攸心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24736",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "攸",
+      "verificationStatus": "single_source"
+    },
+    "涼": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰氵京",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28092",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "京",
+      "verificationStatus": "single_source"
+    },
+    "梨": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱利木 ⿱利朩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26792",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "庵": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿸广奄",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24245",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "奄",
+      "verificationStatus": "single_source"
+    },
+    "惟": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄隹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24799",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "隹",
+      "verificationStatus": "single_source"
+    },
+    "偲": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻思",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20594",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "思",
+      "verificationStatus": "single_source"
+    },
+    "渚": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰氵者",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28186",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "者",
+      "verificationStatus": "single_source"
+    },
+    "捷": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰扌疌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25463",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "疌",
+      "verificationStatus": "single_source"
+    },
+    "梢": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木肖",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26786",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "肖",
+      "verificationStatus": "single_source"
+    },
+    "彪": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿺虎彡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24426",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "椛": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰木花",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26907",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "琉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王㐬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29705",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "㐬",
+      "verificationStatus": "single_source"
+    },
+    "崚": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰山夌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23834",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夌",
+      "verificationStatus": "single_source"
+    },
+    "眸": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰目牟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30520",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "牟",
+      "verificationStatus": "single_source"
+    },
+    "森": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱木林",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26862",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "晴": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰日青 ⿰日靑",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26228",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "靑",
+      "verificationStatus": "single_source"
+    },
+    "朝": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰𠦝月 ⿰⿴艸日月 #1",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26397",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "温": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵昷",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28201",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "湖": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵胡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28246",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "胡",
+      "verificationStatus": "single_source"
+    },
+    "勝": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰月劵",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21213",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "登": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱癶豆",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30331",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "豆",
+      "verificationStatus": "single_source"
+    },
+    "遊": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶斿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36938",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "斿",
+      "verificationStatus": "single_source"
+    },
+    "葉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹枼",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33865",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "枼",
+      "verificationStatus": "single_source"
+    },
+    "陽": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰阝昜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38525",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "昜",
+      "verificationStatus": "single_source"
+    },
+    "喜": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱壴口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21916",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "壴",
+      "verificationStatus": "single_source"
+    },
+    "景": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱日京",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26223",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "京",
+      "verificationStatus": "single_source"
+    },
+    "結": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰糸吉 ⿰糹吉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32080",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "吉",
+      "verificationStatus": "single_source"
+    },
+    "博": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰十尃 ⿰十⿺専丶",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21338",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "尃",
+      "verificationStatus": "single_source"
+    },
+    "満": {
+      "formationTypes": [],
+      "structure": "⿰氵⿱艹両",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28288",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "敬": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰茍攵 ⿰苟攵",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25964",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "茍",
+      "verificationStatus": "single_source"
+    },
+    "善": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱⿱羊䒑口 ⿱⿱𦍌䒑口",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21892",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "尊": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱酋寸",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23562",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "偉": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻韋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20553",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "韋",
+      "verificationStatus": "single_source"
+    },
+    "越": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺走戉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36234",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "戉",
+      "verificationStatus": "single_source"
+    },
+    "堅": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱臤土",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22533",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "臤",
+      "verificationStatus": "single_source"
+    },
+    "紫": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱此糸",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32043",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "此",
+      "verificationStatus": "single_source"
+    },
+    "渡": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵度",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28193",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "度",
+      "verificationStatus": "single_source"
+    },
+    "雄": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰厷隹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38596",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "厷",
+      "verificationStatus": "single_source"
+    },
+    "嵯": {
+      "formationTypes": [],
+      "structure": "⿰山差",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23919",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "晶": {
+      "formationTypes": [
+        "会意",
+        "象形"
+      ],
+      "structure": "⿱日昍",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26230",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "遂": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶㒸",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36930",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "㒸",
+      "verificationStatus": "single_source"
+    },
+    "超": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺走召",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36229",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "召",
+      "verificationStatus": "single_source"
+    },
+    "揚": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰扌昜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25562",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "昜",
+      "verificationStatus": "single_source"
+    },
+    "暁": {
+      "formationTypes": [],
+      "structure": "⿰日尭",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26241",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "琴": {
+      "formationTypes": [],
+      "structure": "⿱玨今",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29748",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "滋": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵兹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28363",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "茲",
+      "verificationStatus": "single_source"
+    },
+    "愉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄俞 ⿰忄兪",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24841",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "兪",
+      "verificationStatus": "single_source"
+    },
+    "裕": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰衤谷",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35029",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "谷",
+      "verificationStatus": "single_source"
+    },
+    "媛": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰女爰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23195",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "爰",
+      "verificationStatus": "single_source"
+    },
+    "瑛": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王英",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29787",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "英",
+      "verificationStatus": "single_source"
+    },
+    "葵": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹癸",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33909",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "喬": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿱呑冋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21932",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "高",
+      "verificationStatus": "single_source"
+    },
+    "絢": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰糸旬 ⿰糹旬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32098",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "旬",
+      "verificationStatus": "single_source"
+    },
+    "萩": {
+      "formationTypes": [],
+      "structure": "⿱艹秋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33833",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "竣": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰立夋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31459",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夋",
+      "verificationStatus": "single_source"
+    },
+    "湘": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵相",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28248",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "相",
+      "verificationStatus": "single_source"
+    },
+    "湊": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵奏 ⿰氵⿱𡗗夭",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28234",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "奏",
+      "verificationStatus": "single_source"
+    },
+    "智": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱知日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26234",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "知",
+      "verificationStatus": "single_source"
+    },
+    "敦": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰享攵",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25958",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "遥": {
+      "formationTypes": [],
+      "structure": "⿺辶䍃",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36965",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "琳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王林",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29747",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "林",
+      "verificationStatus": "single_source"
+    },
+    "惺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄星",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24826",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "星",
+      "verificationStatus": "single_source"
+    },
+    "琥": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王虎",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29733",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "虎",
+      "verificationStatus": "single_source"
+    },
+    "翔": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰羊羽",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32724",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "羊",
+      "verificationStatus": "single_source"
+    },
+    "渚": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵者",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/64070",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "新": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰亲斤",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26032",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "感": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱咸心 ⿵咸心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24863",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "咸",
+      "verificationStatus": "single_source"
+    },
+    "詩": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰言寺",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35433",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "寺",
+      "verificationStatus": "single_source"
+    },
+    "照": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱昭灬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29031",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "源": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵原",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28304",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "原",
+      "verificationStatus": "single_source"
+    },
+    "誠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰言成",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35488",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "成",
+      "verificationStatus": "single_source"
+    },
+    "聖": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱𦔻王 ⿱𦔻𡈼 ⿱⿰耳口𡈼 #1",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32854",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "暖": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日爰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26262",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "爰",
+      "verificationStatus": "single_source"
+    },
+    "雅": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰牙隹",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38597",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "牙",
+      "verificationStatus": "single_source"
+    },
+    "慎": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰忄真",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24910",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "履": {
+      "formationTypes": [
+        "象形"
+      ],
+      "structure": "⿸尸復",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23653",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "誉": {
+      "formationTypes": [],
+      "structure": "⿱兴言",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35465",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "慈": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱兹心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24904",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "茲",
+      "verificationStatus": "single_source"
+    },
+    "滝": {
+      "formationTypes": [],
+      "structure": "⿰氵竜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28381",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "廉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿸广兼",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24265",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "兼",
+      "verificationStatus": "single_source"
+    },
+    "寛": {
+      "formationTypes": [
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿱宀莧",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23515",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "奨": {
+      "formationTypes": [],
+      "structure": "⿱将大",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22888",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "践": {
+      "formationTypes": [],
+      "structure": "⿰𧾷戋 ⿰𧾷㦮",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36341",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "睦": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰目坴",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30566",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "坴",
+      "verificationStatus": "single_source"
+    },
+    "溢": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵益",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28322",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "益",
+      "verificationStatus": "single_source"
+    },
+    "馳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰馬也",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39347",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "也",
+      "verificationStatus": "single_source"
+    },
+    "嵩": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱山高",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23913",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "楯": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰木盾",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26991",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "盾",
+      "verificationStatus": "single_source"
+    },
+    "稔": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰禾念",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31252",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "念",
+      "verificationStatus": "single_source"
+    },
+    "瑞": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王耑",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29790",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "耑",
+      "verificationStatus": "single_source"
+    },
+    "靖": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰立青 ⿰立靑",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38742",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "靑",
+      "verificationStatus": "single_source"
+    },
+    "蒼": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹倉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33980",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "倉",
+      "verificationStatus": "single_source"
+    },
+    "楓": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木風",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26963",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "風",
+      "verificationStatus": "single_source"
+    },
+    "蓮": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹連 ⿺辶莗",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34030",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "連",
+      "verificationStatus": "single_source"
+    },
+    "暉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日軍",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26249",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "軍",
+      "verificationStatus": "single_source"
+    },
+    "滉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵晃",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28361",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "晃",
+      "verificationStatus": "single_source"
+    },
+    "瑶": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王䍃",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29814",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "䍃",
+      "verificationStatus": "single_source"
+    },
+    "煌": {
+      "formationTypes": [],
+      "structure": "⿰火皇",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29004",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "愼": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰忄眞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24892",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "眞",
+      "verificationStatus": "single_source"
+    },
+    "溫": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵𥁕",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28331",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "𥁕",
+      "verificationStatus": "single_source"
+    },
+    "歌": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰哥欠",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27468",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "哥",
+      "verificationStatus": "single_source"
+    },
+    "緑": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸录 ⿰糹录",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32209",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "徳": {
+      "formationTypes": [],
+      "structure": "⿰彳⿳十罒心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24499",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "暦": {
+      "formationTypes": [],
+      "structure": "⿸𠩵日",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26278",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "彰": {
+      "formationTypes": [
+        "会意形声"
+      ],
+      "structure": "⿰章彡",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24432",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "章",
+      "verificationStatus": "single_source"
+    },
+    "瀧": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵龍",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28711",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "龍",
+      "verificationStatus": "single_source"
+    },
+    "璃": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王离",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29827",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "离",
+      "verificationStatus": "single_source"
+    },
+    "瑠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰王留",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29792",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "嘉": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿱壴加",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22025",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "加",
+      "verificationStatus": "single_source"
+    },
+    "瑳": {
+      "formationTypes": [],
+      "structure": "⿰王差",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29811",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "榊": {
+      "formationTypes": [],
+      "structure": "⿰木神",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27018",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "榛": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木秦",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27035",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "秦",
+      "verificationStatus": "single_source"
+    },
+    "槙": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木真",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27097",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "翠": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱羽卒",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32736",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "卒",
+      "verificationStatus": "single_source"
+    },
+    "碩": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰石頁",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30889",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "石",
+      "verificationStatus": "single_source"
+    },
+    "聡": {
+      "formationTypes": [],
+      "structure": "⿰耳忩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32865",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "暢": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰申昜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26274",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "昜",
+      "verificationStatus": "single_source"
+    },
+    "緋": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸非 ⿰糹非",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32203",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "非",
+      "verificationStatus": "single_source"
+    },
+    "輔": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰車甫",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36628",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "甫",
+      "verificationStatus": "single_source"
+    },
+    "鳳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿵几𩾏",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40179",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "凡",
+      "verificationStatus": "single_source"
+    },
+    "碧": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱珀石",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30887",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "白",
+      "verificationStatus": "single_source"
+    },
+    "綾": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸夌 ⿰糹夌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32190",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夌",
+      "verificationStatus": "single_source"
+    },
+    "漣": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵連",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28451",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "連",
+      "verificationStatus": "single_source"
+    },
+    "颯": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰立風",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39087",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "立",
+      "verificationStatus": "single_source"
+    },
+    "綺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰糸奇 ⿰糹奇",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32186",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "奇",
+      "verificationStatus": "single_source"
+    },
+    "槇": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木眞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27079",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "眞",
+      "verificationStatus": "single_source"
+    },
+    "實": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱宀貫",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23526",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "壽": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿳⿳士乛工一吋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/22781",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "標": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木票",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27161",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "潔": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵絜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28500",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "絜",
+      "verificationStatus": "single_source"
+    },
+    "潮": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵朝",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28526",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "朝",
+      "verificationStatus": "single_source"
+    },
+    "歓": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰⿱𠂉⿻一隹欠",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27475",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "輝": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰光軍",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36637",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "軍",
+      "verificationStatus": "single_source"
+    },
+    "儀": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻義",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20736",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "義",
+      "verificationStatus": "single_source"
+    },
+    "澄": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵登",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28548",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "登",
+      "verificationStatus": "single_source"
+    },
+    "潤": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰氵閏",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28516",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "閏",
+      "verificationStatus": "single_source"
+    },
+    "穂": {
+      "formationTypes": [],
+      "structure": "⿰禾恵",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31298",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "徹": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰鬲又",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24505i0",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "憬": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄景",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25004",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "景",
+      "verificationStatus": "single_source"
+    },
+    "摯": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱執手",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25711",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "憧": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰忄童",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24999",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "童",
+      "verificationStatus": "single_source"
+    },
+    "慧": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱彗心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24935",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "彗",
+      "verificationStatus": "single_source"
+    },
+    "槻": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木規",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27131",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "規",
+      "verificationStatus": "single_source"
+    },
+    "毅": {
+      "formationTypes": [],
+      "structure": "⿰豙殳",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27589",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "樟": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木章",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27167",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "章",
+      "verificationStatus": "single_source"
+    },
+    "諒": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰言京",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35538",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "京",
+      "verificationStatus": "single_source"
+    },
+    "遼": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿺辶尞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36988",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "尞",
+      "verificationStatus": "single_source"
+    },
+    "凜": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰冫稟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20956",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "稟",
+      "verificationStatus": "single_source"
+    },
+    "凛": {
+      "formationTypes": [],
+      "structure": "⿰冫禀",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20955",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "熙": {
+      "formationTypes": [],
+      "structure": "⿱巸灬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29081",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "德": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰彳𢛳",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24503",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "𢛳",
+      "verificationStatus": "single_source"
+    },
+    "緖": {
+      "formationTypes": [],
+      "structure": "⿰糸者 ⿰糹者",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32214",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "衛": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿲彳韋亍",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34907",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "韋",
+      "verificationStatus": "single_source"
+    },
+    "憲": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱𡩜心 #3 ⿱⿳宀丰罒心",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/25010",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "𡩜",
+      "verificationStatus": "single_source"
+    },
+    "樹": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰木尌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27193",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "尌",
+      "verificationStatus": "single_source"
+    },
+    "穏": {
+      "formationTypes": [],
+      "structure": "⿰禾𢚩",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31311",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "賢": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱臤貝",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/36066",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "臤",
+      "verificationStatus": "single_source"
+    },
+    "篤": {
+      "formationTypes": [
+        "形声",
+        "会意",
+        "会意形声"
+      ],
+      "structure": "⿱竹馬",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31716",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "竹",
+      "verificationStatus": "single_source"
+    },
+    "薫": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹𤋱",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34219",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "熏",
+      "verificationStatus": "single_source"
+    },
+    "錦": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰金帛",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/37670",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "金",
+      "verificationStatus": "single_source"
+    },
+    "叡": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰睿又",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21473",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "橘": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰木矞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27224",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "矞",
+      "verificationStatus": "single_source"
+    },
+    "臥": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿰臣人",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/33253",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "燎": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰火尞",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29134",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "勳": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰熏力",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/21235",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "熏",
+      "verificationStatus": "single_source"
+    },
+    "優": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰亻憂",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/20778",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "憂",
+      "verificationStatus": "single_source"
+    },
+    "翼": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿱羽異",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32764",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "異",
+      "verificationStatus": "single_source"
+    },
+    "鍛": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰金段",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/37723",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "段",
+      "verificationStatus": "single_source"
+    },
+    "謙": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰言兼",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/35609",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "兼",
+      "verificationStatus": "single_source"
+    },
+    "徽": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰彳𢾰 ⿲彳⿱山糸攵",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/24509",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "微",
+      "verificationStatus": "single_source"
+    },
+    "燦": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰火粲",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29158",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "粲",
+      "verificationStatus": "single_source"
+    },
+    "駿": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰馬夋",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39423",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "夋",
+      "verificationStatus": "single_source"
+    },
+    "曙": {
+      "formationTypes": [
+        "形声",
+        "会意"
+      ],
+      "structure": "⿰日署",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26329",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "署",
+      "verificationStatus": "single_source"
+    },
+    "嶺": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱山領",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/23994",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "領",
+      "verificationStatus": "single_source"
+    },
+    "薰": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹熏",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34224",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "熏",
+      "verificationStatus": "single_source"
+    },
+    "曜": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰日翟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/26332",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "翟",
+      "verificationStatus": "single_source"
+    },
+    "織": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰糸戠 ⿰糹戠",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32340",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "戠",
+      "verificationStatus": "single_source"
+    },
+    "瞬": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰目舜",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/30636",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "舜",
+      "verificationStatus": "single_source"
+    },
+    "藤": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹滕",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34276",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "滕",
+      "verificationStatus": "single_source"
+    },
+    "璧": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱辟玉",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29863",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "辟",
+      "verificationStatus": "single_source"
+    },
+    "藍": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹監",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34253",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "監",
+      "verificationStatus": "single_source"
+    },
+    "鯉": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰魚里",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39881",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "里",
+      "verificationStatus": "single_source"
+    },
+    "櫂": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木翟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27330",
+          "kind": "reference"
+        },
+        {
+          "name": "kanjitisiki.com",
+          "url": "https://kanjitisiki.com/zinmei/271.html",
+          "kind": "cross_check"
+        }
+      ],
+      "semanticComponent": "木",
+      "phoneticComponent": "翟",
+      "verificationStatus": "cross_checked"
+    },
+    "燿": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰火翟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/29183",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "翟",
+      "verificationStatus": "single_source"
+    },
+    "禮": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿰礻豊 ⿰示豊",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/31150",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "豊",
+      "verificationStatus": "single_source"
+    },
+    "麗": {
+      "formationTypes": [
+        "会意"
+      ],
+      "structure": "⿱丽鹿",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40599",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "瀬": {
+      "formationTypes": [],
+      "structure": "⿰氵頼",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28716",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "麒": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰鹿其",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40594",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "其",
+      "verificationStatus": "single_source"
+    },
+    "鵬": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰朋鳥",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40300",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "朋",
+      "verificationStatus": "single_source"
+    },
+    "蘭": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱艹闌",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/34349",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "闌",
+      "verificationStatus": "single_source"
+    },
+    "瀨": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰氵賴",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/28712",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "賴",
+      "verificationStatus": "single_source"
+    },
+    "響": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱鄉音 ⿱郷音 ⿱鄕音",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/38911",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "鄕",
+      "verificationStatus": "single_source"
+    },
+    "馨": {
+      "formationTypes": [
+        "形声",
+        "会意形声"
+      ],
+      "structure": "⿱殸香",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/39336",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "殸",
+      "verificationStatus": "single_source"
+    },
+    "耀": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰光翟",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/32768",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "鶴": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰隺鳥",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40372",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "隺",
+      "verificationStatus": "single_source"
+    },
+    "櫻": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿰木嬰",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/27387",
+          "kind": "reference"
+        }
+      ],
+      "phoneticComponent": "嬰",
+      "verificationStatus": "single_source"
+    },
+    "響": {
+      "formationTypes": [
+        "形声"
+      ],
+      "structure": "⿱鄕音",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/64105",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    },
+    "麟": {
+      "formationTypes": [],
+      "structure": "⿰鹿粦",
+      "sources": [
+        {
+          "name": "jigen.net",
+          "url": "https://jigen.net/kanji/40607",
+          "kind": "reference"
+        }
+      ],
+      "verificationStatus": "single_source"
+    }
+  }
+}

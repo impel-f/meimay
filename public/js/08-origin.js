@@ -8,7 +8,7 @@ const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v21_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v8_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v9_20260816';
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
@@ -2028,7 +2028,9 @@ const KANJI_DETAIL_SECTION_ICON_MAP = {
 };
 
 const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.23';
+const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.01';
 let kanjiDetailDatasetPromise = null;
+let kanjiEtymologyFactsPromise = null;
 
 function isKanjiCharacter(ch) {
     if (!ch) return false;
@@ -2197,6 +2199,88 @@ async function loadKanjiDetailDataset() {
     return kanjiDetailDatasetPromise;
 }
 
+async function loadKanjiEtymologyFacts() {
+    if (!kanjiEtymologyFactsPromise) {
+        kanjiEtymologyFactsPromise = fetch(KANJI_ETYMOLOGY_FACTS_URL)
+            .then((response) => {
+                if (!response.ok) throw new Error(`etymology facts load failed: ${response.status}`);
+                return response.json();
+            })
+            .then((data) => (data?.entries && typeof data.entries === 'object' ? data.entries : {}))
+            .catch((error) => {
+                console.warn('KANJI_ETYMOLOGY_FACTS:', error);
+                return {};
+            });
+    }
+    return kanjiEtymologyFactsPromise;
+}
+
+function normalizeEtymologyFactValues(values) {
+    return (Array.isArray(values) ? values : [])
+        .map((value) => sanitizeKanjiAiText(value))
+        .filter(Boolean);
+}
+
+function buildStructuredEtymologyText(kanji, factEntry) {
+    const formationTypes = normalizeEtymologyFactValues(factEntry?.formationTypes);
+    if (!formationTypes.length) return '';
+
+    const structure = sanitizeKanjiAiText(factEntry?.structure || '');
+    const semanticComponent = sanitizeKanjiAiText(factEntry?.semanticComponent || '');
+    const phoneticComponent = sanitizeKanjiAiText(factEntry?.phoneticComponent || '');
+    const isCrossChecked = factEntry?.verificationStatus === 'cross_checked';
+    let originText = '';
+
+    if (formationTypes.length === 1 && formationTypes[0] === '形声' && semanticComponent && phoneticComponent) {
+        originText = isCrossChecked
+            ? `「${kanji}」は、意味を表す「${semanticComponent}」と、音を表す「${phoneticComponent}」を組み合わせた形声文字です。`
+            : `参照資料では「${kanji}」は、意味を表す「${semanticComponent}」と、音を表す「${phoneticComponent}」を組み合わせた形声文字とされています。`;
+    } else if (formationTypes.length === 1) {
+        const explanationMap = {
+            '象形': 'ものの形をかたどって作られた象形文字',
+            '指事': '記号的な印で概念を示して作られた指事文字',
+            '会意': '複数の要素の意味を組み合わせて作られた会意文字',
+            '形声': '意味を表す要素と音を表す要素を組み合わせた形声文字',
+            '会意形声': '要素の意味と音の手がかりを併せ持つ会意形声文字',
+            '仮借': '既存の文字を、音が近い別の語に用いた仮借文字'
+        };
+        const explanation = explanationMap[formationTypes[0]] || '';
+        if (explanation) {
+            originText = isCrossChecked
+                ? `「${kanji}」は、${explanation}です。`
+                : `参照資料では「${kanji}」は、${explanation}とされています。`;
+        }
+    } else {
+        originText = `「${kanji}」の成り立ちは、資料上で「${formationTypes.join('・')}」の分類が示されています。`;
+    }
+
+    if (!originText) return '';
+    if (structure && structure !== kanji) {
+        originText += `漢字構成は「${structure}」と整理されています。`;
+    }
+    if (phoneticComponent && !originText.includes(`「${phoneticComponent}」`)) {
+        originText += `音を表す要素は「${phoneticComponent}」です。`;
+    }
+    return sanitizeKanjiAiText(originText);
+}
+
+function buildStructuredEtymologyHint(kanji, factEntry) {
+    const originText = buildStructuredEtymologyText(kanji, factEntry);
+    if (!originText) return null;
+
+    const keywordSet = new Set(normalizeEtymologyFactValues(factEntry?.formationTypes));
+    appendRequiredHanCharacters(keywordSet, factEntry?.semanticComponent || '');
+    appendRequiredHanCharacters(keywordSet, factEntry?.phoneticComponent || '');
+    if (keywordSet.size === 0) {
+        appendRequiredHanCharacters(keywordSet, String(factEntry?.structure || '').replace(/[\u2FF0-\u2FFF]/g, ''));
+    }
+    return {
+        promptContext: `検証済みの構造化データ: ${originText}`,
+        requiredKeywords: Array.from(keywordSet),
+        fixedOriginText: originText
+    };
+}
+
 function buildDatasetGroundedHint(kanji, datasetEntry) {
     const originText = getKanjiDetailDatasetSectionText(datasetEntry, '成り立ち');
     const originSource = String(datasetEntry?.sources?.origin || '').trim();
@@ -2209,8 +2293,11 @@ function buildDatasetGroundedHint(kanji, datasetEntry) {
     };
 }
 
-function getKanjiDetailGroundedHint(kanji, datasetEntry) {
-    return KANJI_DETAIL_GROUNDED_HINTS[kanji] || buildDatasetGroundedHint(kanji, datasetEntry) || null;
+function getKanjiDetailGroundedHint(kanji, datasetEntry, etymologyFact) {
+    return buildStructuredEtymologyHint(kanji, etymologyFact)
+        || KANJI_DETAIL_GROUNDED_HINTS[kanji]
+        || buildDatasetGroundedHint(kanji, datasetEntry)
+        || null;
 }
 
 function cachedKanjiDetailMatchesHint(text, groundedHint) {
@@ -2321,12 +2408,15 @@ function canonicalizeKanjiDetailText(aiText) {
         .join('\n\n');
 }
 
-function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', groundedSegments = null) {
+function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', groundedSegments = null, etymologyFact = null) {
     const sectionMap = extractKanjiDetailSectionMap(aiText);
     const blocks = [];
+    const structuredOriginText = buildStructuredEtymologyText(kanji, etymologyFact);
 
     for (const title of KANJI_DETAIL_CORE_SECTION_ORDER) {
-        const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
+        const datasetSection = title === '成り立ち' && structuredOriginText
+            ? structuredOriginText
+            : getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
             // The imported dataset contains historical names and rare entries, so
@@ -2337,11 +2427,11 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', g
         }
 
         const content = title === '成り立ち'
-            ? (isLikelyTruncatedSection(aiSection) && sanitizeKanjiAiText(datasetSection)
+            ? (structuredOriginText || (isLikelyTruncatedSection(aiSection) && sanitizeKanjiAiText(datasetSection)
                 ? sanitizeKanjiAiText(datasetSection)
                 : (sanitizeKanjiAiText(aiSection).includes(KANJI_ORIGIN_UNVERIFIED_TEXT)
                     ? KANJI_ORIGIN_UNVERIFIED_TEXT
-                    : sanitizeKanjiAiText(aiSection || datasetSection)))
+                    : sanitizeKanjiAiText(aiSection || datasetSection))))
             : sanitizeKanjiAiText(aiSection || datasetSection);
         if (content) blocks.push(`【${title}】\n${content}`);
     }
@@ -2683,11 +2773,15 @@ async function generateKanjiDetail(kanji, currentReading) {
         .map((item) => (typeof clean === 'function' ? clean(item) : String(item || '').trim()))
         .filter(Boolean)
         .join(' / ');
-    const kanjiMeaningDetails = await loadKanjiMeaningDetails();
+    const [kanjiMeaningDetails, kanjiDetailDataset, kanjiEtymologyFacts] = await Promise.all([
+        loadKanjiMeaningDetails(),
+        loadKanjiDetailDataset(),
+        loadKanjiEtymologyFacts()
+    ]);
     const detailedMeaning = getKanjiMeaningDetailText(kanji, kanjiMeaningDetails);
-    const kanjiDetailDataset = await loadKanjiDetailDataset();
     const datasetEntry = kanjiDetailDataset?.[kanji] || null;
-    const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry);
+    const etymologyFact = kanjiEtymologyFacts?.[kanji] || null;
+    const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry, etymologyFact);
     const modelMetadata = await getActiveAiModelMetadata();
     let modelCacheVersion = modelMetadata.modelCacheVersion;
     let baseModelName = '';
@@ -2730,7 +2824,7 @@ async function generateKanjiDetail(kanji, currentReading) {
     try {
         const localCachedText = getStoredKanjiDetailAiText(kanji, modelCacheVersion);
         if (localCachedText && !cacheResetMarked) {
-            const mergedLocalText = mergeKanjiDetailSectionsFromDataset(localCachedText, datasetEntry, kanji);
+            const mergedLocalText = mergeKanjiDetailSectionsFromDataset(localCachedText, datasetEntry, kanji, null, etymologyFact);
             const localStatus = getKanjiDetailCompletionStatus(mergedLocalText, groundedHint);
             if (localStatus.complete) {
                 baseText = canonicalizeKanjiDetailText(mergedLocalText);
@@ -2760,7 +2854,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 const cachedData = doc.exists ? (doc.data() || {}) : null;
                 const cachedText = sanitizeKanjiAiText(cachedData?.text || '');
                 if (cachedText && isKanjiDetailAiCacheCurrent(cachedData, modelCacheVersion)) {
-                    const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry, kanji);
+                    const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry, kanji, null, etymologyFact);
                     const cachedStatus = getKanjiDetailCompletionStatus(mergedCachedText, groundedHint);
                     if (cachedStatus.complete) {
                         baseText = canonicalizeKanjiDetailText(mergedCachedText);
@@ -2820,7 +2914,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             modelCacheVersion = String(data.model_cache_version || modelCacheVersion).trim();
             baseModelName = String(data.debug_used_model || '').trim();
             baseGroundedSegments = Array.isArray(data.grounded_text_segments) ? data.grounded_text_segments : [];
-            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry, kanji, baseGroundedSegments);
+            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry, kanji, baseGroundedSegments, etymologyFact);
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
             }
@@ -2873,7 +2967,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             let finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
             finalIdiomsCount = countRepresentativeIdiomCandidates(finalIdiomsSection);
 
-            baseText = mergeKanjiDetailSectionsFromDataset(baseText, datasetEntry, kanji, baseGroundedSegments);
+            baseText = mergeKanjiDetailSectionsFromDataset(baseText, datasetEntry, kanji, baseGroundedSegments, etymologyFact);
             const finalStatus = getKanjiDetailCompletionStatus(baseText, groundedHint);
             finalIdiomsCount = finalStatus.idiomsCount;
             if (!finalStatus.complete) {
