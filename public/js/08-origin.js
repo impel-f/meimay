@@ -8,8 +8,8 @@ const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v17_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v4_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v4_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v5_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v5_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -2327,7 +2327,7 @@ function canonicalizeKanjiDetailText(aiText) {
     return sections
         .map(({ title, content }) => {
             const body = title === '代表的な熟語'
-                ? formatRepresentativeIdiomContent(content)
+                ? (formatRepresentativeIdiomContent(content) || (sanitizeKanjiAiText(content) === '該当なし' ? '該当なし' : ''))
                 : sanitizeKanjiAiText(content);
             return body ? `【${title}】\n${body}` : '';
         })
@@ -2335,7 +2335,7 @@ function canonicalizeKanjiDetailText(aiText) {
         .join('\n\n');
 }
 
-function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '') {
+function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', groundedSegments = null) {
     const sectionMap = extractKanjiDetailSectionMap(aiText);
     const blocks = [];
 
@@ -2345,8 +2345,8 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '') {
         if (title === '代表的な熟語') {
             // The imported dataset contains historical names and rare entries, so
             // only the current, stricter AI response is eligible for display.
-            const mergedIdioms = formatRepresentativeIdiomContent(aiSection, kanji);
-            if (mergedIdioms) blocks.push(`【${title}】\n${mergedIdioms}`);
+            const mergedIdioms = formatRepresentativeIdiomContent(aiSection, kanji, groundedSegments);
+            blocks.push(`【${title}】\n${mergedIdioms || '該当なし'}`);
             continue;
         }
 
@@ -2467,12 +2467,16 @@ function applyKanjiDetailRepairText(baseText, repairText, status) {
     return canonicalizeKanjiDetailText(nextText);
 }
 
-function formatRepresentativeIdiomContent(content, targetKanji = '') {
+function formatRepresentativeIdiomContent(content, targetKanji = '', groundedSegments = null) {
     const parsed = parseRepresentativeIdiomLines(content);
     const unsafeMeaningPattern = /(?:人名|人物|大夫|宗主|名は|の子|政治家|武将|詩人|歌人|学者|僧侶|天皇|皇帝|王の名)/;
+    const normalizedGroundedSegments = Array.isArray(groundedSegments)
+        ? groundedSegments.map((segment) => sanitizeKanjiAiText(segment).replace(/\s+/g, '')).filter(Boolean)
+        : null;
     const filtered = parsed.filter((line) => {
         const word = extractRepresentativeIdiomWord(line);
         if (targetKanji && !word.includes(targetKanji)) return false;
+        if (normalizedGroundedSegments && !normalizedGroundedSegments.some((segment) => segment.includes(word))) return false;
         return !unsafeMeaningPattern.test(line);
     });
     return dedupeRepresentativeIdiomLines(filtered).join('\n');
@@ -2510,7 +2514,7 @@ ${groundedHint?.promptContext
 「漢字データの詳細語義」に書かれている意味だけを使い、元々の意味、名前に使うときのニュアンス、広がりを80〜120文字で説明してください。入力にない象徴や性格を足さず、必ず句点で終えてください。
 
 【代表的な熟語】
-この漢字を使った実在する一般的な熟語を、確認できるものだけ0〜5個挙げてください。2字熟語または3字熟語だけにし、各行を必ず「・熟語（よみ）：意味。」の形式にしてください。確実な熟語がない場合は「該当なし」とだけ出力し、数を埋めるために語を作らないでください。
+Google検索を実行して国語辞典・漢和辞典の見出しとして確認できた、この漢字を使う一般的な熟語だけを0〜5個挙げてください。検索しなかった場合や確実な熟語がない場合は「該当なし」とだけ出力してください。2字熟語または3字熟語だけにし、各行を必ず「・熟語（よみ）：意味。」の形式にしてください。数を埋めるために語を作らないでください。
 
 【絶対に守るルール】
 ・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
@@ -2729,6 +2733,7 @@ async function generateKanjiDetail(kanji, currentReading) {
     let baseFreshGenerated = false;
     let readingFreshGenerated = false;
     let finalIdiomsCount = 0;
+    let baseGroundedSegments = [];
     let cacheHit = false;
     let dailyUseConsumed = false;
 
@@ -2834,7 +2839,8 @@ async function generateKanjiDetail(kanji, currentReading) {
             const data = await response.json();
             modelCacheVersion = String(data.model_cache_version || modelCacheVersion).trim();
             baseModelName = String(data.debug_used_model || '').trim();
-            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry, kanji);
+            baseGroundedSegments = Array.isArray(data.grounded_text_segments) ? data.grounded_text_segments : [];
+            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry, kanji, baseGroundedSegments);
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
             }
@@ -2871,6 +2877,9 @@ async function generateKanjiDetail(kanji, currentReading) {
                             const repairData = await repairResponse.json();
                             modelCacheVersion = String(repairData.model_cache_version || modelCacheVersion).trim();
                             baseModelName = String(repairData.debug_used_model || baseModelName).trim();
+                            if (Array.isArray(repairData.grounded_text_segments)) {
+                                baseGroundedSegments.push(...repairData.grounded_text_segments);
+                            }
                             baseText = applyKanjiDetailRepairText(baseText, repairData.text || '', status);
                         }
                     } catch (repairError) {
@@ -2884,7 +2893,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             let finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
             finalIdiomsCount = countRepresentativeIdiomCandidates(finalIdiomsSection);
 
-            baseText = mergeKanjiDetailSectionsFromDataset(baseText, datasetEntry, kanji);
+            baseText = mergeKanjiDetailSectionsFromDataset(baseText, datasetEntry, kanji, baseGroundedSegments);
             const finalStatus = getKanjiDetailCompletionStatus(baseText, groundedHint);
             finalIdiomsCount = finalStatus.idiomsCount;
             if (!finalStatus.complete) {

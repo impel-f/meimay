@@ -8,6 +8,7 @@ const {
   PRIMARY_MODEL_NAME,
   MODEL_CACHE_VERSION,
   buildGenerationConfig,
+  extractGroundedTextSegments,
   generateWithFallback,
 } = geminiHandler._test;
 
@@ -75,6 +76,16 @@ test('name origins use a lower temperature without web grounding', () => {
     },
     temperature: 0.2,
   });
+});
+
+test('only cited Google Search response segments are exposed as grounded', () => {
+  assert.deepEqual(extractGroundedTextSegments({
+    groundingSupports: [
+      { groundingChunkIndices: [0], segment: { text: '・操舵（そうだ）：舵を操作すること。' } },
+      { groundingChunkIndices: [], segment: { text: '根拠なし' } },
+      { groundingChunkIndices: [1], segment: {} },
+    ],
+  }), ['・操舵（そうだ）：舵を操作すること。']);
 });
 
 test('Gemini falls back to the next GA model and records each attempt', async () => {

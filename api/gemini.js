@@ -48,6 +48,15 @@ function buildGenerationConfig(taskType = '') {
   return config;
 }
 
+function extractGroundedTextSegments(groundingMetadata) {
+  if (!Array.isArray(groundingMetadata?.groundingSupports)) return [];
+  return groundingMetadata.groundingSupports
+    .filter((support) => Array.isArray(support?.groundingChunkIndices)
+      && support.groundingChunkIndices.length > 0)
+    .map((support) => String(support?.segment?.text || '').trim())
+    .filter(Boolean);
+}
+
 async function generateWithFallback(ai, prompt, options = {}) {
   const attempts = [];
   let lastError = null;
@@ -154,6 +163,7 @@ module.exports = async (req, res) => {
       debug_grounding_queries: Array.isArray(groundingMetadata?.webSearchQueries)
         ? groundingMetadata.webSearchQueries
         : [],
+      grounded_text_segments: extractGroundedTextSegments(groundingMetadata),
       debug_attempts: attempts,
     });
   } catch (error) {
@@ -172,5 +182,6 @@ module.exports._test = {
   PRIMARY_MODEL_NAME,
   MODEL_CACHE_VERSION,
   buildGenerationConfig,
+  extractGroundedTextSegments,
   generateWithFallback,
 };
