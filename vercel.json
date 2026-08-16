@@ -58,6 +58,9 @@
     "api/gemini.js": {
       "maxDuration": 120
     },
+    "api/gemini-smoke.js": {
+      "maxDuration": 120
+    },
     "api/kanji-cache.js": {
       "maxDuration": 120
     },
