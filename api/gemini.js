@@ -6,6 +6,10 @@ const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 
 const MODEL_PRIORITY_GROUPS = [
   {
+    label: "Gemini 3.7 Flash",
+    candidates: ["gemini-3.7-flash"],
+  },
+  {
     label: "Gemini 3.6 Flash",
     candidates: ["gemini-3.6-flash"],
   },
