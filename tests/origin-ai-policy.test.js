@@ -26,6 +26,7 @@ test('unverified readings and origins fail closed instead of inventing a reason'
   assert.match(originSource, /この漢字単独の読みとして、現在の収録データでは確認できません/);
   assert.match(originSource, /検証済みの字源情報がないため、成り立ちの説明は掲載していません/);
   assert.match(originSource, /熟語の頭文字に由来するという説明は絶対に書かない/);
+  assert.match(originSource, /includes\(KANJI_ORIGIN_UNVERIFIED_TEXT\)/);
 });
 
 test('truncated kanji sections are repaired instead of cached', () => {

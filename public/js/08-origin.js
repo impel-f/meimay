@@ -4,12 +4,12 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v17_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v18_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v5_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v5_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v6_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v6_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -1360,6 +1360,8 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・「芯の強さ」「まっすぐ育つ」「周囲を明るくする」など、入力にない性質を漢字から連想して補わない。
 ・植物から「健やか」「瑞々しい」「成長」「生命力」を、光や太陽から「前向き」「朗らか」「温かな心」を連想して補わない。これらは漢字データに同じ意味が明記されている場合だけ使用する。
 ・願いの文章を作るために新しい性質を足してはいけない。漢字データの語を活用・言い換えするだけで成立しない場合は、短く控えめに書く。
+・wish と familyLine は、漢字データに実際にある意味の語を文中に残す。入力にない理想の人物像や「〜のような存在」を作って補わない。
+・出力直前に decision、wish、familyLine の形容や願いを一語ずつ入力と照合し、漢字データから直接たどれない語を削除する。
 ・根拠に迷う表現は削り、情報量を増やすための推測はしない。
 ・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
@@ -2353,7 +2355,9 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', g
         const content = title === '成り立ち'
             ? (isLikelyTruncatedSection(aiSection) && sanitizeKanjiAiText(datasetSection)
                 ? sanitizeKanjiAiText(datasetSection)
-                : sanitizeKanjiAiText(aiSection || datasetSection))
+                : (sanitizeKanjiAiText(aiSection).includes(KANJI_ORIGIN_UNVERIFIED_TEXT)
+                    ? KANJI_ORIGIN_UNVERIFIED_TEXT
+                    : sanitizeKanjiAiText(aiSection || datasetSection)))
             : sanitizeKanjiAiText(aiSection || datasetSection);
         if (content) blocks.push(`【${title}】\n${content}`);
     }
