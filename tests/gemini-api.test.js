@@ -93,6 +93,15 @@ test('only cited Google Search response segments are exposed as grounded', () =>
   }), ['・操舵（そうだ）：舵を操作すること。']);
 });
 
+test('grounded fragments expand to their complete output line', () => {
+  const responseText = '【代表的な熟語】\n・孟春（もうしゅん）：春の初め。陰暦正月の異称。';
+  assert.deepEqual(extractGroundedTextSegments({
+    groundingSupports: [
+      { groundingChunkIndices: [0], segment: { text: '陰暦正月の異称' } },
+    ],
+  }, responseText), ['・孟春（もうしゅん）：春の初め。陰暦正月の異称。']);
+});
+
 test('Gemini falls back to the next GA model and records each attempt', async () => {
   const requestedModels = [];
   const ai = {

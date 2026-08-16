@@ -122,13 +122,22 @@ function buildGenerationConfig(taskType = '') {
   return config;
 }
 
-function extractGroundedTextSegments(groundingMetadata) {
+function extractGroundedTextSegments(groundingMetadata, responseText = "") {
   if (!Array.isArray(groundingMetadata?.groundingSupports)) return [];
-  return groundingMetadata.groundingSupports
+  const normalizedResponseText = String(responseText || "");
+  return [...new Set(groundingMetadata.groundingSupports
     .filter((support) => Array.isArray(support?.groundingChunkIndices)
       && support.groundingChunkIndices.length > 0)
-    .map((support) => String(support?.segment?.text || '').trim())
-    .filter(Boolean);
+    .map((support) => {
+      const segmentText = String(support?.segment?.text || "").trim();
+      if (!segmentText || !normalizedResponseText.includes(segmentText)) return segmentText;
+      const segmentStart = normalizedResponseText.indexOf(segmentText);
+      const lineStart = normalizedResponseText.lastIndexOf("\n", segmentStart - 1) + 1;
+      const nextLineBreak = normalizedResponseText.indexOf("\n", segmentStart + segmentText.length);
+      const lineEnd = nextLineBreak >= 0 ? nextLineBreak : normalizedResponseText.length;
+      return normalizedResponseText.slice(lineStart, lineEnd).trim() || segmentText;
+    })
+    .filter(Boolean))];
 }
 
 async function generateWithFallback(ai, prompt, options = {}) {
@@ -237,7 +246,7 @@ module.exports = async (req, res) => {
       debug_grounding_queries: Array.isArray(groundingMetadata?.webSearchQueries)
         ? groundingMetadata.webSearchQueries
         : [],
-      grounded_text_segments: extractGroundedTextSegments(groundingMetadata),
+      grounded_text_segments: extractGroundedTextSegments(groundingMetadata, text),
       debug_attempts: attempts,
     });
   } catch (error) {

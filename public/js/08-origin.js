@@ -4,12 +4,12 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v19_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v20_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v7_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v7_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v8_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -1363,6 +1363,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・将来を断定せず、「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」などの定型比喩を使わない。
 ・名字との相性は書かない。ただしcheckの確認材料に名字由来の項目がある場合だけ触れてよい。
 ・soundでは漢字の意味、性別、流行、年代、語源に触れない。
+・soundで「誰からも」「誰にでも」「必ず」のような普遍的な呼びやすさを断定しない。
 ・名前をかぎ括弧で書く場合は、入力された名前を「」で正しく囲む。
 
 【JSON形式】
@@ -2006,11 +2007,11 @@ function escapeHtml(text) {
 
 const KANJI_DETAIL_GROUNDED_HINTS = {
     '舵': {
-        promptContext: '検証済みメモ: 「舵」は形声字として扱い、漢字構成は「舟」と「它」です。右側のつくりは「朶」でも「巴」でもありません。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
+        promptContext: '検証済みメモ: 「舵」は形声字として扱い、漢字構成は「舟」と「它」です。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
         requiredKeywords: ['舟', '它']
     },
     '櫂': {
-        promptContext: '検証済みメモ: 「櫂」は形声字として扱い、漢字構成は「木」と「翟」です。右側のつくりは「會」ではありません。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
+        promptContext: '検証済みメモ: 「櫂」は形声字として扱い、漢字構成は「木」と「翟」です。成り立ちの説明はこの検証済み情報から逸脱しないでください。',
         requiredKeywords: ['木', '翟']
     }
 };
