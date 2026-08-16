@@ -1,0 +1,50 @@
+name: Gemini production smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wait for production deployment
+        run: sleep 45
+
+      - name: Generate production samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          token="8d38b390-f351-4af3-9ee9-1da30dc6fe7d"
+          for id in \
+            kanji_rudder \
+            kanji_oar \
+            kanji_meng \
+            kanji_moe \
+            reading_yu \
+            reading_ki \
+            name_yuki \
+            name_taichi \
+            name_shinta
+          do
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --retry 10 \
+              --retry-all-errors \
+              --retry-delay 15 \
+              --max-time 120 \
+              "https://meimay.vercel.app/api/gemini-smoke?token=${token}&id=${id}" \
+              > "results/${id}.json"
+          done
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-production-smoke-results
+          path: results/*.json
+          if-no-files-found: error
