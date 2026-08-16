@@ -1,4 +1,8 @@
-const { MODEL_CACHE_VERSION } = require('./_lib/gemini-models');
+const {
+  MODEL_CACHE_VERSION,
+  isKnownModelCacheVersion,
+  modelNameMatchesCacheVersion,
+} = require('./_lib/gemini-models');
 
 function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -168,11 +172,15 @@ module.exports = async (req, res) => {
     if (!normalizedPromptVersion || normalizedPromptVersion.length > 120) {
       return res.status(400).json({ error: 'Prompt version is required' });
     }
-    if (normalizedModelCacheVersion !== MODEL_CACHE_VERSION) {
+    if (!isKnownModelCacheVersion(normalizedModelCacheVersion)) {
       return res.status(409).json({
-        error: 'Model cache version is stale',
+        error: 'Model cache version is not supported',
         modelCacheVersion: MODEL_CACHE_VERSION,
       });
+    }
+    if ((action === 'saveBase' || action === 'saveReading')
+      && !modelNameMatchesCacheVersion(normalizedModelName, normalizedModelCacheVersion)) {
+      return res.status(400).json({ error: 'Model name does not match its cache version' });
     }
 
     const baseDocId = buildVersionedCacheDocId([

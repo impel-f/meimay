@@ -4,12 +4,12 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v18_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v19_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v6_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v6_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v7_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v7_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -50,6 +50,17 @@ async function getActiveAiModelMetadata(options = {}) {
 
 function getActiveAiModelCacheVersionSync() {
     return activeAiModelCacheVersion || AI_MODEL_CACHE_VERSION_FALLBACK;
+}
+
+async function getAuthenticatedAiRequestHeaders() {
+    if (typeof getFirebaseRequestHeaders !== 'function') {
+        throw new Error('AIを利用するための認証を準備できませんでした。');
+    }
+    const headers = await getFirebaseRequestHeaders();
+    if (!headers?.Authorization && !headers?.authorization) {
+        throw new Error('AIを利用するための認証が完了していません。');
+    }
+    return headers;
 }
 
 function buildVersionedKanjiCacheDocId(parts) {
@@ -133,7 +144,7 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     } catch (error) {
         throw new Error('名前由来のJSON形式が正しくありません。');
     }
-    const expectedKeys = ['decision', 'wish', 'sound', 'familyLine', 'check'];
+    const expectedKeys = ['decision', 'wish', 'sound', 'check'];
     const actualKeys = Object.keys(parsed || {}).sort();
     if (actualKeys.join('|') !== [...expectedKeys].sort().join('|')) {
         throw new Error('名前由来の項目が不足しています。');
@@ -159,6 +170,10 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
                 throw new Error(`名前由来の${key}に漢字データ外の意味があります。`);
             }
         }
+    }
+    const lengthLimits = { decision: 80, wish: 80, sound: 60, check: 120 };
+    for (const [key, maxLength] of Object.entries(lengthLimits)) {
+        if (parsed[key].length > maxLength) throw new Error(`名前由来の${key}が長すぎます。`);
     }
     return JSON.stringify(parsed);
 }
@@ -1120,10 +1135,9 @@ function parseNameOriginStructuredText(text) {
         try {
             const parsed = JSON.parse(jsonText);
             const model = {
-                decision: normalizeNameOriginSectionValue(parsed.decision || parsed['この名前の決め手'] || parsed['決め手']),
-                wish: normalizeNameOriginSectionValue(parsed.wish || parsed['パパママからの願い'] || parsed['願い']),
-                sound: normalizeNameOriginSectionValue(parsed.sound || parsed['呼んだときの印象'] || parsed['響き']),
-                familyLine: normalizeNameOriginSectionValue(parsed.familyLine || parsed.family || parsed['家族に伝える一言'] || parsed['説明']),
+                decision: normalizeNameOriginSectionValue(parsed.decision || parsed['この名前の決め手'] || parsed['決め手'], 60),
+                wish: normalizeNameOriginSectionValue(parsed.wish || parsed.familyLine || parsed.family || parsed['家族に伝える願い'] || parsed['パパママからの願い'] || parsed['願い'] || parsed['家族に伝える一言'], 60),
+                sound: normalizeNameOriginSectionValue(parsed.sound || parsed['呼んだときの印象'] || parsed['響き'], 45),
                 check: normalizeNameOriginSectionValue(parsed.check || parsed.caution || parsed['確認しておきたいこと'] || parsed['気になる点'] || parsed['注意点'], 120)
             };
             return Object.values(model).some(Boolean) ? model : null;
@@ -1136,9 +1150,8 @@ function parseNameOriginStructuredText(text) {
     if (!raw) return null;
     const sectionPatterns = {
         decision: /(?:この名前の決め手|決め手)[:：\n]\s*([\s\S]*?)(?=\n\s*(?:パパママからの願い|願い|漢字|呼んだときの印象|響き|家族に伝える一言|確認しておきたいこと)[:：\n]|$)/,
-        wish: /(?:パパママからの願い|願い)[:：\n]\s*([\s\S]*?)(?=\n\s*(?:漢字|呼んだときの印象|響き|家族に伝える一言|確認しておきたいこと)[:：\n]|$)/,
+        wish: /(?:家族に伝える願い|パパママからの願い|願い|家族に伝える一言)[:：\n]\s*([\s\S]*?)(?=\n\s*(?:漢字|呼んだときの印象|響き|確認しておきたいこと)[:：\n]|$)/,
         sound: /(?:呼んだときの印象|響きの印象|響き)[:：\n]\s*([\s\S]*?)(?=\n\s*(?:家族に伝える一言|確認しておきたいこと)[:：\n]|$)/,
-        familyLine: /(?:家族に伝える一言|家族に伝えるなら|説明するなら)[:：\n]\s*([\s\S]*?)(?=\n\s*(?:確認しておきたいこと|気になる点|注意点)[:：\n]|$)/,
         check: /(?:確認しておきたいこと|気になる点|注意点)[:：\n]\s*([\s\S]*?)$/
     };
     const model = {};
@@ -1170,18 +1183,16 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     if (legacy) {
         return {
             decision: normalizeNameOriginSectionValue(legacy, 120),
-            wish: '',
+            wish: givenName ? `「${givenName}」には、漢字の意味を大切にした願いを込めました。` : '',
             sound: givenReading ? `「${givenReading}」は、落ち着いて呼びやすい響きです。` : '',
-            familyLine: givenName ? `「${givenName}」には、漢字の意味を大切にした願いを込めました。` : '',
             check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
         };
     }
 
     return {
         decision: `${givenName}は、${firstMeaning}${secondMeaning ? `と、${secondMeaning}` : ''}を重ねた名前です。`,
-        wish: `${combinedMeaning}という漢字の意味を大切にしてほしいという願いを込められます。`,
+        wish: `「${givenName}」には、${combinedMeaning}という意味を大切にしてほしいという願いを込めました。`,
         sound: givenReading ? `「${givenReading}」は、やさしく落ち着いた印象で、日常でも呼びやすい響きです。` : '',
-        familyLine: givenName ? `「${givenName}」には、${combinedMeaning}という意味を込めました。` : '',
         check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
     };
 }
@@ -1278,10 +1289,9 @@ function getNameOriginStructuredModel(result = currentBuildResult, text = '') {
     const fallback = buildFallbackNameOriginModel(result, parsed ? '' : text);
     const localCheck = getNameOriginLocalCheckText(result, { includeReadingDifficulty: false });
     return {
-        decision: normalizeNameOriginSectionValue(parsed?.decision || fallback.decision),
-        wish: normalizeNameOriginSectionValue(parsed?.wish || fallback.wish),
-        sound: normalizeNameOriginSectionValue(parsed?.sound || fallback.sound),
-        familyLine: normalizeNameOriginSectionValue(parsed?.familyLine || fallback.familyLine),
+        decision: normalizeNameOriginSectionValue(parsed?.decision || fallback.decision, 60),
+        wish: normalizeNameOriginSectionValue(parsed?.wish || fallback.wish, 60),
+        sound: normalizeNameOriginSectionValue(parsed?.sound || fallback.sound, 45),
         check: mergeNameOriginCheckText(parsed?.check || fallback.check, localCheck),
         meanings: getNameOriginMeaningRows(result)
     };
@@ -1291,13 +1301,12 @@ function buildNameOriginCopyText(result = currentBuildResult, text = '') {
     const model = getNameOriginStructuredModel(result, text);
     const blocks = [];
     if (model.decision) blocks.push(`この名前の決め手\n${model.decision}`);
-    if (model.wish) blocks.push(`パパママからの願い\n${model.wish}`);
     if (model.meanings.length > 0) {
         blocks.push(`漢字に込めた意味\n${model.meanings.map(row => `${row.kanji}：${row.meaning}`).join('\n')}`);
     }
-    if (model.sound) blocks.push(`呼んだときの印象\n${model.sound}`);
-    if (model.familyLine) blocks.push(`家族に伝える一言\n${model.familyLine}`);
+    if (model.wish) blocks.push(`家族に伝える願い\n${model.wish}`);
     if (model.check) blocks.push(`確認しておきたいこと\n${model.check}`);
+    if (model.sound) blocks.push(`呼んだときの印象\n${model.sound}`);
     return blocks.join('\n\n').trim();
 }
 
@@ -1306,7 +1315,6 @@ function stringifyNameOriginModel(model) {
         decision: model.decision || '',
         wish: model.wish || '',
         sound: model.sound || '',
-        familyLine: model.familyLine || '',
         check: model.check || ''
     }, null, 2);
 }
@@ -1328,75 +1336,37 @@ function buildNameOriginPrompt(result = currentBuildResult) {
     const checkMaterialsText = JSON.stringify(checkMaterials);
 
     return `
-あなたは名付けアプリの由来案を作成するライターです。
-親が名前を決める材料になる、短く自然な由来案を作成してください。
+あなたは名付けアプリの由来文を整えるライターです。入力された確定情報だけを文章化してください。
 
-【出力ルール】
-・出力はJSONだけにする。前置き、見出し、Markdown、コードブロックは不要。
-・キーは必ず "decision", "wish", "sound", "familyLine", "check" の5つだけにする。
-・すべてJSON文字列で出力する。末尾カンマは付けない。
-・JSON文字列の中に改行を入れない。
-・checkが空文字の場合を除き、各項目は40〜75字程度にする。
-・長い一段落にしない。読みやすい短文にし、読点を入れすぎない。
-・decision、wish、familyLine は同じ内容を繰り返さない。
+【内部手順】
+1. 漢字データを、この回答で使用できる意味の全量として整理する。
+2. 確認材料から、実際に表示すべき注意点だけを選ぶ。
+3. 整理した事実だけを使ってJSONを書く。整理過程は出力しない。
 
-【各項目の役割】
-・decision：その名前を選ぶ理由を書く。字面、意味、響きがどうまとまっているかを中心にし、親の願いは書かない。
-・wish：子どもにどう育ってほしいかを書く。漢字データの意味を出発点に、親の気持ちとして自然に書く。
-・sound：入力された読みの響きにだけ軽く触れる。漢字の意味は書かない。
-・familyLine：祖父母や家族に説明するときの自然な一文にする。そのまま使える言葉で、decisionやwishの言い換えにしない。
-・check：確認材料に基づき、親が確認するとよい点だけをやさしく書く。気になる点がなければ空文字にする。
+【出力】
+・JSONだけを出力し、キーは "decision", "wish", "sound", "check" の4つだけにする。
+・decisionは35〜60字。漢字の意味の取り合わせと、名前を選ぶ決め手を書く。願いと音の印象は書かない。
+・wishは35〜60字。家族にそのまま伝えられる一文で、漢字データにある意味と親の願いをまとめる。
+・soundは25〜45字。入力された読みの音の並びと呼びやすさだけを書く。
+・checkは確認材料に根拠がある場合のみ20〜55字で書き、なければ空文字にする。
+・JSON文字列内に改行を入れず、です・ます調で統一する。
 
-【書き分け】
-・decision は「この名前を選びたくなる理由」を書く。字面、意味の取り合わせ、響きのまとまり、名前としての印象を扱う。
-・wish は「親が子どもに込める願い」を書く。「〜してほしい」「〜を大切にしてほしい」のような親の気持ちを扱う。
-・familyLine は「家族に説明するときの一文」として書く。意味の説明と願いを短くまとめ、会話でそのまま言える形にする。
-・3項目で同じ表現や同じ結論を繰り返さない。
-・decision と familyLine は特に重複しやすいので、同じ語尾・同じ中心表現を避ける。
+【事実の制約】
+・漢字データにない性格、能力、象徴、植物の性質、歴史、縁起、故事を足さない。
+・「健やか」「瑞々しい」「成長」「生命力」「前向き」「朗らか」「温かな心」「芯の強さ」などは、漢字データに同じ意味が明記されている場合だけ使う。
+・意味を自然に言い換えてよいが、新しい理想像や「〜のような存在」を作らない。
+・根拠に迷う語は削り、情報量を増やすために推測しない。
+・checkは確認材料だけを根拠にし、独自の読みづらさや一般語判定を追加しない。
 
-【根拠とAI補助の使い方】
-・漢字の意味そのものは漢字データを主根拠にする。
-・漢字データに書かれている意味を、この回答で使用できる意味の全量とする。
-・decision、wish、familyLine では文章を自然に整えてよいが、漢字データから直接たどれない性格、能力、象徴、植物の性質、歴史的背景を足さない。
-・「芯の強さ」「まっすぐ育つ」「周囲を明るくする」など、入力にない性質を漢字から連想して補わない。
-・植物から「健やか」「瑞々しい」「成長」「生命力」を、光や太陽から「前向き」「朗らか」「温かな心」を連想して補わない。これらは漢字データに同じ意味が明記されている場合だけ使用する。
-・願いの文章を作るために新しい性質を足してはいけない。漢字データの語を活用・言い換えするだけで成立しない場合は、短く控えめに書く。
-・wish と familyLine は、漢字データに実際にある意味の語を文中に残す。入力にない理想の人物像や「〜のような存在」を作って補わない。
-・出力直前に decision、wish、familyLine の形容や願いを一語ずつ入力と照合し、漢字データから直接たどれない語を削除する。
-・根拠に迷う表現は削り、情報量を増やすための推測はしない。
-・sound は、入力された読みの音の印象だけを根拠にする。
-・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
-・check は確認材料を優先する。
-・readingClarity はアプリ側の参考判定であり、最終判断はAIの一般的な人名感覚も使ってよい。
-・読みやすさは「誰でも読める」「まれに読み違いがある可能性」「よく読み間違われる」「読めない」の4段階で考える。
-・「誰でも読める」と判断できる場合、読みづらさのcheckは書かない。
-・「まれに読み違いがある可能性」の場合だけ、必要なら「比較的読みやすい名前ですが、初対面では念のため読みを添えるとより伝わりやすいです。」の温度感で書く。「読み方が分かれやすい」と強く言わない。
-・「よく読み間違われる」「読めない」と判断できる場合は、別読みや初見で迷われる点をやさしく書く。
-・possibleHardToRead はアプリ側の候補文であり、そのまま採用せず、4段階に合わせて自然に書き直す。不要なら書かない。
-・possibleHardToRead が空でも、入力された名前と読みを独自に見て、初見でその読みにはなりにくいと明確に判断できる場合はcheckに書く。
-・AIが一般的な読みづらさ、一般語としての受け取られ方、別読み、字形上の注意を明確に判断できる場合だけ補足してよい。
-・名前全体が「寿司」「今日」のような実在する一般語・日常語・料理名・物の名として強く認識される場合は、確認材料に記載がなくてもcheckでやさしく触れてよい。
-・漢字データや確認材料にない縁起、故事、ことわざ、宗教的な断定、将来の保証を書かない。
-・根拠が足りない場合は無理に補わず、控えめに書く。
-
-【表現ルール】
-・親が家族にそのまま話せる自然な言葉にする。
-・「〜になるでしょう」「必ず〜」のように将来を断定しない。
-・「人生という舞台」「人生の景色を描く」「自分にしか果たせない役割」「道しるべ」「未来を切り開く」「温かく照らす」「輝く未来」のような抽象的でテンプレート感のある表現は使わない。
-・「人生の荒波」「未来を切り拓く」「可能性の扉」「自分らしく羽ばたく」も使わない。
-・名前をかぎ括弧で書く場合は、必ず入力された名前を開き括弧から書く。
-・decision、wish、sound、familyLine では名字や名字との相性には触れない。
-・checkでは、確認材料に名字を含む縦割れやローマ字頭文字の注意がある場合だけ名字情報に触れてよい。
-・架空の故事・ことわざ・人物・有名人には触れない。
-・familyLine は家族にそのまま話す一文だけを書く。「自然に伝えられます」「説明できます」「という名前です」のような解説口調・メタ表現を使わない。
-・読みの響きは sound 以外では触れない。
-・sound では、性別らしさ、流行、人気、年代感を断定しない。
-・sound では、言葉の由来、古くから親しまれてきた言葉、いろは歌のような連想を書かない。音の並び、母音、呼びやすさだけに触れる。
-・checkでは欠点のように強く言わず、「確認しておくと安心です」のようにやさしく書く。
-・「心太」「海月」のように確認材料に記載された熟字訓は優先して扱う。名前全体が一般語としても成立する場合は、否定ではなく「別の言葉として受け取られる場合があります」の温度感で書く。
+【表現】
+・decisionとwishで同じ内容・結論・語尾を繰り返さない。
+・将来を断定せず、「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」などの定型比喩を使わない。
+・名字との相性は書かない。ただしcheckの確認材料に名字由来の項目がある場合だけ触れてよい。
+・soundでは漢字の意味、性別、流行、年代、語源に触れない。
+・名前をかぎ括弧で書く場合は、入力された名前を「」で正しく囲む。
 
 【JSON形式】
-{"decision":"","wish":"","sound":"","familyLine":"","check":""}
+{"decision":"","wish":"","sound":"","check":""}
 
 【入力】
 名前: ${givenName || ''}
@@ -1483,7 +1453,7 @@ async function generateOrigin(options = {}) {
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         const response = await fetch(getMeimayApiUrl('/api/gemini'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getAuthenticatedAiRequestHeaders(),
             body: JSON.stringify({
                 prompt: buildNameOriginPrompt(target),
                 taskType: 'nameOrigin'
@@ -1588,10 +1558,9 @@ function escapeNameOriginHtml(text) {
 
 const NAME_ORIGIN_SECTION_META = {
     'この名前の決め手': { icon: '🌱', label: '決め手' },
-    'パパママからの願い': { icon: '💛', label: '願い' },
+    '家族に伝える願い': { icon: '💛', label: '家族に伝える願い' },
     '漢字に込めた意味': { icon: '💡', label: '漢字の意味' },
     '呼んだときの印象': { icon: '🔊', label: '響き' },
-    '家族に伝える一言': { icon: '🏠', label: '家族に伝える一言' },
     '確認しておきたいこと': { icon: '🫧', label: '確認' }
 };
 
@@ -1658,11 +1627,10 @@ function renderNameOriginStructuredBody(result, text) {
     return `
         <div id="name-origin-text" class="name-origin-body">
             ${renderNameOriginSection('この名前の決め手', model.decision)}
-            ${renderNameOriginSection('パパママからの願い', model.wish)}
             ${renderNameOriginMeaningSection(model.meanings)}
-            ${renderNameOriginSection('呼んだときの印象', model.sound)}
-            ${renderNameOriginSection('家族に伝える一言', model.familyLine)}
+            ${renderNameOriginSection('家族に伝える願い', model.wish)}
             ${renderNameOriginSection('確認しておきたいこと', model.check)}
+            ${renderNameOriginSection('呼んだときの印象', model.sound)}
         </div>
     `;
 }
@@ -2050,6 +2018,7 @@ const KANJI_ORIGIN_UNVERIFIED_TEXT = '検証済みの字源情報がないため
 
 const KANJI_DETAIL_CORE_SECTION_ORDER = ['成り立ち', '意味の深掘り', '代表的な熟語'];
 const KANJI_DETAIL_CORE_SECTION_SET = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
+const KANJI_DETAIL_DISPLAY_SECTION_ORDER = ['意味の深掘り', '成り立ち'];
 const KANJI_DETAIL_SECTION_ICON_MAP = {
     '成り立ち': '🧬',
     '意味の深掘り': '💡',
@@ -2324,6 +2293,18 @@ function getOrderedKanjiDetailSections(aiText) {
     ];
 }
 
+function getKanjiDetailDisplaySections(aiText) {
+    const sections = getOrderedKanjiDetailSections(aiText);
+    const byTitle = new Map(sections.map((section) => [section.title, section]));
+    const coreTitles = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
+    const preferred = KANJI_DETAIL_DISPLAY_SECTION_ORDER
+        .map((title) => byTitle.get(title))
+        .filter(Boolean);
+    const readingEvidence = sections.filter((section) => !coreTitles.has(section.title));
+    const idioms = byTitle.get('代表的な熟語');
+    return [...preferred, ...readingEvidence, ...(idioms ? [idioms] : [])];
+}
+
 function canonicalizeKanjiDetailText(aiText) {
     const sections = getOrderedKanjiDetailSections(aiText);
     if (!sections.length) return sanitizeKanjiAiText(aiText);
@@ -2484,7 +2465,7 @@ function formatRepresentativeIdiomContent(content, targetKanji = '', groundedSeg
         if (normalizedGroundedSegments && !normalizedGroundedSegments.some((segment) => segment.includes(word))) return false;
         return !unsafeMeaningPattern.test(line);
     });
-    return dedupeRepresentativeIdiomLines(filtered).join('\n');
+    return dedupeRepresentativeIdiomLines(filtered).slice(0, 3).join('\n');
 }
 
 function mergeRepresentativeIdiomSectionText(primaryContent, secondaryContent) {
@@ -2512,14 +2493,14 @@ ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContex
 
 【成り立ち】
 ${groundedHint?.promptContext
-        ? '検証済み情報だけを言い換え、この漢字がどのように作られたかを50〜80文字で説明してください。検証済み情報にない部品、声符、解釈は足さないでください。'
+        ? '検証済み情報だけを言い換え、この漢字がどのように作られたかを45〜75文字で説明してください。検証済み情報にない部品、声符、解釈は足さないでください。'
         : `検証済みの字源情報が入力されていません。「${KANJI_ORIGIN_UNVERIFIED_TEXT}」とだけ出力してください。部品、つくり、声符を推測しないでください。`}
 
 【意味の深掘り】
-「漢字データの詳細語義」に書かれている意味だけを使い、元々の意味、名前に使うときのニュアンス、広がりを80〜120文字で説明してください。入力にない象徴や性格を足さず、必ず句点で終えてください。
+「漢字データの詳細語義」に書かれている意味だけを使い、元々の意味、名前に使うときのニュアンス、広がりを60〜100文字で説明してください。入力にない象徴や性格を足さず、必ず句点で終えてください。
 
 【代表的な熟語】
-Google検索を実行して国語辞典・漢和辞典の見出しとして確認できた、この漢字を使う一般的な熟語だけを0〜5個挙げてください。検索しなかった場合や確実な熟語がない場合は「該当なし」とだけ出力してください。2字熟語または3字熟語だけにし、各行を必ず「・熟語（よみ）：意味。」の形式にしてください。数を埋めるために語を作らないでください。
+Google検索を実行して国語辞典・漢和辞典の見出しとして確認できた、この漢字を使う一般的な熟語だけを0〜3個挙げてください。検索しなかった場合や確実な熟語がない場合は「該当なし」とだけ出力してください。2字熟語または3字熟語だけにし、各行を必ず「・熟語（よみ）：意味。」の形式にしてください。数を埋めるために語を作らないでください。
 
 【絶対に守るルール】
 ・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
@@ -2627,11 +2608,11 @@ ${currentIdioms || 'なし'}
 ・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
 ・【成り立ち】は、${groundedHint?.promptContext
-        ? '検証済み情報だけを使って50〜80文字で書き、入力にない部品や声符を足さないでください。'
+        ? '検証済み情報だけを使って45〜75文字で書き、入力にない部品や声符を足さないでください。'
         : `「${KANJI_ORIGIN_UNVERIFIED_TEXT}」とだけ書いてください。部品や声符を推測しないでください。`}
-・【意味の深掘り】は、「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
+・【意味の深掘り】は、「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて60〜100文字で書いてください。必ず句点で終えてください。
 ・詳細語義にある意味と矛盾する説明は書かないでください。
-・【代表的な熟語】は、実在を確信できる2字熟語または3字熟語だけを0〜5個書いてください。各行は「・熟語（よみ）：意味。」に統一し、4字以上の語は書かないでください。確実な語がなければ「該当なし」とし、数を埋めないでください。
+・【代表的な熟語】は、実在を確信できる2字熟語または3字熟語だけを0〜3個書いてください。各行は「・熟語（よみ）：意味。」に統一し、4字以上の語は書かないでください。確実な語がなければ「該当なし」とし、数を埋めないでください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
 ・意味だけ、熟語だけ、成り立ちだけで終わらせないでください。
@@ -2639,15 +2620,7 @@ ${currentIdioms || 'なし'}
 }
 
 async function callKanjiCacheApiWithAuth(payload) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (typeof firebaseAuth !== 'undefined' && firebaseAuth && firebaseAuth.currentUser) {
-        try {
-            const token = await firebaseAuth.currentUser.getIdToken();
-            headers['Authorization'] = `Bearer ${token}`;
-        } catch (authErr) {
-            console.warn('KANJI_CACHE_API: Failed to get auth token', authErr);
-        }
-    }
+    const headers = await getAuthenticatedAiRequestHeaders();
     const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
         method: 'POST',
         headers,
@@ -2815,7 +2788,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             const response = await fetch(getMeimayApiUrl('/api/gemini'), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: await getAuthenticatedAiRequestHeaders(),
                 body: JSON.stringify({
                     prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint),
                     taskType: 'kanjiFact'
@@ -2861,7 +2834,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                         const repairTimeoutId = setTimeout(() => repairController.abort(), 30000);
                         const repairResponse = await fetch(getMeimayApiUrl('/api/gemini'), {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: await getAuthenticatedAiRequestHeaders(),
                             body: JSON.stringify({
                                 prompt: buildKanjiDetailRepairPrompt(
                                     kanji,
@@ -2958,7 +2931,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
                 const response2 = await fetch(getMeimayApiUrl('/api/gemini'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: await getAuthenticatedAiRequestHeaders(),
                     body: JSON.stringify({
                         prompt: buildKanjiReadingPrompt(kanji, currentReading, readingEvidence),
                         taskType: 'kanjiFact'
@@ -3036,7 +3009,7 @@ function renderKanjiDetailText(resultEl, aiText) {
 
 function renderKanjiDetailSections(resultEl, aiText) {
     const normalizedText = sanitizeKanjiAiText(aiText);
-    const sections = getOrderedKanjiDetailSections(normalizedText);
+    const sections = getKanjiDetailDisplaySections(normalizedText);
 
     const getIcon = (title) => {
         if (KANJI_DETAIL_SECTION_ICON_MAP[title]) return KANJI_DETAIL_SECTION_ICON_MAP[title];

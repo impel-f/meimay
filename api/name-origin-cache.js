@@ -1,6 +1,10 @@
 const crypto = require('crypto');
 const { FieldValue, getAdminFirestore, verifyRequestAuth } = require('./_lib/firebase-admin');
-const { MODEL_CACHE_VERSION } = require('./_lib/gemini-models');
+const {
+  MODEL_CACHE_VERSION,
+  isKnownModelCacheVersion,
+  modelNameMatchesCacheVersion,
+} = require('./_lib/gemini-models');
 
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 const NAME_ORIGIN_USAGE_COLLECTION = 'name_origin_daily_usage';
@@ -43,8 +47,8 @@ function validateOriginCacheRequest(body) {
     error.code = 'invalid_origin_cache_request';
     throw error;
   }
-  if (modelCacheVersion !== MODEL_CACHE_VERSION) {
-    const error = new Error('Model cache version is stale.');
+  if (!isKnownModelCacheVersion(modelCacheVersion)) {
+    const error = new Error('Model cache version is not supported.');
     error.statusCode = 409;
     error.code = 'stale_model_cache_version';
     throw error;
@@ -88,6 +92,9 @@ async function handleSaveOrigin(db, req, res) {
   const text = normalizeString(req.body?.text, 12000);
   const modelName = normalizeString(req.body?.modelName, 120);
   if (!text) return buildErrorResponse(res, 400, 'invalid_origin_text');
+  if (!modelNameMatchesCacheVersion(modelName, cache.modelCacheVersion)) {
+    return buildErrorResponse(res, 400, 'model_cache_mismatch');
+  }
 
   await db.collection('name_origin_explanations').doc(cache.docId).set({
     text,

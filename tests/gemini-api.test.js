@@ -2,6 +2,9 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const geminiHandler = require('../api/gemini');
+const {
+  buildModelCacheVersion,
+} = require('../api/_lib/gemini-models');
 
 const {
   MODEL_PRIORITY_GROUPS,
@@ -10,6 +13,8 @@ const {
   buildGenerationConfig,
   extractGroundedTextSegments,
   generateWithFallback,
+  buildRateLimitUpdate,
+  validateGenerationPayload,
 } = geminiHandler._test;
 
 test('Gemini uses only current GA Flash models in priority order', () => {
@@ -115,6 +120,32 @@ test('Gemini falls back to the next GA model and records each attempt', async ()
   assert.equal(result.attempts.length, 2);
   assert.equal(result.attempts[0].ok, false);
   assert.equal(result.attempts[1].ok, true);
+  assert.equal(buildModelCacheVersion(result.modelName), 'gemini_model_gemini-3.6-flash');
+});
+
+test('Gemini generation accepts only bounded app task payloads', () => {
+  assert.deepEqual(validateGenerationPayload({ prompt: ' テスト ', taskType: 'nameOrigin' }), {
+    prompt: 'テスト',
+    taskType: 'nameOrigin',
+  });
+  assert.throws(() => validateGenerationPayload({ prompt: 'テスト', taskType: 'freePrompt' }), /Unsupported/);
+  assert.throws(() => validateGenerationPayload({ prompt: 'a'.repeat(16_001), taskType: 'kanjiFact' }), /allowed length/);
+});
+
+test('Gemini abuse counters reset by minute and JST date', () => {
+  const now = new Date('2026-08-16T03:04:05.000Z');
+  const first = buildRateLimitUpdate({}, now);
+  assert.equal(first.minuteCount, 1);
+  assert.equal(first.dailyCount, 1);
+  assert.equal(first.dateKey, '2026-08-16');
+
+  const next = buildRateLimitUpdate(first, new Date('2026-08-16T03:04:40.000Z'));
+  assert.equal(next.minuteCount, 2);
+  assert.equal(next.dailyCount, 2);
+
+  const nextMinute = buildRateLimitUpdate(next, new Date('2026-08-16T03:05:00.000Z'));
+  assert.equal(nextMinute.minuteCount, 1);
+  assert.equal(nextMinute.dailyCount, 3);
 });
 
 test('Gemini rejects empty model responses and continues fallback', async () => {

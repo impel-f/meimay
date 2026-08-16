@@ -15,11 +15,30 @@ function getOriginText(kanji) {
 }
 
 test('kanji prompt allows zero idioms and forbids filling the quota', () => {
-  assert.match(originSource, /一般的な熟語だけを0〜5個/);
+  assert.match(originSource, /一般的な熟語だけを0〜3個/);
   assert.match(originSource, /0個でも正解です/);
   assert.doesNotMatch(originSource, /最低3個/);
   assert.match(originSource, /Google検索を実行して国語辞典・漢和辞典の見出しとして確認/);
   assert.match(originSource, /grounded_text_segments/);
+});
+
+test('name origin output merges the family message and wish without duplicate sections', () => {
+  assert.match(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
+  assert.match(originSource, /家族に伝える願い/);
+  assert.doesNotMatch(originSource, /キーは必ず "decision", "wish", "sound", "familyLine"/);
+  assert.match(originSource, /decisionは35〜60字/);
+  assert.match(originSource, /soundは25〜45字/);
+});
+
+test('kanji details put naming meaning first and cap visible idioms', () => {
+  assert.match(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \['意味の深掘り', '成り立ち'\]/);
+  assert.match(originSource, /dedupeRepresentativeIdiomLines\(filtered\)\.slice\(0, 3\)/);
+  assert.match(originSource, /元々の意味、名前に使うときのニュアンス、広がりを60〜100文字/);
+});
+
+test('Gemini generation requests require Firebase authentication headers', () => {
+  assert.match(originSource, /getAuthenticatedAiRequestHeaders/);
+  assert.doesNotMatch(originSource, /fetch\(getMeimayApiUrl\('\/api\/gemini'\), \{\s*method: 'POST',\s*headers: \{ 'Content-Type': 'application\/json' \}/);
 });
 
 test('unverified readings and origins fail closed instead of inventing a reason', () => {

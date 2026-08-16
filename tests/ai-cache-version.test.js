@@ -1,7 +1,12 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { MODEL_CACHE_VERSION } = require('../api/_lib/gemini-models');
+const {
+  MODEL_CACHE_VERSION,
+  buildModelCacheVersion,
+  isKnownModelCacheVersion,
+  modelNameMatchesCacheVersion,
+} = require('../api/_lib/gemini-models');
 const { buildVersionedCacheDocId } = require('../api/kanji-cache')._test;
 const {
   buildNameOriginDocId,
@@ -31,4 +36,16 @@ test('name origin cache rejects stale model generations', () => {
     promptVersion: 'name_origin_v15',
     modelCacheVersion: 'gemini_model_old',
   }), (error) => error?.statusCode === 409 && error?.code === 'stale_model_cache_version');
+});
+
+test('known fallback models use isolated cache generations', () => {
+  const fallbackVersion = buildModelCacheVersion('gemini-3.6-flash');
+  assert.equal(isKnownModelCacheVersion(fallbackVersion), true);
+  assert.equal(modelNameMatchesCacheVersion('gemini-3.6-flash', fallbackVersion), true);
+  assert.equal(modelNameMatchesCacheVersion('gemini-3.7-flash', fallbackVersion), false);
+  assert.equal(validateOriginCacheRequest({
+    cacheKey: 'cache-key',
+    promptVersion: 'name_origin_v19',
+    modelCacheVersion: fallbackVersion,
+  }).modelCacheVersion, fallbackVersion);
 });

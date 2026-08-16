@@ -5,9 +5,83 @@ const {
   MODEL_PRIORITY_GROUPS,
   PRIMARY_MODEL_NAME,
   MODEL_CACHE_VERSION,
+  buildModelCacheVersion,
 } = require("./_lib/gemini-models");
+const {
+  FieldValue,
+  getAdminFirestore,
+  verifyRequestAuth,
+} = require("./_lib/firebase-admin");
 
 const MODEL_REQUEST_TIMEOUT_MS = 12_000;
+const GEMINI_RATE_LIMIT_PER_MINUTE = 20;
+const GEMINI_RATE_LIMIT_PER_DAY = 200;
+const GEMINI_USAGE_COLLECTION = "gemini_api_usage";
+const ALLOWED_TASK_TYPES = new Set(["kanjiFact", "nameOrigin"]);
+const MAX_PROMPT_LENGTH = 16_000;
+
+function getJstDateKey(date = new Date()) {
+  return new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function getMinuteKey(date = new Date()) {
+  return date.toISOString().slice(0, 16);
+}
+
+function buildRateLimitUpdate(current = {}, date = new Date()) {
+  const minuteKey = getMinuteKey(date);
+  const dateKey = getJstDateKey(date);
+  const minuteCount = current.minuteKey === minuteKey
+    ? Math.max(0, Number(current.minuteCount) || 0)
+    : 0;
+  const dailyCount = current.dateKey === dateKey
+    ? Math.max(0, Number(current.dailyCount) || 0)
+    : 0;
+
+  if (minuteCount >= GEMINI_RATE_LIMIT_PER_MINUTE || dailyCount >= GEMINI_RATE_LIMIT_PER_DAY) {
+    const error = new Error("AI request limit exceeded. Please wait and try again.");
+    error.statusCode = 429;
+    error.code = "gemini_rate_limit_exceeded";
+    throw error;
+  }
+
+  return {
+    minuteKey,
+    minuteCount: minuteCount + 1,
+    dateKey,
+    dailyCount: dailyCount + 1,
+  };
+}
+
+async function enforceGeminiRateLimit(uid) {
+  const db = getAdminFirestore();
+  const usageRef = db.collection(GEMINI_USAGE_COLLECTION).doc(uid);
+  await db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(usageRef);
+    const update = buildRateLimitUpdate(snapshot.exists ? (snapshot.data() || {}) : {});
+    tx.set(usageRef, {
+      uid,
+      ...update,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+}
+
+function validateGenerationPayload(body = {}) {
+  const prompt = typeof body.prompt === "string" ? body.prompt.trim() : "";
+  const taskType = typeof body.taskType === "string" ? body.taskType.trim() : "";
+  if (!prompt || prompt.length > MAX_PROMPT_LENGTH) {
+    const error = new Error("Prompt is required and must be within the allowed length.");
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!ALLOWED_TASK_TYPES.has(taskType)) {
+    const error = new Error("Unsupported AI task type.");
+    error.statusCode = 400;
+    throw error;
+  }
+  return { prompt, taskType };
+}
 
 function summarizeModelError(error) {
   if (!error || typeof error !== "object") {
@@ -128,7 +202,8 @@ module.exports = async (req, res) => {
   // CORS Setup
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
 
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method === "GET") {
@@ -142,16 +217,15 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { prompt } = req.body;
-    const taskType = ['kanjiFact', 'nameOrigin'].includes(req.body?.taskType)
-      ? req.body.taskType
-      : '';
+    const auth = await verifyRequestAuth(req);
+    const { prompt, taskType } = validateGenerationPayload(req.body || {});
     const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!prompt) return res.status(400).json({ error: "Prompt is required" });
     if (!apiKey) {
       return res.status(500).json({ error: "API key not configured" });
     }
+
+    await enforceGeminiRateLimit(auth.uid);
 
     const ai = new GoogleGenAI({ apiKey });
     const { text, modelName, groundingMetadata, attempts } = await generateWithFallback(ai, prompt, { taskType });
@@ -159,7 +233,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       text,
       debug_used_model: modelName,
-      model_cache_version: MODEL_CACHE_VERSION,
+      model_cache_version: buildModelCacheVersion(modelName),
       debug_grounding_queries: Array.isArray(groundingMetadata?.webSearchQueries)
         ? groundingMetadata.webSearchQueries
         : [],
@@ -171,6 +245,7 @@ module.exports = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       error: "AI Generation Failed",
       details: error.message,
+      code: error.code,
       attempts: error.attempts,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
@@ -184,4 +259,6 @@ module.exports._test = {
   buildGenerationConfig,
   extractGroundedTextSegments,
   generateWithFallback,
+  buildRateLimitUpdate,
+  validateGenerationPayload,
 };
