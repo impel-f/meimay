@@ -39,6 +39,8 @@ test('name origins reject common meaning expansions not present in source data',
   assert.match(originSource, /瑞々し\|みずみずし/);
   assert.match(originSource, /前向き\|前を向/);
   assert.match(originSource, /朗らか\|ほがらか/);
+  assert.doesNotMatch(originSource, /人にやさしく、自分らしさを大切にしながら歩んでほしい/);
+  assert.match(originSource, /combinedMeaning/);
 });
 
 test('known regression kanji retain the verified glyph components', () => {

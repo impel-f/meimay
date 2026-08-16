@@ -1164,6 +1164,7 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     const rows = getNameOriginMeaningRows(result);
     const firstMeaning = rows[0]?.meaning.replace(/。$/, '') || '漢字の意味';
     const secondMeaning = rows[1]?.meaning.replace(/。$/, '') || '';
+    const combinedMeaning = [firstMeaning, secondMeaning].filter(Boolean).join('と、');
     const legacy = repairNameOriginQuoteText(text, result);
 
     if (legacy) {
@@ -1178,9 +1179,9 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
 
     return {
         decision: `${givenName}は、${firstMeaning}${secondMeaning ? `と、${secondMeaning}` : ''}を重ねた名前です。`,
-        wish: '人にやさしく、自分らしさを大切にしながら歩んでほしいという願いを込められます。',
+        wish: `${combinedMeaning}という漢字の意味を大切にしてほしいという願いを込められます。`,
         sound: givenReading ? `「${givenReading}」は、やさしく落ち着いた印象で、日常でも呼びやすい響きです。` : '',
-        familyLine: givenName ? `「${givenName}」には、漢字の意味を大切にした願いを込めました。` : '',
+        familyLine: givenName ? `「${givenName}」には、${combinedMeaning}という意味を込めました。` : '',
         check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
     };
 }
