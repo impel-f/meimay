@@ -15,12 +15,11 @@ function getOriginText(kanji) {
     .find((section) => section.title === '成り立ち')?.text || '';
 }
 
-test('kanji prompt allows zero idioms and forbids filling the quota', () => {
-  assert.match(originSource, /一般的な熟語だけを0〜3個/);
-  assert.match(originSource, /0個でも正解です/);
-  assert.doesNotMatch(originSource, /最低3個/);
-  assert.match(originSource, /Google検索を実行して国語辞典・漢和辞典の見出しとして確認/);
-  assert.match(originSource, /grounded_text_segments/);
+test('kanji prompt never asks AI to generate representative compounds', () => {
+  assert.match(originSource, /熟語は検証済みデータベースから別途補完するため/);
+  assert.match(originSource, /const KANJI_COMPOUNDS_URL/);
+  assert.match(originSource, /function buildStructuredCompoundText/);
+  assert.doesNotMatch(originSource, /Google検索を実行して国語辞典・漢和辞典の見出しとして確認/);
 });
 
 test('name origin output merges the family message and wish without duplicate sections', () => {

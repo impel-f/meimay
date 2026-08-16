@@ -104,6 +104,21 @@ window.MeimayLegalDocs = {
 
         <p class="mt-8 text-right font-bold">最終更新日：2026年5月20日</p>
     `,
+    dataSources: `
+        <p class="mb-4">メイメーでは、漢字や熟語をAIの推測だけで補わないため、次のデータを加工して利用しています。</p>
+
+        <h3 class="text-md font-bold text-[#5d5444] mb-2 mt-6">JMdict</h3>
+        <p class="mb-4">2〜3字の代表的な熟語と読みの確認に、Electronic Dictionary Research and Development Group（EDRDG）が提供するJMdictの一部を利用しています。人名・地名などの固有名詞は除外し、アプリ向けに候補を選抜しています。</p>
+        <p class="mb-4"><a class="text-[#b0863d] font-bold underline" href="https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project" target="_blank" rel="noopener noreferrer">JMdictプロジェクト</a></p>
+
+        <h3 class="text-md font-bold text-[#5d5444] mb-2 mt-6">KRADFILE</h3>
+        <p class="mb-4">漢字の見える字形要素の確認に、EDRDGが提供するKRADFILEの一部を利用しています。字形の分解は、象形・会意・形声などの字源分類そのものを意味しません。</p>
+        <p class="mb-4"><a class="text-[#b0863d] font-bold underline" href="https://www.edrdg.org/krad/kradinf.html" target="_blank" rel="noopener noreferrer">KRADFILEについて</a></p>
+
+        <h3 class="text-md font-bold text-[#5d5444] mb-2 mt-6">ライセンス</h3>
+        <p class="mb-4">JMdictおよびKRADFILEは、Creative Commons Attribution-ShareAlike 4.0 International（CC BY-SA 4.0）の条件に基づき利用しています。加工したデータには、抽出、除外、優先度付け、表記の正規化を行っています。</p>
+        <p class="mb-4"><a class="text-[#b0863d] font-bold underline" href="https://www.edrdg.org/edrdg/licence.html" target="_blank" rel="noopener noreferrer">EDRDGのライセンス情報</a></p>
+    `,
     contactGuide: `
         <p class="mb-4">内容を選ぶと、メールの件名と本文に必要な項目が入ります。近いものを選んでください。</p>
         <div class="my-5 rounded-2xl border border-[#eadfcd] bg-white p-4 shadow-sm">

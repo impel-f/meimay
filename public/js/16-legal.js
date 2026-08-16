@@ -6,12 +6,13 @@ function openLegalScreen(type = 'terms') {
 }
 
 function switchLegalTab(type) {
-    const normalizedType = ['terms', 'privacy', 'contact'].includes(type) ? type : 'terms';
+    const normalizedType = ['terms', 'privacy', 'contact', 'sources'].includes(type) ? type : 'terms';
     currentLegalTabType = normalizedType;
     const buttons = {
         terms: document.getElementById('legal-tab-terms'),
         privacy: document.getElementById('legal-tab-privacy'),
-        contact: document.getElementById('legal-tab-contact')
+        contact: document.getElementById('legal-tab-contact'),
+        sources: document.getElementById('legal-tab-sources')
     };
     const contentArea = document.getElementById('legal-content');
 
@@ -29,7 +30,8 @@ function switchLegalTab(type) {
         const contentByType = {
             terms: legalDocs.termsOfService || '',
             privacy: legalDocs.privacyPolicy || '',
-            contact: legalDocs.contactGuide || ''
+            contact: legalDocs.contactGuide || '',
+            sources: legalDocs.dataSources || ''
         };
         contentArea.innerHTML = contentByType[normalizedType] || contentByType.terms;
         if (normalizedType === 'contact' && typeof updateSupportCategoryHelp === 'function') {

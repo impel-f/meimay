@@ -4,29 +4,39 @@ const path = require('node:path');
 const test = require('node:test');
 
 const facts = require('../public/data/kanji_etymology_facts.json');
+const master = require('../public/data/kanji_data.json');
 const originSource = fs.readFileSync(
   path.join(__dirname, '..', 'public', 'js', '08-origin.js'),
   'utf8'
 );
 
 const ALLOWED_TYPES = new Set(['象形', '指事', '会意', '形声', '会意形声', '仮借']);
-const ALLOWED_STATUSES = new Set(['single_source', 'cross_checked']);
+const ALLOWED_STATUSES = new Set(['component_only', 'single_source', 'cross_checked']);
 const BANNED_PROSE_KEYS = new Set(['text', 'description', 'originText', 'explanation']);
 
 test('etymology facts contain source-backed structured data without copied prose', () => {
   assert.equal(facts.schemaVersion, 1);
-  assert.ok(Object.keys(facts.entries).length >= 350);
+  assert.equal(Object.keys(facts.entries).length, 3000);
 
   for (const [kanji, entry] of Object.entries(facts.entries)) {
     assert.equal(Array.from(kanji).length, 1, `${kanji}: key must be one character`);
-    assert.ok(entry.structure, `${kanji}: missing structure`);
-    assert.doesNotMatch(entry.structure, /[\uE000-\uF8FF\uFFFD]/u, `${kanji}: broken glyph`);
+    assert.doesNotMatch(entry.structure || '', /[\uE000-\uF8FF\uFFFD]/u, `${kanji}: broken glyph`);
     assert.ok(Array.isArray(entry.formationTypes), `${kanji}: formationTypes must be an array`);
+    assert.ok(Array.isArray(entry.visualComponents), `${kanji}: visualComponents must be an array`);
     entry.formationTypes.forEach((type) => assert.ok(ALLOWED_TYPES.has(type), `${kanji}: unsupported type ${type}`));
     assert.ok(ALLOWED_STATUSES.has(entry.verificationStatus), `${kanji}: invalid verification status`);
-    assert.ok(Array.isArray(entry.sources) && entry.sources.length > 0, `${kanji}: missing sources`);
+    assert.ok(Array.isArray(entry.sources), `${kanji}: sources must be an array`);
     entry.sources.forEach((source) => assert.match(source.url, /^https:\/\//));
     Object.keys(entry).forEach((key) => assert.ok(!BANNED_PROSE_KEYS.has(key), `${kanji}: prose field ${key}`));
+  }
+});
+
+test('every appropriate master kanji has a safe structure or visible components', () => {
+  for (const row of master.filter((item) => Number(item['不適切フラグ'] || 0) !== 1)) {
+    const kanji = row['漢字'];
+    const entry = facts.entries[kanji];
+    assert.ok(entry, `${kanji}: missing fact entry`);
+    assert.ok(entry.structure || entry.visualComponents.length > 0, `${kanji}: missing safe visual data`);
   }
 });
 

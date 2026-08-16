@@ -817,6 +817,9 @@ function drawerNavigate(target) {
             case 'legal-contact':
                 if (typeof openLegalScreen === 'function') openLegalScreen('contact');
                 break;
+            case 'legal-sources':
+                if (typeof openLegalScreen === 'function') openLegalScreen('sources');
+                break;
         }
     }, 200);
 }
@@ -866,7 +869,8 @@ function renderDrawerMenu() {
                 { id: 'drawer-settings', target: 'settings', icon: '⚙️', label: '設定' },
                 { id: 'drawer-legal-terms', target: 'legal-terms', icon: '📘', label: '利用規約' },
                 { id: 'drawer-legal-privacy', target: 'legal-privacy', icon: '🔒', label: 'プライバシーポリシー' },
-                { id: 'drawer-legal-contact', target: 'legal-contact', icon: '✉️', label: 'お問い合わせ' }
+                { id: 'drawer-legal-contact', target: 'legal-contact', icon: '✉️', label: 'お問い合わせ' },
+                { id: 'drawer-legal-sources', target: 'legal-sources', icon: '📚', label: 'データの出典' }
             ]
         }
     ];
