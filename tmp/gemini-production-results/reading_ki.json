@@ -1,0 +1,1 @@
+{"testId":"reading_ki","text":"「葵」が「き」と読まれるのは、この漢字本来の「音読み」だからです。「あおい」という読みは訓読みであり、音読みである「き」も名付けなどで広く用いられています。","debug_used_model":"gemini-3.7-flash","debug_attempts":[{"label":"Gemini 3.7 Flash","modelName":"gemini-3.7-flash","ok":true,"durationMs":4119}]}
