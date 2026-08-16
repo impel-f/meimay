@@ -39,6 +39,7 @@ function buildGenerationConfig(taskType = '') {
     },
   };
   if (taskType === 'kanjiFact') {
+    config.maxOutputTokens = 4096;
     config.temperature = 0.1;
     config.tools = [{ googleSearch: {} }];
   } else if (taskType === 'nameOrigin') {

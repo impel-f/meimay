@@ -26,6 +26,18 @@ test('unverified readings and origins fail closed instead of inventing a reason'
   assert.match(originSource, /熟語の頭文字に由来するという説明は絶対に書かない/);
 });
 
+test('truncated kanji sections are repaired instead of cached', () => {
+  assert.ok(originSource.includes('if (!/[。！？!?．.]$/.test(normalized)) return true;'));
+  assert.match(originSource, /!sectionMap\.has\('代表的な熟語'\)/);
+});
+
+test('name origins reject common meaning expansions not present in source data', () => {
+  assert.match(originSource, /健やか\|すこやか/);
+  assert.match(originSource, /瑞々し\|みずみずし/);
+  assert.match(originSource, /前向き\|前を向/);
+  assert.match(originSource, /朗らか\|ほがらか/);
+});
+
 test('known regression kanji retain the verified glyph components', () => {
   assert.match(getOriginText('舵'), /舟.*它/);
   assert.match(getOriginText('櫂'), /木.*翟/);

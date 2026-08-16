@@ -58,7 +58,7 @@ test('Gemini generation config keeps the server timeout without legacy sampling 
 
 test('kanji fact checks use low-temperature Google Search grounding', () => {
   assert.deepEqual(buildGenerationConfig('kanjiFact'), {
-    maxOutputTokens: 2048,
+    maxOutputTokens: 4096,
     httpOptions: {
       timeout: 12_000,
     },

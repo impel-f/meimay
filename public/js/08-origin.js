@@ -4,12 +4,12 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v16_20260816';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v17_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v3_20260816';
-const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v3_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v4_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v4_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
@@ -144,8 +144,10 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
         .join(' ');
     const guardedExpansions = [
         { output: /(?:前向き|前を向)/, source: /(?:前向き|前を向)/ },
-        { output: /健やか/, source: /(?:健やか|健康|丈夫)/ },
-        { output: /(?:温かな心|温かい心)/, source: /(?:温か|暖か|心|慈愛)/ },
+        { output: /(?:健やか|すこやか)/, source: /(?:健やか|すこやか|健康|丈夫)/ },
+        { output: /(?:温か|暖か|あたたか)/, source: /(?:温か|暖か|あたたか)/ },
+        { output: /(?:瑞々し|みずみずし)/, source: /(?:瑞々し|みずみずし)/ },
+        { output: /(?:朗らか|ほがらか)/, source: /(?:朗らか|ほがらか)/ },
         { output: /たくまし/, source: /(?:たくまし|強い|勇)/ },
         { output: /思いやり/, source: /(?:思いやり|慈愛|心)/ }
     ];
@@ -1356,6 +1358,8 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・漢字データに書かれている意味を、この回答で使用できる意味の全量とする。
 ・decision、wish、familyLine では文章を自然に整えてよいが、漢字データから直接たどれない性格、能力、象徴、植物の性質、歴史的背景を足さない。
 ・「芯の強さ」「まっすぐ育つ」「周囲を明るくする」など、入力にない性質を漢字から連想して補わない。
+・植物から「健やか」「瑞々しい」「成長」「生命力」を、光や太陽から「前向き」「朗らか」「温かな心」を連想して補わない。これらは漢字データに同じ意味が明記されている場合だけ使用する。
+・願いの文章を作るために新しい性質を足してはいけない。漢字データの語を活用・言い換えするだけで成立しない場合は、短く控えめに書く。
 ・根拠に迷う表現は削り、情報量を増やすための推測はしない。
 ・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
@@ -2413,7 +2417,7 @@ function isOriginSectionTooShallow(text, groundedHint = null) {
     if (!groundedHint) return normalized !== KANJI_ORIGIN_UNVERIFIED_TEXT;
     if (normalized.length < 12) return true;
     if (/[、,・\/／:：]$/.test(normalized)) return true;
-    if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 24) return true;
+    if (!/[。！？!?．.]$/.test(normalized)) return true;
     if (groundedHint && !cachedKanjiDetailMatchesHint(normalized, groundedHint)) return true;
     return false;
 }
@@ -2428,6 +2432,7 @@ function getKanjiDetailCompletionStatus(aiText, groundedHint = null) {
 
     if (isOriginSectionTooShallow(originSection, groundedHint)) missingSections.push('成り立ち');
     if (isMeaningSectionTooShallow(meaningSection)) missingSections.push('意味の深掘り');
+    if (!sectionMap.has('代表的な熟語')) missingSections.push('代表的な熟語');
     return {
         complete: missingSections.length === 0,
         missingSections,
@@ -2586,7 +2591,7 @@ function isMeaningSectionTooShallow(text) {
     if (/名前に使うときも、その意味を素直な願いとして重ねやすい漢字です。?$/.test(normalized)) return true;
     if (/^アプリ内辞書では/.test(normalized)) return true;
     if (/(?:人生の荒波|未来を切り拓く|道しるべ|可能性を広げる|輝く未来)/.test(normalized)) return true;
-    if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 120) return true;
+    if (!/[。！？!?．.]$/.test(normalized)) return true;
     return false;
 }
 
