@@ -1,4 +1,6 @@
+const crypto = require('crypto');
 const { FieldValue, getAdminFirestore, verifyRequestAuth } = require('./_lib/firebase-admin');
+const { MODEL_CACHE_VERSION } = require('./_lib/gemini-models');
 
 const DAILY_NAME_ORIGIN_LIMIT = 1;
 const NAME_ORIGIN_USAGE_COLLECTION = 'name_origin_daily_usage';
@@ -22,6 +24,87 @@ function normalizeString(value, maxLength = 2000) {
   const text = String(value || '').trim();
   if (!text || text.length > maxLength) return '';
   return text;
+}
+
+function buildNameOriginDocId(cacheKey, promptVersion, modelCacheVersion) {
+  return crypto
+    .createHash('sha256')
+    .update([cacheKey, promptVersion, modelCacheVersion].join('\n'), 'utf8')
+    .digest('hex');
+}
+
+function validateOriginCacheRequest(body) {
+  const cacheKey = normalizeString(body.cacheKey, 2000);
+  const promptVersion = normalizeString(body.promptVersion, 120);
+  const modelCacheVersion = normalizeString(body.modelCacheVersion, 120);
+  if (!cacheKey || !promptVersion) {
+    const error = new Error('Origin cache key and prompt version are required.');
+    error.statusCode = 400;
+    error.code = 'invalid_origin_cache_request';
+    throw error;
+  }
+  if (modelCacheVersion !== MODEL_CACHE_VERSION) {
+    const error = new Error('Model cache version is stale.');
+    error.statusCode = 409;
+    error.code = 'stale_model_cache_version';
+    throw error;
+  }
+  return {
+    cacheKey,
+    promptVersion,
+    modelCacheVersion,
+    docId: buildNameOriginDocId(cacheKey, promptVersion, modelCacheVersion),
+  };
+}
+
+async function verifyCacheRequestAuth(req) {
+  try {
+    return await verifyRequestAuth(req);
+  } catch (error) {
+    error.statusCode = Number(error?.statusCode) || 401;
+    error.code = 'authentication_failed';
+    throw error;
+  }
+}
+
+async function handleGetOrigin(db, req, res) {
+  await verifyCacheRequestAuth(req);
+  const cache = validateOriginCacheRequest(req.body || {});
+  const snapshot = await db.collection('name_origin_explanations').doc(cache.docId).get();
+  const data = snapshot.exists ? (snapshot.data() || {}) : {};
+  const current = data.promptVersion === cache.promptVersion
+    && data.modelCacheVersion === cache.modelCacheVersion;
+  return res.status(200).json({
+    ok: true,
+    hit: current && !!normalizeString(data.text, 12000),
+    text: current ? normalizeString(data.text, 12000) : '',
+    modelName: current ? normalizeString(data.modelName, 120) : '',
+  });
+}
+
+async function handleSaveOrigin(db, req, res) {
+  await verifyCacheRequestAuth(req);
+  const cache = validateOriginCacheRequest(req.body || {});
+  const text = normalizeString(req.body?.text, 12000);
+  const modelName = normalizeString(req.body?.modelName, 120);
+  if (!text) return buildErrorResponse(res, 400, 'invalid_origin_text');
+
+  await db.collection('name_origin_explanations').doc(cache.docId).set({
+    text,
+    promptVersion: cache.promptVersion,
+    modelCacheVersion: cache.modelCacheVersion,
+    modelName: modelName || null,
+    updatedAt: FieldValue.serverTimestamp(),
+  }, { merge: true });
+
+  return res.status(200).json({ ok: true, docId: cache.docId });
+}
+
+async function handleDeleteOrigin(db, req, res) {
+  await verifyCacheRequestAuth(req);
+  const cache = validateOriginCacheRequest(req.body || {});
+  await db.collection('name_origin_explanations').doc(cache.docId).delete();
+  return res.status(200).json({ ok: true });
 }
 
 function getJstDateKey(date = new Date()) {
@@ -225,6 +308,9 @@ module.exports = async (req, res) => {
 
   try {
     const db = getAdminFirestore();
+    if (action === 'getOrigin') return await handleGetOrigin(db, req, res);
+    if (action === 'saveOrigin') return await handleSaveOrigin(db, req, res);
+    if (action === 'deleteOrigin') return await handleDeleteOrigin(db, req, res);
     if (action === 'consumeDaily') return await handleConsumeDaily(db, req, res);
     if (action === 'refundDaily') return await handleRefundDaily(db, req, res);
     return buildErrorResponse(res, 400, 'unsupported_action');
@@ -237,4 +323,9 @@ module.exports = async (req, res) => {
       error?.message || 'Name origin cache operation failed.'
     );
   }
+};
+
+module.exports._test = {
+  buildNameOriginDocId,
+  validateOriginCacheRequest,
 };

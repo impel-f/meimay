@@ -1,27 +1,13 @@
 const {
   GoogleGenAI,
 } = require("@google/genai");
+const {
+  MODEL_PRIORITY_GROUPS,
+  PRIMARY_MODEL_NAME,
+  MODEL_CACHE_VERSION,
+} = require("./_lib/gemini-models");
 
 const MODEL_REQUEST_TIMEOUT_MS = 12_000;
-
-const MODEL_PRIORITY_GROUPS = [
-  {
-    label: "Gemini 3.7 Flash",
-    candidates: ["gemini-3.7-flash"],
-  },
-  {
-    label: "Gemini 3.6 Flash",
-    candidates: ["gemini-3.6-flash"],
-  },
-  {
-    label: "Gemini 3.5 Flash",
-    candidates: ["gemini-3.5-flash"],
-  },
-  {
-    label: "Gemini 3.5 Flash-Lite",
-    candidates: ["gemini-3.5-flash-lite"],
-  },
-];
 
 function summarizeModelError(error) {
   if (!error || typeof error !== "object") {
@@ -123,10 +109,16 @@ async function generateWithFallback(ai, prompt) {
 module.exports = async (req, res) => {
   // CORS Setup
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method === "GET") {
+    return res.status(200).json({
+      primary_model: PRIMARY_MODEL_NAME,
+      model_cache_version: MODEL_CACHE_VERSION,
+    });
+  }
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -146,6 +138,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       text,
       debug_used_model: modelName,
+      model_cache_version: MODEL_CACHE_VERSION,
       debug_attempts: attempts,
     });
   } catch (error) {
@@ -161,6 +154,8 @@ module.exports = async (req, res) => {
 
 module.exports._test = {
   MODEL_PRIORITY_GROUPS,
+  PRIMARY_MODEL_NAME,
+  MODEL_CACHE_VERSION,
   buildGenerationConfig,
   generateWithFallback,
 };

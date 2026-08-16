@@ -5,6 +5,8 @@ const geminiHandler = require('../api/gemini');
 
 const {
   MODEL_PRIORITY_GROUPS,
+  PRIMARY_MODEL_NAME,
+  MODEL_CACHE_VERSION,
   buildGenerationConfig,
   generateWithFallback,
 } = geminiHandler._test;
@@ -19,6 +21,30 @@ test('Gemini uses only current GA Flash models in priority order', () => {
       'gemini-3.5-flash-lite',
     ]
   );
+});
+
+test('Gemini metadata exposes the primary model cache generation', async () => {
+  const req = { method: 'GET' };
+  let statusCode = 0;
+  let payload = null;
+  const res = {
+    setHeader() {},
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(body) {
+      payload = body;
+      return body;
+    },
+    end() {},
+  };
+
+  await geminiHandler(req, res);
+
+  assert.equal(statusCode, 200);
+  assert.equal(payload.primary_model, PRIMARY_MODEL_NAME);
+  assert.equal(payload.model_cache_version, MODEL_CACHE_VERSION);
 });
 
 test('Gemini generation config keeps the server timeout without legacy sampling overrides', () => {

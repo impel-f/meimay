@@ -4,17 +4,57 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v14_20260510';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v15_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_meaning_details_v1_20260608';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v2_20260816';
+const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v2_20260816';
+const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
 let activeNameOriginGenerationToken = 0;
 let kanjiMeaningDetailsPromise = null;
+let activeAiModelCacheVersion = AI_MODEL_CACHE_VERSION_FALLBACK;
+let aiModelMetadataPromise = null;
+
+async function getActiveAiModelMetadata(options = {}) {
+    if (options.force === true) aiModelMetadataPromise = null;
+    if (!aiModelMetadataPromise) {
+        aiModelMetadataPromise = fetch(getMeimayApiUrl('/api/gemini'), {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(async (response) => {
+                if (!response.ok) throw new Error(`AI metadata returned ${response.status}`);
+                const data = await response.json();
+                const cacheVersion = String(data?.model_cache_version || '').trim();
+                if (cacheVersion) activeAiModelCacheVersion = cacheVersion;
+                return {
+                    primaryModel: String(data?.primary_model || '').trim(),
+                    modelCacheVersion: activeAiModelCacheVersion
+                };
+            })
+            .catch((error) => {
+                console.warn('AI_MODEL_METADATA:', error);
+                return {
+                    primaryModel: '',
+                    modelCacheVersion: activeAiModelCacheVersion
+                };
+            });
+    }
+    return aiModelMetadataPromise;
+}
+
+function getActiveAiModelCacheVersionSync() {
+    return activeAiModelCacheVersion || AI_MODEL_CACHE_VERSION_FALLBACK;
+}
+
+function buildVersionedKanjiCacheDocId(parts) {
+    return encodeURIComponent(parts.map((part) => String(part || '').trim()).join('__'));
+}
 
 const NAME_ORIGIN_LEFT_RIGHT_KANJI = new Set(Array.from(
     '明朋服期朝湖瑚珊理琉璃珠玲玖珂珀瑛瑞琳瑠環瑶琴珈祐祥裕俊侑佑佐佳依怜悟恒想惟慎拓陽陸陵梨桜桃椿楓柚梓樹波海洋浬渚治浩洸清淳湊満潤澪瀬沙汐汰江沖河晴暖昭時智暉彩結紗絢綾緒純紬詩誠語諒謙護証論'
@@ -80,6 +120,30 @@ function normalizeNameOriginText(text) {
         .replace(/\r\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
+}
+
+function validateGeneratedNameOriginText(text) {
+    const normalized = normalizeNameOriginText(text)
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/, '')
+        .trim();
+    let parsed;
+    try {
+        parsed = JSON.parse(normalized);
+    } catch (error) {
+        throw new Error('名前由来のJSON形式が正しくありません。');
+    }
+    const expectedKeys = ['decision', 'wish', 'sound', 'familyLine', 'check'];
+    const actualKeys = Object.keys(parsed || {}).sort();
+    if (actualKeys.join('|') !== [...expectedKeys].sort().join('|')) {
+        throw new Error('名前由来の項目が不足しています。');
+    }
+    const bannedPattern = /(?:芯の強さ|葵のようにまっすぐ|自然に伝えられます|説明できます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく)/;
+    for (const key of expectedKeys) {
+        if (typeof parsed[key] !== 'string') throw new Error(`名前由来の${key}が文字列ではありません。`);
+        if (bannedPattern.test(parsed[key])) throw new Error(`名前由来の${key}に根拠外の定型表現があります。`);
+    }
+    return JSON.stringify(parsed);
 }
 
 function getNameOriginKanjiValue(part) {
@@ -254,7 +318,7 @@ function getNameOriginSurnameReading(result = currentBuildResult) {
     return '';
 }
 
-function getNameOriginCacheKey(result = currentBuildResult) {
+function getNameOriginCacheKey(result = currentBuildResult, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
     const givenName = getNameOriginGivenName(result);
     const givenReading = getNameOriginGivenReading(result);
     const surname = getNameOriginSurnameValue(result);
@@ -263,6 +327,7 @@ function getNameOriginCacheKey(result = currentBuildResult) {
     if (!givenName && !combinationKey) return '';
     return [
         NAME_ORIGIN_PROMPT_VERSION,
+        encodeURIComponent(modelCacheVersion || AI_MODEL_CACHE_VERSION_FALLBACK),
         encodeURIComponent(surname || ''),
         encodeURIComponent(surnameReadingValue || ''),
         encodeURIComponent(givenName),
@@ -271,8 +336,8 @@ function getNameOriginCacheKey(result = currentBuildResult) {
     ].join('__');
 }
 
-function getNameOriginResetKey(result = currentBuildResult) {
-    const cacheKey = getNameOriginCacheKey(result);
+function getNameOriginResetKey(result = currentBuildResult, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    const cacheKey = getNameOriginCacheKey(result, modelCacheVersion);
     return cacheKey ? `meimay_name_origin_reset_${cacheKey}` : '';
 }
 
@@ -318,8 +383,8 @@ function readNameOriginCacheMap() {
     }
 }
 
-function getCachedNameOriginEntry(result = currentBuildResult) {
-    const key = getNameOriginCacheKey(result);
+function getCachedNameOriginEntry(result = currentBuildResult, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    const key = getNameOriginCacheKey(result, modelCacheVersion);
     if (!key) return null;
     if (hasNameOriginCacheReset(result)) return null;
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.getNameOriginCache === 'function') {
@@ -329,13 +394,18 @@ function getCachedNameOriginEntry(result = currentBuildResult) {
     return cache[key] || null;
 }
 
-function saveNameOriginCache(result, text) {
-    const key = getNameOriginCacheKey(result);
+function saveNameOriginCache(result, text, meta = {}) {
+    const modelCacheVersion = String(meta.modelCacheVersion || getActiveAiModelCacheVersionSync()).trim();
+    const key = getNameOriginCacheKey(result, modelCacheVersion);
     const cleanText = normalizeNameOriginText(text);
     if (!key || !cleanText) return false;
     clearNameOriginCacheReset(result);
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveNameOriginCache === 'function') {
-        StorageBox.saveNameOriginCache(key, cleanText);
+        StorageBox.saveNameOriginCache(key, cleanText, {
+            promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+            modelCacheVersion,
+            modelName: String(meta.modelName || '').trim()
+        });
         return true;
     }
     try {
@@ -343,6 +413,8 @@ function saveNameOriginCache(result, text) {
         cache[key] = {
             text: cleanText,
             promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+            modelCacheVersion,
+            modelName: String(meta.modelName || '').trim(),
             savedAt: new Date().toISOString()
         };
         localStorage.setItem(NAME_ORIGIN_CACHE_KEY, JSON.stringify(cache));
@@ -352,8 +424,8 @@ function saveNameOriginCache(result, text) {
     }
 }
 
-function removeNameOriginCache(result = currentBuildResult) {
-    const key = getNameOriginCacheKey(result);
+function removeNameOriginCache(result = currentBuildResult, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    const key = getNameOriginCacheKey(result, modelCacheVersion);
     if (!key) return false;
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeNameOriginCache === 'function') {
         return StorageBox.removeNameOriginCache(key);
@@ -430,10 +502,14 @@ async function refundDailyNameOriginUseForGeneration(consumption) {
     refundDailyNameOriginUse();
 }
 
-function getNameOriginStoredTextForItem(item) {
-    const direct = normalizeNameOriginText(item?.origin);
+function getNameOriginStoredTextForItem(item, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    const directIsCurrent = item?.originPromptVersion === NAME_ORIGIN_PROMPT_VERSION
+        && item?.originModelCacheVersion === modelCacheVersion;
+    const direct = directIsCurrent ? normalizeNameOriginText(item?.origin) : '';
     if (direct) return direct;
-    const cached = getCachedNameOriginEntry(item);
+    const cached = getCachedNameOriginEntry(item, modelCacheVersion);
+    if (cached?.promptVersion && cached.promptVersion !== NAME_ORIGIN_PROMPT_VERSION) return '';
+    if (cached?.modelCacheVersion && cached.modelCacheVersion !== modelCacheVersion) return '';
     return normalizeNameOriginText(cached?.text);
 }
 
@@ -452,16 +528,22 @@ function persistNameOriginToSavedItems(target, originText, options = {}) {
     if (typeof savedNames === 'undefined' || !Array.isArray(savedNames)) return false;
     const cleanText = normalizeNameOriginText(originText);
     if (!cleanText) return false;
+    const originMeta = {
+        origin: cleanText,
+        originPromptVersion: NAME_ORIGIN_PROMPT_VERSION,
+        originModelCacheVersion: String(options.modelCacheVersion || getActiveAiModelCacheVersionSync()).trim(),
+        originModelName: String(options.modelName || '').trim()
+    };
 
     let changed = false;
     if (options.source === 'own' && Number.isInteger(options.savedIndex) && savedNames[options.savedIndex]) {
-        savedNames[options.savedIndex] = { ...savedNames[options.savedIndex], origin: cleanText };
+        savedNames[options.savedIndex] = { ...savedNames[options.savedIndex], ...originMeta };
         changed = true;
     } else {
         savedNames = savedNames.map(item => {
             if (!isSameNameOriginTarget(item, target)) return item;
             changed = true;
-            return { ...item, origin: cleanText };
+            return { ...item, ...originMeta };
         });
     }
 
@@ -480,6 +562,8 @@ function persistNameOriginToSavedItems(target, originText, options = {}) {
 }
 
 function clearPersistedNameOrigin(target, options = {}) {
+    const modelCacheVersion = getActiveAiModelCacheVersionSync();
+    const cloudCacheKey = getNameOriginCacheKey(target, modelCacheVersion);
     removeNameOriginCache(target);
     markNameOriginCacheReset(target);
     if (target) target.origin = '';
@@ -490,13 +574,25 @@ function clearPersistedNameOrigin(target, options = {}) {
     let changed = false;
     if (typeof savedNames !== 'undefined' && Array.isArray(savedNames)) {
         if (options.source === 'own' && Number.isInteger(options.savedIndex) && savedNames[options.savedIndex]) {
-            savedNames[options.savedIndex] = { ...savedNames[options.savedIndex], origin: '' };
+            savedNames[options.savedIndex] = {
+                ...savedNames[options.savedIndex],
+                origin: '',
+                originPromptVersion: '',
+                originModelCacheVersion: '',
+                originModelName: ''
+            };
             changed = true;
         } else {
             savedNames = savedNames.map(item => {
                 if (!isSameNameOriginTarget(item, target) || !item?.origin) return item;
                 changed = true;
-                return { ...item, origin: '' };
+                return {
+                    ...item,
+                    origin: '',
+                    originPromptVersion: '',
+                    originModelCacheVersion: '',
+                    originModelName: ''
+                };
             });
         }
     }
@@ -513,6 +609,14 @@ function clearPersistedNameOrigin(target, options = {}) {
     }
     if (typeof syncBuildSaveButton === 'function') {
         syncBuildSaveButton(!!(currentBuildResult && currentBuildResult.fullName));
+    }
+    if (cloudCacheKey) {
+        callNameOriginCacheApi({
+            action: 'deleteOrigin',
+            cacheKey: cloudCacheKey,
+            promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+            modelCacheVersion
+        }).catch((error) => console.warn('NAME_ORIGIN_CACHE: cloud delete failed', error));
     }
     return true;
 }
@@ -1234,8 +1338,10 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 
 【根拠とAI補助の使い方】
 ・漢字の意味そのものは漢字データを主根拠にする。
-・decision、wish、familyLine では、漢字データをもとにAIの一般的な日本語感覚・名付け文としての表現力を使ってよい。
-・ただし、漢字データにない意味を「漢字の意味」として足さない。
+・漢字データに書かれている意味を、この回答で使用できる意味の全量とする。
+・decision、wish、familyLine では文章を自然に整えてよいが、漢字データから直接たどれない性格、能力、象徴、植物の性質、歴史的背景を足さない。
+・「芯の強さ」「まっすぐ育つ」「周囲を明るくする」など、入力にない性質を漢字から連想して補わない。
+・根拠に迷う表現は削り、情報量を増やすための推測はしない。
 ・sound は、入力された読みの音の印象だけを根拠にする。
 ・check は原則として空文字でよい。ただし、初見で読みづらい、一般語として強く受け取られやすい、字形や縦割れ、ローマ字頭文字などの明確な確認ポイントがある場合は書く。
 ・check は確認材料を優先する。
@@ -1255,10 +1361,12 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 ・親が家族にそのまま話せる自然な言葉にする。
 ・「〜になるでしょう」「必ず〜」のように将来を断定しない。
 ・「人生という舞台」「人生の景色を描く」「自分にしか果たせない役割」「道しるべ」「未来を切り開く」「温かく照らす」「輝く未来」のような抽象的でテンプレート感のある表現は使わない。
+・「人生の荒波」「未来を切り拓く」「可能性の扉」「自分らしく羽ばたく」も使わない。
 ・名前をかぎ括弧で書く場合は、必ず入力された名前を開き括弧から書く。
 ・decision、wish、sound、familyLine では名字や名字との相性には触れない。
 ・checkでは、確認材料に名字を含む縦割れやローマ字頭文字の注意がある場合だけ名字情報に触れてよい。
 ・架空の故事・ことわざ・人物・有名人には触れない。
+・familyLine は家族にそのまま話す一文だけを書く。「自然に伝えられます」「説明できます」「という名前です」のような解説口調・メタ表現を使わない。
 ・読みの響きは sound 以外では触れない。
 ・sound では、性別らしさ、流行、人気、年代感を断定しない。
 ・sound では、言葉の由来、古くから親しまれてきた言葉、いろは歌のような連想を書かない。音の並び、母音、呼びやすさだけに触れる。
@@ -1289,14 +1397,41 @@ async function generateOrigin(options = {}) {
         return;
     }
 
-    const cachedText = getNameOriginStoredTextForItem(target);
+    const modelMetadata = await getActiveAiModelMetadata();
+    let modelCacheVersion = modelMetadata.modelCacheVersion;
+    let cachedModelName = '';
+    const cloudCacheKey = getNameOriginCacheKey(target, modelCacheVersion);
+    let cachedText = getNameOriginStoredTextForItem(target, modelCacheVersion);
+    if (!cachedText && !options.force && !hasNameOriginCacheReset(target)) {
+        try {
+            const cloudCache = await callNameOriginCacheApi({
+                action: 'getOrigin',
+                cacheKey: cloudCacheKey,
+                promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+                modelCacheVersion
+            });
+            if (cloudCache?.hit) {
+                cachedText = validateGeneratedNameOriginText(cloudCache.text || '');
+                cachedModelName = String(cloudCache.modelName || '').trim();
+            }
+        } catch (error) {
+            console.warn('NAME_ORIGIN_CACHE: cloud read failed', error);
+        }
+    }
     if (cachedText && !options.force) {
         target.origin = cachedText;
+        target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+        target.originModelCacheVersion = modelCacheVersion;
+        target.originModelName = cachedModelName;
         if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
             currentBuildResult.origin = cachedText;
+            currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+            currentBuildResult.originModelCacheVersion = modelCacheVersion;
+            currentBuildResult.originModelName = cachedModelName;
         }
-        saveNameOriginCache(target, cachedText);
-        persistNameOriginToSavedItems(target, cachedText, options);
+        const cacheMeta = { modelCacheVersion, modelName: cachedModelName };
+        saveNameOriginCache(target, cachedText, cacheMeta);
+        persistNameOriginToSavedItems(target, cachedText, { ...options, ...cacheMeta });
         renderAIOriginResult(target, cachedText, false, options);
         if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
         return;
@@ -1344,15 +1479,36 @@ async function generateOrigin(options = {}) {
         }
 
         const data = await response.json();
-        const aiText = normalizeNameOriginText(data.text);
+        modelCacheVersion = String(data.model_cache_version || modelCacheVersion).trim();
+        const modelName = String(data.debug_used_model || '').trim();
+        const aiText = validateGeneratedNameOriginText(data.text);
         if (!aiText) throw new Error('由来文を取得できませんでした。');
 
         target.origin = aiText;
+        target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+        target.originModelCacheVersion = modelCacheVersion;
+        target.originModelName = modelName;
         if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
             currentBuildResult.origin = aiText;
+            currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+            currentBuildResult.originModelCacheVersion = modelCacheVersion;
+            currentBuildResult.originModelName = modelName;
         }
-        saveNameOriginCache(target, aiText);
-        persistNameOriginToSavedItems(target, aiText, options);
+        const cacheMeta = { modelCacheVersion, modelName };
+        saveNameOriginCache(target, aiText, cacheMeta);
+        persistNameOriginToSavedItems(target, aiText, { ...options, ...cacheMeta });
+        try {
+            await callNameOriginCacheApi({
+                action: 'saveOrigin',
+                cacheKey: getNameOriginCacheKey(target, modelCacheVersion),
+                promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+                modelCacheVersion,
+                modelName,
+                text: aiText
+            });
+        } catch (cacheError) {
+            console.warn('NAME_ORIGIN_CACHE: cloud save failed', cacheError);
+        }
         if (generationToken === activeNameOriginGenerationToken) {
             renderAIOriginResult(target, aiText, false, options);
         }
@@ -1778,14 +1934,16 @@ function getKanjiMeaningDetailText(kanji, meaningDetails) {
     return typeof clean === 'function' ? clean(raw || '') : String(raw || '').trim();
 }
 
-function isKanjiDetailAiCacheCurrent(cached) {
-    return !!(cached && cached.promptVersion === KANJI_DETAIL_AI_PROMPT_VERSION);
+function isKanjiDetailAiCacheCurrent(cached, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
+    return !!(cached
+        && cached.promptVersion === KANJI_DETAIL_AI_PROMPT_VERSION
+        && cached.modelCacheVersion === modelCacheVersion);
 }
 
-function getStoredKanjiDetailAiText(kanji) {
+function getStoredKanjiDetailAiText(kanji, modelCacheVersion = getActiveAiModelCacheVersionSync()) {
     if (typeof StorageBox === 'undefined' || typeof StorageBox.getKanjiAiCache !== 'function') return '';
     const cached = StorageBox.getKanjiAiCache(kanji);
-    if (!isKanjiDetailAiCacheCurrent(cached)) return '';
+    if (!isKanjiDetailAiCacheCurrent(cached, modelCacheVersion)) return '';
     return String(cached?.text || '').trim();
 }
 
@@ -1863,6 +2021,7 @@ const KANJI_DETAIL_GROUNDED_HINTS = {
         requiredKeywords: ['木', '翟']
     }
 };
+const KANJI_ORIGIN_UNVERIFIED_TEXT = '検証済みの字源情報がないため、成り立ちの説明は掲載していません。';
 
 const KANJI_DETAIL_CORE_SECTION_ORDER = ['成り立ち', '意味の深掘り', '代表的な熟語'];
 const KANJI_DETAIL_CORE_SECTION_SET = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
@@ -2044,7 +2203,10 @@ async function loadKanjiDetailDataset() {
 
 function buildDatasetGroundedHint(kanji, datasetEntry) {
     const originText = getKanjiDetailDatasetSectionText(datasetEntry, '成り立ち');
-    if (!originText) return null;
+    const originSource = String(datasetEntry?.sources?.origin || '').trim();
+    const hasBrokenGlyph = /[\uE000-\uF8FF\uFFFD]/u.test(originText);
+    const hasOriginBasis = /(?:字源|漢字構成|形声|会意|象形|指事)/.test(originText);
+    if (!originText || originText.length < 25 || !originSource || hasBrokenGlyph || !hasOriginBasis) return null;
     return {
         promptContext: `検証済みメモ: 「${kanji}」の成り立ちは次の情報に従ってください。${originText}`,
         requiredKeywords: extractRequiredKeywordsFromOriginText(originText)
@@ -2151,7 +2313,7 @@ function canonicalizeKanjiDetailText(aiText) {
         .join('\n\n');
 }
 
-function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
+function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '') {
     const sectionMap = extractKanjiDetailSectionMap(aiText);
     const blocks = [];
 
@@ -2159,7 +2321,9 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry) {
         const datasetSection = getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
-            const mergedIdioms = mergeRepresentativeIdiomSectionText(aiSection, datasetSection);
+            // The imported dataset contains historical names and rare entries, so
+            // only the current, stricter AI response is eligible for display.
+            const mergedIdioms = formatRepresentativeIdiomContent(aiSection, kanji);
             if (mergedIdioms) blocks.push(`【${title}】\n${mergedIdioms}`);
             continue;
         }
@@ -2228,6 +2392,7 @@ function isLikelyTruncatedSection(text) {
 function isOriginSectionTooShallow(text, groundedHint = null) {
     const normalized = sanitizeKanjiAiText(text);
     if (!normalized) return true;
+    if (!groundedHint) return normalized !== KANJI_ORIGIN_UNVERIFIED_TEXT;
     if (normalized.length < 12) return true;
     if (/[、,・\/／:：]$/.test(normalized)) return true;
     if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 24) return true;
@@ -2245,8 +2410,6 @@ function getKanjiDetailCompletionStatus(aiText, groundedHint = null) {
 
     if (isOriginSectionTooShallow(originSection, groundedHint)) missingSections.push('成り立ち');
     if (isMeaningSectionTooShallow(meaningSection)) missingSections.push('意味の深掘り');
-    if (idiomsCount < 3) missingSections.push('代表的な熟語');
-
     return {
         complete: missingSections.length === 0,
         missingSections,
@@ -2281,9 +2444,15 @@ function applyKanjiDetailRepairText(baseText, repairText, status) {
     return canonicalizeKanjiDetailText(nextText);
 }
 
-function formatRepresentativeIdiomContent(content) {
+function formatRepresentativeIdiomContent(content, targetKanji = '') {
     const parsed = parseRepresentativeIdiomLines(content);
-    return dedupeRepresentativeIdiomLines(parsed).join('\n');
+    const unsafeMeaningPattern = /(?:人名|人物|大夫|宗主|名は|の子|政治家|武将|詩人|歌人|学者|僧侶|天皇|皇帝|王の名)/;
+    const filtered = parsed.filter((line) => {
+        const word = extractRepresentativeIdiomWord(line);
+        if (targetKanji && !word.includes(targetKanji)) return false;
+        return !unsafeMeaningPattern.test(line);
+    });
+    return dedupeRepresentativeIdiomLines(filtered).join('\n');
 }
 
 function mergeRepresentativeIdiomSectionText(primaryContent, secondaryContent) {
@@ -2311,14 +2480,14 @@ ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContex
 
 【成り立ち】
 ${groundedHint?.promptContext
-        ? 'この漢字がどのように作られたか（象形・会意・形声など）を、50〜80文字で説明してください。'
-        : '部品やつくりを確実に断定できる範囲で、50〜80文字で説明してください。断定できない場合も、このセクションは省略せず、「一般には字形・字義の変化を踏まえて説明されます」のように不確かさを明記して必ず出力してください。'}
+        ? '検証済み情報だけを言い換え、この漢字がどのように作られたかを50〜80文字で説明してください。検証済み情報にない部品、声符、解釈は足さないでください。'
+        : `検証済みの字源情報が入力されていません。「${KANJI_ORIGIN_UNVERIFIED_TEXT}」とだけ出力してください。部品、つくり、声符を推測しないでください。`}
 
 【意味の深掘り】
-「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で説明してください。単に「〜を表す字です」で終わらせないでください。必ず句点で終えてください。
+「漢字データの詳細語義」に書かれている意味だけを使い、元々の意味、名前に使うときのニュアンス、広がりを80〜120文字で説明してください。入力にない象徴や性格を足さず、必ず句点で終えてください。
 
 【代表的な熟語】
-この漢字を使った実在する熟語を3〜5個、読みと意味付きで挙げてください。2字熟語または3字熟語だけにし、1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個は必ず出してください。1個だけで終わらせないでください。
+この漢字を使った実在する一般的な熟語を、確認できるものだけ0〜5個挙げてください。2字熟語または3字熟語だけにし、各行を必ず「・熟語（よみ）：意味。」の形式にしてください。確実な熟語がない場合は「該当なし」とだけ出力し、数を埋めるために語を作らないでください。
 
 【絶対に守るルール】
 ・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
@@ -2331,28 +2500,61 @@ ${groundedHint?.promptContext
 ・詳細語義にある意味と矛盾する説明は書かないでください。
 ・架空の人物、存在しない著名人、存在しない熟語は絶対に書かないでください。
 ・不確かな情報は断定せず、確実に実在すると言える情報だけを書いてください。少しでも怪しい熟語は挙げないでください。
-・実在を確信できるものだけを書いてください。ただし、3個に満たない場合でも、一般的で安全な実在の熟語を優先して3個以上になるように選んでください。
+・実在を確信できるものだけを書いてください。0個でも正解です。件数を増やすために珍しい語、人名らしい語、推測した語を足さないでください。
 ・一般的な漢和辞典や国語辞典に載る実在語だけを挙げてください。人名、作品名、俗語、ネット用語、造語は書かないでください。
 ・代表的な熟語は必ず2字熟語または3字熟語にしてください。4字以上の語は書かないでください。
 ・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
-・代表的な熟語は1行に1個ずつ、各行を完結させてください。読点やカンマで複数候補を1行にまとめないでください。最低3個になるようにしてください。1個だけで終わらせないでください。
+・代表的な熟語は1行に1個ずつ、必ず「・熟語（よみ）：意味。」で完結させてください。読点やカンマで複数候補を1行にまとめないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
 ・セクション名以外の前置きや締めの一文は書かないでください。
 ・部品、つくり、声符を推測で書かないでください。確信がない場合でも【成り立ち】は省略せず、不確かさが残る説明として出力してください。
 ・検証済み情報が与えられている場合は、必ずそれに従ってください。勝手に別の部品へ言い換えないでください。
+・「人生の荒波」「未来を切り拓く」「道しるべ」「可能性を広げる」など、字義にない比喩や定型的な名付け表現を足さないでください。
 `.trim();
 }
 
-function buildKanjiReadingPrompt(kanji, currentReading) {
+function getKanjiReadingEvidence(kanjiData, currentReading) {
+    const normalizedReading = normalizeNameOriginReadingValue(currentReading);
+    const sources = [
+        { category: '音読み', raw: kanjiData?.['音'] || '' },
+        { category: '訓読み', raw: kanjiData?.['訓'] || '' },
+        { category: '名乗り', raw: kanjiData?.['伝統名のり'] || '' }
+    ];
+    for (const source of sources) {
+        const forms = getNameOriginReadingForms(source.raw, { includeStem: true });
+        if (forms.includes(normalizedReading)) {
+            return {
+                verified: true,
+                category: source.category,
+                sourceReadings: String(source.raw || '').trim()
+            };
+        }
+    }
+    return {
+        verified: false,
+        category: '未確認',
+        sourceReadings: sources.map((source) => `${source.category}: ${source.raw || 'なし'}`).join(' / ')
+    };
+}
+
+function buildKanjiReadingPrompt(kanji, currentReading, evidence = {}) {
     return `
-漢字「${kanji}」が名前で「${currentReading}」と読まれる理由や由来を、100文字以内でわかりやすく説明してください。
+漢字「${kanji}」の「${currentReading}」という読みについて、検証済みの収録データだけを使い、100文字以内で説明してください。
+
+【検証済み情報】
+判定: ${evidence.verified ? '確認済み' : '未確認'}
+読みの分類: ${evidence.category || '未確認'}
+収録されている読み: ${evidence.sourceReadings || 'なし'}
 
 【絶対に守るルール】
 ・口調は必ずです・ます調で統一してください。
 ・本文だけを出力し、見出しは付けないでください。
-・架空の理由、存在しない出典、存在しない人物名は絶対に書かないでください。
-・不確かな場合は断定しないでください。
+・判定が確認済みなら、どの分類に収録されている読みかを説明してください。
+・音読み・訓読み・名乗りとして収録されている事実と、その読みが歴史的に成立した理由は別です。成立理由の資料は与えられていないため、語源、古代語、熟字訓、別の熟語からの派生を推測しないでください。
+・判定が未確認なら「この漢字単独の読みとして、現在の収録データでは確認できません。」とだけ出力してください。
+・架空の理由、存在しない出典、人物名、熟語の頭文字に由来するという説明は絶対に書かないでください。
+・不確かな情報を補わず、確認できる事実だけを書いてください。
 ・アスタリスク、参考番号、URLは書かないでください。
 `.trim();
 }
@@ -2365,6 +2567,7 @@ function isMeaningSectionTooShallow(text) {
     if (/^「?.{1,2}」?を表す字です。/.test(normalized)) return true;
     if (/名前に使うときも、その意味を素直な願いとして重ねやすい漢字です。?$/.test(normalized)) return true;
     if (/^アプリ内辞書では/.test(normalized)) return true;
+    if (/(?:人生の荒波|未来を切り拓く|道しるべ|可能性を広げる|輝く未来)/.test(normalized)) return true;
     if (!/[。！？!?．.]$/.test(normalized) && normalized.length < 120) return true;
     return false;
 }
@@ -2391,10 +2594,12 @@ ${currentIdioms || 'なし'}
 ・出力順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
 ・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。【代表的な熟語】は必ず1回だけ、最後に出力してください。
-・【成り立ち】は、この漢字がどのように作られたかを50〜80文字で書いてください。不確かな部品や声符は断定せず、不確かさを明記してください。
+・【成り立ち】は、${groundedHint?.promptContext
+        ? '検証済み情報だけを使って50〜80文字で書き、入力にない部品や声符を足さないでください。'
+        : `「${KANJI_ORIGIN_UNVERIFIED_TEXT}」とだけ書いてください。部品や声符を推測しないでください。`}
 ・【意味の深掘り】は、「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて80〜120文字で書いてください。必ず句点で終えてください。
 ・詳細語義にある意味と矛盾する説明は書かないでください。
-・【代表的な熟語】は、実在する2字熟語または3字熟語を3〜5個、読みと意味付きで、1行に1個ずつ書いてください。4字以上の語は書かないでください。現在の件数が${currentIdiomsCount}個なら、そこから必ず増やして最低3個にしてください。既出と重複しない語を優先してください。
+・【代表的な熟語】は、実在を確信できる2字熟語または3字熟語だけを0〜5個書いてください。各行は「・熟語（よみ）：意味。」に統一し、4字以上の語は書かないでください。確実な語がなければ「該当なし」とし、数を埋めないでください。
 ・読点やカンマで複数候補を1行にまとめないでください。各行を完結させてください。
 ・四字熟語、故事成語、ことわざ、慣用句、成句は書かないでください。これらは別枠で表示します。
 ・意味だけ、熟語だけ、成り立ちだけで終わらせないでください。
@@ -2423,43 +2628,21 @@ async function callKanjiCacheApiWithAuth(payload) {
 
 async function resetKanjiDetailCache(kanji, currentReading) {
     const readingPayload = isSpecialKanjiAiReading(currentReading) ? '' : currentReading;
-    let lastError = null;
     clearKanjiDetailReset(kanji, currentReading);
     if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeKanjiAiCache === 'function') {
         StorageBox.removeKanjiAiCache(kanji);
     }
 
     try {
-        const response = await fetch(getMeimayApiUrl('/api/kanji-cache'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'delete',
-                kanji,
-                reading: readingPayload
-            })
+        const metadata = await getActiveAiModelMetadata({ force: true });
+        await callKanjiCacheApiWithAuth({
+            action: 'delete',
+            kanji,
+            reading: readingPayload,
+            promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION,
+            readingPromptVersion: KANJI_READING_AI_PROMPT_VERSION,
+            modelCacheVersion: metadata.modelCacheVersion
         });
-
-        if (!response.ok) {
-            let errorMsg = `Cache reset failed: ${response.status}`;
-            try {
-                const rawBody = await response.text();
-                if (rawBody) {
-                    try {
-                        const errData = JSON.parse(rawBody);
-                        if (errData.error) errorMsg += `\n${errData.error}`;
-                        if (errData.details) errorMsg += `\n${errData.details}`;
-                        if (errData.code) errorMsg += `\nCode: ${errData.code}`;
-                        if (errData.cause) errorMsg += `\nCause: ${errData.cause}`;
-                    } catch (jsonError) {
-                        errorMsg += `\n${rawBody.slice(0, 500)}`;
-                    }
-                }
-            } catch (parseError) {
-                console.warn('KANJI_DETAIL_RESET: failed to read API error response', parseError);
-            }
-            throw new Error(errorMsg);
-        }
 
         markKanjiDetailReset(kanji, currentReading);
         const resultEl = document.getElementById('ai-kanji-result');
@@ -2467,10 +2650,8 @@ async function resetKanjiDetailCache(kanji, currentReading) {
         alert('漢字の説明キャッシュをリセットしました。');
         return true;
     } catch (error) {
-        lastError = error;
         console.warn('KANJI_DETAIL_RESET: api cache delete failed', error);
         clearKanjiDetailReset(kanji, currentReading);
-        console.warn('KANJI_DETAIL_RESET: all cache delete attempts failed', lastError);
         alert(`キャッシュのリセットに失敗しました。\n${error?.message || ''}`.trim());
         return false;
     }
@@ -2500,9 +2681,24 @@ async function generateKanjiDetail(kanji, currentReading) {
     const kanjiDetailDataset = await loadKanjiDetailDataset();
     const datasetEntry = kanjiDetailDataset?.[kanji] || null;
     const groundedHint = getKanjiDetailGroundedHint(kanji, datasetEntry);
+    const modelMetadata = await getActiveAiModelMetadata();
+    let modelCacheVersion = modelMetadata.modelCacheVersion;
+    let baseModelName = '';
+    let readingModelName = '';
+    const baseCacheId = buildVersionedKanjiCacheDocId([
+        kanji,
+        KANJI_DETAIL_AI_PROMPT_VERSION,
+        modelCacheVersion
+    ]);
     const readingCacheId = !isSpecialKanjiAiReading(currentReading)
-        ? encodeURIComponent(`${kanji}__${currentReading}`)
+        ? buildVersionedKanjiCacheDocId([
+            kanji,
+            currentReading,
+            KANJI_READING_AI_PROMPT_VERSION,
+            modelCacheVersion
+        ])
         : '';
+    const readingEvidence = getKanjiReadingEvidence(kanjiData, currentReading);
     const cacheResetMarked = hasKanjiDetailReset(kanji, currentReading);
 
     let baseText = '';
@@ -2510,31 +2706,37 @@ async function generateKanjiDetail(kanji, currentReading) {
     let baseFreshGenerated = false;
     let readingFreshGenerated = false;
     let finalIdiomsCount = 0;
+    let cacheHit = false;
+    let dailyUseConsumed = false;
+
+    const ensureDailyKanjiDetailUse = () => {
+        if (dailyUseConsumed) return true;
+        if (!consumeDailyKanjiDetailUse()) {
+            if (typeof showToast === 'function') showToast('今日の無料AIは使い切りました', '🌙');
+            return false;
+        }
+        dailyUseConsumed = true;
+        return true;
+    };
 
     try {
-        const localCachedText = getStoredKanjiDetailAiText(kanji);
+        const localCachedText = getStoredKanjiDetailAiText(kanji, modelCacheVersion);
         if (localCachedText && !cacheResetMarked) {
-            const mergedLocalText = mergeKanjiDetailSectionsFromDataset(localCachedText, datasetEntry);
+            const mergedLocalText = mergeKanjiDetailSectionsFromDataset(localCachedText, datasetEntry, kanji);
             const localStatus = getKanjiDetailCompletionStatus(mergedLocalText, groundedHint);
             if (localStatus.complete) {
-                renderKanjiDetailSections(resultEl, canonicalizeKanjiDetailText(mergedLocalText));
-                return;
+                baseText = canonicalizeKanjiDetailText(mergedLocalText);
+                finalIdiomsCount = localStatus.idiomsCount;
+                cacheHit = true;
             }
-            console.warn('AI_KANJI_DETAIL: local cached explanation rejected', {
+            if (!localStatus.complete) console.warn('AI_KANJI_DETAIL: local cached explanation rejected', {
                 kanji,
                 missingSections: localStatus.missingSections,
                 idiomCount: localStatus.idiomsCount
             });
-            if (typeof StorageBox !== 'undefined' && typeof StorageBox.removeKanjiAiCache === 'function') {
+            if (!localStatus.complete && typeof StorageBox !== 'undefined' && typeof StorageBox.removeKanjiAiCache === 'function') {
                 StorageBox.removeKanjiAiCache(kanji);
             }
-        }
-
-        if (!consumeDailyKanjiDetailUse()) {
-            if (typeof showToast === 'function') {
-                showToast('今日の無料AIは使い切りました', '🌙');
-            }
-            return;
         }
 
         resultEl.innerHTML = `
@@ -2544,14 +2746,13 @@ async function generateKanjiDetail(kanji, currentReading) {
             </div>
         `;
 
-        let cacheHit = false;
-        if (typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
+        if (!cacheHit && typeof firebaseDb !== 'undefined' && firebaseDb && !cacheResetMarked) {
             try {
-                const doc = await firebaseDb.collection('kanji_ai_explanations').doc(kanji).get();
+                const doc = await firebaseDb.collection('kanji_ai_explanations').doc(baseCacheId).get();
                 const cachedData = doc.exists ? (doc.data() || {}) : null;
                 const cachedText = sanitizeKanjiAiText(cachedData?.text || '');
-                if (cachedText && isKanjiDetailAiCacheCurrent(cachedData)) {
-                    const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry);
+                if (cachedText && isKanjiDetailAiCacheCurrent(cachedData, modelCacheVersion)) {
+                    const mergedCachedText = mergeKanjiDetailSectionsFromDataset(cachedText, datasetEntry, kanji);
                     const cachedStatus = getKanjiDetailCompletionStatus(mergedCachedText, groundedHint);
                     if (cachedStatus.complete) {
                         baseText = canonicalizeKanjiDetailText(mergedCachedText);
@@ -2576,6 +2777,7 @@ async function generateKanjiDetail(kanji, currentReading) {
         }
 
         if (!cacheHit) {
+            if (!ensureDailyKanjiDetailUse()) return;
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);
             const response = await fetch(getMeimayApiUrl('/api/gemini'), {
@@ -2606,7 +2808,9 @@ async function generateKanjiDetail(kanji, currentReading) {
             }
 
             const data = await response.json();
-            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry);
+            modelCacheVersion = String(data.model_cache_version || modelCacheVersion).trim();
+            baseModelName = String(data.debug_used_model || '').trim();
+            baseText = mergeKanjiDetailSectionsFromDataset(data.text || '', datasetEntry, kanji);
             if (!baseText) {
                 throw new Error('AIから説明を取得できませんでした。');
             }
@@ -2640,6 +2844,8 @@ async function generateKanjiDetail(kanji, currentReading) {
 
                         if (repairResponse.ok) {
                             const repairData = await repairResponse.json();
+                            modelCacheVersion = String(repairData.model_cache_version || modelCacheVersion).trim();
+                            baseModelName = String(repairData.debug_used_model || baseModelName).trim();
                             baseText = applyKanjiDetailRepairText(baseText, repairData.text || '', status);
                         }
                     } catch (repairError) {
@@ -2653,28 +2859,7 @@ async function generateKanjiDetail(kanji, currentReading) {
             let finalIdiomsSection = finalBaseSections.get('代表的な熟語') || '';
             finalIdiomsCount = countRepresentativeIdiomCandidates(finalIdiomsSection);
 
-            if (finalIdiomsCount < 3) {
-                const fallbackLines = collectRepresentativeIdiomFallbackLines(kanji, kanjiDetailDataset);
-                if (fallbackLines.length) {
-                    const mergedFallbackIdioms = mergeRepresentativeIdiomSectionText(
-                        finalIdiomsSection,
-                        fallbackLines.join('\n')
-                    );
-                    const mergedFallbackCount = countRepresentativeIdiomCandidates(mergedFallbackIdioms);
-                    if (mergedFallbackCount > finalIdiomsCount) {
-                        finalIdiomsSection = mergedFallbackIdioms;
-                        finalIdiomsCount = mergedFallbackCount;
-                        baseText = upsertKanjiDetailSection(baseText, '代表的な熟語', mergedFallbackIdioms);
-                        console.warn('AI_KANJI_DETAIL: idioms topped up from dataset fallback', {
-                            kanji,
-                            fallbackCount: fallbackLines.length,
-                            idiomCount: finalIdiomsCount
-                        });
-                    }
-                }
-            }
-
-            baseText = canonicalizeKanjiDetailText(baseText);
+            baseText = mergeKanjiDetailSectionsFromDataset(baseText, datasetEntry, kanji);
             const finalStatus = getKanjiDetailCompletionStatus(baseText, groundedHint);
             finalIdiomsCount = finalStatus.idiomsCount;
             if (!finalStatus.complete) {
@@ -2688,7 +2873,9 @@ async function generateKanjiDetail(kanji, currentReading) {
                         action: 'saveBase',
                         kanji: kanji,
                         text: baseText,
-                        promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION
+                        promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION,
+                        modelCacheVersion,
+                        modelName: baseModelName
                     });
                 } catch (cacheError) {
                     console.warn('AI_KANJI_DETAIL: base cache save failed via API', cacheError);
@@ -2708,8 +2895,11 @@ async function generateKanjiDetail(kanji, currentReading) {
             if (typeof firebaseDb !== 'undefined' && firebaseDb && readingCacheId && !cacheResetMarked) {
                 try {
                 const readingDoc = await firebaseDb.collection('kanji_ai_reading_explanations').doc(readingCacheId).get();
-                const cachedReason = sanitizeKanjiAiText(readingDoc.exists ? readingDoc.data()?.text : '');
-                if (cachedReason) {
+                const readingCacheData = readingDoc.exists ? (readingDoc.data() || {}) : {};
+                const cachedReason = sanitizeKanjiAiText(readingCacheData.text || '');
+                const readingCacheCurrent = readingCacheData.promptVersion === KANJI_READING_AI_PROMPT_VERSION
+                    && readingCacheData.modelCacheVersion === modelCacheVersion;
+                if (cachedReason && readingCacheCurrent) {
                     readingText = `【「${currentReading}」の由来】\n${cachedReason}`;
                     readingCacheHit = true;
                 }
@@ -2718,7 +2908,12 @@ async function generateKanjiDetail(kanji, currentReading) {
                 }
             }
 
-            if (!readingCacheHit) {
+            if (!readingCacheHit && !readingEvidence.verified) {
+                readingText = `【「${currentReading}」の由来】\nこの漢字単独の読みとして、現在の収録データでは確認できません。`;
+                readingCacheHit = true;
+            }
+
+            if (!readingCacheHit && ensureDailyKanjiDetailUse()) {
                 try {
                 const controller2 = new AbortController();
                 const timeoutId2 = setTimeout(() => controller2.abort(), 120000);
@@ -2726,7 +2921,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        prompt: buildKanjiReadingPrompt(kanji, currentReading)
+                        prompt: buildKanjiReadingPrompt(kanji, currentReading, readingEvidence)
                     }),
                     signal: controller2.signal
                 });
@@ -2734,6 +2929,8 @@ async function generateKanjiDetail(kanji, currentReading) {
 
                 if (response2.ok) {
                     const data2 = await response2.json();
+                    modelCacheVersion = String(data2.model_cache_version || modelCacheVersion).trim();
+                    readingModelName = String(data2.debug_used_model || '').trim();
                     const reasonText = sanitizeKanjiAiText(data2.text || '');
                     if (reasonText) {
                         readingText = `【「${currentReading}」の由来】\n${reasonText}`;
@@ -2744,7 +2941,10 @@ async function generateKanjiDetail(kanji, currentReading) {
                                     action: 'saveReading',
                                     kanji: kanji,
                                     reading: currentReading,
-                                    text: reasonText
+                                    text: reasonText,
+                                    promptVersion: KANJI_READING_AI_PROMPT_VERSION,
+                                    modelCacheVersion,
+                                    modelName: readingModelName
                                 });
                             } catch (readingCacheError) {
                                 console.warn('AI_KANJI_DETAIL: reading cache save failed via API', readingCacheError);
@@ -2765,17 +2965,20 @@ async function generateKanjiDetail(kanji, currentReading) {
 
         renderKanjiDetailSections(resultEl, combinedText);
         if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveKanjiAiCache === 'function') {
-            StorageBox.saveKanjiAiCache(kanji, combinedText, {
-                promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION
+            StorageBox.saveKanjiAiCache(kanji, baseText, {
+                promptVersion: KANJI_DETAIL_AI_PROMPT_VERSION,
+                modelCacheVersion,
+                modelName: baseModelName
             });
         }
 
-        if (finalIdiomsCount >= 3 && (readingFreshGenerated || (baseFreshGenerated && isSpecialKanjiAiReading(currentReading)))) {
+        if (getKanjiDetailCompletionStatus(baseText, groundedHint).complete
+            && (readingFreshGenerated || (baseFreshGenerated && isSpecialKanjiAiReading(currentReading)))) {
             clearKanjiDetailReset(kanji, currentReading);
         }
     } catch (err) {
         console.error('AI_KANJI_DETAIL:', err);
-        if (shouldRefundOnFailure) {
+        if (shouldRefundOnFailure && dailyUseConsumed) {
             refundDailyKanjiDetailUse();
         }
         resultEl.innerHTML = `

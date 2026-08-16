@@ -564,10 +564,18 @@ const StorageBox = {
             const promptVersion = typeof meta?.promptVersion === 'string'
                 ? meta.promptVersion.trim()
                 : '';
+            const modelCacheVersion = typeof meta?.modelCacheVersion === 'string'
+                ? meta.modelCacheVersion.trim()
+                : '';
+            const modelName = typeof meta?.modelName === 'string'
+                ? meta.modelName.trim()
+                : '';
             cache[kanji] = {
                 text,
                 savedAt: new Date().toISOString(),
-                ...(promptVersion ? { promptVersion } : {})
+                ...(promptVersion ? { promptVersion } : {}),
+                ...(modelCacheVersion ? { modelCacheVersion } : {}),
+                ...(modelName ? { modelName } : {})
             };
             localStorage.setItem(this.KEY_KANJI_AI_CACHE, JSON.stringify(cache));
         } catch (e) {
@@ -601,7 +609,7 @@ const StorageBox = {
         }
     },
 
-    saveNameOriginCache: function (key, text) {
+    saveNameOriginCache: function (key, text, meta = {}) {
         try {
             const safeKey = String(key || '').trim();
             const safeText = String(text || '').trim();
@@ -610,7 +618,10 @@ const StorageBox = {
             const cache = raw ? JSON.parse(raw) : {};
             cache[safeKey] = {
                 text: safeText,
-                savedAt: new Date().toISOString()
+                savedAt: new Date().toISOString(),
+                promptVersion: String(meta?.promptVersion || '').trim(),
+                modelCacheVersion: String(meta?.modelCacheVersion || '').trim(),
+                modelName: String(meta?.modelName || '').trim()
             };
             localStorage.setItem(this.KEY_NAME_ORIGIN_CACHE, JSON.stringify(cache));
             return true;
