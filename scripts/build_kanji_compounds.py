@@ -79,6 +79,27 @@ def has_excluded_pos(entry):
     return any(EXCLUDED_POS_PATTERN.search(value) for value in values)
 
 
+def extract_glosses(entry, word, reading):
+    glosses = []
+    seen = set()
+    for sense in entry.findall("sense"):
+        writing_restrictions = set(child_texts(sense, "stagk"))
+        reading_restrictions = set(child_texts(sense, "stagr"))
+        if writing_restrictions and word not in writing_restrictions:
+            continue
+        if reading_restrictions and reading not in reading_restrictions:
+            continue
+        for node in sense.findall("gloss"):
+            value = " ".join((node.text or "").split())
+            if not value or value in seen:
+                continue
+            seen.add(value)
+            glosses.append(value)
+            if len(glosses) >= 6:
+                return glosses
+    return glosses
+
+
 def extract_entry_candidates(entry):
     if has_excluded_pos(entry):
         return []
@@ -118,6 +139,7 @@ def extract_entry_candidates(entry):
             "word": writing["word"],
             "reading": selected["reading"],
             "score": max(writing["priority"], selected["priority"]),
+            "glosses": extract_glosses(entry, writing["word"], selected["reading"]),
         })
     return candidates
 
@@ -150,12 +172,13 @@ def build_compounds(source_path: Path, max_per_kanji: int):
                 "word": item["word"],
                 "reading": item["reading"],
                 "common": item["score"] > 0,
+                "glosses": item["glosses"],
             }
             for item in candidates[:max_per_kanji]
         ]
 
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "source": {
             "name": "JMdict",
             "projectUrl": JMDICT_PROJECT_URL,
@@ -169,7 +192,7 @@ def build_compounds(source_path: Path, max_per_kanji: int):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--offline", action="store_true", help="Reuse the cached JMdict archive")
-    parser.add_argument("--max-per-kanji", type=int, default=6)
+    parser.add_argument("--max-per-kanji", type=int, default=24)
     return parser.parse_args()
 
 

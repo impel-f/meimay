@@ -57,10 +57,11 @@ test('known fallback models use isolated cache generations', () => {
   }).modelCacheVersion, fallbackVersion);
 });
 
-test('client reuses only recent compatible kanji prompts from the same model generation', () => {
+test('client rejects legacy kanji prompts that do not contain verified compound meanings', () => {
   assert.match(originSource, /KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set/);
-  assert.match(originSource, /'kanji_detail_v9_20260816'/);
-  assert.match(originSource, /'kanji_detail_v8_20260816'/);
+  assert.match(originSource, /'kanji_detail_v11_20260822'/);
+  assert.doesNotMatch(originSource, /'kanji_detail_v10_20260816'/);
+  assert.doesNotMatch(originSource, /'kanji_detail_v9_20260816'/);
   assert.match(originSource, /cached\.modelCacheVersion === modelCacheVersion/);
   assert.match(originSource, /for \(const promptVersion of KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS\)/);
 });

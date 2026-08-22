@@ -1,5 +1,5 @@
 (function () {
-    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.17';
+    const DATASET_URL = '/data/kanji_detail_dataset.json?v=25.18';
     const SPECIAL_SESSION_READINGS = new Set(['FREE', 'SEARCH', 'RANKING', 'SHARED']);
     let datasetPromise = null;
     let kanjiDetailDataset = {};

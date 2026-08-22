@@ -13,7 +13,7 @@ def parseEnvInt = { String name, int fallback ->
 }
 
 def androidVersionCode = parseEnvInt('ANDROID_VERSION_CODE',
-        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 74)))
+        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 75)))
 def appVersionFile = rootProject.file('../public/app-version.json')
 if (!appVersionFile.exists()) {
     throw new GradleException("Shared app version file was not found: ${appVersionFile}")

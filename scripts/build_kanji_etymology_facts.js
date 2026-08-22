@@ -128,10 +128,16 @@ function mergeEntry(base, override) {
     sources: normalizeSources([...(base.sources || []), ...(override?.sources || [])])
   };
 
-  const semanticComponent = clean(override?.semanticComponent || base.semanticComponent);
-  const phoneticComponent = clean(override?.phoneticComponent || base.phoneticComponent);
+  const semanticComponent = Object.hasOwn(override || {}, 'semanticComponent')
+    ? clean(override.semanticComponent)
+    : clean(base.semanticComponent);
+  const phoneticComponent = Object.hasOwn(override || {}, 'phoneticComponent')
+    ? clean(override.phoneticComponent)
+    : clean(base.phoneticComponent);
+  const fixedOriginText = clean(override?.fixedOriginText || base.fixedOriginText);
   if (semanticComponent) merged.semanticComponent = semanticComponent;
   if (phoneticComponent) merged.phoneticComponent = phoneticComponent;
+  if (fixedOriginText) merged.fixedOriginText = fixedOriginText;
 
   if (!merged.structure) delete merged.structure;
   const hasCrossCheck = merged.sources.some((source) => source.kind === 'cross_check');

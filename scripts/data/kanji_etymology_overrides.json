@@ -28,5 +28,27 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "音": {
+    "formationTypes": [
+      "会意",
+      "指事"
+    ],
+    "structure": "⿱立日",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「音」は「言」と共通する古い字形から分かれ、口の部分に印を加えて「おと」を示した字とされます。会意・指事などの説があります。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000596200",
+        "kind": "cross_check"
+      },
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanji.jitenon.jp/kanji/002",
+        "kind": "cross_check"
+      }
+    ]
   }
 }

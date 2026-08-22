@@ -8,11 +8,9 @@ const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v21_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v10_20260816';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v11_20260822';
 const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
-    KANJI_DETAIL_AI_PROMPT_VERSION,
-    'kanji_detail_v9_20260816',
-    'kanji_detail_v8_20260816'
+    KANJI_DETAIL_AI_PROMPT_VERSION
 ]);
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
@@ -2051,9 +2049,9 @@ const KANJI_DETAIL_SECTION_ICON_MAP = {
     '代表的な熟語': '✨'
 };
 
-const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.23';
+const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.24';
 const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.02';
-const KANJI_COMPOUNDS_URL = '/data/kanji_compounds.json?v=26.01';
+const KANJI_COMPOUNDS_URL = '/data/kanji_compounds.json?v=26.03';
 let kanjiDetailDatasetPromise = null;
 let kanjiEtymologyFactsPromise = null;
 let kanjiCompoundsPromise = null;
@@ -2143,9 +2141,13 @@ function extractRepresentativeIdiomWord(line) {
         .trim();
 }
 
+function representativeIdiomLineHasMeaning(line) {
+    return /^・?.+?（.+?）[:：]\s*.+/.test(sanitizeKanjiAiText(line));
+}
+
 function dedupeRepresentativeIdiomLines(lines, limit = 5) {
     const mergedLines = [];
-    const seenWords = new Set();
+    const wordIndexes = new Map();
 
     for (const rawLine of Array.isArray(lines) ? lines : []) {
         const line = sanitizeKanjiAiText(rawLine);
@@ -2154,14 +2156,20 @@ function dedupeRepresentativeIdiomLines(lines, limit = 5) {
         const word = extractRepresentativeIdiomWord(line);
         const normalizedWord = sanitizeKanjiAiText(word).replace(/[・\s]/g, '');
         const key = normalizedWord || line;
-        if (seenWords.has(key)) continue;
+        if (wordIndexes.has(key)) {
+            const currentIndex = wordIndexes.get(key);
+            if (!representativeIdiomLineHasMeaning(mergedLines[currentIndex])
+                && representativeIdiomLineHasMeaning(line)) {
+                mergedLines[currentIndex] = line;
+            }
+            continue;
+        }
 
-        seenWords.add(key);
+        wordIndexes.set(key, mergedLines.length);
         mergedLines.push(line);
-        if (limit && mergedLines.length >= limit) break;
     }
 
-    return mergedLines;
+    return limit ? mergedLines.slice(0, limit) : mergedLines;
 }
 
 function collectRepresentativeIdiomFallbackLines(kanji, dataset) {
@@ -2264,6 +2272,9 @@ function normalizeEtymologyFactValues(values) {
 }
 
 function buildStructuredEtymologyText(kanji, factEntry) {
+    const fixedOriginText = sanitizeKanjiAiText(factEntry?.fixedOriginText || '');
+    if (fixedOriginText) return fixedOriginText;
+
     const formationTypes = normalizeEtymologyFactValues(factEntry?.formationTypes);
     const structure = sanitizeKanjiAiText(factEntry?.structure || '');
     const visualComponents = normalizeEtymologyFactValues(factEntry?.visualComponents).slice(0, 6);
@@ -2324,6 +2335,13 @@ function buildStructuredEtymologyHint(kanji, factEntry) {
     if (!originText) return null;
 
     const keywordSet = new Set(normalizeEtymologyFactValues(factEntry?.formationTypes));
+    if (factEntry?.fixedOriginText) {
+        return {
+            promptContext: `検証済みの構造化データ: ${originText}`,
+            requiredKeywords: Array.from(keywordSet),
+            fixedOriginText: originText
+        };
+    }
     appendRequiredHanCharacters(keywordSet, factEntry?.semanticComponent || '');
     appendRequiredHanCharacters(keywordSet, factEntry?.phoneticComponent || '');
     normalizeEtymologyFactValues(factEntry?.visualComponents)
@@ -2338,9 +2356,71 @@ function buildStructuredEtymologyHint(kanji, factEntry) {
     };
 }
 
-function buildStructuredCompoundText(compoundItems) {
+function normalizeCompoundGlosses(item) {
+    return (Array.isArray(item?.glosses) ? item.glosses : [])
+        .map((gloss) => sanitizeKanjiAiText(gloss).replace(/[\r\n]+/g, ' ').slice(0, 120))
+        .filter(Boolean)
+        .slice(0, 3);
+}
+
+function buildCompoundPromptCandidateText(compoundItems) {
+    const lines = [];
+    const seenMeanings = new Set();
+    for (const item of (Array.isArray(compoundItems) ? compoundItems : []).slice(0, 24)) {
+            const word = sanitizeKanjiAiText(item?.word || '');
+            const reading = sanitizeKanjiAiText(item?.reading || '');
+            const glosses = normalizeCompoundGlosses(item);
+            if (!isLikelyRepresentativeIdiomWord(word) || !reading || !glosses.length) continue;
+            const meaningKey = `${reading}|${glosses.join('|').toLowerCase()}`;
+            if (seenMeanings.has(meaningKey)) continue;
+            seenMeanings.add(meaningKey);
+            lines.push(`・${word}（${reading}）：${glosses.join(' / ')}`);
+    }
+    return lines.join('\n');
+}
+
+function parseValidatedCompoundMeaningLine(line, allowedCompounds) {
+    const normalized = sanitizeKanjiAiText(line).replace(/^[・\-•●◇◆\d０-９]+[.)、．.]?\s*/, '');
+    const match = normalized.match(/^(.+?)（(.+?)）[:：]\s*(.+)$/);
+    if (!match) return null;
+
+    const word = sanitizeKanjiAiText(match[1]);
+    const reading = sanitizeKanjiAiText(match[2]);
+    let meaning = sanitizeKanjiAiText(match[3]);
+    const allowed = allowedCompounds.get(word);
+    if (!allowed || reading !== allowed.reading) return null;
+    if (meaning.length < 6 || meaning.length > 70) return null;
+    if (!/[\u3040-\u30ff\u3400-\u9fff]/u.test(meaning)) return null;
+    if (/https?:\/\/|出典|参考|アスタリスク/.test(meaning)) return null;
+    const compactMeaning = meaning.replace(/[\s、。,.!！?？「」『』（）()]/g, '');
+    if (compactMeaning === word || compactMeaning === `${word}のこと` || compactMeaning === `${word}をいう`) {
+        return null;
+    }
+    if (!/[。.!！?？]$/.test(meaning)) meaning += '。';
+    return `・${word}（${reading}）：${meaning}`;
+}
+
+function buildStructuredCompoundText(compoundItems, aiContent = '') {
+    const allowedCompounds = new Map();
+    for (const item of Array.isArray(compoundItems) ? compoundItems : []) {
+        const word = sanitizeKanjiAiText(item?.word || '');
+        const reading = sanitizeKanjiAiText(item?.reading || '');
+        if (!isLikelyRepresentativeIdiomWord(word) || !reading || allowedCompounds.has(word)) continue;
+        allowedCompounds.set(word, { reading });
+    }
+
     const lines = [];
     const seen = new Set();
+    for (const rawLine of normalizeRepresentativeIdiomSectionText(aiContent).split('\n')) {
+        const line = parseValidatedCompoundMeaningLine(rawLine, allowedCompounds);
+        const word = line ? extractRepresentativeIdiomWord(line) : '';
+        if (!line || !word || seen.has(word)) continue;
+        seen.add(word);
+        lines.push(line);
+        if (lines.length >= 3) return lines.join('\n');
+    }
+    if (lines.length) return lines.join('\n');
+
     for (const item of Array.isArray(compoundItems) ? compoundItems : []) {
         const word = sanitizeKanjiAiText(item?.word || '');
         const reading = sanitizeKanjiAiText(item?.reading || '');
@@ -2490,7 +2570,7 @@ function mergeKanjiDetailSectionsFromDataset(aiText, datasetEntry, kanji = '', g
             : getKanjiDetailDatasetSectionText(datasetEntry, title);
         const aiSection = sectionMap.get(title) || '';
         if (title === '代表的な熟語') {
-            const verifiedCompounds = buildStructuredCompoundText(compoundItems);
+            const verifiedCompounds = buildStructuredCompoundText(compoundItems, aiSection);
             blocks.push(`【${title}】\n${verifiedCompounds || '該当なし'}`);
             continue;
         }
@@ -2575,11 +2655,17 @@ function getKanjiDetailCompletionStatus(aiText, groundedHint = null) {
     const meaningSection = sectionMap.get('意味の深掘り') || '';
     const idiomsSection = sectionMap.get('代表的な熟語') || '';
     const idiomsCount = countRepresentativeIdiomCandidates(idiomsSection);
+    const idiomLines = parseRepresentativeIdiomLines(idiomsSection);
+    const idiomsMarkedNone = sanitizeKanjiAiText(idiomsSection) === '該当なし';
+    const idiomsHaveMeanings = idiomLines.length > 0
+        && idiomLines.every((line) => /^・?.+?（.+?）[:：]\s*.+[。.!！?？]$/.test(line));
     const missingSections = [];
 
     if (isOriginSectionTooShallow(originSection, groundedHint)) missingSections.push('成り立ち');
     if (isMeaningSectionTooShallow(meaningSection)) missingSections.push('意味の深掘り');
-    if (!sectionMap.has('代表的な熟語')) missingSections.push('代表的な熟語');
+    if (!sectionMap.has('代表的な熟語') || (!idiomsMarkedNone && !idiomsHaveMeanings)) {
+        missingSections.push('代表的な熟語');
+    }
     return {
         complete: missingSections.length === 0,
         missingSections,
@@ -2640,7 +2726,8 @@ function countRepresentativeIdiomCandidates(content) {
     return parseRepresentativeIdiomLines(content).length;
 }
 
-function buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint) {
+function buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint, compoundItems = []) {
+    const compoundCandidates = buildCompoundPromptCandidateText(compoundItems);
     return `
 漢字「${kanji}」について、以下の項目を簡潔にまとめてください。
 
@@ -2649,8 +2736,10 @@ function buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groun
 意味の要約: ${meaning || '不明'}
 漢字データの詳細語義: ${detailedMeaning || meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
+検証済み熟語候補（英語語義はJMdict収録情報）:
+${compoundCandidates || '該当なし'}
 
-以下の2項目をすべて必ず出力してください。1項目でも欠けた回答は失敗です。順番と見出しは完全一致させてください。
+以下の3項目をすべて必ず出力してください。1項目でも欠けた回答は失敗です。順番と見出しは完全一致させてください。
 
 【成り立ち】
 ${groundedHint?.promptContext
@@ -2660,16 +2749,24 @@ ${groundedHint?.promptContext
 【意味の深掘り】
 「漢字データの詳細語義」に書かれている意味だけを使い、元々の意味、名前に使うときのニュアンス、広がりを60〜100文字で説明してください。入力にない象徴や性格を足さず、必ず句点で終えてください。
 
+【代表的な熟語】
+検証済み熟語候補から最大3語を選び、「・熟語（よみ）：日本語の意味。」の形式で1行ずつ出力してください。候補がある限り、各行の意味を省略しないでください。
+
 【絶対に守るルール】
-・セクション順は必ず【成り立ち】→【意味の深掘り】にしてください。
-・【成り立ち】【意味の深掘り】の2セクションを必ずすべて出力してください。意味だけで終わらせないでください。
-・見出しは【成り立ち】【意味の深掘り】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
+・セクション順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
+・【成り立ち】【意味の深掘り】【代表的な熟語】の3セクションを必ずすべて出力してください。
+・見出しは指定された3種類の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。
 ・口調は必ずです・ます調で統一してください。
 ・「アプリ内辞書では」という表現は使わないでください。
 ・詳細語義に複数の意味がある場合は、名前向きに自然な意味を中心にしつつ、字義の広がりがあることも反映してください。
 ・詳細語義にある意味と矛盾する説明は書かないでください。
-・熟語は検証済みデータベースから別途補完するため、熟語・四字熟語・故事成語・ことわざは出力しないでください。
+・熟語は検証済み候補にある語だけを使い、新しい熟語を生成しないでください。表記と読みを変更しないでください。
+・熟語の意味は、候補に付いた英語語義から確認できる範囲だけを自然な日本語で要約してください。推測や連想を足さないでください。
+・意味は初めて読む人にも分かる平易な言葉で15〜45文字を目安に説明し、「音楽：音楽。」のように熟語をそのまま繰り返すだけの説明は禁止します。
+・熟語は命名画面に合う印象を考え、肯定的な語、中立的な語、否定的な語の順で優先してください。ただし候補が少ない場合は否定的な語も省略せず、優先順位を下げて使用してください。
+・候補が4語以上ある場合、否定的な語より肯定的・中立的な語を優先してください。たとえば「音」では「弱音」「爆音」より「音楽」「和音」「音色」のような語を優先してください。
+・四字熟語・故事成語・ことわざは出力しないでください。
 ・架空の人物、存在しない著名人、存在しない言葉は絶対に書かないでください。
 ・脚注記号、アスタリスク、参考番号、URLは書かないでください。
 ・【入力情報】や【基本情報】のようなセクションは出力しないでください。
@@ -2738,7 +2835,8 @@ function isMeaningSectionTooShallow(text) {
     return false;
 }
 
-function buildKanjiDetailRepairPrompt(kanji, readings, meaning, detailedMeaning, groundedHint, currentMeaning) {
+function buildKanjiDetailRepairPrompt(kanji, readings, meaning, detailedMeaning, groundedHint, currentMeaning, compoundItems = []) {
+    const compoundCandidates = buildCompoundPromptCandidateText(compoundItems);
     return `
 漢字「${kanji}」の説明を完全な形に修正してください。
 
@@ -2747,21 +2845,27 @@ function buildKanjiDetailRepairPrompt(kanji, readings, meaning, detailedMeaning,
 意味の要約: ${meaning || '不明'}
 漢字データの詳細語義: ${detailedMeaning || meaning || '不明'}
 ${groundedHint?.promptContext ? `検証済み情報: ${groundedHint.promptContext}` : ''}
+検証済み熟語候補（英語語義はJMdict収録情報）:
+${compoundCandidates || '該当なし'}
 
 【現在の内容】
 意味の深掘り: ${currentMeaning || 'なし'}
 
 【お願い】
-・足りない部分を補い、必ず2セクションをすべて出力してください。
-・出力順は必ず【成り立ち】→【意味の深掘り】にしてください。
-・見出しは【成り立ち】【意味の深掘り】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
+・足りない部分を補い、必ず3セクションをすべて出力してください。
+・出力順は必ず【成り立ち】→【意味の深掘り】→【代表的な熟語】にしてください。
+・見出しは【成り立ち】【意味の深掘り】【代表的な熟語】の文字列だけにしてください。絵文字、番号、装飾、補足語を見出しに付けないでください。
 ・同じ見出しを2回以上出力しないでください。
 ・【成り立ち】は、${groundedHint?.promptContext
         ? '検証済み情報だけを使って45〜75文字で書き、入力にない部品や声符を足さないでください。'
         : `「${KANJI_ORIGIN_UNVERIFIED_TEXT}」とだけ書いてください。部品や声符を推測しないでください。`}
 ・【意味の深掘り】は、「漢字データの詳細語義」を優先し、字義だけで終わらせず、元々の意味、名前に使うときのニュアンス、広がりを含めて60〜100文字で書いてください。必ず句点で終えてください。
 ・詳細語義にある意味と矛盾する説明は書かないでください。
-・熟語は検証済みデータベースから別途補完するため、熟語・四字熟語・故事成語・ことわざは出力しないでください。
+・【代表的な熟語】は検証済み熟語候補から最大3語を選び、「・熟語（よみ）：日本語の意味。」の形式で出力してください。候補にない語を生成せず、表記と読みを変えないでください。
+・熟語は肯定的、中立的、否定的な印象の順で優先してください。候補が少ない場合は否定的な語も使用し、意味は必ず付けてください。
+・熟語の意味は候補の英語語義だけを自然な日本語に要約し、推測や連想を足さないでください。
+・意味は初めて読む人にも分かる平易な言葉で15〜45文字を目安に説明し、熟語をそのまま繰り返すだけの説明は禁止します。
+・四字熟語・故事成語・ことわざは出力しないでください。
 ・意味だけ、成り立ちだけで終わらせないでください。
 `.trim();
 }
@@ -2948,7 +3052,7 @@ async function generateKanjiDetail(kanji, currentReading) {
                 method: 'POST',
                 headers: await getAuthenticatedAiRequestHeaders(),
                 body: JSON.stringify({
-                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint),
+                    prompt: buildKanjiDetailPrompt(kanji, readings, meaning, detailedMeaning, groundedHint, compoundItems),
                     taskType: 'kanjiFact'
                 }),
                 signal: controller.signal
@@ -3000,7 +3104,8 @@ async function generateKanjiDetail(kanji, currentReading) {
                                     meaning,
                                     detailedMeaning,
                                     groundedHint,
-                                    status.meaningSection
+                                    status.meaningSection,
+                                    compoundItems
                                 ),
                                 taskType: 'kanjiFact'
                             }),
