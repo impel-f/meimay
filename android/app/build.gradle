@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+import groovy.json.JsonSlurper
+
 def parseEnvInt = { String name, int fallback ->
     def value = System.getenv(name)
     if (value == null || value.trim().isEmpty()) return fallback
@@ -11,8 +13,19 @@ def parseEnvInt = { String name, int fallback ->
 }
 
 def androidVersionCode = parseEnvInt('ANDROID_VERSION_CODE',
-        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 73)))
-def androidVersionName = (System.getenv('ANDROID_VERSION_NAME') ?: '1.4.6').trim()
+        parseEnvInt('PROJECT_BUILD_NUMBER', parseEnvInt('BUILD_NUMBER', 74)))
+def appVersionFile = rootProject.file('../public/app-version.json')
+if (!appVersionFile.exists()) {
+    throw new GradleException("Shared app version file was not found: ${appVersionFile}")
+}
+def androidVersionName = (new JsonSlurper().parse(appVersionFile).version ?: '').toString().trim()
+if (!(androidVersionName ==~ /\d+\.\d+\.\d+/)) {
+    throw new GradleException("Invalid shared app version: ${androidVersionName}")
+}
+def requestedAndroidVersionName = (System.getenv('ANDROID_VERSION_NAME') ?: '').toString().trim()
+if (requestedAndroidVersionName && requestedAndroidVersionName != androidVersionName) {
+    throw new GradleException("ANDROID_VERSION_NAME ${requestedAndroidVersionName} does not match shared app version ${androidVersionName}")
+}
 
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
