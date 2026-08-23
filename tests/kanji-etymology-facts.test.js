@@ -41,7 +41,15 @@ test('every appropriate master kanji has a safe structure or visible components'
 });
 
 test('known component regressions are cross-checked by two independent sources', () => {
-  for (const [kanji, semantic, phonetic] of [['舵', '舟', '它'], ['櫂', '木', '翟']]) {
+  for (const [kanji, semantic, phonetic] of [
+    ['都', '邑（おおざと）', '者'],
+    ['悠', '心', '攸'],
+    ['翔', '羽', '羊'],
+    ['結', '糸', '吉'],
+    ['孟', '子', '皿'],
+    ['舵', '舟', '它'],
+    ['櫂', '木', '翟']
+  ]) {
     const entry = facts.entries[kanji];
     assert.ok(entry);
     assert.equal(entry.semanticComponent, semantic);
@@ -49,6 +57,15 @@ test('known component regressions are cross-checked by two independent sources',
     assert.equal(entry.verificationStatus, 'cross_checked');
     assert.ok(new Set(entry.sources.map((source) => new URL(source.url).hostname)).size >= 2);
   }
+});
+
+test('verified etymology prose does not expose raw component decompositions', () => {
+  assert.match(facts.entries['都'].fixedOriginText, /邑.*者.*形声文字/);
+  assert.match(facts.entries['悠'].fixedOriginText, /心.*攸.*形声文字/);
+  assert.match(facts.entries['翔'].fixedOriginText, /羽.*羊.*形声文字/);
+  assert.match(facts.entries['結'].fixedOriginText, /糸.*吉.*形声文字/);
+  assert.match(facts.entries['孟'].fixedOriginText, /子.*皿.*形声文字/);
+  assert.doesNotMatch(facts.entries['都'].fixedOriginText, /日・邦・老|⿰/);
 });
 
 test('structured etymology overrides generated prose and participates in cache validation', () => {

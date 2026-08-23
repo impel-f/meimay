@@ -19,10 +19,17 @@ test('kanji prompt lets AI rank only verified compounds and requires meanings', 
   assert.match(originSource, /熟語は検証済み候補にある語だけを使い、新しい熟語を生成しない/);
   assert.match(originSource, /肯定的な語、中立的な語、否定的な語の順/);
   assert.match(originSource, /各行の意味を省略しない/);
+  assert.match(originSource, /必ず\$\{requiredIdiomsCount\}語/);
   assert.match(originSource, /熟語をそのまま繰り返すだけの説明は禁止/);
+  assert.match(originSource, /最初の語義だけを簡潔に説明/);
+  assert.match(originSource, /compactMeaning === `\$\{word\}すること`/);
+  assert.match(originSource, /\.slice\(0, 1\)/);
   assert.match(originSource, /compactMeaning === word/);
   assert.match(originSource, /const KANJI_COMPOUNDS_URL/);
   assert.match(originSource, /function buildStructuredCompoundText/);
+  assert.match(originSource, /function getRequiredRepresentativeIdiomCount/);
+  assert.match(originSource, /idiomsCount >= normalizedRequiredIdiomsCount/);
+  assert.match(originSource, /normalizedRequiredIdiomsCount === 0\s*\? idiomsMarkedNone/);
   assert.doesNotMatch(originSource, /Google検索を実行して国語辞典・漢和辞典の見出しとして確認/);
 });
 
@@ -74,6 +81,11 @@ test('known regression kanji retain the verified glyph components', () => {
   assert.equal(etymologyFacts.entries['舵'].phoneticComponent, '它');
   assert.equal(etymologyFacts.entries['櫂'].phoneticComponent, '翟');
   assert.equal(etymologyFacts.entries['孟'].phoneticComponent, '皿');
+  assert.equal(etymologyFacts.entries['孟'].semanticComponent, '子');
+  assert.match(etymologyFacts.entries['孟'].fixedOriginText, /子.*皿.*形声文字/);
+  assert.equal(etymologyFacts.entries['都'].semanticComponent, '邑（おおざと）');
+  assert.equal(etymologyFacts.entries['都'].phoneticComponent, '者');
+  assert.match(etymologyFacts.entries['都'].fixedOriginText, /宮殿のある「みやこ」/);
   assert.equal(etymologyFacts.entries['音'].phoneticComponent, undefined);
   assert.match(etymologyFacts.entries['音'].fixedOriginText, /「言」と共通する古い字形/);
   assert.match(etymologyFacts.entries['音'].fixedOriginText, /会意・指事/);

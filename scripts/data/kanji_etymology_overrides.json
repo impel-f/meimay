@@ -1,4 +1,109 @@
 {
+  "都": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰者阝",
+    "semanticComponent": "邑（おおざと）",
+    "phoneticComponent": "者",
+    "fixedOriginText": "「都」の旧字は、土地や集落を表す「邑」と、音を表す「者」を組み合わせた形声文字です。宮殿のある「みやこ」の意を表し、現在の教育用漢字は省略形です。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005115900",
+        "kind": "cross_check"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/37117",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "悠": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱攸心",
+    "semanticComponent": "心",
+    "phoneticComponent": "攸",
+    "fixedOriginText": "「悠」は、意味を表す「心」と、音を表す「攸」を組み合わせた形声文字です。もとは心配する意を表し、のちに「はるか」の意にも用いられました。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006867300",
+        "kind": "cross_check"
+      },
+      {
+        "name": "漢字知識",
+        "url": "https://kanjitisiki.com/tyugako/tyugaku08/012.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "翔": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰羊羽",
+    "semanticComponent": "羽",
+    "phoneticComponent": "羊",
+    "fixedOriginText": "「翔」は、意味を表す「羽」と、音を表す「羊」を組み合わせた形声文字です。羽で空高く飛ぶ意を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003419200",
+        "kind": "cross_check"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32724",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "結": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰糸吉",
+    "semanticComponent": "糸",
+    "phoneticComponent": "吉",
+    "fixedOriginText": "「結」は、意味を表す「糸」と、音を表す「吉」を組み合わせた形声文字です。糸を固く結び合わせる意を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001871100",
+        "kind": "cross_check"
+      },
+      {
+        "name": "漢字知識",
+        "url": "https://kanjitisiki.com/syogako/syogaku4/056.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "孟": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱子皿",
+    "semanticComponent": "子",
+    "phoneticComponent": "皿",
+    "fixedOriginText": "「孟」は、意味を表す「子」と、音を表す「皿」を組み合わせた形声文字です。兄弟の最年長者や、季節の初めを表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006724700",
+        "kind": "cross_check"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/23391",
+        "kind": "cross_check"
+      }
+    ]
+  },
   "舵": {
     "formationTypes": [
       "形声"
