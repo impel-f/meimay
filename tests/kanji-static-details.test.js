@@ -6,6 +6,7 @@ const test = require('node:test');
 const root = path.join(__dirname, '..');
 const master = require('../public/data/kanji_data.json');
 const sourceCompounds = require('../public/data/kanji_compounds.json').entries;
+const codexReviews = require('../scripts/data/kanji_static_codex_reviews.json').entries;
 
 test('static kanji details cover the complete master list with reviewed facts', () => {
   const details = require('../public/data/kanji_static_details.json');
@@ -27,7 +28,8 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(Array.isArray(entry.compounds) && entry.compounds.length <= 3, `${kanji}: invalid compounds`);
 
     const allowed = new Set((sourceCompounds[kanji] || []).map((item) => `${item.word}|${item.reading}`));
-    if (allowed.size > 0) {
+    const reviewExplicitlySelectedCompounds = Array.isArray(codexReviews[kanji]?.compounds);
+    if (allowed.size > 0 && !reviewExplicitlySelectedCompounds) {
       assert.ok(entry.compounds.length > 0, `${kanji}: verified compounds exist but none are published`);
     }
     for (const compound of entry.compounds) {
@@ -52,7 +54,11 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   const reviews = require('../scripts/data/kanji_static_codex_reviews.json');
   assert.equal(reviews.schemaVersion, 1);
   assert.equal(reviews.reviewer, 'codex-5.6sol');
-  assert.deepEqual(reviews.entries, {});
+  assert.equal(Object.keys(reviews.entries).length, 100);
+  for (const [kanji, review] of Object.entries(reviews.entries)) {
+    assert.equal(review.status, 'reviewed', `${kanji}: review status`);
+    assert.match(review.reviewedAt, /^\d{4}-\d{2}-\d{2}$/, `${kanji}: reviewedAt`);
+  }
   assert.match(builder, /codexReviews\[kanji\]\?\.status === 'reviewed'/);
   assert.match(builder, /review\.namingMeaning \|\| enriched\.namingMeaning/);
   assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);

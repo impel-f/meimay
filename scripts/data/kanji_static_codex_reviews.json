@@ -1,5 +1,322 @@
 {
   "schemaVersion": 1,
   "reviewer": "codex-5.6sol",
-  "entries": {}
+  "entries": {
+    "一": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "乙": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "九": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "七": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "十": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "人": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "二": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "入": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "中に入ることや、受け入れて仲間に加えることを表す。"
+    },
+    "八": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "力": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "刀": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "刀や剣などの刃物を表す。"
+    },
+    "丁": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "十干の第四である「ひのと」を表す。"
+    },
+    "宜": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "適宜", "reading": "てきぎ", "meaning": "状況に応じて、ふさわしく行うこと", "tone": "neutral", "common": true },
+        { "word": "時宜", "reading": "じぎ", "meaning": "その時に適した機会や時期", "tone": "neutral", "common": true },
+        { "word": "便宜", "reading": "べんぎ", "meaning": "ある目的に都合がよいこと", "tone": "neutral", "common": true }
+      ]
+    },
+    "了": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "乃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "卜": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事の吉凶をうらなうことや、見立てて選ぶことを表す。"
+    },
+    "柾": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "口": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "飲食や発声に使う口、言葉や物の出入り口を表す。"
+    },
+    "三": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "山": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "大山", "reading": "たいざん", "meaning": "雄大で大きな山", "tone": "positive", "common": true },
+        { "word": "山岳", "reading": "さんがく", "meaning": "山々や高い山地", "tone": "neutral", "common": true },
+        { "word": "山林", "reading": "さんりん", "meaning": "山と森林", "tone": "neutral", "common": true }
+      ]
+    },
+    "子": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "女": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "女性を表す。"
+    },
+    "殊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "上": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "夕": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "千": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "川": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "川や水の流れを表す。"
+    },
+    "大": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "土": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "土や大地を表す。"
+    },
+    "丸": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "弓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "工": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "才": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "万": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "士": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "紳士", "reading": "しんし", "meaning": "品格があり礼儀正しい男性", "tone": "positive", "common": true },
+        { "word": "博士", "reading": "はかせ", "meaning": "専門分野に深く精通した人", "tone": "positive", "common": true },
+        { "word": "武士", "reading": "ぶし", "meaning": "武芸を身につけ仕える人", "tone": "neutral", "common": true }
+      ]
+    },
+    "久": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "必": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "必ずそうなることや、確かであることを表す。"
+    },
+    "己": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "布": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "先": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "合": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "丈": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "両": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "二つあることや、対になって並ぶことを表す。"
+    },
+    "与": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "兆": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事が起こる前ぶれや、始まりのしるしを表す。"
+    },
+    "見": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "作": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "体": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人や動物のからだ、物の形や本質を表す。",
+      "compounds": [
+        { "word": "体得", "reading": "たいとく", "meaning": "完全に身につけて自分のものとすること", "tone": "positive", "common": true },
+        { "word": "体力", "reading": "たいりょく", "meaning": "身体の力や活動力", "tone": "neutral", "common": true },
+        { "word": "体調", "reading": "たいちょう", "meaning": "体の調子や健康状態", "tone": "neutral", "common": true }
+      ]
+    },
+    "之": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": []
+    },
+    "改": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を改めて新しくすることを表す。",
+      "compounds": [
+        { "word": "改善", "reading": "かいぜん", "meaning": "悪いところを改めて良くすること", "tone": "positive", "common": true },
+        { "word": "改良", "reading": "かいりょう", "meaning": "改めてより良い状態にすること", "tone": "positive", "common": true },
+        { "word": "改革", "reading": "かいかく", "meaning": "制度などを改めて新しくすること", "tone": "neutral", "common": true }
+      ]
+    },
+    "臣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "也": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "軌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "円": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "王": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "王者", "reading": "おうじゃ", "meaning": "王の位にある者。また、その分野で最も優れた者", "tone": "positive", "common": true },
+        { "word": "国王", "reading": "こくおう", "meaning": "国の君主", "tone": "neutral", "common": true },
+        { "word": "王国", "reading": "おうこく", "meaning": "王が統治する国家", "tone": "neutral", "common": true }
+      ]
+    },
+    "眉": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "目の上に生える眉を表す。"
+    },
+    "月": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "犬": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "動物の犬を表す。"
+    },
+    "胤": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "手": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "手や、手を使った働き・技量を表す。"
+    },
+    "水": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "水利", "reading": "すいり", "meaning": "水を利用するうえでの便宜", "tone": "neutral", "common": true },
+        { "word": "噴水", "reading": "ふんすい", "meaning": "水を高く噴き出させる装置", "tone": "neutral", "common": true },
+        { "word": "水平", "reading": "すいへい", "meaning": "平らで傾きがないさま", "tone": "neutral", "common": true }
+      ]
+    },
+    "中": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "中堅", "reading": "ちゅうけん", "meaning": "組織の中核となる立場", "tone": "neutral", "common": true },
+        { "word": "中和", "reading": "ちゅうわ", "meaning": "異なる性質が打ち消し合い、偏りがなくなること", "tone": "neutral", "common": true },
+        { "word": "中央", "reading": "ちゅうおう", "meaning": "真ん中", "tone": "neutral", "common": true }
+      ]
+    },
+    "天": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "天才", "reading": "てんさい", "meaning": "生まれつきの優れた才能", "tone": "positive", "common": true },
+        { "word": "晴天", "reading": "せいてん", "meaning": "晴れ渡った空", "tone": "positive", "common": true },
+        { "word": "天下", "reading": "てんか", "meaning": "全世界や国全体", "tone": "neutral", "common": true }
+      ]
+    },
+    "日": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "木": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "文": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "馬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "郞": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "五": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "代": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "代表", "reading": "だいひょう", "meaning": "全体に代わって、その意見や性質を表すこと", "tone": "neutral", "common": true },
+        { "word": "世代", "reading": "せだい", "meaning": "同じ時代に生きる人々の集まり", "tone": "neutral", "common": true },
+        { "word": "代謝", "reading": "たいしゃ", "meaning": "古いものが新しいものへ入れ替わること", "tone": "neutral", "common": true }
+      ]
+    },
+    "元": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "戸": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "家の出入り口となる戸や、家を表す。"
+    },
+    "包": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "公": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "止": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "動きをとめることや、その場にとどまることを表す。"
+    },
+    "可": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "心": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "切": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を切ることや、心に強く迫るさまを表す。",
+      "compounds": [
+        { "word": "大切", "reading": "たいせつ", "meaning": "重んじるべきさまや重要なこと", "tone": "positive", "common": true },
+        { "word": "切望", "reading": "せつぼう", "meaning": "心から強く望むこと", "tone": "neutral", "common": true },
+        { "word": "切実", "reading": "せつじつ", "meaning": "心に深く強く感じるさま", "tone": "neutral", "common": true }
+      ]
+    },
+    "太": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "内": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "ある範囲の内側や、ものの中を表す。",
+      "compounds": [
+        { "word": "内定", "reading": "ないてい", "meaning": "正式決定の前に、内々に決めること", "tone": "neutral", "common": true },
+        { "word": "内容", "reading": "ないよう", "meaning": "中に含まれているもの", "tone": "neutral", "common": true },
+        { "word": "内側", "reading": "うちがわ", "meaning": "あるものの中にあたる側", "tone": "neutral", "common": true }
+      ]
+    },
+    "父": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "父親や、一族の父となる人を表す。"
+    },
+    "分": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一つのものを分けることや、物事の違いを見分けることを表す。"
+    },
+    "方": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "毛": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人や動物の体に生える毛を表す。"
+    },
+    "友": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "如": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "化": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "形や性質が変わること、別のものへ変えることを表す。"
+    },
+    "反": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "向きをかえすことや、反対の方向へ動くことを表す。"
+    },
+    "予": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "欠": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一部が足りないことや、欠けていることを表す。"
+    },
+    "氏": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "同じ血筋をもつ一族や、家系を表す。"
+    },
+    "固": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "かたくしっかりしていることや、動かないよう定めることを表す。"
+    },
+    "夫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "支": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物をささえることや、力を添えて助けることを表す。"
+    },
+    "比": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "二つ以上のものを並べて比べることを表す。"
+    },
+    "仏": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "仏や、仏教で悟りを開いた人を表す。"
+    },
+    "津": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「津」は、意味を表す「水」と、音を表す「聿」を組み合わせた形声文字です。人や物が集まる水辺から、船着き場や渡し場を表します。"
+    },
+    "収": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "仁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "介": { "status": "reviewed", "reviewedAt": "2026-08-25" }
+  }
 }
