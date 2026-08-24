@@ -13,7 +13,22 @@ const SOURCE_CACHE_DIR = path.join(ROOT, '.cache', 'meimay-data', 'etymology-sou
 const DETAIL_SOURCE_CACHE_DIR = path.join(ROOT, '.cache', 'meimay-data', 'etymology-sources', 'kanjitisiki-detail');
 const RESULT_CACHE_DIR = path.join(ROOT, '.cache', 'meimay-data', 'etymology-sources', 'grounded-reviews');
 const BATCH_SIZE = 12;
+const DEFAULT_MAX_ITEMS = 30;
 const FORBIDDEN_PATTERN = /画像部品|undefined|�|字形には|分解情報|断定でき|推測|おそらく|AI|漢字ペディア|意符|義符|声符|音符|誤り変わった|音を表す(?:要素|部分|部品|文字)(?!「)|[\u{20000}-\u{2FA1F}]/u;
+
+function getRunOptions(argv = process.argv.slice(2)) {
+  const maxIndex = argv.indexOf('--max-items');
+  const parsedMax = maxIndex >= 0 ? Number(argv[maxIndex + 1]) : DEFAULT_MAX_ITEMS;
+  if (!Number.isInteger(parsedMax) || parsedMax < 1) {
+    throw new Error('--max-items must be a positive integer');
+  }
+  const runAll = argv.includes('--all');
+  const bulkAllowed = process.env.MEIMAY_ALLOW_BULK_GEMINI === '1' && argv.includes('--confirm-cost');
+  if ((runAll || parsedMax > DEFAULT_MAX_ITEMS) && !bulkAllowed) {
+    throw new Error('Bulk Gemini generation is locked. After explicit cost approval, set MEIMAY_ALLOW_BULK_GEMINI=1 and pass --confirm-cost for this run.');
+  }
+  return { runAll, maxItems: parsedMax };
+}
 
 function readJson(filePath, fallback = {}) {
   return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : fallback;
@@ -155,6 +170,7 @@ async function processBatch(ai, items) {
 }
 
 async function main() {
+  const runOptions = getRunOptions();
   const apiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GOOGLE_API_KEY or GEMINI_API_KEY is required');
   const ai = new GoogleGenAI({ apiKey });
@@ -195,9 +211,19 @@ async function main() {
     });
   }
 
-  console.log(`Pending source-grounded reviews: ${pending.length}`);
-  for (let offset = 0; offset < pending.length; offset += BATCH_SIZE) {
-    const batch = pending.slice(offset, offset + BATCH_SIZE);
+  const selectedPending = runOptions.runAll ? pending : pending.slice(0, runOptions.maxItems);
+  const plannedBatches = Math.ceil(selectedPending.length / BATCH_SIZE);
+  console.log(JSON.stringify({
+    pending: pending.length,
+    selected: selectedPending.length,
+    batchSize: BATCH_SIZE,
+    minimumGeminiRequests: plannedBatches * 2,
+    note: pending.length > selectedPending.length
+      ? 'Only the selected subset will run. Bulk generation requires explicit approval.'
+      : 'All pending items are selected.',
+  }, null, 2));
+  for (let offset = 0; offset < selectedPending.length; offset += BATCH_SIZE) {
+    const batch = selectedPending.slice(offset, offset + BATCH_SIZE);
     const results = await processBatch(ai, batch);
     for (const result of results) {
       writeJson(path.join(RESULT_CACHE_DIR, `${cacheKey(result.kanji)}.json`), result);
@@ -213,11 +239,11 @@ async function main() {
       };
     }
     writeJson(OUTPUT_PATH, existing);
-    console.log(`Reviewed ${Math.min(offset + BATCH_SIZE, pending.length)}/${pending.length}; accepted ${Object.keys(existing).length}`);
+    console.log(`Reviewed ${Math.min(offset + BATCH_SIZE, selectedPending.length)}/${selectedPending.length}; accepted ${Object.keys(existing).length}`);
   }
 
   writeJson(OUTPUT_PATH, existing);
-  console.log(JSON.stringify({ accepted: Object.keys(existing).length, pending: pending.length }, null, 2));
+  console.log(JSON.stringify({ accepted: Object.keys(existing).length, pending: pending.length, selected: selectedPending.length }, null, 2));
 }
 
 main().catch((error) => {

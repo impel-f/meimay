@@ -14,8 +14,8 @@ const {
 } = require("./_lib/firebase-admin");
 
 const MODEL_REQUEST_TIMEOUT_MS = 12_000;
-const GEMINI_RATE_LIMIT_PER_MINUTE = 20;
-const GEMINI_RATE_LIMIT_PER_DAY = 200;
+const GEMINI_RATE_LIMIT_PER_MINUTE = 5;
+const GEMINI_RATE_LIMIT_PER_DAY = 30;
 const GEMINI_USAGE_COLLECTION = "gemini_api_usage";
 const ALLOWED_TASK_TYPES = new Set(["kanjiFact", "nameOrigin"]);
 const MAX_PROMPT_LENGTH = 16_000;
@@ -117,6 +117,7 @@ function buildGenerationConfig(taskType = '') {
     config.temperature = 0.1;
     config.tools = [{ googleSearch: {} }];
   } else if (taskType === 'nameOrigin') {
+    config.maxOutputTokens = 1024;
     config.temperature = 0.2;
   }
   return config;

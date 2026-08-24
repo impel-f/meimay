@@ -75,7 +75,7 @@ test('kanji fact checks use low-temperature Google Search grounding', () => {
 
 test('name origins use a lower temperature without web grounding', () => {
   assert.deepEqual(buildGenerationConfig('nameOrigin'), {
-    maxOutputTokens: 2048,
+    maxOutputTokens: 1024,
     httpOptions: {
       timeout: 12_000,
     },
@@ -155,6 +155,22 @@ test('Gemini abuse counters reset by minute and JST date', () => {
   const nextMinute = buildRateLimitUpdate(next, new Date('2026-08-16T03:05:00.000Z'));
   assert.equal(nextMinute.minuteCount, 1);
   assert.equal(nextMinute.dailyCount, 3);
+});
+
+test('Gemini abuse counters cap requests before costly model generation', () => {
+  const now = new Date('2026-08-16T03:04:05.000Z');
+  assert.throws(() => buildRateLimitUpdate({
+    minuteKey: '2026-08-16T03:04',
+    minuteCount: 5,
+    dateKey: '2026-08-16',
+    dailyCount: 5,
+  }, now), /limit exceeded/);
+  assert.throws(() => buildRateLimitUpdate({
+    minuteKey: '2026-08-16T03:03',
+    minuteCount: 0,
+    dateKey: '2026-08-16',
+    dailyCount: 30,
+  }, now), /limit exceeded/);
 });
 
 test('Gemini rejects empty model responses and continues fallback', async () => {
