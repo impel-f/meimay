@@ -33,6 +33,18 @@ function getSourceDomain(url) {
 }
 
 function getReviewState(entry) {
+  if (entry?.verificationStatus === 'source_grounded' && entry?.fixedOriginText) {
+    const detail = entry?.reviewMethod === 'source_grounded_variant_inheritance'
+      ? `出典準拠の標準字体「${entry.originSourceKanji || ''}」から継承`
+      : (entry?.reviewMethod === 'manual_source_review'
+        ? '辞典本文を個別確認し、表示文を手動確定済み'
+        : '辞典本文の範囲で生成し、別工程で原文照合済み');
+    return {
+      id: 'source-grounded',
+      label: '公開可能（出典準拠）',
+      detail
+    };
+  }
   if (entry?.verificationStatus === 'cross_checked' && entry?.fixedOriginText) {
     const sourceTemplate = entry?.reviewMethod === 'source_template';
     const variantInheritance = entry?.reviewMethod === 'variant_inheritance';
@@ -180,6 +192,7 @@ const html = `<!doctype html>
     .score { font-family: Georgia, serif; font-size: 16px; font-weight: 700; }
     .badge { display: inline-flex; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .reviewed { color: #fff; background: var(--green); }
+    .source-grounded { color: #315f78; background: #d9edf4; }
     .reviewed-structured { color: #fff; background: var(--blue); }
     .needs-cross-check { color: #6d4a10; background: #f5dca7; }
     .unreviewed { color: #7b3d3a; background: #f3d0cc; }
@@ -230,11 +243,12 @@ const html = `<!doctype html>
     const data = ${reportData};
     const labels = {
       reviewed: '公開可能',
+      'source-grounded': '公開可能（出典準拠）',
       'reviewed-structured': '公開可能（構造化）',
       'needs-cross-check': '要追加確認',
       unreviewed: '未検証'
     };
-    const summaryOrder = ['total', 'reviewed', 'reviewed-structured', 'needs-cross-check', 'unreviewed'];
+    const summaryOrder = ['total', 'reviewed', 'source-grounded', 'reviewed-structured', 'needs-cross-check', 'unreviewed'];
     const summaryLabels = { total: '全体', ...labels };
     document.getElementById('summary').innerHTML = summaryOrder.map((key) =>
       '<article class="metric"><span>' + summaryLabels[key] + '</span><b>' + (data.summary[key] || 0) + '</b></article>'

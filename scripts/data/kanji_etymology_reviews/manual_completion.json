@@ -1,0 +1,159 @@
+{
+  "芸": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「芸」は、「藝」を簡略化した新字体です。「藝」は、草木に関わる要素と、音も示す「埶」を組み合わせ、草木を植える意味から「わざ」「学問」「才能」などへ意味が広がりました。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "藝",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001828800",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字文化資料館",
+        "url": "https://kanjibunka.com/kanji-faq/old-faq/q0289/",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "祢": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「祢」は、「禰」の異体字です。「禰」は、祭祀に関わる「示」と、音を表す「爾」を組み合わせた形声文字で、父祖をまつるみたまやや、戦いに携える位牌を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "禰",
+    "semanticComponent": "示",
+    "phoneticComponent": "爾",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004996300",
+        "kind": "etymology"
+      },
+      {
+        "name": "教育部異體字字典",
+        "url": "https://dict.variants.moe.edu.tw/dictView.jsp?ID=21445&powerMode=2",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "勒": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「勒」は、意味に関わる「革」と、音を表す「力」を組み合わせた形声文字です。馬のくつわやおもがいを表し、そこから「おさえる」「ととのえる」「きざむ」などの意味にも用いられます。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "革",
+    "phoneticComponent": "力",
+    "sources": [
+      {
+        "name": "コトバンク（字通）",
+        "url": "https://kotobank.jp/word/%E5%8B%92-663262",
+        "kind": "etymology"
+      },
+      {
+        "name": "Wiktionary",
+        "url": "https://ja.wiktionary.org/wiki/%E5%8B%92",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "栖": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「栖」は、意味に関わる「木」と、音を表す「西」を組み合わせた後世の形声文字で、「棲」の異体字です。鳥が木をねぐらにすることから、「すむ」「すみか」などの意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "棲",
+    "semanticComponent": "木",
+    "phoneticComponent": "西",
+    "sources": [
+      {
+        "name": "教育部異體字字典",
+        "url": "https://dict.variants.moe.edu.tw/dictView.jsp?ID=21445&powerMode=2",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanjitisiki.com/zinmei/230.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "晄": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「晄」は、意味に関わる「日」と、音を表す「光」を組み合わせた形声文字です。「晃」の異体字として用いられ、日の光が明るく輝くさまを表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "晃",
+    "semanticComponent": "日",
+    "phoneticComponent": "光",
+    "sources": [
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanjitisiki.com/zinmei/196.html",
+        "kind": "etymology"
+      }
+    ]
+  },
+  "祷": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「祷」は、「禱」を簡略化した字体です。「禱」は、祭祀に関わる「示」と、音を表す「壽」を組み合わせた形声文字で、神に「いのる」「まつる」意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "禱",
+    "semanticComponent": "示",
+    "phoneticComponent": "壽",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005246200",
+        "kind": "etymology"
+      }
+    ]
+  },
+  "梛": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「梛」は、意味に関わる「木」と、音を表す「那」を組み合わせた形声文字です。暖地に育つマキ科の常緑高木「なぎ」を表し、神木としても知られます。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "木",
+    "phoneticComponent": "那",
+    "sources": [
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanjitisiki.com/zinmei/236.html",
+        "kind": "etymology"
+      }
+    ]
+  },
+  "裡": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「裡」は、意味に関わる「衣」と、音を表す「里」を組み合わせた形声文字です。「裏」と同じ系統の異体字で、衣のうら側から「うち」「なか」の意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "裏",
+    "semanticComponent": "衣",
+    "phoneticComponent": "里",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/35023",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanjitisiki.com/zinmei/532.html",
+        "kind": "cross_check"
+      }
+    ]
+  }
+}

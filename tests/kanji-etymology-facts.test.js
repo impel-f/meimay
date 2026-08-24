@@ -7,6 +7,8 @@ const facts = require('../public/data/kanji_etymology_facts.json');
 const master = require('../public/data/kanji_data.json');
 const sourceIndex = require('../scripts/data/kanji_etymology_source_index.json');
 const autoVerified = require('../scripts/data/kanji_etymology_reviews/auto_verified.json');
+const sourceGrounded = require('../scripts/data/kanji_etymology_reviews/ai_source_grounded.json');
+const manualCompletion = require('../scripts/data/kanji_etymology_reviews/manual_completion.json');
 const masterByKanji = new Map(master.map((row) => [row['漢字'], row]));
 const originSource = fs.readFileSync(
   path.join(__dirname, '..', 'public', 'js', '08-origin.js'),
@@ -14,7 +16,7 @@ const originSource = fs.readFileSync(
 );
 
 const ALLOWED_TYPES = new Set(['象形', '指事', '会意', '形声', '会意形声', '仮借']);
-const ALLOWED_STATUSES = new Set(['component_only', 'single_source', 'cross_checked']);
+const ALLOWED_STATUSES = new Set(['source_grounded', 'cross_checked']);
 const BANNED_PROSE_KEYS = new Set(['text', 'description', 'originText', 'explanation']);
 const PRIORITY_REVIEWED_KANJI = Array.from(
   '一大仁正光良志空知明幸和英昇昌茉春星昭美洋勇泉奏香咲俊祐亮真航笑桜純恵華悟哲剛珠泰桂晃浩隼晋栞凉理章'
@@ -32,7 +34,14 @@ test('etymology facts contain source-backed structured data without copied prose
     entry.formationTypes.forEach((type) => assert.ok(ALLOWED_TYPES.has(type), `${kanji}: unsupported type ${type}`));
     assert.ok(ALLOWED_STATUSES.has(entry.verificationStatus), `${kanji}: invalid verification status`);
     assert.ok(Array.isArray(entry.sources), `${kanji}: sources must be an array`);
+    assert.ok(entry.sources.length > 0, `${kanji}: source evidence is required`);
     entry.sources.forEach((source) => assert.match(source.url, /^https:\/\//));
+    assert.ok(entry.fixedOriginText?.length >= 35 && entry.fixedOriginText.length <= 150, `${kanji}: invalid fixed prose`);
+    assert.doesNotMatch(
+      entry.fixedOriginText.replace(`「${kanji}」`, ''),
+      /[\u{20000}-\u{2FA1F}]/u,
+      `${kanji}: unsupported extension glyph in published prose`
+    );
     Object.keys(entry).forEach((key) => assert.ok(!BANNED_PROSE_KEYS.has(key), `${kanji}: prose field ${key}`));
   }
 });
@@ -107,7 +116,7 @@ test('priority batch has fixed prose backed by independent source domains', () =
 });
 
 test('full source index covers all kanji and automatic reviews fail closed', () => {
-  assert.equal(sourceIndex.schemaVersion, 2);
+  assert.equal(sourceIndex.schemaVersion, 3);
   assert.equal(Object.keys(sourceIndex.entries).length, 3000);
   assert.deepEqual(sourceIndex.failures, []);
   assert.ok(Object.keys(autoVerified).length >= 1400);
@@ -115,10 +124,16 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
   for (const [kanji, review] of Object.entries(autoVerified)) {
     const sourceEntry = sourceIndex.entries[kanji];
     const fact = facts.entries[kanji];
-    assert.ok(['source_template', 'variant_inheritance'].includes(review.reviewMethod), `${kanji}: missing review method`);
+    assert.ok([
+      'source_template',
+      'variant_inheritance',
+      'source_grounded_variant_inheritance'
+    ].includes(review.reviewMethod), `${kanji}: missing review method`);
     if (review.reviewMethod === 'source_template') {
       assert.equal(sourceEntry?.agreement?.status, 'matched', `${kanji}: source types disagree`);
-      assert.equal(sourceEntry?.kanjipedia?.hasUnresolvedGlyph, false, `${kanji}: unresolved source glyph`);
+      const hasSafePrimaryText = sourceEntry?.kanjipedia?.hasUnresolvedGlyph === false
+        || sourceEntry?.kanjitisikiDetail?.status === 'ok';
+      assert.equal(hasSafePrimaryText, true, `${kanji}: unresolved source glyph`);
       const formationType = review.formationTypes[0];
       const supportingSources = sourceEntry?.agreement?.sourcesByType?.[formationType] || [];
       const supportingDomains = new Set(supportingSources.map((source) => new URL(source.url).hostname));
@@ -126,7 +141,15 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
     } else {
       const row = masterByKanji.get(kanji) || {};
       const sourceFact = facts.entries[review.originSourceKanji];
+      const inheritedSourceUrls = new Set((review.sources || []).map((source) => source.url));
+      const standardSourceUrls = new Set((sourceFact?.sources || []).map((source) => source.url));
+      const hasExplicitVariantMapping = row['標準字体'] === review.originSourceKanji
+        && ['旧字体', '異体字', '別体'].includes(row['字形種別'])
+        && review.fixedOriginText.startsWith(`「${kanji}」`)
+        && inheritedSourceUrls.size > 0
+        && [...inheritedSourceUrls].every((url) => standardSourceUrls.has(url));
       const safeInheritance = kanji.normalize('NFKC') === review.originSourceKanji
+        || hasExplicitVariantMapping
         || (row['字形種別'] === '旧字体' && sourceFact?.fixedOriginText?.startsWith(`「${review.originSourceKanji}」の旧字`))
         || (row['字形種別'] === '旧字体' && sourceFact?.fixedOriginText?.startsWith(`「${review.originSourceKanji}」のもとになった旧字`))
         || sourceFact?.fixedOriginText?.includes(kanji);
@@ -145,12 +168,40 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
       `${kanji}: unsupported extension glyph in generated prose`
     );
     assert.equal(fact?.reviewMethod, review.reviewMethod, `${kanji}: review method was not propagated`);
-    assert.equal(fact?.verificationStatus, 'cross_checked', `${kanji}: generated fact is not cross-checked`);
+    const expectedStatus = review.reviewMethod === 'source_grounded_variant_inheritance'
+      ? 'source_grounded'
+      : 'cross_checked';
+    assert.equal(fact?.verificationStatus, expectedStatus, `${kanji}: generated fact has the wrong evidence status`);
     const domains = new Set(fact.sources
       .filter((source) => source.kind !== 'visual_components')
       .map((source) => new URL(source.url).hostname.replace(/^www\./, '')));
     const requiredDomains = review.reviewMethod === 'source_template' ? 2 : 1;
     assert.ok(domains.size >= requiredDomains, `${kanji}: requires ${requiredDomains} source domain(s)`);
+  }
+});
+
+test('source-grounded reviews retain explicit evidence and propagate without weakening status', () => {
+  const reviews = { ...sourceGrounded, ...manualCompletion };
+  assert.ok(Object.keys(reviews).length >= 500);
+
+  for (const [kanji, review] of Object.entries(reviews)) {
+    const fact = facts.entries[kanji];
+    assert.ok([
+      'source_grounded_ai_review',
+      'source_grounded_variant_inheritance',
+      'manual_source_review'
+    ].includes(review.reviewMethod), `${kanji}: invalid source-grounded review method`);
+    assert.ok(review.fixedOriginText?.length >= 35 && review.fixedOriginText.length <= 150, `${kanji}: invalid prose length`);
+    assert.doesNotMatch(
+      review.fixedOriginText.replace(`「${kanji}」`, ''),
+      /[\u{20000}-\u{2FA1F}]/u,
+      `${kanji}: unsupported extension glyph in source-grounded prose`
+    );
+    assert.ok(Array.isArray(review.sources) && review.sources.length > 0, `${kanji}: missing source evidence`);
+    review.sources.forEach((source) => assert.match(source.url, /^https:\/\//));
+    assert.equal(fact?.reviewMethod, review.reviewMethod, `${kanji}: review method was not propagated`);
+    assert.equal(fact?.verificationStatus, 'source_grounded', `${kanji}: invalid published status`);
+    assert.equal(fact?.fixedOriginText, review.fixedOriginText, `${kanji}: published prose differs from review`);
   }
 });
 

@@ -2050,7 +2050,7 @@ const KANJI_DETAIL_SECTION_ICON_MAP = {
 };
 
 const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.24';
-const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.07';
+const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.08';
 const KANJI_COMPOUNDS_URL = '/data/kanji_compounds.json?v=26.03';
 let kanjiDetailDatasetPromise = null;
 let kanjiEtymologyFactsPromise = null;

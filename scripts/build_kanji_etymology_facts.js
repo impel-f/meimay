@@ -176,9 +176,15 @@ function mergeEntry(base, override) {
     .filter(Boolean));
   const hasCrossCheck = evidenceDomains.size >= 2
     || merged.sources.some((source) => source.kind === 'cross_check');
-  merged.verificationStatus = hasCrossCheck
-    ? 'cross_checked'
-    : (merged.formationTypes.length ? 'single_source' : 'component_only');
+  merged.verificationStatus = [
+    'source_grounded_ai_review',
+    'source_grounded_variant_inheritance',
+    'manual_source_review'
+  ].includes(reviewMethod)
+    ? 'source_grounded'
+    : (hasCrossCheck
+      ? 'cross_checked'
+      : (merged.formationTypes.length ? 'single_source' : 'component_only'));
   return merged;
 }
 
@@ -244,7 +250,7 @@ async function main() {
     if (entry.formationTypes.length) summary.withFormationType += 1;
     if (entry.visualComponents?.length) summary.withVisualComponents += 1;
     return summary;
-  }, { total: 0, component_only: 0, single_source: 0, cross_checked: 0, withFormationType: 0, withVisualComponents: 0 });
+  }, { total: 0, component_only: 0, single_source: 0, source_grounded: 0, cross_checked: 0, withFormationType: 0, withVisualComponents: 0 });
 
   console.log(`Wrote ${path.relative(ROOT, OUTPUT_PATH)}`);
   console.log(JSON.stringify(counts, null, 2));
