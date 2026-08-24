@@ -8,6 +8,8 @@ release/app-store-screenshots/**/.profiles/
 .codex/
 .codex-remote-attachments/
 tmp/screenshots/
+__pycache__/
+*.pyc
 release/*.aab
 release/app-store-screenshots/
 release/google-play-listing/

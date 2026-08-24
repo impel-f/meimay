@@ -34,10 +34,16 @@ function getSourceDomain(url) {
 
 function getReviewState(entry) {
   if (entry?.verificationStatus === 'cross_checked' && entry?.fixedOriginText) {
+    const sourceTemplate = entry?.reviewMethod === 'source_template';
+    const variantInheritance = entry?.reviewMethod === 'variant_inheritance';
     return {
       id: 'reviewed',
       label: '公開可能',
-      detail: '2系統以上で照合し、表示文を確定済み'
+      detail: variantInheritance
+        ? `照合済みの標準字体「${entry.originSourceKanji || ''}」から継承`
+        : (sourceTemplate
+          ? '2系統の分類一致と公式本文の構造抽出で確定'
+          : '2系統以上で照合し、表示文を手動確定済み')
     };
   }
   if (
@@ -110,6 +116,8 @@ const rows = master.map((item, originalIndex) => {
     formationTypes: Array.isArray(entry.formationTypes) ? entry.formationTypes : [],
     semanticComponent: entry.semanticComponent || '',
     phoneticComponent: entry.phoneticComponent || '',
+    reviewMethod: entry.reviewMethod || 'manual',
+    originSourceKanji: entry.originSourceKanji || '',
     originText: buildOriginText(kanji, entry),
     state,
     sources

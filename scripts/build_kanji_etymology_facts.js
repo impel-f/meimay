@@ -155,9 +155,13 @@ function mergeEntry(base, override) {
     ? clean(override.phoneticComponent)
     : clean(base.phoneticComponent);
   const fixedOriginText = clean(override?.fixedOriginText || base.fixedOriginText);
+  const reviewMethod = clean(override?.reviewMethod || base.reviewMethod);
+  const originSourceKanji = clean(override?.originSourceKanji || base.originSourceKanji);
   if (semanticComponent) merged.semanticComponent = semanticComponent;
   if (phoneticComponent) merged.phoneticComponent = phoneticComponent;
   if (fixedOriginText) merged.fixedOriginText = fixedOriginText;
+  if (reviewMethod) merged.reviewMethod = reviewMethod;
+  if (originSourceKanji) merged.originSourceKanji = originSourceKanji;
 
   if (!merged.structure) delete merged.structure;
   const hasCrossCheck = merged.sources.some((source) => source.kind === 'cross_check');
