@@ -47,6 +47,18 @@ test('kanji detail runtime uses the bundled static dataset before legacy generat
   assert.match(source, /【名づけ利用】/);
 });
 
+test('Codex-reviewed kanji details override generated enrichment without mutating its source', () => {
+  const builder = fs.readFileSync(path.join(root, 'scripts', 'build_static_kanji_details.js'), 'utf8');
+  const reviews = require('../scripts/data/kanji_static_codex_reviews.json');
+  assert.equal(reviews.schemaVersion, 1);
+  assert.equal(reviews.reviewer, 'codex-5.6sol');
+  assert.deepEqual(reviews.entries, {});
+  assert.match(builder, /codexReviews\[kanji\]\?\.status === 'reviewed'/);
+  assert.match(builder, /review\.namingMeaning \|\| enriched\.namingMeaning/);
+  assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);
+  assert.match(builder, /Array\.isArray\(review\.compounds\)/);
+});
+
 test('name-origin prompt uses fixed meanings and produces one editable origin draft', () => {
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
   assert.match(source, /kanjiStaticDetailsCache\?\.\[kanji\]\?\.namingMeaning/);

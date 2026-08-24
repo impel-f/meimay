@@ -6,6 +6,7 @@ const MASTER_PATH = path.join(ROOT, 'public', 'data', 'kanji_data.json');
 const MEANINGS_PATH = path.join(ROOT, 'public', 'data', 'kanji_meaning_details.json');
 const ETYMOLOGY_PATH = path.join(ROOT, 'public', 'data', 'kanji_etymology_facts.json');
 const ENRICHMENT_PATH = path.join(__dirname, 'data', 'kanji_static_enrichment.json');
+const CODEX_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_static_codex_reviews.json');
 const OUTPUT_PATH = path.join(ROOT, 'public', 'data', 'kanji_static_details.json');
 
 function readJson(filePath, fallback = {}) {
@@ -36,17 +37,22 @@ function main() {
   const meanings = readJson(MEANINGS_PATH, {});
   const etymologies = readJson(ETYMOLOGY_PATH, { entries: {} }).entries || {};
   const enrichment = readJson(ENRICHMENT_PATH, {});
+  const codexReviews = readJson(CODEX_REVIEW_PATH, { entries: {} }).entries || {};
   const entries = {};
 
   for (const row of master) {
     const kanji = clean(row['漢字']);
     const etymology = etymologies[kanji] || {};
     const enriched = enrichment[kanji] || {};
+    const review = codexReviews[kanji]?.status === 'reviewed' ? codexReviews[kanji] : {};
     const meaningDetail = clean(meanings[kanji]?.meaning || row['意味']);
-    if (!kanji || !meaningDetail || !clean(etymology.fixedOriginText)) {
+    const fixedOriginText = clean(review.etymologyText || etymology.fixedOriginText);
+    const namingMeaning = clean(review.namingMeaning || enriched.namingMeaning);
+    const compounds = Array.isArray(review.compounds) ? review.compounds : enriched.compounds;
+    if (!kanji || !meaningDetail || !fixedOriginText) {
       throw new Error(`${kanji || '(empty)'}: static detail source is incomplete`);
     }
-    if (!clean(enriched.namingMeaning)) {
+    if (!namingMeaning) {
       throw new Error(`${kanji}: static enrichment is missing`);
     }
 
@@ -54,7 +60,7 @@ function main() {
       meaningSummary: clean(row['意味']),
       meaningDetail,
       // A single factual sentence belongs here; wishes are composed for the full name elsewhere.
-      namingMeaning: getFactualNamingMeaning(enriched.namingMeaning),
+      namingMeaning: getFactualNamingMeaning(namingMeaning),
       readings: {
         on: clean(row['音']),
         kun: clean(row['訓']),
@@ -67,11 +73,11 @@ function main() {
         standardForm: clean(row['標準字体']),
       },
       etymology: {
-        text: clean(etymology.fixedOriginText),
+        text: fixedOriginText,
         formationTypes: Array.isArray(etymology.formationTypes) ? etymology.formationTypes : [],
         reviewStatus: clean(etymology.verificationStatus),
       },
-      compounds: (Array.isArray(enriched.compounds) ? enriched.compounds : []).slice(0, 3),
+      compounds: (Array.isArray(compounds) ? compounds : []).slice(0, 3),
     };
   }
 
@@ -82,6 +88,7 @@ function main() {
       'kanji_meaning_details.json',
       'kanji_etymology_facts.json',
       'kanji_static_enrichment.json',
+      'kanji_static_codex_reviews.json',
     ],
     entries,
   };
