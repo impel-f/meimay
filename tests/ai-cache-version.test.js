@@ -76,9 +76,11 @@ test('persisted name origins remain visible without regeneration after cache ver
   assert.ok(modelMetadataRead > persistedRead, 'saved origin should render before model/cache lookup');
 });
 
-test('the app UI does not expose the third-party data source screen', () => {
+test('the app keeps data licenses out of kanji details and exposes them only in legal settings', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'index.html'), 'utf8');
   const drawerSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', '13-drawer-wizard.js'), 'utf8');
-  assert.doesNotMatch(indexSource, /legal-tab-sources/);
+  const legalSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'data', 'legal-docs.js'), 'utf8');
+  assert.match(indexSource, /legal-tab-sources/);
+  assert.match(legalSource, /JMdict \/ EDRDG/);
   assert.doesNotMatch(drawerSource, /legal-sources|データの出典/);
 });

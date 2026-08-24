@@ -450,6 +450,7 @@ function renderSettingsScreen() {
             ${renderSection('ヘルプと情報', `
                 ${renderItem({ title: '利用規約', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('terms');}" })}
                 ${renderItem({ title: 'プライバシーポリシー', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}" })}
+                ${renderItem({ title: '利用データ・ライセンス', onClick: "if(typeof openLegalScreen==='function'){openLegalScreen('sources');}" })}
             `)}
 
             ${renderSection('お問い合わせ', `
@@ -868,6 +869,10 @@ function openLegalSettingsSheet() {
                     <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('privacy');}">
                         <span>プライバシーポリシー</span>
                         <strong>›</strong>
+                    </button>
+                    <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('sources');}">
+                        <span>利用データ・ライセンス</span>
+                        <span aria-hidden="true">›</span>
                     </button>
                     <button type="button" class="settings-sheet-row settings-sheet-link" onclick="closeLegalSettingsSheet(); if(typeof openLegalScreen==='function'){openLegalScreen('contact');}">
                         <span>お問い合わせ</span>

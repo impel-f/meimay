@@ -34,18 +34,19 @@ test('kanji prompt lets AI rank only verified compounds and requires meanings', 
 });
 
 test('name origin output merges the family message and wish without duplicate sections', () => {
-  assert.match(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
-  assert.match(originSource, /家族に伝える願い/);
-  assert.doesNotMatch(originSource, /キーは必ず "decision", "wish", "sound", "familyLine"/);
-  assert.match(originSource, /decisionは35〜60字/);
-  assert.match(originSource, /soundは25〜45字/);
-  assert.match(originSource, /「選ばれます」のような受け身の説明口調を使わない/);
+    assert.match(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
+    assert.match(originSource, /この名前に込める願い/);
+    assert.doesNotMatch(originSource, /キーは必ず "decision", "wish", "sound", "familyLine"/);
+    assert.match(originSource, /decisionは70〜120字/);
+    assert.match(originSource, /wishは互換性維持用のため、必ず空文字にする/);
+    assert.match(originSource, /soundは25〜45字/);
+    assert.doesNotMatch(originSource, /renderNameOriginSection\('この名前の決め手'/);
 });
 
 test('kanji details put naming meaning first and cap visible idioms', () => {
-  assert.match(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \['意味の深掘り', '成り立ち'\]/);
-  assert.match(originSource, /dedupeRepresentativeIdiomLines\(filtered\)\.slice\(0, 3\)/);
-  assert.match(originSource, /元々の意味、名前に使うときのニュアンス、広がりを60〜100文字/);
+    assert.match(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \['名づけでの意味', '成り立ち', '名づけ利用'\]/);
+    assert.match(originSource, /dedupeRepresentativeIdiomLines\(filtered\)\.slice\(0, 3\)/);
+    assert.match(originSource, /const staticDetails = await loadKanjiStaticDetails\(\)/);
 });
 
 test('Gemini generation requests require Firebase authentication headers', () => {

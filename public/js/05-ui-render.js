@@ -208,41 +208,20 @@ function getSwipeEmptyStateAllKanjiSearchCount(reading) {
 }
 
 function isKanjiDetailAiAvailableForCurrentUser() {
-    const premiumActive = typeof PremiumManager !== 'undefined' && PremiumManager.isPremium && PremiumManager.isPremium();
-    return premiumActive || !(typeof canUseDailyKanjiDetailAI === 'function') || canUseDailyKanjiDetailAI();
+    return true;
 }
 
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
     if (!button) return false;
 
-    const currentKanji = _currentDetailData && _currentDetailData['漢字'] ? _currentDetailData['漢字'] : '';
-    const cachedText = currentKanji ? getCachedKanjiDetailText(currentKanji) : '';
-    const hasCachedDetail = !!cachedText;
-    const aiAvailable = !hasCachedDetail && isKanjiDetailAiAvailableForCurrentUser();
     const availableClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
-    const unavailableClass = 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
-    button.className = aiAvailable ? availableClass : unavailableClass;
-    button.disabled = !aiAvailable;
-    button.setAttribute('aria-disabled', String(!aiAvailable));
+    button.className = availableClass;
+    button.disabled = false;
+    button.setAttribute('aria-disabled', 'false');
     button.removeAttribute('aria-busy');
-    button.innerHTML = hasCachedDetail
-        ? '<span>✓</span> AI深掘り済み'
-        : `<span>🤖</span> ${aiAvailable ? 'AIで漢字の成り立ち・意味を深掘り' : '今日のAI深掘りは終了しました'}`;
-
-    let note = document.getElementById('kanji-detail-ai-limit-note');
-    if (hasCachedDetail && note) {
-        note.remove();
-    } else if (!aiAvailable && !hasCachedDetail && !note) {
-        note = document.createElement('p');
-        note.id = 'kanji-detail-ai-limit-note';
-        note.className = 'mt-2 text-[11px] text-[#a59683] text-center';
-        note.textContent = '無料会員は 1 日 1 回までです';
-        button.insertAdjacentElement('afterend', note);
-    } else if ((aiAvailable || hasCachedDetail) && note) {
-        note.remove();
-    }
-
-    return aiAvailable;
+    button.innerHTML = '<span>📖</span> 意味・成り立ちを詳しく見る';
+    document.getElementById('kanji-detail-ai-limit-note')?.remove();
+    return true;
 }
 window.refreshKanjiDetailAiButtonState = refreshKanjiDetailAiButtonState;
 
@@ -254,7 +233,7 @@ function setKanjiDetailAiButtonLoadingState(button = document.getElementById('bt
     button.setAttribute('aria-busy', 'true');
     button.innerHTML = `
         <span class="w-4 h-4 rounded-full border-2 border-[#d4c5af] border-t-[#8b7e66] animate-spin" aria-hidden="true"></span>
-        <span>AI深掘りを取得中...</span>
+        <span>詳しい情報を読み込み中...</span>
     `;
 }
 window.setKanjiDetailAiButtonLoadingState = setKanjiDetailAiButtonLoadingState;
@@ -992,19 +971,12 @@ async function showKanjiDetail(data) {
         const aiSection = document.createElement('div');
         aiSection.id = 'btn-ai-kanji-detail';
         aiSection.className = 'w-full';
-        const aiAvailable = isKanjiDetailAiAvailableForCurrentUser();
-        const aiButtonClass = aiAvailable
-            ? 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm'
-            : 'w-full py-4 bg-[#efe9df] text-[#a59683] font-bold rounded-2xl shadow-sm border border-[#e0d8c9] flex items-center justify-center gap-2 text-sm cursor-not-allowed';
-        const aiButtonLabel = aiAvailable
-            ? 'AIで漢字の成り立ち・意味を深掘り'
-            : '今日のAI深掘りは終了しました';
+        const detailButtonClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
         aiSection.innerHTML = `
             <button id="btn-ai-kanji-detail-action" type="button"
-                    class="${aiButtonClass}" ${aiAvailable ? '' : 'disabled aria-disabled="true"'}>
-                <span>🤖</span> ${aiButtonLabel}
+                    class="${detailButtonClass}">
+                <span>📖</span> 意味・成り立ちを詳しく見る
             </button>
-            ${aiAvailable ? '' : '<p id="kanji-detail-ai-limit-note" class="mt-2 text-[11px] text-[#a59683] text-center">無料会員は 1 日 1 回までです</p>'}
         `;
 
         // 上部の固定エリアにボタンだけ置き、結果はスクロールエリアに表示する。
@@ -1018,60 +990,13 @@ async function showKanjiDetail(data) {
         }
 
         const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
-        const cachedRendered = renderCachedKanjiDetailIfAvailable(data['漢字']);
-        if (cachedRendered) refreshKanjiDetailAiButtonState(aiActionButton);
         if (aiActionButton) {
-            let longPressTimer = null;
-            let longPressTriggered = false;
-            const clearLongPress = () => {
-                if (longPressTimer) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                }
-            };
-            const startLongPress = () => {
-                clearLongPress();
-                longPressTriggered = false;
-                longPressTimer = setTimeout(async () => {
-                    longPressTriggered = true;
-                    if (typeof resetKanjiDetailCache === 'function') {
-                        await resetKanjiDetailCache(data['漢字'], currentReadingForAI);
-                    }
-                }, 5000);
-            };
-
-            aiActionButton.addEventListener('mousedown', startLongPress);
-            aiActionButton.addEventListener('touchstart', startLongPress, { passive: true });
-            aiActionButton.addEventListener('mouseup', clearLongPress);
-            aiActionButton.addEventListener('mouseleave', clearLongPress);
-            aiActionButton.addEventListener('touchend', clearLongPress);
-            aiActionButton.addEventListener('touchcancel', clearLongPress);
             aiActionButton.addEventListener('click', async (event) => {
-                if (longPressTriggered) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    longPressTriggered = false;
-                    return;
-                }
-
-                if (renderCachedKanjiDetailIfAvailable(data['漢字'])) {
-                    refreshKanjiDetailAiButtonState(aiActionButton);
-                    return;
-                }
-
-                const currentAiAvailable = isKanjiDetailAiAvailableForCurrentUser();
-                if (!currentAiAvailable) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    if (typeof showToast === 'function') {
-                        showToast('今日のAI深掘りは終了しました', '🌙');
-                    }
-                    return;
-                }
-
+                event.preventDefault();
                 setKanjiDetailAiButtonLoadingState(aiActionButton);
                 await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
-                refreshKanjiDetailAiButtonState(aiActionButton);
+                aiActionButton.innerHTML = '<span>✓</span> 詳しい情報を表示中';
+                aiActionButton.disabled = true;
             }, true);
         }
 
@@ -2124,7 +2049,7 @@ function renderHomePremiumTrialCard() {
     card.innerHTML = `
         <div class="home-premium-trial-card-copy">
             <div class="home-premium-trial-card-title">3日間無料でプレミアム体験</div>
-            <div class="home-premium-trial-card-body">人名用漢字やAI深掘りも使えます</div>
+            <div class="home-premium-trial-card-body">人名用漢字や詳しい漢字情報も使えます</div>
         </div>
         <button type="button" class="home-premium-trial-card-button">無料で試す</button>
     `;

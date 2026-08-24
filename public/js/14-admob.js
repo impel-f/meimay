@@ -3658,7 +3658,7 @@ function renderPremiumComparisonMatrix() {
         { item: '広告', free: '表示あり', premium: '非表示' },
         { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
         { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
-        { item: 'AI漢字深掘り', free: '1日1回', premium: '無制限' },
+        { item: '漢字の意味・成り立ち', free: 'すべて', premium: 'すべて' },
         { item: 'AI由来生成', free: '1日1回', premium: '無制限' }
     ];
 

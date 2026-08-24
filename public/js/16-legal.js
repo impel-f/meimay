@@ -6,12 +6,13 @@ function openLegalScreen(type = 'terms') {
 }
 
 function switchLegalTab(type) {
-    const normalizedType = ['terms', 'privacy', 'contact'].includes(type) ? type : 'terms';
+    const normalizedType = ['terms', 'privacy', 'contact', 'sources'].includes(type) ? type : 'terms';
     currentLegalTabType = normalizedType;
     const buttons = {
         terms: document.getElementById('legal-tab-terms'),
         privacy: document.getElementById('legal-tab-privacy'),
-        contact: document.getElementById('legal-tab-contact')
+        contact: document.getElementById('legal-tab-contact'),
+        sources: document.getElementById('legal-tab-sources')
     };
     const contentArea = document.getElementById('legal-content');
 
@@ -29,7 +30,8 @@ function switchLegalTab(type) {
         const contentByType = {
             terms: legalDocs.termsOfService || '',
             privacy: legalDocs.privacyPolicy || '',
-            contact: legalDocs.contactGuide || ''
+            contact: legalDocs.contactGuide || '',
+            sources: legalDocs.dataSources || ''
         };
         contentArea.innerHTML = contentByType[normalizedType] || contentByType.terms;
         if (normalizedType === 'contact' && typeof updateSupportCategoryHelp === 'function') {
@@ -121,11 +123,11 @@ const MEIMAY_SUPPORT_CATEGORIES = {
         ]
     },
     'ai-fortune': {
-        label: 'AI・運勢・候補内容',
-        description: '由来文、姓名判断、候補の出方への相談',
+        label: '由来・運勢・候補内容',
+        description: '由来文、漢字詳細、姓名判断、候補の出方への相談',
         prompts: [
             '気になった名前/漢字/読み:',
-            '気になった画面（由来文/姓名判断/ランキング/AI深掘りなど）:',
+            '気になった画面（由来文/漢字詳細/姓名判断/ランキングなど）:',
             '気になった内容:',
             '期待する説明や候補:',
             '再生成や保存で試した操作:',
