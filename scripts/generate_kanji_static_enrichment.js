@@ -23,9 +23,9 @@ function getRunOptions(argv = process.argv.slice(2)) {
     throw new Error('--max-items must be a positive integer');
   }
   const runAll = argv.includes('--all');
-  const bulkAllowed = process.env.MEIMAY_ALLOW_BULK_GEMINI === '1' && argv.includes('--confirm-cost');
-  if ((runAll || parsedMax > DEFAULT_MAX_ITEMS) && !bulkAllowed) {
-    throw new Error('Bulk Gemini generation is locked. After explicit cost approval, set MEIMAY_ALLOW_BULK_GEMINI=1 and pass --confirm-cost for this run.');
+  const generationApproved = process.env.MEIMAY_ALLOW_BULK_GEMINI === '1' && argv.includes('--confirm-cost');
+  if (!generationApproved) {
+    throw new Error('Gemini generation is locked. Development data must be created in the approved Codex session unless the user explicitly approves this paid API run.');
   }
   return { runAll, maxItems: parsedMax };
 }

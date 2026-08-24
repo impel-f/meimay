@@ -23,16 +23,22 @@ function runWithoutAiCredentials(script, args, extraEnv = {}) {
 }
 
 for (const script of scripts) {
+  test(`${script} blocks Gemini generation by default`, () => {
+    const result = runWithoutAiCredentials(script, []);
+    assert.notEqual(result.status, 0);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Gemini generation is locked/);
+  });
+
   test(`${script} blocks unapproved all-item Gemini runs`, () => {
     const result = runWithoutAiCredentials(script, ['--all']);
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Bulk Gemini generation is locked/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Gemini generation is locked/);
   });
 
   test(`${script} blocks unapproved runs over 30 items`, () => {
     const result = runWithoutAiCredentials(script, ['--max-items', '31']);
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Bulk Gemini generation is locked/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Gemini generation is locked/);
   });
 
   test(`${script} requires per-run confirmation even when bulk env is set`, () => {
@@ -40,6 +46,6 @@ for (const script of scripts) {
       MEIMAY_ALLOW_BULK_GEMINI: '1',
     });
     assert.notEqual(result.status, 0);
-    assert.match(`${result.stdout}\n${result.stderr}`, /Bulk Gemini generation is locked/);
+    assert.match(`${result.stdout}\n${result.stderr}`, /Gemini generation is locked/);
   });
 }
