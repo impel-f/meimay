@@ -37,6 +37,15 @@ test('etymology facts contain source-backed structured data without copied prose
   }
 });
 
+test('independent etymology domains count as a cross-check after source deduplication', () => {
+  const entry = facts.entries['丹'];
+  const domains = new Set(entry.sources
+    .filter((source) => source.kind !== 'visual_components')
+    .map((source) => new URL(source.url).hostname.replace(/^www\./, '')));
+  assert.ok(domains.size >= 2);
+  assert.equal(entry.verificationStatus, 'cross_checked');
+});
+
 test('every appropriate master kanji has a safe structure or visible components', () => {
   for (const row of master.filter((item) => Number(item['不適切フラグ'] || 0) !== 1)) {
     const kanji = row['漢字'];
@@ -98,6 +107,7 @@ test('priority batch has fixed prose backed by independent source domains', () =
 });
 
 test('full source index covers all kanji and automatic reviews fail closed', () => {
+  assert.equal(sourceIndex.schemaVersion, 2);
   assert.equal(Object.keys(sourceIndex.entries).length, 3000);
   assert.deepEqual(sourceIndex.failures, []);
   assert.ok(Object.keys(autoVerified).length >= 1400);
@@ -109,11 +119,16 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
     if (review.reviewMethod === 'source_template') {
       assert.equal(sourceEntry?.agreement?.status, 'matched', `${kanji}: source types disagree`);
       assert.equal(sourceEntry?.kanjipedia?.hasUnresolvedGlyph, false, `${kanji}: unresolved source glyph`);
+      const formationType = review.formationTypes[0];
+      const supportingSources = sourceEntry?.agreement?.sourcesByType?.[formationType] || [];
+      const supportingDomains = new Set(supportingSources.map((source) => new URL(source.url).hostname));
+      assert.ok(supportingDomains.size >= 2, `${kanji}: missing independent classification evidence`);
     } else {
       const row = masterByKanji.get(kanji) || {};
       const sourceFact = facts.entries[review.originSourceKanji];
       const safeInheritance = kanji.normalize('NFKC') === review.originSourceKanji
         || (row['字形種別'] === '旧字体' && sourceFact?.fixedOriginText?.startsWith(`「${review.originSourceKanji}」の旧字`))
+        || (row['字形種別'] === '旧字体' && sourceFact?.fixedOriginText?.startsWith(`「${review.originSourceKanji}」のもとになった旧字`))
         || sourceFact?.fixedOriginText?.includes(kanji);
       assert.ok(review.originSourceKanji, `${kanji}: missing inherited source kanji`);
       assert.ok(safeInheritance, `${kanji}: unsafe variant inheritance`);
@@ -121,8 +136,13 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
     assert.ok(review.fixedOriginText.length >= 40 && review.fixedOriginText.length <= 150, `${kanji}: invalid prose length`);
     assert.doesNotMatch(
       review.fixedOriginText,
-      /画像部品|字形には|分解情報|意符|義符|声符|音符|undefined|�|(?:た|だ|る|いる|れる|せる)の形|の形の形/i,
+      /画像部品|字形には|分解情報|意符|義符|声符|音符|undefined|�|(?:た|だ|る|いる|れる|せる)の形|の形の形/iu,
       `${kanji}: unsafe generated prose`
+    );
+    assert.doesNotMatch(
+      review.fixedOriginText.replace(`「${kanji}」`, ''),
+      /[\u{20000}-\u{2FA1F}]/u,
+      `${kanji}: unsupported extension glyph in generated prose`
     );
     assert.equal(fact?.reviewMethod, review.reviewMethod, `${kanji}: review method was not propagated`);
     assert.equal(fact?.verificationStatus, 'cross_checked', `${kanji}: generated fact is not cross-checked`);

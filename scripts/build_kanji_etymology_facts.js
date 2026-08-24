@@ -164,7 +164,18 @@ function mergeEntry(base, override) {
   if (originSourceKanji) merged.originSourceKanji = originSourceKanji;
 
   if (!merged.structure) delete merged.structure;
-  const hasCrossCheck = merged.sources.some((source) => source.kind === 'cross_check');
+  const evidenceDomains = new Set(merged.sources
+    .filter((source) => source.kind !== 'visual_components')
+    .map((source) => {
+      try {
+        return new URL(source.url).hostname.replace(/^www\./, '');
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean));
+  const hasCrossCheck = evidenceDomains.size >= 2
+    || merged.sources.some((source) => source.kind === 'cross_check');
   merged.verificationStatus = hasCrossCheck
     ? 'cross_checked'
     : (merged.formationTypes.length ? 'single_source' : 'component_only');

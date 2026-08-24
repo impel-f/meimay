@@ -56,7 +56,6 @@ def is_safe_component(value: str):
       0x3400 <= ord(char) <= 0x4DBF
       or 0x4E00 <= ord(char) <= 0x9FFF
       or 0xF900 <= ord(char) <= 0xFAFF
-      or 0x20000 <= ord(char) <= 0x2FA1F
       or char == "々"
       for char in value
   )
@@ -95,6 +94,7 @@ def extract_shape_subject(origin_text: str):
     while re.search(r"[（(][^（）()]*[）)]", subject):
       subject = re.sub(r"[（(][^（）()]*[）)]", "", subject)
     subject = clean(subject)
+    subject = re.sub(r"^.*、のち、", "", subject)
     if (
         subject
         and not re.search(r"[。；;（）()]|画像", subject)
@@ -135,7 +135,7 @@ def build_phonetic_text(kanji: str, origin_text: str, formation_type: str):
   phonetic = strip_annotation(match.group(2))
   if not is_safe_component(semantic) or not is_safe_component(phonetic):
     return None
-  old_prefix = "の旧字" if origin_text.startswith("旧字は、") else ""
+  old_prefix = "のもとになった旧字" if origin_text.startswith("旧字は、") else ""
   if formation_type == "会意形声":
     text = f"「{kanji}」{old_prefix}は、「{semantic}」と、音も示す「{phonetic}」を組み合わせた会意形声文字です。"
   else:
@@ -153,7 +153,7 @@ def build_ideographic_phonetic_text(kanji: str, origin_text: str):
     return None
   labels = "と".join(f"「{component}」" for component in components)
   phonetic = components[-1]
-  old_prefix = "の旧字" if origin_text.startswith("旧字は、") else ""
+  old_prefix = "のもとになった旧字" if origin_text.startswith("旧字は、") else ""
   text = (
       f"「{kanji}」{old_prefix}は、{labels}の意味を組み合わせ、"
       f"「{phonetic}」が音も示す会意形声文字です。"
@@ -172,7 +172,7 @@ def build_ideographic_text(kanji: str, origin_text: str):
   if len(components) < 2 or len(components) > 4:
     return None
   labels = "と".join(f"「{component}」" for component in components)
-  old_prefix = "の旧字" if origin_text.startswith("旧字は、") else ""
+  old_prefix = "のもとになった旧字" if origin_text.startswith("旧字は、") else ""
   return f"「{kanji}」{old_prefix}は、{labels}の意味を組み合わせた会意文字です。", components
 
 
@@ -215,7 +215,7 @@ def build_fixed_entry(kanji: str, row: dict, index_entry: dict, source_entry: di
     subject = extract_shape_subject(origin_text)
     if not subject:
       return None, "shape_parse_failed"
-    old_prefix = "の旧字" if origin_text.startswith("旧字は、") else ""
+    old_prefix = "のもとになった旧字" if origin_text.startswith("旧字は、") else ""
     fixed_text = f"「{kanji}」{old_prefix}は、{build_shape_phrase(subject)}をもとに作られた象形文字です。"
   else:
     return None, "requires_manual_review"
@@ -226,18 +226,27 @@ def build_fixed_entry(kanji: str, row: dict, index_entry: dict, source_entry: di
   if len(fixed_text) < 40 or len(fixed_text) > 135:
     return None, "length_out_of_range"
 
+  source_labels = {
+      "kanjipedia": "漢字ペディア",
+      "jigen": "字源.net",
+      "kanjitisiki": "漢字辞典オンライン",
+  }
+  supporting_sources = agreement.get("sourcesByType", {}).get(formation_type, [])
   sources = [
       {
-          "name": "字源.net",
-          "url": index_entry["jigen"]["url"],
-          "kind": "etymology",
-      },
-      {
-          "name": "漢字ペディア",
-          "url": index_entry["kanjipedia"]["url"],
-          "kind": "cross_check",
+          "name": source_labels[source["name"]],
+          "url": source["url"],
+          "kind": "etymology" if source["name"] == "kanjipedia" else "cross_check",
       }
+      for source in supporting_sources
+      if source.get("name") in source_labels and source.get("url")
   ]
+  source_domains = {
+      re.sub(r"^www\.", "", re.sub(r"^https?://", "", source["url"]).split("/", 1)[0])
+      for source in sources
+  }
+  if len(source_domains) < 2:
+    return None, "cross_check_missing"
   entry = {
       "formationTypes": [formation_type],
       "fixedOriginText": fixed_text,
@@ -272,7 +281,10 @@ def can_inherit_variant(kanji: str, row: dict, standard_kanji: str, standard_tex
   glyph_kind = clean(row.get("字形種別"))
   if kanji in standard_text and glyph_kind in ("旧字体", "異体字", "別体"):
     return True
-  return glyph_kind == "旧字体" and standard_text.startswith(f"「{standard_kanji}」の旧字")
+  return glyph_kind == "旧字体" and standard_text.startswith((
+      f"「{standard_kanji}」の旧字",
+      f"「{standard_kanji}」のもとになった旧字",
+  ))
 
 
 def inherit_variant_entry(kanji: str, row: dict, standard_kanji: str, standard_entry: dict):
@@ -282,6 +294,7 @@ def inherit_variant_entry(kanji: str, row: dict, standard_kanji: str, standard_e
   origin_sentence = first_sentence(standard_text)
   prefixes = (
       f"「{standard_kanji}」の旧字「{kanji}」は、",
+      f"「{standard_kanji}」のもとになった旧字は、",
       f"「{standard_kanji}」の旧字は、",
       f"「{standard_kanji}」は、",
   )

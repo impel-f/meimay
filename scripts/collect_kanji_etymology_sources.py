@@ -19,11 +19,18 @@ OUTPUT_PATH = ROOT / "scripts" / "data" / "kanji_etymology_source_index.json"
 CACHE_ROOT = ROOT / ".cache" / "meimay-data" / "etymology-sources"
 KANJIPEDIA_CACHE = CACHE_ROOT / "kanjipedia"
 JIGEN_CACHE = CACHE_ROOT / "jigen"
+KANJITISIKI_CACHE = CACHE_ROOT / "kanjitisiki-formations.json"
 
 KANJIPEDIA_SEARCH_URL = "https://www.kanjipedia.jp/search"
 KANJIPEDIA_BASE_URL = "https://www.kanjipedia.jp"
 JIGEN_SEARCH_URL = "https://jigen.net/data/{quoted}?type2=1"
 JIGEN_BASE_URL = "https://jigen.net"
+KANJITISIKI_FORMATION_URLS = {
+    "象形": "https://kanjitisiki.com/info/006-01.html",
+    "指事": "https://kanjitisiki.com/info/006-02.html",
+    "会意": "https://kanjitisiki.com/info/006-03.html",
+    "形声": "https://kanjitisiki.com/info/006-04.html",
+}
 USER_AGENT = "Meimay dictionary source verifier/1.0"
 FORMATION_TYPES = ("会意形声", "会意兼形声", "形声", "会意", "象形", "指事", "仮借")
 
@@ -113,6 +120,33 @@ def extract_formation_types(text: str):
     if canonical not in found:
       found.append(canonical)
   return found
+
+
+def formation_types_compatible(primary: str, supporting: str):
+  if primary == supporting:
+    return True
+  return {primary, supporting} <= {"形声", "会意形声"}
+
+
+def collect_kanjitisiki_formations(refresh=False):
+  if KANJITISIKI_CACHE.exists() and not refresh:
+    return load_json(KANJITISIKI_CACHE, {})
+
+  entries = {}
+  for formation_type, page_url in KANJITISIKI_FORMATION_URLS.items():
+    page_html = fetch_text(page_url)
+    page_soup = BeautifulSoup(page_html, "html.parser")
+    for anchor in page_soup.select("ul.itiran_kakoi a[href]"):
+      kanji = clean(anchor.get_text(" ", strip=True))
+      if len(kanji) != 1:
+        continue
+      entry = entries.setdefault(kanji, {"formationTypes": [], "urlsByType": {}})
+      if formation_type not in entry["formationTypes"]:
+        entry["formationTypes"].append(formation_type)
+      entry["urlsByType"][formation_type] = page_url
+
+  save_json(KANJITISIKI_CACHE, entries)
+  return entries
 
 
 def collect_kanjipedia(kanji: str, refresh=False):
@@ -216,19 +250,67 @@ def summarize_source(source: dict):
   }
 
 
-def collect_one(index: int, row: dict, facts: dict, refresh=False):
+def summarize_formation_source(source: dict):
+  formation_types = list(source.get("formationTypes", []))
+  source_value = "|".join(formation_types)
+  return {
+      "url": clean(source.get("url")),
+      "urlsByType": dict(source.get("urlsByType", {})),
+      "formationTypes": formation_types,
+      "status": clean(source.get("status")),
+      "hasUnresolvedGlyph": False,
+      "sourceHash": hashlib.sha256(source_value.encode("utf-8")).hexdigest() if source_value else "",
+  }
+
+
+def collect_one(index: int, row: dict, facts: dict, kanjitisiki_formations: dict, refresh=False):
   kanji = clean(row.get("漢字"))
   kanjipedia = collect_kanjipedia(kanji, refresh=refresh)
   jigen = collect_jigen(kanji, facts.get(kanji, {}), refresh=refresh)
-  kanjipedia_types = set(kanjipedia.get("formationTypes", []))
-  jigen_types = set(jigen.get("formationTypes", []))
-  agreed_types = sorted(kanjipedia_types & jigen_types, key=FORMATION_TYPES.index)
+  kanjitisiki = dict(kanjitisiki_formations.get(kanji, {}))
+  kanjitisiki.update({
+      "url": "",
+      "status": "ok" if kanjitisiki.get("formationTypes") else "not_found",
+  })
+  source_values = {
+      "kanjipedia": kanjipedia,
+      "jigen": jigen,
+      "kanjitisiki": kanjitisiki,
+  }
+  agreed_types = []
+  sources_by_type = {}
+  for primary_type in kanjipedia.get("formationTypes", []):
+    supporting_sources = []
+    for source_name, source in source_values.items():
+      matched_type = next((
+          formation_type
+          for formation_type in source.get("formationTypes", [])
+          if formation_types_compatible(primary_type, formation_type)
+      ), "")
+      if not matched_type:
+        continue
+      url = clean(source.get("url"))
+      if source_name == "kanjitisiki":
+        url = clean(source.get("urlsByType", {}).get(matched_type))
+      if url:
+        supporting_sources.append({
+            "name": source_name,
+            "formationType": matched_type,
+            "url": url,
+        })
+    if len(supporting_sources) >= 2:
+      agreed_types.append(primary_type)
+      sources_by_type[primary_type] = supporting_sources
+
+  agreed_types = sorted(set(agreed_types), key=FORMATION_TYPES.index)
   return index, kanji, {
       "kanjipedia": summarize_source(kanjipedia),
       "jigen": summarize_source(jigen),
+      "kanjitisiki": summarize_formation_source(kanjitisiki),
       "agreement": {
           "formationTypes": agreed_types,
           "status": "matched" if agreed_types else "unmatched",
+          "sourcesByType": sources_by_type,
       },
   }
 
@@ -243,6 +325,7 @@ def main():
 
   master = load_json(MASTER_PATH, [])
   facts = load_json(FACTS_PATH, {}).get("entries", {})
+  kanjitisiki_formations = collect_kanjitisiki_formations(refresh=args.refresh)
   selected = list(enumerate(master))[args.start:]
   if args.limit > 0:
     selected = selected[:args.limit]
@@ -254,7 +337,14 @@ def main():
 
   with ThreadPoolExecutor(max_workers=max(1, min(args.workers, 6))) as executor:
     futures = {
-        executor.submit(collect_one, index, row, facts, args.refresh): (index, clean(row.get("漢字")))
+        executor.submit(
+            collect_one,
+            index,
+            row,
+            facts,
+            kanjitisiki_formations,
+            args.refresh,
+        ): (index, clean(row.get("漢字")))
         for index, row in selected
     }
     for future in as_completed(futures):
@@ -272,7 +362,7 @@ def main():
             if clean(row.get("漢字")) in entries
         }
         save_json(OUTPUT_PATH, {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "entries": ordered_entries,
             "failures": failures,
         })
