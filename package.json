@@ -22,6 +22,7 @@
     "build:caution-kanji-list": "node scripts/build_caution_kanji_list.js",
     "build:curated-reading-segments": "node scripts/build_curated_reading_segments.js",
     "build:kanji-etymology-facts": "node scripts/build_kanji_etymology_facts.js",
+    "build:kanji-etymology-review": "node scripts/generate_kanji_etymology_review_report.js",
     "build:kanji-compounds": "python scripts/build_kanji_compounds.py",
     "build:tailwind": "tailwindcss -c tailwind.config.js -i ./public/css/tailwind-source.css -o ./public/css/tailwind.generated.css --minify",
     "test:two-user-sync": "node --test tests/two-user-sync.test.js",

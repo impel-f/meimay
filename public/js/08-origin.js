@@ -8,7 +8,7 @@ const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v21_20260816';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
-const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v12_20260823';
+const KANJI_DETAIL_AI_PROMPT_VERSION = 'kanji_detail_v13_20260824';
 const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
     KANJI_DETAIL_AI_PROMPT_VERSION
 ]);
@@ -2050,7 +2050,7 @@ const KANJI_DETAIL_SECTION_ICON_MAP = {
 };
 
 const KANJI_DETAIL_DATASET_URL = '/data/kanji_detail_dataset.json?v=25.24';
-const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.03';
+const KANJI_ETYMOLOGY_FACTS_URL = '/data/kanji_etymology_facts.json?v=26.04';
 const KANJI_COMPOUNDS_URL = '/data/kanji_compounds.json?v=26.03';
 let kanjiDetailDatasetPromise = null;
 let kanjiEtymologyFactsPromise = null;
@@ -2276,24 +2276,16 @@ function buildStructuredEtymologyText(kanji, factEntry) {
     if (fixedOriginText) return fixedOriginText;
 
     const formationTypes = normalizeEtymologyFactValues(factEntry?.formationTypes);
-    const structure = sanitizeKanjiAiText(factEntry?.structure || '');
-    const visualComponents = normalizeEtymologyFactValues(factEntry?.visualComponents).slice(0, 6);
-    const componentSourceKanji = sanitizeKanjiAiText(factEntry?.componentSourceKanji || '');
     const semanticComponent = sanitizeKanjiAiText(factEntry?.semanticComponent || '');
     const phoneticComponent = sanitizeKanjiAiText(factEntry?.phoneticComponent || '');
     const isCrossChecked = factEntry?.verificationStatus === 'cross_checked';
     let originText = '';
 
+    // KRAD components are visual search data, not etymological evidence.
+    // Never turn component-only records into a user-facing origin explanation.
+    if (factEntry?.verificationStatus === 'component_only') return '';
+
     if (!formationTypes.length) {
-        if (componentSourceKanji && visualComponents.length) {
-            return sanitizeKanjiAiText(`「${kanji}」は「${componentSourceKanji}」の異体字です。標準字体の字形には「${visualComponents.join('・')}」などの要素が確認できます。これは字形の分解情報であり、成り立ちの分類を断定するものではありません。`);
-        }
-        if (visualComponents.length) {
-            return sanitizeKanjiAiText(`「${kanji}」の字形には「${visualComponents.join('・')}」などの要素が確認できます。これは字形の分解情報であり、象形・会意・形声などの成り立ちを断定するものではありません。`);
-        }
-        if (structure && structure !== kanji) {
-            return sanitizeKanjiAiText(`「${kanji}」の漢字構成は「${structure}」と整理されています。成り立ちの分類は、現在の検証済みデータでは断定していません。`);
-        }
         return '';
     }
 
@@ -2321,9 +2313,7 @@ function buildStructuredEtymologyText(kanji, factEntry) {
     }
 
     if (!originText) return '';
-    if (structure && structure !== kanji) {
-        originText += `漢字構成は「${structure}」と整理されています。`;
-    }
+    // IDS strings such as 「⿰氵毎」 are internal structure metadata and must not be shown.
     if (phoneticComponent && !originText.includes(`「${phoneticComponent}」`)) {
         originText += `音を表す要素は「${phoneticComponent}」です。`;
     }

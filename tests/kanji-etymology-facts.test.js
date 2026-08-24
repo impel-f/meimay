@@ -47,6 +47,7 @@ test('known component regressions are cross-checked by two independent sources',
     ['翔', '羽', '羊'],
     ['結', '糸', '吉'],
     ['孟', '子', '皿'],
+    ['海', '水（さんずい）', '每'],
     ['舵', '舟', '它'],
     ['櫂', '木', '翟']
   ]) {
@@ -65,7 +66,10 @@ test('verified etymology prose does not expose raw component decompositions', ()
   assert.match(facts.entries['翔'].fixedOriginText, /羽.*羊.*形声文字/);
   assert.match(facts.entries['結'].fixedOriginText, /糸.*吉.*形声文字/);
   assert.match(facts.entries['孟'].fixedOriginText, /子.*皿.*形声文字/);
+  assert.match(facts.entries['海'].fixedOriginText, /水（さんずい）.*每.*形声文字/);
   assert.doesNotMatch(facts.entries['都'].fixedOriginText, /日・邦・老|⿰/);
+  assert.doesNotMatch(originSource, /字形には「\$\{visualComponents\.join\('・'\)\}」/);
+  assert.match(originSource, /verificationStatus === 'component_only'\) return ''/);
 });
 
 test('structured etymology overrides generated prose and participates in cache validation', () => {

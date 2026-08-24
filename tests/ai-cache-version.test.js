@@ -59,7 +59,8 @@ test('known fallback models use isolated cache generations', () => {
 
 test('client rejects legacy kanji prompts that do not contain verified compound meanings', () => {
   assert.match(originSource, /KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set/);
-  assert.match(originSource, /'kanji_detail_v12_20260823'/);
+  assert.match(originSource, /'kanji_detail_v13_20260824'/);
+  assert.doesNotMatch(originSource, /'kanji_detail_v12_20260823'/);
   assert.doesNotMatch(originSource, /'kanji_detail_v11_20260822'/);
   assert.doesNotMatch(originSource, /'kanji_detail_v10_20260816'/);
   assert.doesNotMatch(originSource, /'kanji_detail_v9_20260816'/);

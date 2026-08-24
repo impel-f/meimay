@@ -155,5 +155,26 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "海": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰氵毎",
+    "semanticComponent": "水（さんずい）",
+    "phoneticComponent": "每",
+    "fixedOriginText": "「海」の旧字は、意味を表す「水（さんずい）」と、音を表す「每」を組み合わせた形声文字です。黒々と深い「うみ」の意を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000784700",
+        "kind": "cross_check"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/db/kanji_main.php?id=28023",
+        "kind": "cross_check"
+      }
+    ]
   }
 }

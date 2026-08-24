@@ -90,6 +90,9 @@ test('known regression kanji retain the verified glyph components', () => {
   assert.match(etymologyFacts.entries['音'].fixedOriginText, /「言」と共通する古い字形/);
   assert.match(etymologyFacts.entries['音'].fixedOriginText, /会意・指事/);
   assert.doesNotMatch(getOriginText('音'), /声符は言|音を表す要素.*言/);
+  assert.equal(etymologyFacts.entries['海'].semanticComponent, '水（さんずい）');
+  assert.equal(etymologyFacts.entries['海'].phoneticComponent, '每');
+  assert.match(etymologyFacts.entries['海'].fixedOriginText, /黒々と深い「うみ」/);
 });
 
 test('broken private-use glyphs are rejected by the grounded-origin quality gate', () => {
