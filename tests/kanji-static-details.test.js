@@ -27,6 +27,9 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(Array.isArray(entry.compounds) && entry.compounds.length <= 3, `${kanji}: invalid compounds`);
 
     const allowed = new Set((sourceCompounds[kanji] || []).map((item) => `${item.word}|${item.reading}`));
+    if (allowed.size > 0) {
+      assert.ok(entry.compounds.length > 0, `${kanji}: verified compounds exist but none are published`);
+    }
     for (const compound of entry.compounds) {
       assert.ok(allowed.has(`${compound.word}|${compound.reading}`), `${kanji}: unverified compound ${compound.word}`);
       assert.ok(compound.meaning, `${kanji}: missing Japanese meaning for ${compound.word}`);

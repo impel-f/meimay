@@ -108,7 +108,9 @@ function sanitizeGeneratedEntry(source, candidate) {
   }
   return {
     kanji: source.kanji,
-    namingMeaning: clean(candidate?.namingMeaning),
+    namingMeaning: source.inappropriate
+      ? (/。$/.test(source.summary) ? source.summary : `${source.summary}。`)
+      : clean(candidate?.namingMeaning),
     compounds,
   };
 }
@@ -138,6 +140,7 @@ function validateEntry(source, candidate) {
   const compounds = Array.isArray(candidate.compounds) ? candidate.compounds : [];
   if (compounds.length > 3) return `${kanji}: too many compounds`;
   const allowed = getAllowedCompounds(source);
+  if (allowed.size > 0 && compounds.length === 0) return `${kanji}: compounds are available but none were selected`;
   const seen = new Set();
   for (const compound of compounds) {
     const word = clean(compound.word);
@@ -314,14 +317,6 @@ async function main() {
   const pending = [];
 
   for (const source of sources) {
-    if (source.inappropriate) {
-      output[source.kanji] = {
-        namingMeaning: /。$/.test(source.summary) ? source.summary : `${source.summary}。`,
-        compounds: [],
-        generation: { version: ENRICHMENT_VERSION, model: '', reviewModel: '', status: 'not_for_naming' },
-      };
-      continue;
-    }
     const cached = readJson(cachePathForKanji(source.kanji), null);
     const current = cached?.entry || output[source.kanji];
     const validationError = current?.generation?.version === ENRICHMENT_VERSION ? validateEntry(source, {
