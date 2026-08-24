@@ -535,6 +535,26 @@
       }
     ]
   },
+  "作": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「作」は、「人」と「乍」の意味を組み合わせ、「乍」が音も示す会意形声文字です。「つくる」「なす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20316",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002561800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "乍"
+  },
   "之": {
     "formationTypes": [
       "象形"
@@ -883,6 +903,25 @@
       }
     ]
   },
+  "方": {
+    "formationTypes": [
+      "象形"
+    ],
+    "fixedOriginText": "「方」は、二艘の舟の舳先をつないだ形をもとに作られた象形文字です。「かた」「向き」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26041",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006332600",
+        "kind": "cross_check"
+      }
+    ]
+  },
   "毛": {
     "formationTypes": [
       "象形"
@@ -1216,6 +1255,26 @@
       }
     ]
   },
+  "仲": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「仲」は、「人」と「中」の意味を組み合わせ、「中」が音も示す会意形声文字です。「なか」「仲立ち」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20210",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004728900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "中"
+  },
   "任": {
     "formationTypes": [
       "形声"
@@ -1446,6 +1505,26 @@
       }
     ]
   },
+  "右": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「右」は、「口」と「又」の意味を組み合わせ、「又」が音も示す会意形声文字です。「みぎ」「たすける」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/21491",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000308000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "又"
+  },
   "外": {
     "formationTypes": [
       "会意"
@@ -1606,6 +1685,27 @@
     "semanticComponent": "大",
     "phoneticComponent": "圭"
   },
+  "書": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「書」は、意味に関わる「聿」と、音を表す「者」を組み合わせた形声文字です。「かく」「本」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26360",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003288700",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "聿",
+    "phoneticComponent": "者"
+  },
   "浴": {
     "formationTypes": [
       "形声"
@@ -1730,6 +1830,27 @@
     "semanticComponent": "火",
     "phoneticComponent": "柬"
   },
+  "融": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「融」は、意味に関わる「鬲」と、音を表す「蟲」を組み合わせた形声文字です。「とける」「とおる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/34701",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006891000",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "鬲",
+    "phoneticComponent": "蟲"
+  },
   "婦": {
     "formationTypes": [
       "会意"
@@ -1846,6 +1967,27 @@
       }
     ]
   },
+  "句": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「句」は、意味に関わる「口」と、音を表す「丩」を組み合わせた形声文字です。「く」「言葉の区切り」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/21477",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001653800",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "口",
+    "phoneticComponent": "丩"
+  },
   "荻": {
     "formationTypes": [
       "形声"
@@ -1866,6 +2008,26 @@
     ],
     "semanticComponent": "艸",
     "phoneticComponent": "狄"
+  },
+  "幼": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「幼」は、「力」と「幺」の意味を組み合わせ、「幺」が音も示す会意形声文字です。「おさない」「小さい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24188",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006925900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "幺"
   },
   "丘": {
     "formationTypes": [
@@ -2043,6 +2205,26 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "耶"
+  },
+  "低": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「低」は、「人」と「氐」の意味を組み合わせ、「氐」が音も示す会意形声文字です。「ひくい」「うやまう」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20302",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004937300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "氐"
   },
   "辛": {
     "formationTypes": [
@@ -2381,6 +2563,27 @@
       }
     ]
   },
+  "百": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「百」は、意味に関わる「一」と、音を表す「白」を組み合わせた形声文字です。「ひゃく」「もも」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/30334",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005920000",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "一",
+    "phoneticComponent": "白"
+  },
   "名": {
     "formationTypes": [
       "会意"
@@ -2616,6 +2819,27 @@
     ],
     "semanticComponent": "刀",
     "phoneticComponent": "干"
+  },
+  "犯": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「犯」は、意味に関わる「犬」と、音を表す「𢎘」を組み合わせた形声文字です。「おかす」「さからう」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/29359",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005732700",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "犬",
+    "phoneticComponent": "𢎘"
   },
   "安": {
     "formationTypes": [
@@ -3087,6 +3311,27 @@
     "semanticComponent": "人",
     "phoneticComponent": "可"
   },
+  "芋": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「芋」は、意味に関わる「艸」と、音を表す「于」を組み合わせた形声文字です。「いも」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33419",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000263200",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "艸",
+    "phoneticComponent": "于"
+  },
   "汗": {
     "formationTypes": [
       "形声"
@@ -3147,6 +3392,26 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "仰": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「仰」は、「人」と「卬」の意味を組み合わせ、「卬」が音も示す会意形声文字です。「あおぐ」「尊敬する」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20208",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001559500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "卬"
   },
   "応": {
     "formationTypes": [
@@ -3349,6 +3614,47 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "刷": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「刷」は、意味に関わる「刀」と、音を表す「㕞」を組み合わせた形声文字です。「する」「はく」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/21047",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002594200",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "刀",
+    "phoneticComponent": "㕞"
+  },
+  "価": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「価」の旧字は、「人」と「賈」の意味を組み合わせ、「賈」が音も示す会意形声文字です。「あたい」「価値」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20385",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000653600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "賈"
   },
   "伏": {
     "formationTypes": [
@@ -3701,6 +4007,26 @@
     "semanticComponent": "日",
     "phoneticComponent": "九"
   },
+  "伍": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「伍」は、「人」と「五」の意味を組み合わせ、「五」が音も示す会意形声文字です。「いつつ」「五人の組」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20237",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002090300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "五"
+  },
   "肪": {
     "formationTypes": [
       "形声"
@@ -3782,6 +4108,27 @@
     ],
     "semanticComponent": "邑",
     "phoneticComponent": "牙"
+  },
+  "抽": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「抽」は、意味に関わる「手」と、音を表す「畱」を組み合わせた形声文字です。「ぬく」「ひき出す」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25277",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004739000",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "手",
+    "phoneticComponent": "畱"
   },
   "汝": {
     "formationTypes": [
@@ -4212,6 +4559,26 @@
     "semanticComponent": "力",
     "phoneticComponent": "且"
   },
+  "返": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「返」は、「辵」と「反」の意味を組み合わせ、「反」が音も示す会意形声文字です。「かえす」「もどす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/36820",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006258500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "反"
+  },
   "個": {
     "formationTypes": [
       "形声"
@@ -4331,6 +4698,26 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "致": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「致」の旧字は、「夊」と「至」の意味を組み合わせ、「至」が音も示す会意形声文字です。「いたす」「届ける」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33268",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004677800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "至"
   },
   "胴": {
     "formationTypes": [
@@ -5011,6 +5398,26 @@
       }
     ]
   },
+  "伸": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「伸」は、「人」と「申」の意味を組み合わせ、「申」が音も示す会意形声文字です。「のびる」「のばす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20280",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003584200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "申"
+  },
   "訪": {
     "formationTypes": [
       "形声"
@@ -5155,6 +5562,26 @@
     ],
     "semanticComponent": "口",
     "phoneticComponent": "今"
+  },
+  "佐": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「佐」は、「人」と「左」の意味を組み合わせ、「左」が音も示す会意形声文字です。「たすける」「補佐する」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20304",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002457100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "左"
   },
   "袋": {
     "formationTypes": [
@@ -5381,6 +5808,46 @@
     "semanticComponent": "水",
     "phoneticComponent": "曷"
   },
+  "偽": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「偽」の旧字は、「人」と「爲」の意味を組み合わせ、「爲」が音も示す会意形声文字です。「いつわる」「にせ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20605",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001304300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "爲"
+  },
+  "偵": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「偵」は、「人」と「貞」の意味を組み合わせ、「貞」が音も示す会意形声文字です。「うかがう」「探る」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20597",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004967500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "貞"
+  },
   "冶": {
     "formationTypes": [
       "形声"
@@ -5462,6 +5929,68 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "杏": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「杏」は、意味に関わる「木」と、音を表す「向」を組み合わせた形声文字です。「あんず」「バラ科の植物」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26447",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001484700",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "木",
+    "phoneticComponent": "向"
+  },
+  "佑": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「佑」は、「人」と「右」の意味を組み合わせ、「右」が音も示す会意形声文字です。「たすける」「助ける」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20305",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006852900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "右"
+  },
+  "舷": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「舷」は、意味に関わる「舟」と、音を表す「玄」を組み合わせた形声文字です。「ふなばた」「船の側面」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33335",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002008700",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "舟",
+    "phoneticComponent": "玄"
   },
   "芥": {
     "formationTypes": [
@@ -5689,6 +6218,46 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "土"
+  },
+  "貯": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「貯」は、「貝」と「宁」の意味を組み合わせ、「宁」が音も示す会意形声文字です。「ためる」「貯める」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/36015",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004768800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "宁"
+  },
+  "佃": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「佃」は、「人」と「田」の意味を組み合わせ、「田」が音も示す会意形声文字です。「つくだ」「田を作る」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20291",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005089900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "田"
   },
   "過": {
     "formationTypes": [
@@ -5918,6 +6487,26 @@
     ],
     "semanticComponent": "土",
     "phoneticComponent": "今"
+  },
+  "国": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「国」の旧字は、「囗」と「或」の意味を組み合わせ、「或」が音も示す会意形声文字です。「くに」「国家」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22269",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002372600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "或"
   },
   "長": {
     "formationTypes": [
@@ -6327,6 +6916,26 @@
     "semanticComponent": "貝",
     "phoneticComponent": "任"
   },
+  "違": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「違」は、「辵」と「韋」の意味を組み合わせ、「韋」が音も示す会意形声文字です。「ちがう」「たがう」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/36949",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000169400",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "韋"
+  },
   "治": {
     "formationTypes": [
       "形声"
@@ -6451,6 +7060,27 @@
     "semanticComponent": "車",
     "phoneticComponent": "交"
   },
+  "念": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「念」は、意味に関わる「心」と、音を表す「今」を組み合わせた形声文字です。「おもう」「念じる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24565",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005486400",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "心",
+    "phoneticComponent": "今"
+  },
   "府": {
     "formationTypes": [
       "形声"
@@ -6471,6 +7101,46 @@
     ],
     "semanticComponent": "广",
     "phoneticComponent": "付"
+  },
+  "傾": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「傾」は、「人」と「頃」の意味を組み合わせ、「頃」が音も示す会意形声文字です。「かたむく」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20670",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001799500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "頃"
+  },
+  "例": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「例」は、「人」と「列」の意味を組み合わせ、「列」が音も示す会意形声文字です。「たとえ」「ならわし」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20363",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007248900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "列"
   },
   "易": {
     "formationTypes": [
@@ -6554,6 +7224,26 @@
     "semanticComponent": "水",
     "phoneticComponent": "可"
   },
+  "嫁": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「嫁」は、「女」と「家」の意味を組み合わせ、「家」が音も示す会意形声文字です。「よめ」「とつぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/23233",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000701000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "家"
+  },
   "塊": {
     "formationTypes": [
       "形声"
@@ -6596,6 +7286,46 @@
     "semanticComponent": "言",
     "phoneticComponent": "亥"
   },
+  "枝": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「枝」は、「木」と「支」の意味を組み合わせ、「支」が音も示す会意形声文字です。「えだ」「わかれる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26525",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002757600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "支"
+  },
+  "債": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「債」は、「人」と「責」の意味を組み合わせ、「責」が音も示す会意形声文字です。「かり」「借金」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20661",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002530000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "責"
+  },
   "猿": {
     "formationTypes": [
       "形声"
@@ -6616,6 +7346,27 @@
     ],
     "semanticComponent": "犬",
     "phoneticComponent": "爰"
+  },
+  "肥": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「肥」は、意味に関わる「肉」と、音を表す「己」を組み合わせた形声文字です。「こえる」「肥沃」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32933",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005806600",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "肉",
+    "phoneticComponent": "己"
   },
   "褐": {
     "formationTypes": [
@@ -6698,6 +7449,26 @@
     ],
     "semanticComponent": "頁",
     "phoneticComponent": "屯"
+  },
+  "供": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「供」は、「人」と「共」の意味を組み合わせ、「共」が音も示す会意形声文字です。「そなえる」「とも」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20379",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001490800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "共"
   },
   "宗": {
     "formationTypes": [
@@ -6800,6 +7571,26 @@
     "semanticComponent": "自",
     "phoneticComponent": "畀"
   },
+  "漁": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「漁」は、「水」と「魚」の意味を組み合わせ、「魚」が音も示す会意形声文字です。「いさる」「とる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28417",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001470600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "魚"
+  },
   "慣": {
     "formationTypes": [
       "形声"
@@ -6820,6 +7611,26 @@
     ],
     "semanticComponent": "心",
     "phoneticComponent": "貫"
+  },
+  "奇": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「奇」は、「大」と「可」の意味を組み合わせ、「可」が音も示す会意形声文字です。「めずらしい」「すぐれる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22855",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001201600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "可"
   },
   "祈": {
     "formationTypes": [
@@ -6902,6 +7713,46 @@
     ],
     "semanticComponent": "水",
     "phoneticComponent": "召"
+  },
+  "征": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「征」は、「彳」と「正」の意味を組み合わせ、「正」が音も示す会意形声文字です。「ゆく」「うつ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24449",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003860400",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "正"
+  },
+  "姓": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「姓」は、「女」と「生」の意味を組み合わせ、「生」が音も示す会意形声文字です。「かばね」「生まれ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22995",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003859600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "生"
   },
   "拓": {
     "formationTypes": [
@@ -7110,6 +7961,26 @@
     ],
     "semanticComponent": "糸",
     "phoneticComponent": "臤"
+  },
+  "拘": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「拘」は、「手」と「句」の意味を組み合わせ、「句」が音も示す会意形声文字です。「かかわる」「とらわれる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25304",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002195500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "句"
   },
   "祉": {
     "formationTypes": [
@@ -8276,6 +9147,26 @@
       }
     ]
   },
+  "侑": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「侑」は、「人」と「有」の意味を組み合わせ、「有」が音も示す会意形声文字です。「たすける」「すすめる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20369",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006855000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "有"
+  },
   "苺": {
     "formationTypes": [
       "形声"
@@ -8497,6 +9388,26 @@
     "semanticComponent": "水",
     "phoneticComponent": "气"
   },
+  "持": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「持」は、「手」と「寺」の意味を組み合わせ、「寺」が音も示す会意形声文字です。「もつ」「たもつ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25345",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002874500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "寺"
+  },
   "吹": {
     "formationTypes": [
       "会意"
@@ -8515,6 +9426,46 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "重": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「重」は、「人」と「東」の意味を組み合わせ、「東」が音も示す会意形声文字です。「おもい」「かさねる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/37325",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003174600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "東"
+  },
+  "神": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「神」は、「示」と「申」の意味を組み合わせ、「申」が音も示す会意形声文字です。「かみ」「不思議な力」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31070",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003606600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "申"
   },
   "相": {
     "formationTypes": [
@@ -8618,6 +9569,27 @@
     ],
     "semanticComponent": "辵",
     "phoneticComponent": "𠂤"
+  },
+  "沃": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「沃」は、意味に関わる「水」と、音を表す「芺」を組み合わせた形声文字です。「うるおう」「そそぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27779",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006993300",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "水",
+    "phoneticComponent": "芺"
   },
   "酉": {
     "formationTypes": [
@@ -8878,6 +9850,26 @@
     "semanticComponent": "水",
     "phoneticComponent": "末"
   },
+  "係": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「係」は、「人」と「系」の意味を組み合わせ、「系」が音も示す会意形声文字です。「かかわる」「つなぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20418",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001761200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "系"
+  },
   "査": {
     "formationTypes": [
       "形声"
@@ -8898,6 +9890,26 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "且"
+  },
+  "政": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「政」は、「攴」と「正」の意味を組み合わせ、「正」が音も示す会意形声文字です。「まつりごと」「おさめる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25919",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003873300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "正"
   },
   "則": {
     "formationTypes": [
@@ -9168,6 +10180,26 @@
     "semanticComponent": "艸",
     "phoneticComponent": "巟"
   },
+  "掬": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「掬」は、「手」と「匊」の意味を組み合わせ、「匊」が音も示す会意形声文字です。「きく」「手で水をすくう」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25516",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001326500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "匊"
+  },
   "柔": {
     "formationTypes": [
       "形声"
@@ -9432,6 +10464,26 @@
     ],
     "semanticComponent": "心",
     "phoneticComponent": "每"
+  },
+  "冠": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「冠」は、「冖」と「寸」と「元」の意味を組み合わせ、「元」が音も示す会意形声文字です。「かんむり」「一番」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20896",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001040000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "元"
   },
   "賞": {
     "formationTypes": [
@@ -9943,6 +10995,26 @@
     ],
     "semanticComponent": "虫",
     "phoneticComponent": "工"
+  },
+  "仕": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「仕」は、「人」と「士」の意味を組み合わせ、「士」が音も示す会意形声文字です。「つかえる」「仕事」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20181",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002707700",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "士"
   },
   "札": {
     "formationTypes": [
@@ -10619,6 +11691,27 @@
     "semanticComponent": "玉",
     "phoneticComponent": "白"
   },
+  "形": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「形」は、意味に関わる「彡」と、音を表す「幵」を組み合わせた形声文字です。「かたち」「なり」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24418",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001754900",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "彡",
+    "phoneticComponent": "幵"
+  },
   "家": {
     "formationTypes": [
       "会意"
@@ -10903,6 +11996,26 @@
     "semanticComponent": "木",
     "phoneticComponent": "艮"
   },
+  "伺": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「伺」は、「人」と「司」の意味を組み合わせ、「司」が音も示す会意形声文字です。「うかがう」「調べる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20282",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002740800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "司"
+  },
   "速": {
     "formationTypes": [
       "形声"
@@ -11045,6 +12158,26 @@
     ],
     "semanticComponent": "女",
     "phoneticComponent": "方"
+  },
+  "妊": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「妊」は、「女」と「壬」の意味を組み合わせ、「壬」が音も示す会意形声文字です。「はらむ」「みごもる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22922",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005459700",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "壬"
   },
   "汰": {
     "formationTypes": [
@@ -11558,6 +12691,26 @@
     ],
     "semanticComponent": "宀",
     "phoneticComponent": "谷"
+  },
+  "刺": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「刺」は、「刀」と「朿」の意味を組み合わせ、「朿」が音も示す会意形声文字です。「さす」「そしる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/21050",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002752200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "朿"
   },
   "抵": {
     "formationTypes": [
@@ -12097,6 +13250,26 @@
       }
     ]
   },
+  "斧": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「斧」は、「斤」と「父」の意味を組み合わせ、「父」が音も示す会意形声文字です。「おの」「斧」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26023",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006032700",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "父"
+  },
   "宴": {
     "formationTypes": [
       "形声"
@@ -12180,6 +13353,26 @@
     ],
     "semanticComponent": "辵",
     "phoneticComponent": "米"
+  },
+  "派": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「派」は、「水」と「𠂢」の意味を組み合わせ、「𠂢」が音も示す会意形声文字です。「わかれる」「流れ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27966",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005529500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "𠂢"
   },
   "徐": {
     "formationTypes": [
@@ -12470,6 +13663,26 @@
     ],
     "semanticComponent": "牛",
     "phoneticComponent": "生"
+  },
+  "糾": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「糾」は、「糸」と「丩」の意味を組み合わせ、「丩」が音も示す会意形声文字です。「あざなう」「ただす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31998",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001395300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "丩"
   },
   "恭": {
     "formationTypes": [
@@ -12908,6 +14121,25 @@
       }
     ]
   },
+  "竜": {
+    "formationTypes": [
+      "象形"
+    ],
+    "fixedOriginText": "「竜」の旧字は、かざりを着け、大きな口を開け、長いからだをくねらせている爬虫類の形をもとに作られた象形文字です。「たつ」「想像上の動物」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31452",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007128700",
+        "kind": "cross_check"
+      }
+    ]
+  },
   "倫": {
     "formationTypes": [
       "形声"
@@ -13073,6 +14305,26 @@
     ],
     "semanticComponent": "禾",
     "phoneticComponent": "爯"
+  },
+  "倒": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「倒」は、「人」と「到」の意味を組み合わせ、「到」が音も示す会意形声文字です。「たおれる」「さかさま」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20498",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005169800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "到"
   },
   "眠": {
     "formationTypes": [
@@ -13301,6 +14553,26 @@
     "semanticComponent": "人",
     "phoneticComponent": "放"
   },
+  "倖": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「倖」は、「人」と「幸」の意味を組み合わせ、「幸」が音も示す会意形声文字です。「しあわせ」「思いがけない幸運」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20502",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002234000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "幸"
+  },
   "紘": {
     "formationTypes": [
       "形声"
@@ -13342,6 +14614,27 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "此"
+  },
+  "蚊": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「蚊」は、意味に関わる「䖵」と、音を表す「民」を組み合わせた形声文字です。「か」「虫の名」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/34442",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000728100",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "䖵",
+    "phoneticComponent": "民"
   },
   "砥": {
     "formationTypes": [
@@ -14068,6 +15361,26 @@
     "semanticComponent": "辵",
     "phoneticComponent": "隹"
   },
+  "剝": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「剝」は、「刀」と「彔」の意味を組み合わせ、「彔」が音も示す会意形声文字です。「むく」「はぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/21085",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005630600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "彔"
+  },
   "笛": {
     "formationTypes": [
       "形声"
@@ -14213,6 +15526,26 @@
     "semanticComponent": "水",
     "phoneticComponent": "靑"
   },
+  "授": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「授」は、「手」と「受」の意味を組み合わせ、「受」が音も示す会意形声文字です。「さずける」「教える」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25480",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003083600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "受"
+  },
   "側": {
     "formationTypes": [
       "形声"
@@ -14296,6 +15629,26 @@
     ],
     "semanticComponent": "山",
     "phoneticComponent": "宓"
+  },
+  "婚": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「婚」は、「女」と「昏」の意味を組み合わせ、「昏」が音も示す会意形声文字です。「えんぐみ」「よめいり」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/23130",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002432400",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "昏"
   },
   "淡": {
     "formationTypes": [
@@ -14610,6 +15963,26 @@
     "semanticComponent": "山",
     "phoneticComponent": "朋"
   },
+  "貧": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「貧」は、「貝」と「分」の意味を組み合わせ、「分」が音も示す会意形声文字です。「まずしい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/36007",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005977600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "分"
+  },
   "喝": {
     "formationTypes": [
       "形声"
@@ -14881,6 +16254,27 @@
     "semanticComponent": "瓦",
     "phoneticComponent": "幷"
   },
+  "累": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「累」は、意味に関わる「糸」と、音を表す「畾」を組み合わせた形声文字です。「かさねる」「わずらわしい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32047",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007228900",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "糸",
+    "phoneticComponent": "畾"
+  },
   "欲": {
     "formationTypes": [
       "形声"
@@ -14922,6 +16316,26 @@
     ],
     "semanticComponent": "乙",
     "phoneticComponent": "倝"
+  },
+  "羞": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「羞」は、「羊」と「又」の意味を組み合わせ、「又」が音も示す会意形声文字です。「はじ」「はずかしい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32670",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003125900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "又"
   },
   "貪": {
     "formationTypes": [
@@ -15606,6 +17020,26 @@
     "semanticComponent": "金",
     "phoneticComponent": "屯"
   },
+  "傍": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「傍」は、「人」と「旁」の意味を組み合わせ、「旁」が音も示す会意形声文字です。「かたわら」「そば」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20621",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006445200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "旁"
+  },
   "眺": {
     "formationTypes": [
       "形声"
@@ -15958,6 +17392,26 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "詔": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「詔」は、「言」と「召」の意味を組み合わせ、「召」が音も示す会意形声文字です。「みことのり」「王の言葉」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/35412",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003422400",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "召"
   },
   "戚": {
     "formationTypes": [
@@ -16726,6 +18180,27 @@
       }
     ]
   },
+  "彬": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「彬」は、意味に関わる「彡」と、音を表す「棼」を組み合わせた形声文字です。「あきらか」「うるわしい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24428",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005977100",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "彡",
+    "phoneticComponent": "棼"
+  },
   "逢": {
     "formationTypes": [
       "形声"
@@ -16786,6 +18261,27 @@
     ],
     "semanticComponent": "男",
     "phoneticComponent": "生"
+  },
+  "琉": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「琉」は、意味に関わる「玉」と、音を表す「丣」を組み合わせた形声文字です。「琉璃」「宝石の名」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/29705",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007133100",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "玉",
+    "phoneticComponent": "丣"
   },
   "笠": {
     "formationTypes": [
@@ -17060,6 +18556,26 @@
     "semanticComponent": "艸",
     "phoneticComponent": "匍"
   },
+  "雲": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「雲」は、「雨」と「云」の意味を組み合わせ、「云」が音も示す会意形声文字です。「くも」「高い空」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/38642",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000369800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "云"
+  },
   "晴": {
     "formationTypes": [
       "形声"
@@ -17287,6 +18803,27 @@
     "semanticComponent": "水",
     "phoneticComponent": "昜"
   },
+  "童": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「童」は、意味に関わる「辛」と、音を表す「重」を組み合わせた形声文字です。「わらべ」「こども」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31461",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005271900",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "辛",
+    "phoneticComponent": "重"
+  },
   "悲": {
     "formationTypes": [
       "形声"
@@ -17412,6 +18949,26 @@
     ],
     "semanticComponent": "頁",
     "phoneticComponent": "川"
+  },
+  "働": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「働」は、「人」と「動」の意味を組み合わせ、「動」が音も示す会意形声文字です。「はたらく」「動く」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20685",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005278100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "動"
   },
   "博": {
     "formationTypes": [
@@ -17580,6 +19137,27 @@
     ],
     "semanticComponent": "衣",
     "phoneticComponent": "里"
+  },
+  "税": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「税」は、意味に関わる「禾」と、音を表す「兌」を組み合わせた形声文字です。「ぜい」「年貢」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31246",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003939700",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "禾",
+    "phoneticComponent": "兌"
   },
   "跡": {
     "formationTypes": [
@@ -19474,6 +21052,26 @@
     "semanticComponent": "言",
     "phoneticComponent": "秀"
   },
+  "漏": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「漏」は、「水」と「屚」の意味を組み合わせ、「屚」が音も示す会意形声文字です。「もれる」「もらす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28431",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007365000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "屚"
+  },
   "喧": {
     "formationTypes": [
       "形声"
@@ -19852,6 +21450,27 @@
     "semanticComponent": "門",
     "phoneticComponent": "合"
   },
+  "董": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「董」は、意味に関わる「艸」と、音を表す「童」を組み合わせた形声文字です。「ただす」「物事をおさめる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33891",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005214400",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "艸",
+    "phoneticComponent": "童"
+  },
   "爾": {
     "formationTypes": [
       "象形"
@@ -20080,6 +21699,26 @@
     ],
     "semanticComponent": "水",
     "phoneticComponent": "軍"
+  },
+  "綴": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「綴」は、「糸」と「叕」の意味を組み合わせ、「叕」が音も示す会意形声文字です。「つづる」「とじる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32180",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004984200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "叕"
   },
   "皓": {
     "formationTypes": [
@@ -20415,6 +22054,27 @@
     "semanticComponent": "言",
     "phoneticComponent": "式"
   },
+  "敵": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「敵」は、意味に関わる「攴」と、音を表す「啻」を組み合わせた形声文字です。「かたき」「あいて」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25973",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005009100",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "攴",
+    "phoneticComponent": "啻"
+  },
   "照": {
     "formationTypes": [
       "形声"
@@ -20498,6 +22158,26 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "倝"
+  },
+  "義": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「義」は、「羊」と「我」の意味を組み合わせ、「我」が音も示す会意形声文字です。「正しい」「道」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32681",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001307200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "我"
   },
   "踏": {
     "formationTypes": [
@@ -21127,6 +22807,26 @@
     "semanticComponent": "口",
     "phoneticComponent": "曾"
   },
+  "播": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「播」は、「手」と「番」の意味を組み合わせ、「番」が音も示す会意形声文字です。「まく」「広める」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25773",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005539000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "番"
+  },
   "零": {
     "formationTypes": [
       "形声"
@@ -21168,6 +22868,26 @@
     ],
     "semanticComponent": "虍",
     "phoneticComponent": "吳"
+  },
+  "傑": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「傑」は、「人」と「桀」の意味を組み合わせ、「桀」が音も示す会意形声文字です。「すぐれる」「ひいでる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20625",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001875800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "桀"
   },
   "溝": {
     "formationTypes": [
@@ -21815,6 +23535,26 @@
     ],
     "semanticComponent": "金",
     "phoneticComponent": "居"
+  },
+  "蓑": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「蓑」は、「艸」と「衰」の意味を組み合わせ、「衰」が音も示す会意形声文字です。「みの」「草で編んだ雨具」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/34001",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002474800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "衰"
   },
   "諺": {
     "formationTypes": [
@@ -22549,6 +24289,26 @@
     "semanticComponent": "疒",
     "phoneticComponent": "尞"
   },
+  "塡": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「塡」は、「土」と「眞」の意味を組み合わせ、「眞」が音も示す会意形声文字です。「うめる」「ふさぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22625",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005071500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "眞"
+  },
   "歌": {
     "formationTypes": [
       "形声"
@@ -22948,6 +24708,26 @@
     "semanticComponent": "火",
     "phoneticComponent": "蜀"
   },
+  "製": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「製」は、「衣」と「制」の意味を組み合わせ、「制」が音も示す会意形声文字です。「つくる」「こしらえる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/35069",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003922100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "制"
+  },
   "精": {
     "formationTypes": [
       "形声"
@@ -23157,6 +24937,26 @@
     ],
     "semanticComponent": "糸",
     "phoneticComponent": "善"
+  },
+  "暮": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「暮」は、「日」と「莫」の意味を組み合わせ、「莫」が音も示す会意形声文字です。「くれる」「くらす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26286",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006329100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "莫"
   },
   "癖": {
     "formationTypes": [
@@ -23641,6 +25441,26 @@
     "semanticComponent": "糸",
     "phoneticComponent": "者"
   },
+  "彰": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「彰」は、「彡」と「章」の意味を組み合わせ、「章」が音も示す会意形声文字です。「あきらか」「あらわす」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24432",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003436500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "章"
+  },
   "誓": {
     "formationTypes": [
       "形声"
@@ -24060,6 +25880,27 @@
     ],
     "semanticComponent": "旨",
     "phoneticComponent": "尙"
+  },
+  "襲": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「襲」は、意味に関わる「衣」と、音を表す「龖」を組み合わせた形声文字です。「おそう」「つぐ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/35186",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003156800",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "衣",
+    "phoneticComponent": "龖"
   },
   "榛": {
     "formationTypes": [
@@ -24900,6 +26741,26 @@
     "semanticComponent": "光",
     "phoneticComponent": "軍"
   },
+  "儀": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「儀」は、「人」と「義」の意味を組み合わせ、「義」が音も示す会意形声文字です。「のっとる」「かたち」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20736",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001311500",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "義"
+  },
   "彼": {
     "formationTypes": [
       "形声"
@@ -24920,6 +26781,47 @@
     ],
     "semanticComponent": "彳",
     "phoneticComponent": "皮"
+  },
+  "併": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「併」の旧字は、「人」と「幷」の意味を組み合わせ、「幷」が音も示す会意形声文字です。「あわせる」「並ぶ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20341",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006205200",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "幷"
+  },
+  "澄": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「澄」は、意味に関わる「水」と、音を表す「徵」を組み合わせた形声文字です。「すむ」「きよい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28548",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004831400",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "水",
+    "phoneticComponent": "徵"
   },
   "宕": {
     "formationTypes": [
@@ -25745,6 +27647,26 @@
     "semanticComponent": "木",
     "phoneticComponent": "規"
   },
+  "誼": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「誼」は、「言」と「宐」の意味を組み合わせ、「宐」が音も示す会意形声文字です。「よしみ」「親しみ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/35516",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001315100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "宐"
+  },
   "卵": {
     "formationTypes": [
       "象形"
@@ -26346,6 +28268,26 @@
     "semanticComponent": "木",
     "phoneticComponent": "喬"
   },
+  "整": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「整」は、「敕」と「正」の意味を組み合わせ、「正」が音も示す会意形声文字です。「ととのう」「正す」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25972",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003929800",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "正"
+  },
   "機": {
     "formationTypes": [
       "形声"
@@ -26467,6 +28409,26 @@
     ],
     "semanticComponent": "金",
     "phoneticComponent": "岡"
+  },
+  "樹": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「樹」は、「木」と「尌」の意味を組み合わせ、「尌」が音も示す会意形声文字です。「き」「大樹」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27193",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003088900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "尌"
   },
   "披": {
     "formationTypes": [
@@ -26983,6 +28945,27 @@
     "semanticComponent": "言",
     "phoneticComponent": "兪"
   },
+  "染": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「染」は、意味に関わる「水」と、音を表す「朵」を組み合わせた形声文字です。「そめる」「そまる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26579",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004056800",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "水",
+    "phoneticComponent": "朵"
+  },
   "諧": {
     "formationTypes": [
       "形声"
@@ -27024,6 +29007,26 @@
     ],
     "semanticComponent": "水",
     "phoneticComponent": "先"
+  },
+  "冒": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「冒」は、「目」と「冃」の意味を組み合わせ、「冃」が音も示す会意形声文字です。「おかす」「おおう」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20882",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006433700",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "冃"
   },
   "緻": {
     "formationTypes": [
@@ -27148,6 +29151,26 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "姻": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「姻」は、「女」と「因」の意味を組み合わせ、「因」が音も示す会意形声文字です。「よしみ」「婚姻」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/23035",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000282600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "因"
   },
   "甚": {
     "formationTypes": [
@@ -27375,6 +29398,26 @@
     ],
     "semanticComponent": "黑",
     "phoneticComponent": "代"
+  },
+  "酒": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「酒」は、「水」と「酉」の意味を組み合わせ、「酉」が音も示す会意形声文字です。「さけ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/37202",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003063900",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "酉"
   },
   "息": {
     "formationTypes": [
@@ -28017,6 +30060,27 @@
     "semanticComponent": "宀",
     "phoneticComponent": "奇"
   },
+  "臆": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「臆」は、意味に関わる「肉」と、音を表す「乙」を組み合わせた形声文字です。「おもう」「おそれる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33222",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000557800",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "肉",
+    "phoneticComponent": "乙"
+  },
   "許": {
     "formationTypes": [
       "形声"
@@ -28477,6 +30541,46 @@
     "semanticComponent": "手",
     "phoneticComponent": "曷"
   },
+  "涯": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「涯」は、「水」と「厓」の意味を組み合わせ、「厓」が音も示す会意形声文字です。「はて」「きわ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28079",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000856100",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "厓"
+  },
+  "渋": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「渋」の旧字は、「水」と「歰」の意味を組み合わせ、「歰」が音も示す会意形声文字です。「しぶい」「とどこおる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28171",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003183000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "歰"
+  },
   "袈": {
     "formationTypes": [
       "形声"
@@ -28602,6 +30706,27 @@
     ],
     "semanticComponent": "手",
     "phoneticComponent": "奈"
+  },
+  "額": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「額」は、意味に関わる「頁」と、音を表す「各」を組み合わせた形声文字です。「ぬか」「がく」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/38989",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000935300",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "頁",
+    "phoneticComponent": "各"
   },
   "織": {
     "formationTypes": [
@@ -29317,6 +31442,27 @@
     "semanticComponent": "言",
     "phoneticComponent": "者"
   },
+  "霧": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「霧」は、意味に関わる「雨」と、音を表す「敄」を組み合わせた形声文字です。「きり」「空中にただよう細かな水気」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/38695",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006654300",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "雨",
+    "phoneticComponent": "敄"
+  },
   "論": {
     "formationTypes": [
       "形声"
@@ -29337,6 +31483,27 @@
     ],
     "semanticComponent": "言",
     "phoneticComponent": "侖"
+  },
+  "鯨": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「鯨」は、意味に関わる「魚」と、音を表す「畺」を組み合わせた形声文字です。「くじら」「大きく壮大な海の生き物」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/39912",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001834600",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "魚",
+    "phoneticComponent": "畺"
   },
   "趣": {
     "formationTypes": [
@@ -30397,6 +32564,27 @@
       }
     ]
   },
+  "神": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「神」は、「示」と「申」の意味を組み合わせ、「申」が音も示す会意形声文字です。「かみ」「不思議な力」などの意味に用いられます。",
+    "reviewMethod": "variant_inheritance",
+    "originSourceKanji": "神",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31070",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003606600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "申"
+  },
   "悔": {
     "formationTypes": [
       "形声"
@@ -30497,6 +32685,27 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "國": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「國」は、「囗」と「或」の意味を組み合わせ、「或」が音も示す会意形声文字です。「くに」「国家」などの意味に用いられます。",
+    "reviewMethod": "variant_inheritance",
+    "originSourceKanji": "国",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22269",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002372600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "或"
   },
   "視": {
     "formationTypes": [
@@ -30772,6 +32981,48 @@
     ],
     "semanticComponent": "网",
     "phoneticComponent": "者"
+  },
+  "澁": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「澁」は、「水」と「歰」の意味を組み合わせ、「歰」が音も示す会意形声文字です。「しぶい」「とどこおる」などの意味に用いられます。",
+    "reviewMethod": "variant_inheritance",
+    "originSourceKanji": "渋",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/28171",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003183000",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "歰"
+  },
+  "價": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「價」は、「人」と「賈」の意味を組み合わせ、「賈」が音も示す会意形声文字です。「あたい」「価値」などの意味に用いられます。",
+    "reviewMethod": "variant_inheritance",
+    "originSourceKanji": "価",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20385",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000653600",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "賈"
   },
   "髮": {
     "formationTypes": [
@@ -31461,5 +33712,26 @@
     ],
     "semanticComponent": "水",
     "phoneticComponent": "戾"
+  },
+  "僞": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「僞」は、「人」と「爲」の意味を組み合わせ、「爲」が音も示す会意形声文字です。「いつわる」「にせ」などの意味に用いられます。",
+    "reviewMethod": "variant_inheritance",
+    "originSourceKanji": "偽",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20605",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001304300",
+        "kind": "cross_check"
+      }
+    ],
+    "phoneticComponent": "爲"
   }
 }

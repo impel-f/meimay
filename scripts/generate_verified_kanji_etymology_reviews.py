@@ -83,9 +83,9 @@ def meaning_summary(row: dict):
 def extract_shape_subject(origin_text: str):
   body = re.sub(rf"^(?:旧字は、)?(?:{FORMATION_PATTERN})。", "", origin_text)
   patterns = (
-      r"^(.{1,28}?)の形にかたど[りる]",
-      r"^(.{1,28}?)形にかたど[りる]",
-      r"^(.{1,28}?)にかたど[りる]",
+      r"(?:^|。)([^。]{1,48}?)の形にかたど[りる]",
+      r"(?:^|。)([^。]{1,48}?)形にかたど[りる]",
+      r"(?:^|。)([^。]{1,48}?)にかたど[りる]",
   )
   for pattern in patterns:
     match = re.search(pattern, body)
@@ -95,7 +95,11 @@ def extract_shape_subject(origin_text: str):
     while re.search(r"[（(][^（）()]*[）)]", subject):
       subject = re.sub(r"[（(][^（）()]*[）)]", "", subject)
     subject = clean(subject)
-    if subject and not re.search(r"[。；;]|画像", subject):
+    if (
+        subject
+        and not re.search(r"[。；;（）()]|画像", subject)
+        and not re.match(r"^(?:その|それ|これ|のち)", subject)
+    ):
       return subject
   return ""
 
@@ -124,7 +128,7 @@ def extract_components(before_and_from: str):
 
 def build_phonetic_text(kanji: str, origin_text: str, formation_type: str):
   body = re.sub(rf"^(?:旧字は、)?(?:{FORMATION_PATTERN})。", "", origin_text)
-  match = re.search(r"^(.{1,24}?)と、音符(.{1,16}?)とから成[りる]", body)
+  match = re.search(r"^(.{1,40}?)と、音符(.{1,40}?)(?:と)?から成[りる]", body)
   if not match:
     return None
   semantic = strip_annotation(match.group(1))
@@ -137,6 +141,24 @@ def build_phonetic_text(kanji: str, origin_text: str, formation_type: str):
   else:
     text = f"「{kanji}」{old_prefix}は、意味に関わる「{semantic}」と、音を表す「{phonetic}」を組み合わせた形声文字です。"
   return text, semantic, phonetic
+
+
+def build_ideographic_phonetic_text(kanji: str, origin_text: str):
+  body = re.sub(rf"^(?:旧字は、)?(?:{FORMATION_PATTERN})。", "", origin_text)
+  match = re.search(r"^(.{1,72}?)とから成[りる]", body)
+  if not match:
+    return None
+  components = extract_components(match.group(1))
+  if len(components) < 2 or len(components) > 4:
+    return None
+  labels = "と".join(f"「{component}」" for component in components)
+  phonetic = components[-1]
+  old_prefix = "の旧字" if origin_text.startswith("旧字は、") else ""
+  text = (
+      f"「{kanji}」{old_prefix}は、{labels}の意味を組み合わせ、"
+      f"「{phonetic}」が音も示す会意形声文字です。"
+  )
+  return text, phonetic
 
 
 def build_ideographic_text(kanji: str, origin_text: str):
@@ -160,6 +182,8 @@ def build_fixed_entry(kanji: str, row: dict, index_entry: dict, source_entry: di
   origin_text = clean(source_entry.get("originText"))
   if len(agreed_types) != 1 or not origin_text:
     return None, "formation_not_unique"
+  if re.match(r"^\([A-Z]\)", origin_text):
+    return None, "multiple_origin_entries"
   if index_entry.get("kanjipedia", {}).get("hasUnresolvedGlyph") or UNSAFE_PATTERN.search(origin_text):
     return None, "unresolved_glyph"
   if UNCERTAIN_PATTERN.search(origin_text):
@@ -168,11 +192,20 @@ def build_fixed_entry(kanji: str, row: dict, index_entry: dict, source_entry: di
   formation_type = agreed_types[0]
   semantic_component = ""
   phonetic_component = ""
-  if formation_type in ("形声", "会意形声"):
+  if formation_type == "形声":
     generated = build_phonetic_text(kanji, origin_text, formation_type)
     if not generated:
       return None, "component_parse_failed"
     fixed_text, semantic_component, phonetic_component = generated
+  elif formation_type == "会意形声":
+    generated = build_phonetic_text(kanji, origin_text, formation_type)
+    if generated:
+      fixed_text, semantic_component, phonetic_component = generated
+    else:
+      generated = build_ideographic_phonetic_text(kanji, origin_text)
+      if not generated:
+        return None, "component_parse_failed"
+      fixed_text, phonetic_component = generated
   elif formation_type == "会意":
     generated = build_ideographic_text(kanji, origin_text)
     if not generated:
