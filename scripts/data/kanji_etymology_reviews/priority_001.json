@@ -1,0 +1,244 @@
+{
+  "洋": {
+    "formationTypes": ["形声"],
+    "structure": "⿰氵羊",
+    "semanticComponent": "水（さんずい）",
+    "phoneticComponent": "羊",
+    "fixedOriginText": "「洋」は、意味を表す「水（さんずい）」と、音を表す「羊」を組み合わせた形声文字です。もとは川の名に用いられ、のちに広い海の意味を表すようになりました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0006939400", "kind": "cross_check"}]
+  },
+  "勇": {
+    "formationTypes": ["形声"],
+    "structure": "⿱甬力",
+    "semanticComponent": "力",
+    "phoneticComponent": "甬",
+    "fixedOriginText": "「勇」は、意味を表す「力」と、音を表す「甬」を組み合わせた形声文字です。力や気力が満ちることから「いさましい」の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0006856600", "kind": "cross_check"}]
+  },
+  "泉": {
+    "formationTypes": ["象形"],
+    "structure": "⿱白水",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「泉」は、岩の間から水が湧き出て流れ落ちる様子をかたどった象形文字です。地中から湧き出る水「いずみ」を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0004060800", "kind": "cross_check"}]
+  },
+  "奏": {
+    "formationTypes": ["会意"],
+    "structure": "⿱𡗗天",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「奏」は、両手で物を持って差し出す姿を表した会意文字です。もとは物をすすめて申し上げる意味で、のちに音楽を「かなでる」の意味にも用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0004215200", "kind": "cross_check"}]
+  },
+  "香": {
+    "formationTypes": ["会意"],
+    "structure": "⿱禾日",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「香」は、穀物を表す「黍」の省略形と、味のよさを表す「甘」が変化した形から成る会意文字です。きびのよい香りから「かおり」の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002228900", "kind": "cross_check"}]
+  },
+  "咲": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿰口关",
+    "semanticComponent": "口",
+    "phoneticComponent": "关（旧字形）",
+    "fixedOriginText": "「咲」は「口」と、音を示しながら笑う意味も表す部分から成る会意形声文字です。もとは「わらう」を表す「笑」の本字で、日本では花が開く「さく」の意味に用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002582900", "kind": "cross_check"}]
+  },
+  "俊": {
+    "formationTypes": ["形声"],
+    "structure": "⿰亻夋",
+    "semanticComponent": "人（にんべん）",
+    "phoneticComponent": "夋",
+    "fixedOriginText": "「俊」は、意味を表す「人（にんべん）」と、音を表す「夋」を組み合わせた形声文字です。人の才知が「すぐれている」ことを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003228300", "kind": "cross_check"}]
+  },
+  "祐": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿰礻右",
+    "semanticComponent": "示（しめすへん）",
+    "phoneticComponent": "右",
+    "fixedOriginText": "「祐」は、神事を表す「示（しめすへん）」と、音を示しながら助ける意味も表す「右」から成る会意形声文字です。神の助けや恵みを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0006865300", "kind": "cross_check"}]
+  },
+  "亮": {
+    "formationTypes": ["形声"],
+    "structure": "⿱亠⿱口⿱冖儿",
+    "semanticComponent": "人（儿）",
+    "phoneticComponent": "京の省略形",
+    "fixedOriginText": "「亮」は、人を表す「儿」と、音を表す「京」の省略形を組み合わせた形声文字です。物事をよく理解して「あきらか」な人の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0007159200", "kind": "cross_check"}]
+  },
+  "真": {
+    "formationTypes": ["会意"],
+    "structure": "⿱十具",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「真」の旧字は、さじを表す「匕」と、器を表す「鼎」から成る会意文字です。もとは器に物を詰める意味で、のちに「まこと」「ほんとう」の意味に用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003620800", "kind": "cross_check"}]
+  },
+  "航": {
+    "formationTypes": ["形声"],
+    "structure": "⿰舟亢",
+    "semanticComponent": "舟",
+    "phoneticComponent": "亢",
+    "fixedOriginText": "「航」は、意味を表す「舟」と、音を表す「亢」を組み合わせた形声文字です。舟で水の上を進み渡ることを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002244700", "kind": "cross_check"}]
+  },
+  "笑": {
+    "formationTypes": ["形声"],
+    "structure": "⿱竹夭",
+    "semanticComponent": "竹",
+    "phoneticComponent": "夭",
+    "fixedOriginText": "「笑」は「竹」と、音を表す「夭」を組み合わせた形声文字とされます。「わらう」の意味を表し、もとの字形が後世に変化して現在の形になりました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003388200", "kind": "cross_check"}]
+  },
+  "桜": {
+    "formationTypes": ["形声"],
+    "structure": "⿰木⿱⺍女",
+    "semanticComponent": "木",
+    "phoneticComponent": "嬰（旧字「櫻」の音符）",
+    "fixedOriginText": "「桜」の旧字「櫻」は、意味を表す「木」と、音を表す「嬰」を組み合わせた形声文字です。木の名を表し、日本では「さくら」の意味に用いられます。現在の「桜」は省略形です。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0000522800", "kind": "cross_check"}]
+  },
+  "純": {
+    "formationTypes": ["形声"],
+    "structure": "⿰糸屯",
+    "semanticComponent": "糸",
+    "phoneticComponent": "屯",
+    "fixedOriginText": "「純」は、意味を表す「糸」と、音を表す「屯」を組み合わせた形声文字です。混じり物のない絹糸から、飾り気やけがれがない意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003254200", "kind": "cross_check"}]
+  },
+  "恵": {
+    "formationTypes": ["会意"],
+    "structure": "⿱𤰔心",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「恵」の旧字「惠」は、「心」と、慎み深さを表す「叀」を組み合わせた会意文字です。人を思いやり「めぐむ」の意味を表します。現在の「恵」は省略形です。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0001772800", "kind": "cross_check"}]
+  },
+  "華": {
+    "formationTypes": ["会意形声"],
+    "semanticComponent": "艸（くさかんむり）",
+    "phoneticComponent": "𠌶の省略形",
+    "fixedOriginText": "「華」は、草を表す「艸（くさかんむり）」と、音を示しながら花の意味も表す部分から成る会意形声文字です。草木の美しい花を表し、そこから「はなやか」の意味にも用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0000684000", "kind": "cross_check"}]
+  },
+  "悟": {
+    "formationTypes": ["形声"],
+    "structure": "⿰忄吾",
+    "semanticComponent": "心（りっしんべん）",
+    "phoneticComponent": "吾",
+    "fixedOriginText": "「悟」は、意味を表す「心（りっしんべん）」と、音を表す「吾」を組み合わせた形声文字です。心が気づき、道理を「さとる」ことを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002105200", "kind": "cross_check"}]
+  },
+  "哲": {
+    "formationTypes": ["形声"],
+    "structure": "⿱折口",
+    "semanticComponent": "口",
+    "phoneticComponent": "折",
+    "fixedOriginText": "「哲」は、意味を表す「口」と、音を表す「折」を組み合わせた形声文字です。物事の道理に明るく、かしこいことを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0005019200", "kind": "cross_check"}]
+  },
+  "剛": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿰岡刂",
+    "semanticComponent": "刀（りっとう）",
+    "phoneticComponent": "网（「岡」は変化した形）",
+    "fixedOriginText": "「剛」は、刀を表す「刀（りっとう）」と、音を示しながら網の意味も表す「网」から成る会意形声文字です。刀で網を断ち切ることから「かたくて強い」の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002348400", "kind": "cross_check"}]
+  },
+  "珠": {
+    "formationTypes": ["形声"],
+    "structure": "⿰王朱",
+    "semanticComponent": "玉（たまへん）",
+    "phoneticComponent": "朱",
+    "fixedOriginText": "「珠」は、意味を表す「玉（たまへん）」と、音を表す「朱」を組み合わせた形声文字です。貝の中にできる丸く美しい真珠を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003062600", "kind": "cross_check"}]
+  },
+  "泰": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿱𡗗氺",
+    "semanticComponent": "水と両手",
+    "phoneticComponent": "大",
+    "fixedOriginText": "「泰」は、水と両手、音を示す「大」から成る会意形声文字です。水路を広げて水の流れをよくすることから、「やすらか」「おだやか」の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0004452300", "kind": "cross_check"}]
+  },
+  "桂": {
+    "formationTypes": ["形声"],
+    "structure": "⿰木圭",
+    "semanticComponent": "木",
+    "phoneticComponent": "圭",
+    "fixedOriginText": "「桂」は、意味を表す「木」と、音を表す「圭」を組み合わせた形声文字です。香りのある木や、日本ではカツラ科の木を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0001774100", "kind": "cross_check"}]
+  },
+  "晃": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿱日光",
+    "semanticComponent": "日",
+    "phoneticComponent": "光",
+    "fixedOriginText": "「晃」は「日」と、音を示しながら光の意味も表す「光」から成る会意形声文字です。日の光が明るく輝くことを表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002236400", "kind": "cross_check"}]
+  },
+  "浩": {
+    "formationTypes": ["形声"],
+    "structure": "⿰氵告",
+    "semanticComponent": "水（さんずい）",
+    "phoneticComponent": "告",
+    "fixedOriginText": "「浩」は、意味を表す「水（さんずい）」と、音を表す「告」を組み合わせた形声文字です。水が広々と豊かな様子から「ひろい」「おおきい」の意味を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0002240000", "kind": "cross_check"}]
+  },
+  "隼": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿱隹十",
+    "semanticComponent": "隹",
+    "phoneticComponent": "卂の省略形",
+    "fixedOriginText": "「隼」は、鳥を表す「隹」と、音を示しながら速さも表す「卂」の省略形から成る会意形声文字です。速く飛ぶ鳥「はやぶさ」を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003237400", "kind": "cross_check"}]
+  },
+  "晋": {
+    "formationTypes": ["会意形声"],
+    "structure": "⿱亚日",
+    "semanticComponent": "日",
+    "phoneticComponent": "臸の省略形",
+    "fixedOriginText": "「晋」の旧字「晉」は「日」と、音を示しながら「いたる」の意味も表す「臸」から成る会意形声文字です。日が進むことから「すすむ」の意味を表します。現在の「晋」は省略形です。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003617200", "kind": "cross_check"}]
+  },
+  "栞": {
+    "formationTypes": ["形声"],
+    "structure": "⿱幵木",
+    "semanticComponent": "木",
+    "phoneticComponent": "幵",
+    "fixedOriginText": "「栞」は、意味を表す「木」と、音を表す「幵」を組み合わせた形声文字です。もとは山道で枝を折って付ける目印を表し、のちに書物にはさむ「しおり」の意味にも用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0001052800", "kind": "cross_check"}]
+  },
+  "凉": {
+    "formationTypes": ["形声"],
+    "structure": "⿰冫京",
+    "semanticComponent": "冫（にすい）",
+    "phoneticComponent": "京",
+    "fixedOriginText": "「凉」は、冷たさを表す「冫（にすい）」と、音を表す「京」を組み合わせた形声文字です。「すずしい」の意味を表し、一般に使われる「涼」と同じ読み・意味をもつ異体字です。",
+    "sources": [
+      {"name": "漢字文化資料館", "url": "https://kanjibunka.com/kanji-faq/jitai/q0169/", "kind": "cross_check"},
+      {"name": "漢字ペディア（涼）", "url": "https://www.kanjipedia.jp/kanji/0007165000", "kind": "cross_check"}
+    ]
+  },
+  "理": {
+    "formationTypes": ["形声"],
+    "structure": "⿰王里",
+    "semanticComponent": "玉（たまへん）",
+    "phoneticComponent": "里",
+    "fixedOriginText": "「理」は、意味を表す「玉（たまへん）」と、音を表す「里」を組み合わせた形声文字です。玉の筋目に沿って磨き整えることから、物事の筋道や道理を表します。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0007083200", "kind": "cross_check"}]
+  },
+  "章": {
+    "formationTypes": ["象形"],
+    "structure": "⿱立早",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「章」は、入れ墨に使う大きな針と墨だまりの形をかたどった象形文字です。もとは「あや」「しるし」を表し、のちに文章や楽曲の区切りの意味にも用いられました。",
+    "sources": [{"name": "漢字ペディア", "url": "https://www.kanjipedia.jp/kanji/0003399700", "kind": "cross_check"}]
+  }
+}

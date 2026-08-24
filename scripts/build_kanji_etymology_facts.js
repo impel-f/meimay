@@ -7,6 +7,7 @@ const ROOT = path.resolve(__dirname, '..');
 const MASTER_PATH = path.join(ROOT, 'public', 'data', 'kanji_data.json');
 const DETAIL_DATASET_PATH = path.join(ROOT, 'public', 'data', 'kanji_detail_dataset.json');
 const OVERRIDES_PATH = path.join(__dirname, 'data', 'kanji_etymology_overrides.json');
+const REVIEW_BATCH_DIR = path.join(__dirname, 'data', 'kanji_etymology_reviews');
 const OUTPUT_PATH = path.join(ROOT, 'public', 'data', 'kanji_etymology_facts.json');
 const CACHE_DIR = path.join(ROOT, '.cache', 'meimay-data');
 const KRAD_CACHE_PATH = path.join(CACHE_DIR, 'kradfile.gz');
@@ -24,6 +25,25 @@ const ALLOWED_FORMATION_TYPES = new Set([
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function loadOverrides() {
+  const merged = fs.existsSync(OVERRIDES_PATH) ? readJson(OVERRIDES_PATH) : {};
+  if (!fs.existsSync(REVIEW_BATCH_DIR)) return merged;
+
+  const batchFiles = fs.readdirSync(REVIEW_BATCH_DIR)
+    .filter((fileName) => fileName.endsWith('.json'))
+    .sort((a, b) => a.localeCompare(b, 'en'));
+  for (const fileName of batchFiles) {
+    const batch = readJson(path.join(REVIEW_BATCH_DIR, fileName));
+    for (const [kanji, entry] of Object.entries(batch)) {
+      if (Object.hasOwn(merged, kanji)) {
+        throw new Error(`Duplicate reviewed kanji ${kanji} in ${fileName}`);
+      }
+      merged[kanji] = entry;
+    }
+  }
+  return merged;
 }
 
 function clean(value) {
@@ -150,7 +170,7 @@ function mergeEntry(base, override) {
 async function buildFacts() {
   const master = readJson(MASTER_PATH);
   const details = readJson(DETAIL_DATASET_PATH);
-  const overrides = fs.existsSync(OVERRIDES_PATH) ? readJson(OVERRIDES_PATH) : {};
+  const overrides = loadOverrides();
   const kradComponents = await loadKradComponents();
   const entries = {};
 

@@ -13,6 +13,9 @@ const originSource = fs.readFileSync(
 const ALLOWED_TYPES = new Set(['象形', '指事', '会意', '形声', '会意形声', '仮借']);
 const ALLOWED_STATUSES = new Set(['component_only', 'single_source', 'cross_checked']);
 const BANNED_PROSE_KEYS = new Set(['text', 'description', 'originText', 'explanation']);
+const PRIORITY_REVIEWED_KANJI = Array.from(
+  '一大仁正光良志空知明幸和英昇昌茉春星昭美洋勇泉奏香咲俊祐亮真航笑桜純恵華悟哲剛珠泰桂晃浩隼晋栞凉理章'
+);
 
 test('etymology facts contain source-backed structured data without copied prose', () => {
   assert.equal(facts.schemaVersion, 1);
@@ -70,6 +73,25 @@ test('verified etymology prose does not expose raw component decompositions', ()
   assert.doesNotMatch(facts.entries['都'].fixedOriginText, /日・邦・老|⿰/);
   assert.doesNotMatch(originSource, /字形には「\$\{visualComponents\.join\('・'\)\}」/);
   assert.match(originSource, /verificationStatus === 'component_only'\) return ''/);
+});
+
+test('priority batch has fixed prose backed by independent source domains', () => {
+  assert.equal(PRIORITY_REVIEWED_KANJI.length, 50);
+  for (const kanji of PRIORITY_REVIEWED_KANJI) {
+    const entry = facts.entries[kanji];
+    assert.ok(entry, `${kanji}: missing priority fact`);
+    assert.equal(entry.verificationStatus, 'cross_checked', `${kanji}: not cross-checked`);
+    assert.ok(entry.fixedOriginText?.length >= 40, `${kanji}: fixed origin is too short`);
+    assert.doesNotMatch(
+      entry.fixedOriginText,
+      /字形には|分解情報|断定するものでは|component|undefined|�/i,
+      `${kanji}: unsafe fallback prose`
+    );
+    const sourceDomains = new Set(entry.sources
+      .filter((source) => source.kind !== 'visual_components')
+      .map((source) => new URL(source.url).hostname.replace(/^www\./, '')));
+    assert.ok(sourceDomains.size >= 2, `${kanji}: requires two independent source domains`);
+  }
 });
 
 test('structured etymology overrides generated prose and participates in cache validation', () => {

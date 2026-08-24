@@ -1,4 +1,327 @@
 {
+  "一": {
+    "formationTypes": [
+      "指事"
+    ],
+    "structure": "一",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「一」は、横線一本で数の「ひとつ」を示した指事文字です。数の始まりという意味にも用いられます。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000209400",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "大": {
+    "formationTypes": [
+      "象形"
+    ],
+    "structure": "⿻一人",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「大」は、人が両手と両足を広げて立つ姿をかたどった象形文字です。その姿から「おおきい」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004474400",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "仁": {
+    "formationTypes": [
+      "会意",
+      "形声"
+    ],
+    "structure": "⿰亻二",
+    "semanticComponent": "人",
+    "phoneticComponent": "",
+    "fixedOriginText": "「仁」は「人」と「二」から成る字です。「二」を人を慈しむ意味とみる会意説などがあり、人への親しみや思いやりを表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003694400",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "正": {
+    "formationTypes": [
+      "会意"
+    ],
+    "structure": "⿱一止",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「正」は、足を表す「止」と、城壁で囲まれた国を表す形から成る会意文字です。もとは他国へ向かう意を表し、のちに「ただす」「ただしい」の意味に用いられました。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003825900",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "光": {
+    "formationTypes": [
+      "会意"
+    ],
+    "structure": "⿳⺌一儿",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「光」は、人を表す「儿」と、燃える火の形を組み合わせた会意文字です。火が明るく輝くことから「ひかる」「ひかり」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002156600",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "良": {
+    "formationTypes": [
+      "象形"
+    ],
+    "structure": "⿱丶艮",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「良」は、穀物を選り分ける様子をかたどった象形文字です。よいものを選ぶことから「よい」「すぐれている」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007155800",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "志": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱士心",
+    "semanticComponent": "心",
+    "phoneticComponent": "止（「士」は変化した形）",
+    "fixedOriginText": "「志」は、意味を表す「心」と、音を表す「止」を組み合わせた形声文字です。現在の「士」は「止」が変化した形で、心に抱く考えや目標を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002742200",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "空": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱穴工",
+    "semanticComponent": "穴",
+    "phoneticComponent": "工",
+    "fixedOriginText": "「空」は、意味を表す「穴」と、音を表す「工」を組み合わせた形声文字です。中身がなく、むなしいことを表し、のちに「そら」の意味にも用いられました。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001680900",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "知": {
+    "formationTypes": [
+      "会意"
+    ],
+    "structure": "⿰矢口",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「知」は、すばやさを表す「矢」と、ことばを表す「口」を組み合わせた会意文字です。ことばをすぐ理解することから「しる」「わかる」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0004669200",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "明": {
+    "formationTypes": [
+      "会意"
+    ],
+    "structure": "⿰日月",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「明」は「日」と「月」を組み合わせた会意文字で、「あかるい」の意味を表します。古くは、窓から月光が差し込む形の「朙」も使われ、のちに「明」へ統一されました。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006677500",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "幸": {
+    "formationTypes": [
+      "会意",
+      "象形"
+    ],
+    "structure": "⿱土𢆉",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「幸」は、若死にせず長らえることから「さいわい」を表した会意文字とされます。手かせをかたどり、刑罰を免れた幸運を表すという象形説もあります。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002193000",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "和": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰禾口",
+    "semanticComponent": "口",
+    "phoneticComponent": "禾",
+    "fixedOriginText": "「和」は、意味を表す「口」と、音を表す「禾」を組み合わせた形声文字です。声を合わせて応じることから、心を合わせて「やわらぐ」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007398500",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "英": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱艹央",
+    "semanticComponent": "艸（くさかんむり）",
+    "phoneticComponent": "央",
+    "fixedOriginText": "「英」は、意味を表す「艸（くさかんむり）」と、音を表す「央」を組み合わせた形声文字です。美しい花を表し、そこから「すぐれた人」の意味にも用いられました。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000384700",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "昇": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱日升",
+    "semanticComponent": "日",
+    "phoneticComponent": "升",
+    "fixedOriginText": "「昇」は、意味を表す「日」と、音を表す「升」を組み合わせた形声文字です。日が高く上がることから「のぼる」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003362700",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "昌": {
+    "formationTypes": [
+      "会意"
+    ],
+    "structure": "⿱日日",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「昌」は「日」を二つ重ねた会意文字です。日光が明るく輝く様子から、「あきらか」「さかん」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003364500",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "茉": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱艹末",
+    "semanticComponent": "艸（くさかんむり）",
+    "phoneticComponent": "末",
+    "fixedOriginText": "「茉」は、意味を表す「艸（くさかんむり）」と、音を表す「末」を組み合わせた形声文字です。「茉莉」「茉莉花」など、植物の名に用いられます。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006562500",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "春": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "structure": "⿱𡗗日",
+    "semanticComponent": "日",
+    "phoneticComponent": "芚（現在の上部は変化した形）",
+    "fixedOriginText": "「春」は「日」と、草が生え始めることを表し音も示す「芚」を組み合わせた会意形声文字です。草木が芽生え始める季節「はる」を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003229900",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "星": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿱日生",
+    "semanticComponent": "晶（現在の「日」は省略形）",
+    "phoneticComponent": "生",
+    "fixedOriginText": "「星」は、星の姿を表す「晶」と、音を表す「生」を組み合わせた形声文字です。現在の字形では「晶」が「日」に省略され、空に輝く「ほし」を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003876200",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "昭": {
+    "formationTypes": [
+      "形声"
+    ],
+    "structure": "⿰日召",
+    "semanticComponent": "日",
+    "phoneticComponent": "召",
+    "fixedOriginText": "「昭」は、意味を表す「日」と、音を表す「召」を組み合わせた形声文字です。日の光が明るいことから「あきらか」の意味を表します。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003370800",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "美": {
+    "formationTypes": [
+      "会意",
+      "象形"
+    ],
+    "structure": "⿱𦍌大",
+    "semanticComponent": "",
+    "phoneticComponent": "",
+    "fixedOriginText": "「美」は、神に供える大きく立派な羊から「うまい」「うつくしい」を表した会意文字とされます。飾りをつけた人の姿をかたどった象形文字とする説もあります。",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0005867600",
+        "kind": "cross_check"
+      }
+    ]
+  },
   "都": {
     "formationTypes": [
       "形声"
