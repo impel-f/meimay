@@ -1257,6 +1257,251 @@
     },
     "昌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "帖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "書画をまとめる帳面や、紙などを数える単位を表す。" },
-    "処": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身を置くところや、物事を取り扱うことを表す。" }
+    "処": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身を置くところや、物事を取り扱うことを表す。" },
+    "苔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地面や岩などを覆う、緑色の小さなコケ植物を表す。" },
+    "坦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "丙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十干の第三である「ひのえ」や、物事の三番目を表す。" },
+    "仔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物の小さな子や、細かなさまを表す。" },
+    "杷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土などをかきならす農具や、枇杷の名に用いられる字。" },
+    "枇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "常緑樹とその果実である枇杷の名に用いられる字。" },
+    "印": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を示すしるしや、押して証明する印章を表す。" },
+    "朋": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "孟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "兄弟の最年長者や、季節の初めを表す。" },
+    "茅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "再": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じことをもう一度繰り返すことを表す。" },
+    "怜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "或": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "はっきり定まっていない、ある物事や選択を表す。" },
+    "侑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "昊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "茉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "苺": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "迪": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "啓迪", "reading": "けいてき", "meaning": "知識を開き、教え導くこと", "tone": "positive", "common": false },
+        { "word": "訓迪", "reading": "くんてき", "meaning": "教え導くことや、その導き手", "tone": "positive", "common": false }
+      ]
+    },
+    "穹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "來": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "亞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上位のものに次ぐことや、二番目であることを表す。" },
+    "兒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "幼い子どもや、若い者を表す旧字体。" },
+    "拔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中から引き抜くことや、多くの中から選び出すことを表す。" },
+    "卷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を巻くことや、ひとまとまりの書物を表す旧字体。" },
+    "拂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手で払い除くことや、代金を支払うことを表す旧字体。" },
+    "爭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "互いに勝とうとして競い合うことを表す旧字体。" },
+    "后": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "君主の配偶者である、きさきを表す。" },
+    "尽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "曳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を後ろへ引いたり、引きずったりすることを表す。" },
+    "音": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "草": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "科": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の種類や区分、学問の分野を表す。" },
+    "海": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "海洋", "reading": "かいよう", "meaning": "広く連なった海の全体", "tone": "positive", "common": true },
+        { "word": "海岸", "reading": "かいがん", "meaning": "陸地が海に接する一帯", "tone": "neutral", "common": true },
+        { "word": "海水", "reading": "かいすい", "meaning": "海を満たしている塩分を含む水", "tone": "neutral", "common": true }
+      ]
+    },
+    "活": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "活力", "reading": "かつりょく", "meaning": "元気に活動するための力", "tone": "positive", "common": true },
+        { "word": "活気", "reading": "かっき", "meaning": "いきいきとした勢いや雰囲気", "tone": "positive", "common": true },
+        { "word": "活動", "reading": "かつどう", "meaning": "目的をもって体や組織を動かすこと", "tone": "positive", "common": true }
+      ]
+    },
+    "計": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "計画", "reading": "けいかく", "meaning": "目的に向けて手順や方法をあらかじめ定めること", "tone": "positive", "common": true },
+        { "word": "計算", "reading": "けいさん", "meaning": "数や式を用いて答えを求めること", "tone": "neutral", "common": true },
+        { "word": "合計", "reading": "ごうけい", "meaning": "複数の数や量を合わせた全体", "tone": "neutral", "common": true }
+      ]
+    },
+    "亦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前と同じであることや、さらに別の事柄を重ねることを表す。" },
+    "牟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "牛の鳴き声や、むさぼり求めることを表す。" },
+    "首": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "頭と胴をつなぐ首や、集団の先頭に立つ者を表す。" },
+    "秋": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "秋晴", "reading": "あきばれ", "meaning": "秋の澄み渡った晴天", "tone": "positive", "common": true },
+        { "word": "秋季", "reading": "しゅうき", "meaning": "四季のうち夏と冬の間にある季節", "tone": "positive", "common": true },
+        { "word": "秋分", "reading": "しゅうぶん", "meaning": "太陽が秋分点を通過する時期や、その日", "tone": "neutral", "common": true }
+      ]
+    },
+    "春": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "食": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物を口にして、命や体を養うことを表す。" },
+    "星": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "星座", "reading": "せいざ", "meaning": "星々を結んで人物や動物などの形に見立てたもの", "tone": "positive", "common": true },
+        { "word": "星空", "reading": "ほしぞら", "meaning": "多くの星が見える夜空", "tone": "positive", "common": true },
+        { "word": "流星", "reading": "りゅうせい", "meaning": "大気中で光を放ちながら流れるように見える天体現象", "tone": "positive", "common": true }
+      ]
+    },
+    "前": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "事前", "reading": "じぜん", "meaning": "物事が始まるより前", "tone": "neutral", "common": true },
+        { "word": "前方", "reading": "ぜんぽう", "meaning": "向いている方向の先にある側", "tone": "neutral", "common": true },
+        { "word": "前後", "reading": "ぜんご", "meaning": "位置や時間の前と後ろ", "tone": "neutral", "common": true }
+      ]
+    },
+    "茶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "茶の木の葉から作る飲み物や、その植物を表す。" },
+    "貝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水中にすみ、硬い殻を持つ貝類を表す。" },
+    "足": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を支えて歩く足や、物事が十分に満ちることを表す。" },
+    "南": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "南方", "reading": "なんぽう", "meaning": "南の方角や、その方向にある地域", "tone": "neutral", "common": true },
+        { "word": "南風", "reading": "みなみかぜ", "meaning": "南の方角から吹いてくる風", "tone": "positive", "common": true },
+        { "word": "南北", "reading": "なんぼく", "meaning": "南と北の二つの方角", "tone": "neutral", "common": true }
+      ]
+    },
+    "風": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "角": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物のとがった部分や曲がり目、動物のつのを表す。" },
+    "汽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水が熱せられて気体となった水蒸気を表す。" },
+    "麦": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "小麦", "reading": "こむぎ", "meaning": "パンや麺などの原料になるイネ科の穀物", "tone": "positive", "common": true },
+        { "word": "大麦", "reading": "おおむぎ", "meaning": "麦飯や麦茶などに用いられるイネ科の穀物", "tone": "positive", "common": true },
+        { "word": "麦茶", "reading": "むぎちゃ", "meaning": "煎った大麦を湯や水で抽出した飲み物", "tone": "positive", "common": true }
+      ]
+    },
+    "急": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を早く行うことや、変化が突然であることを表す。" },
+    "決": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "豆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "種子を食用とするマメ科の植物や、その実を表す。" },
+    "囲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "周りを取り巻いて、中のものを守ることを表す。" },
+    "研": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "研鑽", "reading": "けんさん", "meaning": "学問や技術を深く究め、磨きをかけること", "tone": "positive", "common": true },
+        { "word": "研究", "reading": "けんきゅう", "meaning": "物事を詳しく調べて、その本質や法則を明らかにすること", "tone": "positive", "common": true },
+        { "word": "研修", "reading": "けんしゅう", "meaning": "知識や技能を身につけるために学び、訓練すること", "tone": "positive", "common": true }
+      ]
+    },
+    "私": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分自身や、個人に属することを表す。" },
+    "持": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手に持つことや、状態を長く保つことを表す。" },
+    "吹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "重": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "昭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "乗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "乗り物などの上に身を置くことや、機会に応じることを表す。" },
+    "神": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "神聖", "reading": "しんせい", "meaning": "尊く、けがしてはならないとされるさま", "tone": "positive", "common": true },
+        { "word": "神社", "reading": "じんじゃ", "meaning": "神道の神を祭るための社", "tone": "positive", "common": true }
+      ]
+    },
+    "相": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "相互", "reading": "そうご", "meaning": "互いに関わり合うこと", "tone": "positive", "common": true },
+        { "word": "相手", "reading": "あいて", "meaning": "一緒に物事を行う、または向き合う人", "tone": "neutral", "common": true },
+        { "word": "相当", "reading": "そうとう", "meaning": "程度や条件がつり合うこと", "tone": "neutral", "common": true }
+      ]
+    },
+    "抄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "但": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前の内容に条件や例外を付け加えることを表す。" },
+    "廷": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "君主が政治を行う朝廷や、役所の中庭を表す。",
+      "compounds": [
+        { "word": "宮廷", "reading": "きゅうてい", "meaning": "君主や皇族が暮らし、政務を行う宮殿", "tone": "neutral", "common": true },
+        { "word": "朝廷", "reading": "ちょうてい", "meaning": "君主を中心として政治を行う機関", "tone": "neutral", "common": true },
+        { "word": "法廷", "reading": "ほうてい", "meaning": "裁判官が審理や判決を行う場所", "tone": "neutral", "common": true }
+      ]
+    },
+    "柱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物を支える柱や、組織の中心となる存在を表す。" },
+    "追": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前にあるものを追いかけ、目標を求め続けることを表す。" },
+    "度": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の程度や基準、回数を数える単位を表す。" },
+    "畑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "野菜や穀物などを育てる、水田ではない耕地を表す。" },
+    "発": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が始まることや、外へ向かって進み出ることを表す。" },
+    "美": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "優美", "reading": "ゆうび", "meaning": "上品でしとやかに美しいさま", "tone": "positive", "common": true },
+        { "word": "讃美", "reading": "さんび", "meaning": "すぐれたものとして、ほめたたえること", "tone": "positive", "common": true },
+        { "word": "美術", "reading": "びじゅつ", "meaning": "絵画や彫刻など、視覚で表現する芸術", "tone": "positive", "common": true }
+      ]
+    },
+    "沃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "品": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の種類や質、人に備わる品格を表す。",
+      "compounds": [
+        { "word": "上品", "reading": "じょうひん", "meaning": "言動や姿に気品があり、洗練されているさま", "tone": "positive", "common": true },
+        { "word": "品格", "reading": "ひんかく", "meaning": "人や物に備わる気高さや品位", "tone": "positive", "common": true },
+        { "word": "作品", "reading": "さくひん", "meaning": "創作や制作によって生み出されたもの", "tone": "positive", "common": true }
+      ]
+    },
+    "酉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十二支の第十である「とり」や、西の方角を表す。" },
+    "画": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "線や色で描いた絵や、物事を区切って定めることを表す。",
+      "compounds": [
+        { "word": "名画", "reading": "めいが", "meaning": "広く評価されているすぐれた絵画や映画", "tone": "positive", "common": true },
+        { "word": "計画", "reading": "けいかく", "meaning": "目的に向けて手順や方法をあらかじめ定めること", "tone": "positive", "common": true },
+        { "word": "絵画", "reading": "かいが", "meaning": "線や色を用いて平面に描かれた作品", "tone": "positive", "common": true }
+      ]
+    },
+    "洋": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "大洋", "reading": "たいよう", "meaning": "大陸の間に広がる大きな海", "tone": "positive", "common": true },
+        { "word": "海洋", "reading": "かいよう", "meaning": "広く連なった海の全体", "tone": "positive", "common": true },
+        { "word": "西洋", "reading": "せいよう", "meaning": "ヨーロッパやアメリカなどの地域や文化", "tone": "neutral", "common": true }
+      ]
+    },
+    "泳": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "水泳", "reading": "すいえい", "meaning": "手足を動かして水中を進むこと", "tone": "positive", "common": true },
+        { "word": "競泳", "reading": "きょうえい", "meaning": "一定の距離を泳ぐ速さを競う競技", "tone": "positive", "common": true },
+        { "word": "遠泳", "reading": "えんえい", "meaning": "海や湖などで長い距離を泳ぐこと", "tone": "positive", "common": true }
+      ]
+    },
+    "栄": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "栄光", "reading": "えいこう", "meaning": "輝かしい成功によって得る名誉", "tone": "positive", "common": true },
+        { "word": "繁栄", "reading": "はんえい", "meaning": "勢いよく栄えて発展すること", "tone": "positive", "common": true },
+        { "word": "光栄", "reading": "こうえい", "meaning": "名誉に感じ、誇りに思うこと", "tone": "positive", "common": true }
+      ]
+    },
+    "紀": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "紀元", "reading": "きげん", "meaning": "年代を数える基準となる最初の年", "tone": "neutral", "common": true },
+        { "word": "世紀", "reading": "せいき", "meaning": "西暦を百年ごとに区切った期間", "tone": "neutral", "common": true },
+        { "word": "紀行", "reading": "きこう", "meaning": "旅先での出来事や風景を書き記した文章", "tone": "positive", "common": true }
+      ]
+    },
+    "居": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の場所に身を置き、住むことを表す。" },
+    "性": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生まれつき備わる性質や、物事の特質を表す。" },
+    "建": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "建設", "reading": "けんせつ", "meaning": "建物や道路、組織などを新しくつくること", "tone": "positive", "common": true },
+        { "word": "建築", "reading": "けんちく", "meaning": "建物を設計し、組み立ててつくること", "tone": "positive", "common": true },
+        { "word": "再建", "reading": "さいけん", "meaning": "壊れた建物や組織をもう一度つくり直すこと", "tone": "positive", "common": true }
+      ]
+    },
+    "律": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "刻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刃物でしるしを刻むことや、時の区切りを表す。" },
+    "祝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "省": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "信": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "浅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水面から底までの距離や、程度が少ないことを表す。" },
+    "単": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つだけであることや、物事が複雑でないことを表す。" },
+    "飛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "欧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ヨーロッパの地域や文化を表す。" },
+    "便": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "都合がよく役立つことや、知らせを届ける手段を表す。" },
+    "泥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水と土が混ざって柔らかくなった泥を表す。" },
+    "勇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "沸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水などが熱せられて煮え立つことや、感情が高まることを表す。" },
+    "於": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "沫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水面にできる泡や、飛び散る細かな水しぶきを表す。" },
+    "係": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事が互いにつながり、関わることを表す。" }
   }
 }
