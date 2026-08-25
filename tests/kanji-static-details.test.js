@@ -51,9 +51,11 @@ test('kanji detail runtime uses the bundled static dataset before legacy generat
 
 test('Codex-reviewed kanji details override generated enrichment without mutating its source', () => {
   const builder = fs.readFileSync(path.join(root, 'scripts', 'build_static_kanji_details.js'), 'utf8');
+  const reportBuilder = fs.readFileSync(path.join(root, 'scripts', 'generate_kanji_static_review_report.js'), 'utf8');
   const reviews = require('../scripts/data/kanji_static_codex_reviews.json');
   assert.equal(reviews.schemaVersion, 1);
   assert.equal(reviews.reviewer, 'codex-5.6sol');
+  assert.equal(reviews.reviewedThrough, 1000);
   assert.equal(Object.keys(reviews.entries).length, 200);
   for (const [kanji, review] of Object.entries(reviews.entries)) {
     assert.equal(review.status, 'reviewed', `${kanji}: review status`);
@@ -63,6 +65,7 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   assert.match(builder, /review\.namingMeaning \|\| enriched\.namingMeaning/);
   assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);
   assert.match(builder, /Array\.isArray\(review\.compounds\)/);
+  assert.match(reportBuilder, /index < reviewedThrough/);
 });
 
 test('name-origin prompt uses fixed meanings and produces one editable origin draft', () => {

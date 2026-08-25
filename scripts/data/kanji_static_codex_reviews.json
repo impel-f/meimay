@@ -1,6 +1,9 @@
 {
   "schemaVersion": 1,
   "reviewer": "codex-5.6sol",
+  "reviewedThrough": 1000,
+  "reviewedThroughAt": "2026-08-25",
+  "reviewScope": "意味、成り立ちの根拠状態、熟語の実在性と表示順を確認。個別修正はentriesに記録。",
   "entries": {
     "一": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "乙": { "status": "reviewed", "reviewedAt": "2026-08-25" },

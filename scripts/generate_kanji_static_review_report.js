@@ -19,7 +19,9 @@ function escapeHtml(value) {
 function main() {
   const details = JSON.parse(fs.readFileSync(DETAILS_PATH, 'utf8')).entries;
   const master = JSON.parse(fs.readFileSync(MASTER_PATH, 'utf8'));
-  const codexReviews = JSON.parse(fs.readFileSync(CODEX_REVIEW_PATH, 'utf8')).entries || {};
+  const codexReviewData = JSON.parse(fs.readFileSync(CODEX_REVIEW_PATH, 'utf8'));
+  const codexReviews = codexReviewData.entries || {};
+  const reviewedThrough = Number(codexReviewData.reviewedThrough) || 0;
   const rows = master.map((source, index) => {
     const kanji = source['漢字'];
     const codexReview = codexReviews[kanji] || {};
@@ -27,7 +29,7 @@ function main() {
       index: index + 1,
       kanji,
       inappropriate: Number(source['不適切フラグ']) === 1,
-      contentReviewStatus: codexReview.status === 'reviewed' ? 'reviewed' : 'pending',
+      contentReviewStatus: codexReview.status === 'reviewed' || index < reviewedThrough ? 'reviewed' : 'pending',
       contentReviewedAt: codexReview.reviewedAt || '',
       ...details[kanji],
     };
