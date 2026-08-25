@@ -105,7 +105,11 @@
     "己": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "布": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "先": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "合": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "合": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「合」は、器の口を表す「口」と、「集」のもとの字で「あつまる」意の「亼（しゅう）」を組み合わせた会意文字です。多くの人が集まることから、「あう」「合わせる」意を表します。"
+    },
     "丈": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "両": {
       "status": "reviewed",
@@ -471,7 +475,11 @@
     "婦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "成人した女性や、妻を表す。" },
     "未": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "虫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "昆虫などの小さな生き物を広く表す。" },
-    "令": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "令": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「令」は、「集」のもとの字で「あつめる」意の「亼（しゅう）」と、人がひざまずいた形の「卩（せつ）」を組み合わせた会意文字です。人を集めて従わせることから、「いいつける」意を表します。"
+    },
     "条": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木の枝や、細長く続く筋道・決まりを表す。" },
     "永": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "姉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年上の女きょうだいである姉を表す。" },
@@ -1070,7 +1078,12 @@
     "塊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "いくつかのものが一つに固まったかたまりを表す。" },
     "該": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "条件や内容に当てはまることを表す。" },
     "枝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "舎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人が住み、学び、泊まるための建物を表す。" },
+    "舎": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人が住み、学び、泊まるための建物を表す。",
+      "etymologyText": "「舎」の旧字は、垣根を表す「口」、建物の形、「集」の古字である「亼（しゅう）」から成る象形文字です。「やどる」、そこから「おく」の意を表します。現在の「舎」は、その字形を簡略化したものです。"
+    },
     "携": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "承": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "債": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "返す義務のある借りや、金銭上の権利を表す。" },

@@ -68,6 +68,21 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   assert.match(reportBuilder, /index < automatedAuditThrough/);
 });
 
+test('unfamiliar etymology components include an inline explanation', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+  const componentRules = {
+    '亼': /亼（しゅう）.*(?:「集」のもとの字|「集」の古字)|(?:「集」のもとの字|「集」の古字).*亼（しゅう）/,
+  };
+
+  for (const [kanji, entry] of Object.entries(details)) {
+    for (const [component, explanationPattern] of Object.entries(componentRules)) {
+      if (entry.etymology.text.includes(component)) {
+        assert.match(entry.etymology.text, explanationPattern, `${kanji}: ${component} needs an inline explanation`);
+      }
+    }
+  }
+});
+
 test('name-origin prompt uses fixed meanings and produces one editable origin draft', () => {
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
   assert.match(source, /kanjiStaticDetailsCache\?\.\[kanji\]\?\.namingMeaning/);
