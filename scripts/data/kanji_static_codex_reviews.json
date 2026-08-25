@@ -596,6 +596,154 @@
     },
     "老": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年を重ねて老いることや、経験を積んだ人を表す。" },
     "列": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物や人が順に並ぶことや、その並びを表す。" },
-    "仮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一時的に定めることや、本物ではない代わりのものを表す。" }
+    "仮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一時的に定めることや、本物ではない代わりのものを表す。" },
+    "因": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が起こる原因や、よりどころとなる根拠を表す。" },
+    "件": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つの事柄や、取り扱う用件を表す。" },
+    "在": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "舌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口の中にある舌や、言葉を話す働きを表す。" },
+    "団": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物が一つにまとまった集まりを表す。" },
+    "灰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物が燃えたあとに残る灰を表す。" },
+    "宇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "吸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "息や液体などを内へ取り込むことを表す。" },
+    "汚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "よごれることや、清らかさを損なうことを表す。" },
+    "旨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の中心となる考えや、述べようとする内容を表す。" },
+    "吏": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "亥": { "status": "reviewed", "reviewedAt": "2026-08-25", "etymologyText": "「亥」は、草木の根の形をかたどった象形文字で、「荄」の原字とされます。十二支の第十二を表す字として借用され、のちに動物では猪が当てられました。" },
+    "至": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "存": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "そこに存在することや、大切に保つことを表す。" },
+    "何": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を問いかけるときの、なに・どれを表す。" },
+    "扱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物や事柄を取り扱い、処理することを表す。" },
+    "芋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地中に育つ食用植物である芋を表す。" },
+    "社": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "汗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体から出る汗や、力を尽くすことを表す。" },
+    "住": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の場所に暮らし、そこにとどまることを表す。" },
+    "役": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "受け持つ務めや、果たすべき役割を表す。" },
+    "仰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上を見上げることや、尊敬して敬うことを表す。" },
+    "応": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "芝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "朱": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "似": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "姿や性質が互いによく似ていることを表す。",
+      "compounds": [
+        { "word": "類似", "reading": "るいじ", "meaning": "互いに似通っていること", "tone": "neutral", "common": true },
+        { "word": "相似", "reading": "そうじ", "meaning": "形や性質が互いに似ていること", "tone": "neutral", "common": true },
+        { "word": "酷似", "reading": "こくじ", "meaning": "非常によく似ていること", "tone": "neutral", "common": true }
+      ]
+    },
+    "更": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "旬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "弄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手でもてあそぶことや、思うままに扱うことを表す。" },
+    "吐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口から息や物を外へ出すことを表す。" },
+    "伽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "板": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木などを薄く平らに切った板を表す。",
+      "compounds": [
+        { "word": "合板", "reading": "ごうはん", "meaning": "薄い板を重ねて接着した板材", "tone": "neutral", "common": true },
+        { "word": "看板", "reading": "かんばん", "meaning": "店名や案内などを掲げる標識", "tone": "neutral", "common": true },
+        { "word": "黒板", "reading": "こくばん", "meaning": "文字や図を書いて示すための板", "tone": "neutral", "common": true }
+      ]
+    },
+    "油": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水に溶けにくく燃えやすい液体である油を表す。" },
+    "企": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "計画を立て、物事を始めようとすることを表す。" },
+    "吉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "刷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や絵を紙などにすり写すことを表す。" },
+    "往": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的地へ向かって進み行くことを表す。" },
+    "匠": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "価": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が持つ値打ちや価値を表す。" },
+    "帆": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "伏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を低く伏せることや、隠れて待つことを表す。" },
+    "版": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や絵を刷るための版や、出版物の種類を表す。" },
+    "拡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "江": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "充": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "迅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "壮": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "枚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "薄く平たい物を数える単位を表す。" },
+    "妃": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "王妃", "reading": "おうひ", "meaning": "王の配偶者である女性", "tone": "neutral", "common": true },
+        { "word": "妃殿下", "reading": "ひでんか", "meaning": "皇族の妃に対する敬称", "tone": "neutral", "common": true },
+        { "word": "親王妃", "reading": "しんのうひ", "meaning": "親王の配偶者である女性", "tone": "neutral", "common": true }
+      ]
+    },
+    "朴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "飾り気がなく、素直でありのままなことを表す。" },
+    "押": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "力を加えて前や下へ動かすことを表す。" },
+    "伎": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を巧みに行う技や腕前を表す。",
+      "compounds": [
+        { "word": "歌舞伎", "reading": "かぶき", "meaning": "日本の伝統的な演劇", "tone": "positive", "common": true },
+        { "word": "伎倆", "reading": "ぎりょう", "meaning": "巧みに物事を行う腕前", "tone": "positive", "common": false },
+        { "word": "伎芸", "reading": "ぎげい", "meaning": "巧みな技や芸能", "tone": "positive", "common": false }
+      ]
+    },
+    "況": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事のありさまや、その時々の様子を表す。",
+      "compounds": [
+        { "word": "盛況", "reading": "せいきょう", "meaning": "にぎやかで盛んな様子", "tone": "positive", "common": true },
+        { "word": "状況", "reading": "じょうきょう", "meaning": "物事のその時のありさま", "tone": "neutral", "common": true },
+        { "word": "近況", "reading": "きんきょう", "meaning": "最近の様子やありさま", "tone": "neutral", "common": true }
+      ]
+    },
+    "汎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "伊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "夷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "平らにすることや、穏やかなことを表す。" },
+    "到": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "拍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手を打つことや、音楽のリズムの単位を表す。" },
+    "瓜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "つるに実る植物である瓜を表す。" },
+    "怖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "危険などを感じて恐れることを表す。" },
+    "匡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "旭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "圭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "伍": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "肪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内などに蓄えられる脂肪を表す。" },
+    "亘": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "怪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "普通とは異なり、不思議で疑わしいことを表す。" },
+    "邪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "正しくないことや、よこしまな心を表す。" },
+    "抽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "全体の中から一部を抜き出すことを表す。" },
+    "汝": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手を指す古い言葉である、なんじを表す。",
+      "compounds": [
+        { "word": "爾汝", "reading": "じじょ", "meaning": "互いにお前と呼び合う親しい間柄", "tone": "neutral", "common": false },
+        { "word": "汝等", "reading": "うぬら", "meaning": "相手たちを指す古い言い方", "tone": "neutral", "common": false }
+      ]
+    },
+    "丞": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "拐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人をだまして連れ去ることを表す。" },
+    "汐": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "劾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "罪や過失を調べて明らかにし、責任を問うことを表す。" },
+    "拒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "求めを受け入れず、こばむことを表す。" },
+    "奔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "勢いよく走ることや、目的へ向けて駆け回ることを表す。" },
+    "凪": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "苛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "扱いが厳しく、相手を苦しめることを表す。" },
+    "県": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地方を分けた行政区画である県を表す。" },
+    "花": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "指": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手足の指や、方向や対象を指し示すことを表す。" },
+    "秒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "時間や角度を細かく表す単位である秒を表す。" },
+    "車": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "車輪で地上を進む乗り物を表す。" },
+    "赤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火や血を思わせる鮮やかな赤色を表す。" },
+    "胃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物を消化する器官である胃を表す。" },
+    "型": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を作るための形や、基準となる形式を表す。" },
+    "昨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "今日や今年より一つ前の時を表す。" },
+    "逆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "本来の向きや順序とは反対であることを表す。" },
+    "限": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "範囲や程度に境目を設けることを表す。" },
+    "退": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "後ろへしりぞくことや、役目から身を引くことを表す。" },
+    "段": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高低の区切りや、物事の進み方の区切りを表す。" },
+    "近": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "距離や時間、関係が近いことを表す。" },
+    "卸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "品物をまとめて小売業者へ売ることを表す。" },
+    "言": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "谷": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "垣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土地を仕切るために設ける垣や囲いを表す。" },
+    "挟": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つのものの間に物を入れてはさむことを表す。",
+      "compounds": [
+        { "word": "挟侍", "reading": "きょうじ", "meaning": "本尊の左右に付き従う仏像", "tone": "neutral", "common": false },
+        { "word": "挟撃", "reading": "きょうげき", "meaning": "両側からはさみうちにすること", "tone": "neutral", "common": true },
+        { "word": "挟殺", "reading": "きょうさつ", "meaning": "野球で走者を塁間にはさんでアウトにすること", "tone": "neutral", "common": false }
+      ]
+    },
+    "図": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の形や位置関係を描いた図や、計画を表す。" },
+    "声": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や動物が発する声や、世間の評判を表す。" },
+    "砕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "固い物を細かくくだくことを表す。" }
   }
 }
