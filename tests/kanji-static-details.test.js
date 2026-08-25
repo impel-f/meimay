@@ -55,8 +55,8 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   const reviews = require('../scripts/data/kanji_static_codex_reviews.json');
   assert.equal(reviews.schemaVersion, 1);
   assert.equal(reviews.reviewer, 'codex-5.6sol');
-  assert.equal(reviews.automatedAuditThrough, 1000);
-  assert.equal(Object.keys(reviews.entries).length, 2900);
+  assert.equal(reviews.automatedAuditThrough, 3000);
+  assert.equal(Object.keys(reviews.entries).length, 3000);
   for (const [kanji, review] of Object.entries(reviews.entries)) {
     assert.equal(review.status, 'reviewed', `${kanji}: review status`);
     assert.match(review.reviewedAt, /^\d{4}-\d{2}-\d{2}$/, `${kanji}: reviewedAt`);
