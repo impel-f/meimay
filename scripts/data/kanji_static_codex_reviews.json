@@ -1502,6 +1502,146 @@
     "沸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水などが熱せられて煮え立つことや、感情が高まることを表す。" },
     "於": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "沫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水面にできる泡や、飛び散る細かな水しぶきを表す。" },
-    "係": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事が互いにつながり、関わることを表す。" }
+    "係": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事が互いにつながり、関わることを表す。" },
+    "厚": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "査": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の内容を詳しく調べ、確かめることを表す。",
+      "compounds": [
+        { "word": "調査", "reading": "ちょうさ", "meaning": "事実や状態を明らかにするために調べること", "tone": "neutral", "common": true },
+        { "word": "検査", "reading": "けんさ", "meaning": "一定の基準に照らして状態を調べること", "tone": "neutral", "common": true },
+        { "word": "審査", "reading": "しんさ", "meaning": "内容を詳しく調べて適否や優劣を判定すること", "tone": "neutral", "common": true }
+      ]
+    },
+    "政": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "政治", "reading": "せいじ", "meaning": "社会の秩序を整え、国や地域を治める営み", "tone": "neutral", "common": true },
+        { "word": "政策", "reading": "せいさく", "meaning": "政治上の目的を実現するための方針や手段", "tone": "neutral", "common": true },
+        { "word": "政府", "reading": "せいふ", "meaning": "国の政治を行う統治機関", "tone": "neutral", "common": true }
+      ]
+    },
+    "峠": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山道を登りきって下りに転じる境目を表す。",
+      "compounds": [
+        { "word": "峠道", "reading": "とうげみち", "meaning": "峠を越えて通る山道", "tone": "neutral", "common": true }
+      ]
+    },
+    "則": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "胎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "母体の中で子が育つ場所や、物事の始まりを表す。" },
+    "封": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "境界を定めたり、出入り口を閉じたりすることを表す。" },
+    "保": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "籾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外皮に包まれたままの稲の実である、もみを表す。" },
+    "映": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "革": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "なめした動物の皮や、古いものを新しく改めることを表す。" },
+    "納": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を中に収めることや、受け入れて落ち着くことを表す。" },
+    "巻": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "皇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "紅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "陛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "宮殿の階段や、天皇・皇帝に関わる敬称を表す。" },
+    "姿": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "城": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外敵を防ぐために築かれた城や、城壁に囲まれた町を表す。" },
+    "陣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "軍勢の配置や、同じ目的を持つ人々の集まりを表す。" },
+    "宣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "紡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "泉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "倭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "古く中国で日本や日本人を指した呼び名を表す。" },
+    "奏": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "峽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山と山の間にある狭い谷や、水路の狭まった所を表す旧字体。" },
+    "現": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "肺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "呼吸によって酸素を取り込む、胸の中の器官を表す。" },
+    "背": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体の後ろ側である背中や、後ろを向くことを表す。" },
+    "威": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "為": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "皆": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "務": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "枯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木が水分や生気を失い、しおれることを表す。" },
+    "荒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土地や天候、振る舞いなどが荒れていることを表す。" },
+    "香": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "恒": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "咲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "掬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "両手を丸くして水などをすくい取ることを表す。" },
+    "柔": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "盾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "攻撃を防いで身を守るための道具である盾を表す。" },
+    "羚": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "是": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "極": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の行き着く先や、これ以上ない程度まで究めることを表す。" },
+    "耐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "苦しさや外からの力に負けず、持ちこたえることを表す。" },
+    "珍": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "怒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "不満や不快なことに対して、激しい感情が起こることを表す。" },
+    "堤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水があふれるのを防ぐために築く土手を表す。" },
+    "雁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "柄": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "道具の手で握る部分や、人の性質、模様を表す。",
+      "compounds": [
+        { "word": "人柄", "reading": "ひとがら", "meaning": "その人に備わっている性質や品格", "tone": "positive", "common": true },
+        { "word": "手柄", "reading": "てがら", "meaning": "称賛されるような功績や働き", "tone": "positive", "common": true },
+        { "word": "図柄", "reading": "ずがら", "meaning": "絵や模様として表された構成", "tone": "positive", "common": true }
+      ]
+    },
+    "盟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "鼓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "郎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "哀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事を悲しみ、心を痛めることを表す。" },
+    "楼": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "楼閣", "reading": "ろうかく", "meaning": "高く立派に造られた建物", "tone": "positive", "common": true },
+        { "word": "摩天楼", "reading": "まてんろう", "meaning": "天に届くほど高い超高層建築", "tone": "positive", "common": true },
+        { "word": "鐘楼", "reading": "しょうろう", "meaning": "寺院などで鐘をつるすための建物", "tone": "neutral", "common": true }
+      ]
+    },
+    "鼎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "悔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "過ぎた行いを残念に思い、心を痛めることを表す。" },
+    "冠": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "稟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "熊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "賞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "すぐれた行いや成果をほめ、褒美を与えることを表す。" },
+    "駕": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "幡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "諄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "郊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "都市の中心部から離れた周辺の地域を表す。" },
+    "恨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "受けた仕打ちを忘れず、相手を憎く思うことを表す。" },
+    "削": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刃物などで表面を薄くそぎ取ることや、量を減らすことを表す。" },
+    "施": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に物や恵みを与えることや、物事を実際に行うことを表す。" },
+    "醍": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "促": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が早く進むように働きかけることを表す。" },
+    "鮎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "清流にすむ淡水魚である、あゆを表す。" },
+    "怠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "するべきことをせず、なまけることを表す。" },
+    "胆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "胆のうや、物事を恐れない強い心を表す。" },
+    "譜": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "音楽や家系などを、一定の順序で書き表した記録を表す。",
+      "compounds": [
+        { "word": "楽譜", "reading": "がくふ", "meaning": "音の高さや長さなどを記号で書き表したもの", "tone": "positive", "common": true },
+        { "word": "系譜", "reading": "けいふ", "meaning": "一族や物事の系統を順序立てて記したもの", "tone": "neutral", "common": true },
+        { "word": "年譜", "reading": "ねんぷ", "meaning": "人物や出来事の歩みを年代順に記したもの", "tone": "neutral", "common": true }
+      ]
+    },
+    "帝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "国を治める天子や皇帝を表す。" },
+    "轟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "非常に大きな音が遠くまで響き渡ることを表す。" },
+    "廿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数の二十を表す。" },
+    "丼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "深めの大きな器や、その器に盛った料理を表す。" },
+    "朽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木などが腐って形や働きを失うことを表す。" },
+    "某": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "名前や場所などを明らかにしない、あるものを表す。" },
+    "臼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "穀物などをついて砕くための道具である、うすを表す。" },
+    "床": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物のゆかや、寝るための場所を表す。" },
+    "劫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仏教で極めて長い時間や、人をおびやかすことを表す。" },
+    "每": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つのすべてや、そのたびごとを表す旧字体。" },
+    "枠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の外側を囲む縁や、定められた範囲を表す。" },
+    "杵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "臼の中の穀物などをつくための道具である、きねを表す。" },
+    "袖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "衣服のうち、腕を覆う部分である袖を表す。" },
+    "刃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刀や包丁などの、物を切る鋭い部分を表す。" },
+    "洪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水の量や物事の規模が大きく広いことを表す。" },
+    "侯": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "乞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手に物や助けを与えてほしいと願い求めることを表す。" },
+    "叉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つに分かれたものや、互いに交差することを表す。" },
+    "少": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数や量が多くないことや、年が若いことを表す。" },
+    "俊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "叙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を順序立てて述べることや、位を授けることを表す。" },
+    "浄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "斤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木を切る手おのや、重さを量る単位を表す。" },
+    "冗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要以上に長いことや、余分で無駄なことを表す。" },
+    "帥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "集団を率いて指揮する者や、最高位の指揮官を表す。" },
+    "乏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要なものの数や量が足りないことを表す。" },
+    "荘": { "status": "reviewed", "reviewedAt": "2026-08-25" }
   }
 }
