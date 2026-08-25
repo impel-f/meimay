@@ -72,15 +72,42 @@ test('unfamiliar etymology components include an inline explanation', () => {
   const details = require('../public/data/kanji_static_details.json').entries;
   const componentRules = {
     '亼': /亼（しゅう）.*(?:「集」のもとの字|「集」の古字)|(?:「集」のもとの字|「集」の古字).*亼（しゅう）/,
+    '宀': /宀（うかんむり）/,
+    '卩': /卩（せつ）/,
+    '彳': /彳（ぎょうにんべん）/,
+    '辵': /辵（しんにょう）/,
+    '艸': /艸（くさかんむり）/,
+    '攴': /攴（ぼく）/,
+    '廾': /廾（きょう）/,
+    '邑': /邑（おおざと）/,
+    '歹': /歹（がつへん）/,
   };
 
   for (const [kanji, entry] of Object.entries(details)) {
+    if (!entry.etymology.formationTypes.includes('会意')) continue;
     for (const [component, explanationPattern] of Object.entries(componentRules)) {
-      if (entry.etymology.text.includes(component)) {
+      if (kanji !== component && entry.etymology.text.includes(component)) {
         assert.match(entry.etymology.text, explanationPattern, `${kanji}: ${component} needs an inline explanation`);
       }
     }
   }
+});
+
+test('ideographic explanations connect components to meaning without generic filler', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+  const ideographicEntries = Object.entries(details)
+    .filter(([, entry]) => entry.etymology.formationTypes.includes('会意'));
+
+  assert.equal(ideographicEntries.length, 356);
+  for (const [kanji, entry] of ideographicEntries) {
+    assert.doesNotMatch(entry.etymology.text, /の意味を組み合わせた会意文字/, `${kanji}: generic ideographic explanation`);
+    assert.doesNotMatch(entry.etymology.text, /画像部品|undefined|compound_slot/, `${kanji}: internal marker in etymology`);
+    assert.ok(entry.etymology.text.length >= 35, `${kanji}: ideographic explanation is too short`);
+  }
+
+  assert.match(details['亙'].etymology.text, /舟/);
+  assert.doesNotMatch(details['亙'].etymology.text, /「二」と「月」/);
+  assert.match(details['丈'].etymology.text, /長い棒.*手/);
 });
 
 test('name-origin prompt uses fixed meanings and produces one editable origin draft', () => {

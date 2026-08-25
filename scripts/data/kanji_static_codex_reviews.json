@@ -33,10 +33,29 @@
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "適宜", "reading": "てきぎ", "meaning": "状況に応じて、ふさわしく行うこと", "tone": "neutral", "common": true },
-        { "word": "時宜", "reading": "じぎ", "meaning": "その時に適した機会や時期", "tone": "neutral", "common": true },
-        { "word": "便宜", "reading": "べんぎ", "meaning": "ある目的に都合がよいこと", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "適宜",
+          "reading": "てきぎ",
+          "meaning": "状況に応じて、ふさわしく行うこと",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "時宜",
+          "reading": "じぎ",
+          "meaning": "その時に適した機会や時期",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "便宜",
+          "reading": "べんぎ",
+          "meaning": "ある目的に都合がよいこと",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「宜」は、家屋を表す「宀（うかんむり）」と、供え物を載せる台を表す「且（しょ）」を組み合わせた会意文字です。家の中で肉を供える様子から、物事が程よく整う「よろしい」の意を表します。"
     },
     "了": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "乃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -45,7 +64,11 @@
       "reviewedAt": "2026-08-25",
       "namingMeaning": "物事の吉凶をうらなうことや、見立てて選ぶことを表す。"
     },
-    "柾": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "柾": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「柾」は、樹木を表す「木」と、まっすぐで正しいことを表す「正」を組み合わせた会意文字です。木目がまっすぐに通った木を表し、「まさ」の意に用いられます。"
+    },
     "口": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
@@ -110,7 +133,11 @@
       "reviewedAt": "2026-08-25",
       "etymologyText": "「合」は、器の口を表す「口」と、「集」のもとの字で「あつまる」意の「亼（しゅう）」を組み合わせた会意文字です。多くの人が集まることから、「あう」「合わせる」意を表します。"
     },
-    "丈": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "丈": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「丈」は、長い棒と、それを持つ手の形を組み合わせた会意文字です。もとは棒を手にして打つ姿を表し、のちに長さの単位にも用いられました。「十」と手を表す「又」の組み合わせとする説もあります。"
+    },
     "両": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
@@ -122,7 +149,11 @@
       "reviewedAt": "2026-08-25",
       "namingMeaning": "物事が起こる前ぶれや、始まりのしるしを表す。"
     },
-    "見": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "見": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「見」は、目を表す「目」と、人を表す「儿（じん）」を組み合わせた会意文字です。人が目を大きく開いて物を見る姿から、「みる」「見える」の意を表します。"
+    },
     "作": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "体": {
       "status": "reviewed",
@@ -228,7 +259,11 @@
       "namingMeaning": "家の出入り口となる戸や、家を表す。"
     },
     "包": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "公": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "公": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「公」は、背くことを表す「八」と、「私」のもとの字で個人的なものを表す「厶（し）」を組み合わせた会意文字です。私的なものとは反対のものとして、「おおやけ」の意を表します。"
+    },
     "止": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
@@ -265,7 +300,8 @@
     "分": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
-      "namingMeaning": "一つのものを分けることや、物事の違いを見分けることを表す。"
+      "namingMeaning": "一つのものを分けることや、物事の違いを見分けることを表す。",
+      "etymologyText": "「分」は、刃物を表す「刀」と、左右に分かれることを表す「八」を組み合わせた会意文字です。刀で物を切り分ける様子から、「わける」「わかれる」の意を表します。"
     },
     "方": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "毛": {
@@ -274,7 +310,11 @@
       "namingMeaning": "人や動物の体に生える毛を表す。"
     },
     "友": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "如": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "如": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「如」は、女性を表す「女」と、言葉を表す「口」を組み合わせた会意文字です。古くは言葉に従う意を表し、のちに「ごとし」などの助字としても用いられました。"
+    },
     "化": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
@@ -310,7 +350,8 @@
     "比": {
       "status": "reviewed",
       "reviewedAt": "2026-08-25",
-      "namingMeaning": "二つ以上のものを並べて比べることを表す。"
+      "namingMeaning": "二つ以上のものを並べて比べることを表す。",
+      "etymologyText": "「比」は、人が二人並ぶ姿をかたどった会意文字です。人が並ぶ様子から、「ならぶ」、さらに二つを並べて「くらべる」の意を表します。"
     },
     "仏": {
       "status": "reviewed",
@@ -329,7 +370,11 @@
     },
     "収": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "仁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "介": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "介": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「介」は、人を表す「人」と、分けることを表す「八」を組み合わせた会意文字です。人が間へ分け入る様子から、「なかだちする」「隔てる」の意を表します。"
+    },
     "柑": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "namingMeaning": "ミカン類の果実や、ミカン科の常緑小高木を表す。",
@@ -345,7 +390,11 @@
     "丹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "匹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つで一組のものや、動物を数える助数詞を表す。" },
     "閣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高く構えた建物や、重要な会議を行う組織を表す。" },
-    "樫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "樫": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「樫」は、樹木を表す「木」と、かたいことを表す「堅」を組み合わせた会意文字です。材質のかたい木を表し、「かし」の意に用いられます。"
+    },
     "孔": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "檜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "双": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -379,9 +428,17 @@
     "仲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "任": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "舟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "亙": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "亙": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「亙」は、両端を表す二本の線と、その間を進む舟の形を組み合わせた会意文字です。舟が両岸を行き来する様子から、「わたる」の意を表します。現在の字形では舟の部分が「月」に似た形へ変化しています。"
+    },
     "巴": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "男": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "男": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「男」は、耕地を表す「田」と、農具のすきを表す「力」を組み合わせた会意文字です。田を耕す仕事を担う人を表し、古く「おとこ」の意に用いられました。"
+    },
     "匁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "重さの単位である、もんめを表す。" },
     "尤": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
@@ -411,7 +468,12 @@
     "目": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "見るための目や、物事の区切り・要点を表す。" },
     "右": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "立": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "外": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の範囲から離れた外側を表す。" },
+    "外": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一定の範囲から離れた外側を表す。",
+      "etymologyText": "「外」は、夕方を表す「夕」と、占いを表す「卜（ぼく）」を組み合わせた会意文字です。通常は昼に行う占いを夜に行うことから、通常の範囲を外れた「そと」「ほか」の意を表します。"
+    },
     "兄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年上の男きょうだいである兄を表す。" },
     "芯": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "広": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -419,7 +481,12 @@
     "芭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "台": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を載せる台や、高く平らな場所を表す。" },
     "冬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "半": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つに分けた一方や、途中・なかばを表す。" },
+    "半": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "二つに分けた一方や、途中・なかばを表す。",
+      "etymologyText": "「半」は、大きな牛を表す形と、二つに分けることを表す「八」を組み合わせた会意文字です。牛を二つに分ける様子から、「なかば」「半分」の意を表します。"
+    },
     "母": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "母親や、物事を生み出すもとを表す。" },
     "芦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水辺に生える多年草のアシを表す。" },
     "用": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -433,12 +500,33 @@
     "浴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水や日光などを全身にあびることを表す。" },
     "世": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "畠": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "作物を育てる耕作地である畑を表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "作物を育てる耕作地である畑を表す。",
       "compounds": [
-        { "word": "花畠", "reading": "はなばたけ", "meaning": "花が一面に咲く畑", "tone": "positive", "common": true },
-        { "word": "田畠", "reading": "たはた", "meaning": "田と畑", "tone": "neutral", "common": true },
-        { "word": "桑畠", "reading": "くわばたけ", "meaning": "桑を栽培する畑", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "花畠",
+          "reading": "はなばたけ",
+          "meaning": "花が一面に咲く畑",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "田畠",
+          "reading": "たはた",
+          "meaning": "田と畑",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "桑畠",
+          "reading": "くわばたけ",
+          "meaning": "桑を栽培する畑",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「畠」は、耕地を表す「田」と、白いことを表す「白」を組み合わせた会意文字です。水を張った田に対して、土が白く乾いた耕地である「はたけ」を表します。"
     },
     "船": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水上を進み、人や物を運ぶ船を表す。" },
     "舵": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -448,7 +536,11 @@
     "由": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "礼": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "以": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "加": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "加": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「加」は、力を表す「力」と、言葉を表す「口」を組み合わせた会意文字です。力に言葉を重ねて強く言い立てることを表し、そこから「くわえる」の意に用いられました。"
+    },
     "功": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "扉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物や部屋の出入り口に設ける扉を表す。" },
     "史": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -465,14 +557,40 @@
     "融": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "辺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ある場所の周囲や、もののほとりを表す。" },
     "制": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事をおさえて整えることや、決まりを定めることを表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事をおさえて整えることや、決まりを定めることを表す。",
       "compounds": [
-        { "word": "制定", "reading": "せいてい", "meaning": "法律や規則などを定めること", "tone": "neutral", "common": true },
-        { "word": "制度", "reading": "せいど", "meaning": "社会や組織を運営するための仕組み", "tone": "neutral", "common": true },
-        { "word": "制御", "reading": "せいぎょ", "meaning": "機械や物事の働きを目的に合わせて調整すること", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "制定",
+          "reading": "せいてい",
+          "meaning": "法律や規則などを定めること",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "制度",
+          "reading": "せいど",
+          "meaning": "社会や組織を運営するための仕組み",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "制御",
+          "reading": "せいぎょ",
+          "meaning": "機械や物事の働きを目的に合わせて調整すること",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「制」は、刃物を表す「刀」と、枝のある木を表す形を組み合わせた会意文字です。木の余分な枝を切り整える様子から、「おさえる」「定める」の意を表します。"
     },
-    "婦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "成人した女性や、妻を表す。" },
+    "婦": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "成人した女性や、妻を表す。",
+      "etymologyText": "「婦」は、女性を表す「女」と、ほうきのもとの字である「帚（そう）」を組み合わせた会意文字です。祭壇の清掃や管理を担う女性を表し、のちに「つま」「おんな」の意に用いられました。"
+    },
     "未": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "虫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "昆虫などの小さな生き物を広く表す。" },
     "令": {
@@ -485,17 +603,43 @@
     "姉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年上の女きょうだいである姉を表す。" },
     "妹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年下の女きょうだいである妹を表す。" },
     "取": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手に取ることや、自分のものとして得ることを表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "手に取ることや、自分のものとして得ることを表す。",
       "compounds": [
-        { "word": "取組", "reading": "とりくみ", "meaning": "課題などに向き合い、力を尽くすこと", "tone": "positive", "common": true },
-        { "word": "取材", "reading": "しゅざい", "meaning": "記事や作品の材料となる情報を集めること", "tone": "neutral", "common": true },
-        { "word": "取引", "reading": "とりひき", "meaning": "品物や権利などを互いにやり取りすること", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "取組",
+          "reading": "とりくみ",
+          "meaning": "課題などに向き合い、力を尽くすこと",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "取材",
+          "reading": "しゅざい",
+          "meaning": "記事や作品の材料となる情報を集めること",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "取引",
+          "reading": "とりひき",
+          "meaning": "品物や権利などを互いにやり取りすること",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「取」は、手を表す「又」と、耳を表す「耳」を組み合わせた会意文字です。古く、捕らえた敵の耳を手柄の証しとして切り取ったことから、「とる」の意を表します。"
     },
     "句": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "言葉や文章の一区切りを表す。" },
     "非": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "そうではないことや、正しくないことを表す。" },
     "泡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "液体の中や表面にできる泡を表す。" },
-    "昼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日の出から日没までの明るい時間を表す。" },
+    "昼": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "日の出から日没までの明るい時間を表す。",
+      "etymologyText": "「昼」の旧字「晝」は、太陽を表す「日」と、区分することを表す「畫（画）」の省略形を組み合わせた会意文字です。太陽が出ている時間を区切ったものとして、「ひる」の意を表します。"
+    },
     "弁": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "namingMeaning": "物事を見分けることや、言葉で説明すること、花びらを表す。",
@@ -512,8 +656,18 @@
     "玄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "深い黒色や、奥深くはかり知れないことを表す。" },
     "産": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "子を産むことや、物を生み出すことを表す。" },
     "紹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "受け継ぐことや、人と人を引き合わせることを表す。" },
-    "占": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "吉凶をうらなうことや、場所などを自分のものとして占めることを表す。" },
-    "奴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "召使いや、人をぞんざいに指す語を表す。" },
+    "占": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "吉凶をうらなうことや、場所などを自分のものとして占めることを表す。",
+      "etymologyText": "「占」は、占いを表す「卜（ぼく）」と、言葉を表す「口」を組み合わせた会意文字です。占いで得た結果を判断して口にすることから、「うらなう」の意を表します。"
+    },
+    "奴": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "召使いや、人をぞんざいに指す語を表す。",
+      "etymologyText": "「奴」は、女性を表す「女」と、手でつかまえることを表す「又」を組み合わせた会意文字です。古くは捕虜となった女性を表し、そこから「しもべ」の意に用いられました。"
+    },
     "払": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を取り除くことや、代金などを渡すことを表す。" },
     "矛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "長い柄の先に刃を付けた武器のほこを表す。" },
     "甲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十干の第一や、よろい・第一等を表す。" },
@@ -537,16 +691,36 @@
     "小": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "形や数量が小さいことや、年齢が若いことを表す。" },
     "巳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "今": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "現在の時点である、いまを表す。" },
-    "区": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を分けることや、区切られた範囲を表す。" },
-    "凧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "風の力で空に揚げる遊具のたこを表す。" },
+    "区": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を分けることや、区切られた範囲を表す。",
+      "etymologyText": "「区」の旧字「區」は、隠す場所を表す「匸（けいがまえ）」と、多くの物を表す「品」を組み合わせた会意文字です。物を分けてしまうことから、「くぎる」「区分する」の意を表します。"
+    },
+    "凧": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "風の力で空に揚げる遊具のたこを表す。",
+      "etymologyText": "「凧」は、風を表す字の省略形と、布を表す「巾」を組み合わせた会意文字です。布が風を受けて空へ揚がる遊具である「たこ」を表す、日本で作られた漢字です。"
+    },
     "汀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水辺や波打ち際、平らな水面を表す。" },
     "不": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "そうではないことを示す打ち消しを表す。" },
     "刈": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草や作物などを切り取ることを表す。" },
     "壬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "休": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "活動をやめて、心身を休ませることを表す。" },
+    "休": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "活動をやめて、心身を休ませることを表す。",
+      "etymologyText": "「休」は、人を表す「人」と、木を表す「木」を組み合わせた会意文字です。人が木陰に身を寄せて休む姿から、「やすむ」の意を表します。"
+    },
     "気": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生命の働きや心の動き、空気や息を表す。" },
     "糸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "繊維を細長くより合わせた糸や、細く続くものを表す。" },
-    "字": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "言葉を書き表す文字や、呼び名であるあざなを表す。" },
+    "字": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "言葉を書き表す文字や、呼び名であるあざなを表す。",
+      "etymologyText": "「字」は、屋根や家を表す「宀（うかんむり）」と、子どもを表す「子」を組み合わせた会意文字です。家の中で子を育てることを表し、基本の字から増えていく複合文字を子に見立てて、「文字」の意に用いられました。"
+    },
     "丑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十二支の第二である、うしを表す。" },
     "四": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "田": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "稲などを育てる耕作地である田を表す。" },
@@ -554,7 +728,11 @@
     "北": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "年": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "百": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "名": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "名": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「名」は、言葉を表す「口」と、夕暮れを表す「夕」を組み合わせた会意文字です。暗くて顔が見えない夕方に自分の名を口にすることから、「な」の意を表します。"
+    },
     "羽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "会": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "回": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の周りをまわることや、元へ戻ることを表す。" },
@@ -567,24 +745,49 @@
     "自": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "色": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "失": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "持っていたものを失うことや、誤り・しくじりを表す。" },
-    "多": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "多": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「多」は、「夕」を二つ重ねた会意文字です。日が幾日も積み重なる様子から、「おおい」の意を表します。二切れの肉を並べた象形文字とする説もあります。"
+    },
     "池": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水をたたえた場所である池を表す。" },
     "地": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "当": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "同": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "同": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「同」は、覆いを表す「冃（ぼう）」と、言葉を表す「口」を組み合わせた会意文字です。一つの覆いの下へ人々を呼び集めることから、「ともに」「おなじ」の意を表します。"
+    },
     "圧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "力を加えて押さえることや、圧倒することを表す。" },
     "刊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字などを刻むことや、書物を出版することを表す。" },
     "犯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "法律や決まりに背く行為をおかすことを表す。" },
-    "安": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "安": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「安」は、家屋を表す「宀（うかんむり）」と、女性を表す「女」を組み合わせた会意文字です。人が家の中で静かに落ち着く様子から、「やすらか」「おだやか」の意を表します。"
+    },
     "穴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の表面から奥へくぼんだ穴を表す。" },
     "斥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "押しのけて退けることや、遠ざけることを表す。" },
     "向": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "死": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生命が終わり、亡くなることを表す。" },
+    "死": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "生命が終わり、亡くなることを表す。",
+      "etymologyText": "「死」は、残った骨を表す「歹（がつへん）」と、人を表す形を組み合わせた会意文字です。人が亡くなって骨となる様子から、「しぬ」の意を表します。"
+    },
     "凹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "表面が内側へくぼんでいることを表す。" },
     "式": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "定められた作法や形式、計算の式を表す。" },
-    "守": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "守": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「守」は、家屋を表す「宀（うかんむり）」と、手を表す「寸」を組み合わせた会意文字です。家の中の物事を手で取りしきる様子から、「まもる」の意を表します。"
+    },
     "州": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "川の中州や、行政区画としての地域を表す。" },
-    "全": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "全": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「全」の旧字は、念入りに行うことを表す「入」と、仕事や道具を表す「工」を組み合わせた会意文字です。仕事を最後までやり遂げることから、「まったい」「すべて」の意を表します。現在の字形では上部が「人」の形になっています。"
+    },
     "有": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "羊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "禾": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -593,9 +796,18 @@
     "肉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や動物の体をつくる肉を表す。" },
     "米": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "共": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "好": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "好": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「好」は、女性を表す「女」と、子どもを表す「子」を組み合わせた会意文字です。親が子をかわいがる姿から、「いつくしむ」、さらに「このむ」「よい」の意を表します。"
+    },
     "成": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "争": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "互いに競い合うことや、言い争うことを表す。" },
+    "争": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "互いに競い合うことや、言い争うことを表す。",
+      "etymologyText": "「争」の旧字「爭」は、手を表す「爪」と、棒を手に持つ姿を表す「尹（いん）」を組み合わせた会意文字です。農具を互いに奪い合う様子から、「あらそう」の意を表します。"
+    },
     "血": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内を巡る血液や、血筋を表す。" },
     "次": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "伝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -610,8 +822,18 @@
     "老": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年を重ねて老いることや、経験を積んだ人を表す。" },
     "列": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物や人が順に並ぶことや、その並びを表す。" },
     "仮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一時的に定めることや、本物ではない代わりのものを表す。" },
-    "因": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が起こる原因や、よりどころとなる根拠を表す。" },
-    "件": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つの事柄や、取り扱う用件を表す。" },
+    "因": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事が起こる原因や、よりどころとなる根拠を表す。",
+      "etymologyText": "「因」は、敷物を表す「囗」と、人を表す「大」を組み合わせた会意文字です。人が敷物の上に身を置く様子から、何かに「よる」「もとづく」の意を表します。"
+    },
+    "件": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一つ一つの事柄や、取り扱う用件を表す。",
+      "etymologyText": "「件」は、人を表す「人」と、牛を表す「牛」を組み合わせた会意文字です。牛の肉を切り分けることから、「わける」「区別する」の意を表し、のちに事柄を数える語にも用いられました。"
+    },
     "在": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "舌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口の中にある舌や、言葉を話す働きを表す。" },
     "団": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物が一つにまとまった集まりを表す。" },
@@ -630,7 +852,12 @@
     "社": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "汗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体から出る汗や、力を尽くすことを表す。" },
     "住": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の場所に暮らし、そこにとどまることを表す。" },
-    "役": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "受け持つ務めや、果たすべき役割を表す。" },
+    "役": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "受け持つ務めや、果たすべき役割を表す。",
+      "etymologyText": "「役」は、歩くことを表す「彳（ぎょうにんべん）」と、手に武器を持つ姿を表す「殳（るまた）」を組み合わせた会意文字です。武器を持って国境を守る務めから、「つとめ」「役目」の意を表します。"
+    },
     "仰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上を見上げることや、尊敬して敬うことを表す。" },
     "応": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "芝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -644,8 +871,17 @@
       ]
     },
     "更": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "旬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "弄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手でもてあそぶことや、思うままに扱うことを表す。" },
+    "旬": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「旬」は、日を表す「日」と、巡ることを表す「勹（ほう）」を組み合わせた会意文字です。十干が一巡する十日間を表し、「じゅん」「十日」の意に用いられます。"
+    },
+    "弄": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "手でもてあそぶことや、思うままに扱うことを表す。",
+      "etymologyText": "「弄」は、両手を表す「廾（きょう）」と、玉を表す「王」を組み合わせた会意文字です。美しい玉を両手で楽しむ様子から、「もてあそぶ」の意を表します。"
+    },
     "吐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口から息や物を外へ出すことを表す。" },
     "伽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "板": {
@@ -657,21 +893,44 @@
       ]
     },
     "油": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水に溶けにくく燃えやすい液体である油を表す。" },
-    "企": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "計画を立て、物事を始めようとすることを表す。" },
-    "吉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "企": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "計画を立て、物事を始めようとすることを表す。",
+      "etymologyText": "「企」は、人を表す「人」と、足跡を表す「止」を組み合わせた会意文字です。人がつま先立ちして遠くを見る姿から、「くわだてる」の意を表します。"
+    },
+    "吉": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「吉」は、神への言葉を表す「口」と、若い男性を表す「士」を組み合わせた会意文字です。男子誕生のよいお告げを表したことから、「めでたい」「よい」の意を表します。"
+    },
     "刷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や絵を紙などにすり写すことを表す。" },
     "往": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的地へ向かって進み行くことを表す。" },
-    "匠": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "匠": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「匠」は、直角を測るさしがねを表す「匚」の形と、おのを表す「斤」を組み合わせた会意文字です。道具を使って物を作る職人から、「たくみ」の意を表します。"
+    },
     "価": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が持つ値打ちや価値を表す。" },
     "帆": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "伏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を低く伏せることや、隠れて待つことを表す。" },
+    "伏": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "体を低く伏せることや、隠れて待つことを表す。",
+      "etymologyText": "「伏」は、人を表す「人」と、犬を表す「犬」を組み合わせた会意文字です。犬が人のそばで体を低くする姿から、「ふす」「したがう」の意を表します。"
+    },
     "版": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や絵を刷るための版や、出版物の種類を表す。" },
     "拡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "江": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "充": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "迅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "壮": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "枚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "薄く平たい物を数える単位を表す。" },
+    "枚": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "薄く平たい物を数える単位を表す。",
+      "etymologyText": "「枚」は、木を表す「木」と、手に棒を持って打つことを表す「攴（ぼく）」を組み合わせた会意文字です。もとはむちや数を数える棒を表し、のちに薄い物を数える助数詞になりました。"
+    },
     "妃": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "compounds": [
@@ -734,13 +993,23 @@
     "指": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手足の指や、方向や対象を指し示すことを表す。" },
     "秒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "時間や角度を細かく表す単位である秒を表す。" },
     "車": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "車輪で地上を進む乗り物を表す。" },
-    "赤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火や血を思わせる鮮やかな赤色を表す。" },
+    "赤": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "火や血を思わせる鮮やかな赤色を表す。",
+      "etymologyText": "「赤」は、火を表す「火」と、大きいことを表す「大」を組み合わせた会意文字です。火が盛んに燃える様子とその色から、「あか」の意を表します。"
+    },
     "胃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物を消化する器官である胃を表す。" },
     "型": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を作るための形や、基準となる形式を表す。" },
     "昨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "今日や今年より一つ前の時を表す。" },
     "逆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "本来の向きや順序とは反対であることを表す。" },
     "限": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "範囲や程度に境目を設けることを表す。" },
-    "退": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "後ろへしりぞくことや、役目から身を引くことを表す。" },
+    "退": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "後ろへしりぞくことや、役目から身を引くことを表す。",
+      "etymologyText": "「退」は、進み行くことを表す「辵（しんにょう）」と、食物を盛る器の形を組み合わせた会意文字です。供えた食物を下げる動作から、「しりぞく」「のく」の意を表します。"
+    },
     "段": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高低の区切りや、物事の進み方の区切りを表す。" },
     "近": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "距離や時間、関係が近いことを表す。" },
     "卸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "品物をまとめて小売業者へ売ることを表す。" },
@@ -755,7 +1024,12 @@
         { "word": "挟殺", "reading": "きょうさつ", "meaning": "野球で走者を塁間にはさんでアウトにすること", "tone": "neutral", "common": false }
       ]
     },
-    "図": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の形や位置関係を描いた図や、計画を表す。" },
+    "図": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物の形や位置関係を描いた図や、計画を表す。",
+      "etymologyText": "「図」の旧字「圖」は、囲いを表す「囗」と、土地の区画を表す「啚（ひ）」を組み合わせた会意文字です。土地の区画を描いたものから、「地図」「はかる」の意を表します。"
+    },
     "声": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や動物が発する声や、世間の評判を表す。" },
     "砕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "固い物を細かくくだくことを表す。" },
     "咽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口の奥にある喉や、飲み込む働きを表す。" },
@@ -763,13 +1037,21 @@
     "俠": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "帰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "もとの場所へ帰ることや、落ち着く先を表す。" },
     "来": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "里": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "里": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「里」は、土地を表す「土」と、区画された耕地を表す「田」を組み合わせた会意文字です。田畑のある集落から、「さと」の意を表し、のちに行政区画や距離の単位にも用いられました。"
+    },
     "員": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "組織を構成する人や、物を数える単位を表す。" },
     "究": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "荷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "運ぶためにまとめた荷物や、それを担うことを表す。" },
     "君": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "消": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "それまであった物や状態が消えることを表す。" },
-    "旅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "旅": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「旅」は、吹き流しの旗を表す「㫃（えん）」と、人々が従う姿を表す「从（じゅう）」を組み合わせた会意文字です。旗の下で行動する集団とその移動から、「たび」の意を表します。"
+    },
     "助": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "害": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を損ない、悪い影響を与えることを表す。" },
     "対": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つのものが向かい合うことや、一組になることを表す。" },
@@ -778,7 +1060,11 @@
     "残": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一部があとに残ることや、残しておくことを表す。" },
     "返": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "受け取ったものを返すことや、もとの状態へ戻すことを表す。" },
     "個": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "集団から分けた一つ一つのものや人を表す。" },
-    "位": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "位": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「位」は、人を表す「人」と、立つことを表す「立」を組み合わせた会意文字です。朝廷で人が立つ場所から、「位置」「くらい」の意を表します。"
+    },
     "値": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の値段や、数で表される量を表す。" },
     "展": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "完": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -788,7 +1074,11 @@
     "秘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に知らせず大切に隠しておくことを表す。" },
     "材": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を作るもとになる材料や、役立つ能力を持つ人を表す。" },
     "児": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "初": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "初": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「初」は、刃物を表す「刀」と、衣服を表す「衣」を組み合わせた会意文字です。衣服作りの最初に布を裁つことから、「はじめ」の意を表します。"
+    },
     "恐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "危険や未知のものを怖いと感じることを表す。" },
     "折": {
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を曲げて折ることや、物事の区切りを表す。",
@@ -808,9 +1098,17 @@
       ]
     },
     "努": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "兵": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "兵": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「兵」は、両手を表す「廾（きょう）」と、おのを表す「斤」を組み合わせた会意文字です。両手で武器を掲げる姿から、「兵士」「戦い」の意を表します。"
+    },
     "被": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上からおおうことや、作用や損害を受けることを表す。" },
-    "利": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "利": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「利」は、刃物を表す「刀」と、稲を表す「禾（か）」を組み合わせた会意文字です。農具で田畑を耕すことや刃の鋭さから、「役に立つ」「するどい」「利益」の意を表します。"
+    },
     "良": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "疲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "心や体の力が弱まり、つかれることを表す。" },
     "労": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -829,7 +1127,11 @@
     "挨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手に近づくことや、互いに押し合うことを表す。" },
     "俺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "男性が自分を指すときに用いる一人称を表す。" },
     "峨": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "孝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "孝": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「孝」は、子どもを表す「子」と、年長者を表す「老」の省略形を組み合わせた会意文字です。子が親や年長者に尽くすことから、「おやこうこう」の意を表します。"
+    },
     "啄": {
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "鳥がくちばしで物をつつき、ついばむことを表す。",
       "compounds": [
@@ -854,7 +1156,11 @@
     "貨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "売買や運搬の対象となる品物や貨幣を表す。" },
     "攻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手を攻めることや、専門分野を深く学ぶことを表す。" },
     "械": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仕組みによって動く道具や機械を表す。" },
-    "秀": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "秀": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「秀」は、稲を表す「禾」と、伸びることを表す「乃」を組み合わせた会意文字です。稲が長く伸びて穂を出す様子から、「ひいでる」「すぐれる」の意を表します。"
+    },
     "停": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動きを止め、ある場所にとどまることを表す。" },
     "敗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "勝負に負けることや、物事がうまくいかないことを表す。" },
     "移": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "場所や状態が別のところへ移ることを表す。" },
@@ -868,7 +1174,12 @@
     "肝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体の臓器である肝臓や、物事の大切な部分を表す。" },
     "異": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "他とは違っていることや、普通ではないことを表す。" },
     "域": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "境界で区切られた土地や範囲を表す。" },
-    "閉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "開いていたものを閉じ、通れなくすることを表す。" },
+    "閉": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "開いていたものを閉じ、通れなくすることを表す。",
+      "etymologyText": "「閉」は、出入り口を表す「門」と、木材を表す「才」を組み合わせた会意文字です。入口を木でふさぐことから、「とじる」「しめる」の意を表します。"
+    },
     "克": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "寿": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "伸": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -880,7 +1191,12 @@
     "邦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "掘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土や岩を掘り、埋もれたものを取り出すことを表す。" },
     "斜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水平や垂直ではなく、ななめに傾くことを表す。" },
-    "抑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "勢いや感情などをおさえ、とどめることを表す。" },
+    "抑": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "勢いや感情などをおさえ、とどめることを表す。",
+      "etymologyText": "「抑」は、手を表す「手」と、上から人を押さえる姿を表す「卬（ごう）」を組み合わせた会意文字です。手で押さえつける様子から、「おさえる」の意を表します。"
+    },
     "励": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "亜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "吟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -889,10 +1205,20 @@
     "赦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "罪や過ちを責めず、ゆるすことを表す。" },
     "袋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を中に入れるための袋を表す。" },
     "杉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "妥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "無理がなく穏やかで、適切に落ち着くことを表す。" },
+    "妥": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "無理がなく穏やかで、適切に落ち着くことを表す。",
+      "etymologyText": "「妥」は、女性を表す「女」と、手を表す「爪」を組み合わせた会意文字です。手を添えて人を落ち着かせる様子から、「やすらか」「おだやか」の意を表します。"
+    },
     "窒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "通り道がふさがり、息などが通らなくなることを表す。" },
     "陳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を並べることや、事情や考えを述べることを表す。" },
-    "豚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "家畜として飼育される動物である豚を表す。" },
+    "豚": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "家畜として飼育される動物である豚を表す。",
+      "etymologyText": "「豚」は、いのししを表す「豕（いのこ）」と、肉を表す「肉」を組み合わせた会意文字です。祭りに供える家畜の肉から、「ぶた」の意を表します。"
+    },
     "忍": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "排": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中にあるものを外へ押し出すことを表す。" },
     "符": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "意味や資格を示すしるしや札を表す。" },
@@ -933,7 +1259,12 @@
       ]
     },
     "宏": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "最": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じ種類の中で、もっとも程度が高いことを表す。" },
+    "最": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "同じ種類の中で、もっとも程度が高いことを表す。",
+      "etymologyText": "「最」は、押し進むことを表す「冃（ぼう）」と、手に取ることを表す「取」を組み合わせた会意文字です。無理に取り出すことを表した「撮」のもとの字で、その音を借りて「もっとも」の意に用いられました。"
+    },
     "孜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "灼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火で焼くことや、明るく輝くことを表す。" },
     "散": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一か所にあったものが広く散らばることを表す。" },
@@ -979,22 +1310,50 @@
     "空": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "金": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "青": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "林": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "林": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「林」は、樹木を表す「木」を二つ並べた会意文字です。木がまとまって生えている場所から、「はやし」の意を表します。"
+    },
     "替": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "それまでのものを別のものに取り替えることを表す。" },
     "岩": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "岩石", "reading": "がんせき", "meaning": "地殻を構成する硬い石", "tone": "neutral", "common": true },
-        { "word": "一枚岩", "reading": "いちまいいわ", "meaning": "一つの大きな岩、また固くまとまった状態のたとえ", "tone": "positive", "common": true },
-        { "word": "岩壁", "reading": "がんぺき", "meaning": "岩でできた切り立った壁", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "岩石",
+          "reading": "がんせき",
+          "meaning": "地殻を構成する硬い石",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "一枚岩",
+          "reading": "いちまいいわ",
+          "meaning": "一つの大きな岩、また固くまとまった状態のたとえ",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "岩壁",
+          "reading": "がんぺき",
+          "meaning": "岩でできた切り立った壁",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「岩」は、山を表す「山」と、石を表す「石」を組み合わせた会意文字です。山にある大きな石から、「いわ」の意を表します。"
     },
     "京": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "国": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "弾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "指などではじくことや、発射するたまを表す。" },
     "知": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "長": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "直": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "直": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「直」は、目を表す「目」、多いことを表す「十」、隠れることを表す「乚（いん）」を組み合わせた会意文字です。隠れたものを多くの目で見抜くことから、「まっすぐに見る」「ただしい」の意を表します。"
+    },
     "遅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "進み方や時刻がおそいことを表す。" },
     "東": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "歩": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1002,7 +1361,12 @@
     "明": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "門": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "帽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "頭を保護したり飾ったりする帽子を表す。" },
-    "委": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仕事や判断を人に任せ、ゆだねることを表す。" },
+    "委": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "仕事や判断を人に任せ、ゆだねることを表す。",
+      "etymologyText": "「委」は、女性を表す「女」と、しなやかに曲がる稲を表す「禾」を組み合わせた会意文字です。しなやかに従う姿から、「ゆだねる」「まかせる」の意を表します。"
+    },
     "育": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "換": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "あるものを別のものへ取り換えることを表す。" },
     "喫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "飲食することや、十分に味わうことを表す。" },
@@ -1019,7 +1383,11 @@
     "始": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "酢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "酸味を持つ調味料である酢を表す。" },
     "塀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土地や建物を仕切る囲いである塀を表す。" },
-    "実": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "実": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「実」の旧字「實」は、家屋を表す「宀（うかんむり）」と、財宝を表す「貫」を組み合わせた会意文字です。家の中が財宝で満ちる様子から、「みちる」「みのる」「まこと」の意を表します。"
+    },
     "猪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山野にすむ動物である猪を表す。" },
     "数": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "電": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "いなずまや、物を動かす電気の力を表す。" },
@@ -1028,8 +1396,18 @@
     "注": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "液体や力を一つのところへ注ぐことを表す。" },
     "定": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "波": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "農": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土地を耕し、作物を育てることを表す。" },
-    "表": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の外側や、人に見える形で表すことを表す。" },
+    "農": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "土地を耕し、作物を育てることを表す。",
+      "etymologyText": "「農」は、農具として使った貝殻を表す「辰」と、田を表す形を組み合わせた会意文字です。田の草を切って耕すことから、「たがやす」「農業」の意を表します。"
+    },
+    "表": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物の外側や、人に見える形で表すことを表す。",
+      "etymologyText": "「表」は、衣服を表す「衣」と、毛を表す形を組み合わせた会意文字です。毛皮の毛が付いた側を外へ向けたことから、「おもて」「あらわす」の意を表します。"
+    },
     "塩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食物の味つけなどに用いる塩を表す。" },
     "物": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "形のあるものや、あらゆる事物を表す。" },
     "放": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "束縛を解いて自由にすることや、外へ送り出すことを表す。" },
@@ -1057,16 +1435,28 @@
     "煙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物が燃えるときに立ちのぼる煙を表す。" },
     "参": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "治": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "周": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "周": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「周」は、言葉を表す「口」と、用いることを表す「用」を組み合わせた会意文字です。言葉を行き届かせて話すことから、「細やか」、さらに「あまねく」「まわり」の意に用いられました。"
+    },
     "松": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "鉛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "重くやわらかな金属である鉛を表す。" },
     "暇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仕事などから離れて自由に使える時間を表す。" },
     "較": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つ以上のものを比べ、その違いを確かめることを表す。" },
-    "典": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "典": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「典」は、文字を書いた札をまとめた「冊」と、物を載せる台を表す「丌（き）」を組み合わせた会意文字です。台上に置く大切な書物から、「重要な書物」「規範」の意を表します。"
+    },
     "毒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生命や健康に害を与える毒を表す。" },
     "念": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "心の中に思いを保ち、強く願うことを表す。" },
     "府": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "行政を行う役所や、地方区分である府を表す。" },
-    "法": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "法": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「法」のもとの字は、水を表す「水」、正邪を見分ける神獣を表す「廌（ち）」、取り去ることを表す「去」を組み合わせた会意文字です。悪事を退ける公平な判断から、「のり」「決まり」の意を表します。現在の「法」はその省略形です。"
+    },
     "傾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一方へかたむくことや、心を向けることを表す。" },
     "例": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "説明や比較のために示す具体的な事柄を表す。" },
     "易": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事がたやすいことや、別の状態へ変わることを表す。" },
@@ -1092,15 +1482,28 @@
     "猿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "霊長類に属する動物である猿を表す。" },
     "肥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体が太ることや、土地が豊かに肥えることを表す。" },
     "褐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "黒みを帯びた濃い茶色を表す。" },
-    "武": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "武": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「武」は、進む足を表す「止」と、武器のほこを表す「戈（か）」を組み合わせた会意文字です。武器を持って進む姿から、戦いや武力に関わる意を表します。"
+    },
     "睡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目を閉じて眠り、心身を休めることを表す。" },
     "延": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "頓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "頭を下げることや、急に変化することを表す。" },
     "供": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や神仏へ物を差し出し、そなえることを表す。" },
-    "算": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数を数え、計算することを表す。" },
+    "算": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "数を数え、計算することを表す。",
+      "etymologyText": "「算」は、数を数える竹の棒を表す「竹」と、それをそろえる手の形を組み合わせた会意文字です。数取りの竹を並べることから、「かぞえる」「計算する」の意を表します。"
+    },
     "読": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や文章を読み、その意味を理解することを表す。" },
     "若": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "宗": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "宗": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「宗」は、家屋を表す「宀（うかんむり）」と、祭壇や神を祭るしるしを表す「示」を組み合わせた会意文字です。祖先を祭る建物から、「祖先」「一族の中心」「おおもと」の意を表します。"
+    },
     "垂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上から下へたれ下がることや、後世へ示すことを表す。" },
     "駅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "列車などが停まり、人が乗り降りする場所を表す。" },
     "宙": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1113,7 +1516,12 @@
         { "word": "婚姻届", "reading": "こんいんとどけ", "meaning": "結婚の成立を役所へ届ける書類", "tone": "positive", "common": true }
       ]
     },
-    "乳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "子を育てるために分泌される乳や、乳房を表す。" },
+    "乳": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "子を育てるために分泌される乳や、乳房を表す。",
+      "etymologyText": "「乳」は、つばめを表す「乚（いん）」と、卵をかえし育てることを表す「孚」を組み合わせた会意文字です。生まれた子を育てることから、「ちち」「はぐくむ」の意を表します。"
+    },
     "鼻": {
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "呼吸や嗅覚をつかさどる鼻を表す。",
       "compounds": [
@@ -1154,7 +1562,12 @@
     "拓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "誤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "判断や行動を間違えることを表す。" },
     "模": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "見習うための手本や、物の形を写したものを表す。" },
-    "突": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "勢いよく前へ進み、物を突くことを表す。" },
+    "突": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "勢いよく前へ進み、物を突くことを表す。",
+      "etymologyText": "「突」は、穴を表す「穴」と、犬を表す「犬」を組み合わせた会意文字です。犬が穴から急に飛び出す様子から、「つく」「急に出る」の意を表します。"
+    },
     "漫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水が広がることや、とりとめなく続くことを表す。" },
     "泊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "旅先で宿に泊まることや、船がとどまることを表す。" },
     "概": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の全体をならして捉えた、おおよその内容を表す。" },
@@ -1163,7 +1576,12 @@
     "抱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "腕の中に包むように抱くことや、思いを心に持つことを表す。" },
     "戯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "楽しんで遊び、たわむれることを表す。" },
     "茂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "炎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火が勢いよく燃え上がる炎を表す。" },
+    "炎": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "火が勢いよく燃え上がる炎を表す。",
+      "etymologyText": "「炎」は、火を表す「火」を二つ重ねた会意文字です。火が盛んに燃え上がる様子から、「ほのお」の意を表します。"
+    },
     "餓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物がなく、ひどく飢えることを表す。" },
     "緩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "締まりや動きがゆるやかであることを表す。" },
     "佳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1179,7 +1597,11 @@
     "卓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "謁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目上の人や高貴な人にお目にかかることを表す。" },
     "泌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内で作られた液体などがしみ出ることを表す。" },
-    "苗": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "苗": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「苗」は、草を表す「艸（くさかんむり）」と、田を表す「田」を組み合わせた会意文字です。田から草木の芽が生える様子から、「なえ」の意を表します。"
+    },
     "奉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "房": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "縄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "糸などをより合わせた縄や、境界を表す。" },
@@ -1198,7 +1620,12 @@
     "尚": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "枢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "斉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "析": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を細かく分けて明らかにすることを表す。" },
+    "析": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を細かく分けて明らかにすることを表す。",
+      "etymologyText": "「析」は、樹木を表す「木」と、おのを表す「斤」を組み合わせた会意文字です。おので木を裂き分けることから、「わける」「細かく調べる」の意を表します。"
+    },
     "犠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "神に供えるいけにえや、目的のために捧げるものを表す。" },
     "擬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "本物に似せたり、別のものになぞらえたりすることを表す。" },
     "邸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大きく立派な住まいである邸宅を表す。" },
@@ -1208,13 +1635,26 @@
     "願": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "髄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "骨や茎の中心にある組織や、物事の大切な本質を表す。", "etymologyText": "「髄」の旧字は、意味に関わる「骨」と、音を表す「遀」を組み合わせた形声文字です。骨の中心部から、物事の中心や本質を表すようになりました。" },
     "驚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "思いがけない出来事に心が大きく動くことを表す。" },
-    "戒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "過ちを防ぐために、心を引き締めていましめることを表す。" },
+    "戒": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "過ちを防ぐために、心を引き締めていましめることを表す。",
+      "etymologyText": "「戒」は、武器のほこを表す「戈」と、両手を表す「廾（きょう）」を組み合わせた会意文字です。両手で武器を構えて備えることから、「警戒する」「いましめる」の意を表します。"
+    },
     "免": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "義務や災いなどからまぬかれることを表す。" },
     "娠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "胎内に子を宿し、みごもることを表す。" },
-    "習": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "習": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「習」は、羽を表す「羽」の旧字体と、太陽を表す「日」が変化した形を組み合わせた会意文字です。ひな鳥が日の方へ羽ばたく練習をする姿から、「ならう」の意を表します。"
+    },
     "岬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "窓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "光や風を取り入れ、外を見るための窓を表す。" },
-    "翌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "翌": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「翌」は、羽を表す「羽」の旧字体と、立つことを表す「立」を組み合わせた会意文字です。鳥が羽ばたいて飛び立つことを表し、その音を借りて「あくる日」の意に用いられました。"
+    },
     "宛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "送り先や相手を定め、あてることを表す。" },
     "旺": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "岡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "周囲より小高くなった丘を表す。" },
@@ -1222,7 +1662,11 @@
     "旗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目印や象徴として掲げる旗を表す。", "etymologyText": "「旗」は、吹き流しを表す「㫃」と、音を表す「其」を組み合わせた形声文字です。風になびく「はた」を表します。" },
     "巫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "虎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "采": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "采": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「采」は、手を表す「爪」と、木を表す「木」を組み合わせた会意文字です。木から実などを手で取る様子から、「とる」「選ぶ」の意を表します。"
+    },
     "刹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "寺院や、寺に立てる柱を表す。" },
     "呪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "まじないの言葉や、人に災いを願うことを表す。" },
     "拙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "技術が十分でなく、つたないことを表す。" },
@@ -1231,13 +1675,27 @@
     "阜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "殿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高く立派な建物や、人への敬称を表す。" },
     "弥": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "及": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定のところまで届き、広がることを表す。" },
+    "及": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一定のところまで届き、広がることを表す。",
+      "etymologyText": "「及」は、人を表す形と、手を表す「又」を組み合わせた会意文字です。後ろから手を伸ばして人をつかまえる様子から、「追いつく」「およぶ」の意を表します。"
+    },
     "阿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山や川の曲がった所や、相手に寄り添うことを表す。" },
     "苑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "火": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を燃やして光と熱を出す火を表す。" },
-    "引": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を手前へ引くことや、人を導くことを表す。" },
+    "引": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を手前へ引くことや、人を導くことを表す。",
+      "etymologyText": "「引」は、弓を表す「弓」と、引っ張る動きを示す縦線「丨（こん）」を組み合わせた会意文字です。弓の弦を引く様子から、「ひく」の意を表します。"
+    },
     "茄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "侃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "侃": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「侃」は、人を表す「人」、言葉を表す「口」、美しく流れる様子を表す「彡（さん）」を組み合わせた会意文字です。人の言葉が穏やかに流れることから、正しく強いさまを表します。"
+    },
     "牛": {
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "家畜として親しまれる動物である牛を表す。",
       "compounds": [
@@ -1252,7 +1710,11 @@
     "欣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "爪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手足の指先を守る爪を表す。" },
     "昂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "古": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "古": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「古」は、言葉を表す「口」と、数が多いことを表す「十」を組み合わせた会意文字です。何代にもわたって語り伝えられた昔のことから、「ふるい」の意を表します。"
+    },
     "市": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "compounds": [
@@ -1261,8 +1723,18 @@
         { "word": "都市", "reading": "とし", "meaning": "人口や施設が集まった大きなまち", "tone": "neutral", "common": true }
       ]
     },
-    "付": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物をつけ加えることや、人に授けることを表す。" },
-    "昏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日が暮れて暗くなることや、意識がはっきりしないことを表す。" },
+    "付": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物をつけ加えることや、人に授けることを表す。",
+      "etymologyText": "「付」は、人を表す「人」と、物を手に持つ姿を表す「又」を組み合わせた会意文字です。手にした物を人へ渡すことから、「あたえる」「つける」の意を表します。"
+    },
+    "昏": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "日が暮れて暗くなることや、意識がはっきりしないことを表す。",
+      "etymologyText": "「昏」は、太陽を表す「日」と、低いことを表す「氐（てい）」の省略形を組み合わせた会意文字です。太陽が低くなる夕暮れから、「日暮れ」「くらい」の意を表します。"
+    },
     "末": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "竺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "竹や、古代インドを指す天竺を表す。" },
     "示": {
@@ -1275,20 +1747,35 @@
     },
     "昌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "帖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "書画をまとめる帳面や、紙などを数える単位を表す。" },
-    "処": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身を置くところや、物事を取り扱うことを表す。" },
+    "処": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "身を置くところや、物事を取り扱うことを表す。",
+      "etymologyText": "「処」は、腰掛けを表す「几」と、後ろから追いつく足を表す「夂（ち）」を組み合わせた会意文字です。歩いて来た人が止まり落ち着くことから、「おる」「ところ」の意を表します。"
+    },
     "苔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地面や岩などを覆う、緑色の小さなコケ植物を表す。" },
     "坦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "丙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十干の第三である「ひのえ」や、物事の三番目を表す。" },
     "仔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物の小さな子や、細かなさまを表す。" },
     "杷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土などをかきならす農具や、枇杷の名に用いられる字。" },
     "枇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "常緑樹とその果実である枇杷の名に用いられる字。" },
-    "印": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を示すしるしや、押して証明する印章を表す。" },
+    "印": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を示すしるしや、押して証明する印章を表す。",
+      "etymologyText": "「印」は、ひざまずく人を表す「卩（せつ）」と、手を表す「爪」を組み合わせた会意文字です。手で人を押さえる姿から、押し付けて残す「しるし」の意を表します。"
+    },
     "朋": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "孟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "兄弟の最年長者や、季節の初めを表す。" },
     "茅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "再": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じことをもう一度繰り返すことを表す。" },
     "怜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "或": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "はっきり定まっていない、ある物事や選択を表す。" },
+    "或": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "はっきり定まっていない、ある物事や選択を表す。",
+      "etymologyText": "「或」は、武器を表す「戈」、集落を表す「囗」、境界を表す「一」を組み合わせた会意文字です。境界のある土地を武器で守る姿から、もとは「くに」を表し、のちに「ある」「あるいは」の意へ借用されました。"
+    },
     "侑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "昊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "茉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1307,7 +1794,12 @@
     "拔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中から引き抜くことや、多くの中から選び出すことを表す。" },
     "卷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を巻くことや、ひとまとまりの書物を表す旧字体。" },
     "拂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手で払い除くことや、代金を支払うことを表す旧字体。" },
-    "爭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "互いに勝とうとして競い合うことを表す旧字体。" },
+    "爭": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "互いに勝とうとして競い合うことを表す旧字体。",
+      "etymologyText": "「爭」は、手を表す「爪」と、棒を手に持つ姿を表す「尹（いん）」を組み合わせた会意文字です。農具を互いに奪い合う様子から、「あらそう」の意を表します。"
+    },
     "后": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "君主の配偶者である、きさきを表す。" },
     "尽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "曳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を後ろへ引いたり、引きずったりすることを表す。" },
@@ -1331,12 +1823,32 @@
       ]
     },
     "計": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "計画", "reading": "けいかく", "meaning": "目的に向けて手順や方法をあらかじめ定めること", "tone": "positive", "common": true },
-        { "word": "計算", "reading": "けいさん", "meaning": "数や式を用いて答えを求めること", "tone": "neutral", "common": true },
-        { "word": "合計", "reading": "ごうけい", "meaning": "複数の数や量を合わせた全体", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "計画",
+          "reading": "けいかく",
+          "meaning": "目的に向けて手順や方法をあらかじめ定めること",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "計算",
+          "reading": "けいさん",
+          "meaning": "数や式を用いて答えを求めること",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "合計",
+          "reading": "ごうけい",
+          "meaning": "複数の数や量を合わせた全体",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「計」は、言葉を表す「言」と、まとまった数を表す「十」を組み合わせた会意文字です。物の数を口に出して数えることから、「かぞえる」「はかる」の意を表します。"
     },
     "亦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前と同じであることや、さらに別の事柄を重ねることを表す。" },
     "牟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "牛の鳴き声や、むさぼり求めることを表す。" },
@@ -1382,12 +1894,32 @@
     "角": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物のとがった部分や曲がり目、動物のつのを表す。" },
     "汽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水が熱せられて気体となった水蒸気を表す。" },
     "麦": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "小麦", "reading": "こむぎ", "meaning": "パンや麺などの原料になるイネ科の穀物", "tone": "positive", "common": true },
-        { "word": "大麦", "reading": "おおむぎ", "meaning": "麦飯や麦茶などに用いられるイネ科の穀物", "tone": "positive", "common": true },
-        { "word": "麦茶", "reading": "むぎちゃ", "meaning": "煎った大麦を湯や水で抽出した飲み物", "tone": "positive", "common": true }
-      ]
+        {
+          "word": "小麦",
+          "reading": "こむぎ",
+          "meaning": "パンや麺などの原料になるイネ科の穀物",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "大麦",
+          "reading": "おおむぎ",
+          "meaning": "麦飯や麦茶などに用いられるイネ科の穀物",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "麦茶",
+          "reading": "むぎちゃ",
+          "meaning": "煎った大麦を湯や水で抽出した飲み物",
+          "tone": "positive",
+          "common": true
+        }
+      ],
+      "etymologyText": "「麦」の旧字「麥」は、麦そのものを表した「來」と、足の動きを表す「夊（すい）」を組み合わせた会意文字です。「來」と区別して穀物の「むぎ」を表すために作られ、現在の「麦」はその省略形です。"
     },
     "急": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を早く行うことや、変化が突然であることを表す。" },
     "決": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1403,7 +1935,11 @@
     },
     "私": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分自身や、個人に属することを表す。" },
     "持": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手に持つことや、状態を長く保つことを表す。" },
-    "吹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "吹": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「吹」は、口を表す「口」と、大きく口を開ける人の姿を表す「欠」を組み合わせた会意文字です。口から強く息を出す様子から、「ふく」の意を表します。"
+    },
     "重": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "昭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "乗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "乗り物などの上に身を置くことや、機会に応じることを表す。" },
@@ -1415,12 +1951,32 @@
       ]
     },
     "相": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "相互", "reading": "そうご", "meaning": "互いに関わり合うこと", "tone": "positive", "common": true },
-        { "word": "相手", "reading": "あいて", "meaning": "一緒に物事を行う、または向き合う人", "tone": "neutral", "common": true },
-        { "word": "相当", "reading": "そうとう", "meaning": "程度や条件がつり合うこと", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "相互",
+          "reading": "そうご",
+          "meaning": "互いに関わり合うこと",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "相手",
+          "reading": "あいて",
+          "meaning": "一緒に物事を行う、または向き合う人",
+          "tone": "neutral",
+          "common": true
+        },
+        {
+          "word": "相当",
+          "reading": "そうとう",
+          "meaning": "程度や条件がつり合うこと",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「相」は、目を表す「目」と、木を表す「木」を組み合わせた会意文字です。木をよく見ることから「みる」の意を表し、のちに姿や互いの関係にも用いられました。"
     },
     "抄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "但": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前の内容に条件や例外を付け加えることを表す。" },
@@ -1447,21 +2003,63 @@
     },
     "沃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "品": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の種類や質、人に備わる品格を表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物の種類や質、人に備わる品格を表す。",
       "compounds": [
-        { "word": "上品", "reading": "じょうひん", "meaning": "言動や姿に気品があり、洗練されているさま", "tone": "positive", "common": true },
-        { "word": "品格", "reading": "ひんかく", "meaning": "人や物に備わる気高さや品位", "tone": "positive", "common": true },
-        { "word": "作品", "reading": "さくひん", "meaning": "創作や制作によって生み出されたもの", "tone": "positive", "common": true }
-      ]
+        {
+          "word": "上品",
+          "reading": "じょうひん",
+          "meaning": "言動や姿に気品があり、洗練されているさま",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "品格",
+          "reading": "ひんかく",
+          "meaning": "人や物に備わる気高さや品位",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "作品",
+          "reading": "さくひん",
+          "meaning": "創作や制作によって生み出されたもの",
+          "tone": "positive",
+          "common": true
+        }
+      ],
+      "etymologyText": "「品」は、品物を表す「口」を三つ並べた会意文字です。多くの物を区別して整理することから、「しな」「種類」「価値」の意を表します。"
     },
     "酉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十二支の第十である「とり」や、西の方角を表す。" },
     "画": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "線や色で描いた絵や、物事を区切って定めることを表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "線や色で描いた絵や、物事を区切って定めることを表す。",
       "compounds": [
-        { "word": "名画", "reading": "めいが", "meaning": "広く評価されているすぐれた絵画や映画", "tone": "positive", "common": true },
-        { "word": "計画", "reading": "けいかく", "meaning": "目的に向けて手順や方法をあらかじめ定めること", "tone": "positive", "common": true },
-        { "word": "絵画", "reading": "かいが", "meaning": "線や色を用いて平面に描かれた作品", "tone": "positive", "common": true }
-      ]
+        {
+          "word": "名画",
+          "reading": "めいが",
+          "meaning": "広く評価されているすぐれた絵画や映画",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "計画",
+          "reading": "けいかく",
+          "meaning": "目的に向けて手順や方法をあらかじめ定めること",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "絵画",
+          "reading": "かいが",
+          "meaning": "線や色を用いて平面に描かれた作品",
+          "tone": "positive",
+          "common": true
+        }
+      ],
+      "etymologyText": "「画」の旧字「畫」は、区画された土地を表す「田」と、書き記す筆を表す「聿（いつ）」を組み合わせた会意文字です。田畑の境を描き記すことから、「区切る」「えがく」の意を表します。"
     },
     "洋": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
@@ -1498,23 +2096,56 @@
     "居": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の場所に身を置き、住むことを表す。" },
     "性": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生まれつき備わる性質や、物事の特質を表す。" },
     "建": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
       "compounds": [
-        { "word": "建設", "reading": "けんせつ", "meaning": "建物や道路、組織などを新しくつくること", "tone": "positive", "common": true },
-        { "word": "建築", "reading": "けんちく", "meaning": "建物を設計し、組み立ててつくること", "tone": "positive", "common": true },
-        { "word": "再建", "reading": "さいけん", "meaning": "壊れた建物や組織をもう一度つくり直すこと", "tone": "positive", "common": true }
-      ]
+        {
+          "word": "建設",
+          "reading": "けんせつ",
+          "meaning": "建物や道路、組織などを新しくつくること",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "建築",
+          "reading": "けんちく",
+          "meaning": "建物を設計し、組み立ててつくること",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "再建",
+          "reading": "さいけん",
+          "meaning": "壊れた建物や組織をもう一度つくり直すこと",
+          "tone": "positive",
+          "common": true
+        }
+      ],
+      "etymologyText": "「建」は、朝廷を表す「廷」の省略形と、筆や法律を表す「聿（いつ）」を組み合わせた会意文字です。法を定めて国を成り立たせることから、「たてる」の意を表します。"
     },
     "律": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "刻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刃物でしるしを刻むことや、時の区切りを表す。" },
-    "祝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "祝": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「祝」は、祭壇や神を祭るしるしを表す「示」と、神へ祈りの言葉をささげる人を表す「兄」を組み合わせた会意文字です。神を祭ることから、「いわう」の意を表します。"
+    },
     "省": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "信": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "信": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「信」は、人を表す「人」と、言葉を表す「言」を組み合わせた会意文字です。人の言葉に偽りがないことから、「まこと」「信じる」の意を表します。"
+    },
     "浅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水面から底までの距離や、程度が少ないことを表す。" },
     "単": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つだけであることや、物事が複雑でないことを表す。" },
     "飛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "欧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ヨーロッパの地域や文化を表す。" },
-    "便": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "都合がよく役立つことや、知らせを届ける手段を表す。" },
+    "便": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "都合がよく役立つことや、知らせを届ける手段を表す。",
+      "etymologyText": "「便」は、人を表す「人」と、改めることを表す「㪅（こう）」を組み合わせた会意文字です。不都合な状態を人が改めることから、「都合がよい」「たより」の意を表します。"
+    },
     "泥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水と土が混ざって柔らかくなった泥を表す。" },
     "勇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "沸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水などが熱せられて煮え立つことや、感情が高まることを表す。" },
@@ -1539,16 +2170,34 @@
       ]
     },
     "峠": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山道を登りきって下りに転じる境目を表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "山道を登りきって下りに転じる境目を表す。",
       "compounds": [
-        { "word": "峠道", "reading": "とうげみち", "meaning": "峠を越えて通る山道", "tone": "neutral", "common": true }
-      ]
+        {
+          "word": "峠道",
+          "reading": "とうげみち",
+          "meaning": "峠を越えて通る山道",
+          "tone": "neutral",
+          "common": true
+        }
+      ],
+      "etymologyText": "「峠」は、山を表す「山」と、上り下りを表す「上」「下」を組み合わせた会意文字です。山道で上りから下りへ変わる境目として、「とうげ」の意を表す日本製の漢字です。"
     },
-    "則": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "則": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「則」は、刃物を表す「刀」と、祭器のかなえを表す「鼎（てい）」が変化した形を組み合わせた会意文字です。祭礼の決まりに従って供え物を切ることから、「規則」「手本」の意を表します。"
+    },
     "胎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "母体の中で子が育つ場所や、物事の始まりを表す。" },
     "封": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "境界を定めたり、出入り口を閉じたりすることを表す。" },
     "保": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "籾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外皮に包まれたままの稲の実である、もみを表す。" },
+    "籾": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "外皮に包まれたままの稲の実である、もみを表す。",
+      "etymologyText": "「籾」は、米を表す「米」と、刃のようにとがった形を表す部分を組み合わせた会意文字です。先のとがった殻が付く米として、「もみ」の意を表す日本製の漢字です。"
+    },
     "映": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "革": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "なめした動物の皮や、古いものを新しく改めることを表す。" },
     "納": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を中に収めることや、受け入れて落ち着くことを表す。" },
@@ -1570,7 +2219,11 @@
     "背": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体の後ろ側である背中や、後ろを向くことを表す。" },
     "威": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "為": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "皆": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "皆": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「皆」は、言うことを表す「白」と、人が並ぶ姿を表す「比」を組み合わせた会意文字です。並んだ人々が同じように言うことから、「みな」「すべて」の意を表します。"
+    },
     "務": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "枯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木が水分や生気を失い、しおれることを表す。" },
     "荒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土地や天候、振る舞いなどが荒れていることを表す。" },
@@ -1597,7 +2250,11 @@
       ]
     },
     "盟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "鼓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "鼓": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「鼓」は、つづみを表す「壴（ちゅ）」と、手に棒を持って打つことを表す「攴（ぼく）」を組み合わせた会意文字です。つづみを打つ姿から、「つづみ」「うつ」の意を表します。"
+    },
     "郎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "哀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事を悲しみ、心を痛めることを表す。" },
     "楼": {
@@ -1635,16 +2292,36 @@
       ]
     },
     "帝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "国を治める天子や皇帝を表す。" },
-    "轟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "非常に大きな音が遠くまで響き渡ることを表す。" },
+    "轟": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "非常に大きな音が遠くまで響き渡ることを表す。",
+      "etymologyText": "「轟」は、車を表す「車」を三つ重ねた会意文字です。多くの車が進むときの大きな音から、「とどろく」の意を表します。"
+    },
     "廿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数の二十を表す。" },
     "丼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "深めの大きな器や、その器に盛った料理を表す。" },
     "朽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木などが腐って形や働きを失うことを表す。" },
-    "某": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "名前や場所などを明らかにしない、あるものを表す。" },
+    "某": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "名前や場所などを明らかにしない、あるものを表す。",
+      "etymologyText": "「某」は、木を表す「木」と、甘いことを表す「甘」を組み合わせた会意文字です。もとは梅の木を表す字で、その音を借りて、名を特定しない「なにがし」の意に用いられました。"
+    },
     "臼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "穀物などをついて砕くための道具である、うすを表す。" },
-    "床": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物のゆかや、寝るための場所を表す。" },
+    "床": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "建物のゆかや、寝るための場所を表す。",
+      "etymologyText": "「床」は、建物を表す「广（まだれ）」と、木材を表す「木」を組み合わせた会意文字です。木で作った寝台を表し、のちに建物の「ゆか」の意にも用いられました。"
+    },
     "劫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仏教で極めて長い時間や、人をおびやかすことを表す。" },
     "每": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つのすべてや、そのたびごとを表す旧字体。" },
-    "枠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の外側を囲む縁や、定められた範囲を表す。" },
+    "枠": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物の外側を囲む縁や、定められた範囲を表す。",
+      "etymologyText": "「枠」は、木を表す「木」と、糸を巻き付ける道具の形を表す「卆」を組み合わせた会意文字です。木で作った巻き枠から、物の周囲を囲む「わく」の意を表します。"
+    },
     "杵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "臼の中の穀物などをつくための道具である、きねを表す。" },
     "袖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "衣服のうち、腕を覆う部分である袖を表す。" },
     "刃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刀や包丁などの、物を切る鋭い部分を表す。" },
@@ -1657,7 +2334,12 @@
     "叙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を順序立てて述べることや、位を授けることを表す。" },
     "浄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "斤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木を切る手おのや、重さを量る単位を表す。" },
-    "冗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要以上に長いことや、余分で無駄なことを表す。" },
+    "冗": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "必要以上に長いことや、余分で無駄なことを表す。",
+      "etymologyText": "「冗」は、家屋を表す「冖（わかんむり）」と、人を表す「儿（じん）」を組み合わせた会意文字です。農作業のないときに人が家にいる様子から、「ひま」、さらに「余分」「むだ」の意を表します。"
+    },
     "帥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "集団を率いて指揮する者や、最高位の指揮官を表す。" },
     "乏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要なものの数や量が足りないことを表す。" },
     "荘": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1683,40 +2365,74 @@
     "札": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字を書きつけた札や、紙幣を表す。" },
     "庁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "行政の仕事を行う役所や、その建物を表す。" },
     "侶": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "思": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "思": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「思」は、心を表す「心」と、頭の働きを表す「囟（しん）」が変化した形を組み合わせた会意文字です。頭と心を働かせることから、「おもう」「考える」の意を表します。"
+    },
     "娃": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "compounds": [
         { "word": "娃鬟", "reading": "あいかん", "meaning": "顔立ちの美しい女性", "tone": "positive", "common": false }
       ]
     },
-    "込": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外から中へ入ることや、中に入れることを表す。" },
+    "込": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "外から中へ入ることや、中に入れることを表す。",
+      "etymologyText": "「込」は、進むことを表す「辵（しんにょう）」と、中へ入ることを表す「入」を組み合わせた会意文字です。中へ進み入ることから、「こむ」「こめる」の意を表す日本製の漢字です。"
+    },
     "郁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "凸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "表面の一部が外側へ突き出ていることを表す。" },
     "胡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "瓦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "粘土を焼いて作る屋根材である、かわらを表す。" },
     "珂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "乎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "疑問や感嘆などの語気を添える助字を表す。" },
-    "只": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ほかにはなく、それだけであることを表す。" },
+    "只": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "ほかにはなく、それだけであることを表す。",
+      "etymologyText": "「只」は、口を表す「口」と、言葉の余韻が残る形を表す「八」を組み合わせた会意文字です。もとは文末に添える助字で、その音を借りて「ただ」「のみ」の意に用いられました。"
+    },
     "疋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "足や、動物・布を数える単位を表す。" },
     "恢": { "status": "reviewed", "reviewedAt": "2026-08-25", "etymologyText": "「恢」は、意味に関わる「心」と、音を表す「灰」を組み合わせた形声文字です。「ひろい」「大きい」「さかん」などの意味に用いられます。" },
     "𠮟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手の過ちを強い言葉で注意することを表す。" },
-    "危": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "危険が迫り、安全でないことを表す。" },
+    "危": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "危険が迫り、安全でないことを表す。",
+      "etymologyText": "「危」は、ひざまずく人を表す「卩（せつ）」と、人が崖の上にいる危うい姿を表す「厃（き）」を組み合わせた会意文字です。足場の不安定な姿から、「あぶない」の意を表します。"
+    },
     "竿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "竹や木などで作った細長い棒である、さおを表す。" },
     "叫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大きな声を張り上げて、さけぶことを表す。" },
     "忙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "するべきことが多く、暇がないことを表す。" },
     "頁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "書物のページや、人の頭を表す。" },
     "彦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "劣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "能力や品質などが、ほかよりおとることを表す。" },
+    "劣": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "能力や品質などが、ほかよりおとることを表す。",
+      "etymologyText": "「劣」は、力を表す「力」と、少ないことを表す「少」を組み合わせた会意文字です。力が人より少ないことから、「おとる」の意を表します。"
+    },
     "哉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "珊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "柘": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "柊": { "status": "reviewed", "reviewedAt": "2026-08-25", "etymologyText": "「柊」は、意味に関わる「木」と、音を表す「冬」を組み合わせた形声文字です。常緑樹である「ひいらぎ」の意味を表します。" },
     "洲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "茸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "菌類の子実体である、きのこを表す。" },
-    "穿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物に穴をあけたり、奥深くまで通したりすることを表す。" },
+    "穿": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物に穴をあけたり、奥深くまで通したりすることを表す。",
+      "etymologyText": "「穿」は、穴を表す「穴」と、木を組み合わせる形を表す「牙」を組み合わせた会意文字です。木を差し込む穴を開けることから、「うがつ」「つらぬく」の意を表します。"
+    },
     "茜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "伐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木を切り倒すことや、敵を討つことを表す。" },
+    "伐": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "木を切り倒すことや、敵を討つことを表す。",
+      "etymologyText": "「伐」は、人を表す「人」と、武器のほこを表す「戈（か）」を組み合わせた会意文字です。武器で人を討つ姿から、「うつ」「きる」の意を表します。"
+    },
     "祢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "肌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や動物の体の表面を覆う皮膚を表す。" },
     "妄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "根拠がないまま、むやみに考えたり行ったりすることを表す。" },
@@ -1725,7 +2441,12 @@
     "弛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "張っていたものがゆるみ、たるむことを表す。" },
     "此": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "話し手の近くにあるものを指す「これ」を表す。" },
     "俣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "道や川などが二つに分かれる所を表す。", "compounds": [] },
-    "尖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "先端が細く鋭く、とがっていることを表す。" },
+    "尖": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "先端が細く鋭く、とがっていることを表す。",
+      "etymologyText": "「尖」は、小さいことを表す「小」と、大きいことを表す「大」を上下に組み合わせた会意文字です。大きな物の先が細く小さくなる形から、「とがる」の意を表します。"
+    },
     "耶": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "柚": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "宥": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1748,16 +2469,29 @@
     "勉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "祈": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "祉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "突": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "急に飛び出すことや、勢いよく進むことを表す異体字。" },
+    "突": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "急に飛び出すことや、勢いよく進むことを表す異体字。",
+      "etymologyText": "「突」は「突」の旧字体で、成り立ちは「突」と共通です。穴を表す「穴」と犬を表す「犬」を組み合わせ、犬が穴から急に飛び出す様子から、「つく」「急に出る」の意を表します。"
+    },
     "形": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外から見える姿や、物事のまとまった形式を表す。" },
     "売": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "品物や権利を相手に渡して代金を得ることを表す。" },
     "医": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "病気やけがを診て、治療することを表す。" },
     "災": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自然現象や事故によって起こる災いを表す。" },
-    "家": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "家": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「家」は、家屋を表す「宀（うかんむり）」と、いけにえの豚を表す「豕（し）」を組み合わせた会意文字です。祖先神を祭る建物を表したことから、のちに「いえ」の意に用いられました。"
+    },
     "夏": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "記": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "状": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事の姿、様子、状態を表す。" },
-    "原": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "原": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「原」は、崖を表す「厂（がんだれ）」と、泉を表す「泉」の省略形を組み合わせた会意文字です。崖の下から水が湧き出る場所から、「みなもと」「もと」の意を表します。"
+    },
     "高": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "紙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字や絵を書くためなどに用いる薄い素材を表す。" },
     "時": {
@@ -1769,7 +2503,12 @@
       ]
     },
     "弱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "力や働きが十分でなく、強くないことを表す。" },
-    "困": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "解決しにくい状況に直面し、苦しむことを表す。" },
+    "困": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "解決しにくい状況に直面し、苦しむことを表す。",
+      "etymologyText": "「困」は、囲いを表す「囗」と、木材を表す「木」を組み合わせた会意文字です。木を囲いの中で束ねて動けなくすることから、「こまる」「苦しむ」の意に用いられました。"
+    },
     "通": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "否": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "そうではないと打ち消すことや、認めないことを表す。" },
     "院": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "周囲を囲った大きな建物や、特定の役割を持つ施設を表す。" },
@@ -1777,10 +2516,20 @@
     "抗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外からの力に逆らい、持ちこたえることを表す。" },
     "起": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "宮": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "庫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を保管しておく建物や場所を表す。" },
+    "庫": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を保管しておく建物や場所を表す。",
+      "etymologyText": "「庫」は、建物を表す「广（まだれ）」と、車を表す「車」を組み合わせた会意文字です。兵車などをしまう建物から、「くら」「物を保管する場所」の意を表します。"
+    },
     "根": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "伺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目上の人に尋ねることや、様子をそっと見ることを表す。" },
-    "即": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "間を置かず、すぐに行うことを表す。" },
+    "即": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "間を置かず、すぐに行うことを表す。",
+      "etymologyText": "「即」の旧字「卽」は、食物を盛った器を表す「皀」と、ひざまずく人を表す「卩（せつ）」を組み合わせた会意文字です。人が食卓へつく姿から、「つく」「すぐに」の意を表します。"
+    },
     "真": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "坊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "区画された町や、僧侶の住む建物を表す。" },
     "速": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1790,13 +2539,27 @@
     "忌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "嫌って避けることや、慎んで行わないことを表す。" },
     "坑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "鉱物などを採るために地中へ掘った穴を表す。" },
     "勉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "尿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内の不要物を水分とともに排出する尿を表す。" },
-    "流": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "尿": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "体内の不要物を水分とともに排出する尿を表す。",
+      "etymologyText": "「尿」は、人の体を表す「尸」と、水を表す「水」を組み合わせた会意文字です。体から出る液体として、「にょう」「いばり」の意を表します。"
+    },
+    "流": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「流」は、水を表す「水」と、頭髪のある子どもを逆さにした形の「㐬（とつ）」を組み合わせた会意文字です。古い水に関する儀礼を表した字形から、水が「ながれる」の意に用いられました。"
+    },
     "妨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の進行を邪魔し、さまたげることを表す。" },
     "没": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水中に沈むことや、姿が隠れてなくなることを表す。" },
     "妊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "胎内に子を宿し、みごもることを表す。" },
     "汰": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "肘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "腕の上部と前腕をつなぐ関節である、ひじを表す。" },
+    "肘": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "腕の上部と前腕をつなぐ関節である、ひじを表す。",
+      "etymologyText": "「肘」は、体の肉を表す「肉」と、手を表す「寸」を組み合わせた会意文字です。腕と手の間にある関節として、「ひじ」の意を表します。"
+    },
     "迂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "道などが曲がり、遠回りすることを表す。" },
     "航": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "迄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "場所や時間が一定のところに至ることを表す。" },
@@ -1806,7 +2569,12 @@
     "笑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "席": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人が座る場所や、集まりの中での地位を表す。" },
     "倉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "穀物や品物を保管しておく建物を表す。" },
-    "孫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分の子どもの子や、後の世代を表す。" },
+    "孫": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "自分の子どもの子や、後の世代を表す。",
+      "etymologyText": "「孫」は、子どもを表す「子」と、続くことを表す「系」を組み合わせた会意文字です。子からさらに血筋が続くことから、「まご」「子孫」の意を表します。"
+    },
     "味": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "舌で感じる食べ物の味や、物事のおもしろみを表す。" },
     "徒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "歩いて行くことや、同じ仲間に属する人を表す。" },
     "特": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1815,8 +2583,16 @@
     "脈": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内を流れる血の筋道や、続いていくつながりを表す。" },
     "卒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を終えることや、下級の兵士を表す。" },
     "底": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の最も下の部分や、物事の根本を表す。" },
-    "連": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "益": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "連": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「連」は、進むことを表す「辵（しんにょう）」と、車を表す「車」を組み合わせた会意文字です。車が列になって進む様子から、「つらなる」「つなぐ」の意を表します。"
+    },
+    "益": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「益」は、器を表す「皿」と、水を表す「水」を組み合わせた会意文字です。器から水があふれる様子から、「ます」「増える」の意を表します。"
+    },
     "桜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "恩": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "格": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1841,7 +2617,12 @@
     "株": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木の根元や、会社への出資を示す権利を表す。" },
     "胸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体の前面にある胸や、心の中に抱く思いを表す。" },
     "降": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高い所から低い所へ下りることや、雨や雪が降ることを表す。" },
-    "骨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を支える骨や、物事の中心となる骨組みを表す。" },
+    "骨": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "体を支える骨や、物事の中心となる骨組みを表す。",
+      "etymologyText": "「骨」は、骨の形を表す「冎（か）」と、肉を表す「肉」を組み合わせた会意文字です。肉の付いた骨を表し、「ほね」の意に用いられます。"
+    },
     "座": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人が座る場所や、同じ性質のものの集まりを表す。" },
     "蚕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "絹糸を取るために飼育される昆虫である、かいこを表す。" },
     "射": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "矢や光などを、目標に向かって放つことを表す。" },
@@ -1862,7 +2643,11 @@
     "鬼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に災いをもたらすとされる想像上の存在である鬼を表す。" },
     "盲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目が見えないことや、物事を見通せないことを表す。" },
     "恵": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "兼": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "兼": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「兼」は、二本の稲を表す「秝（れき）」と、手を表す「又」を組み合わせた会意文字です。二本の稲を一つの手で持つことから、「あわせ持つ」「かねる」の意を表します。"
+    },
     "軒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "屋根の端が壁から張り出した部分や、家を数える単位を表す。" },
     "剣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "狙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目標を定め、機会をうかがうことを表す。" },
@@ -1871,9 +2656,18 @@
     "枕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "眠るときに頭を支える寝具である、まくらを表す。" },
     "振": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手や物を揺り動かすことや、勢いを盛んにすることを表す。" },
     "拉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手で引くことや、無理に連れて行くことを表す。" },
-    "扇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "扇": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「扇」は、戸を表す「戶」と、開閉する羽を表す「羽」の旧字体を組み合わせた会意文字です。開いたり閉じたりする戸の動きから、「おうぎ」「あおぐ」の意を表します。"
+    },
     "恥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分の欠点や過ちを恥ずかしく思うことを表す。" },
-    "奄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上から広く覆うことや、急に勢いを失うことを表す。" },
+    "奄": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "上から広く覆うことや、急に勢いを失うことを表す。",
+      "etymologyText": "「奄」は、大きいことを表す「大」と、伸びることを表す「申」を組み合わせた会意文字です。大きく伸びて広く覆うことから、「あまねく」「おおう」の意を表します。"
+    },
     "途": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的地へ向かう道や、物事の進み方を表す。" },
     "透": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "唐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中国の王朝である唐や、中国から伝わったものを表す。" },
@@ -1881,7 +2675,12 @@
     "其": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "話題に出たものを指す「それ」や「その」を表す。" },
     "杭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地面などに打ち込み、支えや目印とする柱を表す。" },
     "悩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "心配や苦しみを抱え、思い迷うことを表す。" },
-    "般": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の種類や、広く全体に共通することを表す。" },
+    "般": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事の種類や、広く全体に共通することを表す。",
+      "etymologyText": "「般」は、舟を表す「舟」と、棒でたたくことを表す「殳（るまた）」を組み合わせた会意文字です。舟べりを棒で押して舟を巡らせることから、「めぐる」の意を表します。"
+    },
     "肴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "酒とともに味わう料理や、魚肉を使った料理を表す。" },
     "忽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が急に起こることや、軽んじて忘れることを表す。" },
     "浜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "海や湖の水際に広がる岸辺を表す。" },
@@ -1890,7 +2689,12 @@
     "些": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数や程度がごくわずかであることを表す。" },
     "峰": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "砲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火薬などで弾を遠くへ発射する大型の武器を表す。" },
-    "沓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "足にはく履物や、物が重なり合うことを表す。" },
+    "沓": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "足にはく履物や、物が重なり合うことを表す。",
+      "etymologyText": "「沓」は、言葉を表す「曰」と、水を表す「水」を組み合わせた会意文字です。水が流れるように続けて話すことを表し、のちに物が重なる意にも用いられました。"
+    },
     "斧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木を切ったり割ったりする道具である、おのを表す。" },
     "狀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事の姿、様子、状態を表す旧字体。" },
     "級": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "能力や品質などを区分する段階や等級を表す。" },
@@ -1915,13 +2719,28 @@
     "迷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "進む方向や判断が定まらず、まようことを表す。" },
     "派": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つの流れから分かれた集団や系統を表す。" },
     "徐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動きや進み方が、ゆっくりで穏やかなことを表す。" },
-    "辱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "名誉を傷つけ、恥ずかしい思いをさせることを表す。" },
+    "辱": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "名誉を傷つけ、恥ずかしい思いをさせることを表す。",
+      "etymologyText": "「辱」は、農具に使った大きな貝殻を表す「辰」と、手を表す「寸」を組み合わせた会意文字です。貝殻で草を刈ることを表した字で、その音を借りて「はずかしめる」の意に用いられました。"
+    },
     "粋": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "狭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "場所や範囲がせまく、ゆとりが少ないことを表す。" },
-    "隻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "対になっている物の片方や、船などを数える単位を表す。" },
+    "隻": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "対になっている物の片方や、船などを数える単位を表す。",
+      "etymologyText": "「隻」は、尾の短い鳥を表す「隹（ふるとり）」と、手を表す「又」を組み合わせた会意文字です。鳥を一羽だけ手でつかむことから、二つに対する「片方」「ひとつ」の意を表します。"
+    },
     "桑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "狩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "野生の鳥や獣を追って捕らえることを表す。" },
-    "畜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物を飼い育てることや、物をたくわえることを表す。" },
+    "畜": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "動物を飼い育てることや、物をたくわえることを表す。",
+      "etymologyText": "「畜」は、田を表す「田」と、増えることを表す「茲（じ）」の省略形を組み合わせた会意文字です。農作業のために育て増やす動物から、「家畜」「たくわえる」の意を表します。"
+    },
     "哲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "凍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水分が冷えて固まり、こおることを表す。" },
     "侵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "他人の領域や権利の中へ入り込み、おかすことを表す。" },
@@ -1941,7 +2760,12 @@
     "剛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "拷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人を強く打ち、苦痛を与えて問いただすことを表す。" },
     "栽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木を植えて育てることを表す。" },
-    "宰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "組織や政務の中心となって取り仕切ることを表す。" },
+    "宰": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "組織や政務の中心となって取り仕切ることを表す。",
+      "etymologyText": "「宰」は、建物を表す「宀（うかんむり）」と、罪や刑罰を表す「辠（ざい）」の省略形を組み合わせた会意文字です。宮殿内の仕事を取りしきる者から、「つかさどる」の意を表します。"
+    },
     "窃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に知られないよう、ひそかに物を盗むことを表す。" },
     "桟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高所や水上などに木を渡して作る通路を表す。" },
     "拶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手に近づき、強くせまることを表す。" },
@@ -1960,7 +2784,12 @@
     "殆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "危険が迫っていることや、ほとんど全部であることを表す。" },
     "姪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分の兄弟姉妹の娘を表す。" },
     "泰": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "姥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年を重ねた女性や、子どもの世話をする女性を表す。" },
+    "姥": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "年を重ねた女性や、子どもの世話をする女性を表す。",
+      "etymologyText": "「姥」は、女性を表す「女」と、年長者を表す「老」を組み合わせた会意文字です。年を重ねた女性として、「うば」「老女」の意を表します。"
+    },
     "侮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手を自分より劣るものとして軽く見ることを表す異体字。" },
     "倍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ある数や量を二つ分以上に増やすことを表す。" },
     "訓": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -1968,16 +2797,31 @@
     "借": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の物を一時的に使い、後で返すことを表す。" },
     "剖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を切り分け、内部を明らかにすることを表す。" },
     "粉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を細かく砕いてできる、こなを表す。" },
-    "料": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を作るための材料や、数量をはかることを表す。" },
+    "料": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を作るための材料や、数量をはかることを表す。",
+      "etymologyText": "「料」は、容量を量るますを表す「斗」と、米を表す「米」を組み合わせた会意文字です。米をますで量ることから、「はかる」、さらに材料や代金の意に用いられました。"
+    },
     "竜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "倫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "俵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "わらなどを編んで作る、穀物を入れる袋を表す。" },
     "唄": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "従": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の後について行くことや、命令にしたがうことを表す。" },
+    "従": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人の後について行くことや、命令にしたがうことを表す。",
+      "etymologyText": "「従」の旧字「從」は、歩くことを表す「彳（ぎょうにんべん）」と、人が前後に並ぶ姿を表す「从」を組み合わせた会意文字です。前の人について歩くことから、「したがう」の意を表します。現在の「従」はその省略形です。"
+    },
     "除": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "不要なものを取りのぞくことを表す。" },
     "桁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物や橋を支える横木や、数の位を表す。" },
     "拳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "指を内側へ折り曲げて握った、こぶしを表す。" },
-    "討": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "敵を攻めうつことや、詳しく調べて論じることを表す。" },
+    "討": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "敵を攻めうつことや、詳しく調べて論じることを表す。",
+      "etymologyText": "「討」は、言葉を表す「言」と、決まりを表す「寸」を組み合わせた会意文字です。規則に照らして言葉で問いただすことから、「調べる」「責める」「うつ」の意を表します。"
+    },
     "剤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "薬を調合したものや、物を整えるための材料を表す。" },
     "称": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "浸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "液体の中につけることや、徐々にしみ込むことを表す。" },
@@ -2025,7 +2869,11 @@
     "秦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "症": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "病気によって体や心に現れる状態を表す。" },
     "唇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "口の上下を縁取る柔らかな部分である、くちびるを表す。" },
-    "閃": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "閃": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「閃」は、門を表す「門」と、人を表す「人」を組み合わせた会意文字です。門の内側の人が一瞬だけ見える様子から、「ひらめく」「ちらつく」の意を表します。"
+    },
     "悌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "逝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "遠くへ去ることや、人が亡くなることを表す。" },
     "耽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つの物事に夢中になり、深くふけることを表す。" },
@@ -2035,7 +2883,12 @@
     "挿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物と物の間に差し入れることを表す。" },
     "朕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "古く天皇や皇帝が自分を指して用いた「われ」を表す。" },
     "桐": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "莫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "してはいけないという禁止や、ないことを表す。" },
+    "莫": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "してはいけないという禁止や、ないことを表す。",
+      "etymologyText": "「莫」は、草むらを表す「茻（ぼう）」と、太陽を表す「日」を組み合わせた会意文字です。日が草原へ沈む様子から、もとは日暮れを表し、のちに「ない」「なかれ」の意へ借用されました。"
+    },
     "逓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "順を追って次々に送ることや、入れ替わることを表す。" },
     "俸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "職務の対価として定期的に受け取る給与を表す。" },
     "耗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物や力を使うことで、少しずつ減ることを表す。" },
@@ -2066,11 +2919,25 @@
     "海": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "祐": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "酎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "繰り返し醸した濃い酒や、焼酎の名に用いられる字。" },
-    "祝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "冥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "光が届かず暗いことや、死後の世界を表す。" },
+    "祝": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「祝」は「祝」の旧字体で、成り立ちは「祝」と共通です。祭壇を表す「示」と、神へ祈りをささげる人を表す「兄」を組み合わせ、神を祭ることから「いわう」の意を表します。"
+    },
+    "冥": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "光が届かず暗いことや、死後の世界を表す。",
+      "etymologyText": "「冥」は、覆いを表す「冖（わかんむり）」、明かりを表す「日」、両手を表す形を組み合わせた会意文字です。両手で明かりを覆うことから、「くらい」の意を表します。"
+    },
     "脇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体の側面にあるわきや、中心から外れた側を表す。" },
     "俱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "複数の人や物が、ともに一緒であることを表す。" },
-    "涉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水の中を歩いて渡ることや、広く物事に関わることを表す。" },
+    "涉": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "水の中を歩いて渡ることや、広く物事に関わることを表す。",
+      "etymologyText": "「涉」は「渉」の旧字体です。水を表す「水」と、歩くことを表す「步」を組み合わせ、水の中を歩いて渡ることから、「わたる」の意を表します。"
+    },
     "倦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じことに飽きたり、疲れて力がなくなったりすることを表す。" },
     "晒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日光や風雨に当てることや、人目にさらすことを表す。" },
     "窄": {
@@ -2091,7 +2958,12 @@
       ]
     },
     "雪": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "套": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外側から覆いかぶせるものや、決まりきった型を表す。" },
+    "套": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "外側から覆いかぶせるものや、決まりきった型を表す。",
+      "etymologyText": "「套」は、大きいことを表す「大」と、長いことを表す「長」の省略形を組み合わせた会意文字です。大きく長い覆いから、「かさねる」「おおい」の意を表します。"
+    },
     "組": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "複数のものを組み合わせることや、同じ目的の集団を表す。" },
     "挽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "車などを引くことや、刃で物を細かくひくことを表す。" },
     "野": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2101,13 +2973,28 @@
     "狼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "群れで暮らすイヌ科の動物である、おおかみを表す。" },
     "祕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に知られないよう、物事をひそかに隠すことを表す旧字体。" },
     "狹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "場所や範囲がせまく、ゆとりが少ないことを表す旧字体。" },
-    "宿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "旅先などで泊まる場所や、以前から持ち続けるものを表す。" },
+    "宿": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "旅先などで泊まる場所や、以前から持ち続けるものを表す。",
+      "etymologyText": "「宿」は、家屋を表す「宀（うかんむり）」、人を表す「人」、敷物を表す「㐁」を組み合わせた会意文字です。人が家の中で敷物に寝る様子から、「やどる」「やど」の意を表します。"
+    },
     "章": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "商": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "品物やサービスを売買することや、商いを表す。" },
     "進": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "深": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水底までの距離が大きいことや、考えや関係が奥深いことを表す。" },
-    "族": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "血縁や文化、目的などを同じくする人々の集まりを表す。" },
-    "臭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "鼻で感じるにおいや、好ましくないにおいを表す旧字体。" },
+    "族": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "血縁や文化、目的などを同じくする人々の集まりを表す。",
+      "etymologyText": "「族」は、吹き流しの軍旗を表す「㫃（えん）」と、矢を表す「矢」を組み合わせた会意文字です。旗の下で結び付いた人々の集団から、「やから」「一族」の意を表します。"
+    },
+    "臭": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "鼻で感じるにおいや、好ましくないにおいを表す旧字体。",
+      "etymologyText": "「臭」は「臭」の旧字体です。鼻を表す「自」と、嗅覚の鋭い犬を表す「犬」を組み合わせ、においを嗅ぎ取ることから、「におい」「くさい」の意を表します。"
+    },
     "剝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "表面を覆うものをむくことや、権利などを取り上げることを表す。" },
     "笛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "息を吹き込んで音を出す管楽器である、ふえを表す。" },
     "転": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ころがることや、向き・状態・場所が変わることを表す。" },
@@ -2119,7 +3006,11 @@
     "巣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "鳥や動物が卵や子を育て、暮らす場所を表す。" },
     "救": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "健": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "康": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "康": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「康」は、きねを表す「午」、両手を表す「廾（きょう）」、米を表す形を組み合わせた会意文字です。両手できねを使い、もみ殻を取り除くことを表した字で、その音を借りて「安らか」の意に用いられました。"
+    },
     "菜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "混": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "異なるものが入りまじることや、一つにまぜ合わせることを表す。" },
     "唱": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2137,7 +3028,11 @@
     "密": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "婚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二人が夫婦として結ばれることや、その縁組を表す。" },
     "淡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "規": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "規": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「規」は、見ることを表す「見」と、円を描くコンパスを表す形を組み合わせた会意文字です。形を正しく測る道具から、「基準」「のり」の意を表します。"
+    },
     "基": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "粒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "米や種などの、小さく丸みを帯びた一つ一つを表す。" },
     "掛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を高い所にかけることや、力・時間などを加えることを表す。" },
@@ -2184,18 +3079,37 @@
     "悼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "亡くなった人を思い、深く悲しむことを表す。" },
     "瓶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "液体などを入れる、口の細い容器を表す。" },
     "累": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が幾重にも重なることや、積み重なることを表す。" },
-    "郵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手紙や荷物を送り届ける仕組みや、その中継を表す。" },
+    "郵": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "手紙や荷物を送り届ける仕組みや、その中継を表す。",
+      "etymologyText": "「郵」は、集落を表す「邑（おおざと）」と、辺境の土地を表す「垂」を組み合わせた会意文字です。村外れに置かれた宿場から、文書や物を送る「郵便」の意へつながりました。"
+    },
     "惧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "よくないことが起こるのではないかと、おそれ危ぶむことを表す。" },
     "欲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物や状態を手に入れたいと強く望む気持ちを表す。" },
     "陰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "光の当たらないかげや、表から見えない側を表す。" },
-    "頃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ある時期や、その前後を含むおおよその時を表す。" },
+    "頃": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "ある時期や、その前後を含むおおよその時を表す。",
+      "etymologyText": "「頃」は、頭を表す「頁」と、ひっくり返る姿を表す「𠤎（か）」を組み合わせた会意文字です。頭を傾けることから「かたむく」を表し、のちに短い時間を示す「ころ」の意に用いられました。"
+    },
     "乾": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "痕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "傷や出来事などが過ぎたあとに残るしるしを表す。" },
     "斬": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "刀などの刃物で物を断ち切ることを表す。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "刀などの刃物で物を断ち切ることを表す。",
       "compounds": [
-        { "word": "斬新", "reading": "ざんしん", "meaning": "発想や趣向が新しく、際立っていること", "tone": "positive", "common": true }
-      ]
+        {
+          "word": "斬新",
+          "reading": "ざんしん",
+          "meaning": "発想や趣向が新しく、際立っていること",
+          "tone": "positive",
+          "common": true
+        }
+      ],
+      "etymologyText": "「斬」は、おのを表す「斤」と、車を表す「車」を組み合わせた会意文字です。車やその材料を切ることから、「きる」の意を表します。車裂きの刑を表したとする説もあります。"
     },
     "羞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分の欠点や失敗を恥ずかしく思う気持ちを表す。" },
     "彩": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2254,7 +3168,11 @@
     "街": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "家や店が集まり、道が通るまちや通りを表す。" },
     "陵": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "尉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人を取り締まり治める役や、軍隊などの階級を表す。" },
-    "逸": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "逸": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「逸」の旧字「逸」は、進み行くことを表す「辵（しんにょう）」と、うさぎを表す「兔」を組み合わせた会意文字です。うさぎが走って逃げる姿から、「のがれる」を表し、そこから「抜きん出る」の意にも用いられました。"
+    },
     "象": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "隊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じ目的で行動する人々の集まりや、その列を表す。" },
     "絶": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2271,8 +3189,17 @@
     "粛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "淑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "庶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数が多くさまざまであることや、一般の人々を表す。" },
-    "渉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "畳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を折り重ねることや、床に敷くたたみを表す。" },
+    "渉": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「渉」の旧字「涉」は、水を表す「水」と、歩くことを表す「步」を組み合わせた会意文字です。水の中を歩いて川を渡ることから、「わたる」の意を表します。"
+    },
+    "畳": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を折り重ねることや、床に敷くたたみを表す。",
+      "etymologyText": "「畳」の旧字「疊」は、積み重なることを表す「晶」の変形と、整えることを表す「宐（ぎ）」を組み合わせた会意文字です。物を正しく積み重ねることから、「たたむ」「かさなる」の意を表します。"
+    },
     "塔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高くそびえる層状の建造物や、仏舎利を納める建物を表す。" },
     "紳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "崇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2308,7 +3235,11 @@
     "揺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "左右や上下にゆれ動くことや、心が不安定になることを表す。" },
     "亀": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "裂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一続きのものが引きさかれ、分かれることを表す。" },
-    "閑": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "閑": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「閑」は、門を表す「門」と、木を表す「木」を組み合わせた会意文字です。門を閉ざす横木から「仕切り」を表し、その音を借りて「しずか」「ひま」の意に用いられました。"
+    },
     "梗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木の枝や茎、硬くまっすぐなこと、物がふさがることを表す。" },
     "隅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "囲まれた場所のかどや、中心から離れたところを表す。" },
     "硝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "硝石や硝酸、ガラスなどに関わる字。" },
@@ -2325,7 +3256,11 @@
     "詔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "天皇や君主が広く人々に告げる言葉や命令を表す。" },
     "戚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "血縁や婚姻でつながる身内や、心を痛め悲しむことを表す。" },
     "診": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "医師が体の状態を調べ、病気や健康状態を判断することを表す。" },
-    "爽": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "爽": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「爽」は、人を表す「大」と、美しい模様を表す四つの印を組み合わせた会意文字です。明るく美しい様子から、「あきらか」「さわやか」の意を表します。"
+    },
     "疎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "間隔があいてまばらなことや、関係が遠いことを表す。" },
     "堆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土や物がうずたかく積み重なることを表す。" },
     "堕": {
@@ -2370,10 +3305,19 @@
     "貿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "品物を交換し、国や地域の間で売買することを表す。" },
     "堰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水の流れをせき止めたり調節したりする設備を表す。" },
     "筈": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "矢の端にある弦を受ける部分や、当然の成り行きを表す。" },
-    "雫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "雫": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「雫」は、雨を表す「雨」と、下へ落ちることを表す「下」を組み合わせた会意文字です。雨水が下へ滴り落ちる様子から、「しずく」の意を表す日本製の漢字です。"
+    },
     "寓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仮の住まいに身を寄せることや、別の物に意味を託すことを表す。" },
     "琢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "喰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物を口にして食うことを表す国字。" },
+    "喰": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "食べ物を口にして食うことを表す国字。",
+      "etymologyText": "「喰」は、口を表す「口」と、食べることを表す「食」を組み合わせた会意文字です。口で物を食べることから、「くう」の意を表す日本製の漢字です。"
+    },
     "紬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "戟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "長い柄に刃を付けた武器である、ほこを表す。" },
     "淀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水の流れが滞って動かなくなることを表す。" },
@@ -2383,14 +3327,24 @@
     "斯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "話し手に近い物事を指す「これ」「この」を表す。" },
     "梶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "クワ科の落葉高木であるカジノキを表す。" },
     "畢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事がすべて終わることや、残らず尽くすことを表す。" },
-    "彪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "虎の鮮やかな模様や、模様が明らかなことを表す。" },
+    "彪": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "虎の鮮やかな模様や、模様が明らかなことを表す。",
+      "etymologyText": "「彪」は、模様を表す「彡（さんづくり）」と、虎を表す「虎」を組み合わせた会意文字です。虎の皮にある鮮やかな模様から、あやのある美しいさまを表します。"
+    },
     "彬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "惹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の心を引きつけることや、物事を引き起こすことを表す。" },
     "疏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "間隔があいてまばらなことや、滞りなく通すことを表す。" },
     "萌": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "萠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木の芽が出ることや、物事のきざしを表す「萌」の異体字。" },
     "逢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "椛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "秋に色づくもみじを表す日本で作られた字。" },
+    "椛": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "秋に色づくもみじを表す日本で作られた字。",
+      "etymologyText": "「椛」は、木を表す「木」と、花を表す「花」を組み合わせた会意文字です。木の葉が花のように色づく様子から、「もみじ」の意を表す日本製の漢字です。"
+    },
     "甥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "兄弟姉妹の息子にあたる親族を表す。" },
     "琉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "美しい宝石を表す「琉璃」や、琉球の名に用いられる字。" },
     "笠": {
@@ -2438,7 +3392,12 @@
     "琵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "弦楽器の名である「琵琶」を構成する字。" },
     "晩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日の暮れるころや、時期がおそいことを表す。" },
     "葡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "「葡萄」の語で、つる性の果樹であるぶどうを表す字。" },
-    "焚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "火をつけて燃やすことや、燃料をたくことを表す。" },
+    "焚": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "火をつけて燃やすことや、燃料をたくことを表す。",
+      "etymologyText": "「焚」は、火を表す「火」と、木々を表す「林」を組み合わせた会意文字です。林の木を火で焼く様子から、「やく」「たく」の意を表します。"
+    },
     "森": {
       "status": "reviewed", "reviewedAt": "2026-08-25",
       "compounds": [
@@ -2456,37 +3415,77 @@
         { "word": "挿絵", "reading": "さしえ", "meaning": "文章の理解や鑑賞を助けるため添えた絵", "tone": "neutral", "common": true }
       ]
     },
-    "間": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つの物や時のあいだ、またはそこに生じるすきまを表す。" },
+    "間": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "二つの物や時のあいだ、またはそこに生じるすきまを表す。",
+      "etymologyText": "「間」の旧字「閒」は、門を表す「門」と、月を表す「月」を組み合わせた会意文字です。門のすき間から月明かりが見える様子から、「あいだ」「すきま」の意を表します。"
+    },
     "裡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の内側や心のうちを表す「裏」の異体字。" },
     "晴": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "朝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "椀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物や汁を盛る木製の器である、わんを表す。" },
     "道": {
-      "status": "reviewed", "reviewedAt": "2026-08-25",
-      "etymologyText": "「道」は、移動に関わる「辵」と、音を表す「首」を組み合わせた会意形声文字とされます。人や物が通るみちから、物事の筋道や教えの意味にも用いられます。",
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「道」は、進み行くことを表す「辵（しんにょう）」と、音を表す「首」を組み合わせた会意形声文字です。人や物が進む通路から、「みち」、さらに物事の筋道や教えの意にも用いられます。",
       "compounds": [
-        { "word": "正道", "reading": "せいどう", "meaning": "人として正しい道や行い", "tone": "positive", "common": true },
-        { "word": "人道", "reading": "じんどう", "meaning": "人として守るべき道や、人命を尊重する考え", "tone": "positive", "common": true },
-        { "word": "歩道", "reading": "ほどう", "meaning": "歩行者が安全に通るための道", "tone": "neutral", "common": true }
+        {
+          "word": "正道",
+          "reading": "せいどう",
+          "meaning": "人として正しい道や行い",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "人道",
+          "reading": "じんどう",
+          "meaning": "人として守るべき道や、人命を尊重する考え",
+          "tone": "positive",
+          "common": true
+        },
+        {
+          "word": "歩道",
+          "reading": "ほどう",
+          "meaning": "歩行者が安全に通るための道",
+          "tone": "neutral",
+          "common": true
+        }
       ]
     },
     "惡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "よくないことや、人を憎み嫌うことを表す「悪」の旧字体。" },
     "番": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の順序や、交代で見張る役目を表す。" },
     "盜": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "他人の物をひそかに盗むことを表す「盗」の旧字体。",
-      "compounds": []
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "他人の物をひそかに盗むことを表す「盗」の旧字体。",
+      "compounds": [],
+      "etymologyText": "「盜」は「盗」の旧字体です。人が口を開けて欲しがる姿を表す「㳄」と、器を表す「皿」を組み合わせ、器の中の物を欲しがることから、「ぬすむ」の意を表します。"
     },
     "剩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要な分を越えて余ることを表す「剰」の異体字。" },
     "温": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "開": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "開": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「開」は、門を表す「門」と、両手を前へ出す姿を表す「廾（きょう）」を組み合わせた会意文字です。両手で門を押し開けることから、「ひらく」の意を表します。"
+    },
     "階": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物の層や、物事が進む順序・段階を表す。" },
-    "寒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "気温が低く、体に冷たさを感じることを表す。" },
+    "寒": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "気温が低く、体に冷たさを感じることを表す。",
+      "etymologyText": "「寒」は、家屋を表す「宀（うかんむり）」、人、草のむしろを表す「茻（ぼう）」、氷を表す「冫（にすい）」を組み合わせた会意文字です。人が家の中でむしろにくるまり寒さをしのぐ姿から、「さむい」の意を表します。"
+    },
     "期": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "あらかじめ定めた時や、実現を心待ちにすることを表す。" },
     "搜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "見えないものを広く探し求めることを表す「捜」の旧字体。" },
     "湖": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "港": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "著": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文章を書き表すことや、目立って明らかなことを表す旧字体。" },
-    "集": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "集": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「集」は、多くの鳥を表す「雥（そう）」の省略形と、木を表す「木」を組み合わせた会意文字です。たくさんの鳥が木に止まる様子から、「あつまる」の意を表します。"
+    },
     "視": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目でよく見ることや、物事を見極めることを表す「視」の異体字。" },
     "勝": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "植": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木を地面にうえることや、しっかり根づかせることを表す。" },
@@ -2504,7 +3503,11 @@
     "落": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高い所から下へおちることや、そこから離れることを表す。" },
     "渴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水分を求めてのどがかわくことを表す旧字体。" },
     "覚": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "喜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "喜": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「喜」は、言葉や声を表す「口」と、楽器を表す「壴（しゅ）」を組み合わせた会意文字です。音楽を奏でて楽しむことから、「よろこぶ」の意を表します。"
+    },
     "給": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要な物を与えることや、不足なく満たすことを表す。" },
     "黃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "菜の花や黄金に見られる、きいろを表す旧字体。" },
     "景": {
@@ -2560,9 +3563,18 @@
     "賊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の物を奪ったり、害を与えたりする者を表す。" },
     "塗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "表面に塗料などを広げ、覆うことを表す。" },
     "貴": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "筋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を動かす筋肉や、細長く連なるもの、物事の道理を表す。" },
+    "筋": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "体を動かす筋肉や、細長く連なるもの、物事の道理を表す。",
+      "etymologyText": "「筋」は、竹を表す「竹」と、筋を表す「肋（ろく）」を組み合わせた会意文字です。竹に通る繊維から、体や物に通る「すじ」の意を表します。"
+    },
     "勤": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "敬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "敬": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「敬」の旧字は、手に棒を持って打つことを表す「攴（ぼく）」と、慎むことを表す字を組み合わせた会意文字です。身を引き締めて慎むことから、「うやまう」の意を表します。現在の「敬」はその省略形です。"
+    },
     "裁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "布をたつことや、物事の是非を判断して決めることを表す。" },
     "策": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的を実現するための計画や手段を表す。" },
     "裸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "衣服や覆いを身につけていない、ありのままの状態を表す。" },
@@ -2571,7 +3583,11 @@
     "善": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "嫌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "好ましくないと感じ、避けたいと思うことを表す。" },
     "碁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "白と黒の石を盤に置いて競う遊びである囲碁を表す。" },
-    "尊": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "尊": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「尊」は、手を表す「寸」と、酒だるを表す「酋（しゅう）」を組み合わせた会意文字です。酒器を手に持って神へ供える姿から、「たっとぶ」「とうとい」の意を表します。"
+    },
     "痛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体や心に苦しさやつらさを感じることを表す。" },
     "塑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土などのやわらかな材料を使って形を作ることを表す。" },
     "痴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事への理解が鈍いことや、一つのことに心を奪われることを表す。" },
@@ -2582,7 +3598,12 @@
     "奥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "入口から遠い深い場所や、物事の深いところを表す。" },
     "幾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数がはっきりしない複数のものや、どれほどかを表す。" },
     "距": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つの場所や物事の間の隔たりを表す。" },
-    "御": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事をおさめることや、相手への敬意を添える語を表す。" },
+    "御": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事をおさめることや、相手への敬意を添える語を表す。",
+      "etymologyText": "「御」は、歩くことを表す「彳（ぎょうにんべん）」と、車から馬を外して止めることを表す「卸」を組み合わせた会意文字です。馬や車を制御することから、「あやつる」「おさめる」の意を表します。"
+    },
     "堅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "鉢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "植物や食べ物などを入れる、深さのある器を表す。" },
     "項": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "首の後ろのうなじや、区分して並べた一つ一つの事柄を表す。" },
@@ -2626,7 +3647,12 @@
     "裟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "僧が身につける衣である「袈裟」を構成する字。" },
     "遂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "随": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "蒐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を探して広く集めることを表す。" },
+    "蒐": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を探して広く集めることを表す。",
+      "etymologyText": "「蒐」は、草を表す「艸（くさかんむり）」と、死者を表す「鬼」を組み合わせた会意文字です。古い伝承で死者の血の跡に生えるとされた「あかね」を表し、その音を借りて「あつめる」の意にも用いられました。"
+    },
     "遁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人目や危険から逃れ、身を隠すことを表す。" },
     "超": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "牒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文字を記した札や、公的な文書を表す。" },
@@ -2657,7 +3683,11 @@
     "暑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "気温が高く、あついことを表す「暑」の異体字。" },
     "煮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食材を水や汁の中で熱して調理することを表す「煮」の異体字。" },
     "碑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "功績や出来事を石に刻んで残す、いしぶみを表す旧字体。" },
-    "鳴": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "鳴": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「鳴」は、鳥を表す「鳥」と、口を表す「口」を組み合わせた会意文字です。鳥が口から声を出す様子から、「なく」「なる」の意を表します。"
+    },
     "喪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大切な人や物を失うことや、死者を悼む期間を表す。" },
     "様": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事のありさまや形、相手への敬意を添える呼び方を表す。" },
     "関": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事同士がつながり、かかわりを持つことを表す。" },
@@ -2678,7 +3708,11 @@
     "障": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "進行をさまたげるものや、隔てて防ぐものを表す。" },
     "層": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物が上下に重なった一段一段や、同じ性質の集まりを表す。" },
     "塁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土や石を積んで築いた守りの施設や、球技のベースを表す。" },
-    "嵐": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "嵐": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「嵐」は、山を表す「山」と、風を表す「風」を組み合わせた会意文字です。山に激しい風が起こる様子から、「あらし」の意を表します。"
+    },
     "椅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "腰を掛けて座るための家具である、いすを表す。" },
     "媛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "認": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を確かにそうだと判断し、みとめることを表す。" },
@@ -2686,7 +3720,12 @@
     "需": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要として求めることや、必要な物が来るのを待つことを表す。" },
     "摘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "花や実を指先でつみ取ることや、要点を選び出すことを表す。" },
     "髪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の頭に生える毛を表す。" },
-    "罰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "罪や規則違反に対して科される処分を表す。" },
+    "罰": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "罪や規則違反に対して科される処分を表す。",
+      "etymologyText": "「罰」は、しかることを表す「詈（り）」と、刀を表す「刀」を組み合わせた会意文字です。刃物で威圧しながら罪をとがめることから、「ばつ」「こらしめる」の意を表します。"
+    },
     "網": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "糸を編んで作るあみや、広く張り巡らせた組織を表す。" },
     "喩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "別のものに置き換えて説明することや、言い聞かせることを表す。" },
     "湧": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2719,7 +3758,12 @@
     "萩": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "葺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草や瓦などを重ねて屋根を覆うことを表す。" },
     "竣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "閏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "暦と季節のずれを調整するために加える日や月を表す。" },
+    "閏": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "暦と季節のずれを調整するために加える日や月を表す。",
+      "etymologyText": "「閏」は、門を表す「門」と、王を表す「王」を組み合わせた会意文字です。古代、閏月に王が門内で政務を執ったという儀礼から、「うるう」の意を表すとされます。音を表す「壬」による形声文字とする説もあります。"
+    },
     "漬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食材などを液体にひたし、味をしみ込ませることを表す。" },
     "湘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中国湖南省を流れる湘江や、湘南などの地名に用いられる字。" },
     "僕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人に仕える者や、男性が自分を指す一人称を表す。" },
@@ -2770,14 +3814,24 @@
     "鞄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を入れて持ち運ぶための、かばんを表す国字。" },
     "綸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "より合わせた糸や、国を治めるための方策を表す。" },
     "遙": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "距離や時間がはるかに遠いことを表す「遥」の旧字体。" },
-    "爲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的のために行うことや、作り出すことを表す「為」の旧字体。" },
+    "爲": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "目的のために行うことや、作り出すことを表す「為」の旧字体。",
+      "etymologyText": "「爲」は、手を表す「爪」と、象を表す「象」を組み合わせた会意文字です。人が象を使って仕事をさせる姿から、「なす」「つくる」の意を表します。"
+    },
     "齊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高さや状態がひとしくそろうことを表す「斉」の旧字体。" },
     "都": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "政治や文化の中心となるみやこを表す「都」の異体字。" },
     "渚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "海や川の波が寄せる岸辺を表す「渚」の異体字。" },
     "琢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "玉や才能を丁寧にみがくことを表す「琢」の異体字。" },
     "盡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "持てる力をすべて出し切ることを表す「尽」の旧字体。" },
     "團": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物が丸くまとまった集まりを表す「団」の旧字体。" },
-    "逸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "並外れてすぐれることを表す「逸」の異体字。" },
+    "逸": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "並外れてすぐれることを表す「逸」の異体字。",
+      "etymologyText": "「逸」は、進み行くことを表す「辵（しんにょう）」と、うさぎを表す「兔」を組み合わせた会意文字です。うさぎが走って逃げる姿から、「のがれる」を表し、そこから「抜きん出る」の意にも用いられました。"
+    },
     "滯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "流れや物事の進行がとどこおることを表す「滞」の旧字体。" },
     "僧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仏教の教えに従って修行する人を表す「僧」の異体字。" },
     "嘆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "悲しみや感心から深く息をつくことを表す「嘆」の異体字。" },
@@ -2799,7 +3853,11 @@
     "摑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手で物をしっかり握り取ることを表す「掴」の旧字体。" },
     "話": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "言葉を交わすことや、人に伝える内容を表す。" },
     "線": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "細長く続くすじや、点を連ねた形を表す。" },
-    "意": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "意": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「意」は、心を表す「心」と、言葉や音を表す「音」を組み合わせた会意文字です。聞いた言葉から心の中を察することから、「こころ」「思い」の意を表します。"
+    },
     "感": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "漢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中国の王朝や民族、漢字、男らしい人物を表す。" },
     "業": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身につけたわざや、生活のために行う仕事・事業を表す。" },
@@ -2834,13 +3892,22 @@
     "稿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "文章を書き上げる前の下書きや、提出する原文を表す。" },
     "腸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "消化や吸収を担う体内の器官である、ちょうを表す。" },
     "震": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大地や物が強くふるえ動くことを表す。" },
-    "解": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "解": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「解」は、角を表す「角」、刃物を表す「刀」、牛を表す「牛」を組み合わせた会意文字です。牛を刀で切り分ける様子から、「とく」「わける」「わかる」の意を表します。"
+    },
     "幹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "義": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "禁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "行為をしてはならないと定め、止めることを表す。" },
     "群": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "踏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "足で地面などをふむことや、手順を実行することを表す。" },
-    "罪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "法律や道徳に反する行いと、その責任を表す。" },
+    "罪": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "法律や道徳に反する行いと、その責任を表す。",
+      "etymologyText": "「罪」のもとの字は、入れ墨用の針を表す「辛」と、鼻を表す「自」を組み合わせた会意文字です。罪人の鼻へ印を付ける刑から、「つみ」の意を表しました。現在の字形は「网」と音を表す「非」から成ります。"
+    },
     "盤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を載せる平たい台や、物事を支える土台を表す。" },
     "飼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物に食べ物を与え、世話をして育てることを表す。" },
     "敷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を平らに広げることや、土地の範囲を表す。" },
@@ -2883,7 +3950,12 @@
     "窯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "陶磁器などを高温で焼くための設備である、かまを表す。" },
     "慎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "寝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "横になって眠り、体を休めることを表す。" },
-    "履": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "足でふむことや、決めたことを実行することを表す。" },
+    "履": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "足でふむことや、決めたことを実行することを表す。",
+      "etymologyText": "「履」は、人の体を表す「尸」、歩くことを表す「彳（ぎょうにんべん）」、履物の形を表す「舟」、足を表す「夊（すい）」を組み合わせた会意文字です。履物を着けて歩くことから、「はく」「実行する」の意を表します。"
+    },
     "潰": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "形がくずれてつぶれることや、組織などが立ち行かなくなることを表す。" },
     "餌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物に与える食べ物や、相手を誘うためのものを表す。" },
     "蓄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要な物や力を、後のためにたくわえることを表す。" },
@@ -2945,7 +4017,12 @@
     "督": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々を見守って取り締まり、指揮することを表す。" },
     "漠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "果てしなく広いことや、はっきりしないことを表す。" },
     "糖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "甘みをもち、体のエネルギー源にもなる物質を表す。" },
-    "煩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事が込み入ってわずらわしいことや、心を悩ませることを表す。" },
+    "煩": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事が込み入ってわずらわしいことや、心を悩ませることを表す。",
+      "etymologyText": "「煩」は、頭を表す「頁」と、熱を表す「火」を組み合わせた会意文字です。熱で頭が痛む様子から、「なやむ」「わずらう」の意を表します。"
+    },
     "頒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの人へ広く分けて配ることを表す。" },
     "獲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "求めていた物や成果を手に入れることを表す。" },
     "虜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "戦いで捕らえられた人や、心を奪われた人を表す。" },
@@ -2980,7 +4057,12 @@
     "縛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "縄などでしばり、自由に動けなくすることを表す。" },
     "膨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "内側から押し広げられ、ふくらむことを表す。" },
     "睦": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "薦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "よいものとして人にすすめることや、敷物を表す。" },
+    "薦": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "よいものとして人にすすめることや、敷物を表す。",
+      "etymologyText": "「薦」は、草を表す「艸（くさかんむり）」と、鹿に似た獣を表す「廌（ち）」を組み合わせた会意文字です。その獣が食べる細かな草を表した字で、その音を借りて「すすめる」の意に用いられました。"
+    },
     "醒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "眠りや酔いからさめ、意識がはっきりすることを表す。" },
     "葦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水辺に群生するイネ科の植物である、あしを表す。" },
     "溢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -2998,7 +4080,12 @@
     "獅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "力強い動物であるライオンや、獅子を表す。" },
     "蒔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "植物の種をまくことや、蒔絵を施すことを表す。" },
     "馳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "嵩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の量や高さが増すこと、山が高いことを表す。" },
+    "嵩": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物の量や高さが増すこと、山が高いことを表す。",
+      "etymologyText": "「嵩」は、山を表す「山」と、高いことを表す「高」を組み合わせた会意文字です。高くそびえる山から、「たかい」「かさ」の意を表します。"
+    },
     "楢": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "どんぐりを実らせる落葉樹である、ナラを表す。" },
     "醐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "「醍醐」の語で、最上の味や仏教の深い教えを表す字。" },
     "舜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -3103,7 +4190,11 @@
     "縱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上から下への方向を表す「縦」の旧字体。" },
     "禪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "心を静めて悟りを求める仏教の修行を表す「禅」の旧字体。" },
     "戲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "遊びたわむれることや、演じることを表す「戯」の旧字体。" },
-    "徳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "徳": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「徳」の古い字形は、心を表す「心」と、まっすぐ見ることを表す「直」を組み合わせています。旧字「德」ではさらに歩みを表す「彳（ぎょうにんべん）」が加わり、正しい心で行うことから、「すぐれた品性」の意を表します。"
+    },
     "複": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つ以上のものが重なり合うことを表す。" },
     "綿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "綿花から取る柔らかな繊維や、長く続くことを表す。" },
     "領": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "治める土地や範囲、物事の要点を表す。" },
@@ -3226,7 +4317,12 @@
     "碩": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "鑄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "溶かした金属を型に流し込んで形を作ることを表す「鋳」の旧字体。" },
     "槍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "長い柄の先に刃を付けた武器の、やりを表す。" },
-    "疊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を重ねることや、床に敷くたたみを表す「畳」の旧字体。" },
+    "疊": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を重ねることや、床に敷くたたみを表す「畳」の旧字体。",
+      "etymologyText": "「疊」は、積み重なることを表す「晶」の変形と、整えることを表す「宐（ぎ）」を組み合わせた会意文字です。物を正しく積み重ねることから、「たたむ」「かさなる」の意を表します。"
+    },
     "臟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体内におさまる諸器官を表す「臓」の旧字体。" },
     "聡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "暢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -3258,7 +4354,12 @@
     "釀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "発酵させて酒などを造ることを表す「醸」の旧字体。" },
     "槇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "常緑針葉樹のまきを表す「槙」の異体字。" },
     "榮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木や物事が盛んに伸び、栄えることを表す「栄」の旧字体。" },
-    "實": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中身が満ちることや、果実・まことを表す「実」の旧字体。" },
+    "實": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "中身が満ちることや、果実・まことを表す「実」の旧字体。",
+      "etymologyText": "「實」は、家屋を表す「宀（うかんむり）」と、財宝を表す「貫」を組み合わせた会意文字です。家の中が財宝で満ちる様子から、「みちる」「みのる」「まこと」の意を表します。"
+    },
     "奬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "よい行いを認め、励ましてすすめることを表す「奨」の旧字体。" },
     "廳": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの人が集まる広間や役所を表す「庁」の旧字体。" },
     "又": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "同じことが重なることや、さらに加わることを表す。" },
@@ -3287,14 +4388,24 @@
     "綠": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "草木のようなみどり色や、若々しい生命を表す「緑」の旧字体。" },
     "而": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "前後の事柄をつなぐ語として用いられる字。" },
     "局": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "区切られた場所や組織、物事のまとまりを表す。" },
-    "告": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "考えや事実を言葉で相手に知らせることを表す。" },
+    "告": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "考えや事実を言葉で相手に知らせることを表す。",
+      "etymologyText": "「告」は、言葉を表す「口」と、牛を表す「牛」を組み合わせた会意文字です。牛の角に付けた横木が人へ危険を知らせることから、「つげる」「知らせる」の意を表します。"
+    },
     "横": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "左右へ広がる方向や、わきを表す。" },
     "別": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一緒だったものを分け、違いを明らかにすることを表す。" },
     "調": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "箱": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を中に納めて守る容器を表す。" },
     "億": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "非常に大きな数の単位である一億を表す。" },
     "課": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "取り組むべき仕事や学びの題目を割り当てることを表す。" },
-    "器": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を入れるうつわや、役に立つ道具、人の力量を表す。" },
+    "器": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を入れるうつわや、役に立つ道具、人の力量を表す。",
+      "etymologyText": "「器」の旧字「器」は、多くの容器を表す「㗊（しゅう）」と、見張りの犬を表す「犬」を組み合わせた会意文字です。犬が守る大切な容器から、「うつわ」「道具」の意を表します。"
+    },
     "冷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "温度が低いことや、感情に流されず落ち着いていることを表す。" },
     "択": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの中から適したものを選び取ることを表す。" },
     "熱": { "status": "reviewed", "reviewedAt": "2026-08-25" },
@@ -3304,7 +4415,12 @@
     "確": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "潔": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "賛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "質": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の中身や、生まれつき備わる性質を表す。" },
+    "質": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事の中身や、生まれつき備わる性質を表す。",
+      "etymologyText": "「質」は、祭器のかなえを表す「貝」の形と、二つのおのを表す「斦（ぎん）」を組み合わせた会意文字です。かなえへ文字を刻んで誓いの証しとしたことから、「保証」「本質」の意へつながりました。"
+    },
     "呈": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の前に差し出し、はっきり示すことを表す。" },
     "導": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "汲": {
@@ -3313,7 +4429,12 @@
     },
     "暴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外にさらすことや、激しく荒々しいことを表す。" },
     "遺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "後の世や人へ物事を残し伝えることを表す。" },
-    "宋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "中国の王朝名や、その時代の文化を表す。" },
+    "宋": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "中国の王朝名や、その時代の文化を表す。",
+      "etymologyText": "「宋」は、家屋を表す「宀（うかんむり）」と、木の腰掛けを表す「木」を組み合わせた会意文字です。人が暮らす場所を表した字で、その音を借りて古代中国の地名や国名に用いられました。"
+    },
     "権": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を行うことのできる資格や力を表す。" },
     "熟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "事": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "起こった出来事や、人が行う仕事・行為を表す。" },
@@ -3366,9 +4487,19 @@
     "遵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "教えや決まりを尊重し、それに従うことを表す。" },
     "断": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "迷いを切り、はっきりと決めることや、切り離すことを表す。" },
     "舶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "海を渡って人や物を運ぶ大きな船を表す。" },
-    "審": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事を詳しく調べ、正しく見極めることを表す。" },
+    "審": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を詳しく調べ、正しく見極めることを表す。",
+      "etymologyText": "「審」は、家屋や覆いを表す「宀（うかんむり）」と、見分けることを表す「釆（はん）」を組み合わせた会意文字です。覆われたものを区別して明らかにすることから、「つまびらかにする」「よく調べる」の意を表します。"
+    },
     "穂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "須": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "欠かすことのできない必要なものを表す。" },
+    "須": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "欠かすことのできない必要なものを表す。",
+      "etymologyText": "「須」は、頭を表す「頁」と、飾りの毛を表す「彡（さんづくり）」を組み合わせた会意文字です。もとは顔の「ひげ」を表す字で、その音を借りて「もとめる」「必要とする」の意に用いられました。"
+    },
     "畿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "都と、その周辺に広がる地域を表す。" },
     "鞍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "馬の背に置き、人が安全に乗るためのくらを表す。" },
     "諏": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々に問い、相談して物事をはかることを表す。" },
@@ -3384,12 +4515,20 @@
     "潟": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "潮が引くと現れる浅い砂泥地や、海辺の湖を表す。" },
     "已": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "すでに終わっていることや、やむことを表す。" },
     "勲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "慶": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "慶": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「慶」は、心を表す「心」、祝いの贈り物にした鹿の皮を表す形、歩く足を表す「夊（すい）」を組み合わせた会意文字です。贈り物を持って祝いに行くことから、「よろこぶ」「祝う」の意を表します。"
+    },
     "賜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "尺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "長さを測る基準や、物事を判断する尺度を表す。" },
     "屯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物が一か所に集まり、とどまることを表す。" },
     "片": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つに分けた一方や、小さな一部分を表す。" },
-    "徹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "徹": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「徹」は、進むことを表す「彳（ぎょうにんべん）」、打つことを表す「攴（ぼく）」、育てることを表す「育」を組み合わせた会意文字です。途中で遮られず最後まで通すことから、「つらぬく」の意を表します。"
+    },
     "撤": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "置かれていた物を取り去り、元の場所から退くことを表す。" },
     "皿": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "食べ物などを盛る、平たい器を表す。" },
     "打": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手や道具で物をたたくことや、道を切り開くことを表す。" },
@@ -3403,7 +4542,12 @@
     "寺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仏をまつり、学びや祈りを行う寺院を表す。" },
     "毎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つの時や機会が繰り返されることを表す。" },
     "寮": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々が共同で暮らす住まいや、役所を表す。" },
-    "各": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つ一つ、それぞれに異なるものを表す。" },
+    "各": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "一つ一つ、それぞれに異なるものを表す。",
+      "etymologyText": "「各」は、神が降りる場所を表す「口」と、下へ向かう足を表す「夂（ち）」を組み合わせた会意文字です。神霊が天から一つの場所へ至ることを表し、その音を借りて「それぞれ」の意に用いられました。"
+    },
     "机": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "学びや仕事のために物を置く、つくえを表す。" },
     "憬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "理想に心を向け、強くあこがれることを表す。" },
     "稽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "立ち止まって深く考えることや、学びを積み重ねることを表す。" },
@@ -3414,7 +4558,12 @@
     "弐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "数字の二を正式な文書などで表す字。" },
     "庄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々が暮らす村里や、田園の集落を表す。" },
     "托": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "信頼する相手へ物事を預け、任せることを表す。" },
-    "辻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "道と道が交わる十字路を表す、日本で作られた漢字。" },
+    "辻": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "道と道が交わる十字路を表す、日本で作られた漢字。",
+      "etymologyText": "「辻」は、進み行くことを表す「辵（しんにょう）」と、十字形を表す「十」を組み合わせた会意文字です。道が十字に交わる場所から、「つじ」の意を表す日本製の漢字です。"
+    },
     "町": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの人が暮らし、生活を営む地域を表す。" },
     "坂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高低差があり、傾斜した道や土地を表す。" },
     "蔽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "上から覆い、外から見えないようにすることを表す。" },
@@ -3430,7 +4579,12 @@
     "卵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "新しい命が育ち始める、たまごを表す。" },
     "駈": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "勢いよく走ることを表す「駆」の異体字。" },
     "蕨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "春に若芽を伸ばす山菜の、わらびを表す。" },
-    "尾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "動物の体の後ろに伸びる部分や、物事の終わりを表す。" },
+    "尾": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "動物の体の後ろに伸びる部分や、物事の終わりを表す。",
+      "etymologyText": "「尾」は、人の体を表す「尸」と、毛を表す「毛」を組み合わせた会意文字です。体の後ろに伸びる毛から、「お」の意を表します。"
+    },
     "岐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "道が分かれる所や、進路の分かれ目を表す。" },
     "呉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "古代中国の国名や、日本の地名に用いられる字。" },
     "撞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を強く突いて当てることを表す。" },
@@ -3443,7 +4597,12 @@
     "蕉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大きな葉を広げる植物の、ばしょうを表す。" },
     "把": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手でしっかり握ることや、物事を理解してつかむことを表す。" },
     "阪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "傾斜した土地や、大阪などの地名に用いられる字。" },
-    "邑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々が集まって暮らす村や町を表す。" },
+    "邑": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人々が集まって暮らす村や町を表す。",
+      "etymologyText": "「邑」は、城壁で囲まれた土地を表す「囗」と、ひざまずく人を表す「卩（せつ）」の形を組み合わせた会意文字です。人が住む囲われた場所から、「むら」「みやこ」の意を表します。"
+    },
     "坐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "地に落ち着いてすわることを表す「座」の本来の字。" },
     "杖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "歩く人を支えるつえや、頼りとなる支えを表す。" },
     "樋": {
@@ -3465,7 +4624,12 @@
     "岸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "海や川と陸地が接する、きしを表す。" },
     "諒": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "遼": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "具": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "必要なものを十分にそなえることや、道具を表す。" },
+    "具": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "必要なものを十分にそなえることや、道具を表す。",
+      "etymologyText": "「具」は、両手を表す「廾（きょう）」と、供え物や祭器を表す形を組み合わせた会意文字です。両手で供え物をささげ持つことから、「そなえる」「道具」の意を表します。"
+    },
     "凜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "凛": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "黎": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの人々や、夜明け前の暗さから光へ移る時を表す。" },
@@ -3480,7 +4644,12 @@
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身につける衣類や、受け入れて従うことを表す。",
       "etymologyText": "「服」は、人を従わせることに関わる古い字形から成り、従うことを表した字です。のちに、身につける衣類や、薬を飲むことなどにも用いられます。"
     },
-    "官": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "公の役目を担い、物事を治める人や組織を表す。" },
+    "官": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "公の役目を担い、物事を治める人や組織を表す。",
+      "etymologyText": "「官」は、家屋を表す「宀（うかんむり）」と、その中に集まる人々を表す部分を組み合わせた会意文字です。公の建物で仕事をする人々から、「役人」「つかさ」の意を表します。"
+    },
     "稻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "米を実らせる植物を表す「稲」の旧字体。" },
     "廣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "空間や心、見識が大きくひろがることを表す「広」の旧字体。" },
     "妻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "結婚した女性の配偶者を表す。" },
@@ -3496,8 +4665,10 @@
     "德": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人としてすぐれた品性や、周囲を恵む力を表す「徳」の旧字体。" },
     "緖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の始まりや、つながりの糸口を表す「緒」の旧字体。" },
     "徵": {
-      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外に現れるしるしや兆し、人を呼び集めることを表す「徴」の旧字体。",
-      "etymologyText": "「徵」は、歩みに関わる「彳」と、しるしを見分けることに関わる要素を組み合わせた字です。外に現れるしるしや、人を呼び集めることを表します。"
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "外に現れるしるしや兆し、人を呼び集めることを表す「徴」の旧字体。",
+      "etymologyText": "「徵」は、歩くことを表す「彳（ぎょうにんべん）」と、外に現れたしるしを見分ける要素を組み合わせた会意文字です。しるしを手掛かりに人を呼び集めることから、「しるし」「めす」の意を表します。"
     },
     "杯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "飲み物を入れる器や、祝いを分かち合うさかずきを表す。" },
     "緣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人や物事を結ぶつながりを表す「縁」の旧字体。" },
@@ -3510,9 +4681,18 @@
     "積": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "努力や物を一つずつ重ね、たくわえることを表す。" },
     "録": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "出来事や情報を後に残る形で書き記すことを表す。" },
     "衛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "周囲を見守り、危険から守ることを表す。" },
-    "興": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "興": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「興」は、両手で持ち上げることを表す「舁（よ）」と、共にすることを表す「同」を組み合わせた会意文字です。人々が力を合わせて物を持ち上げることから、「おこす」「盛んになる」の意を表します。"
+    },
     "築": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "土台から少しずつ作り上げ、確かな形にすることを表す。" },
-    "昆": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "兄弟や、同じ仲間が多く連なることを表す。" },
+    "昆": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "兄弟や、同じ仲間が多く連なることを表す。",
+      "etymologyText": "「昆」は、日を表す「日」と、人が並ぶ姿を表す「比」を組み合わせた会意文字です。同じ仲間が並ぶことから、「同類」の意を表し、その音を借りて「あに」の意にも用いられました。"
+    },
     "叔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "父母の年下のきょうだいや、若いことを表す。" },
     "激": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水が強くぶつかるように、勢いが非常に激しいことを表す。" },
     "憲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "社会や国の基準となる大切なおきてを表す。" },
@@ -3521,19 +4701,43 @@
     "披": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "閉じていたものを開き、広く示すことを表す。" },
     "操": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を思いどおりに動かすことや、変わらない節義を表す。" },
     "附": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物をそばに付け加え、寄り添わせることを表す「付」に通じる字。" },
-    "奮": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "奮": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「奮」は、大きく羽ばたく鳥を表す「奞（すい）」と、田を表す「田」を組み合わせた会意文字です。鳥が田の上から勢いよく飛び立つ姿から、「ふるう」「勢い立つ」の意を表します。"
+    },
     "玩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手に取って楽しみ、じっくり味わうことを表す。" },
     "憶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "過去の出来事や人を心にとどめ、思い出すことを表す。" },
     "股": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "足の付け根から膝までの部分や、分かれた一部分を表す。" },
     "函": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を中に納めて守る、はこを表す。" },
-    "獣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "野山に生きる、けものを表す。" },
+    "獣": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "野山に生きる、けものを表す。",
+      "etymologyText": "「獣」の旧字「獸」は、犬を表す「犬」と、けものを表す「嘼（きゅう）」を組み合わせた会意文字です。犬を含む野生の動物を表し、「けもの」の意に用いられます。"
+    },
     "庚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "十干の七番目である、かのえを表す。" },
     "陀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "梵語など外国語の音を表すためにも用いられる字。" },
-    "曇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "空が雲に覆われ、日差しが弱くなることを表す。" },
-    "後": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "時間や順序で後に続くことや、背後を表す。" },
+    "曇": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "空が雲に覆われ、日差しが弱くなることを表す。",
+      "etymologyText": "「曇」は、太陽を表す「日」と、雲を表す「雲」を組み合わせた会意文字です。日差しが雲に遮られる様子から、「くもる」の意を表します。"
+    },
+    "後": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "時間や順序で後に続くことや、背後を表す。",
+      "etymologyText": "「後」は、進むことを表す「彳（ぎょうにんべん）」、足を表す「夂」、つなぐことを表す「幺（よう）」を組み合わせた会意文字です。足をつながれて進めない姿から、「おくれる」「あと」の意を表します。"
+    },
     "室": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "家の中を区切った部屋や、人が集う場所を表す。" },
     "繁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "屋": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人を雨風から守る家や、仕事を行う店を表す。" },
+    "屋": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "人を雨風から守る家や、仕事を行う店を表す。",
+      "etymologyText": "「屋」は、住まいを表す「尸」と、物が行き着く場所を表す「至」を組み合わせた会意文字です。矢を放って住む範囲を定めた場所から、「すまい」「いえ」の意を表します。"
+    },
     "客": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "外から訪れ、迎え入れられる人を表す。" },
     "待": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "望む時や人が来ることを心に留めて待つことを表す。" },
     "頼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手を信じて力を借り、よりどころとすることを表す。" },
@@ -3541,7 +4745,12 @@
     "面": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の顔や、物の表側・広がりを表す。" },
     "穏": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "凝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一つの所へ集まり固まることや、心を集中させることを表す。" },
-    "軍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "組織されて戦いや防衛を担う集団を表す。" },
+    "軍": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "組織されて戦いや防衛を担う集団を表す。",
+      "etymologyText": "「軍」は、戦車を表す「車」と、包み囲むことを表す「包」の省略形を組み合わせた会意文字です。戦車で周囲を囲んで陣を作ることから、「軍隊」の意を表します。"
+    },
     "賢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "約": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人と人が約束を結ぶことや、無駄を省くことを表す。" },
     "錯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "さまざまなものが入り組むことや、誤ることを表す。" },
@@ -3551,7 +4760,12 @@
     "壇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "周囲より一段高く築いた場所や、同じ分野の人々の集まりを表す。" },
     "篤": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "独": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "他に頼らず、自分自身の力で立つことを表す。" },
-    "看": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手をかざしてよく見ることや、そばで見守ることを表す。" },
+    "看": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "手をかざしてよく見ることや、そばで見守ることを表す。",
+      "etymologyText": "「看」は、目を表す「目」と、手を表す形を組み合わせた会意文字です。目の上へ手をかざして遠くを見る姿から、「みる」「見守る」の意を表します。"
+    },
     "謀": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "先を考えて計画を立てることや、はかりごとを表す。" },
     "砂": {
       "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "岩石が細かく砕かれてできた、すなを表す。",
@@ -3584,16 +4798,30 @@
     "弧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "弓のようになめらかに曲がった線を表す。" },
     "訂": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "言葉や文章の誤りを調べ、正しく直すことを表す。" },
     "赴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的や役目のある場所へ向かうことを表す。" },
-    "叡": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "叡": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「叡」は、深くすることを表す「㕡（かく）」と、目を表す「目」を組み合わせた会意文字です。物事の奥まで見通すことから、「かしこい」「明らか」の意を表します。"
+    },
     "燕": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "春に訪れ、軽やかに空を飛ぶ鳥の、つばめを表す。" },
     "胞": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "命のもとを包む膜や、同じ母から生まれた仲間を表す。" },
     "厘": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "非常に小さな割合や長さを表す単位。" },
     "姻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "結婚によって家族や親族が結ばれることを表す。" },
-    "甚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "程度が非常に大きいことを表す。" },
+    "甚": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "程度が非常に大きいことを表す。",
+      "etymologyText": "「甚」は、楽しみを表す「甘」と、男女一組を表す「匹」を組み合わせた会意文字です。夫婦の深い楽しみを表したことから、程度が大きい「はなはだ」の意に用いられました。"
+    },
     "橘": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "按": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手で押さえることや、物事を調べ考えることを表す。" },
     "迦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "仏教語などで外国語の音を写すために用いられる字。" },
-    "臥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "体を横たえて休むことや、力を蓄えて時を待つことを表す。" },
+    "臥": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "体を横たえて休むことや、力を蓄えて時を待つことを表す。",
+      "etymologyText": "「臥」は、下を向いた目を表す「臣」と、人を表す「人」を組み合わせた会意文字です。人が目を下へ向けて身を伏せる姿から、「ふす」「横になる」の意を表します。"
+    },
     "祇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大地を守る神や、土地の神を表す。" },
     "錫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "柔らかく加工しやすい金属の、すずを表す。" },
     "輯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "散らばった資料などを集め、順序立ててまとめることを表す。" },
@@ -3603,11 +4831,21 @@
     },
     "盃": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "酒を入れ、祝いなどで交わす器の、さかずきを表す。" },
     "者": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ある行いや性質に当てはまる人や物を表す「者」の旧字体。" },
-    "卽": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "すぐに行うことや、その場につくことを表す「即」の旧字体。" },
+    "卽": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "すぐに行うことや、その場につくことを表す「即」の旧字体。",
+      "etymologyText": "「卽」は、食物を盛った器を表す「皀」と、ひざまずく人を表す「卩（せつ）」を組み合わせた会意文字です。人が食卓へつく姿から、「つく」「すぐに」の意を表します。"
+    },
     "校": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "学びを行う学校や、比べて正すことを表す。" },
     "黛": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "眉を描く青黒い顔料や、深みのある青黒色を表す。" },
     "酒": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "米や果実などを発酵させて造る飲み物を表す。" },
-    "息": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生きるための呼吸や、心身を休めることを表す。" },
+    "息": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "生きるための呼吸や、心身を休めることを表す。",
+      "etymologyText": "「息」は、呼吸に関わる鼻を表す「自」と、心臓を表す「心」を組み合わせた会意文字です。鼻と胸で呼吸することから、「いき」の意を表します。"
+    },
     "案": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "考えをまとめた計画や提案を表す。" },
     "郡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "いくつかの町や村をまとめた地域の区画を表す。" },
     "憐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手の悲しみや弱さに心を寄せ、いたわることを表す。" },
@@ -3628,7 +4866,12 @@
     "畔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "田と田の境や、水辺のほとりを表す。" },
     "翁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年を重ね、経験を積んだ男性を敬って表す字。" },
     "索": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手がかりをたどって深く探し求めることを表す。" },
-    "器": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を入れるうつわや、人の力量を表す「器」の旧字体。" },
+    "器": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "物を入れるうつわや、人の力量を表す「器」の旧字体。",
+      "etymologyText": "「器」は、多くの容器を表す「㗊（しゅう）」と、見張りの犬を表す「犬」を組み合わせた会意文字です。犬が守る大切な容器から、「うつわ」「道具」の意を表します。"
+    },
     "酌": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "酒をくんで分けることや、事情をくみ取ることを表す。" },
     "橫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "左右へ広がる方向を表す「横」の旧字体。" },
     "賴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手を信じ、よりどころとして頼ることを表す「頼」の旧字体。" },
@@ -3673,7 +4916,12 @@
     "懇": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "爵": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "古代の酒器や、功績に応じて授けられた位を表す。" },
     "醜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "姿や行いがみにくく、見苦しいことを表す。" },
-    "祭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "神仏や祖先へ感謝し、供え物をしてまつることを表す。" },
+    "祭": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "神仏や祖先へ感謝し、供え物をしてまつることを表す。",
+      "etymologyText": "「祭」は、祭壇を表す「示」、供え物の肉を表す「月」、手を表す「又」を組み合わせた会意文字です。肉を手に持って神へ供える姿から、「まつる」の意を表します。"
+    },
     "動": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "力を受けて動くことや、心が強く揺り動かされることを表す。" },
     "繊": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "糸のように細く、きめ細やかなことを表す。" },
     "霜": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "寒い朝に地面や草木へできる白い氷の結晶を表す。" },
@@ -3688,7 +4936,12 @@
     "許": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手の願いを認め、受け入れてゆるすことを表す。" },
     "採": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの中からよいものを選び取ることを表す。" },
     "瞳": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "設": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目的のために仕組みや場所を新しく作ることを表す。" },
+    "設": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "目的のために仕組みや場所を新しく作ることを表す。",
+      "etymologyText": "「設」は、言葉を表す「言」と、手で打って働かせることを表す「殳（るまた）」を組み合わせた会意文字です。人に命じて物を並べ整えることから、「もうける」「設置する」の意を表します。"
+    },
     "張": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "弓の弦のようにぴんと伸ばし、広げることを表す。" },
     "闇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "光が届かず、物の姿が見えない暗い状態を表す。" },
     "瞭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "目で見て、はっきりと明らかであることを表す。" },
@@ -3836,7 +5089,12 @@
     "藻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "海や川などの水中に育つ植物や藻類を表す。" },
     "覇": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "多くの競争相手を超え、頂点に立つことを表す。" },
     "憩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "歩みを止めて心身を休め、力を養うことを表す。" },
-    "羅": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "網のように広く並べ、余さず集めることを表す。" },
+    "羅": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "網のように広く並べ、余さず集めることを表す。",
+      "etymologyText": "「羅」は、網を表す「网」と、つなぐことを表す「維」を組み合わせた会意文字です。網を広く張り巡らせることから、「つらねる」「並べる」の意を表します。"
+    },
     "艶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "表面の美しいつやや、あでやかな魅力を表す。" },
     "鴨": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水辺に暮らし、水面を泳ぐ鳥の、かもを表す。" },
     "麓": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "山の裾が平地へつながる、ふもとを表す。" },
@@ -3856,7 +5114,12 @@
     "蘭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "簾": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "細い竹などを編み、光や視線をやわらかく遮る、すだれを表す。" },
     "覧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "広く見渡すことや、全体に目を通すことを表す。" },
-    "獸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "野山に生きる、けものを表す「獣」の旧字体。" },
+    "獸": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "野山に生きる、けものを表す「獣」の旧字体。",
+      "etymologyText": "「獸」は、犬を表す「犬」と、けものを表す「嘼（きゅう）」を組み合わせた会意文字です。犬を含む野生の動物を表し、「けもの」の意に用いられます。"
+    },
     "戴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "頭上に物を受けることや、敬っていただくことを表す。" },
     "懷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "胸の内に思いを抱くことや、なつかしむことを表す「懐」の旧字体。" },
     "薩": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "「菩薩」などの仏教語や、薩摩などの地名に用いられる字。" },
@@ -3874,7 +5137,12 @@
     "護": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大切な人や物に寄り添い、危険から守ることを表す。" },
     "響": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "凶": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "運勢や出来事が悪く、不吉であることを表す。" },
-    "囚": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "囲いの中に閉じ込められ、自由を失った人を表す。" },
+    "囚": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "囲いの中に閉じ込められ、自由を失った人を表す。",
+      "etymologyText": "「囚」は、人を表す「人」を、囲いを表す「囗」で囲んだ会意文字です。人を囲いの中へ閉じ込める姿から、「とらえる」「囚人」の意を表します。"
+    },
     "譲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "自分のものや立場を、相手を思ってゆずることを表す。" },
     "籍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人の所属や身分を記録する帳面、書物を表す。" },
     "懸": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を高くかけることや、一つのことへ心をかけることを表す。" },
@@ -3891,15 +5159,30 @@
     "露": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "朝に草木へ宿る水滴や、隠れていたものが現れることを表す。" },
     "顧": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "過去や周囲を振り返り、相手を心にかけることを表す。" },
     "卑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "身分や品性が低いこと、必要以上に自分を低く見ることを表す。" },
-    "虐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "弱い立場の相手をむごく苦しめることを表す。" },
+    "虐": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "弱い立場の相手をむごく苦しめることを表す。",
+      "etymologyText": "「虐」の旧字は、虎を表す「虍（とらがしら）」と、爪を表す「爪」を組み合わせた会意文字です。虎が爪で他の動物を傷つける姿から、「しいたげる」「むごい」の意を表します。現在の「虐」はその省略形です。"
+    },
     "鶴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "長寿や吉祥の象徴として親しまれる鳥の、つるを表す。" },
     "鰯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "群れで海を泳ぐ小魚の、いわしを表す。" },
     "疫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人々の間に広がる感染症を表す。" },
-    "臭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "鼻で感じるにおいや、不快なにおいを表す。" },
+    "臭": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "鼻で感じるにおいや、不快なにおいを表す。",
+      "etymologyText": "「臭」の旧字「臭」は、鼻を表す「自」と、嗅覚の鋭い犬を表す「犬」を組み合わせた会意文字です。犬が鼻でにおいを嗅ぐ様子から、「におい」「くさい」の意を表します。"
+    },
     "病": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "心身の働きが損なわれ、わずらうことを表す。" },
     "櫻": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "春に美しい花を咲かせる桜を表す「桜」の旧字体。" },
     "殺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "生き物の命を絶つことを表す。" },
-    "盗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "他人の物を許可なくぬすむことを表す。" },
+    "盗": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "他人の物を許可なくぬすむことを表す。",
+      "etymologyText": "「盗」の旧字「盜」は、食べ物を見てよだれを流す姿を表す「㳄（せん）」と、器を表す「皿」を組み合わせた会意文字です。他人の器の中身を欲しがることから、「ぬすむ」の意を表します。"
+    },
     "欺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "偽りを述べて相手をだますことを表す。" },
     "葬": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "亡くなった人を弔い、ほうむることを表す。" },
     "棺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "亡くなった人を納める、ひつぎを表す。" },
@@ -3915,10 +5198,19 @@
     "腐": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物が傷んでくさることや、古びて活力を失うことを表す。" },
     "獄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "罪人を閉じ込める牢や、苦しみの世界を表す。" },
     "響": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "音や思いが広く伝わり、ひびき合うことを表す「響」の旧字体。" },
-    "奪": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "相手の持つものを無理に取り去ることを表す。" },
+    "奪": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "相手の持つものを無理に取り去ることを表す。",
+      "etymologyText": "「奪」は、羽ばたく鳥を表す「奞（すい）」と、手を表す「寸」を組み合わせた会意文字です。手にしていた鳥が逃げ去る様子から、「うしなう」「うばう」の意を表します。"
+    },
     "鑑": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物の真価を見極めることや、手本となるものを表す。" },
     "鷲": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大きな翼で空高く飛ぶ猛禽の、わしを表す。" },
-    "寧": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "寧": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "etymologyText": "「寧」のもとの字は、家屋の覆いを表す「宀（うかんむり）」、器を表す「皿」、心を表す「心」を組み合わせた会意文字です。家の中で飲食し心が落ち着くことから、「やすらか」の意を表します。"
+    },
     "巖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大きく険しい岩を表す「巌」の旧字体。" },
     "顯": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "隠れていたものが明らかに現れることを表す「顕」の旧字体。" },
     "纖": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "糸のように細く、きめ細やかなことを表す「繊」の旧字体。" },
@@ -3946,7 +5238,12 @@
       "etymologyText": "「從」は、二人が前後に並ぶ「从」と、道を進むことに関わる要素を組み合わせた会意文字です。人の後について行き、従うことを表します。"
     },
     "敍": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "順序立てて述べることを表す「叙」の旧字体。" },
-    "晝": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日の出から日没までの明るい時間を表す「昼」の旧字体。" },
+    "晝": {
+      "status": "reviewed",
+      "reviewedAt": "2026-08-25",
+      "namingMeaning": "日の出から日没までの明るい時間を表す「昼」の旧字体。",
+      "etymologyText": "「晝」は、太陽を表す「日」と、区分することを表す「畫」を組み合わせた会意文字です。太陽が出ている時間を区切ったものとして、「ひる」の意を表します。"
+    },
     "陷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "穴などへ落ち込むことや、苦しい状態に陥ることを表す「陥」の旧字体。" },
     "朗": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "明るく澄み、心がほがらかなことを表す「朗」の旧字体。" },
     "祥": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "めでたいしるしや幸いを表す「祥」の旧字体。" },
