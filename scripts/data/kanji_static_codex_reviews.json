@@ -317,6 +317,175 @@
     },
     "収": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "仁": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "介": { "status": "reviewed", "reviewedAt": "2026-08-25" }
+    "介": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "柑": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "namingMeaning": "ミカン類の果実や、ミカン科の常緑小高木を表す。",
+      "compounds": [
+        { "word": "蜜柑", "reading": "みかん", "meaning": "ウンシュウミカンなど、ミカン類の果実", "tone": "neutral", "common": true },
+        { "word": "柑橘類", "reading": "かんきつるい", "meaning": "ミカン科の果樹や、その果実の総称", "tone": "neutral", "common": true },
+        { "word": "金柑", "reading": "きんかん", "meaning": "ミカン科キンカン属の常緑低木や、その果実", "tone": "neutral", "common": true }
+      ]
+    },
+    "庸": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "互": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "禅": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "丹": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "匹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つで一組のものや、動物を数える助数詞を表す。" },
+    "閣": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "高く構えた建物や、重要な会議を行う組織を表す。" },
+    "樫": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "孔": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "檜": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "双": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "斗": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "六": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "升": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "namingMeaning": "容量を量る器のますや、ものを上へあげることを表す。",
+      "compounds": [
+        { "word": "升目", "reading": "ますめ", "meaning": "方眼や碁盤などを区切る四角い区画", "tone": "neutral", "common": true },
+        { "word": "升形", "reading": "ますがた", "meaning": "ますのような四角い形", "tone": "neutral", "common": true },
+        { "word": "升席", "reading": "ますせき", "meaning": "複数人で使う、四角く仕切られた観客席", "tone": "neutral", "common": true }
+      ]
+    },
+    "弔": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "亡くなった人を悼み、とむらうことを表す。" },
+    "井": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "申": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "民": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "民主", "reading": "みんしゅ", "meaning": "人民が主権を持つこと", "tone": "neutral", "common": true },
+        { "word": "国民", "reading": "こくみん", "meaning": "国家を構成する人々", "tone": "neutral", "common": true },
+        { "word": "市民", "reading": "しみん", "meaning": "都市に住む人や、社会を構成する人々", "tone": "neutral", "common": true }
+      ]
+    },
+    "卯": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "西": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "方角の西を表す。" },
+    "匂": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "衣": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "允": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "仲": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "任": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "舟": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "亙": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "巴": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "男": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "匁": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "重さの単位である、もんめを表す。" },
+    "尤": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "namingMeaning": "もっともであることや、特に優れていること、とがめることを表す。",
+      "compounds": [
+        { "word": "尤度", "reading": "ゆうど", "meaning": "統計学で、観測結果に対する仮説のもっともらしさを表す度合い", "tone": "neutral", "common": false },
+        { "word": "尤物", "reading": "ゆうぶつ", "meaning": "特に優れたもの。また、際立って美しい女性を指す語", "tone": "neutral", "common": false }
+      ]
+    },
+    "玉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "左": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "走": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "出": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "正": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "生": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "共生", "reading": "きょうせい", "meaning": "異なるものが共に生きること", "tone": "positive", "common": true },
+        { "word": "新生", "reading": "しんせい", "meaning": "新しく生まれることや、生まれ変わること", "tone": "positive", "common": true },
+        { "word": "人生", "reading": "じんせい", "meaning": "人がこの世で生きる一生", "tone": "neutral", "common": true }
+      ]
+    },
+    "石": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "身": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "人のからだや、自分自身を表す。" },
+    "白": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "本": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事の根本や起点、書物を表す。" },
+    "目": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "見るための目や、物事の区切り・要点を表す。" },
+    "右": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "立": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "外": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "一定の範囲から離れた外側を表す。" },
+    "兄": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年上の男きょうだいである兄を表す。" },
+    "芯": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "広": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "矢": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "芭": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "台": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物を載せる台や、高く平らな場所を表す。" },
+    "冬": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "半": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "二つに分けた一方や、途中・なかばを表す。" },
+    "母": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "母親や、物事を生み出すもとを表す。" },
+    "芦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水辺に生える多年草のアシを表す。" },
+    "用": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "央": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "去": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "今いる場所から離れることや、時が過ぎることを表す。" },
+    "述": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "享": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "奎": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "書": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "主": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "浴": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水や日光などを全身にあびることを表す。" },
+    "世": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "畠": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "作物を育てる耕作地である畑を表す。",
+      "compounds": [
+        { "word": "花畠", "reading": "はなばたけ", "meaning": "花が一面に咲く畑", "tone": "positive", "common": true },
+        { "word": "田畠", "reading": "たはた", "meaning": "田と畑", "tone": "neutral", "common": true },
+        { "word": "桑畠", "reading": "くわばたけ", "meaning": "桑を栽培する畑", "tone": "neutral", "common": true }
+      ]
+    },
+    "船": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水上を進み、人や物を運ぶ船を表す。" },
+    "舵": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "創": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "氷": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "水が冷えて固まった氷を表す。" },
+    "平": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "由": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "礼": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "以": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "加": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "功": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "扉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "建物や部屋の出入り口に設ける扉を表す。" },
+    "史": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "司": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "煉": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "滴": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "compounds": [
+        { "word": "水滴", "reading": "すいてき", "meaning": "水が丸い粒になったもの", "tone": "neutral", "common": true },
+        { "word": "点滴", "reading": "てんてき", "meaning": "薬液などを少量ずつ静脈内へ注入する処置", "tone": "neutral", "common": true },
+        { "word": "一滴", "reading": "ひとしずく", "meaning": "したたり落ちる液体の一粒", "tone": "neutral", "common": true }
+      ]
+    },
+    "融": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "辺": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "ある場所の周囲や、もののほとりを表す。" },
+    "制": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "物事をおさえて整えることや、決まりを定めることを表す。",
+      "compounds": [
+        { "word": "制定", "reading": "せいてい", "meaning": "法律や規則などを定めること", "tone": "neutral", "common": true },
+        { "word": "制度", "reading": "せいど", "meaning": "社会や組織を運営するための仕組み", "tone": "neutral", "common": true },
+        { "word": "制御", "reading": "せいぎょ", "meaning": "機械や物事の働きを目的に合わせて調整すること", "tone": "neutral", "common": true }
+      ]
+    },
+    "婦": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "成人した女性や、妻を表す。" },
+    "未": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "虫": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "昆虫などの小さな生き物を広く表す。" },
+    "令": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "条": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木の枝や、細長く続く筋道・決まりを表す。" },
+    "永": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "姉": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年上の女きょうだいである姉を表す。" },
+    "妹": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "年下の女きょうだいである妹を表す。" },
+    "取": {
+      "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手に取ることや、自分のものとして得ることを表す。",
+      "compounds": [
+        { "word": "取組", "reading": "とりくみ", "meaning": "課題などに向き合い、力を尽くすこと", "tone": "positive", "common": true },
+        { "word": "取材", "reading": "しゅざい", "meaning": "記事や作品の材料となる情報を集めること", "tone": "neutral", "common": true },
+        { "word": "取引", "reading": "とりひき", "meaning": "品物や権利などを互いにやり取りすること", "tone": "neutral", "common": true }
+      ]
+    },
+    "句": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "言葉や文章の一区切りを表す。" },
+    "非": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "そうではないことや、正しくないことを表す。" },
+    "泡": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "液体の中や表面にできる泡を表す。" },
+    "昼": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "日の出から日没までの明るい時間を表す。" },
+    "弁": {
+      "status": "reviewed", "reviewedAt": "2026-08-25",
+      "namingMeaning": "物事を見分けることや、言葉で説明すること、花びらを表す。",
+      "etymologyText": "「弁」は、冠をかぶった形をもとにした象形文字です。現在は「辨・瓣・辯」の簡略字体としても用いられ、見分けること、言葉で説明すること、花びらなどの意味も表します。"
+    },
+    "点": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "小さなしるしや位置、物事の要点を表す。" },
+    "炭": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "木などを蒸し焼きにして作る炭を表す。" }
   }
 }
