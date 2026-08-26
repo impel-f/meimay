@@ -32,6 +32,12 @@ function getFactualNamingMeaning(value) {
   }。`;
 }
 
+function getReviewedCompounds(kanji, enrichment, codexReviews) {
+  const review = codexReviews[kanji]?.status === 'reviewed' ? codexReviews[kanji] : {};
+  const enriched = enrichment[kanji] || {};
+  return Array.isArray(review.compounds) ? review.compounds : enriched.compounds;
+}
+
 function main() {
   const master = readJson(MASTER_PATH, []);
   const meanings = readJson(MEANINGS_PATH, {});
@@ -48,7 +54,14 @@ function main() {
     const meaningDetail = clean(meanings[kanji]?.meaning || row['意味']);
     const fixedOriginText = clean(review.etymologyText || etymology.fixedOriginText);
     const namingMeaning = clean(review.namingMeaning || enriched.namingMeaning);
-    const compounds = Array.isArray(review.compounds) ? review.compounds : enriched.compounds;
+    const ownCompounds = getReviewedCompounds(kanji, enrichment, codexReviews);
+    const standardKanji = clean(row['標準字体']);
+    const standardCompounds = standardKanji
+      ? getReviewedCompounds(standardKanji, enrichment, codexReviews)
+      : [];
+    const compounds = Array.isArray(ownCompounds) && ownCompounds.length
+      ? ownCompounds
+      : standardCompounds;
     if (!kanji || !meaningDetail || !fixedOriginText) {
       throw new Error(`${kanji || '(empty)'}: static detail source is incomplete`);
     }

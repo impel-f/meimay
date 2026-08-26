@@ -21,6 +21,25 @@ const BANNED_PROSE_KEYS = new Set(['text', 'description', 'originText', 'explana
 const PRIORITY_REVIEWED_KANJI = Array.from(
   '一大仁正光良志空知明幸和英昇昌茉春星昭美洋勇泉奏香咲俊祐亮真航笑桜純恵華悟哲剛珠泰桂晃浩隼晋栞凉理章'
 );
+const COMPONENT_EXPLANATION_PAIRS = [
+  ['亼', '亼（しゅう、あつまる意）'], ['卩', '卩（せつ、ひざまずく人を表す）'],
+  ['艸', '艸（くさかんむり）'], ['辵', '辵（しんにょう、道や進行を表す）'],
+  ['阜', '阜（こざとへん、丘や土地を表す）'], ['邑', '邑（おおざと、土地や集落を表す）'],
+  ['宀', '宀（うかんむり、家屋を表す）'], ['攴', '攴（ぼくづくり、打つ動作を表す）'],
+  ['疒', '疒（やまいだれ、病気を表す）'], ['囗', '囗（くにがまえ、囲いを表す）'],
+  ['彳', '彳（ぎょうにんべん、道や歩行を表す）'], ['冫', '冫（にすい、氷を表す）'],
+  ['隹', '隹（ふるとり、尾の短い鳥を表す）'], ['歹', '歹（がつへん、骨や死に関わる）'],
+  ['网', '网（あみがしら、網を表す）'], ['广', '广（まだれ、建物を表す）'],
+  ['頁', '頁（おおがい、頭に関わる）'], ['殳', '殳（るまた、手に道具を持つ動作を表す）'],
+  ['廾', '廾（きょう、両手を表す）'], ['㫃', '㫃（えん、旗がなびく形）'],
+];
+
+function withComponentExplanations(value) {
+  return COMPONENT_EXPLANATION_PAIRS.reduce(
+    (text, [component, label]) => text.replaceAll(`「${component}」`, `「${label}」`),
+    value
+  );
+}
 
 test('etymology facts contain source-backed structured data without copied prose', () => {
   assert.equal(facts.schemaVersion, 1);
@@ -84,6 +103,13 @@ test('known component regressions are cross-checked by two independent sources',
   }
 });
 
+test('unfamiliar component names include a reader-facing explanation', () => {
+  assert.match(facts.entries['合'].fixedOriginText, /亼（しゅう、あつまる意）/);
+  assert.match(facts.entries['葵'].fixedOriginText, /艸（くさかんむり）/);
+  assert.match(facts.entries['旗'].fixedOriginText, /㫃（えん、旗がなびく形）/);
+  assert.match(facts.entries['陸'].fixedOriginText, /阜（こざとへん、丘や土地を表す）/);
+});
+
 test('verified etymology prose does not expose raw component decompositions', () => {
   assert.match(facts.entries['都'].fixedOriginText, /邑.*者.*形声文字/);
   assert.match(facts.entries['悠'].fixedOriginText, /心.*攸.*形声文字/);
@@ -121,6 +147,12 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
   assert.deepEqual(sourceIndex.failures, []);
   assert.ok(Object.keys(autoVerified).length >= 1400);
 
+  for (const [kanji, sourceEntry] of Object.entries(sourceIndex.entries)) {
+    if (sourceEntry?.kanjitisikiDetail?.status === 'ok') {
+      assert.equal(sourceEntry.kanjitisikiDetail.pageKanji, kanji, `${kanji}: detail source page mismatch`);
+    }
+  }
+
   for (const [kanji, review] of Object.entries(autoVerified)) {
     const sourceEntry = sourceIndex.entries[kanji];
     const fact = facts.entries[kanji];
@@ -131,6 +163,9 @@ test('full source index covers all kanji and automatic reviews fail closed', () 
     ].includes(review.reviewMethod), `${kanji}: missing review method`);
     if (review.reviewMethod === 'source_template') {
       assert.equal(sourceEntry?.agreement?.status, 'matched', `${kanji}: source types disagree`);
+      if (sourceEntry?.kanjitisikiDetail?.status === 'ok') {
+        assert.equal(sourceEntry.kanjitisikiDetail.pageKanji, kanji, `${kanji}: detail source page mismatch`);
+      }
       const hasSafePrimaryText = sourceEntry?.kanjipedia?.hasUnresolvedGlyph === false
         || sourceEntry?.kanjitisikiDetail?.status === 'ok';
       assert.equal(hasSafePrimaryText, true, `${kanji}: unresolved source glyph`);
@@ -201,7 +236,11 @@ test('source-grounded reviews retain explicit evidence and propagate without wea
     review.sources.forEach((source) => assert.match(source.url, /^https:\/\//));
     assert.equal(fact?.reviewMethod, review.reviewMethod, `${kanji}: review method was not propagated`);
     assert.equal(fact?.verificationStatus, 'source_grounded', `${kanji}: invalid published status`);
-    assert.equal(fact?.fixedOriginText, review.fixedOriginText, `${kanji}: published prose differs from review`);
+    assert.equal(
+      fact?.fixedOriginText,
+      withComponentExplanations(review.fixedOriginText),
+      `${kanji}: published prose differs from reviewed text plus approved component explanations`
+    );
   }
 });
 

@@ -27,7 +27,10 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(entry.nameUse?.category, `${kanji}: missing name-use category`);
     assert.ok(Array.isArray(entry.compounds) && entry.compounds.length <= 3, `${kanji}: invalid compounds`);
 
-    const allowed = new Set((sourceCompounds[kanji] || []).map((item) => `${item.word}|${item.reading}`));
+    const allowed = new Set([
+      ...(sourceCompounds[kanji] || []),
+      ...(sourceCompounds[row['標準字体']] || []),
+    ].map((item) => `${item.word}|${item.reading}`));
     const reviewExplicitlySelectedCompounds = Array.isArray(codexReviews[kanji]?.compounds);
     if (allowed.size > 0 && !reviewExplicitlySelectedCompounds) {
       assert.ok(entry.compounds.length > 0, `${kanji}: verified compounds exist but none are published`);
@@ -39,6 +42,10 @@ test('static kanji details cover the complete master list with reviewed facts', 
       assert.ok(['positive', 'neutral', 'negative'].includes(compound.tone), `${kanji}: invalid tone for ${compound.word}`);
     }
   }
+
+
+  assert.ok(details.entries['福'].compounds.some((item) => item.word === '幸福'));
+  assert.ok(details.entries['都'].compounds.some((item) => item.word === '古都'));
 });
 
 test('kanji detail runtime uses the bundled static dataset before legacy generation code', () => {

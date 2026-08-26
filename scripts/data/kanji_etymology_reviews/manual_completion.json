@@ -155,5 +155,278 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "允": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「允」は、人に関わる「儿」と、音を表す「㠯」を組み合わせた形声文字です。現在の字形にある「厶」は「㠯」が変化した形です。もとは氏族名や官職名に用いられ、のちに「まこと」「認める」などの意味に用いられます。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "儿",
+    "phoneticComponent": "㠯",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000272400",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20801",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "亙": {
+    "formationTypes": [
+      "会意"
+    ],
+    "fixedOriginText": "「亙」は、両端を表す「二」と、その間を進む舟の形を組み合わせた会意文字です。舟が両岸の間を行き来する様子から、「わたる」「広がる」などの意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002151200",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20121",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "砲": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「砲」は、石に関わる「石」と、音を表す「包」を組み合わせた形声文字です。もとは石を遠くへ飛ばす「いしゆみ」を表し、のちに「おおづつ」「大砲」の意味に用いられます。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "石",
+    "phoneticComponent": "包",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006376700",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/30770",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "瑛": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「瑛」は、玉に関わる「玉（たまへん）」と、音を表す「英」を組み合わせた形声文字です。水晶などの透明で美しい玉や、玉の光を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "玉",
+    "phoneticComponent": "英",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000394600",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/29787",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "腔": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「腔」は、体に関わる「肉（にくづき）」と、空洞の意味を持ち音も表す「空」を組み合わせた会意形声文字です。口や鼻、体内にある空間を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "肉",
+    "phoneticComponent": "空",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002283400",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/33108",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "魯": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「魯」は、言葉を表す「曰」に由来する部分（現在の字形では「白」に近い形）と、音を表す「魚」を組み合わせた形声文字です。ものの言い方が鈍いことから、「おろか」の意味に用いられ、古代中国の国名にも使われました。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "曰",
+    "phoneticComponent": "魚",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007327400",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/39791",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "纂": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「纂」は、糸に関わる「糸」と、音を表す「算」を組み合わせた形声文字です。糸を集めてまとめることから、資料を集めて書物を編集する「あつめる」「編む」の意味に用いられます。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "糸",
+    "phoneticComponent": "算",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0002675300",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32386",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "樺": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「樺」は、樹木に関わる「木」と、音を表す「華」を組み合わせた形声文字です。白い樹皮で知られる「かば」の木を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "木",
+    "phoneticComponent": "華",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0000713000",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27194",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "蠟": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「蠟」は、「蝋」の旧字体です。虫に関わる「虫」と、音を表す「巤」を組み合わせた形声文字で、みつばちなどが作る「ろう」を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "蝋",
+    "semanticComponent": "虫",
+    "phoneticComponent": "巤",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/34847",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典オンライン",
+        "url": "https://kanjitisiki.com/zinmei/528.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "鳳": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「鳳」は、鳥に関わる「鳥」と、音を表す「凡」を組み合わせた形声文字です。古代中国で、めでたいしるしとされた想像上の鳥「おおとり」を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "鳥",
+    "phoneticComponent": "凡",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0006402800",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/40179",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "綾": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「綾」は、糸や織物に関わる「糸（いとへん）」と、音を表す「夌」を組み合わせた形声文字です。模様を織り出した絹織物や、その模様を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "糸",
+    "phoneticComponent": "夌",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0007178100",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/32190",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "釀": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「釀」は、「醸」の旧字体です。酒に関わる「酉」と、音を表す「襄」を組み合わせた形声文字で、発酵させて酒などを「かもす」意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "originSourceKanji": "醸",
+    "semanticComponent": "酉",
+    "phoneticComponent": "襄",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/37312",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0003531400",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "毅": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「毅」は、打つ動作に関わる「殳」と、音を表す古い字形を組み合わせた形声文字です。現在の字形では、音を表す部分が省略されて「豙」の形になっています。「意志が強い」「決断力がある」などの意味を表します。",
+    "reviewMethod": "manual_source_review",
+    "semanticComponent": "殳",
+    "phoneticComponent": "豙",
+    "sources": [
+      {
+        "name": "漢字ペディア",
+        "url": "https://www.kanjipedia.jp/kanji/0001274900",
+        "kind": "etymology"
+      },
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27589",
+        "kind": "cross_check"
+      }
+    ]
   }
 }

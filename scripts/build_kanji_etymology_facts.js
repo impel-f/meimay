@@ -23,6 +23,29 @@ const ALLOWED_FORMATION_TYPES = new Set([
   '仮借'
 ]);
 
+const COMPONENT_EXPLANATIONS = new Map([
+  ['亼', '亼（しゅう、あつまる意）'],
+  ['卩', '卩（せつ、ひざまずく人を表す）'],
+  ['艸', '艸（くさかんむり）'],
+  ['辵', '辵（しんにょう、道や進行を表す）'],
+  ['阜', '阜（こざとへん、丘や土地を表す）'],
+  ['邑', '邑（おおざと、土地や集落を表す）'],
+  ['宀', '宀（うかんむり、家屋を表す）'],
+  ['攴', '攴（ぼくづくり、打つ動作を表す）'],
+  ['疒', '疒（やまいだれ、病気を表す）'],
+  ['囗', '囗（くにがまえ、囲いを表す）'],
+  ['彳', '彳（ぎょうにんべん、道や歩行を表す）'],
+  ['冫', '冫（にすい、氷を表す）'],
+  ['隹', '隹（ふるとり、尾の短い鳥を表す）'],
+  ['歹', '歹（がつへん、骨や死に関わる）'],
+  ['网', '网（あみがしら、網を表す）'],
+  ['广', '广（まだれ、建物を表す）'],
+  ['頁', '頁（おおがい、頭に関わる）'],
+  ['殳', '殳（るまた、手に道具を持つ動作を表す）'],
+  ['廾', '廾（きょう、両手を表す）'],
+  ['㫃', '㫃（えん、旗がなびく形）'],
+]);
+
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
@@ -48,6 +71,14 @@ function loadOverrides() {
 
 function clean(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function explainComponentTerms(value) {
+  let explained = clean(value);
+  for (const [component, label] of COMPONENT_EXPLANATIONS) {
+    explained = explained.replaceAll(`「${component}」`, `「${label}」`);
+  }
+  return explained;
 }
 
 function isSafeStructure(value) {
@@ -154,7 +185,7 @@ function mergeEntry(base, override) {
   const phoneticComponent = Object.hasOwn(override || {}, 'phoneticComponent')
     ? clean(override.phoneticComponent)
     : clean(base.phoneticComponent);
-  const fixedOriginText = clean(override?.fixedOriginText || base.fixedOriginText);
+  const fixedOriginText = explainComponentTerms(override?.fixedOriginText || base.fixedOriginText);
   const reviewMethod = clean(override?.reviewMethod || base.reviewMethod);
   const originSourceKanji = clean(override?.originSourceKanji || base.originSourceKanji);
   if (semanticComponent) merged.semanticComponent = semanticComponent;

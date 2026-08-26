@@ -2365,32 +2365,6 @@
       }
     ]
   },
-  "允": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「允」は、意味に関わる「儿」と、音を表す「㠯」を組み合わせた形声文字です。「まこと」「ゆるす」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0000272400",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/20801",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/035.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "儿",
-    "phoneticComponent": "㠯"
-  },
   "仲": {
     "formationTypes": [
       "会意形声"
@@ -2477,30 +2451,6 @@
       {
         "name": "漢字辞典",
         "url": "https://kanjitisiki.com/tyugako/tyugaku03/086.html",
-        "kind": "cross_check"
-      }
-    ]
-  },
-  "亙": {
-    "formationTypes": [
-      "会意"
-    ],
-    "fixedOriginText": "「亙」は、「二」と「月」の意味を組み合わせた会意文字です。「わたる」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0002151200",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/20121",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/009.html",
         "kind": "cross_check"
       }
     ]
@@ -3591,7 +3541,7 @@
       },
       {
         "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku5/152.html",
+        "url": "https://kanjitisiki.com/syogako/syogaku5/159.html",
         "kind": "cross_check"
       }
     ]
@@ -11531,6 +11481,48 @@
     "semanticComponent": "衣",
     "phoneticComponent": "甫"
   },
+  "佛": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「佛」は、意味に関わる「人」と、音を表す「弗」を組み合わせた形声文字です。「ほとけ」「慈悲深い人」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20315",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/177.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "人",
+    "phoneticComponent": "弗"
+  },
+  "壯": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「壯」は、意味に関わる「士」と、音を表す「爿」を組み合わせた形声文字です。「さかん」「盛ん」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22767",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/118.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "士",
+    "phoneticComponent": "爿"
+  },
   "棒": {
     "formationTypes": [
       "形声"
@@ -15098,7 +15090,7 @@
     "formationTypes": [
       "形声"
     ],
-    "fixedOriginText": "「旗」は、意味に関わる「糸」と、音を表す「己」を組み合わせた形声文字です。「はた」「目印」などの意味に用いられます。",
+    "fixedOriginText": "「旗」は、意味に関わる「㫃」と、音を表す「其」を組み合わせた形声文字です。「はた」「目印」などの意味に用いられます。",
     "reviewMethod": "source_template",
     "sources": [
       {
@@ -15113,12 +15105,12 @@
       },
       {
         "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku4/031.html",
+        "url": "https://kanjitisiki.com/syogako/syogaku4/033.html",
         "kind": "cross_check"
       }
     ],
-    "semanticComponent": "糸",
-    "phoneticComponent": "己"
+    "semanticComponent": "㫃",
+    "phoneticComponent": "其"
   },
   "虎": {
     "formationTypes": [
@@ -16048,6 +16040,46 @@
     ],
     "semanticComponent": "穴",
     "phoneticComponent": "弓"
+  },
+  "來": {
+    "formationTypes": [
+      "象形"
+    ],
+    "fixedOriginText": "「來」は、麦をかたどった象形文字です。「くる」「きたる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20358",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/193.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
+  "拂": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「拂」は、意味に関わる「手」と、音を表す「弗」を組み合わせた形声文字です。「はらう」「のぞく」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25282",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/176.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "手",
+    "phoneticComponent": "弗"
   },
   "草": {
     "formationTypes": [
@@ -20196,6 +20228,27 @@
     "semanticComponent": "玉",
     "phoneticComponent": "白"
   },
+  "收": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「收」は、意味に関わる「攴」と、音を表す「丩」を組み合わせた形声文字です。「おさめる」「とり入れる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/25910",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/074.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "攴",
+    "phoneticComponent": "丩"
+  },
   "村": {
     "formationTypes": [
       "形声"
@@ -22599,32 +22652,6 @@
     ],
     "semanticComponent": "山",
     "phoneticComponent": "夆"
-  },
-  "砲": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「砲」は、意味に関わる「石」と、音を表す「包」を組み合わせた形声文字です。「大砲」「石を投げる機械」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0006376700",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/30770",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/tyugako/tyugaku06/132.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "石",
-    "phoneticComponent": "包"
   },
   "沓": {
     "formationTypes": [
@@ -25230,6 +25257,27 @@
     ],
     "semanticComponent": "走",
     "phoneticComponent": "丩"
+  },
+  "氣": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「氣」は、意味に関わる「米」と、音を表す「气」を組み合わせた形声文字です。「き」「いき」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/27683",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/028.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "米",
+    "phoneticComponent": "气"
   },
   "捉": {
     "formationTypes": [
@@ -33591,6 +33639,27 @@
     "semanticComponent": "皿",
     "phoneticComponent": "夗"
   },
+  "碎": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「碎」は、意味に関わる「石」と、音を表す「卒」を組み合わせた形声文字です。「くだく」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/30862",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/063.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "石",
+    "phoneticComponent": "卒"
+  },
   "傘": {
     "formationTypes": [
       "象形"
@@ -34467,32 +34536,6 @@
     "semanticComponent": "水",
     "phoneticComponent": "屋"
   },
-  "瑛": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「瑛」は、意味に関わる「玉」と、音を表す「英」を組み合わせた形声文字です。「美しい石」「玉の光」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0000394600",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/29787",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/348.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "玉",
-    "phoneticComponent": "英"
-  },
   "酵": {
     "formationTypes": [
       "形声"
@@ -34722,32 +34765,6 @@
     ],
     "semanticComponent": "言",
     "phoneticComponent": "秀"
-  },
-  "腔": {
-    "formationTypes": [
-      "会意形声"
-    ],
-    "fixedOriginText": "「腔」は、意味に関わる「肉」と、音も示す「空」を組み合わせた会意形声文字です。「からだのあな」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0002283400",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/33108",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/459.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "肉",
-    "phoneticComponent": "空"
   },
   "漏": {
     "formationTypes": [
@@ -35750,6 +35767,27 @@
         "kind": "cross_check"
       }
     ]
+  },
+  "團": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「團」は、意味に関わる「囗」と、音を表す「專」を組み合わせた形声文字です。「まるい」「かたまり」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22296",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/140.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "囗",
+    "phoneticComponent": "專"
   },
   "焰": {
     "formationTypes": [
@@ -37818,32 +37856,6 @@
     "semanticComponent": "食",
     "phoneticComponent": "包"
   },
-  "魯": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「魯」は、意味に関わる「白」と、音を表す「魚」を組み合わせた形声文字です。「おろか」「にぶい」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0007327400",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/39791",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/626.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "白",
-    "phoneticComponent": "魚"
-  },
   "零": {
     "formationTypes": [
       "形声"
@@ -37895,6 +37907,27 @@
     ],
     "semanticComponent": "广",
     "phoneticComponent": "兼"
+  },
+  "價": {
+    "formationTypes": [
+      "会意形声"
+    ],
+    "fixedOriginText": "「價」は、意味に関わる「人」と、音も示す「賈」を組み合わせた会意形声文字です。「あたい」「価値」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20729",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/016.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "人",
+    "phoneticComponent": "賈"
   },
   "虞": {
     "formationTypes": [
@@ -39843,6 +39876,48 @@
     "semanticComponent": "頁",
     "phoneticComponent": "公"
   },
+  "圓": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「圓」は、意味に関わる「囗」と、音を表す「員」を組み合わせた形声文字です。「まる」「円満」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/22291",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/008.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "囗",
+    "phoneticComponent": "員"
+  },
+  "傳": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「傳」は、意味に関わる「人」と、音を表す「專」を組み合わせた形声文字です。「つたえる」「つたわる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/20659",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/151.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "人",
+    "phoneticComponent": "專"
+  },
   "祿": {
     "formationTypes": [
       "形声"
@@ -40741,6 +40816,27 @@
     ],
     "semanticComponent": "虫",
     "phoneticComponent": "累"
+  },
+  "禪": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「禪」は、意味に関わる「示」と、音を表す「單」を組み合わせた形声文字です。「しずか」「ゆずる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31146",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/116.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "示",
+    "phoneticComponent": "單"
   },
   "複": {
     "formationTypes": [
@@ -42219,32 +42315,6 @@
     "semanticComponent": "玉",
     "phoneticComponent": "留"
   },
-  "纂": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「纂」は、意味に関わる「糸」と、音を表す「算」を組み合わせた形声文字です。「あつめる」「まとめる」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0002675300",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/32386",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/443.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "糸",
-    "phoneticComponent": "算"
-  },
   "蔭": {
     "formationTypes": [
       "会意形声"
@@ -42327,32 +42397,6 @@
     ],
     "semanticComponent": "木",
     "phoneticComponent": "夏"
-  },
-  "樺": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「樺」は、意味に関わる「木」と、音を表す「華」を組み合わせた形声文字です。「かば」「カバノキ」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0000713000",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/27194",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/255.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "木",
-    "phoneticComponent": "華"
   },
   "魁": {
     "formationTypes": [
@@ -42442,27 +42486,6 @@
     ],
     "semanticComponent": "旨",
     "phoneticComponent": "尙"
-  },
-  "蠟": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「蠟」は、意味に関わる「虫」と、音を表す「巤」を組み合わせた形声文字です。「ろう」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/34847",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/528.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "虫",
-    "phoneticComponent": "巤"
   },
   "襲": {
     "formationTypes": [
@@ -42825,32 +42848,6 @@
     "semanticComponent": "車",
     "phoneticComponent": "甫"
   },
-  "鳳": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「鳳」は、意味に関わる「鳥」と、音を表す「凡」を組み合わせた形声文字です。「おおとり」「鳳凰」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0006402800",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/40179",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/635.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "鳥",
-    "phoneticComponent": "凡"
-  },
   "鱗": {
     "formationTypes": [
       "形声"
@@ -42871,32 +42868,6 @@
     ],
     "semanticComponent": "魚",
     "phoneticComponent": "粦"
-  },
-  "綾": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「綾」は、意味に関わる「糸」と、音を表す「夌」を組み合わせた形声文字です。「あや」「絹織物の模様」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0007178100",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/32190",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/437.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "糸",
-    "phoneticComponent": "夌"
   },
   "颯": {
     "formationTypes": [
@@ -42960,27 +42931,6 @@
     ],
     "semanticComponent": "人",
     "phoneticComponent": "奇"
-  },
-  "釀": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「釀」は、意味に関わる「酉」と、音を表す「襄」を組み合わせた形声文字です。「かもす」「酒を作る」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/37312",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei02/099.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "酉",
-    "phoneticComponent": "襄"
   },
   "槇": {
     "formationTypes": [
@@ -45525,27 +45475,6 @@
     "semanticComponent": "木",
     "phoneticComponent": "規"
   },
-  "毅": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「毅」は、意味に関わる「殳」と、音を表す「豙」を組み合わせた形声文字です。「つよい」「意志が固い」などの意味に用いられます。",
-    "reviewMethod": "source_template",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0001274900",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/zinmei/279.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "殳",
-    "phoneticComponent": "豙"
-  },
   "誼": {
     "formationTypes": [
       "会意形声"
@@ -46199,6 +46128,27 @@
     ],
     "semanticComponent": "斤",
     "phoneticComponent": "戶"
+  },
+  "廣": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「廣」は、意味に関わる「广」と、音を表す「黃」を組み合わせた形声文字です。「ひろい」「広がる」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/24291",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/057.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "广",
+    "phoneticComponent": "黃"
   },
   "沿": {
     "formationTypes": [
@@ -51263,6 +51213,27 @@
     "semanticComponent": "禾",
     "phoneticComponent": "屖"
   },
+  "禮": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「禮」は、意味に関わる「示」と、音を表す「豊」を組み合わせた形声文字です。「れい」「うやうやしい」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/31150",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/204.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "示",
+    "phoneticComponent": "豊"
+  },
   "演": {
     "formationTypes": [
       "形声"
@@ -53083,6 +53054,46 @@
     "semanticComponent": "鬼",
     "phoneticComponent": "麻"
   },
+  "條": {
+    "formationTypes": [
+      "形声"
+    ],
+    "fixedOriginText": "「條」は、意味に関わる「木」と、音を表す「攸」を組み合わせた形声文字です。「えだ」「すじ」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26781",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/091.html",
+        "kind": "cross_check"
+      }
+    ],
+    "semanticComponent": "木",
+    "phoneticComponent": "攸"
+  },
+  "晝": {
+    "formationTypes": [
+      "会意"
+    ],
+    "fixedOriginText": "「晝」は、「日」と「畫」の意味を組み合わせた会意文字です。「ひる」「真昼」などの意味に用いられます。",
+    "reviewMethod": "source_template",
+    "sources": [
+      {
+        "name": "字源.net",
+        "url": "https://jigen.net/kanji/26205",
+        "kind": "etymology"
+      },
+      {
+        "name": "漢字辞典",
+        "url": "https://kanjitisiki.com/zinmei02/142.html",
+        "kind": "cross_check"
+      }
+    ]
+  },
   "巢": {
     "formationTypes": [
       "象形"
@@ -53127,65 +53138,6 @@
     ],
     "semanticComponent": "食",
     "phoneticComponent": "官"
-  },
-  "佛": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「佛」は、意味に関わる「人」と、音を表す「弗」を組み合わせた形声文字です。「ほとけ」「慈悲深い人」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "仏",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0006140800",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/20175",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku5/164.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "人",
-    "phoneticComponent": "弗"
-  },
-  "壯": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「壯」は、意味に関わる「士」と、音を表す「爿」を組み合わせた形声文字です。「さかん」「盛ん」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "壮",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0004203000",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/tyugako/tyugaku03/264.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "士",
-    "phoneticComponent": "爿"
   },
   "步": {
     "formationTypes": [
@@ -53237,36 +53189,6 @@
       }
     ]
   },
-  "來": {
-    "formationTypes": [
-      "象形"
-    ],
-    "fixedOriginText": "「來」は、麦がのぎを張った形をもとに作られた象形文字です。「くる」「きたる」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "来",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0007020500",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/26469",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-01.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku2/157.html",
-        "kind": "cross_check"
-      }
-    ]
-  },
   "兒": {
     "formationTypes": [
       "象形"
@@ -53308,33 +53230,6 @@
     ],
     "semanticComponent": "手",
     "phoneticComponent": "犮"
-  },
-  "拂": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「拂」は、意味に関わる「手」と、音を表す「弗」を組み合わせた形声文字です。「はらう」「のぞく」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "払",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0006136600",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/tyugako/tyugaku06/095.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "手",
-    "phoneticComponent": "弗"
   },
   "爭": {
     "formationTypes": [
@@ -53396,33 +53291,6 @@
         "kind": "etymology"
       }
     ]
-  },
-  "收": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「收」は、意味に関わる「攴」と、音を表す「丩」を組み合わせた形声文字です。「おさめる」「とり入れる」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "収",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0003093900",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku6/072.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "攴",
-    "phoneticComponent": "丩"
   },
   "恆": {
     "formationTypes": [
@@ -53600,33 +53468,6 @@
     ],
     "semanticComponent": "山",
     "phoneticComponent": "夆"
-  },
-  "氣": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「氣」は、意味に関わる「米」と、音を表す「气」を組み合わせた形声文字です。「き」「いき」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "気",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0001184900",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku1/12.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "米",
-    "phoneticComponent": "气"
   },
   "乘": {
     "formationTypes": [
@@ -54113,33 +53954,6 @@
       }
     ]
   },
-  "碎": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「碎」は、意味に関わる「石」と、音を表す「卒」を組み合わせた形声文字です。「くだく」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "砕",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0002498200",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/tyugako/tyugaku03/008.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "石",
-    "phoneticComponent": "卒"
-  },
   "搖": {
     "formationTypes": [
       "形声"
@@ -54384,33 +54198,6 @@
     "semanticComponent": "玉",
     "phoneticComponent": "豖"
   },
-  "團": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「團」は、意味に関わる「囗」と、音を表す「專」を組み合わせた形声文字です。「まるい」「かたまり」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "団",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0004636300",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku5/131.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "囗",
-    "phoneticComponent": "專"
-  },
   "滯": {
     "formationTypes": [
       "形声"
@@ -54569,37 +54356,6 @@
       }
     ],
     "phoneticComponent": "歰"
-  },
-  "價": {
-    "formationTypes": [
-      "会意形声"
-    ],
-    "fixedOriginText": "「價」は、「人」と「賈」の意味を組み合わせ、「賈」が音も示す会意形声文字です。「あたい」「価値」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "価",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0000653600",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/20385",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku5/017.html",
-        "kind": "cross_check"
-      }
-    ],
-    "phoneticComponent": "賈"
   },
   "儉": {
     "formationTypes": [
@@ -54910,33 +54666,6 @@
     "semanticComponent": "言",
     "phoneticComponent": "曷"
   },
-  "圓": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「圓」は、意味に関わる「囗」と、音を表す「員」を組み合わせた形声文字です。「まる」「円満」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "円",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0000436000",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku1/04.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "囗",
-    "phoneticComponent": "員"
-  },
   "奧": {
     "formationTypes": [
       "形声"
@@ -54951,33 +54680,6 @@
         "kind": "etymology"
       }
     ]
-  },
-  "傳": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「傳」は、意味に関わる「人」と、音を表す「專」を組み合わせた形声文字です。「つたえる」「つたわる」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "伝",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0005086500",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku4/139.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "人",
-    "phoneticComponent": "專"
   },
   "歷": {
     "formationTypes": [
@@ -55133,33 +54835,6 @@
     ],
     "semanticComponent": "糸",
     "phoneticComponent": "從"
-  },
-  "禪": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「禪」は、意味に関わる「示」と、音を表す「單」を組み合わせた形声文字です。「しずか」「ゆずる」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "禅",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0004147000",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/tyugako/tyugaku03/249.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "示",
-    "phoneticComponent": "單"
   },
   "戲": {
     "formationTypes": [
@@ -55758,33 +55433,6 @@
     "semanticComponent": "禾",
     "phoneticComponent": "舀"
   },
-  "廣": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「廣」は、意味に関わる「广」と、音を表す「黃」を組み合わせた形声文字です。「ひろい」「広がる」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "広",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0002143400",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku2/047.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "广",
-    "phoneticComponent": "黃"
-  },
   "憎": {
     "formationTypes": [
       "形声"
@@ -56242,32 +55890,6 @@
       }
     ]
   },
-  "禮": {
-    "formationTypes": [
-      "会意形声"
-    ],
-    "fixedOriginText": "「禮」は、「示」と「豊」の意味を組み合わせ、「豊」が音も示す会意形声文字です。「れい」「うやうやしい」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "礼",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0007239800",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku3/195.html",
-        "kind": "cross_check"
-      }
-    ],
-    "phoneticComponent": "豊"
-  },
   "轉": {
     "formationTypes": [
       "形声"
@@ -56608,38 +56230,6 @@
     "semanticComponent": "水",
     "phoneticComponent": "爭"
   },
-  "條": {
-    "formationTypes": [
-      "形声"
-    ],
-    "fixedOriginText": "「條」は、意味に関わる「木」と、音を表す「攸」を組み合わせた形声文字です。「えだ」「すじ」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "条",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0003491900",
-        "kind": "etymology"
-      },
-      {
-        "name": "字源.net",
-        "url": "https://jigen.net/kanji/26465",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-04.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku5/097.html",
-        "kind": "cross_check"
-      }
-    ],
-    "semanticComponent": "木",
-    "phoneticComponent": "攸"
-  },
   "將": {
     "formationTypes": [
       "形声"
@@ -56681,31 +56271,6 @@
     ],
     "semanticComponent": "攴",
     "phoneticComponent": "余"
-  },
-  "晝": {
-    "formationTypes": [
-      "会意"
-    ],
-    "fixedOriginText": "「晝」は、「日」と「畫」の意味を組み合わせた会意文字です。「ひる」「真昼」などの意味に用いられます。",
-    "reviewMethod": "variant_inheritance",
-    "originSourceKanji": "昼",
-    "sources": [
-      {
-        "name": "漢字ペディア",
-        "url": "https://www.kanjipedia.jp/kanji/0004743400",
-        "kind": "etymology"
-      },
-      {
-        "name": "漢字辞典オンライン",
-        "url": "https://kanjitisiki.com/info/006-03.html",
-        "kind": "cross_check"
-      },
-      {
-        "name": "漢字辞典",
-        "url": "https://kanjitisiki.com/syogako/syogaku2/108.html",
-        "kind": "cross_check"
-      }
-    ]
   },
   "陷": {
     "formationTypes": [

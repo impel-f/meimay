@@ -276,6 +276,8 @@ def build_fixed_entry(kanji: str, row: dict, index_entry: dict, source_entry: di
 def build_detail_fixed_entry(kanji: str, row: dict, index_entry: dict, detail_entry: dict):
   origin_text = clean(detail_entry.get("originText"))
   detail_types = list(detail_entry.get("formationTypes", []))
+  if clean(detail_entry.get("pageKanji")) != kanji:
+    return None, "detail_page_identity_unverified"
   if detail_entry.get("status") != "ok" or not origin_text or UNSAFE_PATTERN.search(origin_text):
     return None, "detail_source_missing"
   if UNCERTAIN_PATTERN.search(origin_text):

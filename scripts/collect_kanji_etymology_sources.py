@@ -164,9 +164,13 @@ def collect_kanjitisiki_formations(refresh=False):
 
 def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types: list, refresh=False, offline=False):
   destination = cache_path(KANJITISIKI_DETAIL_CACHE, kanji)
-  if destination.exists() and not refresh:
-    cached = load_json(destination, {})
-    if offline or cached.get("status") not in ("not_found", "missing_origin") or cached.get("searchAttempted"):
+  cached = load_json(destination, {}) if destination.exists() else {}
+  if cached and not refresh:
+    identity_verified = clean(cached.get("pageKanji")) == kanji
+    if offline or (
+        identity_verified
+        and (cached.get("status") not in ("not_found", "missing_origin") or cached.get("searchAttempted"))
+    ):
       return cached
   if offline:
     return {
@@ -177,6 +181,7 @@ def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types:
         "unresolvedGlyphs": [],
         "status": "not_collected",
         "searchAttempted": False,
+        "pageKanji": "",
     }
 
   detail_urls = formation_entry.get("detailUrlsByType", {})
@@ -187,10 +192,15 @@ def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types:
       if formation_types_compatible(primary_type, formation_type)
       and detail_urls.get(formation_type)
   ), "")
-  page_url = clean(detail_urls.get(matched_type))
+  # Older cache entries predate page identity checks, but often retain the
+  # correct detail URL. Verify that URL before trusting the formation index,
+  # whose link labels can occasionally point at a neighboring character.
+  page_url = clean(cached.get("url")) or clean(detail_urls.get(matched_type))
   search_attempted = False
   page_html = ""
-  if not page_url:
+
+  def search_target_page():
+    nonlocal page_url, page_html, search_attempted
     search_attempted = True
     time.sleep(1.0)
     search_html, resolved_url = fetch_text_with_url(
@@ -200,6 +210,26 @@ def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types:
     if "kanjitisiki.com/" in resolved_url and "/search/" not in resolved_url:
       page_url = resolved_url
       page_html = search_html
+
+  if not page_url:
+    search_target_page()
+
+  page_kanji = ""
+  page_soup = None
+  if page_url:
+    page_html = page_html or fetch_text(page_url)
+    page_soup = BeautifulSoup(page_html, "html.parser")
+    page_kanji = clean(page_soup.find("h1").get_text(" ", strip=True)) if page_soup.find("h1") else ""
+    if page_kanji != kanji and not search_attempted:
+      page_url = ""
+      page_html = ""
+      page_soup = None
+      page_kanji = ""
+      search_target_page()
+      if page_url:
+        page_soup = BeautifulSoup(page_html, "html.parser")
+        page_kanji = clean(page_soup.find("h1").get_text(" ", strip=True)) if page_soup.find("h1") else ""
+
   result = {
       "kanji": kanji,
       "url": page_url,
@@ -208,10 +238,9 @@ def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types:
       "unresolvedGlyphs": [],
       "status": "not_found" if not page_url else "missing_origin",
       "searchAttempted": search_attempted,
+      "pageKanji": page_kanji,
   }
-  if page_url:
-    page_html = page_html or fetch_text(page_url)
-    page_soup = BeautifulSoup(page_html, "html.parser")
+  if page_url and page_kanji == kanji and page_soup:
     heading = next((
         node for node in page_soup.find_all(("h2", "h3"))
         if clean(node.get_text(" ", strip=True)) == "成り立ち"
@@ -225,6 +254,8 @@ def collect_kanjitisiki_detail(kanji: str, formation_entry: dict, primary_types:
           "unresolvedGlyphs": unresolved,
           "status": "ok" if origin_text and not unresolved else "unresolved_glyph",
       })
+  elif page_url:
+    result["status"] = "page_identity_mismatch"
 
   save_json(destination, result)
   return result
@@ -322,13 +353,23 @@ def collect_jigen(kanji: str, existing_fact: dict, refresh=False):
 
 def summarize_source(source: dict):
   origin_text = clean(source.get("originText"))
-  return {
+  summary = {
       "url": clean(source.get("url")),
       "formationTypes": list(source.get("formationTypes", [])),
       "status": clean(source.get("status")),
       "hasUnresolvedGlyph": bool(source.get("unresolvedGlyphs")),
       "sourceHash": hashlib.sha256(origin_text.encode("utf-8")).hexdigest() if origin_text else "",
   }
+  if "pageKanji" in source:
+    summary["pageKanji"] = clean(source.get("pageKanji"))
+  return summary
+
+
+def summarize_detail_source(source: dict, kanji: str):
+  summary = summarize_source(source)
+  if summary.get("status") == "ok" and clean(summary.get("pageKanji")) != kanji:
+    summary["status"] = "page_identity_unverified"
+  return summary
 
 
 def summarize_formation_source(source: dict):
@@ -403,7 +444,7 @@ def collect_one(index: int, row: dict, facts: dict, kanjitisiki_formations: dict
       "kanjipedia": summarize_source(kanjipedia),
       "jigen": summarize_source(jigen),
       "kanjitisiki": summarize_formation_source(kanjitisiki),
-      "kanjitisikiDetail": summarize_source(kanjitisiki_detail),
+      "kanjitisikiDetail": summarize_detail_source(kanjitisiki_detail, kanji),
       "agreement": {
           "formationTypes": agreed_types,
           "status": "matched" if agreed_types else "unmatched",
@@ -420,6 +461,7 @@ def main():
   parser.add_argument("--refresh", action="store_true")
   parser.add_argument("--retry-failures", action="store_true")
   parser.add_argument("--offline", action="store_true", help="Rebuild the index from cached sources only.")
+  parser.add_argument("--kanji", default="", help="Process only the listed kanji characters.")
   args = parser.parse_args()
 
   master = load_json(MASTER_PATH, [])
@@ -427,6 +469,9 @@ def main():
   kanjitisiki_formations = collect_kanjitisiki_formations(refresh=args.refresh)
   existing_index = load_json(OUTPUT_PATH, {"schemaVersion": 3, "entries": {}, "failures": []})
   selected = list(enumerate(master))[args.start:]
+  if args.kanji:
+    selected_kanji = set(clean(args.kanji))
+    selected = [item for item in selected if clean(item[1].get("漢字")) in selected_kanji]
   if args.retry_failures:
     failed_kanji = {
         clean(item.get("kanji"))
