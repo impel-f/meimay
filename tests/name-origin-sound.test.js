@@ -33,12 +33,14 @@ vm.runInContext(`
     'getNameOriginSoundConsonantType',
     'getNameOriginSoundProfile',
     'getNameOriginSoundImpression',
-    'getNameOriginSoundText'
+    'getNameOriginSoundText',
+    'getNameOriginReadingContextCheckTexts'
   ])}
   globalThis.nameSound = {
     splitNameOriginSoundMoras,
     getNameOriginSoundProfile,
-    getNameOriginSoundText
+    getNameOriginSoundText,
+    getNameOriginReadingContextCheckTexts
   };
 `, sandbox, { filename: originPath });
 
@@ -77,4 +79,30 @@ test('short, long, and nasal-ending readings receive distinct descriptions', () 
   assert.match(sound.getNameOriginSoundText({ givenReading: 'がく' }), /短く、歯切れのよさと輪郭/);
   assert.match(sound.getNameOriginSoundText({ givenReading: 'けんたろう' }), /音の連なり/);
   assert.match(sound.getNameOriginSoundText({ givenReading: 'じゅん' }), /まとまりと余韻/);
+});
+
+test('reading context checks distinguish app coverage from name length', () => {
+  const entries = [{ reading: 'けんいちろう' }, { reading: 'あすか' }];
+  assert.deepEqual(
+    Array.from(sound.getNameOriginReadingContextCheckTexts('あすか', entries)),
+    []
+  );
+  assert.deepEqual(
+    Array.from(sound.getNameOriginReadingContextCheckTexts('けんいちろう', entries)),
+    ['「けんいちろう」は6拍あるため、名字と続けて呼んだときの長さも確認すると安心です。']
+  );
+  assert.deepEqual(
+    Array.from(sound.getNameOriginReadingContextCheckTexts('るあんせら', entries)),
+    [
+      '「るあんせら」はアプリの読み候補データにないため、実際に声に出したときの聞き取りやすさも確認すると安心です。',
+      '「るあんせら」は5拍あるため、名字と続けて呼んだときの長さも確認すると安心です。'
+    ]
+  );
+});
+
+test('missing reading data never labels a reading as unfamiliar', () => {
+  assert.deepEqual(
+    Array.from(sound.getNameOriginReadingContextCheckTexts('るあんせら', null)),
+    ['「るあんせら」は5拍あるため、名字と続けて呼んだときの長さも確認すると安心です。']
+  );
 });

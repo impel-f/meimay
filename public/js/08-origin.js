@@ -1102,6 +1102,27 @@ function getNameOriginFullNameCharacters(result = currentBuildResult) {
     return Array.from(`${surname || ''}${givenName || ''}`).filter(Boolean);
 }
 
+function getNameOriginReadingContextCheckTexts(reading, readingEntries) {
+    const normalizedReading = normalizeNameOriginReadingValue(reading);
+    if (!normalizedReading) return [];
+
+    const checks = [];
+    if (Array.isArray(readingEntries)) {
+        const hasReadingEntry = readingEntries.some((item) =>
+            normalizeNameOriginReadingValue(item?.reading) === normalizedReading
+        );
+        if (!hasReadingEntry) {
+            checks.push(`「${normalizedReading}」はアプリの読み候補データにないため、実際に声に出したときの聞き取りやすさも確認すると安心です。`);
+        }
+    }
+
+    const moraCount = getNameOriginSoundProfile(normalizedReading).moraCount;
+    if (moraCount >= 5) {
+        checks.push(`「${normalizedReading}」は${moraCount}拍あるため、名字と続けて呼んだときの長さも確認すると安心です。`);
+    }
+    return checks;
+}
+
 function getNameOriginLocalCheckText(result = currentBuildResult, options = {}) {
     const includeReadingDifficulty = options.includeReadingDifficulty !== false;
     const checks = [];
@@ -1111,6 +1132,14 @@ function getNameOriginLocalCheckText(result = currentBuildResult, options = {}) 
     const kanjiChars = chars.map(item => item.kanji);
     const readingDifficultyCheck = getNameOriginReadingDifficultyCheckText(result);
     if (includeReadingDifficulty && readingDifficultyCheck) checks.push(readingDifficultyCheck);
+    const readingEntries = typeof readingsData !== 'undefined' && Array.isArray(readingsData)
+        ? readingsData
+        : null;
+    getNameOriginReadingContextCheckTexts(getNameOriginGivenReading(result), readingEntries)
+        .forEach((check) => {
+            if (readingDifficultyCheck && check.includes('アプリの読み候補データ')) return;
+            if (!checks.includes(check)) checks.push(check);
+        });
 
     Object.entries(NAME_ORIGIN_HARD_COMPOUND_NOTES).forEach(([compound, note]) => {
         if (givenName.includes(compound)) checks.push(note);
