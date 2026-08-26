@@ -7,6 +7,12 @@ const root = path.join(__dirname, '..');
 const master = require('../public/data/kanji_data.json');
 const sourceCompounds = require('../public/data/kanji_compounds.json').entries;
 const codexReviews = require('../scripts/data/kanji_static_codex_reviews.json').entries;
+const manualCompoundReviewFile = require('../scripts/data/kanji_compound_manual_reviews.json');
+const manualCompoundReviews = manualCompoundReviewFile.entries;
+
+function getManualCompounds(kanji) {
+  return manualCompoundReviews[kanji] || [];
+}
 
 test('static kanji details cover the complete master list with reviewed facts', () => {
   const details = require('../public/data/kanji_static_details.json');
@@ -30,6 +36,8 @@ test('static kanji details cover the complete master list with reviewed facts', 
     const allowed = new Set([
       ...(sourceCompounds[kanji] || []),
       ...(sourceCompounds[row['標準字体']] || []),
+      ...getManualCompounds(kanji),
+      ...getManualCompounds(row['標準字体']),
     ].map((item) => `${item.word}|${item.reading}`));
     const reviewExplicitlySelectedCompounds = Array.isArray(codexReviews[kanji]?.compounds);
     if (allowed.size > 0 && !reviewExplicitlySelectedCompounds) {
@@ -46,14 +54,42 @@ test('static kanji details cover the complete master list with reviewed facts', 
 
   assert.ok(details.entries['福'].compounds.some((item) => item.word === '幸福'));
   assert.ok(details.entries['都'].compounds.some((item) => item.word === '古都'));
+  assert.ok(details.entries['珈'].compounds.some((item) => item.word === '珈琲'));
+  assert.ok(details.entries['絆'].compounds.some((item) => item.word === '絆創膏'));
 });
 
-test('kanji detail runtime uses the bundled static dataset before legacy generation code', () => {
+test('manually reviewed compounds retain evidence internally and publish only display fields', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+  assert.equal(manualCompoundReviewFile.schemaVersion, 1);
+  assert.equal(manualCompoundReviewFile.reviewer, 'codex-5.6sol');
+  assert.match(manualCompoundReviewFile.reviewedAt, /^\d{4}-\d{2}-\d{2}$/);
+
+  for (const [kanji, compounds] of Object.entries(manualCompoundReviews)) {
+    assert.ok(compounds.length > 0, `${kanji}: empty manual review`);
+    for (const compound of compounds) {
+      assert.ok(compound.word.includes(kanji), `${kanji}: ${compound.word} does not contain the reviewed glyph`);
+      assert.match(compound.reading, /^[ぁ-んー]+$/u, `${kanji}: invalid reading for ${compound.word}`);
+      assert.match(compound.meaning, /[ぁ-んァ-ヶ一-龠]/u, `${kanji}: missing Japanese meaning for ${compound.word}`);
+      assert.match(compound.sourceUrl, /^https:\/\/(?:www\.)?(?:kanjipedia\.jp|kotobank\.jp)\//, `${kanji}: unapproved source`);
+      assert.ok(['positive', 'neutral', 'negative'].includes(compound.tone), `${kanji}: invalid tone for ${compound.word}`);
+    }
+    for (const published of details[kanji].compounds) {
+      assert.equal(Object.hasOwn(published, 'sourceUrl'), false, `${kanji}: source URL leaked into app data`);
+    }
+  }
+});
+
+test('kanji detail runtime uses only the bundled static dataset', () => {
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
+  const functionStart = source.indexOf('async function generateKanjiDetail');
+  const functionEnd = source.indexOf('\nfunction renderKanjiDetailText', functionStart);
+  const detailFunction = source.slice(functionStart, functionEnd);
   assert.match(source, /const KANJI_STATIC_DETAILS_URL = '\/data\/kanji_static_details\.json/);
-  assert.match(source, /const staticDetails = await loadKanjiStaticDetails\(\)/);
-  assert.match(source, /【名づけでの意味】/);
-  assert.match(source, /【名づけ利用】/);
+  assert.match(detailFunction, /const staticDetails = await loadKanjiStaticDetails\(\)/);
+  assert.match(detailFunction, /【名づけでの意味】/);
+  assert.match(detailFunction, /【名づけ利用】/);
+  assert.doesNotMatch(detailFunction, /callGemini|firebase|AI説明を取得できませんでした/);
+  assert.doesNotMatch(detailFunction, /掲載できる代表的な熟語はありません/);
 });
 
 test('Codex-reviewed kanji details override generated enrichment without mutating its source', () => {

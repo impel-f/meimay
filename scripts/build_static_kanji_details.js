@@ -7,6 +7,7 @@ const MEANINGS_PATH = path.join(ROOT, 'public', 'data', 'kanji_meaning_details.j
 const ETYMOLOGY_PATH = path.join(ROOT, 'public', 'data', 'kanji_etymology_facts.json');
 const ENRICHMENT_PATH = path.join(__dirname, 'data', 'kanji_static_enrichment.json');
 const CODEX_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_static_codex_reviews.json');
+const MANUAL_COMPOUND_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_compound_manual_reviews.json');
 const OUTPUT_PATH = path.join(ROOT, 'public', 'data', 'kanji_static_details.json');
 
 function readJson(filePath, fallback = {}) {
@@ -32,7 +33,11 @@ function getFactualNamingMeaning(value) {
   }。`;
 }
 
-function getReviewedCompounds(kanji, enrichment, codexReviews) {
+function getReviewedCompounds(kanji, enrichment, codexReviews, manualCompoundReviews) {
+  const manualCompounds = manualCompoundReviews[kanji];
+  if (Array.isArray(manualCompounds) && manualCompounds.length) {
+    return manualCompounds.map(({ sourceUrl, ...compound }) => compound);
+  }
   const review = codexReviews[kanji]?.status === 'reviewed' ? codexReviews[kanji] : {};
   const enriched = enrichment[kanji] || {};
   return Array.isArray(review.compounds) ? review.compounds : enriched.compounds;
@@ -44,6 +49,7 @@ function main() {
   const etymologies = readJson(ETYMOLOGY_PATH, { entries: {} }).entries || {};
   const enrichment = readJson(ENRICHMENT_PATH, {});
   const codexReviews = readJson(CODEX_REVIEW_PATH, { entries: {} }).entries || {};
+  const manualCompoundReviews = readJson(MANUAL_COMPOUND_REVIEW_PATH, { entries: {} }).entries || {};
   const entries = {};
 
   for (const row of master) {
@@ -54,10 +60,10 @@ function main() {
     const meaningDetail = clean(meanings[kanji]?.meaning || row['意味']);
     const fixedOriginText = clean(review.etymologyText || etymology.fixedOriginText);
     const namingMeaning = clean(review.namingMeaning || enriched.namingMeaning);
-    const ownCompounds = getReviewedCompounds(kanji, enrichment, codexReviews);
+    const ownCompounds = getReviewedCompounds(kanji, enrichment, codexReviews, manualCompoundReviews);
     const standardKanji = clean(row['標準字体']);
     const standardCompounds = standardKanji
-      ? getReviewedCompounds(standardKanji, enrichment, codexReviews)
+      ? getReviewedCompounds(standardKanji, enrichment, codexReviews, manualCompoundReviews)
       : [];
     const compounds = Array.isArray(ownCompounds) && ownCompounds.length
       ? ownCompounds
@@ -102,6 +108,7 @@ function main() {
       'kanji_etymology_facts.json',
       'kanji_static_enrichment.json',
       'kanji_static_codex_reviews.json',
+      'kanji_compound_manual_reviews.json',
     ],
     entries,
   };

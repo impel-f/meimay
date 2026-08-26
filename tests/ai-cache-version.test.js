@@ -57,15 +57,15 @@ test('known fallback models use isolated cache generations', () => {
   }).modelCacheVersion, fallbackVersion);
 });
 
-test('client rejects legacy kanji prompts that do not contain verified compound meanings', () => {
-  assert.match(originSource, /KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set/);
-  assert.match(originSource, /'kanji_detail_v13_20260824'/);
-  assert.doesNotMatch(originSource, /'kanji_detail_v12_20260823'/);
-  assert.doesNotMatch(originSource, /'kanji_detail_v11_20260822'/);
-  assert.doesNotMatch(originSource, /'kanji_detail_v10_20260816'/);
-  assert.doesNotMatch(originSource, /'kanji_detail_v9_20260816'/);
-  assert.match(originSource, /cached\.modelCacheVersion === modelCacheVersion/);
-  assert.match(originSource, /for \(const promptVersion of KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS\)/);
+test('client kanji details bypass legacy AI prompt caches and use fixed reviewed data', () => {
+  const functionStart = originSource.indexOf('async function generateKanjiDetail');
+  const functionEnd = originSource.indexOf('\nfunction renderKanjiDetailText', functionStart);
+  const detailFunction = originSource.slice(functionStart, functionEnd);
+
+  assert.match(detailFunction, /await loadKanjiStaticDetails\(\)/);
+  assert.match(detailFunction, /detail\.compounds/);
+  assert.doesNotMatch(detailFunction, /KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS/);
+  assert.doesNotMatch(detailFunction, /modelCacheVersion|promptVersion|callGemini/);
 });
 
 test('persisted name origins remain visible without regeneration after cache version changes', () => {

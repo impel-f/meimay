@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "codex-5.6sol",
+  "reviewedAt": "2026-08-26",
+  "entries": {
+    "𠮟": [
+      {
+        "word": "𠮟責",
+        "reading": "しっせき",
+        "meaning": "過ちなどを厳しく注意し、責めること",
+        "tone": "negative",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0002921600"
+      },
+      {
+        "word": "𠮟咤",
+        "reading": "しった",
+        "meaning": "大声で厳しくしかること",
+        "tone": "negative",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kanji/0004404400"
+      }
+    ],
+    "昊": [
+      {
+        "word": "昊天",
+        "reading": "こうてん",
+        "meaning": "広く大きな空、または夏の空",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0002199200"
+      }
+    ],
+    "珈": [
+      {
+        "word": "珈琲",
+        "reading": "こーひー",
+        "meaning": "煎ったコーヒー豆を挽き、湯などで成分を抽出した飲み物",
+        "tone": "neutral",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0000669600"
+      }
+    ],
+    "赳": [
+      {
+        "word": "赳赳",
+        "reading": "きゅうきゅう",
+        "meaning": "勇ましく力強いさま",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E8%B5%B3%E8%B5%B3-2028748"
+      }
+    ],
+    "俱": [
+      {
+        "word": "俱楽部",
+        "reading": "くらぶ",
+        "meaning": "共通の目的や趣味を持つ人々の集まり、またはその会所",
+        "tone": "neutral",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0001664500"
+      }
+    ],
+    "萊": [
+      {
+        "word": "蓬萊",
+        "reading": "ほうらい",
+        "meaning": "中国の伝説で仙人が住むとされる山",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0006400500"
+      }
+    ],
+    "絆": [
+      {
+        "word": "絆創膏",
+        "reading": "ばんそうこう",
+        "meaning": "傷口を覆って保護するための粘着性の布やテープ",
+        "tone": "neutral",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0005751900"
+      }
+    ],
+    "惺": [
+      {
+        "word": "惺惺",
+        "reading": "せいせい",
+        "meaning": "心が澄み、賢く明らかなさま",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E6%83%BA%E6%83%BA-2054513"
+      }
+    ],
+    "楠": [
+      {
+        "word": "石楠花",
+        "reading": "しゃくなげ",
+        "meaning": "ツツジ科の常緑低木で、春から初夏に花を咲かせる植物",
+        "tone": "positive",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0003952100"
+      }
+    ],
+    "繫": [
+      {
+        "word": "繫留",
+        "reading": "けいりゅう",
+        "meaning": "つなぎとめて、その場所に置くこと",
+        "tone": "neutral",
+        "common": true,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0001762600"
+      },
+      {
+        "word": "繫泊",
+        "reading": "けいはく",
+        "meaning": "船をつなぎとめて停泊させること",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0001822300"
+      },
+      {
+        "word": "繫船",
+        "reading": "けいせん",
+        "meaning": "船を岸などにつなぎとめること",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0001762300"
+      }
+    ],
+    "灘": [
+      {
+        "word": "灘響",
+        "reading": "だんきょう",
+        "meaning": "急流が立てる響き",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0007472200"
+      }
+    ]
+  }
+}
