@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v23_20260826';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v24_20260826';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -177,12 +177,15 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     }
     if (typeof parsed.originDraft !== 'string') throw new Error('名前由来のoriginDraftが文字列ではありません。');
     if (parsed.originDraft.length > 150) throw new Error('名前由来の文章が長すぎます。');
-    const originDraft = normalizeNameOriginSectionValue(parsed.originDraft, 150);
+    let originDraft = normalizeNameOriginSectionValue(parsed.originDraft, 150);
     const givenName = getNameOriginGivenName(result);
     if (originDraft.length < 55) throw new Error('名前由来の文章が短すぎます。');
     if (givenName && !originDraft.includes(`「${givenName}」`)) {
-        throw new Error('名前由来に対象の名前が含まれていません。');
+        const nameIndex = originDraft.indexOf(givenName);
+        if (nameIndex < 0) throw new Error('名前由来に対象の名前が含まれていません。');
+        originDraft = `${originDraft.slice(0, nameIndex)}「${givenName}」${originDraft.slice(nameIndex + givenName.length)}`;
     }
+    if (originDraft.length > 150) throw new Error('名前由来の文章が長すぎます。');
     if ((originDraft.match(/[。！？!?]/g) || []).length > 2) {
         throw new Error('名前由来の文数が多すぎます。');
     }
@@ -1320,6 +1323,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
 冒頭で名前を「${givenName || ''}」と正確に一度だけ書き、各漢字の意味を自然につないで、どのような願いを込める名前かを伝えてください。
 
 漢字データにない性格・能力・象徴・植物の性質・歴史・縁起・故事は追加しません。意味の言い換えはできますが、新しい理想像を作りません。
+複数の語義がある場合は、名付けの願いとして自然で肯定的または中立的な意味だけを選びます。すべての語義を無理に詰め込みません。
 各漢字の説明は入力文に近い語で書き、入力にない「心」「成長」「優しさ」などを補いません。「〜のように」「〜のような」という比喩も使いません。
 「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」のような定型比喩、名字・響き・読みやすさ、親が実際に選んだ理由の断定は書きません。
 根拠に迷う内容は削り、文章を膨らませるための推測はしません。

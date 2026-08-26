@@ -38,8 +38,10 @@ test('name origin AI writes only the editable wish draft from fixed kanji meanin
     assert.match(originSource, /この名前に込める願い/);
     assert.match(originSource, /文案は70〜110字/);
     assert.match(originSource, /「〜のように」「〜のような」という比喩も使いません/);
-    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v23_20260826'/);
+    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v24_20260826'/);
     assert.match(originSource, /const expectedKeys = \['originDraft'\]/);
+    assert.match(originSource, /const nameIndex = originDraft\.indexOf\(givenName\)/);
+    assert.match(originSource, /すべての語義を無理に詰め込みません/);
     assert.match(originSource, /getNameOriginSoundText\(result\)/);
     assert.match(originSource, /const localCheck = getNameOriginLocalCheckText\(result\)/);
     assert.match(originSource, /parsed\.decision \|\| parsed\['この名前の決め手'\]/);
