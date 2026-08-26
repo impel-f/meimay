@@ -1243,28 +1243,118 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     };
 }
 
-const NAME_ORIGIN_SOUND_TAG_TEXT = {
-    '#ふんわり': 'やわらかく穏やかな',
-    '#力強い': '輪郭がはっきりした力強い',
-    '#爽やか': '軽やかですっきりした',
-    '#クール': 'すっきりと引き締まった',
-    '#あたたかい': 'あたたかく親しみのある',
-    '#華やか': '明るく華やかな',
-    '#のびのび': 'のびやかで開放的な',
-    '#なごやか': '穏やかで親しみやすい',
-    '#はつらつ': '明るくはつらつとした',
-    '#繊細': 'やわらかく繊細な'
-};
+function splitNameOriginSoundMoras(value) {
+    const reading = String(value || '')
+        .normalize('NFKC')
+        .replace(/[ァ-ヶ]/g, char => String.fromCharCode(char.charCodeAt(0) - 0x60))
+        .replace(/\s+/g, '');
+    const moras = [];
+    Array.from(reading).forEach((char) => {
+        if (/^[ゃゅょぁぃぅぇぉゎ]$/.test(char) && moras.length > 0) {
+            moras[moras.length - 1] += char;
+        } else {
+            moras.push(char);
+        }
+    });
+    return moras;
+}
+
+function getNameOriginSoundVowel(mora) {
+    const last = Array.from(String(mora || '')).at(-1) || '';
+    const vowelGroups = {
+        a: 'あかがさざただなはばぱまやらわゃぁ',
+        i: 'いきぎしじちぢにひびぴみりぃ',
+        u: 'うくぐすずつづぬふぶぷむゆるゅぅ',
+        e: 'えけげせぜてでねへべぺめれぇ',
+        o: 'おこごそぞとのほぼぽもよろをょぉ'
+    };
+    return Object.entries(vowelGroups).find(([, chars]) => chars.includes(last))?.[0] || '';
+}
+
+function getNameOriginSoundConsonantType(mora) {
+    const first = Array.from(String(mora || ''))[0] || '';
+    if (!first) return 'other';
+    if ('あいうえお'.includes(first)) return 'vowel';
+    if (first === 'ん') return 'nasal';
+    if (first === 'っ') return 'geminate';
+    if ('かきくけこがぎぐげござしすせそざじずぜぞたちつてとだぢづでどはひふへほばびぶべぼぱぴぷぺぽ'.includes(first)) {
+        return 'obstruent';
+    }
+    if ('なにぬねのまみむめもやゆよらりるれろわを'.includes(first)) return 'resonant';
+    return 'other';
+}
+
+// Keep the wording conservative: research supports tendencies, not personality judgments.
+function getNameOriginSoundProfile(reading) {
+    const moras = splitNameOriginSoundMoras(reading);
+    const features = moras.map((mora) => ({
+        mora,
+        vowel: getNameOriginSoundVowel(mora),
+        consonantType: getNameOriginSoundConsonantType(mora)
+    }));
+    const consonantFeatures = features.filter(item =>
+        item.consonantType === 'obstruent' || item.consonantType === 'resonant'
+    );
+    const vowelFeatures = features.filter(item => item.vowel);
+    const obstruentCount = consonantFeatures.filter(item => item.consonantType === 'obstruent').length;
+    const resonantCount = consonantFeatures.filter(item => item.consonantType === 'resonant').length;
+    const backVowelCount = vowelFeatures.filter(item => /[aou]/.test(item.vowel)).length;
+    const frontVowelCount = vowelFeatures.filter(item => /[ie]/.test(item.vowel)).length;
+    return {
+        reading: moras.join(''),
+        moras,
+        moraCount: moras.length,
+        firstType: features[0]?.consonantType || 'other',
+        lastType: features.at(-1)?.consonantType || 'other',
+        obstruentShare: consonantFeatures.length > 0 ? obstruentCount / consonantFeatures.length : 0,
+        resonantShare: consonantFeatures.length > 0 ? resonantCount / consonantFeatures.length : 0,
+        backVowelShare: vowelFeatures.length > 0 ? backVowelCount / vowelFeatures.length : 0,
+        frontVowelShare: vowelFeatures.length > 0 ? frontVowelCount / vowelFeatures.length : 0
+    };
+}
+
+function getNameOriginSoundImpression(profile) {
+    const obstruentStrong = profile.obstruentShare >= 0.6;
+    const resonantStrong = profile.resonantShare >= 0.6;
+    const backVowelStrong = profile.backVowelShare >= 0.65;
+    const frontVowelStrong = profile.frontVowelShare >= 0.65;
+
+    if (profile.moraCount <= 2 && profile.lastType === 'nasal') return '短さの中にまとまりと余韻を感じやすい';
+    if (profile.moraCount <= 2 && obstruentStrong) return '短く、歯切れのよさと輪郭を感じやすい';
+    if (profile.moraCount <= 2 && resonantStrong && frontVowelStrong) return '短く、やわらかさと軽やかさを感じやすい';
+    if (profile.moraCount <= 2 && resonantStrong) return '短く、やわらかなまとまりを感じやすい';
+    if (profile.moraCount >= 5 && obstruentStrong) return '音の連なりとのびやかな歯切れを感じやすい';
+    if (profile.moraCount >= 5 && resonantStrong) return '音の連なりとやわらかな余韻を感じやすい';
+    if (profile.moraCount >= 5) return '音の変化とのびやかな余韻を感じやすい';
+    if (backVowelStrong && obstruentStrong) return 'のびやかさと歯切れのよさを感じやすい';
+    if (backVowelStrong && resonantStrong) return '丸みとやわらかさを感じやすい';
+    if (backVowelStrong) return '丸みとのびやかさを感じやすい';
+    if (frontVowelStrong && obstruentStrong) return '軽やかさと引き締まりを感じやすい';
+    if (frontVowelStrong && resonantStrong) return 'やわらかさと軽やかさを感じやすい';
+    if (frontVowelStrong) return '軽やかで引き締まった印象を感じやすい';
+    if (obstruentStrong) return '歯切れのよさと輪郭を感じやすい';
+    if (resonantStrong) return 'やわらかく流れる印象を感じやすい';
+    return 'やわらかさと輪郭の両方を感じやすい';
+}
 
 function getNameOriginSoundText(result = currentBuildResult) {
     const reading = normalizeNameOriginReadingValue(getNameOriginGivenReading(result));
-    if (!reading || typeof readingsData === 'undefined' || !Array.isArray(readingsData)) return '';
-    const readingEntry = readingsData.find((item) =>
-        normalizeNameOriginReadingValue(item?.reading) === reading
-    );
-    const soundTag = (readingEntry?.tags || []).find((tag) => NAME_ORIGIN_SOUND_TAG_TEXT[tag]);
-    if (!soundTag) return '';
-    return `「${reading}」は、${NAME_ORIGIN_SOUND_TAG_TEXT[soundTag]}印象の響きです。`;
+    if (!reading) return '';
+    const profile = getNameOriginSoundProfile(reading);
+    if (profile.moraCount === 0) return '';
+
+    let openingText = '音の変化がある読みです';
+    if (profile.firstType === 'vowel' && profile.obstruentShare >= 0.6) {
+        openingText = '母音から始まり、輪郭のある子音が続く読みです';
+    } else if (profile.firstType === 'vowel') {
+        openingText = '母音から始まり、音がなめらかにつながる読みです';
+    } else if (profile.firstType === 'obstruent') {
+        openingText = '輪郭のある子音から始まる読みです';
+    } else if (profile.firstType === 'resonant') {
+        openingText = 'なめらかにつながる音から始まる読みです';
+    }
+
+    return `「${profile.reading}」は${profile.moraCount}拍で、${openingText}。${getNameOriginSoundImpression(profile)}響きです。`;
 }
 
 function getNameOriginStructuredModel(result = currentBuildResult, text = '') {
@@ -1295,7 +1385,7 @@ function buildNameOriginCopyText(result = currentBuildResult, text = '') {
         blocks.push(`漢字に込めた意味\n${model.meanings.map(row => `${row.kanji}：${row.meaning}`).join('\n')}`);
     }
     if (model.check) blocks.push(`確認しておきたいこと\n${model.check}`);
-    if (model.sound) blocks.push(`呼んだときの印象\n${model.sound}`);
+    if (model.sound) blocks.push(`響きの特徴（参考）\n${model.sound}`);
     return blocks.join('\n\n').trim();
 }
 
@@ -1528,7 +1618,7 @@ function escapeNameOriginHtml(text) {
 const NAME_ORIGIN_SECTION_META = {
     'この名前に込める願い': { icon: '💛', label: 'この名前に込める願い' },
     '漢字に込めた意味': { icon: '💡', label: '漢字の意味' },
-    '呼んだときの印象': { icon: '🔊', label: '響きの傾向' },
+    '呼んだときの印象': { icon: '🔊', label: '響きの特徴（参考）' },
     '確認しておきたいこと': { icon: '🫧', label: '確認' }
 };
 
