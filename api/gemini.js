@@ -1,5 +1,6 @@
 const {
   GoogleGenAI,
+  ThinkingLevel,
 } = require("@google/genai");
 const {
   MODEL_PRIORITY_GROUPS,
@@ -118,7 +119,19 @@ function buildGenerationConfig(taskType = '') {
     config.tools = [{ googleSearch: {} }];
   } else if (taskType === 'nameOrigin') {
     config.maxOutputTokens = 1024;
-    config.temperature = 0.2;
+    config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    config.responseMimeType = 'application/json';
+    config.responseJsonSchema = {
+      type: 'object',
+      properties: {
+        originDraft: {
+          type: 'string',
+          description: '固定された漢字の意味だけを使った、70〜110字の名づけ由来文案',
+        },
+      },
+      required: ['originDraft'],
+      additionalProperties: false,
+    };
   }
   return config;
 }

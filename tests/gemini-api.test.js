@@ -73,13 +73,25 @@ test('kanji fact checks use low-temperature Google Search grounding', () => {
   });
 });
 
-test('name origins use a lower temperature without web grounding', () => {
+test('name origins use low thinking and a one-field JSON schema without web grounding', () => {
   assert.deepEqual(buildGenerationConfig('nameOrigin'), {
     maxOutputTokens: 1024,
     httpOptions: {
       timeout: 12_000,
     },
-    temperature: 0.2,
+    thinkingConfig: { thinkingLevel: 'LOW' },
+    responseMimeType: 'application/json',
+    responseJsonSchema: {
+      type: 'object',
+      properties: {
+        originDraft: {
+          type: 'string',
+          description: '固定された漢字の意味だけを使った、70〜110字の名づけ由来文案',
+        },
+      },
+      required: ['originDraft'],
+      additionalProperties: false,
+    },
   });
 });
 

@@ -33,13 +33,18 @@ test('kanji prompt lets AI rank only verified compounds and requires meanings', 
   assert.doesNotMatch(originSource, /Google検索を実行して国語辞典・漢和辞典の見出しとして確認/);
 });
 
-test('name origin output merges the family message and wish without duplicate sections', () => {
-    assert.match(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
+test('name origin AI writes only the editable wish draft from fixed kanji meanings', () => {
+    assert.match(originSource, /キーは"originDraft"だけ/);
     assert.match(originSource, /この名前に込める願い/);
-    assert.doesNotMatch(originSource, /キーは必ず "decision", "wish", "sound", "familyLine"/);
-    assert.match(originSource, /decisionは70〜120字/);
-    assert.match(originSource, /wishは互換性維持用のため、必ず空文字にする/);
-    assert.match(originSource, /soundは25〜45字/);
+    assert.match(originSource, /文案は70〜110字/);
+    assert.match(originSource, /「〜のように」「〜のような」という比喩も使いません/);
+    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v23_20260826'/);
+    assert.match(originSource, /const expectedKeys = \['originDraft'\]/);
+    assert.match(originSource, /getNameOriginSoundText\(result\)/);
+    assert.match(originSource, /const localCheck = getNameOriginLocalCheckText\(result\)/);
+    assert.match(originSource, /parsed\.decision \|\| parsed\['この名前の決め手'\]/);
+    assert.match(originSource, /parsed\.sound \|\| parsed\['呼んだときの印象'\]/);
+    assert.doesNotMatch(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
     assert.doesNotMatch(originSource, /renderNameOriginSection\('この名前の決め手'/);
 });
 
@@ -71,8 +76,11 @@ test('name origins reject common meaning expansions not present in source data',
   assert.match(originSource, /瑞々し\|みずみずし/);
   assert.match(originSource, /前向き\|前を向/);
   assert.match(originSource, /朗らか\|ほがらか/);
+  assert.match(originSource, /output: \/心\//);
+  assert.match(originSource, /output: \/\(\?:歩み\|歩む\)\//);
   assert.doesNotMatch(originSource, /人にやさしく、自分らしさを大切にしながら歩んでほしい/);
-  assert.match(originSource, /combinedMeaning/);
+  assert.match(originSource, /sourceMeanings/);
+  assert.match(originSource, /漢字データにない性格・能力・象徴/);
 });
 
 test('known regression kanji retain the verified glyph components', () => {

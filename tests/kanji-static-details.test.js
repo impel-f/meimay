@@ -156,7 +156,8 @@ test('ideographic explanations connect components to meaning without generic fil
 test('name-origin prompt uses fixed meanings and produces one editable origin draft', () => {
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
   assert.match(source, /kanjiStaticDetailsCache\?\.\[kanji\]\?\.namingMeaning/);
-  assert.match(source, /wishは互換性維持用のため、必ず空文字にする/);
+  assert.match(source, /キーは"originDraft"だけ/);
+  assert.match(source, /漢字データにない性格・能力・象徴/);
   assert.match(source, /この名前に込める願い/);
   assert.doesNotMatch(source, /renderNameOriginSection\('この名前の決め手'/);
 });

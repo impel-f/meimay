@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v22_20260824';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v23_20260826';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -170,12 +170,23 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     } catch (error) {
         throw new Error('名前由来のJSON形式が正しくありません。');
     }
-    const expectedKeys = ['decision', 'wish', 'sound', 'check'];
+    const expectedKeys = ['originDraft'];
     const actualKeys = Object.keys(parsed || {}).sort();
     if (actualKeys.join('|') !== [...expectedKeys].sort().join('|')) {
         throw new Error('名前由来の項目が不足しています。');
     }
-    const bannedPattern = /(?:芯の強さ|葵のようにまっすぐ|自然に伝えられます|説明できます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく)/;
+    if (typeof parsed.originDraft !== 'string') throw new Error('名前由来のoriginDraftが文字列ではありません。');
+    if (parsed.originDraft.length > 150) throw new Error('名前由来の文章が長すぎます。');
+    const originDraft = normalizeNameOriginSectionValue(parsed.originDraft, 150);
+    const givenName = getNameOriginGivenName(result);
+    if (originDraft.length < 55) throw new Error('名前由来の文章が短すぎます。');
+    if (givenName && !originDraft.includes(`「${givenName}」`)) {
+        throw new Error('名前由来に対象の名前が含まれていません。');
+    }
+    if ((originDraft.match(/[。！？!?]/g) || []).length > 2) {
+        throw new Error('名前由来の文数が多すぎます。');
+    }
+    const bannedPattern = /(?:芯の強さ|葵のようにまっすぐ|自然に伝えられます|説明できます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく|輝く未来|道しるべ|のように|のような)/;
     const sourceMeanings = getNameOriginCombination(result)
         .map((part) => getNameOriginMeaning(part))
         .join(' ');
@@ -185,23 +196,18 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
         { output: /(?:温か|暖か|あたたか)/, source: /(?:温か|暖か|あたたか)/ },
         { output: /(?:瑞々し|みずみずし)/, source: /(?:瑞々し|みずみずし)/ },
         { output: /(?:朗らか|ほがらか)/, source: /(?:朗らか|ほがらか)/ },
+        { output: /心/, source: /心/ },
+        { output: /(?:歩み|歩む)/, source: /歩/ },
         { output: /たくまし/, source: /(?:たくまし|強い|勇)/ },
         { output: /思いやり/, source: /(?:思いやり|慈愛|心)/ }
     ];
-    for (const key of expectedKeys) {
-        if (typeof parsed[key] !== 'string') throw new Error(`名前由来の${key}が文字列ではありません。`);
-        if (bannedPattern.test(parsed[key])) throw new Error(`名前由来の${key}に根拠外の定型表現があります。`);
-        for (const rule of guardedExpansions) {
-            if (rule.output.test(parsed[key]) && !rule.source.test(sourceMeanings)) {
-                throw new Error(`名前由来の${key}に漢字データ外の意味があります。`);
-            }
+    if (bannedPattern.test(originDraft)) throw new Error('名前由来に根拠外の定型表現があります。');
+    for (const rule of guardedExpansions) {
+        if (rule.output.test(originDraft) && !rule.source.test(sourceMeanings)) {
+            throw new Error('名前由来に漢字データ外の意味があります。');
         }
     }
-    const lengthLimits = { decision: 130, wish: 80, sound: 60, check: 120 };
-    for (const [key, maxLength] of Object.entries(lengthLimits)) {
-        if (parsed[key].length > maxLength) throw new Error(`名前由来の${key}が長すぎます。`);
-    }
-    return JSON.stringify(parsed);
+    return JSON.stringify({ originDraft });
 }
 
 function getNameOriginKanjiValue(part) {
@@ -1176,8 +1182,9 @@ function parseNameOriginStructuredText(text) {
         try {
             const parsed = JSON.parse(jsonText);
             const model = {
-                decision: normalizeNameOriginSectionValue(parsed.decision || parsed['この名前の決め手'] || parsed['決め手'], 60),
-                wish: normalizeNameOriginSectionValue(parsed.wish || parsed.familyLine || parsed.family || parsed['家族に伝える願い'] || parsed['パパママからの願い'] || parsed['願い'] || parsed['家族に伝える一言'], 60),
+                originDraft: normalizeNameOriginSectionValue(parsed.originDraft || parsed['この名前に込める願い'], 150),
+                decision: normalizeNameOriginSectionValue(parsed.decision || parsed['この名前の決め手'] || parsed['決め手'], 120),
+                wish: normalizeNameOriginSectionValue(parsed.wish || parsed.familyLine || parsed.family || parsed['家族に伝える願い'] || parsed['パパママからの願い'] || parsed['願い'] || parsed['家族に伝える一言'], 80),
                 sound: normalizeNameOriginSectionValue(parsed.sound || parsed['呼んだときの印象'] || parsed['響き'], 45),
                 check: normalizeNameOriginSectionValue(parsed.check || parsed.caution || parsed['確認しておきたいこと'] || parsed['気になる点'] || parsed['注意点'], 120)
             };
@@ -1214,133 +1221,65 @@ function repairNameOriginQuoteText(text, result = currentBuildResult) {
 
 function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     const givenName = getNameOriginGivenName(result);
-    const givenReading = getNameOriginGivenReading(result);
-    const rows = getNameOriginMeaningRows(result);
-    const firstMeaning = rows[0]?.meaning.replace(/。$/, '') || '漢字の意味';
-    const secondMeaning = rows[1]?.meaning.replace(/。$/, '') || '';
-    const combinedMeaning = [firstMeaning, secondMeaning].filter(Boolean).join('と、');
+    const meaningPhrases = getNameOriginCombination(result)
+        .map((part) => getNameOriginMeaning(part).replace(/。$/, ''))
+        .filter(Boolean);
     const legacy = repairNameOriginQuoteText(text, result);
 
     if (legacy) {
         return {
-            decision: normalizeNameOriginSectionValue(legacy, 120),
-            wish: '',
-            sound: givenReading ? `「${givenReading}」は、落ち着いて呼びやすい響きです。` : '',
-            check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
+            originDraft: normalizeNameOriginSectionValue(legacy, 150)
         };
     }
 
+    const joinedMeanings = meaningPhrases.length > 0
+        ? meaningPhrases.join('、また、')
+        : '一つひとつの漢字が持つ意味';
     return {
-        decision: `「${givenName}」は、${firstMeaning}${secondMeaning ? `と、${secondMeaning}` : ''}を重ね、${combinedMeaning}という意味を大切にしてほしいという願いを込めた名前です。`,
-        wish: '',
-        sound: givenReading ? `「${givenReading}」は、やさしく落ち着いた印象で、日常でも呼びやすい響きです。` : '',
-        check: getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
+        originDraft: `「${givenName}」には、${joinedMeanings}という意味を重ねています。その意味を大切にしてほしいという願いを込めた名前です。`
     };
 }
 
-function getNameOriginCheckCategory(line) {
-    const normalized = String(line || '').replace(/\s+/g, '');
-    if (!normalized) return '';
-    if (/ローマ字|アルファベット|頭文字|イニシャル|[Ww]\.?[Cc]\.?|[Nn]\.?[Gg]\.?|[Ss]\.?[Mm]\.?|[Aa]\.?[Vv]\.?|[Dd]\.?[Vv]\.?/.test(normalized)) {
-        return 'alphabet-initials';
-    }
-    if (/縦書き|縦に並べる|縦割れ|左右に分かれる|割れて見える/.test(normalized)) {
-        return 'vertical-split';
-    }
-    if (/熟字訓|心太|海月|日常語|一般語|まとめ読み/.test(normalized)) {
-        return 'compound-reading';
-    }
-    if (/初見|読みにく|読みづら|読み方|読むのが難しい|読みを添え|読みを確認/.test(normalized)) {
-        return 'reading-difficulty';
-    }
-    if (/旧字体|異体字|別体|大字|字形|届出|表記/.test(normalized)) {
-        return 'glyph-form';
-    }
-    if (/画数|手書き/.test(normalized)) {
-        return 'stroke-count';
-    }
-    if (/へん|偏り|重なる|統一感/.test(normalized)) {
-        return 'visual-balance';
-    }
-    return normalized.replace(/[「」『』。、，,.・\s]/g, '').slice(0, 24);
-}
+const NAME_ORIGIN_SOUND_TAG_TEXT = {
+    '#ふんわり': 'やわらかく穏やかな',
+    '#力強い': '輪郭がはっきりした力強い',
+    '#爽やか': '軽やかですっきりした',
+    '#クール': 'すっきりと引き締まった',
+    '#あたたかい': 'あたたかく親しみのある',
+    '#華やか': '明るく華やかな',
+    '#のびのび': 'のびやかで開放的な',
+    '#なごやか': '穏やかで親しみやすい',
+    '#はつらつ': '明るくはつらつとした',
+    '#繊細': 'やわらかく繊細な'
+};
 
-function splitNameOriginCheckSegments(value) {
-    return normalizeNameOriginText(value)
-        .split(/\n+/)
-        .flatMap(line => line
-            .replace(/\s*また(?=「?[^。！？!?]{0,30}(?:旧字体|異体字|別体|大字|字形|届出|表記|初見|読みにく|読みづら|ローマ字|アルファベット|縦割れ))/g, '\nまた')
-            .match(/[^。！？!?]+[。！？!?]?/g) || [])
-        .map(line => normalizeNameOriginSectionValue(line, 120))
-        .filter(Boolean);
-}
-
-function mergeNameOriginCheckText(aiCheck, localCheck) {
-    const lines = [];
-    const categories = new Set();
-    [localCheck, aiCheck].forEach((value) => {
-        splitNameOriginCheckSegments(value)
-            .forEach((line) => {
-                const category = getNameOriginCheckCategory(line);
-                if (category && categories.has(category)) return;
-                if (!lines.includes(line)) lines.push(line);
-                if (category) categories.add(category);
-            });
-    });
-    return lines.slice(0, 3).join('\n');
-}
-
-function getNameOriginCheckMaterials(result = currentBuildResult) {
-    const readingClarity = getNameOriginReadingClarity(result);
-    const itemsByCategory = {};
-    getNameOriginLocalCheckText(result, { includeReadingDifficulty: false })
-        .split(/\n+/)
-        .map(line => normalizeNameOriginSectionValue(line, 120))
-        .filter(Boolean)
-        .forEach((line) => {
-            const category = getNameOriginCheckCategory(line) || 'note';
-            if (!itemsByCategory[category]) itemsByCategory[category] = line;
-        });
-
-    return {
-        readingClarity,
-        possibleHardToRead: readingClarity.suggestedCheck || '',
-        compoundReading: itemsByCategory['compound-reading'] || '',
-        initials: itemsByCategory['alphabet-initials'] || '',
-        verticalSplit: itemsByCategory['vertical-split'] || '',
-        glyphForm: itemsByCategory['glyph-form'] || '',
-        strokeCount: itemsByCategory['stroke-count'] || '',
-        visualBalance: itemsByCategory['visual-balance'] || '',
-        notes: Object.entries(itemsByCategory)
-            .filter(([category]) => ![
-                'reading-difficulty',
-                'compound-reading',
-                'alphabet-initials',
-                'vertical-split',
-                'glyph-form',
-                'stroke-count',
-                'visual-balance'
-            ].includes(category))
-            .map(([, line]) => line)
-    };
+function getNameOriginSoundText(result = currentBuildResult) {
+    const reading = normalizeNameOriginReadingValue(getNameOriginGivenReading(result));
+    if (!reading || typeof readingsData === 'undefined' || !Array.isArray(readingsData)) return '';
+    const readingEntry = readingsData.find((item) =>
+        normalizeNameOriginReadingValue(item?.reading) === reading
+    );
+    const soundTag = (readingEntry?.tags || []).find((tag) => NAME_ORIGIN_SOUND_TAG_TEXT[tag]);
+    if (!soundTag) return '';
+    return `「${reading}」は、${NAME_ORIGIN_SOUND_TAG_TEXT[soundTag]}印象の響きです。`;
 }
 
 function getNameOriginStructuredModel(result = currentBuildResult, text = '') {
     const parsed = parseNameOriginStructuredText(text);
     const fallback = buildFallbackNameOriginModel(result, parsed ? '' : text);
-    const localCheck = getNameOriginLocalCheckText(result, { includeReadingDifficulty: false });
-    const decision = normalizeNameOriginSectionValue(parsed?.decision || fallback.decision, 120);
-    const wish = normalizeNameOriginSectionValue(parsed?.wish || fallback.wish, 80);
+    const localCheck = getNameOriginLocalCheckText(result);
+    const decision = normalizeNameOriginSectionValue(parsed?.decision || '', 120);
+    const wish = normalizeNameOriginSectionValue(parsed?.wish || '', 80);
     const originDraft = normalizeNameOriginSectionValue(
-        [decision, wish].filter(Boolean).join(' '),
+        parsed?.originDraft || [decision, wish].filter(Boolean).join(' ') || fallback.originDraft,
         150
     );
     return {
         decision,
         wish,
         originDraft,
-        sound: normalizeNameOriginSectionValue(parsed?.sound || fallback.sound, 45),
-        check: mergeNameOriginCheckText(parsed?.check || fallback.check, localCheck),
+        sound: getNameOriginSoundText(result),
+        check: localCheck,
         meanings: getNameOriginMeaningRows(result)
     };
 }
@@ -1359,72 +1298,35 @@ function buildNameOriginCopyText(result = currentBuildResult, text = '') {
 
 function stringifyNameOriginModel(model) {
     return JSON.stringify({
-        decision: model.decision || '',
-        wish: model.wish || '',
-        sound: model.sound || '',
-        check: model.check || ''
+        originDraft: model.originDraft || ''
     }, null, 2);
 }
 
 function buildNameOriginPrompt(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
-    const givenReading = getNameOriginGivenReading(result);
-    const surname = getNameOriginSurnameValue(result);
-    const surnameYomi = getNameOriginSurnameReading(result);
-    const checkMaterials = getNameOriginCheckMaterials(result);
     const originDetails = getNameOriginCombination(result).map((part) => {
         const kanji = getNameOriginKanjiValue(part);
-        const meaning = kanji === '々'
+        const namingMeaning = kanji === '々'
             ? '直前の漢字を重ねる記号。前の字の印象を重ねて響かせる。'
-            : getNameOriginFactMeaning(part);
-        const namingMeaning = kanji === '々' ? meaning : getNameOriginMeaning(part);
-        return { kanji, meaning, namingMeaning };
-    }).filter(item => item.kanji && item.meaning);
+            : getNameOriginMeaning(part);
+        return { kanji, namingMeaning };
+    }).filter(item => item.kanji && item.namingMeaning);
     const originDataText = JSON.stringify(originDetails);
-    const checkMaterialsText = JSON.stringify(checkMaterials);
 
     return `
-あなたは名付けアプリの由来文を整えるライターです。入力された確定情報だけを文章化してください。
+名付けアプリに掲載する「この名前に込める願い」の文案を、次の確定情報だけから作成してください。
 
-【内部手順】
-1. 漢字データを、この回答で使用できる意味の全量として整理する。
-2. 確認材料から、実際に表示すべき注意点だけを選ぶ。
-3. 整理した事実だけを使ってJSONを書く。整理過程は出力しない。
+出力はJSONのみ、キーは"originDraft"だけです。文案は70〜110字、です・ます調の1〜2文にしてください。
+冒頭で名前を「${givenName || ''}」と正確に一度だけ書き、各漢字の意味を自然につないで、どのような願いを込める名前かを伝えてください。
 
-【出力】
-・JSONだけを出力し、キーは "decision", "wish", "sound", "check" の4つだけにする。
-・decisionは70〜120字。漢字データにある意味の取り合わせから、家族にそのまま伝えられる「この名前に込める願い」の文案を書く。
-・wishは互換性維持用のため、必ず空文字にする。願いはdecisionに統合する。
-・soundは25〜45字。入力された読みの音の並びと呼びやすさだけを書く。
-・checkは確認材料に根拠がある場合のみ20〜55字で書き、なければ空文字にする。
-・JSON文字列内に改行を入れず、です・ます調で統一する。
+漢字データにない性格・能力・象徴・植物の性質・歴史・縁起・故事は追加しません。意味の言い換えはできますが、新しい理想像を作りません。
+各漢字の説明は入力文に近い語で書き、入力にない「心」「成長」「優しさ」などを補いません。「〜のように」「〜のような」という比喩も使いません。
+「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」のような定型比喩、名字・響き・読みやすさ、親が実際に選んだ理由の断定は書きません。
+根拠に迷う内容は削り、文章を膨らませるための推測はしません。
 
-【事実の制約】
-・漢字データにない性格、能力、象徴、植物の性質、歴史、縁起、故事を足さない。
-・「健やか」「瑞々しい」「成長」「生命力」「前向き」「朗らか」「温かな心」「芯の強さ」などは、漢字データに同じ意味が明記されている場合だけ使う。
-・意味を自然に言い換えてよいが、新しい理想像や「〜のような存在」を作らない。
-・根拠に迷う語は削り、情報量を増やすために推測しない。
-・checkは確認材料だけを根拠にし、独自の読みづらさや一般語判定を追加しない。
-
-【表現】
-・decisionは、親が必要に応じて編集できる由来文案として書き、「決め手です」のように本人の実体験を断定しない。
-・decisionは「〜を組み合わせた名前です」だけで終わらず、どの意味を願いとして込めるかまで書く。
-・将来を断定せず、「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」などの定型比喩を使わない。
-・名字との相性は書かない。ただしcheckの確認材料に名字由来の項目がある場合だけ触れてよい。
-・soundでは漢字の意味、性別、流行、年代、語源に触れない。
-・soundで「誰からも」「誰にでも」「必ず」のような普遍的な呼びやすさを断定しない。
-・名前をかぎ括弧で書く場合は、入力された名前を「」で正しく囲む。
-
-【JSON形式】
-{"decision":"","wish":"","sound":"","check":""}
-
-【入力】
+JSON形式: {"originDraft":""}
 名前: ${givenName || ''}
-読み: ${givenReading || ''}
-名字: ${surname || ''}
-名字読み: ${surnameYomi || ''}
 漢字データ: ${originDataText}
-確認材料: ${checkMaterialsText}
 `.trim();
 }
 
@@ -1622,7 +1524,7 @@ function escapeNameOriginHtml(text) {
 const NAME_ORIGIN_SECTION_META = {
     'この名前に込める願い': { icon: '💛', label: 'この名前に込める願い' },
     '漢字に込めた意味': { icon: '💡', label: '漢字の意味' },
-    '呼んだときの印象': { icon: '🔊', label: '響き' },
+    '呼んだときの印象': { icon: '🔊', label: '響きの傾向' },
     '確認しておきたいこと': { icon: '🫧', label: '確認' }
 };
 
