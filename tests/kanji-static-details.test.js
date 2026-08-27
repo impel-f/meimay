@@ -9,6 +9,7 @@ const sourceCompounds = require('../public/data/kanji_compounds.json').entries;
 const codexReviews = require('../scripts/data/kanji_static_codex_reviews.json').entries;
 const manualCompoundReviewFile = require('../scripts/data/kanji_compound_manual_reviews.json');
 const manualCompoundReviews = manualCompoundReviewFile.entries;
+const unlistedCompoundReasons = manualCompoundReviewFile.unlistedReasons;
 
 function getManualCompounds(kanji) {
   return manualCompoundReviews[kanji] || [];
@@ -76,6 +77,21 @@ test('manually reviewed compounds retain evidence internally and publish only di
     for (const published of details[kanji].compounds) {
       assert.equal(Object.hasOwn(published, 'sourceUrl'), false, `${kanji}: source URL leaked into app data`);
     }
+  }
+});
+
+test('every kanji without a published compound has a reviewed omission reason', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+  const withoutCompounds = Object.entries(details)
+    .filter(([, entry]) => entry.compounds.length === 0)
+    .map(([kanji]) => kanji)
+    .sort();
+  const reviewedOmissions = Object.keys(unlistedCompoundReasons).sort();
+
+  assert.deepEqual(withoutCompounds, reviewedOmissions);
+  for (const [kanji, review] of Object.entries(unlistedCompoundReasons)) {
+    assert.ok(review.reason, `${kanji}: missing omission reason`);
+    assert.match(review.sourceUrl, /^https:\/\/(?:www\.)?(?:kanjipedia\.jp|kotobank\.jp)\//, `${kanji}: unapproved omission source`);
   }
 });
 

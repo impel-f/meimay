@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reviewer": "codex-5.6sol",
-  "reviewedAt": "2026-08-26",
+  "reviewedAt": "2026-08-27",
   "entries": {
     "𠮟": [
       {
@@ -136,6 +136,208 @@
         "common": false,
         "sourceUrl": "https://www.kanjipedia.jp/kotoba/0007472200"
       }
+    ],
+    "之": [
+      {
+        "word": "之無",
+        "reading": "しむ",
+        "meaning": "初めて覚えた、わずかな文字",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E4%B9%8B%E7%84%A1-2823616"
+      }
+    ],
+    "玖": [
+      {
+        "word": "玖鏡",
+        "reading": "きゅうきょう",
+        "meaning": "黒く美しく光る玉の鏡",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E7%8E%96%E9%8F%A1-2804791"
+      }
+    ],
+    "俣": [
+      {
+        "word": "二俣",
+        "reading": "ふたまた",
+        "meaning": "二つに分かれた所、または地名",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E4%BA%8C%E4%BF%A3-1405915"
+      }
+    ],
+    "朕": [
+      {
+        "word": "朕兆",
+        "reading": "ちんちょう",
+        "meaning": "物事が起こる前に現れる兆し",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E6%9C%95%E5%85%86-2848725"
+      }
+    ],
+    "偲": [
+      {
+        "word": "偲偲",
+        "reading": "しし",
+        "meaning": "互いに励まし合い、向上に努めるさま",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%81%B2-2047080"
+      }
+    ],
+    "彪": [
+      {
+        "word": "彪炳",
+        "reading": "ひょうへい",
+        "meaning": "美しく輝き、はっきりと目立つこと",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%BD%AA%E7%82%B3-2859013"
+      },
+      {
+        "word": "彪蔚",
+        "reading": "ひゅううつ",
+        "meaning": "模様や文章の彩りが鮮やかで美しいこと",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kanji/0005927000"
+      }
+    ],
+    "貰": [
+      {
+        "word": "貰い物",
+        "reading": "もらいもの",
+        "meaning": "人から贈られたり譲られたりした物",
+        "tone": "positive",
+        "common": true,
+        "sourceUrl": "https://kotobank.jp/word/%E8%B2%B0%E3%81%84%E7%89%A9-646787"
+      }
+    ],
+    "崚": [
+      {
+        "word": "崚崚",
+        "reading": "りょうりょう",
+        "meaning": "山が高く険しくそびえるさま、または気概が優れているさま",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%B4%9A%E5%B4%9A-2872403"
+      },
+      {
+        "word": "崚層",
+        "reading": "りょうそう",
+        "meaning": "山などが幾重にも重なって高くそびえるさま",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%B4%9A%E5%B1%A4-2872402"
+      }
+    ],
+    "劉": [
+      {
+        "word": "劉覧",
+        "reading": "りゅうらん",
+        "meaning": "隅々まで目を通すこと",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%8A%89%E8%A6%A7-658969"
+      }
+    ],
+    "舜": [
+      {
+        "word": "尭舜",
+        "reading": "ぎょうしゅん",
+        "meaning": "中国古代の伝説上の聖天子、尭と舜",
+        "tone": "positive",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E5%B0%AD%E8%88%9C-478329"
+      },
+      {
+        "word": "虞舜",
+        "reading": "ぐしゅん",
+        "meaning": "中国古代の伝説上の聖天子、舜の別名",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://www.kanjipedia.jp/kotoba/0000573600"
+      }
+    ],
+    "釀": [
+      {
+        "word": "釀造",
+        "reading": "じょうぞう",
+        "meaning": "発酵の働きを利用して酒などを造ること",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E9%86%B8%E9%80%A0-532380"
+      },
+      {
+        "word": "釀成",
+        "reading": "じょうせい",
+        "meaning": "ある状態や雰囲気を徐々につくり出すこと",
+        "tone": "neutral",
+        "common": false,
+        "sourceUrl": "https://kotobank.jp/word/%E9%86%B8%E6%88%90-532265"
+      }
+    ],
+    "諏": [
+      {
+        "word": "諏訪",
+        "reading": "すわ",
+        "meaning": "長野県中央部の地域名、または日本の姓",
+        "tone": "neutral",
+        "common": true,
+        "sourceUrl": "https://kotobank.jp/word/%E8%AB%8F%E8%A8%AA-544180"
+      }
     ]
+  },
+  "unlistedReasons": {
+    "叶": {
+      "reason": "辞書掲載は単独の訓読み語「叶う」とことわざで、代表的な複合語を確認できないため",
+      "sourceUrl": "https://www.kanjipedia.jp/kanji/0001476400"
+    },
+    "浬": {
+      "reason": "辞書掲載は距離・速度の単位を表す一字語「浬」のみで、複合語を確認できないため",
+      "sourceUrl": "https://www.kanjipedia.jp/kanji/0007080500"
+    },
+    "晟": {
+      "reason": "漢字辞典に読みと意味は掲載されているが、代表的な複合語を確認できないため",
+      "sourceUrl": "https://www.kanjipedia.jp/kanji/0003883000"
+    },
+    "栞": {
+      "reason": "一般的には一字語「栞」として使われ、承認済み辞書で代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E6%A0%9E-897522"
+    },
+    "晄": {
+      "reason": "「晃」の異体字だが、「晄」の字形で定着した代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E6%99%83-493847"
+    },
+    "哩": {
+      "reason": "マイルを表す一字の音訳字としての使用が中心で、現代日本語の代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E5%93%A9-422629"
+    },
+    "椛": {
+      "reason": "国字で、一字語「椛（もみじ）」以外の代表的な複合語を確認できないため",
+      "sourceUrl": "https://www.kanjipedia.jp/kanji/0006762600"
+    },
+    "塙": {
+      "reason": "辞書に見られる語が古典的で、名づけ画面に載せる代表的な現代日本語として適さないため",
+      "sourceUrl": "https://kotobank.jp/word/%E5%A1%99-603833"
+    },
+    "摑": {
+      "reason": "現在は主に標準字体「掴」の送り仮名付き動詞「掴む」として使われ、この字形の代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E6%8E%B4-545240"
+    },
+    "麿": {
+      "reason": "一字の人称・名前要素としての使用が中心で、代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E9%BA%BF-2790654"
+    },
+    "辿": {
+      "reason": "送り仮名付き動詞「辿る」としての使用が中心で、代表的な複合語を確認できないため",
+      "sourceUrl": "https://kotobank.jp/word/%E8%BE%BF%E3%82%8B-561085"
+    },
+    "蔣": {
+      "reason": "確認できる著名な用例が固有の人名「蔣介石」であり、代表的な熟語としては掲載しないため",
+      "sourceUrl": "https://kotobank.jp/word/%E8%94%A3%E4%BB%8B%E7%9F%B3-1174516"
+    }
   }
 }
