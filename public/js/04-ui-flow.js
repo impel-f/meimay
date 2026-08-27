@@ -1776,7 +1776,7 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
             return;
         }
 
-        liked.push({
+        liked.push(applyCurrentMembershipKanjiStockAccess({
             ...(masterItem || {}),
             '漢字': char,
             slot: slotIndex,
@@ -1784,7 +1784,7 @@ function seedCompoundSingleKanjiStock(compoundKanji, sessionReading, slotOffset 
             sessionSegments: [...resolvedSessionSegments],
             sessionDisplaySegments: Array.isArray(sessionDisplaySegments) ? [...sessionDisplaySegments] : [sessionReading],
             _compoundSeeded: true
-        });
+        }));
     });
 
     if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) {
@@ -2489,7 +2489,8 @@ function addDirectNameKanjiStock(combination) {
     if (!Array.isArray(combination) || combination.length === 0) return [];
     if (!Array.isArray(liked)) return [];
 
-    const canUsePremiumKanji = typeof isPremiumAccessActive === 'function' && isPremiumAccessActive();
+    const canPermanentlyUnlockPremiumKanji = typeof isPaidPremiumAccessActive === 'function'
+        && isPaidPremiumAccessActive();
     const addedItems = [];
     let changed = false;
     combination.forEach((piece) => {
@@ -2499,7 +2500,7 @@ function addDirectNameKanjiStock(combination) {
         const masterItem = findDirectNameMasterKanji(kanji);
         if (!masterItem) return;
         const isCommon = typeof isCommonKanjiEntry === 'function' && isCommonKanjiEntry(masterItem);
-        const requiresPremium = !isCommon && !canUsePremiumKanji;
+        const requiresPremium = !isCommon && !canPermanentlyUnlockPremiumKanji;
 
         const permanentlyUnlockedStock = liked.find(item =>
             item
@@ -2518,7 +2519,7 @@ function addDirectNameKanjiStock(combination) {
         if (existing) {
             existing.source = existing.source || 'direct-name';
             existing.directInput = true;
-            if ((canUsePremiumKanji || permanentlyUnlockedStock)
+            if ((canPermanentlyUnlockPremiumKanji || permanentlyUnlockedStock)
                 && typeof isPremiumRequiredKanjiStockItem === 'function'
                 && isPremiumRequiredKanjiStockItem(existing)) {
                 existing.stockAccess = typeof KANJI_STOCK_ACCESS_UNLOCKED !== 'undefined'
@@ -4008,11 +4009,11 @@ function finalizeNicknameFlow() {
             const existingIdx = liked.findIndex(l => l.slot === slotIdx);
             if (existingIdx > -1) liked.splice(existingIdx, 1);
 
-            liked.push({
+            liked.push(applyCurrentMembershipKanjiStockAccess({
                 ...selectedTomeji.obj,
                 slot: slotIdx,
                 sessionReading: uniqueId() // dummy
-            });
+            }));
 
             console.log("FLOW: Auto-liked tomeji", liked);
         } else {
@@ -4507,7 +4508,7 @@ function doInheritKanji(candidates) {
                 l.sessionReading === currentReading
             );
             if (!exists) {
-                liked.push({ ...item, slot: c.slot, sessionReading: currentReading, sessionSegments: currentSegments });
+                liked.push(applyCurrentMembershipKanjiStockAccess({ ...item, slot: c.slot, sessionReading: currentReading, sessionSegments: currentSegments }));
             }
         });
     });
@@ -6341,7 +6342,7 @@ function advanceNicknameKanjiQueue() {
         nicknameSharedPrefixLiked.forEach(k => {
             const exists = liked.some(l => l['漢字'] === k['漢字'] && l.slot === 0 && l.sessionReading === next.reading);
             if (!exists) {
-                liked.push({ ...k, slot: 0, sessionReading: next.reading });
+                liked.push(applyCurrentMembershipKanjiStockAccess({ ...k, slot: 0, sessionReading: next.reading }));
             }
         });
     }
@@ -10219,7 +10220,7 @@ function toggleSearchStock(k, btn) {
             MeimayStats.recordKanjiUnlike(k['漢字'], k.gender || gender || 'neutral');
         }
     } else {
-        const item = { ...k, slot: -1, sessionReading: 'SEARCH' };
+        const item = applyCurrentMembershipKanjiStockAccess({ ...k, slot: -1, sessionReading: 'SEARCH' });
         liked.push(item);
         btn.classList.add('bg-[#fffbeb]', 'border-[#bca37f]');
         btn.classList.remove('border-[#eee5d8]');
@@ -10550,7 +10551,7 @@ function stockAISuggestion(kanji, btn) {
             }
             return;
         }
-        liked.push({ ...found, slot: -1, sessionReading: 'FREE' });
+        liked.push(applyCurrentMembershipKanjiStockAccess({ ...found, slot: -1, sessionReading: 'FREE' }));
         if (typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) MeimayStats.recordKanjiLike(kanji, found.gender || gender || 'neutral');
         if (typeof trackKanjiSavedEvent === 'function') {
             trackKanjiSavedEvent({ ...found, slot: -1, sessionReading: 'FREE' }, {
@@ -11436,7 +11437,7 @@ function saveReadingCandidateToStock(option, candidate, asSuper = false) {
             source: 'reading-combination',
             isSuper: !!asSuper
         };
-        liked.push(nextItem);
+        liked.push(applyCurrentMembershipKanjiStockAccess(nextItem));
         addedKanjiItems.push(nextItem);
     });
 

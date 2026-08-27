@@ -1097,7 +1097,7 @@ async function toggleRankingStock(kanjiStr, btn) {
         }
     } else {
         if (found) {
-            const nextItem = { ...found, slot: -1, sessionReading: 'RANKING', fromPartner: false };
+            const nextItem = applyCurrentMembershipKanjiStockAccess({ ...found, slot: -1, sessionReading: 'RANKING', fromPartner: false });
             liked.push(nextItem);
             if (btn) {
                 btn.innerText = '解除';

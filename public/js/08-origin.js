@@ -1948,6 +1948,7 @@ function isSpecialKanjiAiReading(reading) {
 }
 
 const DAILY_KANJI_DETAIL_LIMIT = 1;
+const KANJI_DETAIL_FREE_UNLOCKS_KEY = 'meimay_kanji_detail_free_unlocks_v1';
 
 function _getDailyKanjiDetailKey() {
     const d = new Date();
@@ -1990,6 +1991,110 @@ function refundDailyKanjiDetailUse() {
             localStorage.setItem(_getDailyKanjiDetailKey(), String(nextCount));
         }
     } catch (error) { }
+}
+
+function getFreeKanjiDetailUnlocks() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(KANJI_DETAIL_FREE_UNLOCKS_KEY) || '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function saveFreeKanjiDetailUnlocks(unlocks) {
+    try {
+        localStorage.setItem(KANJI_DETAIL_FREE_UNLOCKS_KEY, JSON.stringify(unlocks || {}));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function isKanjiDetailUnlockedForFree(kanji) {
+    const key = String(kanji || '').trim();
+    if (!key) return false;
+    const unlocks = getFreeKanjiDetailUnlocks();
+    if (unlocks[key]) return true;
+
+    // AI版で既に詳しい情報を取得した利用者は、固定データ版でも閲覧権を引き継ぐ。
+    const legacyCache = typeof StorageBox !== 'undefined'
+        && StorageBox
+        && typeof StorageBox.getKanjiAiCache === 'function'
+        ? StorageBox.getKanjiAiCache(key)
+        : null;
+    if (!String(legacyCache?.text || '').trim()) return false;
+    unlocks[key] = {
+        unlockedAt: legacyCache.savedAt || new Date().toISOString(),
+        source: 'legacy-ai'
+    };
+    saveFreeKanjiDetailUnlocks(unlocks);
+    return true;
+}
+
+function getKanjiDetailMembershipState() {
+    if (typeof PremiumManager !== 'undefined'
+        && PremiumManager
+        && typeof PremiumManager.getMembershipState === 'function') {
+        const state = PremiumManager.getMembershipState();
+        if (state && typeof state === 'object') return state;
+    }
+    return {
+        active: typeof isPremiumAccessActive === 'function' && isPremiumAccessActive(),
+        isTrial: false
+    };
+}
+
+function isKanjiDetailFreeEligible(data) {
+    if (typeof isCommonKanjiEntry === 'function') return isCommonKanjiEntry(data);
+    const flag = data?.['常用漢字'];
+    return flag === true || flag === 'true' || flag === 1 || flag === '1';
+}
+
+function getKanjiDetailAccessModel(kanji, data = null) {
+    const key = String(kanji || '').trim();
+    const membership = getKanjiDetailMembershipState();
+    if (membership.active) {
+        return {
+            canView: true,
+            autoDisplay: true,
+            isTrial: membership.isTrial === true,
+            source: membership.isTrial === true ? 'trial' : 'premium'
+        };
+    }
+    if (isKanjiDetailUnlockedForFree(key)) {
+        return { canView: true, autoDisplay: true, source: 'free-unlocked' };
+    }
+    if (!isKanjiDetailFreeEligible(data)) {
+        return { canView: false, autoDisplay: false, premiumRequired: true, source: 'premium-required' };
+    }
+    const remaining = Math.max(0, DAILY_KANJI_DETAIL_LIMIT - getDailyKanjiDetailUseCount());
+    return {
+        canView: false,
+        autoDisplay: false,
+        canUnlockToday: remaining > 0,
+        remaining,
+        source: remaining > 0 ? 'free-daily' : 'daily-limit'
+    };
+}
+
+function unlockKanjiDetailForFree(kanji, data = null) {
+    const key = String(kanji || '').trim();
+    if (!key) return { ok: false, reason: 'invalid' };
+    if (isKanjiDetailUnlockedForFree(key)) return { ok: true, alreadyUnlocked: true };
+    if (!isKanjiDetailFreeEligible(data)) return { ok: false, reason: 'premium-required' };
+    if (!consumeDailyKanjiDetailUse()) return { ok: false, reason: 'daily-limit' };
+
+    const unlocks = getFreeKanjiDetailUnlocks();
+    unlocks[key] = {
+        unlockedAt: new Date().toISOString(),
+        source: 'free-daily'
+    };
+    if (!saveFreeKanjiDetailUnlocks(unlocks)) {
+        refundDailyKanjiDetailUse();
+        return { ok: false, reason: 'storage-failed' };
+    }
+    return { ok: true, alreadyUnlocked: false };
 }
 
 async function loadKanjiMeaningDetails() {
@@ -3095,6 +3200,9 @@ window.generateKanjiDetail = generateKanjiDetail;
 window.canUseDailyKanjiDetailAI = canUseDailyKanjiDetailAI;
 window.consumeDailyKanjiDetailUse = consumeDailyKanjiDetailUse;
 window.refundDailyKanjiDetailUse = refundDailyKanjiDetailUse;
+window.getKanjiDetailAccessModel = getKanjiDetailAccessModel;
+window.unlockKanjiDetailForFree = unlockKanjiDetailForFree;
+window.isKanjiDetailUnlockedForFree = isKanjiDetailUnlockedForFree;
 window.renderKanjiDetailText = renderKanjiDetailSections;
 window.renderKanjiDetailSections = renderKanjiDetailSections;
 window.resetKanjiDetailCache = resetKanjiDetailCache;

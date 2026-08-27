@@ -299,7 +299,7 @@ function executeSwipe(dir, data) {
                     sessionReading: 'FREE',
                     sessionSegments: null
                 };
-                liked.push(savedStockItem);
+                liked.push(applyCurrentMembershipKanjiStockAccess(savedStockItem));
                 addedToStock = true;
             }
         } else {
@@ -325,7 +325,7 @@ function executeSwipe(dir, data) {
                     sessionReading: typeof getCurrentSessionReading === 'function' ? getCurrentSessionReading() : segments.join(''),
                     sessionSegments: [...segments]
                 };
-                liked.push(savedStockItem);
+                liked.push(applyCurrentMembershipKanjiStockAccess(savedStockItem));
                 addedToStock = true;
             } else {
                 swipeDebugLog(`PHYSICS: Global duplicate detected - ${data['漢字']} already in stock`);

@@ -92,6 +92,21 @@ function isPremiumAccessActive() {
         && PremiumManager.isPremium();
 }
 
+function getCurrentPremiumMembershipState() {
+    if (typeof PremiumManager !== 'undefined'
+        && PremiumManager
+        && typeof PremiumManager.getMembershipState === 'function') {
+        const state = PremiumManager.getMembershipState();
+        if (state && typeof state === 'object') return state;
+    }
+    return { active: isPremiumAccessActive(), isTrial: false };
+}
+
+function isPaidPremiumAccessActive() {
+    const state = getCurrentPremiumMembershipState();
+    return state.active === true && state.isTrial !== true;
+}
+
 function isCommonKanjiEntry(item) {
     if (!item) return false;
     const flag = item['常用漢字'];
@@ -106,6 +121,22 @@ function isKanjiAccessibleForCurrentMembership(item) {
 
 const KANJI_STOCK_ACCESS_PREMIUM_REQUIRED = 'premium-required';
 const KANJI_STOCK_ACCESS_UNLOCKED = 'unlocked';
+
+function applyCurrentMembershipKanjiStockAccess(item) {
+    if (!item || item.isKanaCandidate || item.stockAccess) return item;
+    if (isCommonKanjiEntry(item)) {
+        item.stockAccess = KANJI_STOCK_ACCESS_UNLOCKED;
+        return item;
+    }
+    if (isPaidPremiumAccessActive()) {
+        item.stockAccess = KANJI_STOCK_ACCESS_UNLOCKED;
+        item.premiumUnlockedAt = item.premiumUnlockedAt || new Date().toISOString();
+        item.premiumUnlockReason = item.premiumUnlockReason || 'paid-premium';
+        return item;
+    }
+    item.stockAccess = KANJI_STOCK_ACCESS_PREMIUM_REQUIRED;
+    return item;
+}
 
 function isPremiumRequiredKanjiStockItem(item) {
     return !!item && item.stockAccess === KANJI_STOCK_ACCESS_PREMIUM_REQUIRED;
@@ -123,7 +154,7 @@ function isKanjiStockItemUsable(item) {
 }
 
 function promotePremiumRequiredKanjiStockItems(options = {}) {
-    if (!isPremiumAccessActive() || !Array.isArray(liked)) return 0;
+    if (options.isTrial === true || !isPremiumAccessActive() || !Array.isArray(liked)) return 0;
 
     const unlockedAt = new Date().toISOString();
     const reason = String(options.reason || 'premium-activation').trim() || 'premium-activation';

@@ -207,8 +207,16 @@ function getSwipeEmptyStateAllKanjiSearchCount(reading) {
     }, 0);
 }
 
+function resolveKanjiDetailAccessModel(data = _currentDetailData) {
+    if (typeof window.getKanjiDetailAccessModel === 'function' && data) {
+        return window.getKanjiDetailAccessModel(data['漢字'], data);
+    }
+    return { canView: false, autoDisplay: false, canUnlockToday: true, remaining: 1, source: 'fallback' };
+}
+
 function isKanjiDetailAiAvailableForCurrentUser() {
-    return true;
+    const access = resolveKanjiDetailAccessModel();
+    return access.canView === true || access.canUnlockToday === true;
 }
 
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
@@ -219,7 +227,14 @@ function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-a
     button.disabled = false;
     button.setAttribute('aria-disabled', 'false');
     button.removeAttribute('aria-busy');
-    button.innerHTML = '<span>📖</span> 意味・成り立ちを詳しく見る';
+    const access = resolveKanjiDetailAccessModel();
+    if (access.premiumRequired) {
+        button.innerHTML = '<span>👑</span> プレミアムで詳しく見る';
+    } else if (!access.canUnlockToday && !access.canView) {
+        button.innerHTML = '<span>🔒</span> 本日の無料枠は利用済み';
+    } else {
+        button.innerHTML = '<span>📖</span> 今日の無料枠で詳しく見る';
+    }
     document.getElementById('kanji-detail-ai-limit-note')?.remove();
     return true;
 }
@@ -842,9 +857,13 @@ async function showKanjiDetail(data) {
     if (!kanjiEl || !yojijukugoEl) return;
 
     const isKanaDetail = !!data.isKanaCandidate;
+    const detailAccess = isKanaDetail
+        ? { canView: false, autoDisplay: false, source: 'kana' }
+        : resolveKanjiDetailAccessModel(data);
+    let autoLoadKanjiDetail = false;
     const yojijukugoSection = yojijukugoEl.parentElement;
     if (yojijukugoSection) {
-        yojijukugoSection.classList.toggle('hidden', isKanaDetail);
+        yojijukugoSection.classList.toggle('hidden', isKanaDetail || !detailAccess.canView);
     }
 
     // 基本情報を表示
@@ -968,36 +987,62 @@ async function showKanjiDetail(data) {
     } else {
         const currentReadingForAI = currentReadingForDetail;
 
-        const aiSection = document.createElement('div');
-        aiSection.id = 'btn-ai-kanji-detail';
-        aiSection.className = 'w-full';
-        const detailButtonClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
-        aiSection.innerHTML = `
-            <button id="btn-ai-kanji-detail-action" type="button"
-                    class="${detailButtonClass}">
-                <span>📖</span> 意味・成り立ちを詳しく見る
-            </button>
-        `;
-
-        // 上部の固定エリアにボタンだけ置き、結果はスクロールエリアに表示する。
-        if (aiButtonSlot) {
-            aiButtonSlot.appendChild(aiSection);
+        if (detailAccess.autoDisplay) {
+            autoLoadKanjiDetail = true;
         } else {
-            const yojiWrapperAi = yojijukugoEl.parentNode;
-            if (yojiWrapperAi && yojiWrapperAi.parentNode) {
-                yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
-            }
-        }
+            const aiSection = document.createElement('div');
+            aiSection.id = 'btn-ai-kanji-detail';
+            aiSection.className = 'w-full';
+            const detailButtonClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
+            const buttonLabel = detailAccess.premiumRequired
+                ? '<span>👑</span> プレミアムで詳しく見る'
+                : (detailAccess.canUnlockToday
+                    ? '<span>📖</span> 今日の無料枠で詳しく見る'
+                    : '<span>🔒</span> 本日の無料枠は利用済み');
+            aiSection.innerHTML = `
+                <button id="btn-ai-kanji-detail-action" type="button"
+                        class="${detailButtonClass}">
+                    ${buttonLabel}
+                </button>
+            `;
 
-        const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
-        if (aiActionButton) {
-            aiActionButton.addEventListener('click', async (event) => {
-                event.preventDefault();
-                setKanjiDetailAiButtonLoadingState(aiActionButton);
-                await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
-                aiActionButton.innerHTML = '<span>✓</span> 詳しい情報を表示中';
-                aiActionButton.disabled = true;
-            }, true);
+            // 上部の固定エリアにボタンだけ置き、結果はスクロールエリアに表示する。
+            if (aiButtonSlot) {
+                aiButtonSlot.appendChild(aiSection);
+            } else {
+                const yojiWrapperAi = yojijukugoEl.parentNode;
+                if (yojiWrapperAi && yojiWrapperAi.parentNode) {
+                    yojiWrapperAi.parentNode.insertBefore(aiSection, yojiWrapperAi);
+                }
+            }
+
+            const aiActionButton = aiSection.querySelector('#btn-ai-kanji-detail-action');
+            if (aiActionButton) {
+                aiActionButton.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    if (detailAccess.premiumRequired || !detailAccess.canUnlockToday) {
+                        if (typeof showPremiumModal === 'function') showPremiumModal();
+                        return;
+                    }
+                    const unlockResult = typeof window.unlockKanjiDetailForFree === 'function'
+                        ? window.unlockKanjiDetailForFree(data['漢字'], data)
+                        : { ok: false, reason: 'unavailable' };
+                    if (!unlockResult.ok) {
+                        refreshKanjiDetailAiButtonState(aiActionButton);
+                        if (unlockResult.reason === 'daily-limit' && typeof showPremiumModal === 'function') {
+                            showPremiumModal();
+                        } else if (typeof showToast === 'function') {
+                            showToast('詳しい情報を解放できませんでした', '🌙');
+                        }
+                        return;
+                    }
+                    setKanjiDetailAiButtonLoadingState(aiActionButton);
+                    yojijukugoSection?.classList.remove('hidden');
+                    await generateKanjiDetail(data['漢字'], currentReadingForAI ? `${currentReadingForAI}` : null);
+                    aiActionButton.innerHTML = '<span>✓</span> 詳しい情報を解放済み';
+                    aiActionButton.disabled = true;
+                }, true);
+            }
         }
 
         // 四字熟語・ことわざ表示
@@ -1039,6 +1084,10 @@ async function showKanjiDetail(data) {
 
     // モーダル表示
     modal.classList.add('active');
+
+    if (autoLoadKanjiDetail) {
+        void generateKanjiDetail(data['漢字'], currentReadingForDetail ? `${currentReadingForDetail}` : null);
+    }
 
     // モーダル表示中はスワイプボタンを隠す
     const swipeActionBtns = document.getElementById('swipe-action-btns');
@@ -1169,7 +1218,7 @@ function toggleStockFromModal(data, isCurrentlyLiked, isSuper) {
             likeData.sessionDisplaySegments = sessionDisplaySegments;
         }
 
-        liked.push(likeData);
+        liked.push(applyCurrentMembershipKanjiStockAccess(likeData));
         if (typeof StorageBox !== 'undefined' && StorageBox.saveLiked) StorageBox.saveLiked();
         if (data && data['漢字'] && !data.isKanaCandidate && typeof MeimayStats !== 'undefined' && MeimayStats.recordKanjiLike) {
             MeimayStats.recordKanjiLike(data['漢字'], data.gender || gender || 'neutral');

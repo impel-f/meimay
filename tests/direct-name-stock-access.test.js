@@ -35,6 +35,7 @@ const firebasePath = path.join(__dirname, '..', 'public', 'js', '15-firebase.js'
 function createSandbox() {
   const sandbox = {
     premiumActive: false,
+    trialActive: false,
     liked: [],
     master: [
       { '漢字': '陽', '常用漢字': true, '画数': 12, gender: 'neutral' },
@@ -52,6 +53,11 @@ function createSandbox() {
       recordKanjiLike(kanji) {
         sandbox.rankingLikes.push(kanji);
       }
+    },
+    PremiumManager: {
+      getMembershipState() {
+        return { active: sandbox.premiumActive, isTrial: sandbox.trialActive };
+      }
     }
   };
   vm.createContext(sandbox);
@@ -59,7 +65,10 @@ function createSandbox() {
     const KANJI_STOCK_ACCESS_PREMIUM_REQUIRED = 'premium-required';
     const KANJI_STOCK_ACCESS_UNLOCKED = 'unlocked';
     function isPremiumAccessActive() { return premiumActive; }
+    ${extractFunction(enginePath, 'getCurrentPremiumMembershipState')}
+    ${extractFunction(enginePath, 'isPaidPremiumAccessActive')}
     ${extractFunction(enginePath, 'isCommonKanjiEntry')}
+    ${extractFunction(enginePath, 'applyCurrentMembershipKanjiStockAccess')}
     ${extractFunction(enginePath, 'isPremiumRequiredKanjiStockItem')}
     ${extractFunction(enginePath, 'isKanjiStockPermanentlyUnlocked')}
     ${extractFunction(enginePath, 'isKanjiStockItemUsable')}
@@ -71,6 +80,7 @@ function createSandbox() {
       isKanjiStockPermanentlyUnlocked,
       isKanjiStockItemUsable,
       promotePremiumRequiredKanjiStockItems,
+      applyCurrentMembershipKanjiStockAccess,
       addDirectNameKanjiStock
     };
   `, sandbox);
@@ -107,6 +117,33 @@ test('premium permanently promotes own locked stock without mutating partner-own
   sandbox.premiumActive = false;
   assert.equal(sandbox.stockAccess.isKanjiStockItemUsable(sandbox.liked[0]), true);
   assert.equal(sandbox.stockAccess.isKanjiStockItemUsable(sandbox.liked[1]), false);
+});
+
+test('a free trial keeps jinmeiyo stock locked after the trial ends', () => {
+  const sandbox = createSandbox();
+  sandbox.premiumActive = true;
+  sandbox.trialActive = true;
+
+  const added = sandbox.stockAccess.addDirectNameKanjiStock([{ '漢字': '怜' }]);
+  assert.equal(added.length, 1);
+  assert.equal(added[0].stockAccess, 'premium-required');
+  assert.equal(sandbox.stockAccess.promotePremiumRequiredKanjiStockItems({ reason: 'trial', isTrial: true }), 0);
+
+  sandbox.premiumActive = false;
+  sandbox.trialActive = false;
+  assert.equal(sandbox.stockAccess.isKanjiStockItemUsable(added[0]), false);
+});
+
+test('a paid plan still permanently unlocks newly saved jinmeiyo stock', () => {
+  const sandbox = createSandbox();
+  sandbox.premiumActive = true;
+
+  const added = sandbox.stockAccess.addDirectNameKanjiStock([{ '漢字': '怜' }]);
+  assert.equal(added.length, 1);
+  assert.equal(added[0].stockAccess, 'unlocked');
+
+  sandbox.premiumActive = false;
+  assert.equal(sandbox.stockAccess.isKanjiStockItemUsable(added[0]), true);
 });
 
 test('legacy stock stays unlocked and a later free direct save never downgrades it', () => {

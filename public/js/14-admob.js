@@ -2430,6 +2430,9 @@ function getSelfPremiumMembershipState() {
     const localPreviewTrialEndsAt = localSelfPreviewMode === 'trial'
         ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
         : null;
+    const localPreviewProductId = localSelfPreviewMode === 'premium'
+        ? 'meimay.premium.lifetime'
+        : null;
     const storeRecord = !localSelfPreviewMode && typeof getRevenueCatPremiumRecordFromManager === 'function'
         ? getRevenueCatPremiumRecordFromManager()
         : null;
@@ -2447,8 +2450,8 @@ function getSelfPremiumMembershipState() {
         subscriptionStatus: localSelfPreviewMode === 'trial' ? 'trialing' : PremiumManager._remoteStatus,
         appStoreExpiresAt: PremiumManager._remoteAppStoreExpiresAt,
         premiumExpiresAt: localPreviewTrialEndsAt || PremiumManager._remoteExpiresAt,
-        appStoreProductId: PremiumManager._remoteProductId,
-        premiumProductId: PremiumManager._remoteProductId,
+        appStoreProductId: localPreviewProductId || PremiumManager._remoteProductId,
+        premiumProductId: localPreviewProductId || PremiumManager._remoteProductId,
         trialStatus: localSelfPreviewMode === 'trial' ? 'active' : PremiumManager._remoteTrialStatus,
         trialStartedAt: localSelfPreviewMode === 'trial' ? new Date().toISOString() : PremiumManager._remoteTrialStartedAt,
         trialEndsAt: localPreviewTrialEndsAt || PremiumManager._remoteTrialEndsAt,
@@ -3551,8 +3554,11 @@ function updatePremiumUI() {
         ? PremiumManager.getMembershipState()
         : getDefaultPremiumMembershipState();
 
-    if (state.active && typeof promotePremiumRequiredKanjiStockItems === 'function') {
-        promotePremiumRequiredKanjiStockItems({ reason: state.source || 'premium-activation' });
+    if (state.active && !state.isTrial && typeof promotePremiumRequiredKanjiStockItems === 'function') {
+        promotePremiumRequiredKanjiStockItems({
+            reason: state.source || 'premium-activation',
+            isTrial: false
+        });
     }
 
     if (state.active) {
@@ -3654,12 +3660,12 @@ function formatPremiumMatrixCell(value) {
 
 function renderPremiumComparisonMatrix() {
     const rows = [
-        { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字' },
+        { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字・許容字体' },
         { item: '広告', free: '表示あり', premium: '非表示' },
         { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
         { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
-        { item: '漢字の意味・成り立ち', free: 'すべて', premium: 'すべて' },
-        { item: 'AI由来生成', free: '1日1回', premium: '無制限' }
+        { item: '詳しい漢字情報', free: '1日1字', premium: '自動表示' },
+        { item: '名前の由来生成', free: '1日1回', premium: '無制限' }
     ];
 
     return ''
