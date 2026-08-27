@@ -129,3 +129,11 @@ test('detail UI auto-loads premium content and the comparison table matches acce
   assert.match(premiumSource, /state\.active && !state\.isTrial/);
   assert.match(premiumSource, /詳しい漢字情報', free: '1日1字', premium: '自動表示'/);
 });
+
+test('kanji detail action rows use the same full width', () => {
+  const indexSource = fs.readFileSync(path.join(root, 'public', 'index.html'), 'utf8');
+
+  assert.match(indexSource, /id="modal-stock-btns" class="flex gap-2 w-full mt-3"/);
+  assert.match(indexSource, /id="modal-ai-button-slot" class="w-full mt-3"/);
+  assert.doesNotMatch(indexSource, /id="modal-(?:stock-btns|ai-button-slot)"[^>]*max-w-/);
+});
