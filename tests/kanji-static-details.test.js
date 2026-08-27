@@ -27,6 +27,9 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(entry.meaningSummary, `${kanji}: missing summary meaning`);
     assert.ok(entry.meaningDetail, `${kanji}: missing detailed meaning`);
     assert.ok(entry.namingMeaning, `${kanji}: missing naming meaning`);
+    assert.ok(entry.meaningDeepDive, `${kanji}: missing deep meaning`);
+    assert.match(entry.meaningDeepDive, /。$/, `${kanji}: deep meaning must end with a full stop`);
+    assert.doesNotMatch(entry.meaningDeepDive, /undefined|compound_slot|アプリ内辞書/, `${kanji}: invalid deep meaning`);
     assert.equal((entry.namingMeaning.match(/。/g) || []).length, 1, `${kanji}: naming meaning must be one factual sentence`);
     assert.doesNotMatch(entry.namingMeaning, /願う名づけ|人柄を願|人生を願|未来を願/, `${kanji}: naming meaning contains a composed wish`);
     assert.ok(entry.etymology?.text, `${kanji}: missing etymology`);
@@ -113,10 +116,11 @@ test('kanji detail runtime uses only the bundled static dataset', () => {
   const detailFunction = source.slice(functionStart, functionEnd);
   assert.match(source, /const KANJI_STATIC_DETAILS_URL = '\/data\/kanji_static_details\.json/);
   assert.match(detailFunction, /const staticDetails = await loadKanjiStaticDetails\(\)/);
-  assert.match(detailFunction, /【名づけでの意味】/);
+  assert.match(detailFunction, /【意味の深掘り】/);
+  assert.match(detailFunction, /detail\.meaningDeepDive \|\| detail\.namingMeaning/);
   assert.match(detailFunction, /detail\.compoundNotice/);
   assert.match(detailFunction, /【代表的な熟語】/);
-  assert.match(detailFunction, /【名づけ利用】/);
+  assert.doesNotMatch(detailFunction, /【名づけでの意味】|【名づけ利用】/);
   assert.doesNotMatch(detailFunction, /callGemini|firebase|AI説明を取得できませんでした/);
   assert.doesNotMatch(detailFunction, /掲載できる代表的な熟語はありません/);
 });
@@ -135,10 +139,20 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   }
   assert.match(builder, /codexReviews\[kanji\]\?\.status === 'reviewed'/);
   assert.match(builder, /review\.namingMeaning \|\| enriched\.namingMeaning/);
+  assert.match(builder, /meaningDeepDive: buildMeaningDeepDive/);
   assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);
   assert.match(builder, /Array\.isArray\(review\.compounds\)/);
   assert.match(reportBuilder, /index < automatedAuditThrough/);
   assert.match(reportBuilder, /r\.compoundNotice/);
+});
+
+test('deep meanings prioritize a naming-appropriate primary sense', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+
+  assert.match(details['空'].meaningDeepDive, /大空.*広がり/);
+  assert.doesNotMatch(details['空'].meaningDeepDive, /空っぽ|むなしい/);
+  assert.match(details['音'].meaningDeepDive, /響き.*感性/);
+  assert.match(details['合'].meaningDeepDive, /まとまる.*調和/);
 });
 
 test('unfamiliar etymology components include an inline explanation', () => {

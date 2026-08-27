@@ -15,7 +15,7 @@ const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
-const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.7';
+const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.8';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
@@ -2214,13 +2214,12 @@ const KANJI_DETAIL_GROUNDED_HINTS = {
 };
 const KANJI_ORIGIN_UNVERIFIED_TEXT = '検証済みの字源情報がないため、成り立ちの説明は掲載していません。';
 
-const KANJI_DETAIL_CORE_SECTION_ORDER = ['名づけでの意味', '成り立ち', '名づけ利用', '代表的な熟語'];
+const KANJI_DETAIL_CORE_SECTION_ORDER = ['意味の深掘り', '成り立ち', '代表的な熟語'];
 const KANJI_DETAIL_CORE_SECTION_SET = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
-const KANJI_DETAIL_DISPLAY_SECTION_ORDER = ['名づけでの意味', '成り立ち', '名づけ利用'];
+const KANJI_DETAIL_DISPLAY_SECTION_ORDER = ['意味の深掘り', '成り立ち'];
 const KANJI_DETAIL_SECTION_ICON_MAP = {
     '成り立ち': '🧬',
-    '名づけでの意味': '💡',
-    '名づけ利用': '📘',
+    '意味の深掘り': '🔎',
     '代表的な熟語': '✨'
 };
 
@@ -3124,17 +3123,13 @@ async function generateKanjiDetail(kanji, currentReading) {
         return;
     }
 
-    const nameUseParts = [detail.nameUse?.category];
-    if (detail.nameUse?.glyphType) nameUseParts.push(detail.nameUse.glyphType);
-    if (detail.nameUse?.standardForm) nameUseParts.push(`標準字体：${detail.nameUse.standardForm}`);
     const compoundText = (detail.compounds || [])
         .map((item) => `・${item.word}（${item.reading}）：${item.meaning}。`)
         .join('\n');
     const compoundDisplayText = compoundText || detail.compoundNotice || '';
     const staticText = [
-        `【名づけでの意味】\n${detail.namingMeaning}`,
+        `【意味の深掘り】\n${detail.meaningDeepDive || detail.namingMeaning}`,
         `【成り立ち】\n${detail.etymology?.text || ''}`,
-        `【名づけ利用】\n${nameUseParts.filter(Boolean).join('・')}`,
         compoundDisplayText ? `【代表的な熟語】\n${compoundDisplayText}` : '',
     ].filter((block) => !/】\n\s*$/.test(block)).join('\n\n');
     renderKanjiDetailSections(resultEl, staticText);

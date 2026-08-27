@@ -33,6 +33,33 @@ function getFactualNamingMeaning(value) {
   }。`;
 }
 
+const NAMING_IMPRESSION_BY_TAG = {
+  '#伝統': '受け継がれてきた趣や、時代を越えて親しまれる印象',
+  '#信念': '芯の強さや、自分の考えを大切にする印象',
+  '#勇壮': '力強さや、勇ましく堂々とした印象',
+  '#品格': '落ち着きや、品のある端正な印象',
+  '#天空': '大空を思わせる開放感や、広がりのある印象',
+  '#奏楽': '音の響きや、豊かな感性を思わせる印象',
+  '#希望': '明るい未来や、前向きな可能性を感じさせる印象',
+  '#幸福': '喜びや、穏やかな幸せを感じさせる印象',
+  '#慈愛': '思いやりや、やさしく包み込む印象',
+  '#水景': '澄んだ水や流れを思わせる、清らかな印象',
+  '#知性': '聡明さや、深く考える力を感じさせる印象',
+  '#自然': '草木や季節など、自然の豊かさを感じさせる印象',
+  '#色彩': '色の美しさや、鮮やかな個性を感じさせる印象',
+  '#調和': '人とのつながりや、穏やかに調和する印象',
+  '#飛躍': 'のびやかな成長や、前へ進む力を感じさせる印象',
+};
+
+function buildMeaningDeepDive(namingMeaning, classification) {
+  const factualMeaning = getFactualNamingMeaning(namingMeaning);
+  const primaryTag = clean(classification).split(/\s+/).find((tag) => NAMING_IMPRESSION_BY_TAG[tag]);
+  const impression = NAMING_IMPRESSION_BY_TAG[primaryTag];
+  return impression
+    ? `${factualMeaning}名前では、${impression}につながります。`
+    : factualMeaning;
+}
+
 function getReviewedCompounds(kanji, enrichment, codexReviews, manualCompoundReviews) {
   const manualCompounds = manualCompoundReviews[kanji];
   if (Array.isArray(manualCompounds) && manualCompounds.length) {
@@ -83,6 +110,7 @@ function main() {
       meaningDetail,
       // A single factual sentence belongs here; wishes are composed for the full name elsewhere.
       namingMeaning: getFactualNamingMeaning(namingMeaning),
+      meaningDeepDive: buildMeaningDeepDive(namingMeaning, row['分類']),
       readings: {
         on: clean(row['音']),
         kun: clean(row['訓']),

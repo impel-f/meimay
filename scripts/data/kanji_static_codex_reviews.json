@@ -1307,7 +1307,7 @@
     "握": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "手の中にしっかりとにぎることを表す。" },
     "雨": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "学": { "status": "reviewed", "reviewedAt": "2026-08-25" },
-    "空": { "status": "reviewed", "reviewedAt": "2026-08-25" },
+    "空": { "status": "reviewed", "reviewedAt": "2026-08-25", "namingMeaning": "大空や、広く大きな空間を表す。" },
     "金": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "青": { "status": "reviewed", "reviewedAt": "2026-08-25" },
     "林": {

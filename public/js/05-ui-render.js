@@ -926,7 +926,7 @@ async function showKanjiDetail(data) {
     if (headerMeaningEl) {
         headerMeaningEl.innerHTML = `
             <div class="flex flex-col">
-                <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
+                <div class="text-xs font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>💡</span> 意味
                 </div>
                 <div class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed">
@@ -949,7 +949,7 @@ async function showKanjiDetail(data) {
         const readingLabel = isKanaDetail ? '読み' : '読み・名乗り';
         headerReadingEl.innerHTML = `
             <div class="flex min-w-0 flex-col">
-                <div class="text-[10px] font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
+                <div class="text-xs font-bold text-[#bca37f] mb-0.5 tracking-widest flex items-center gap-1">
                     <span>📖</span> ${readingLabel}
                 </div>
                 <div class="kanji-detail-reading-list mt-1">
