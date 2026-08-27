@@ -5656,6 +5656,66 @@ body.has-ad-banner .context-coachmark--above-actions {
     word-break: break-word;
 }
 
+.kanji-dictionary-details {
+    overflow: hidden;
+    border: 1px solid #eee5d8;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 1px 3px rgba(91, 75, 51, 0.08);
+}
+
+.kanji-dictionary-details summary {
+    display: flex;
+    min-height: 44px;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    color: #bca37f;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.kanji-dictionary-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.kanji-dictionary-details summary:focus {
+    outline: none;
+}
+
+.kanji-dictionary-details summary:focus-visible {
+    box-shadow: inset 0 0 0 2px rgba(188, 163, 127, 0.45);
+}
+
+.kanji-dictionary-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.kanji-dictionary-chevron {
+    color: #a6967a;
+    font-size: 18px;
+    line-height: 1;
+    transition: transform 180ms ease;
+}
+
+.kanji-dictionary-details[open] .kanji-dictionary-chevron {
+    transform: rotate(180deg);
+}
+
+.kanji-dictionary-details p {
+    margin: 0;
+    border-top: 1px solid rgba(238, 229, 216, 0.9);
+    padding: 12px;
+    color: #5d5444;
+    font-size: 12px;
+    line-height: 1.75;
+}
+
 .context-coachmark-header {
     display: flex;
     align-items: center;

@@ -118,11 +118,24 @@ test('kanji detail runtime uses only the bundled static dataset', () => {
   assert.match(detailFunction, /const staticDetails = await loadKanjiStaticDetails\(\)/);
   assert.match(detailFunction, /【意味の深掘り】/);
   assert.match(detailFunction, /detail\.meaningDeepDive \|\| detail\.namingMeaning/);
+  assert.match(detailFunction, /【辞書の字義】/);
+  assert.match(detailFunction, /detail\.meaningDetail/);
   assert.match(detailFunction, /detail\.compoundNotice/);
   assert.match(detailFunction, /【代表的な熟語】/);
   assert.doesNotMatch(detailFunction, /【名づけでの意味】|【名づけ利用】/);
   assert.doesNotMatch(detailFunction, /callGemini|firebase|AI説明を取得できませんでした/);
   assert.doesNotMatch(detailFunction, /掲載できる代表的な熟語はありません/);
+});
+
+test('dictionary meanings stay collapsed until the user opens them', () => {
+  const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'public', 'css', 'main.css'), 'utf8');
+
+  assert.match(source, /<details class="kanji-dictionary-details mb-2">/);
+  assert.match(source, /<summary>/);
+  assert.match(source, /title === '辞書の字義'/);
+  assert.doesNotMatch(source, /<details[^>]*\sopen(?:\s|>)/);
+  assert.match(css, /\.kanji-dictionary-details\[open\] \.kanji-dictionary-chevron/);
 });
 
 test('Codex-reviewed kanji details override generated enrichment without mutating its source', () => {
