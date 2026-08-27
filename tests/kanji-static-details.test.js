@@ -33,6 +33,9 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(['source_grounded', 'cross_checked'].includes(entry.etymology.reviewStatus), `${kanji}: invalid review status`);
     assert.ok(entry.nameUse?.category, `${kanji}: missing name-use category`);
     assert.ok(Array.isArray(entry.compounds) && entry.compounds.length <= 3, `${kanji}: invalid compounds`);
+    if (entry.compounds.length === 0) {
+      assert.ok(entry.compoundNotice, `${kanji}: missing compound notice`);
+    }
 
     const allowed = new Set([
       ...(sourceCompounds[kanji] || []),
@@ -57,6 +60,8 @@ test('static kanji details cover the complete master list with reviewed facts', 
   assert.ok(details.entries['都'].compounds.some((item) => item.word === '古都'));
   assert.ok(details.entries['珈'].compounds.some((item) => item.word === '珈琲'));
   assert.ok(details.entries['絆'].compounds.some((item) => item.word === '絆創膏'));
+  assert.match(details.entries['椛'].compoundNotice, /国字/);
+  assert.match(details.entries['晟'].compoundNotice, /中国語.*大晟府.*日本語/);
 });
 
 test('manually reviewed compounds retain evidence internally and publish only display fields', () => {
@@ -91,7 +96,13 @@ test('every kanji without a published compound has a reviewed omission reason', 
   assert.deepEqual(withoutCompounds, reviewedOmissions);
   for (const [kanji, review] of Object.entries(unlistedCompoundReasons)) {
     assert.ok(review.reason, `${kanji}: missing omission reason`);
+    assert.ok(review.displayText, `${kanji}: missing user-facing omission text`);
     assert.match(review.sourceUrl, /^https:\/\/(?:www\.)?(?:kanjipedia\.jp|kotobank\.jp)\//, `${kanji}: unapproved omission source`);
+    if (review.supplementalSourceUrl) {
+      assert.match(review.supplementalSourceUrl, /^https:\/\/(?:www\.)?(?:kanjipedia\.jp|kotobank\.jp|zdic\.net)\//, `${kanji}: unapproved supplemental source`);
+    }
+    assert.equal(Object.hasOwn(details[kanji], 'sourceUrl'), false, `${kanji}: omission source URL leaked into app data`);
+    assert.equal(Object.hasOwn(details[kanji], 'supplementalSourceUrl'), false, `${kanji}: supplemental source URL leaked into app data`);
   }
 });
 
@@ -103,6 +114,8 @@ test('kanji detail runtime uses only the bundled static dataset', () => {
   assert.match(source, /const KANJI_STATIC_DETAILS_URL = '\/data\/kanji_static_details\.json/);
   assert.match(detailFunction, /const staticDetails = await loadKanjiStaticDetails\(\)/);
   assert.match(detailFunction, /【名づけでの意味】/);
+  assert.match(detailFunction, /detail\.compoundNotice/);
+  assert.match(detailFunction, /【代表的な熟語】/);
   assert.match(detailFunction, /【名づけ利用】/);
   assert.doesNotMatch(detailFunction, /callGemini|firebase|AI説明を取得できませんでした/);
   assert.doesNotMatch(detailFunction, /掲載できる代表的な熟語はありません/);

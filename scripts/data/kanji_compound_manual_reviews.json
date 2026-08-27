@@ -293,50 +293,63 @@
   "unlistedReasons": {
     "叶": {
       "reason": "辞書掲載は単独の訓読み語「叶う」とことわざで、代表的な複合語を確認できないため",
+      "displayText": "送り仮名を伴う「叶う」としての使用が中心のため、一般的な熟語はありません。",
       "sourceUrl": "https://www.kanjipedia.jp/kanji/0001476400"
     },
     "浬": {
       "reason": "辞書掲載は距離・速度の単位を表す一字語「浬」のみで、複合語を確認できないため",
+      "displayText": "距離や速度の単位を表す一字語として使われるため、一般的な熟語はありません。",
       "sourceUrl": "https://www.kanjipedia.jp/kanji/0007080500"
     },
     "晟": {
       "reason": "漢字辞典に読みと意味は掲載されているが、代表的な複合語を確認できないため",
-      "sourceUrl": "https://www.kanjipedia.jp/kanji/0003883000"
+      "displayText": "中国語には「大晟府」などの歴史上の用例がありますが、日本語で一般的に使われる熟語は確認できません。",
+      "sourceUrl": "https://www.kanjipedia.jp/kanji/0003883000",
+      "supplementalSourceUrl": "https://zdic.net/hans/%E5%A4%A7%E6%99%9F%E5%BA%9C"
     },
     "栞": {
       "reason": "一般的には一字語「栞」として使われ、承認済み辞書で代表的な複合語を確認できないため",
+      "displayText": "一字語「栞」としての使用が中心のため、一般的な熟語はありません。",
       "sourceUrl": "https://kotobank.jp/word/%E6%A0%9E-897522"
     },
     "晄": {
       "reason": "「晃」の異体字だが、「晄」の字形で定着した代表的な複合語を確認できないため",
+      "displayText": "「晃」の異体字で、この字形による一般的な熟語は確認できません。",
       "sourceUrl": "https://kotobank.jp/word/%E6%99%83-493847"
     },
     "哩": {
       "reason": "マイルを表す一字の音訳字としての使用が中心で、現代日本語の代表的な複合語を確認できないため",
+      "displayText": "マイルを表す一字の音訳字としての使用が中心のため、一般的な熟語はありません。",
       "sourceUrl": "https://kotobank.jp/word/%E5%93%A9-422629"
     },
     "椛": {
       "reason": "国字で、一字語「椛（もみじ）」以外の代表的な複合語を確認できないため",
+      "displayText": "日本で作られた国字で、一字語「椛（もみじ）」として使われるため、一般的な熟語はありません。",
       "sourceUrl": "https://www.kanjipedia.jp/kanji/0006762600"
     },
     "塙": {
       "reason": "辞書に見られる語が古典的で、名づけ画面に載せる代表的な現代日本語として適さないため",
+      "displayText": "古典的な用例はありますが、現代日本語で一般的に使われる熟語は確認できません。",
       "sourceUrl": "https://kotobank.jp/word/%E5%A1%99-603833"
     },
     "摑": {
       "reason": "現在は主に標準字体「掴」の送り仮名付き動詞「掴む」として使われ、この字形の代表的な複合語を確認できないため",
+      "displayText": "現在は標準字体「掴」を用いた「掴む」としての使用が中心で、この字形による一般的な熟語はありません。",
       "sourceUrl": "https://kotobank.jp/word/%E6%8E%B4-545240"
     },
     "麿": {
       "reason": "一字の人称・名前要素としての使用が中心で、代表的な複合語を確認できないため",
+      "displayText": "一字の人称や名前の要素としての使用が中心のため、一般的な熟語はありません。",
       "sourceUrl": "https://kotobank.jp/word/%E9%BA%BF-2790654"
     },
     "辿": {
       "reason": "送り仮名付き動詞「辿る」としての使用が中心で、代表的な複合語を確認できないため",
+      "displayText": "送り仮名を伴う「辿る」としての使用が中心のため、一般的な熟語はありません。",
       "sourceUrl": "https://kotobank.jp/word/%E8%BE%BF%E3%82%8B-561085"
     },
     "蔣": {
       "reason": "確認できる著名な用例が固有の人名「蔣介石」であり、代表的な熟語としては掲載しないため",
+      "displayText": "一般的な熟語は確認できず、主な用例は「蔣介石」などの固有の人名です。",
       "sourceUrl": "https://kotobank.jp/word/%E8%94%A3%E4%BB%8B%E7%9F%B3-1174516"
     }
   }

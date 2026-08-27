@@ -49,7 +49,9 @@ function main() {
   const etymologies = readJson(ETYMOLOGY_PATH, { entries: {} }).entries || {};
   const enrichment = readJson(ENRICHMENT_PATH, {});
   const codexReviews = readJson(CODEX_REVIEW_PATH, { entries: {} }).entries || {};
-  const manualCompoundReviews = readJson(MANUAL_COMPOUND_REVIEW_PATH, { entries: {} }).entries || {};
+  const manualCompoundReviewFile = readJson(MANUAL_COMPOUND_REVIEW_PATH, { entries: {}, unlistedReasons: {} });
+  const manualCompoundReviews = manualCompoundReviewFile.entries || {};
+  const unlistedCompoundReasons = manualCompoundReviewFile.unlistedReasons || {};
   const entries = {};
 
   for (const row of master) {
@@ -68,6 +70,7 @@ function main() {
     const compounds = Array.isArray(ownCompounds) && ownCompounds.length
       ? ownCompounds
       : standardCompounds;
+    const compoundNotice = clean(unlistedCompoundReasons[kanji]?.displayText);
     if (!kanji || !meaningDetail || !fixedOriginText) {
       throw new Error(`${kanji || '(empty)'}: static detail source is incomplete`);
     }
@@ -97,6 +100,7 @@ function main() {
         reviewStatus: clean(etymology.verificationStatus),
       },
       compounds: (Array.isArray(compounds) ? compounds : []).slice(0, 3),
+      ...(compoundNotice ? { compoundNotice } : {}),
     };
   }
 

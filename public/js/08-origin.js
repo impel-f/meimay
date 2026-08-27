@@ -15,7 +15,7 @@ const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
-const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.5';
+const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.6';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
@@ -3025,11 +3025,12 @@ async function generateKanjiDetail(kanji, currentReading) {
     const compoundText = (detail.compounds || [])
         .map((item) => `・${item.word}（${item.reading}）：${item.meaning}。`)
         .join('\n');
+    const compoundDisplayText = compoundText || detail.compoundNotice || '';
     const staticText = [
         `【名づけでの意味】\n${detail.namingMeaning}`,
         `【成り立ち】\n${detail.etymology?.text || ''}`,
         `【名づけ利用】\n${nameUseParts.filter(Boolean).join('・')}`,
-        compoundText ? `【代表的な熟語】\n${compoundText}` : '',
+        compoundDisplayText ? `【代表的な熟語】\n${compoundDisplayText}` : '',
     ].filter((block) => !/】\n\s*$/.test(block)).join('\n\n');
     renderKanjiDetailSections(resultEl, staticText);
     return;
