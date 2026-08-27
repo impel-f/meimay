@@ -219,6 +219,25 @@ function isKanjiDetailAiAvailableForCurrentUser() {
     return access.canView === true || access.canUnlockToday === true;
 }
 
+function getKanjiDetailActionCopy(access = {}) {
+    if (access.premiumRequired) {
+        return {
+            label: '<span>👑</span> プレミアムで意味・成り立ちを見る',
+            note: '人名用漢字・許容字体の詳しい情報はプレミアムで見られます。'
+        };
+    }
+    if (!access.canUnlockToday && !access.canView) {
+        return {
+            label: '<span>👑</span> プレミアムで意味・成り立ちを見る',
+            note: '無料で見られる1字分は利用済みです。明日また使えます。'
+        };
+    }
+    return {
+        label: '<span>📖</span> 意味・成り立ちを詳しく見る',
+        note: '無料で1日1字まで見られます。'
+    };
+}
+
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
     if (!button) return false;
 
@@ -227,15 +246,17 @@ function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-a
     button.disabled = false;
     button.setAttribute('aria-disabled', 'false');
     button.removeAttribute('aria-busy');
-    const access = resolveKanjiDetailAccessModel();
-    if (access.premiumRequired) {
-        button.innerHTML = '<span>👑</span> プレミアムで詳しく見る';
-    } else if (!access.canUnlockToday && !access.canView) {
-        button.innerHTML = '<span>🔒</span> 本日の無料枠は利用済み';
-    } else {
-        button.innerHTML = '<span>📖</span> 今日の無料枠で詳しく見る';
+    const copy = getKanjiDetailActionCopy(resolveKanjiDetailAccessModel());
+    button.innerHTML = copy.label;
+    const section = button.closest('#btn-ai-kanji-detail');
+    let note = document.getElementById('kanji-detail-ai-limit-note');
+    if (!note && section) {
+        note = document.createElement('p');
+        note.id = 'kanji-detail-ai-limit-note';
+        note.className = 'mt-2 text-center text-[11px] leading-relaxed text-[#8b7e66]';
+        section.appendChild(note);
     }
-    document.getElementById('kanji-detail-ai-limit-note')?.remove();
+    if (note) note.textContent = copy.note;
     return true;
 }
 window.refreshKanjiDetailAiButtonState = refreshKanjiDetailAiButtonState;
@@ -994,16 +1015,13 @@ async function showKanjiDetail(data) {
             aiSection.id = 'btn-ai-kanji-detail';
             aiSection.className = 'w-full';
             const detailButtonClass = 'w-full py-4 bg-gradient-to-r from-[#8b7e66] to-[#bca37f] text-white font-bold rounded-2xl shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 text-sm';
-            const buttonLabel = detailAccess.premiumRequired
-                ? '<span>👑</span> プレミアムで詳しく見る'
-                : (detailAccess.canUnlockToday
-                    ? '<span>📖</span> 今日の無料枠で詳しく見る'
-                    : '<span>🔒</span> 本日の無料枠は利用済み');
+            const actionCopy = getKanjiDetailActionCopy(detailAccess);
             aiSection.innerHTML = `
                 <button id="btn-ai-kanji-detail-action" type="button"
                         class="${detailButtonClass}">
-                    ${buttonLabel}
+                    ${actionCopy.label}
                 </button>
+                <p id="kanji-detail-ai-limit-note" class="mt-2 text-center text-[11px] leading-relaxed text-[#8b7e66]">${actionCopy.note}</p>
             `;
 
             // 上部の固定エリアにボタンだけ置き、結果はスクロールエリアに表示する。

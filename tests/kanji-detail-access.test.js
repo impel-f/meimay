@@ -124,7 +124,8 @@ test('detail UI auto-loads premium content and the comparison table matches acce
   const renderSource = fs.readFileSync(path.join(root, 'public', 'js', '05-ui-render.js'), 'utf8');
   const premiumSource = fs.readFileSync(path.join(root, 'public', 'js', '14-admob.js'), 'utf8');
   assert.match(renderSource, /if \(detailAccess\.autoDisplay\)/);
-  assert.match(renderSource, /今日の無料枠で詳しく見る/);
+  assert.match(renderSource, /意味・成り立ちを詳しく見る/);
+  assert.match(renderSource, /無料で見られる1字分は利用済みです。明日また使えます。/);
   assert.match(premiumSource, /state\.active && !state\.isTrial/);
   assert.match(premiumSource, /詳しい漢字情報', free: '1日1字', premium: '自動表示'/);
 });
