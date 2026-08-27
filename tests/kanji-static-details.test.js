@@ -144,6 +144,9 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   assert.match(builder, /Array\.isArray\(review\.compounds\)/);
   assert.match(reportBuilder, /index < automatedAuditThrough/);
   assert.match(reportBuilder, /r\.compoundNotice/);
+  assert.match(reportBuilder, /r\.meaningDeepDive/);
+  assert.match(reportBuilder, /辞書の詳細語義/);
+  assert.match(reportBuilder, /意味の深掘り/);
 });
 
 test('deep meanings prioritize a naming-appropriate primary sense', () => {
