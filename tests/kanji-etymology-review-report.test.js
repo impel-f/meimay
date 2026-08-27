@@ -14,9 +14,9 @@ test('etymology review report covers all 3000 kanji and exposes honest states', 
   assert.match(report, /部品検索データは成り立ちの根拠に数えません/);
 });
 
-test('review report includes the verified Sea origin and no old component prose', () => {
-  assert.match(report, /「海」の旧字は/);
+test('review report explains the verified Sea origin and its old glyph component', () => {
+  assert.match(report, /「海」は/);
   assert.match(report, /水（さんずい）/);
-  assert.match(report, /音を表す「每」/);
+  assert.match(report, /音を表す「毎（旧字形では每）」/);
   assert.doesNotMatch(report, /字形には「汁・母・毋・乞」/);
 });

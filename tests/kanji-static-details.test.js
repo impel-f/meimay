@@ -138,6 +138,7 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);
   assert.match(builder, /Array\.isArray\(review\.compounds\)/);
   assert.match(reportBuilder, /index < automatedAuditThrough/);
+  assert.match(reportBuilder, /r\.compoundNotice/);
 });
 
 test('unfamiliar etymology components include an inline explanation', () => {
