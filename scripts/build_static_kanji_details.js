@@ -7,6 +7,7 @@ const MEANINGS_PATH = path.join(ROOT, 'public', 'data', 'kanji_meaning_details.j
 const ETYMOLOGY_PATH = path.join(ROOT, 'public', 'data', 'kanji_etymology_facts.json');
 const ENRICHMENT_PATH = path.join(__dirname, 'data', 'kanji_static_enrichment.json');
 const CODEX_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_static_codex_reviews.json');
+const MEANING_DEEP_DIVE_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_meaning_deep_dive_reviews.json');
 const MANUAL_COMPOUND_REVIEW_PATH = path.join(__dirname, 'data', 'kanji_compound_manual_reviews.json');
 const OUTPUT_PATH = path.join(ROOT, 'public', 'data', 'kanji_static_details.json');
 
@@ -27,37 +28,29 @@ function getNameUseCategory(row) {
 
 function getFactualNamingMeaning(value) {
   const firstSentence = clean(value).split('。').map(clean).find(Boolean) || '';
-  return `${firstSentence
+  const factual = firstSentence
     .replace(/を表す名づけに用いられる$/, 'を表す')
     .replace(/名づけに用いられる$/, '名づけに使われる')
-  }。`;
+    .trim();
+  if (!factual) return '';
+  if (/(?:です|ます)$/.test(factual)) return `${factual}。`;
+
+  const polite = factual
+    .replace(/名づけに使われる$/, '名づけに使われます')
+    .replace(/に用いられる字$/, 'に用いられる字です')
+    .replace(/を構成する字$/, 'を構成する字です')
+    .replace(/を表す字$/, 'を表す字です')
+    .replace(/を表す$/, 'を表します')
+    .replace(/を意味する$/, 'を意味します')
+    .replace(/を連想させる$/, 'を連想させます')
+    .replace(/とされる$/, 'とされています');
+  if (/(?:です|ます)$/.test(polite)) return `${polite}。`;
+  return `${polite}という意味です。`;
 }
 
-const NAMING_IMPRESSION_BY_TAG = {
-  '#伝統': '受け継がれてきた趣や、時代を越えて親しまれる印象',
-  '#信念': '芯の強さや、自分の考えを大切にする印象',
-  '#勇壮': '力強さや、勇ましく堂々とした印象',
-  '#品格': '落ち着きや、品のある端正な印象',
-  '#天空': '大空を思わせる開放感や、広がりのある印象',
-  '#奏楽': '音の響きや、豊かな感性を思わせる印象',
-  '#希望': '明るい未来や、前向きな可能性を感じさせる印象',
-  '#幸福': '喜びや、穏やかな幸せを感じさせる印象',
-  '#慈愛': '思いやりや、やさしく包み込む印象',
-  '#水景': '澄んだ水や流れを思わせる、清らかな印象',
-  '#知性': '聡明さや、深く考える力を感じさせる印象',
-  '#自然': '草木や季節など、自然の豊かさを感じさせる印象',
-  '#色彩': '色の美しさや、鮮やかな個性を感じさせる印象',
-  '#調和': '人とのつながりや、穏やかに調和する印象',
-  '#飛躍': 'のびやかな成長や、前へ進む力を感じさせる印象',
-};
-
-function buildMeaningDeepDive(namingMeaning, classification) {
-  const factualMeaning = getFactualNamingMeaning(namingMeaning);
-  const primaryTag = clean(classification).split(/\s+/).find((tag) => NAMING_IMPRESSION_BY_TAG[tag]);
-  const impression = NAMING_IMPRESSION_BY_TAG[primaryTag];
-  return impression
-    ? `${factualMeaning}名前では、${impression}につながります。`
-    : factualMeaning;
+function buildMeaningDeepDive(namingMeaning, deepDiveReview) {
+  const reviewedText = clean(deepDiveReview?.text);
+  return reviewedText || getFactualNamingMeaning(namingMeaning);
 }
 
 function getReviewedCompounds(kanji, enrichment, codexReviews, manualCompoundReviews) {
@@ -76,6 +69,7 @@ function main() {
   const etymologies = readJson(ETYMOLOGY_PATH, { entries: {} }).entries || {};
   const enrichment = readJson(ENRICHMENT_PATH, {});
   const codexReviews = readJson(CODEX_REVIEW_PATH, { entries: {} }).entries || {};
+  const deepDiveReviews = readJson(MEANING_DEEP_DIVE_REVIEW_PATH, { entries: {} }).entries || {};
   const manualCompoundReviewFile = readJson(MANUAL_COMPOUND_REVIEW_PATH, { entries: {}, unlistedReasons: {} });
   const manualCompoundReviews = manualCompoundReviewFile.entries || {};
   const unlistedCompoundReasons = manualCompoundReviewFile.unlistedReasons || {};
@@ -86,6 +80,7 @@ function main() {
     const etymology = etymologies[kanji] || {};
     const enriched = enrichment[kanji] || {};
     const review = codexReviews[kanji]?.status === 'reviewed' ? codexReviews[kanji] : {};
+    const deepDiveReview = deepDiveReviews[kanji]?.status === 'reviewed' ? deepDiveReviews[kanji] : {};
     const meaningDetail = clean(meanings[kanji]?.meaning || row['意味']);
     const fixedOriginText = clean(review.etymologyText || etymology.fixedOriginText);
     const namingMeaning = clean(review.namingMeaning || enriched.namingMeaning);
@@ -110,7 +105,8 @@ function main() {
       meaningDetail,
       // A single factual sentence belongs here; wishes are composed for the full name elsewhere.
       namingMeaning: getFactualNamingMeaning(namingMeaning),
-      meaningDeepDive: buildMeaningDeepDive(namingMeaning, row['分類']),
+      meaningDeepDive: buildMeaningDeepDive(namingMeaning, deepDiveReview),
+      meaningDeepDiveReviewStatus: deepDiveReview.text ? 'reviewed' : 'pending',
       readings: {
         on: clean(row['音']),
         kun: clean(row['訓']),
@@ -140,6 +136,7 @@ function main() {
       'kanji_etymology_facts.json',
       'kanji_static_enrichment.json',
       'kanji_static_codex_reviews.json',
+      'kanji_meaning_deep_dive_reviews.json',
       'kanji_compound_manual_reviews.json',
     ],
     entries,

@@ -7,6 +7,8 @@ const root = path.join(__dirname, '..');
 const master = require('../public/data/kanji_data.json');
 const sourceCompounds = require('../public/data/kanji_compounds.json').entries;
 const codexReviews = require('../scripts/data/kanji_static_codex_reviews.json').entries;
+const deepDiveReviewFile = require('../scripts/data/kanji_meaning_deep_dive_reviews.json');
+const deepDiveReviews = deepDiveReviewFile.entries;
 const manualCompoundReviewFile = require('../scripts/data/kanji_compound_manual_reviews.json');
 const manualCompoundReviews = manualCompoundReviewFile.entries;
 const unlistedCompoundReasons = manualCompoundReviewFile.unlistedReasons;
@@ -27,11 +29,19 @@ test('static kanji details cover the complete master list with reviewed facts', 
     assert.ok(entry.meaningSummary, `${kanji}: missing summary meaning`);
     assert.ok(entry.meaningDetail, `${kanji}: missing detailed meaning`);
     assert.ok(entry.namingMeaning, `${kanji}: missing naming meaning`);
+    assert.match(entry.namingMeaning, /(?:です|ます)。$/, `${kanji}: naming meaning must use polite Japanese`);
     assert.ok(entry.meaningDeepDive, `${kanji}: missing deep meaning`);
     assert.match(entry.meaningDeepDive, /。$/, `${kanji}: deep meaning must end with a full stop`);
     assert.doesNotMatch(entry.meaningDeepDive, /undefined|compound_slot|アプリ内辞書/, `${kanji}: invalid deep meaning`);
+    if (entry.meaningDeepDiveReviewStatus === 'reviewed') {
+      assert.match(entry.meaningDeepDive, /(?:です|ます|ません)。$/, `${kanji}: deep meaning must use polite Japanese`);
+    }
+    assert.equal(entry.meaningDeepDiveReviewStatus, deepDiveReviews[kanji]?.status === 'reviewed' ? 'reviewed' : 'pending');
     assert.equal((entry.namingMeaning.match(/。/g) || []).length, 1, `${kanji}: naming meaning must be one factual sentence`);
     assert.doesNotMatch(entry.namingMeaning, /願う名づけ|人柄を願|人生を願|未来を願/, `${kanji}: naming meaning contains a composed wish`);
+    for (const compound of entry.compounds || []) {
+      assert.doesNotMatch(compound.meaning || '', /(?:である|を表す|を意味する|用いられる)$/, `${kanji}: compound meaning must not use plain Japanese`);
+    }
     assert.ok(entry.etymology?.text, `${kanji}: missing etymology`);
     assert.ok(['source_grounded', 'cross_checked'].includes(entry.etymology.reviewStatus), `${kanji}: invalid review status`);
     assert.ok(entry.nameUse?.category, `${kanji}: missing name-use category`);
@@ -117,8 +127,8 @@ test('kanji detail runtime uses only the bundled static dataset', () => {
   assert.match(source, /const KANJI_STATIC_DETAILS_URL = '\/data\/kanji_static_details\.json/);
   assert.match(detailFunction, /const staticDetails = await loadKanjiStaticDetails\(\)/);
   assert.match(detailFunction, /【意味の深掘り】/);
-  assert.match(detailFunction, /detail\.meaningDeepDive \|\| detail\.namingMeaning/);
-  assert.match(detailFunction, /【辞書の字義】/);
+  assert.match(detailFunction, /detail\.meaningDeepDiveReviewStatus === 'reviewed'/);
+  assert.match(detailFunction, /renderKanjiDictionaryMeaning\(detail\.meaningDetail\)/);
   assert.match(detailFunction, /detail\.meaningDetail/);
   assert.match(detailFunction, /detail\.compoundNotice/);
   assert.match(detailFunction, /【代表的な熟語】/);
@@ -129,11 +139,18 @@ test('kanji detail runtime uses only the bundled static dataset', () => {
 
 test('dictionary meanings stay collapsed until the user opens them', () => {
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
+  const renderSource = fs.readFileSync(path.join(root, 'public', 'js', '05-ui-render.js'), 'utf8');
   const css = fs.readFileSync(path.join(root, 'public', 'css', 'main.css'), 'utf8');
 
-  assert.match(source, /<details class="kanji-dictionary-details mb-2">/);
+  assert.match(renderSource, /id="header-dictionary-meaning"/);
+  assert.match(renderSource, /const staticDetails = await loadKanjiStaticDetails\(\)/);
+  assert.match(renderSource, /staticDetails\?\.\[data\['漢字'\]\]\?\.namingMeaning/);
+  assert.match(renderSource, /escapeKanjiDetailHtml\(headerMeaning \|\| '意味データなし'\)/);
+  assert.match(source, /function renderKanjiDictionaryMeaning/);
+  assert.match(source, /<details class="kanji-dictionary-details">/);
   assert.match(source, /<summary>/);
-  assert.match(source, /title === '辞書の字義'/);
+  assert.match(source, /辞書の字義を見る/);
+  assert.doesNotMatch(source, /辞書の字義を閉じる/);
   assert.doesNotMatch(source, /<details[^>]*\sopen(?:\s|>)/);
   assert.match(css, /\.kanji-dictionary-details\[open\] \.kanji-dictionary-chevron/);
 });
@@ -153,6 +170,7 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
   assert.match(builder, /codexReviews\[kanji\]\?\.status === 'reviewed'/);
   assert.match(builder, /review\.namingMeaning \|\| enriched\.namingMeaning/);
   assert.match(builder, /meaningDeepDive: buildMeaningDeepDive/);
+  assert.doesNotMatch(builder, /NAMING_IMPRESSION_BY_TAG/);
   assert.match(builder, /review\.etymologyText \|\| etymology\.fixedOriginText/);
   assert.match(builder, /Array\.isArray\(review\.compounds\)/);
   assert.match(reportBuilder, /index < automatedAuditThrough/);
@@ -165,10 +183,33 @@ test('Codex-reviewed kanji details override generated enrichment without mutatin
 test('deep meanings prioritize a naming-appropriate primary sense', () => {
   const details = require('../public/data/kanji_static_details.json').entries;
 
-  assert.match(details['空'].meaningDeepDive, /大空.*広がり/);
+  assert.match(details['空'].meaningDeepDive, /大空.*視野/);
   assert.doesNotMatch(details['空'].meaningDeepDive, /空っぽ|むなしい/);
   assert.match(details['音'].meaningDeepDive, /響き.*感性/);
-  assert.match(details['合'].meaningDeepDive, /まとまる.*調和/);
+  assert.match(details['合'].meaningDeepDive, /集まり.*協調/);
+});
+
+test('deep meanings are shown only after an individual 5.6sol review', () => {
+  const details = require('../public/data/kanji_static_details.json').entries;
+  assert.equal(deepDiveReviewFile.reviewer, 'codex-5.6sol');
+  assert.ok(Object.keys(deepDiveReviews).length >= 1236);
+  assert.equal(
+    new Set(Object.values(deepDiveReviews).map((review) => review.text)).size,
+    Object.keys(deepDiveReviews).length,
+    'individually reviewed deep meanings must not reuse the same text'
+  );
+  for (const [kanji, review] of Object.entries(deepDiveReviews)) {
+    assert.equal(review.status, 'reviewed', `${kanji}: deep review status`);
+    assert.equal(details[kanji].meaningDeepDive, review.text, `${kanji}: reviewed deep meaning not published`);
+    assert.equal(details[kanji].meaningDeepDiveReviewStatus, 'reviewed');
+  }
+  const highPriorityKanji = master
+    .filter((row) => Number(row['不適切フラグ']) !== 1)
+    .map((row) => row['漢字']);
+  for (const kanji of highPriorityKanji) {
+    assert.equal(details[kanji].meaningDeepDiveReviewStatus, 'reviewed', `${kanji}: high-priority deep meaning is pending`);
+  }
+  assert.equal(details['入'].meaningDeepDiveReviewStatus, 'pending');
 });
 
 test('unfamiliar etymology components include an inline explanation', () => {

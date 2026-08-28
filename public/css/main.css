@@ -5657,22 +5657,19 @@ body.has-ad-banner .context-coachmark--above-actions {
 }
 
 .kanji-dictionary-details {
-    overflow: hidden;
-    border: 1px solid #eee5d8;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 1px 3px rgba(91, 75, 51, 0.08);
+    margin-top: 8px;
+    border-top: 1px dashed rgba(188, 163, 127, 0.35);
 }
 
 .kanji-dictionary-details summary {
     display: flex;
-    min-height: 44px;
+    min-height: 36px;
     cursor: pointer;
     list-style: none;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 12px;
+    padding: 8px 0 0;
     color: #bca37f;
     font-size: 12px;
     font-weight: 700;
@@ -5708,9 +5705,10 @@ body.has-ad-banner .context-coachmark--above-actions {
 }
 
 .kanji-dictionary-details p {
-    margin: 0;
-    border-top: 1px solid rgba(238, 229, 216, 0.9);
-    padding: 12px;
+    margin: 6px 0 0;
+    border-radius: 10px;
+    background: rgba(253, 250, 245, 0.92);
+    padding: 10px;
     color: #5d5444;
     font-size: 12px;
     line-height: 1.75;

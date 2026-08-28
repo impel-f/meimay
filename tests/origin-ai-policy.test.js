@@ -51,7 +51,7 @@ test('name origin AI writes only the editable wish draft from fixed kanji meanin
 });
 
 test('kanji details put deep meaning first and cap visible idioms', () => {
-    assert.match(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \['意味の深掘り', '辞書の字義', '成り立ち'\]/);
+    assert.match(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \['意味の深掘り', '成り立ち'\]/);
     assert.match(originSource, /'意味の深掘り': '🔎'/);
     assert.doesNotMatch(originSource, /KANJI_DETAIL_DISPLAY_SECTION_ORDER = \[[^\n]*名づけ利用/);
     assert.match(originSource, /dedupeRepresentativeIdiomLines\(filtered\)\.slice\(0, 3\)/);

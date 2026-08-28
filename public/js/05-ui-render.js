@@ -238,6 +238,16 @@ function getKanjiDetailActionCopy(access = {}) {
     };
 }
 
+function getKanjiDetailAutoDisplayCopy(access = {}) {
+    if (access.source === 'trial') {
+        return '<span>👑</span> 無料体験で詳細を表示中';
+    }
+    if (access.source === 'premium') {
+        return '<span>👑</span> プレミアムで詳細を表示中';
+    }
+    return '<span>✓</span> この漢字の詳細は解放済み';
+}
+
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
     if (!button) return false;
 
@@ -922,6 +932,12 @@ async function showKanjiDetail(data) {
         headerBg.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)';
     }
 
+    let headerMeaning = clean(data['意味']);
+    if (!isKanaDetail && typeof loadKanjiStaticDetails === 'function') {
+        const staticDetails = await loadKanjiStaticDetails();
+        headerMeaning = clean(staticDetails?.[data['漢字']]?.namingMeaning) || headerMeaning;
+    }
+
     // ヘッダーの意味表示
     if (headerMeaningEl) {
         headerMeaningEl.innerHTML = `
@@ -930,8 +946,9 @@ async function showKanjiDetail(data) {
                     <span>💡</span> 意味
                 </div>
                 <div class="kanji-detail-wrap-text text-xs text-[#5d5444] leading-relaxed">
-                    ${escapeKanjiDetailHtml(clean(data['意味']) || '意味データなし')}
+                    ${escapeKanjiDetailHtml(headerMeaning || '意味データなし')}
                 </div>
+                <div id="header-dictionary-meaning"></div>
             </div>
         `;
     }
@@ -1010,6 +1027,12 @@ async function showKanjiDetail(data) {
 
         if (detailAccess.autoDisplay) {
             autoLoadKanjiDetail = true;
+            const accessStatus = document.createElement('div');
+            accessStatus.id = 'kanji-detail-access-status';
+            accessStatus.className = 'w-full py-4 bg-[#f4ede2] border border-[#dfcfb8] text-[#8b7e66] font-bold rounded-2xl shadow-sm flex items-center justify-center gap-2 text-sm';
+            accessStatus.setAttribute('role', 'status');
+            accessStatus.innerHTML = getKanjiDetailAutoDisplayCopy(detailAccess);
+            aiButtonSlot?.appendChild(accessStatus);
         } else {
             const aiSection = document.createElement('div');
             aiSection.id = 'btn-ai-kanji-detail';

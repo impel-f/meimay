@@ -15,7 +15,7 @@ const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
-const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.8';
+const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.9';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
@@ -2216,11 +2216,10 @@ const KANJI_ORIGIN_UNVERIFIED_TEXT = '検証済みの字源情報がないため
 
 const KANJI_DETAIL_CORE_SECTION_ORDER = ['意味の深掘り', '成り立ち', '代表的な熟語'];
 const KANJI_DETAIL_CORE_SECTION_SET = new Set(KANJI_DETAIL_CORE_SECTION_ORDER);
-const KANJI_DETAIL_DISPLAY_SECTION_ORDER = ['意味の深掘り', '辞書の字義', '成り立ち'];
+const KANJI_DETAIL_DISPLAY_SECTION_ORDER = ['意味の深掘り', '成り立ち'];
 const KANJI_DETAIL_SECTION_ICON_MAP = {
     '成り立ち': '🧬',
     '意味の深掘り': '🔎',
-    '辞書の字義': '📚',
     '代表的な熟語': '✨'
 };
 
@@ -2724,9 +2723,7 @@ function getKanjiDetailDisplaySections(aiText) {
     const preferred = KANJI_DETAIL_DISPLAY_SECTION_ORDER
         .map((title) => byTitle.get(title))
         .filter(Boolean);
-    const readingEvidence = sections.filter((section) =>
-        !coreTitles.has(section.title) && section.title !== '辞書の字義'
-    );
+    const readingEvidence = sections.filter((section) => !coreTitles.has(section.title));
     const idioms = byTitle.get('代表的な熟語');
     return [...preferred, ...readingEvidence, ...(idioms ? [idioms] : [])];
 }
@@ -2811,7 +2808,6 @@ function normalizeKanjiDetailTitle(title) {
     if (!compact || compact === '入力情報' || compact === '基本情報') return '';
     if (/成り立|字源/.test(compact)) return '成り立ち';
     if (/代表的な熟語|熟語/.test(compact) || compact === '代表' || /^代表[:：]?/.test(compact)) return '代表的な熟語';
-    if (/辞書の字義|辞書上の意味|詳細語義/.test(compact)) return '辞書の字義';
     if (/名づけ利用|名付け利用|利用区分/.test(compact)) return '名づけ利用';
     if (/名づけでの意味|名付けでの意味|名づけで込められる願い|名づけの意味/.test(compact)) return '名づけでの意味';
     if (/意味|深掘|字義|ニュアンス/.test(compact)) return '意味の深掘り';
@@ -3127,19 +3123,44 @@ async function generateKanjiDetail(kanji, currentReading) {
         return;
     }
 
+    renderKanjiDictionaryMeaning(detail.meaningDetail);
+
     const compoundText = (detail.compounds || [])
         .map((item) => `・${item.word}（${item.reading}）：${item.meaning}。`)
         .join('\n');
     const compoundDisplayText = compoundText || detail.compoundNotice || '';
     const staticText = [
-        `【意味の深掘り】\n${detail.meaningDeepDive || detail.namingMeaning}`,
-        `【辞書の字義】\n${detail.meaningDetail}`,
+        detail.meaningDeepDiveReviewStatus === 'reviewed'
+            ? `【意味の深掘り】\n${detail.meaningDeepDive}`
+            : '',
         `【成り立ち】\n${detail.etymology?.text || ''}`,
         compoundDisplayText ? `【代表的な熟語】\n${compoundDisplayText}` : '',
     ].filter((block) => !/】\n\s*$/.test(block)).join('\n\n');
     renderKanjiDetailSections(resultEl, staticText);
     return;
 
+}
+
+function renderKanjiDictionaryMeaning(meaningDetail) {
+    const slot = document.getElementById('header-dictionary-meaning');
+    const content = sanitizeKanjiAiText(meaningDetail);
+    if (!slot) return;
+    if (!content) {
+        slot.innerHTML = '';
+        return;
+    }
+    slot.innerHTML = `
+        <details class="kanji-dictionary-details">
+            <summary>
+                <span class="kanji-dictionary-title">
+                    <span>📚</span>
+                    <span>辞書の字義を見る</span>
+                </span>
+                <span class="kanji-dictionary-chevron" aria-hidden="true">⌄</span>
+            </summary>
+            <p class="kanji-detail-wrap-text whitespace-pre-wrap">${escapeHtml(content)}</p>
+        </details>
+    `;
 }
 
 function renderKanjiDetailText(resultEl, aiText) {
@@ -3162,17 +3183,6 @@ function renderKanjiDetailSections(resultEl, aiText) {
             ? formatRepresentativeIdiomContent(content)
             : content;
         if (!displayContent) return '';
-        if (title === '辞書の字義') {
-            return `
-                <details class="kanji-dictionary-details mb-2">
-                    <summary>
-                        <span class="kanji-dictionary-title"><span>${escapeHtml(getIcon(title))}</span>${escapeHtml(title)}</span>
-                        <span class="kanji-dictionary-chevron" aria-hidden="true">⌄</span>
-                    </summary>
-                    <p class="kanji-detail-wrap-text whitespace-pre-wrap">${escapeHtml(displayContent)}</p>
-                </details>
-            `;
-        }
         return `
             <div class="bg-white p-3 rounded-xl border border-[#eee5d8] shadow-sm mb-2">
                 <div class="text-xs font-bold text-[#bca37f] mb-1 flex items-center gap-1">
