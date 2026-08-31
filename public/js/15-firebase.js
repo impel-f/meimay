@@ -19,6 +19,34 @@ let firebaseAuthPersistenceReady = Promise.resolve();
 const PARTNER_ROOM_SYNC_DEBOUNCE_MS = 1200;
 const REMOTE_BACKUP_SYNC_DEBOUNCE_MS = 5000;
 
+function mergeSavedNameOriginState(existing, incoming, base = {}) {
+    const existingOrigin = String(existing?.origin || '').trim();
+    const incomingOrigin = String(incoming?.origin || '').trim();
+    if (!existingOrigin && !incomingOrigin) return base;
+
+    const parseOriginStamp = (value) => {
+        const stamp = new Date(String(value || '').trim() || 0).getTime();
+        return Number.isFinite(stamp) ? stamp : 0;
+    };
+    const existingStamp = parseOriginStamp(existing?.originUpdatedAt);
+    const incomingStamp = parseOriginStamp(incoming?.originUpdatedAt);
+    const source = !existingOrigin
+        ? incoming
+        : (!incomingOrigin
+            || !existingStamp
+            || !incomingStamp
+            || existingStamp >= incomingStamp
+            ? existing
+            : incoming);
+
+    base.origin = String(source?.origin || '').trim();
+    base.originPromptVersion = String(source?.originPromptVersion || '').trim();
+    base.originModelCacheVersion = String(source?.originModelCacheVersion || '').trim();
+    base.originModelName = String(source?.originModelName || '').trim();
+    base.originUpdatedAt = String(source?.originUpdatedAt || '').trim();
+    return base;
+}
+
 const MEIMAY_ANALYTICS_QUEUE_LIMIT = 60;
 const MEIMAY_ERROR_EVENT_DEDUPE_MS = 60 * 1000;
 const MEIMAY_ERROR_EVENT_SESSION_LIMIT = 24;
@@ -979,7 +1007,7 @@ function aggregateRoomSyncWorkspaceSections(state) {
 }
 
 function buildBoundedRoomSyncPayload(payload, maxBytes = ROOM_SYNC_PAYLOAD_MAX_BYTES) {
-    const sectionKeys = ['liked', 'savedNames', 'readingStock', 'encounteredReadings', 'hiddenReadings', 'likedRemoved'];
+    const sectionKeys = ['liked', 'savedNames', 'savedNameMemos', 'readingStock', 'encounteredReadings', 'hiddenReadings', 'likedRemoved'];
     const sources = Object.fromEntries(sectionKeys.map((key) => [key, Array.isArray(payload?.[key]) ? payload[key] : []]));
     const bounded = {
         ...payload,
@@ -1258,6 +1286,7 @@ function buildRoomSyncContentFingerprint(roomPayload = {}) {
         themeId: roomPayload.themeId,
         liked: roomPayload.liked,
         savedNames: roomPayload.savedNames,
+        savedNameMemos: roomPayload.savedNameMemos,
         readingStock: roomPayload.readingStock,
         encounteredReadings: roomPayload.encounteredReadings,
         hiddenReadings: roomPayload.hiddenReadings,
@@ -1498,6 +1527,10 @@ const MeimayFirestorePayload = {
             }),
             message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
+            originPromptVersion: this._normalizeString(item?.originPromptVersion),
+            originModelCacheVersion: this._normalizeString(item?.originModelCacheVersion),
+            originModelName: this._normalizeString(item?.originModelName),
+            originUpdatedAt: this._normalizeString(item?.originUpdatedAt),
             savedAt: item?.savedAt || item?.timestamp || null,
             fromPartner: item?.fromPartner === true,
             approvedFromPartner: item?.approvedFromPartner === true,
@@ -1548,6 +1581,10 @@ const MeimayFirestorePayload = {
                 : [],
             message: this._normalizeString(item?.message).slice(0, 100),
             origin: this._normalizeString(item?.origin),
+            originPromptVersion: this._normalizeString(item?.originPromptVersion),
+            originModelCacheVersion: this._normalizeString(item?.originModelCacheVersion),
+            originModelName: this._normalizeString(item?.originModelName),
+            originUpdatedAt: this._normalizeString(item?.originUpdatedAt),
             savedAt: item?.savedAt || item?.timestamp || null,
             fortune,
             fromPartner: item?.fromPartner === true,
@@ -2295,7 +2332,7 @@ const MeimayPairing = {
         this._clearPairingCache();
 
         if (typeof MeimayShare !== 'undefined') {
-            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+            MeimayShare.partnerSnapshot = { liked: [], savedNames: [], savedNameMemos: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
             if (typeof MeimayShare.clearCachedPartnerSnapshot === 'function') {
                 MeimayShare.clearCachedPartnerSnapshot();
             }
@@ -2820,7 +2857,7 @@ const MeimayShare = {
     _partnerUnsub: null,
     _listeningPartnerUid: '',
     _partnerSnapshotPartnerUid: '',
-    partnerSnapshot: { liked: [], savedNames: [], hiddenReadings: [], role: null },
+    partnerSnapshot: { liked: [], savedNames: [], savedNameMemos: [], hiddenReadings: [], role: null },
     _lastPremiumStateSyncFingerprint: '',
     PARTNER_SNAPSHOT_CACHE_KEY: 'meimay_partner_snapshot_cache_v1',
     PARTNER_SNAPSHOT_CACHE_MAX_AGE_MS: 14 * 24 * 60 * 60 * 1000,
@@ -2829,6 +2866,7 @@ const MeimayShare = {
         return {
             liked: [],
             savedNames: [],
+            savedNameMemos: [],
             readingStock: [],
             encounteredReadings: [],
             hiddenReadings: [],
@@ -2973,7 +3011,7 @@ const MeimayShare = {
         } else {
             this._partnerSnapshotPartnerUid = '';
         }
-        this.partnerSnapshot = { liked: [], savedNames: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
+        this.partnerSnapshot = { liked: [], savedNames: [], savedNameMemos: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, role: null };
         if (typeof refreshPartnerAwareUI === 'function') refreshPartnerAwareUI();
     },
 
@@ -5766,6 +5804,9 @@ MeimayPairing.syncMyData = async function () {
         const encounteredLibrary = typeof getEncounteredLibrary === 'function'
             ? getEncounteredLibrary()
             : { readings: [] };
+        const savedNameMemos = typeof getSavedNameSharedMemosForSync === 'function'
+            ? getSavedNameSharedMemosForSync()
+            : [];
         const canonicalSavedData = typeof canonicalizeSavedNamesForSync === 'function'
             ? canonicalizeSavedNamesForSync(savedDataRaw, childWorkspaceStateV2)
             : savedDataRaw;
@@ -5822,6 +5863,7 @@ MeimayPairing.syncMyData = async function () {
             syncedAtMs: Date.now(),
             likedCount: Array.isArray(likedToStore) ? likedToStore.length : 0,
             savedNamesCount: Array.isArray(savedNamesToStore) ? savedNamesToStore.length : 0,
+            savedNameMemosCount: Array.isArray(savedNameMemos) ? savedNameMemos.length : 0,
             readingStockCount: Array.isArray(readingStockToStore) ? readingStockToStore.length : 0,
             encounteredReadingsCount: Array.isArray(encounteredToStore) ? encounteredToStore.length : 0,
             hiddenReadingsCount: Array.isArray(hiddenReadings) ? hiddenReadings.length : 0,
@@ -5830,6 +5872,7 @@ MeimayPairing.syncMyData = async function () {
             roomCode: String(this.roomCode || ''),
             ...childWorkspaceStateV2Meta
         };
+        roomBackup.savedNameMemos = cloneRoomArray(savedNameMemos);
         if (likedShouldClear) {
             roomBackup.liked = [];
         }
@@ -5846,6 +5889,7 @@ MeimayPairing.syncMyData = async function () {
             themeId: profileThemeId,
             liked: cloneRoomArray(likedToStore),
             savedNames: cloneRoomArray(savedNamesToStore),
+            savedNameMemos: cloneRoomArray(savedNameMemos),
             readingStock: cloneRoomArray(readingStockToStore),
             encounteredReadings: cloneRoomArray(encounteredToStore),
             hiddenReadings: cloneRoomArray(hiddenReadings),
@@ -7098,7 +7142,8 @@ const MeimayUserBackup = {
             }
             const existing = merged.get(key);
             const base = preferExisting ? { ...clone, ...existing } : { ...existing, ...clone };
-            merged.set(key, mergeSelectionState(existing, clone, base));
+            const withOrigin = mergeSavedNameOriginState(existing, clone, base);
+            merged.set(key, mergeSelectionState(existing, clone, withOrigin));
         };
 
         (Array.isArray(localItems) ? localItems : []).forEach((item) => put(item, true));
@@ -7884,6 +7929,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
                 : (Array.isArray(items) ? items.filter(Boolean) : []);
             let likedSource = filterRemoved(Array.isArray(data.liked) ? data.liked : [], partnerLikedRemovalSource);
             let savedNamesSource = Array.isArray(data.savedNames) ? data.savedNames : [];
+            let savedNameMemosSource = Array.isArray(data.savedNameMemos) ? data.savedNameMemos : [];
             let readingStockSource = Array.isArray(data.readingStock) ? data.readingStock : [];
             let encounteredSource = Array.isArray(data.encounteredReadings) ? data.encounteredReadings : [];
             let hiddenReadingsSource = Array.isArray(data.hiddenReadings) ? data.hiddenReadings : [];
@@ -7906,6 +7952,9 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             }
             if (!flatSectionsOmitted && !savedNamesSource.length && Array.isArray(roomBackup.savedNames) && roomBackup.savedNames.length > 0) {
                 savedNamesSource = roomBackup.savedNames;
+            }
+            if (!savedNameMemosSource.length && Array.isArray(roomBackup.savedNameMemos) && roomBackup.savedNameMemos.length > 0) {
+                savedNameMemosSource = roomBackup.savedNameMemos;
             }
             if (!flatSectionsOmitted && !readingStockSource.length && Array.isArray(roomBackup.readingStock) && roomBackup.readingStock.length > 0) {
                 readingStockSource = roomBackup.readingStock;
@@ -8011,6 +8060,7 @@ MeimayShare.listenPartnerData = function (partnerUid) {
             this.partnerSnapshot = {
                 liked: hydratedSections.liked,
                 savedNames: hydratedSections.savedNames,
+                savedNameMemos: savedNameMemosSource,
                 readingStock: hydratedSections.readingStock,
                 encounteredReadings: hydratedSections.encounteredReadings,
                 hiddenReadings: readNormalizedHiddenReadingsFromSnapshot(hiddenReadingsSource.length > 0 ? hiddenReadingsSource : data.hiddenReadings),
@@ -8095,7 +8145,7 @@ MeimayShare.stopListening = function () {
     } else {
         this._partnerSnapshotPartnerUid = '';
     }
-    this.partnerSnapshot = { liked: [], savedNames: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
+    this.partnerSnapshot = { liked: [], savedNames: [], savedNameMemos: [], readingStock: [], encounteredReadings: [], hiddenReadings: [], likedRemoved: [], meimayBackup: null, backup: null, partnerUserBackup: null, premiumState: null, role: null, displayName: '', username: '', nickname: '', themeId: '' };
     if (typeof MeimayPartnerInsights !== 'undefined' && MeimayPartnerInsights && typeof MeimayPartnerInsights.clearCache === 'function') {
         MeimayPartnerInsights.clearCache('partner-stop');
     }

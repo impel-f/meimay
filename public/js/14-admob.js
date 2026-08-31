@@ -3660,27 +3660,26 @@ function formatPremiumMatrixCell(value) {
 
 function renderPremiumComparisonMatrix() {
     const rows = [
-        { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字・許容字体' },
+        { item: '使える漢字', free: '常用漢字', premium: '常用漢字\n＋人名用漢字' },
         { item: '広告', free: '表示あり', premium: '非表示' },
-        { item: '読みスワイプ', free: '1日100回', premium: '無制限' },
-        { item: '漢字スワイプ', free: '1日100回', premium: '無制限' },
-        { item: '詳しい漢字情報', free: '1日1字', premium: '自動表示' },
-        { item: '名前の由来生成', free: '1日1回', premium: '無制限' }
+        { item: '読み・漢字\nスワイプ', free: '1日100回', premium: '無制限' },
+        { item: '詳しい\n漢字情報', free: '1日1字', premium: '無制限' },
+        { item: '名前の\n由来生成', free: '1日1回', premium: '無制限' }
     ];
 
     return ''
         + '<div class="overflow-hidden rounded-[18px] border border-[#e4d9c6] bg-[#fffdf7]">'
         + '<div class="premium-comparison-grid border-b border-[#eadfcd] bg-[#f4ead8] px-1.5 py-2.5 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">'
-        + '<div class="flex items-center">できること</div>'
+        + '<div class="premium-comparison-label flex items-center justify-center text-center whitespace-nowrap">できること</div>'
         + '<div class="flex items-center justify-center">無料</div>'
         + '<div class="flex items-center justify-center text-[#8e6c36]">プレミアム</div>'
         + '</div>'
         + '<div class="divide-y divide-[#efe5d3]">'
         + rows.map(({ item, free, premium }) => ''
-            + '<div class="premium-comparison-grid items-stretch px-1.5 py-2.5 text-[10px] sm:text-[11px] leading-[1.5] text-[#2f271e]">'
-            + '<div class="flex items-center font-bold">' + formatPremiumMatrixCell(item) + '</div>'
-            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell min-h-[38px] w-full rounded-[12px] bg-white px-1.5 py-2 text-[10px] sm:text-[11px] font-semibold text-[#6c6252]">' + formatPremiumMatrixCell(free) + '</span></div>'
-            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell premium-matrix-cell--premium min-h-[38px] rounded-[12px] border border-[#dfc28f] bg-[#fff5df] px-1.5 py-2 text-[10px] sm:text-[11px] font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
+            + '<div class="premium-comparison-grid items-stretch px-1.5 py-3 text-[11px] sm:text-[12px] leading-[1.5] text-[#2f271e]">'
+            + '<div class="premium-comparison-label flex flex-col items-center justify-center px-1 text-center text-[12px] sm:text-[13px] font-bold">' + formatPremiumMatrixCell(item) + '</div>'
+            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell min-h-[38px] w-full rounded-[12px] bg-white px-1.5 py-2 text-[11px] sm:text-[12px] font-semibold text-[#6c6252]">' + formatPremiumMatrixCell(free) + '</span></div>'
+            + '<div class="flex items-center justify-center text-center"><span class="premium-matrix-cell premium-matrix-cell--premium min-h-[38px] rounded-[12px] border border-[#dfc28f] bg-[#fff5df] px-1.5 py-2 text-[11px] sm:text-[12px] font-black text-[#5b4f3f]">' + formatPremiumMatrixCell(premium) + '</span></div>'
             + '</div>'
         ).join('')
         + '</div></div>';
@@ -3778,21 +3777,19 @@ function renderPremiumPlanCards(state) {
             const note = plan.note || '';
             const buttonClass = 'bg-[#fffaf2] text-[#5b4f3f] border border-[#d9c39f] shadow-[0_4px_12px_rgba(123,95,52,0.06)]';
             return ''
-                + '<div class="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3.5 bg-white">'
-                + '<div class="min-w-0">'
+                + '<div class="premium-plan-row bg-white">'
+                + '<div class="premium-plan-copy min-w-0">'
                 + '<div class="flex items-baseline">'
                 + '<span class="text-[13px] sm:text-[14px] font-black text-[#4b3a24]">' + escapePremiumHtml(plan.title) + '</span>'
                 + '</div>'
-                + '<div class="mt-1.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[#3e3226]">'
+                + (note ? '<span class="premium-plan-note">' + escapePremiumHtml(note) + '</span>' : '')
+                + (plan.description ? '<span class="premium-plan-description">' + escapePremiumHtml(plan.description) + '</span>' : '')
+                + '</div>'
+                + '<div class="premium-plan-purchase">'
                 + '<span class="premium-plan-price">' + escapePremiumHtml(plan.price) + '</span>'
-                + (plan.description ? '<span class="text-[10px] font-medium text-[#8b7e66]">' + escapePremiumHtml(plan.description) + '</span>' : '')
-                + '</div>'
-                + '</div>'
-                + '<div class="flex min-w-[6.2rem] flex-col items-center gap-1">'
-                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="min-w-[6.2rem] rounded-[999px] px-3.5 py-2.5 text-[12px] font-black active:scale-[0.99] transition-transform ' + buttonClass + '">'
+                + '<button type="button" data-product-id="' + escapePremiumHtml(plan.id) + '" onclick="PremiumManager.startPurchase(this.dataset.productId)" class="premium-plan-action rounded-[999px] text-[12px] font-black active:scale-[0.99] transition-transform ' + buttonClass + '">'
                 + escapePremiumHtml(plan.actionLabel)
                 + '</button>'
-                + (note ? '<span class="text-[10px] leading-none font-bold text-[#9a8a70]">' + escapePremiumHtml(note) + '</span>' : '')
                 + '</div>'
                 + '</div>';
         }).join('')

@@ -9,6 +9,7 @@ const originSource = fs.readFileSync(
 );
 const detailDataset = require('../public/data/kanji_detail_dataset.json');
 const etymologyFacts = require('../public/data/kanji_etymology_facts.json');
+const staticDetails = require('../public/data/kanji_static_details.json').entries;
 
 function getOriginText(kanji) {
   return (detailDataset[kanji]?.sections || [])
@@ -36,18 +37,46 @@ test('kanji prompt lets AI rank only verified compounds and requires meanings', 
 test('name origin AI writes only the editable wish draft from fixed kanji meanings', () => {
     assert.match(originSource, /キーは"originDraft"だけ/);
     assert.match(originSource, /この名前に込める願い/);
-    assert.match(originSource, /文案は70〜110字/);
-    assert.match(originSource, /「〜のように」「〜のような」という比喩も使いません/);
-    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v24_20260826'/);
+    assert.match(originSource, /const lengthGuide = givenNameLength <= 1 \? '50〜80字' : '65〜105字'/);
+    assert.match(originSource, /意味から無理なく直接つながる理想像へ一段だけ広げて構いません/);
+    assert.match(originSource, /植物の名であることだけから「健やか」「まっすぐ」「芯が強い」などの性質を作る/);
+    assert.match(originSource, /漢字・植物・字の働きをそのまま人物へ置き換える比喩は使いません/);
+    assert.match(originSource, /2文目はそこから直接つながる一つの願いを書きます/);
+    assert.match(originSource, /「笑顔あふれる日々」「周りを照らす」など入力からさらに結果を足す表現/);
+    assert.match(originSource, /「込めることができます」「願いが込められます」のような第三者視点にはしません/);
+    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v33_20260831'/);
     assert.match(originSource, /const expectedKeys = \['originDraft'\]/);
     assert.match(originSource, /const nameIndex = originDraft\.indexOf\(givenName\)/);
     assert.match(originSource, /すべての語義を無理に詰め込みません/);
+    assert.match(originSource, /2文目にはwishRoleがsemanticの字を明記/);
+    assert.match(originSource, /名前由来の願いに反映されていない漢字があります/);
+    assert.match(originSource, /nameSpecificContext/);
+    assert.match(originSource, /verifiedCulturalReferences/);
+    assert.match(originSource, /その漢字ならではの背景を優先/);
+    assert.match(originSource, /花言葉はnameSpecificContextに明記されている場合だけ使用/);
+    assert.match(originSource, /漢字や植物そのものを人物の比喩にしません/);
+    assert.match(originSource, /NAME_ORIGIN_VERIFIED_WISH_BRIDGES/);
+    assert.match(originSource, /NAME_ORIGIN_SEMANTIC_COMPOUNDS/);
+    assert.match(originSource, /verifiedWishBridgeがある字は、その確認済みの一段連想を使えます/);
+    assert.match(originSource, /「伊」に含まれる「尹」から「治める」を導くような説明は禁止します/);
     assert.match(originSource, /getNameOriginSoundText\(result\)/);
     assert.match(originSource, /const localCheck = getNameOriginLocalCheckText\(result\)/);
+    assert.match(originSource, /function getNameOriginMeaningParts\(result = currentBuildResult\)/);
+    assert.match(originSource, /part\?\._compoundOrigin && Array\.isArray\(part\.sourceParts\)/);
+    assert.match(originSource, /const meaningParts = getNameOriginMeaningParts\(result\)/);
+    assert.match(originSource, /const originDetails = meaningParts\.map/);
+    assert.match(originSource, /return getNameOriginMeaningParts\(result\)/);
     assert.match(originSource, /parsed\.decision \|\| parsed\['この名前の決め手'\]/);
     assert.match(originSource, /parsed\.sound \|\| parsed\['呼んだときの印象'\]/);
     assert.doesNotMatch(originSource, /キーは "decision", "wish", "sound", "check" の4つだけ/);
     assert.doesNotMatch(originSource, /renderNameOriginSection\('この名前の決め手'/);
+});
+
+test('kana-only names do not render fake kanji meanings or reading warnings', () => {
+    assert.match(originSource, /function isNameOriginKanjiText\(value\)/);
+    assert.match(originSource, /if \(!kanji \|\| !isNameOriginKanjiText\(kanji\)\) return null/);
+    assert.match(originSource, /filter\(\(\{ char \}\) => !!findNameOriginMasterItemByKanji\(char\)\)/);
+    assert.match(originSource, /if \(chars\.length === 0\) return ''/);
 });
 
 test('kanji details put deep meaning first and cap visible idioms', () => {
@@ -75,16 +104,19 @@ test('truncated kanji sections are repaired instead of cached', () => {
   assert.match(originSource, /!sectionMap\.has\('代表的な熟語'\)/);
 });
 
-test('name origins reject common meaning expansions not present in source data', () => {
-  assert.match(originSource, /健やか\|すこやか/);
-  assert.match(originSource, /瑞々し\|みずみずし/);
-  assert.match(originSource, /前向き\|前を向/);
-  assert.match(originSource, /朗らか\|ほがらか/);
-  assert.match(originSource, /output: \/心\//);
-  assert.match(originSource, /output: \/\(\?:歩み\|歩む\)\//);
+test('name origins allow modest wishes while keeping dictionary facts grounded', () => {
+  assert.match(originSource, /「温かな縁」「力強く歩む」「清らかな心」程度の親の願いは使用できます/);
+  assert.match(originSource, /\['伊', '「これ・かれ」と人や物を指す働きから、一人ひとりの存在を大切にする'\]/);
+  assert.match(originSource, /\['奈', 'もと果樹の名を表したことから、日々の歩みが実を結ぶ'\]/);
+  assert.match(originSource, /\['亜', '「つぐ・次に位置する」という意味から、一歩ずつ次の段階へ進む'\]/);
+  assert.doesNotMatch(originSource, /NAME_ORIGIN_WISH_OPTIONAL_KANJI/);
+  assert.doesNotMatch(originSource, /NAME_ORIGIN_ALL_SUPPORT_WISH_BRIDGES/);
+  assert.doesNotMatch(originSource, /const guardedExpansions/);
   assert.doesNotMatch(originSource, /人にやさしく、自分らしさを大切にしながら歩んでほしい/);
-  assert.match(originSource, /sourceMeanings/);
-  assert.match(originSource, /漢字データにない性格・能力・象徴/);
+  assert.match(originSource, /漢字の辞書的な意味は入力された漢字データだけを事実として扱います/);
+  assert.match(staticDetails['伊'].meaningDeepDive, /「これ・かれ」.*一人ひとりの存在/);
+  assert.doesNotMatch(staticDetails['伊'].meaningDeepDive, /治める|正す/);
+  assert.match(staticDetails['奈'].meaningDeepDive, /カラナシ.*実を結ぶ/);
 });
 
 test('known regression kanji retain the verified glyph components', () => {

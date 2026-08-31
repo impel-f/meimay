@@ -82,16 +82,16 @@ function renderSwipeEmptyStateOption({ label, detail, count, onclick, tone = 'wa
     const style = tones[tone] || tones.warm;
     const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
     const countBadge = safeCount > 0
-        ? `<span class="shrink-0 rounded-full border ${style.count} px-2.5 py-1 text-[10px] font-black leading-none">+${safeCount}件</span>`
+        ? `<span class="swipe-empty-state-count border ${style.count}">+${safeCount}件</span>`
         : '';
 
     return `
-        <button onclick="${onclick}" class="w-full rounded-[20px] border ${style.wrap} px-4 py-3 text-left transition active:scale-[0.99]">
-            <div class="flex items-center justify-between gap-3">
-                <span class="min-w-0 text-[13px] font-black ${style.label}">${escapeSwipeEmptyStateText(label)}</span>
+        <button onclick="${onclick}" class="swipe-empty-state-option border ${style.wrap}">
+            <div class="swipe-empty-state-option-head">
+                <span class="swipe-empty-state-option-label ${style.label}">${escapeSwipeEmptyStateText(label)}</span>
                 ${countBadge}
             </div>
-            <div class="mt-1 text-[11px] font-bold leading-relaxed ${style.detail}">${escapeSwipeEmptyStateText(detail)}</div>
+            <div class="swipe-empty-state-option-detail ${style.detail}">${escapeSwipeEmptyStateText(detail)}</div>
         </button>
     `;
 }
@@ -229,12 +229,12 @@ function getKanjiDetailActionCopy(access = {}) {
     if (!access.canUnlockToday && !access.canView) {
         return {
             label: '<span>👑</span> プレミアムで意味・成り立ちを見る',
-            note: '無料で見られる1字分は利用済みです。明日また使えます。'
+            note: '今日の無料分は利用済みです（1日1字）'
         };
     }
     return {
         label: '<span>📖</span> 意味・成り立ちを詳しく見る',
-        note: '無料で1日1字まで見られます。'
+        note: '1日1字、無料で詳しく見られます'
     };
 }
 
@@ -245,7 +245,7 @@ function getKanjiDetailAutoDisplayCopy(access = {}) {
     if (access.source === 'premium') {
         return '<span>👑</span> プレミアムで詳細を表示中';
     }
-    return '<span>✓</span> この漢字の詳細は解放済み';
+    return '<span>✓</span> この漢字の詳細を表示中';
 }
 
 function refreshKanjiDetailAiButtonState(button = document.getElementById('btn-ai-kanji-detail-action')) {
@@ -932,11 +932,7 @@ async function showKanjiDetail(data) {
         headerBg.style.textShadow = '0 1px 2px rgba(255,255,255,0.8)';
     }
 
-    let headerMeaning = clean(data['意味']);
-    if (!isKanaDetail && typeof loadKanjiStaticDetails === 'function') {
-        const staticDetails = await loadKanjiStaticDetails();
-        headerMeaning = clean(staticDetails?.[data['漢字']]?.namingMeaning) || headerMeaning;
-    }
+    const headerMeaning = clean(data['意味']);
 
     // ヘッダーの意味表示
     if (headerMeaningEl) {

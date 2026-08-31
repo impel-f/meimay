@@ -143,8 +143,7 @@ test('dictionary meanings stay collapsed until the user opens them', () => {
   const css = fs.readFileSync(path.join(root, 'public', 'css', 'main.css'), 'utf8');
 
   assert.match(renderSource, /id="header-dictionary-meaning"/);
-  assert.match(renderSource, /const staticDetails = await loadKanjiStaticDetails\(\)/);
-  assert.match(renderSource, /staticDetails\?\.\[data\['漢字'\]\]\?\.namingMeaning/);
+  assert.match(renderSource, /const headerMeaning = clean\(data\['意味'\]\)/);
   assert.match(renderSource, /escapeKanjiDetailHtml\(headerMeaning \|\| '意味データなし'\)/);
   assert.match(source, /function renderKanjiDictionaryMeaning/);
   assert.match(source, /<details class="kanji-dictionary-details">/);
@@ -258,7 +257,8 @@ test('name-origin prompt uses fixed meanings and produces one editable origin dr
   const source = fs.readFileSync(path.join(root, 'public', 'js', '08-origin.js'), 'utf8');
   assert.match(source, /kanjiStaticDetailsCache\?\.\[kanji\]\?\.namingMeaning/);
   assert.match(source, /キーは"originDraft"だけ/);
-  assert.match(source, /漢字データにない性格・能力・象徴/);
+  assert.match(source, /漢字の辞書的な意味は入力された漢字データだけを事実として扱います/);
+  assert.match(source, /意味から無理なく直接つながる理想像へ一段だけ広げて構いません/);
   assert.match(source, /この名前に込める願い/);
   assert.doesNotMatch(source, /renderNameOriginSection\('この名前の決め手'/);
 });

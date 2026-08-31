@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v24_20260826';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v33_20260831';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -15,7 +15,7 @@ const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
 const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
-const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.9';
+const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.10';
 let nameOriginGenerationInFlight = false;
 let currentNameOriginRenderTarget = null;
 let currentNameOriginRenderOptions = {};
@@ -112,6 +112,24 @@ const NAME_ORIGIN_HARD_COMPOUND_NOTES = {
 };
 
 const NAME_ORIGIN_INITIALS_CAUTION = new Set(['WC', 'SM', 'NG', 'AV', 'DV']);
+const NAME_ORIGIN_VERIFIED_WISH_BRIDGES = new Map([
+    ['伊', '「これ・かれ」と人や物を指す働きから、一人ひとりの存在を大切にする'],
+    ['奈', 'もと果樹の名を表したことから、日々の歩みが実を結ぶ'],
+    ['亜', '「つぐ・次に位置する」という意味から、一歩ずつ次の段階へ進む'],
+    ['之', '「ゆく・いたる」から、自分の道を前へ進む'],
+    ['乃', '文を次へつなぐ働きから、縁や思いを次へつなぐ'],
+    ['也', '断定の働きから、自分らしい確かな軸を持つ'],
+    ['羅', '広く連ね集める意味から、多様な縁を結ぶ']
+]);
+const NAME_ORIGIN_SEMANTIC_COMPOUNDS = new Map([
+    ['茉莉', {
+        '漢字': '茉莉',
+        '意味': '二字一組で、香り高い花を咲かせるジャスミンを表します。',
+        nameSpecificContext: '「茉莉」という二字一組で、清楚な花の姿とやわらかく広がる香りを感じさせます。',
+        verifiedWishBridge: '清楚な花の姿とやわらかな香りから、清らかさと品のよさを大切にする',
+        _semanticCompoundOrigin: true
+    }]
+]);
 
 function _getDailyNameOriginKey() {
     const d = new Date();
@@ -179,7 +197,9 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     if (parsed.originDraft.length > 150) throw new Error('名前由来の文章が長すぎます。');
     let originDraft = normalizeNameOriginSectionValue(parsed.originDraft, 150);
     const givenName = getNameOriginGivenName(result);
-    if (originDraft.length < 55) throw new Error('名前由来の文章が短すぎます。');
+    const givenNameLength = Array.from(givenName || '').length;
+    const minimumLength = givenNameLength <= 1 ? 45 : 55;
+    if (originDraft.length < minimumLength) throw new Error('名前由来の文章が短すぎます。');
     if (givenName && !originDraft.includes(`「${givenName}」`)) {
         const nameIndex = originDraft.indexOf(givenName);
         if (nameIndex < 0) throw new Error('名前由来に対象の名前が含まれていません。');
@@ -189,27 +209,22 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     if ((originDraft.match(/[。！？!?]/g) || []).length > 2) {
         throw new Error('名前由来の文数が多すぎます。');
     }
-    const bannedPattern = /(?:芯の強さ|葵のようにまっすぐ|自然に伝えられます|説明できます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく|輝く未来|道しるべ|のように|のような)/;
-    const sourceMeanings = getNameOriginCombination(result)
-        .map((part) => getNameOriginMeaning(part))
-        .join(' ');
-    const guardedExpansions = [
-        { output: /(?:前向き|前を向)/, source: /(?:前向き|前を向)/ },
-        { output: /(?:健やか|すこやか)/, source: /(?:健やか|すこやか|健康|丈夫)/ },
-        { output: /(?:温か|暖か|あたたか)/, source: /(?:温か|暖か|あたたか)/ },
-        { output: /(?:瑞々し|みずみずし)/, source: /(?:瑞々し|みずみずし)/ },
-        { output: /(?:朗らか|ほがらか)/, source: /(?:朗らか|ほがらか)/ },
-        { output: /心/, source: /心/ },
-        { output: /(?:歩み|歩む)/, source: /歩/ },
-        { output: /たくまし/, source: /(?:たくまし|強い|勇)/ },
-        { output: /思いやり/, source: /(?:思いやり|慈愛|心)/ }
-    ];
-    if (bannedPattern.test(originDraft)) throw new Error('名前由来に根拠外の定型表現があります。');
-    for (const rule of guardedExpansions) {
-        if (rule.output.test(originDraft) && !rule.source.test(sourceMeanings)) {
-            throw new Error('名前由来に漢字データ外の意味があります。');
-        }
+    const originSentences = originDraft
+        .split(/[。！？!?]/)
+        .map(sentence => sentence.trim())
+        .filter(Boolean);
+    const wishSentence = originSentences[1] || '';
+    const meaningParts = getNameOriginMeaningParts(result);
+    const wishKanji = [...new Set(meaningParts
+        .map((part) => getNameOriginKanjiValue(part))
+        .filter((kanji) => kanji && kanji !== '々' && isNameOriginKanjiText(kanji))
+        .flatMap((kanji) => Array.from(kanji)))];
+    const requiredWishKanji = wishKanji;
+    if (requiredWishKanji.some((kanji) => !wishSentence.includes(kanji))) {
+        throw new Error('名前由来の願いに反映されていない漢字があります。');
     }
+    const bannedPattern = /(?:自然に伝えられます|説明できます|込めることができます|願いが込められます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく|輝く未来|道しるべ)/;
+    if (bannedPattern.test(originDraft)) throw new Error('名前由来に根拠外の定型表現があります。');
     return JSON.stringify({ originDraft });
 }
 
@@ -337,6 +352,31 @@ function getNameOriginCombination(result = currentBuildResult) {
         index += 1;
     }
 
+    return merged;
+}
+
+function getNameOriginMeaningParts(result = currentBuildResult) {
+    const expanded = getNameOriginCombination(result).flatMap((part) => {
+        if (part?._compoundOrigin && Array.isArray(part.sourceParts) && part.sourceParts.length > 0) {
+            return part.sourceParts;
+        }
+        const kanji = getNameOriginKanjiValue(part);
+        const chars = Array.from(kanji);
+        if (chars.length <= 1) return [part];
+        return chars.map((char) => findNameOriginMasterItemByKanji(char) || { '漢字': char });
+    });
+    const merged = [];
+    for (let index = 0; index < expanded.length;) {
+        const pair = expanded.slice(index, index + 2).map(getNameOriginKanjiValue).join('');
+        const semanticCompound = NAME_ORIGIN_SEMANTIC_COMPOUNDS.get(pair);
+        if (semanticCompound) {
+            merged.push({ ...semanticCompound, sourceParts: expanded.slice(index, index + 2) });
+            index += 2;
+            continue;
+        }
+        merged.push(expanded[index]);
+        index += 1;
+    }
     return merged;
 }
 
@@ -600,7 +640,8 @@ function persistNameOriginToSavedItems(target, originText, options = {}) {
         origin: cleanText,
         originPromptVersion: NAME_ORIGIN_PROMPT_VERSION,
         originModelCacheVersion: String(options.modelCacheVersion || getActiveAiModelCacheVersionSync()).trim(),
-        originModelName: String(options.modelName || '').trim()
+        originModelName: String(options.modelName || '').trim(),
+        originUpdatedAt: String(options.originUpdatedAt || new Date().toISOString()).trim()
     };
 
     let changed = false;
@@ -634,9 +675,19 @@ function clearPersistedNameOrigin(target, options = {}) {
     const cloudCacheKey = getNameOriginCacheKey(target, modelCacheVersion);
     removeNameOriginCache(target);
     markNameOriginCacheReset(target);
-    if (target) target.origin = '';
+    if (target) {
+        target.origin = '';
+        target.originPromptVersion = '';
+        target.originModelCacheVersion = '';
+        target.originModelName = '';
+        target.originUpdatedAt = '';
+    }
     if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
         currentBuildResult.origin = '';
+        currentBuildResult.originPromptVersion = '';
+        currentBuildResult.originModelCacheVersion = '';
+        currentBuildResult.originModelName = '';
+        currentBuildResult.originUpdatedAt = '';
     }
 
     let changed = false;
@@ -647,7 +698,8 @@ function clearPersistedNameOrigin(target, options = {}) {
                 origin: '',
                 originPromptVersion: '',
                 originModelCacheVersion: '',
-                originModelName: ''
+                originModelName: '',
+                originUpdatedAt: ''
             };
             changed = true;
         } else {
@@ -659,7 +711,8 @@ function clearPersistedNameOrigin(target, options = {}) {
                     origin: '',
                     originPromptVersion: '',
                     originModelCacheVersion: '',
-                    originModelName: ''
+                    originModelName: '',
+                    originUpdatedAt: ''
                 };
             });
         }
@@ -742,10 +795,10 @@ function getNameOriginMeaningSummary(part) {
 }
 
 function getNameOriginMeaningRows(result = currentBuildResult) {
-    return getNameOriginCombination(result)
+    return getNameOriginMeaningParts(result)
         .map((part) => {
             const kanji = getNameOriginKanjiValue(part);
-            if (!kanji) return null;
+            if (!kanji || !isNameOriginKanjiText(kanji)) return null;
             return {
                 kanji,
                 meaning: getNameOriginMeaningSummary(part)
@@ -1081,12 +1134,18 @@ function findNameOriginMasterItemByKanji(kanji) {
     return master.find(item => getNameOriginKanjiValue(item) === value) || null;
 }
 
+function isNameOriginKanjiText(value) {
+    return Array.from(String(value || '')).some((char) => !!findNameOriginMasterItemByKanji(char));
+}
+
 function getNameOriginCharacterParts(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
-    const chars = Array.from(givenName || '').filter(Boolean);
+    const chars = Array.from(givenName || '')
+        .map((char, originalIndex) => ({ char, originalIndex }))
+        .filter(({ char }) => !!findNameOriginMasterItemByKanji(char));
     const raw = getNameOriginRawCombination(result);
-    return chars.map((char, index) => {
-        const rawPart = raw[index];
+    return chars.map(({ char, originalIndex }) => {
+        const rawPart = raw[originalIndex];
         const rawKanji = getNameOriginKanjiValue(rawPart);
         const source = rawKanji === char ? rawPart : findNameOriginMasterItemByKanji(char);
         return {
@@ -1129,6 +1188,7 @@ function getNameOriginLocalCheckText(result = currentBuildResult, options = {}) 
     const givenName = getNameOriginGivenName(result);
     const surname = getNameOriginSurnameValue(result);
     const chars = getNameOriginCharacterParts(result);
+    if (chars.length === 0) return '';
     const kanjiChars = chars.map(item => item.kanji);
     const readingDifficultyCheck = getNameOriginReadingDifficultyCheckText(result);
     if (includeReadingDifficulty && readingDifficultyCheck) checks.push(readingDifficultyCheck);
@@ -1253,8 +1313,15 @@ function repairNameOriginQuoteText(text, result = currentBuildResult) {
 
 function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     const givenName = getNameOriginGivenName(result);
-    const meaningPhrases = getNameOriginCombination(result)
-        .map((part) => getNameOriginMeaning(part).replace(/。$/, ''))
+    const meaningPhrases = getNameOriginMeaningParts(result)
+        .map((part) => {
+            const kanji = getNameOriginKanjiValue(part);
+            const meaning = getNameOriginMeaning(part)
+                .replace(/[。．]+$/, '')
+                .replace(/(?:を表|を意味)します$/, '')
+                .trim();
+            return kanji && meaning ? `「${kanji}」が持つ${meaning}` : '';
+        })
         .filter(Boolean);
     const legacy = repairNameOriginQuoteText(text, result);
 
@@ -1265,10 +1332,16 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
     }
 
     const joinedMeanings = meaningPhrases.length > 0
-        ? meaningPhrases.join('、また、')
+        ? meaningPhrases.join('と、')
         : '一つひとつの漢字が持つ意味';
+    const wishKanji = [...new Set(getNameOriginMeaningParts(result)
+        .map((part) => getNameOriginKanjiValue(part))
+        .filter((kanji) => kanji && kanji !== '々' && isNameOriginKanjiText(kanji)))]
+        .map((kanji) => `「${kanji}」`)
+        .join('と');
+    const wishSubject = wishKanji || '一つひとつの漢字';
     return {
-        originDraft: `「${givenName}」には、${joinedMeanings}という意味を重ねています。その意味を大切にしてほしいという願いを込めた名前です。`
+        originDraft: `「${givenName}」は、${joinedMeanings}を重ねた名前です。${wishSubject}に込めた意味を大切にしながら歩んでほしいという願いを込めています。`
     };
 }
 
@@ -1426,26 +1499,58 @@ function stringifyNameOriginModel(model) {
 
 function buildNameOriginPrompt(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
-    const originDetails = getNameOriginCombination(result).map((part) => {
+    const givenNameLength = Array.from(givenName || '').length;
+    const lengthGuide = givenNameLength <= 1 ? '50〜80字' : '65〜105字';
+    const meaningParts = getNameOriginMeaningParts(result);
+    const originDetails = meaningParts.map((part) => {
         const kanji = getNameOriginKanjiValue(part);
         const namingMeaning = kanji === '々'
             ? '直前の漢字を重ねる記号。前の字の印象を重ねて響かせる。'
             : getNameOriginMeaning(part);
-        return { kanji, namingMeaning };
+        const reviewedDetails = Array.from(kanji).length === 1
+            ? kanjiStaticDetailsCache?.[kanji]
+            : null;
+        const nameSpecificContext = String(part?.nameSpecificContext || reviewedDetails?.meaningDeepDive || '').trim();
+        const verifiedCulturalReferences = (reviewedDetails?.compounds || [])
+            .filter((item) => /(?:祭|紋|節|祝|伝統|文化|神事|家紋)/.test(`${item?.word || ''}${item?.meaning || ''}`))
+            .slice(0, 3)
+            .map((item) => `${item.word}（${item.reading}）：${item.meaning}`);
+        return {
+            kanji,
+            namingMeaning,
+            wishRole: 'semantic',
+            verifiedWishBridge: String(part?.verifiedWishBridge || (
+                Array.from(kanji).length === 1
+                    ? (NAME_ORIGIN_VERIFIED_WISH_BRIDGES.get(kanji) || '')
+                    : ''
+            )).trim(),
+            nameSpecificContext,
+            verifiedCulturalReferences
+        };
     }).filter(item => item.kanji && item.namingMeaning);
     const originDataText = JSON.stringify(originDetails);
 
     return `
 名付けアプリに掲載する「この名前に込める願い」の文案を、次の確定情報だけから作成してください。
 
-出力はJSONのみ、キーは"originDraft"だけです。文案は70〜110字、です・ます調の1〜2文にしてください。
-冒頭で名前を「${givenName || ''}」と正確に一度だけ書き、各漢字の意味を自然につないで、どのような願いを込める名前かを伝えてください。
+出力はJSONのみ、キーは"originDraft"だけです。文案は${lengthGuide}、です・ます調の2文にしてください。
+冒頭で名前を「${givenName || ''}」と正確に一度だけ書き、漢字の意味と、そこから親が自然に込められる願いを伝えてください。
 
-漢字データにない性格・能力・象徴・植物の性質・歴史・縁起・故事は追加しません。意味の言い換えはできますが、新しい理想像を作りません。
+漢字の辞書的な意味は入力された漢字データだけを事実として扱います。性格・能力・歴史・縁起・故事を漢字の事実として追加しません。
+願いを作るときは、一般的なカテゴリーより、その漢字ならではの背景を優先します。nameSpecificContextやverifiedCulturalReferencesに、紋所・祭礼・象徴・伝統・故事などがある場合は、その固有背景を願いに生かしてください。たとえば紋所なら「家族や受け継がれてきたものを大切にする」、伝統的な祭礼なら「文化や人のつながりを大切にする」という一段の広げ方ができます。
+文化的背景を願いへつなぐときは、「『葵』のように受け継がれる」のように漢字や植物そのものを人物の比喩にしません。「『葵』が紋所や祭礼として受け継がれてきた背景にちなみ、家族や大切な文化を受け継いでほしい」のように、確認できる背景と親の願いを明確につないでください。「受け継がれてきたつながり」のように、何を指すか分からない抽象表現も避けます。
+願いの部分では、入力された意味から無理なく直接つながる理想像へ一段だけ広げて構いません。たとえば「大空・広い空間」から「広い視野やおおらかさ」、「光・明るさ」から「明るく過ごす」という広げ方はできます。その漢字固有の背景が入力にあるのに、「植物だから花開く」「自然を大切にする」のような同種の字すべてに使える一般論だけで済ませません。
+verifiedWishBridgeがある字は、その確認済みの一段連想を使えます。verifiedWishBridgeがない字は、namingMeaningとnameSpecificContextから一段で説明できる範囲だけを使ってください。
+成り立ちを願いに生かす場合は、nameSpecificContextに明記された検証済みの字全体の由来または意味を担う要素だけを使います。形声文字で音を表す要素が単独で持つ意味を、その漢字の意味として追加しません。「伊」に含まれる「尹」から「治める」を導くような説明は禁止します。
+ただし、植物の名であることだけから「健やか」「まっすぐ」「芯が強い」などの性質を作ることや、入力から二段以上離れた連想はしません。願いへ直接変換しにくい漢字も省略せず、その字が添える自然・季節・色・文化などの印象を、入力された事実の範囲で願いに反映します。
+wishRoleがsemanticの字は、確認済みの意味または一段の連想を願いへ反映してください。意味から自然に一段つながる「温かな縁」「力強く歩む」「清らかな心」程度の親の願いは使用できます。辞書的意味そのものと親の願いは混同せず、「〜にちなみ」「〜という意味から」でつないでください。
+花言葉はnameSpecificContextに明記されている場合だけ使用できます。同じ漢字で複数の植物を指す場合があるため、知識だけで花言葉を補ったり、別種の花言葉を転用したりしません。熟語全体の意味を、その熟語に含まれる一字だけの意味として扱うことも禁止します。
 複数の語義がある場合は、名付けの願いとして自然で肯定的または中立的な意味だけを選びます。すべての語義を無理に詰め込みません。
-各漢字の説明は入力文に近い語で書き、入力にない「心」「成長」「優しさ」などを補いません。「〜のように」「〜のような」という比喩も使いません。
+「『玲』のように」「花のように」「『介』として」のように、漢字・植物・字の働きをそのまま人物へ置き換える比喩は使いません。「〜にちなみ」「〜という意味から」と、事実と願いのつながりを明示してください。
 「人生の荒波」「未来を切り拓く」「道しるべ」「可能性の扉」「輝く未来」のような定型比喩、名字・響き・読みやすさ、親が実際に選んだ理由の断定は書きません。
-根拠に迷う内容は削り、文章を膨らませるための推測はしません。
+1文目はすべての漢字または二字一組の意味と組み合わせを説明し、2文目はそこから直接つながる一つの願いを書きます。2文目にはwishRoleがsemanticの字を明記し、どの字が願いのどの部分につながるか分かる文章にしてください。複数のsemanticの字がある場合は、字ごとの願いを機械的に列挙せず、名前全体として自然な一つの願いにまとめます。二字一組で意味を持つデータは分解せず、そのまとまり全体から願いを作ります。
+親がそのまま家族に伝えられる、温かく具体的な文にします。「笑顔あふれる日々」「周りを照らす」など入力からさらに結果を足す表現や、「植物に親しんでほしい」「花の香りで周囲を和ませる」のような不自然な願いは避けます。「美しく澄んだ音」から「美しい心」へ意味の対象をすり替えることも禁止します。根拠に迷う内容は削り、字数を満たすためだけの推測はしません。
+文末は親自身の言葉として「〜という願いを込めています。」または「〜という思いを込めています。」と結びます。「込めることができます」「願いが込められます」のような第三者視点にはしません。
 
 JSON形式: {"originDraft":""}
 名前: ${givenName || ''}
@@ -1499,17 +1604,20 @@ async function generateOrigin(options = {}) {
         }
     }
     if (cachedText && !options.force) {
+        const originUpdatedAt = new Date().toISOString();
         target.origin = cachedText;
         target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
         target.originModelCacheVersion = modelCacheVersion;
         target.originModelName = cachedModelName;
+        target.originUpdatedAt = originUpdatedAt;
         if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
             currentBuildResult.origin = cachedText;
             currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
             currentBuildResult.originModelCacheVersion = modelCacheVersion;
             currentBuildResult.originModelName = cachedModelName;
+            currentBuildResult.originUpdatedAt = originUpdatedAt;
         }
-        const cacheMeta = { modelCacheVersion, modelName: cachedModelName };
+        const cacheMeta = { modelCacheVersion, modelName: cachedModelName, originUpdatedAt };
         saveNameOriginCache(target, cachedText, cacheMeta);
         persistNameOriginToSavedItems(target, cachedText, { ...options, ...cacheMeta });
         renderAIOriginResult(target, cachedText, false, options);
@@ -1567,17 +1675,20 @@ async function generateOrigin(options = {}) {
         const aiText = validateGeneratedNameOriginText(data.text, target);
         if (!aiText) throw new Error('由来文を取得できませんでした。');
 
+        const originUpdatedAt = new Date().toISOString();
         target.origin = aiText;
         target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
         target.originModelCacheVersion = modelCacheVersion;
         target.originModelName = modelName;
+        target.originUpdatedAt = originUpdatedAt;
         if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
             currentBuildResult.origin = aiText;
             currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
             currentBuildResult.originModelCacheVersion = modelCacheVersion;
             currentBuildResult.originModelName = modelName;
+            currentBuildResult.originUpdatedAt = originUpdatedAt;
         }
-        const cacheMeta = { modelCacheVersion, modelName };
+        const cacheMeta = { modelCacheVersion, modelName, originUpdatedAt };
         saveNameOriginCache(target, aiText, cacheMeta);
         persistNameOriginToSavedItems(target, aiText, { ...options, ...cacheMeta });
         try {

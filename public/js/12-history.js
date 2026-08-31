@@ -1042,11 +1042,61 @@ function canOpenSavedKanjiDetail(item, part, options = {}) {
     return (savedUnlockAllowed && getSavedKanjiDetailUnlockSet(item).has(kanji)) || isSavedKanjiUnlockedByStock(kanji);
 }
 
-function canEditSavedNameMemo(item, source = 'own') {
+const SAVED_NAME_SHARED_MEMO_KEY = 'meimay_saved_name_shared_memos_v1';
+
+function getSavedNameSharedMemosForSync() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(SAVED_NAME_SHARED_MEMO_KEY) || '[]');
+        return (Array.isArray(parsed) ? parsed : [])
+            .map((entry) => ({
+                candidateKey: String(entry?.candidateKey || '').trim().slice(0, 240),
+                message: String(entry?.message || '').trim().slice(0, 100),
+                updatedAt: String(entry?.updatedAt || '').trim().slice(0, 40)
+            }))
+            .filter((entry) => entry.candidateKey && entry.message)
+            .slice(-100);
+    } catch (error) {
+        return [];
+    }
+}
+
+function getSavedNameSharedMemo(candidateKey, source = 'own') {
+    const key = String(candidateKey || '').trim();
+    if (!key) return null;
+    const partnerSnapshot = typeof MeimayShare !== 'undefined' && MeimayShare
+        ? MeimayShare.partnerSnapshot
+        : null;
+    const list = source === 'partner'
+        ? (Array.isArray(partnerSnapshot?.savedNameMemos) ? partnerSnapshot.savedNameMemos : [])
+        : getSavedNameSharedMemosForSync();
+    return list.find((entry) => String(entry?.candidateKey || '').trim() === key) || null;
+}
+
+function persistSavedNameSharedMemo(candidateKey, message) {
+    const key = String(candidateKey || '').trim().slice(0, 240);
+    if (!key) return false;
+    const normalizedMessage = String(message || '').trim().slice(0, 100);
+    const current = getSavedNameSharedMemosForSync().filter((entry) => entry.candidateKey !== key);
+    if (normalizedMessage) {
+        current.push({ candidateKey: key, message: normalizedMessage, updatedAt: new Date().toISOString() });
+    }
+    localStorage.setItem(SAVED_NAME_SHARED_MEMO_KEY, JSON.stringify(current.slice(-100)));
+    return true;
+}
+
+function shouldSaveMemoOnCandidate(item, source = 'own') {
     return source === 'own'
         && !!item
         && item.fromPartner !== true
         && item.approvedFromPartner !== true;
+}
+
+function canEditSavedNameMemo(item, source = 'own') {
+    if (!item) return false;
+    if (source === 'own') return true;
+    return source === 'partner'
+        && typeof MeimayPairing !== 'undefined'
+        && !!MeimayPairing.roomCode;
 }
 
 function escapeSavedNameMemoText(value) {
@@ -1060,9 +1110,12 @@ function escapeSavedNameMemoText(value) {
 
 function showSavedNameMemoEditor(index, source = 'own') {
     const saved = getSavedNames();
-    const item = source === 'own' ? saved[index] : null;
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : saved;
+    const item = sourceSaved[index];
     if (!canEditSavedNameMemo(item, source)) {
-        if (typeof showToast === 'function') showToast('自分が追加した候補だけ編集できます', '✓');
+        if (typeof showToast === 'function') showToast('パートナー連携中にメモを残せます', '✓');
         return false;
     }
 
@@ -1073,9 +1126,9 @@ function showSavedNameMemoEditor(index, source = 'own') {
              onclick="if(event.target.id==='saved-memo-editor-modal')closeSavedNameMemoEditor()">
             <div class="modal-sheet w-11/12 max-w-lg" onclick="event.stopPropagation()">
                 <button class="modal-close-x" onclick="closeSavedNameMemoEditor()">✕</button>
-                <h3 class="modal-title">メモを編集</h3>
+                <h3 class="modal-title">自分のメモを編集</h3>
                 <div class="modal-body">
-                    <label class="mb-2 block text-xs font-bold text-[#a6967a]" for="saved-memo-editor-input">メモ（任意）</label>
+                    <label class="mb-2 block text-xs font-bold text-[#a6967a]" for="saved-memo-editor-input">自分のメモ（任意）</label>
                     <textarea id="saved-memo-editor-input"
                               class="w-full resize-none rounded-2xl border-2 border-[#eee5d8] bg-white px-4 py-3 text-sm font-medium text-[#5d5444] outline-none transition-all focus:border-[#bca37f]"
                               placeholder="例：響きが好き、優しい印象"
@@ -1085,7 +1138,7 @@ function showSavedNameMemoEditor(index, source = 'own') {
                 </div>
                 <div class="modal-footer flex gap-2">
                     <button onclick="closeSavedNameMemoEditor()" class="flex-1 rounded-xl bg-white py-4 text-xs font-bold text-[#a6967a]">戻る</button>
-                    <button onclick="saveSavedNameMemo(${index})" class="btn-modal-primary flex-1">保存する</button>
+                    <button onclick="saveSavedNameMemo(${index}, '${source}')" class="btn-modal-primary flex-1">保存する</button>
                 </div>
             </div>
         </div>
@@ -1093,7 +1146,12 @@ function showSavedNameMemoEditor(index, source = 'own') {
     document.body.insertAdjacentHTML('beforeend', modal);
     const input = document.getElementById('saved-memo-editor-input');
     if (input) {
-        input.value = String(item.message || '').slice(0, 100);
+        const candidateKey = getSavedCandidateKey(item);
+        const ownSavedItem = saved.find((entry) => getSavedCandidateKey(entry) === candidateKey && entry.approvedFromPartner !== true);
+        const ownSharedMemo = getSavedNameSharedMemo(candidateKey, 'own');
+        input.value = String(shouldSaveMemoOnCandidate(item, source)
+            ? item.message || ''
+            : ownSavedItem?.message || ownSharedMemo?.message || '').slice(0, 100);
         setTimeout(() => input.focus(), 50);
     }
     return true;
@@ -1103,29 +1161,38 @@ function closeSavedNameMemoEditor() {
     document.getElementById('saved-memo-editor-modal')?.remove();
 }
 
-function saveSavedNameMemo(index) {
+function saveSavedNameMemo(index, source = 'own') {
     const saved = getSavedNames();
-    const item = saved[index];
-    if (!canEditSavedNameMemo(item, 'own')) {
+    const pairInsights = typeof window.MeimayPartnerInsights !== 'undefined' ? window.MeimayPartnerInsights : null;
+    const partnerSaved = pairInsights?.getPartnerSaved ? pairInsights.getPartnerSaved() : [];
+    const sourceSaved = source === 'partner' ? partnerSaved : saved;
+    const item = sourceSaved[index];
+    if (!canEditSavedNameMemo(item, source)) {
         closeSavedNameMemoEditor();
-        if (typeof showToast === 'function') showToast('自分が追加した候補だけ編集できます', '✓');
+        if (typeof showToast === 'function') showToast('パートナー連携中にメモを残せます', '✓');
         return false;
     }
 
     const input = document.getElementById('saved-memo-editor-input');
     const message = String(input?.value || '').trim().slice(0, 100);
-    const updated = saved.map((entry, entryIndex) => entryIndex === index
-        ? { ...entry, message }
-        : entry);
-
-    if (typeof savedNames !== 'undefined') savedNames = updated;
-    if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
-        StorageBox.saveSavedNames();
+    const candidateKey = getSavedCandidateKey(item);
+    const ownSavedIndex = saved.findIndex((entry) => getSavedCandidateKey(entry) === candidateKey && entry.approvedFromPartner !== true);
+    if (shouldSaveMemoOnCandidate(item, source) || ownSavedIndex >= 0) {
+        const targetIndex = shouldSaveMemoOnCandidate(item, source) ? index : ownSavedIndex;
+        const updated = saved.map((entry, entryIndex) => entryIndex === targetIndex
+            ? { ...entry, message }
+            : entry);
+        if (typeof savedNames !== 'undefined') savedNames = updated;
+        if (typeof StorageBox !== 'undefined' && typeof StorageBox.saveSavedNames === 'function') {
+            StorageBox.saveSavedNames();
+        } else {
+            localStorage.setItem('meimay_saved', JSON.stringify(updated));
+            localStorage.removeItem('meimay_saved_cleared_at');
+        }
+        persistActiveChildWorkspaceSnapshot('edit-saved-name-memo');
     } else {
-        localStorage.setItem('meimay_saved', JSON.stringify(updated));
-        localStorage.removeItem('meimay_saved_cleared_at');
+        persistSavedNameSharedMemo(candidateKey, message);
     }
-    persistActiveChildWorkspaceSnapshot('edit-saved-name-memo');
     if (typeof MeimayPairing !== 'undefined' && MeimayPairing.roomCode) {
         MeimayPairing._autoSyncDebounced?.();
     }
@@ -1138,7 +1205,7 @@ function saveSavedNameMemo(index) {
     closeSavedNameMemoEditor();
     closeSavedNameDetail();
     if (typeof renderSavedScreen === 'function') renderSavedScreen();
-    showSavedNameDetail(index, 'own');
+    showSavedNameDetail(index, source);
     if (typeof showToast === 'function') showToast(message ? 'メモを更新しました' : 'メモを削除しました', '✓');
     return true;
 }
@@ -1189,7 +1256,38 @@ function showSavedNameDetail(index, source = 'own') {
     const localDeleteIndex = source === 'own' ? index : -1;
     const sourceBadge = getSavedCandidateCreatorMeta(item, source, canvasState.partnerName);
     const canEditMemo = canEditSavedNameMemo(item, source);
-    const safeMessage = escapeSavedNameMemoText(item.message || '');
+    const partnerName = String(canvasState.partnerName || 'パートナー').trim() || 'パートナー';
+    const partnerMemoLabel = partnerName === 'パートナー'
+        ? 'パートナーのメモ'
+        : `${partnerName.replace(/さん$/, '')}さんのメモ`;
+    const ownSavedCandidate = saved.find((entry) => getSavedCandidateKey(entry) === sourceKey
+        && entry.fromPartner !== true
+        && entry.approvedFromPartner !== true);
+    const partnerSavedCandidate = partnerSaved.find((entry) => getSavedCandidateKey(entry) === sourceKey);
+    const ownSharedMemo = getSavedNameSharedMemo(sourceKey, 'own');
+    const partnerSharedMemo = getSavedNameSharedMemo(sourceKey, 'partner');
+    const ownMemoText = String(
+        ownSavedCandidate?.message
+        || (!sourceBadge.fromPartner && source === 'own' ? item.message : '')
+        || ownSharedMemo?.message
+        || ''
+    ).trim();
+    const partnerMemoText = String(
+        partnerSavedCandidate?.message
+        || (sourceBadge.fromPartner ? item.message : '')
+        || partnerSharedMemo?.message
+        || ''
+    ).trim();
+    const memoEntries = [
+        ownMemoText ? { label: '自分のメモ', message: ownMemoText, tone: 'bg-[#f4f8ff] border-[#dce8f7] text-[#55799e]' } : null,
+        partnerMemoText ? { label: partnerMemoLabel, message: partnerMemoText, tone: 'bg-[#fff5f3] border-[#f3dcd7] text-[#c16f67]' } : null
+    ].filter(Boolean);
+    const memoEntriesHtml = memoEntries.map((entry) => `
+        <div class="rounded-2xl border p-3 ${entry.tone}">
+            <div class="mb-1 text-[10px] font-black tracking-wide">${escapeSavedNameMemoText(entry.label)}</div>
+            <div class="text-[13px] font-medium leading-relaxed text-[#5d5444]">${escapeSavedNameMemoText(entry.message)}</div>
+        </div>
+    `).join('');
     const f = getSavedCandidateFortune(item);
     const originText = typeof getNameOriginDisplayTextForItem === 'function'
         ? getNameOriginDisplayTextForItem(item)
@@ -1292,33 +1390,33 @@ function showSavedNameDetail(index, source = 'own') {
                         </div>
                     </div>
 
-                    ${(item.message || canEditMemo) ? `
+                    ${(memoEntries.length > 0 || canEditMemo) ? `
                     <div class="mb-8 p-5 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
-                        <div class="mb-2 flex items-center justify-between gap-3">
+                        <div class="mb-3 flex items-center justify-between gap-3">
                             <div class="text-[11px] font-black text-[#a6967a]">📝 メモ</div>
-                            ${canEditMemo ? `<button onclick="showSavedNameMemoEditor(${index}, 'own')" class="shrink-0 rounded-full border border-[#dccdb8] bg-white px-3 py-1.5 text-[10px] font-black text-[#9a7a4a] transition active:scale-95">編集</button>` : ''}
+                            ${canEditMemo ? `<button onclick="showSavedNameMemoEditor(${index}, '${source}')" class="shrink-0 rounded-full border border-[#dccdb8] bg-white px-3 py-1.5 text-[10px] font-black text-[#9a7a4a] transition active:scale-95">${ownMemoText ? '自分のメモを編集' : '自分のメモを追加'}</button>` : ''}
                         </div>
-                        <div class="text-sm text-[#5d5444] font-medium leading-relaxed">${safeMessage || 'まだメモはありません。'}</div>
+                        <div class="space-y-2">
+                            ${memoEntriesHtml || '<div class="text-[13px] font-medium leading-relaxed text-[#8b7e66]">まだメモはありません。</div>'}
+                        </div>
                     </div>
                     ` : ''}
 
                     <div class="mb-8 rounded-[28px] border border-[#eadfce] bg-gradient-to-br from-[#fffdf9] via-[#fffaf4] to-[#f7efe2] p-5 shadow-[0_18px_45px_-36px_rgba(93,84,68,0.5)]">
-                        <div class="mb-3 flex items-center justify-between gap-3">
-                            <div>
-                                <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">由来案</div>
-                                <div class="mt-1 text-[12px] font-bold text-[#5d5444]">名前に込める願い</div>
-                            </div>
-                            <button id="saved-origin-btn" data-name-origin-action="saved" onclick="generateOriginFromSaved(${index}, '${source}')"
-                                    class="shrink-0 rounded-2xl px-3.5 py-2.5 text-[11px] font-black transition ${originButtonClass}"
-                                    ${canCreateOrigin ? '' : 'disabled aria-disabled="true"'}>
-                                ${originButtonLabel}
-                            </button>
+                        <div class="mb-3">
+                            <div class="text-[10px] font-black tracking-[0.18em] text-[#bca37f]">由来案</div>
+                            <div class="mt-1 text-[14px] font-black text-[#5d5444]">名前に込める願い</div>
                         </div>
                         ${originText ? `
-                            <p class="line-clamp-2 text-[13px] font-medium leading-relaxed text-[#5d5444]">${safeOriginText}</p>
+                            <p class="line-clamp-3 text-[13px] font-medium leading-relaxed text-[#5d5444]">${safeOriginText}</p>
                         ` : `
                             <p class="text-[12px] font-medium leading-relaxed text-[#8b7e66]">まだ由来案はありません。</p>
                         `}
+                        <button id="saved-origin-btn" data-name-origin-action="saved" onclick="generateOriginFromSaved(${index}, '${source}')"
+                                class="mt-4 w-full rounded-2xl px-4 py-3 text-[12px] font-black transition ${originButtonClass}"
+                                ${canCreateOrigin ? '' : 'disabled aria-disabled="true"'}>
+                            ${originButtonLabel}
+                        </button>
                     </div>
 
                     <!-- 姓名判断エリア (タイトル中央・リンク右下) -->
@@ -1651,6 +1749,7 @@ window.showSavedNameDetail = showSavedNameDetail;
 window.showSavedNameMemoEditor = showSavedNameMemoEditor;
 window.closeSavedNameMemoEditor = closeSavedNameMemoEditor;
 window.saveSavedNameMemo = saveSavedNameMemo;
+window.getSavedNameSharedMemosForSync = getSavedNameSharedMemosForSync;
 window.closeSavedNameDetail = closeSavedNameDetail;
 window.showSavedNameKanjiDetail = showSavedNameKanjiDetail;
 window.showKanjiDetailFromSaved = showKanjiDetailFromSaved;
