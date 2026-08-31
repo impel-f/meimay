@@ -15,6 +15,8 @@ const {
   generateWithFallback,
   buildRateLimitUpdate,
   validateGenerationPayload,
+  GEMINI_RATE_LIMIT_PER_MINUTE,
+  GEMINI_RATE_LIMIT_PER_DAY,
 } = geminiHandler._test;
 
 test('Gemini uses only current GA Flash models in priority order', () => {
@@ -73,12 +75,13 @@ test('kanji fact checks use low-temperature Google Search grounding', () => {
   });
 });
 
-test('name origins use low thinking and a one-field JSON schema without web grounding', () => {
+test('name origins use stable sampling, low thinking, and a one-field JSON schema', () => {
   assert.deepEqual(buildGenerationConfig('nameOrigin'), {
     maxOutputTokens: 1024,
     httpOptions: {
       timeout: 12_000,
     },
+    temperature: 0.35,
     thinkingConfig: { thinkingLevel: 'LOW' },
     responseMimeType: 'application/json',
     responseJsonSchema: {
@@ -86,7 +89,7 @@ test('name origins use low thinking and a one-field JSON schema without web grou
       properties: {
         originDraft: {
           type: 'string',
-          description: '固定された漢字の意味だけを使った、70〜110字の名づけ由来文案',
+          description: '固定された漢字の意味を事実の根拠にし、そこから自然につながる願いを表した名づけ由来文案',
         },
       },
       required: ['originDraft'],
@@ -183,6 +186,25 @@ test('Gemini abuse counters cap requests before costly model generation', () => 
     dateKey: '2026-08-16',
     dailyCount: 30,
   }, now), /limit exceeded/);
+});
+
+test('premium removes only the daily cap and keeps the minute abuse guard', () => {
+  const now = new Date('2026-08-16T03:04:05.000Z');
+  assert.equal(GEMINI_RATE_LIMIT_PER_DAY, 30);
+  assert.equal(GEMINI_RATE_LIMIT_PER_MINUTE, 5);
+  const update = buildRateLimitUpdate({
+    minuteKey: '2026-08-16T03:03',
+    minuteCount: 0,
+    dateKey: '2026-08-16',
+    dailyCount: 300,
+  }, now, { dailyUnlimited: true });
+  assert.equal(update.dailyCount, 301);
+  assert.throws(() => buildRateLimitUpdate({
+    minuteKey: '2026-08-16T03:04',
+    minuteCount: 5,
+    dateKey: '2026-08-16',
+    dailyCount: 300,
+  }, now, { dailyUnlimited: true }), /limit exceeded/);
 });
 
 test('Gemini rejects empty model responses and continues fallback', async () => {

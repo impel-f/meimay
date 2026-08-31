@@ -13,6 +13,7 @@ const {
   getAdminFirestore,
   verifyRequestAuth,
 } = require("./_lib/firebase-admin");
+const { hasPremiumAccess } = require("./_lib/premium-access");
 
 const MODEL_REQUEST_TIMEOUT_MS = 12_000;
 const GEMINI_RATE_LIMIT_PER_MINUTE = 5;
@@ -29,7 +30,7 @@ function getMinuteKey(date = new Date()) {
   return date.toISOString().slice(0, 16);
 }
 
-function buildRateLimitUpdate(current = {}, date = new Date()) {
+function buildRateLimitUpdate(current = {}, date = new Date(), options = {}) {
   const minuteKey = getMinuteKey(date);
   const dateKey = getJstDateKey(date);
   const minuteCount = current.minuteKey === minuteKey
@@ -39,7 +40,9 @@ function buildRateLimitUpdate(current = {}, date = new Date()) {
     ? Math.max(0, Number(current.dailyCount) || 0)
     : 0;
 
-  if (minuteCount >= GEMINI_RATE_LIMIT_PER_MINUTE || dailyCount >= GEMINI_RATE_LIMIT_PER_DAY) {
+  const dailyUnlimited = options.dailyUnlimited === true;
+  if (minuteCount >= GEMINI_RATE_LIMIT_PER_MINUTE
+    || (!dailyUnlimited && dailyCount >= GEMINI_RATE_LIMIT_PER_DAY)) {
     const error = new Error("AI request limit exceeded. Please wait and try again.");
     error.statusCode = 429;
     error.code = "gemini_rate_limit_exceeded";
@@ -58,11 +61,19 @@ async function enforceGeminiRateLimit(uid) {
   const db = getAdminFirestore();
   const usageRef = db.collection(GEMINI_USAGE_COLLECTION).doc(uid);
   await db.runTransaction(async (tx) => {
+    const now = new Date();
+    const premium = await hasPremiumAccess(tx, db, uid, now.getTime());
     const snapshot = await tx.get(usageRef);
-    const update = buildRateLimitUpdate(snapshot.exists ? (snapshot.data() || {}) : {});
+    const update = buildRateLimitUpdate(
+      snapshot.exists ? (snapshot.data() || {}) : {},
+      now,
+      { dailyUnlimited: premium.active }
+    );
     tx.set(usageRef, {
       uid,
       ...update,
+      dailyUnlimited: premium.active,
+      premiumSource: premium.source || null,
       updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
   });
@@ -119,6 +130,7 @@ function buildGenerationConfig(taskType = '') {
     config.tools = [{ googleSearch: {} }];
   } else if (taskType === 'nameOrigin') {
     config.maxOutputTokens = 1024;
+    config.temperature = 0.35;
     config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
     config.responseMimeType = 'application/json';
     config.responseJsonSchema = {
@@ -126,7 +138,7 @@ function buildGenerationConfig(taskType = '') {
       properties: {
         originDraft: {
           type: 'string',
-          description: '固定された漢字の意味だけを使った、70〜110字の名づけ由来文案',
+          description: '固定された漢字の意味を事実の根拠にし、そこから自然につながる願いを表した名づけ由来文案',
         },
       },
       required: ['originDraft'],
@@ -284,4 +296,6 @@ module.exports._test = {
   generateWithFallback,
   buildRateLimitUpdate,
   validateGenerationPayload,
+  GEMINI_RATE_LIMIT_PER_MINUTE,
+  GEMINI_RATE_LIMIT_PER_DAY,
 };
