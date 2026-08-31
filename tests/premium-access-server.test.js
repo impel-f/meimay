@@ -6,6 +6,8 @@ const test = require('node:test');
 const { hasPremiumAccess, isPremiumActive } = require('../api/_lib/premium-access');
 const geminiSource = fs.readFileSync(path.join(__dirname, '..', 'api', 'gemini.js'), 'utf8');
 const originCacheSource = fs.readFileSync(path.join(__dirname, '..', 'api', 'name-origin-cache.js'), 'utf8');
+const premiumSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', '14-admob.js'), 'utf8');
+const marketingSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'marketing.html'), 'utf8');
 
 test('server premium access accepts active paid users and active self trials', () => {
   const now = new Date('2026-08-31T00:00:00.000Z').getTime();
@@ -66,4 +68,9 @@ test('Gemini and origin allowance use the same server-side premium resolver', ()
   assert.match(geminiSource, /const \{ hasPremiumAccess \} = require\("\.\/_lib\/premium-access"\)/);
   assert.match(geminiSource, /\{ dailyUnlimited: premium\.active \}/);
   assert.match(originCacheSource, /const \{ hasPremiumAccess \} = require\('\.\/_lib\/premium-access'\)/);
+});
+
+test('premium origin generation is described as unlimited in app and store marketing', () => {
+  assert.match(premiumSource, /名前の(?:\\n)?由来生成', free: '1日1回', premium: '無制限'/);
+  assert.match(marketingSource, /<td>AIで由来案を作成<\/td>[\s\S]*?<td>1日1回<\/td>[\s\S]*?<td>無制限<\/td>/);
 });
