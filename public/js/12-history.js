@@ -1370,7 +1370,7 @@ function showSavedNameDetail(index, source = 'own') {
         const isLockedDetail = !!masterData && !canOpenDetail;
         const safeLabel = typeof escapeHtmlText === 'function' ? escapeHtmlText(kStr) : kStr;
         const cardClick = masterData
-            ? `onclick="showSavedNameKanjiDetail(${index}, '${source}', ${partIndex})"`
+            ? `onclick="event.stopPropagation(); showSavedNameKanjiDetail(${index}, '${source}', ${partIndex})"`
             : '';
         const cardClass = canOpenDetail
             ? 'cursor-pointer hover:border-[#bca37f] active:scale-90 group'
@@ -1394,7 +1394,7 @@ function showSavedNameDetail(index, source = 'own') {
                     <div class="mb-8 p-5 bg-[#fdfaf5] rounded-3xl border border-[#eee5d8] relative shadow-sm">
                         <div class="mb-3 flex items-center justify-between gap-3">
                             <div class="text-[11px] font-black text-[#a6967a]">📝 メモ</div>
-                            ${canEditMemo ? `<button onclick="showSavedNameMemoEditor(${index}, '${source}')" class="shrink-0 rounded-full border border-[#dccdb8] bg-white px-3 py-1.5 text-[10px] font-black text-[#9a7a4a] transition active:scale-95">${ownMemoText ? '自分のメモを編集' : '自分のメモを追加'}</button>` : ''}
+                            ${canEditMemo ? `<button onclick="event.stopPropagation(); showSavedNameMemoEditor(${index}, '${source}')" class="shrink-0 rounded-full border border-[#dccdb8] bg-white px-3 py-1.5 text-[10px] font-black text-[#9a7a4a] transition active:scale-95">${ownMemoText ? '自分のメモを編集' : '自分のメモを追加'}</button>` : ''}
                         </div>
                         <div class="space-y-2">
                             ${memoEntriesHtml || '<div class="text-[13px] font-medium leading-relaxed text-[#8b7e66]">まだメモはありません。</div>'}
@@ -1412,7 +1412,7 @@ function showSavedNameDetail(index, source = 'own') {
                         ` : `
                             <p class="text-[12px] font-medium leading-relaxed text-[#8b7e66]">まだ由来案はありません。</p>
                         `}
-                        <button id="saved-origin-btn" data-name-origin-action="saved" onclick="generateOriginFromSaved(${index}, '${source}')"
+                        <button id="saved-origin-btn" data-name-origin-action="saved" onclick="event.stopPropagation(); generateOriginFromSaved(${index}, '${source}')"
                                 class="mt-4 w-full rounded-2xl px-4 py-3 text-[12px] font-black transition ${originButtonClass}"
                                 ${canCreateOrigin ? '' : 'disabled aria-disabled="true"'}>
                             ${originButtonLabel}
@@ -1421,7 +1421,7 @@ function showSavedNameDetail(index, source = 'own') {
 
                     <!-- 姓名判断エリア (タイトル中央・リンク右下) -->
                     <div class="mb-8">
-                        <div onclick="showFortuneDetailFromSaved(${index}, '${source}')"
+                        <div onclick="event.stopPropagation(); showFortuneDetailFromSaved(${index}, '${source}')"
                              class="group block p-5 bg-white rounded-[2.5rem] border-2 border-[#eee5d8] hover:border-[#bca37f] transition-all active:scale-[0.98] shadow-sm cursor-pointer relative overflow-hidden">
                             <div class="text-center mb-4 border-b border-[#eee5d8] pb-2">
                                 <label class="text-[11px] font-black text-[#a6967a] tracking-widest">姓名判断 鑑定書</label>
@@ -1462,8 +1462,6 @@ function showSavedNameDetail(index, source = 'own') {
  * 保存詳細から漢字詳細を開く（重ならないよう自らを閉じる）
  */
 function showKanjiDetailFromSaved(kanjiData) {
-    closeSavedNameDetail();
-
     // 文字列の場合はmasterから探す
     let data = kanjiData;
     if (typeof kanjiData === 'string') {
@@ -1476,7 +1474,15 @@ function showKanjiDetailFromSaved(kanjiData) {
 
     if (data && typeof showKanjiDetail === 'function') {
         showKanjiDetail(data);
+        closeSavedNameDetailIfDestinationOpened('modal-kanji-detail');
     }
+}
+
+function closeSavedNameDetailIfDestinationOpened(destinationModalId) {
+    const destination = document.getElementById(destinationModalId);
+    if (!destination?.classList.contains('active')) return false;
+    closeSavedNameDetail();
+    return true;
 }
 
 /**
@@ -1505,10 +1511,9 @@ function showFortuneDetailFromSaved(index, source = 'own') {
         hideSurnameForDisplay: !shouldShowSavedSurname()
     };
 
-    closeSavedNameDetail();
-
     if (typeof showFortuneDetail === 'function') {
         showFortuneDetail();
+        if (!closeSavedNameDetailIfDestinationOpened('modal-fortune-detail')) return;
         // 保存済みから開いた場合は保存ボタンを隠す
         const saveBtn = document.getElementById('fortune-save-btn');
         if (saveBtn) saveBtn.style.display = 'none';

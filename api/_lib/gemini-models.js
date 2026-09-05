@@ -1,5 +1,9 @@
 const MODEL_PRIORITY_GROUPS = [
   {
+    label: "Gemini 3.8 Flash",
+    candidates: ["gemini-3.8-flash"],
+  },
+  {
     label: "Gemini 3.7 Flash",
     candidates: ["gemini-3.7-flash"],
   },

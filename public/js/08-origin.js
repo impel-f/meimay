@@ -4,7 +4,7 @@
  * ============================================================
  */
 
-const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v33_20260831';
+const NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v35_20260906';
 const NAME_ORIGIN_CACHE_KEY = 'meimay_name_origin_cache_v1';
 const NAME_ORIGIN_CACHE_API_PATH = '/api/name-origin-cache';
 const DAILY_NAME_ORIGIN_LIMIT = 1;
@@ -13,7 +13,7 @@ const KANJI_DETAIL_COMPATIBLE_PROMPT_VERSIONS = new Set([
     KANJI_DETAIL_AI_PROMPT_VERSION
 ]);
 const KANJI_READING_AI_PROMPT_VERSION = 'kanji_reading_v8_20260816';
-const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.7-flash';
+const AI_MODEL_CACHE_VERSION_FALLBACK = 'gemini_model_gemini-3.8-flash';
 const KANJI_MEANING_DETAILS_URL = '/data/kanji_meaning_details.json?v=26.02';
 const KANJI_STATIC_DETAILS_URL = '/data/kanji_static_details.json?v=1.10';
 let nameOriginGenerationInFlight = false;
@@ -205,6 +205,9 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
         if (nameIndex < 0) throw new Error('名前由来に対象の名前が含まれていません。');
         originDraft = `${originDraft.slice(0, nameIndex)}「${givenName}」${originDraft.slice(nameIndex + givenName.length)}`;
     }
+    if (isNameOriginKanaOnly(givenName) && !originDraft.includes(getNameOriginKanaScriptLabel(givenName))) {
+        throw new Error('かな表記の種類が名前由来に含まれていません。');
+    }
     if (originDraft.length > 150) throw new Error('名前由来の文章が長すぎます。');
     if ((originDraft.match(/[。！？!?]/g) || []).length > 2) {
         throw new Error('名前由来の文数が多すぎます。');
@@ -223,7 +226,7 @@ function validateGeneratedNameOriginText(text, result = currentBuildResult) {
     if (requiredWishKanji.some((kanji) => !wishSentence.includes(kanji))) {
         throw new Error('名前由来の願いに反映されていない漢字があります。');
     }
-    const bannedPattern = /(?:自然に伝えられます|説明できます|込めることができます|願いが込められます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく|輝く未来|道しるべ)/;
+    const bannedPattern = /(?:自然に伝えられます|説明できます|込めることができます|願いが込められます|人生の荒波|未来を切り拓く|可能性の扉|自分らしく羽ばたく|輝く未来|道しるべ|誰からも|みんなから|多くの人から)/;
     if (bannedPattern.test(originDraft)) throw new Error('名前由来に根拠外の定型表現があります。');
     return JSON.stringify({ originDraft });
 }
@@ -1331,6 +1334,16 @@ function buildFallbackNameOriginModel(result = currentBuildResult, text = '') {
         };
     }
 
+    if (isNameOriginKanaOnly(givenName)) {
+        const reading = getNameOriginGivenReading(result) || givenName;
+        const profile = getNameOriginSoundProfile(reading);
+        const scriptLabel = getNameOriginKanaScriptLabel(givenName);
+        const soundImpression = getNameOriginSoundImpression(profile);
+        return {
+            originDraft: `「${givenName}」は、${scriptLabel}の親しみやすい表記と、${profile.moraCount}拍の${soundImpression}響きを大切にした名前です。呼ぶ人に自然に親しまれ、自分の名前を大切に歩んでほしいという願いを込めています。`
+        };
+    }
+
     const joinedMeanings = meaningPhrases.length > 0
         ? meaningPhrases.join('と、')
         : '一つひとつの漢字が持つ意味';
@@ -1497,8 +1510,54 @@ function stringifyNameOriginModel(model) {
     }, null, 2);
 }
 
+function isNameOriginKanaOnly(value) {
+    const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, '');
+    return !!normalized && /^[ぁ-ゖァ-ヺー]+$/u.test(normalized);
+}
+
+function getNameOriginKanaScriptLabel(value) {
+    const normalized = String(value || '').normalize('NFKC').replace(/\s+/g, '');
+    if (/^[ぁ-ゖー]+$/u.test(normalized)) return 'ひらがな';
+    if (/^[ァ-ヺー]+$/u.test(normalized)) return 'カタカナ';
+    return 'かな';
+}
+
+function buildKanaNameOriginPrompt(result = currentBuildResult) {
+    const givenName = getNameOriginGivenName(result);
+    const givenReading = getNameOriginGivenReading(result) || givenName;
+    const scriptLabel = getNameOriginKanaScriptLabel(givenName);
+    const soundProfile = getNameOriginSoundProfile(givenReading);
+    const verifiedSoundText = getNameOriginSoundText(result);
+
+    return `
+名付けアプリに掲載する、かな表記の名前の「この名前に込める願い」の文案を作成してください。
+
+出力はJSONのみ、キーは"originDraft"だけです。文案は65〜105字、です・ます調の2文にしてください。
+冒頭で名前を「${givenName}」と正確に一度だけ書いてください。
+
+この名前には漢字の意味データがありません。かなを一文字ずつ意味のある漢字・記号として扱わず、「${givenName}」を分解しません。同音の漢字、親が実際に選んだ理由、性格や能力を推測しません。
+
+まず、「${givenName}」というかな表記全体が、現代日本語で一般に使われる一つの語として、明確で肯定的または中立的な意味を持つかを内部で判定してください。判定結果そのものや確度は出力しません。
+一般語として高い確信がある場合だけ、1文目で「『${givenName}』という言葉が表す〜」または「『${givenName}』という言葉から連想される〜」と、その語の直接的な意味・イメージを一つ簡潔に使ってください。「ゆかり」なら縁やつながり、「ひかり」なら光や明るさのように、同じかなで実際に成立する語の意味に限ります。花・色・自然なども、そのかな表記自体の一般的な語義である場合だけ使えます。
+一般語か固有名詞か判断が分かれる場合、複数の意味から一つに絞れない場合、否定的な意味しかない場合、または同音の漢字を当てないと意味が成立しない場合は、語の意味に言及せず、表記と響きだけを使ってください。「たろう」のような人名としての用例だけを、一般語の意味があるとは判定しません。
+1文目には「${scriptLabel}」という語を必ず入れ、使用できる一般語の意味があればそのイメージを優先し、なければ表記の親しみやすさと入力された響き情報から確認できる特徴を名前全体の印象として自然にまとめてください。響きの特徴を性格の断定に変えません。
+2文目は、1文目で使った一般語の意味、または表記と響きから直接つながる範囲で、親が自然に込められる一つの願いを書いてください。「誰からも」「みんなから」「多くの人から」のように範囲を広げません。根拠のない「優しい心」「温かな心」「周囲を照らす」「人との絆」「自分らしく羽ばたく」などの人物像や定型表現は追加しません。
+文末は親自身の言葉として「〜という願いを込めています。」または「〜という思いを込めています。」と結びます。「込めることができます」「願いが込められます」のような第三者視点にはしません。
+
+JSON形式: {"originDraft":""}
+名前: ${givenName}
+表記: ${scriptLabel}
+読み: ${givenReading}
+拍数: ${soundProfile.moraCount}
+確認済みの響き情報: ${verifiedSoundText}
+`.trim();
+}
+
 function buildNameOriginPrompt(result = currentBuildResult) {
     const givenName = getNameOriginGivenName(result);
+    if (isNameOriginKanaOnly(givenName)) {
+        return buildKanaNameOriginPrompt(result);
+    }
     const givenNameLength = Array.from(givenName || '').length;
     const lengthGuide = givenNameLength <= 1 ? '50〜80字' : '65〜105字';
     const meaningParts = getNameOriginMeaningParts(result);
@@ -1527,7 +1586,7 @@ function buildNameOriginPrompt(result = currentBuildResult) {
             nameSpecificContext,
             verifiedCulturalReferences
         };
-    }).filter(item => item.kanji && item.namingMeaning);
+    }).filter(item => item.kanji && item.namingMeaning && isNameOriginKanjiText(item.kanji));
     const originDataText = JSON.stringify(originDetails);
 
     return `
@@ -1580,71 +1639,75 @@ async function generateOrigin(options = {}) {
         return;
     }
 
-    await loadKanjiStaticDetails();
-
-    const modelMetadata = await getActiveAiModelMetadata();
-    let modelCacheVersion = modelMetadata.modelCacheVersion;
-    let cachedModelName = '';
-    const cloudCacheKey = getNameOriginCacheKey(target, modelCacheVersion);
-    let cachedText = getNameOriginStoredTextForItem(target, modelCacheVersion);
-    if (!cachedText && !options.force && !hasNameOriginCacheReset(target)) {
-        try {
-            const cloudCache = await callNameOriginCacheApi({
-                action: 'getOrigin',
-                cacheKey: cloudCacheKey,
-                promptVersion: NAME_ORIGIN_PROMPT_VERSION,
-                modelCacheVersion
-            });
-            if (cloudCache?.hit) {
-                cachedText = validateGeneratedNameOriginText(cloudCache.text || '', target);
-                cachedModelName = String(cloudCache.modelName || '').trim();
-            }
-        } catch (error) {
-            console.warn('NAME_ORIGIN_CACHE: cloud read failed', error);
-        }
-    }
-    if (cachedText && !options.force) {
-        const originUpdatedAt = new Date().toISOString();
-        target.origin = cachedText;
-        target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
-        target.originModelCacheVersion = modelCacheVersion;
-        target.originModelName = cachedModelName;
-        target.originUpdatedAt = originUpdatedAt;
-        if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
-            currentBuildResult.origin = cachedText;
-            currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
-            currentBuildResult.originModelCacheVersion = modelCacheVersion;
-            currentBuildResult.originModelName = cachedModelName;
-            currentBuildResult.originUpdatedAt = originUpdatedAt;
-        }
-        const cacheMeta = { modelCacheVersion, modelName: cachedModelName, originUpdatedAt };
-        saveNameOriginCache(target, cachedText, cacheMeta);
-        persistNameOriginToSavedItems(target, cachedText, { ...options, ...cacheMeta });
-        renderAIOriginResult(target, cachedText, false, options);
-        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
-        return;
-    }
-
-    const consumption = await consumeDailyNameOriginUseForGeneration();
-    if (!consumption.ok) {
-        if (typeof showToast === 'function') showToast('今日の無料AI由来は使い切りました', '🌙');
-        else alert('今日の無料AI由来は使い切りました');
-        if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
-        return;
-    }
-
     const modal = document.getElementById('modal-origin');
     if (!modal) {
         console.error("ORIGIN: modal-origin not found");
-        await refundDailyNameOriginUseForGeneration(consumption);
         return;
     }
 
     nameOriginGenerationInFlight = true;
     const generationToken = ++activeNameOriginGenerationToken;
     renderNameOriginLoading(target);
+    let consumption = null;
 
     try {
+        await loadKanjiStaticDetails();
+
+        const modelMetadata = await getActiveAiModelMetadata();
+        let modelCacheVersion = modelMetadata.modelCacheVersion;
+        let cachedModelName = '';
+        const cloudCacheKey = getNameOriginCacheKey(target, modelCacheVersion);
+        let cachedText = getNameOriginStoredTextForItem(target, modelCacheVersion);
+        if (!cachedText && !options.force && !hasNameOriginCacheReset(target)) {
+            try {
+                const cloudCache = await callNameOriginCacheApi({
+                    action: 'getOrigin',
+                    cacheKey: cloudCacheKey,
+                    promptVersion: NAME_ORIGIN_PROMPT_VERSION,
+                    modelCacheVersion
+                });
+                if (cloudCache?.hit) {
+                    cachedText = validateGeneratedNameOriginText(cloudCache.text || '', target);
+                    cachedModelName = String(cloudCache.modelName || '').trim();
+                }
+            } catch (error) {
+                console.warn('NAME_ORIGIN_CACHE: cloud read failed', error);
+            }
+        }
+        if (cachedText && !options.force) {
+            const originUpdatedAt = new Date().toISOString();
+            target.origin = cachedText;
+            target.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+            target.originModelCacheVersion = modelCacheVersion;
+            target.originModelName = cachedModelName;
+            target.originUpdatedAt = originUpdatedAt;
+            if (typeof currentBuildResult !== 'undefined' && currentBuildResult && isSameNameOriginTarget(currentBuildResult, target)) {
+                currentBuildResult.origin = cachedText;
+                currentBuildResult.originPromptVersion = NAME_ORIGIN_PROMPT_VERSION;
+                currentBuildResult.originModelCacheVersion = modelCacheVersion;
+                currentBuildResult.originModelName = cachedModelName;
+                currentBuildResult.originUpdatedAt = originUpdatedAt;
+            }
+            const cacheMeta = { modelCacheVersion, modelName: cachedModelName, originUpdatedAt };
+            saveNameOriginCache(target, cachedText, cacheMeta);
+            persistNameOriginToSavedItems(target, cachedText, { ...options, ...cacheMeta });
+            if (generationToken === activeNameOriginGenerationToken) {
+                renderAIOriginResult(target, cachedText, false, options);
+            }
+            if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
+            return;
+        }
+
+        consumption = await consumeDailyNameOriginUseForGeneration();
+        if (!consumption.ok) {
+            if (generationToken === activeNameOriginGenerationToken) {
+                renderNameOriginLimitNotice(target);
+            }
+            if (typeof showToast === 'function') showToast('今日の無料分は利用済みです', '🌙');
+            if (typeof syncBuildSaveButton === 'function') syncBuildSaveButton(true);
+            return;
+        }
+
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
         const response = await fetch(getMeimayApiUrl('/api/gemini'), {
@@ -1746,6 +1809,36 @@ function renderNameOriginLoading(result = currentBuildResult) {
             <div class="name-origin-loading-content">
                 <div class="name-origin-loading-mark" aria-hidden="true"></div>
                 <p class="name-origin-loading-text">名前に込める願いを整えています</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderNameOriginLimitNotice(result = currentBuildResult) {
+    const modal = document.getElementById('modal-origin');
+    if (!modal) return;
+    const givenReading = escapeHtml(getNameOriginGivenReading(result));
+    modal.classList.add('active', 'modal-overlay-dark');
+    modal.onclick = (event) => {
+        if (event.target === modal) closeOriginModal();
+    };
+    modal.innerHTML = `
+        <div class="detail-sheet animate-fade-in name-origin-sheet">
+            <button type="button" class="name-origin-dismiss-action" onclick="closeOriginModal()" aria-label="閉じる">×</button>
+            <div class="name-origin-header">
+                <div class="name-origin-eyebrow">名前に込める願い</div>
+                ${renderNameOriginHeaderCards(result, { disabled: true })}
+                ${givenReading ? `<div class="name-origin-reading">${givenReading}</div>` : ''}
+            </div>
+            <div class="name-origin-loading-content">
+                <div class="text-3xl" aria-hidden="true">🌙</div>
+                <p class="name-origin-loading-text">今日の無料分は利用済みです</p>
+                <p class="text-center text-xs font-medium leading-relaxed text-[#8b7e66]">明日また1回利用できます。</p>
+                ${typeof showPremiumModal === 'function' ? `
+                    <button type="button" onclick="showPremiumModal()" class="mt-5 w-full rounded-2xl bg-gradient-to-r from-[#8b7e66] to-[#bca37f] px-4 py-3 text-sm font-black text-white shadow-sm active:scale-95">
+                        プレミアムを見る
+                    </button>
+                ` : ''}
             </div>
         </div>
     `;
@@ -1966,12 +2059,20 @@ async function generateOriginFromSaved(index, source = 'own') {
     const item = getNameOriginSavedItem(index, source);
     if (!item) return;
     currentBuildResult = JSON.parse(JSON.stringify(item));
-    closeSavedNameDetail();
-    await generateOrigin({
-        result: currentBuildResult,
-        savedIndex: index,
-        source
-    });
+    try {
+        const originTask = generateOrigin({
+            result: currentBuildResult,
+            savedIndex: index,
+            source
+        });
+        if (typeof closeSavedNameDetailIfDestinationOpened === 'function') {
+            closeSavedNameDetailIfDestinationOpened('modal-origin');
+        }
+        await originTask;
+    } catch (error) {
+        console.warn('SAVED_NAME_ORIGIN: Failed to open origin detail', error);
+        if (typeof showToast === 'function') showToast('由来を開けませんでした。もう一度お試しください', '!');
+    }
 }
 
 function clearNameOriginFromSaved(index, source = 'own') {

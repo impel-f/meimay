@@ -138,7 +138,7 @@ function buildGenerationConfig(taskType = '') {
       properties: {
         originDraft: {
           type: 'string',
-          description: '固定された漢字の意味を事実の根拠にし、そこから自然につながる願いを表した名づけ由来文案',
+          description: '入力された確認済みの漢字情報、またはかな名の一般語としての意味・表記・響きを根拠にした名づけ由来文案',
         },
       },
       required: ['originDraft'],

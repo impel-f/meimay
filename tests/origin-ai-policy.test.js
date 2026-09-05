@@ -44,7 +44,7 @@ test('name origin AI writes only the editable wish draft from fixed kanji meanin
     assert.match(originSource, /2文目はそこから直接つながる一つの願いを書きます/);
     assert.match(originSource, /「笑顔あふれる日々」「周りを照らす」など入力からさらに結果を足す表現/);
     assert.match(originSource, /「込めることができます」「願いが込められます」のような第三者視点にはしません/);
-    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v33_20260831'/);
+    assert.match(originSource, /NAME_ORIGIN_PROMPT_VERSION = 'name_origin_v35_20260906'/);
     assert.match(originSource, /const expectedKeys = \['originDraft'\]/);
     assert.match(originSource, /const nameIndex = originDraft\.indexOf\(givenName\)/);
     assert.match(originSource, /すべての語義を無理に詰め込みません/);
@@ -77,6 +77,17 @@ test('kana-only names do not render fake kanji meanings or reading warnings', ()
     assert.match(originSource, /if \(!kanji \|\| !isNameOriginKanjiText\(kanji\)\) return null/);
     assert.match(originSource, /filter\(\(\{ char \}\) => !!findNameOriginMasterItemByKanji\(char\)\)/);
     assert.match(originSource, /if \(chars\.length === 0\) return ''/);
+    assert.match(originSource, /function buildKanaNameOriginPrompt\(result = currentBuildResult\)/);
+    assert.match(originSource, /かなを一文字ずつ意味のある漢字・記号として扱わず/);
+    assert.match(originSource, /現代日本語で一般に使われる一つの語として/);
+    assert.match(originSource, /一般語として高い確信がある場合だけ/);
+    assert.match(originSource, /同音の漢字を当てないと意味が成立しない場合/);
+    assert.match(originSource, /「たろう」のような人名としての用例だけ/);
+    assert.match(originSource, /「\$\{scriptLabel\}」という語を必ず入れ/);
+    assert.match(originSource, /誰からも\|みんなから\|多くの人から/);
+    assert.match(originSource, /if \(isNameOriginKanaOnly\(givenName\)\) \{\s*return buildKanaNameOriginPrompt\(result\)/);
+    assert.match(originSource, /item\.namingMeaning && isNameOriginKanjiText\(item\.kanji\)/);
+    assert.doesNotMatch(originSource, /「た」「ろ」「う」のそれぞれの文字/);
 });
 
 test('kanji details put deep meaning first and cap visible idioms', () => {
